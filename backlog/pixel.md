@@ -37,7 +37,7 @@ The gaps are in composition fidelity, color, and the GPU backend.
 
 ## Tier A — Composable image effects
 
-### T-426 — JPEG chroma sampling is limited to one block per unit
+### B-467 — JPEG chroma sampling is limited to one block per unit
 
 - Problem: `Jpg.Decoder` recognizes four layouts by their sampling numbers, and every one of them
   needs the two chroma components to sample `1x1`. That covers every still image in practice, and
@@ -55,7 +55,7 @@ The gaps are in composition fidelity, color, and the GPU backend.
   the same pictures as their 4:2:0 sibling.
 - Related: [video.md](video.md)
 
-### T-049 — No image filter graph
+### B-205 — No image filter graph
 
 - Problem: blur exists only as a painter shader (`setBlurShader`), applied to what is being drawn.
   There is no graph that applies a composable effect to a rendered result or chains effect output
@@ -65,118 +65,118 @@ The gaps are in composition fidelity, color, and the GPU backend.
   not the same tool.
 - Fix the graph evaluation, render-target lifetime, bounds propagation, caching, and composition
   contract independently of its concrete effect nodes.
-- Related: T-371, T-372, T-373, T-374, T-375
+- Related: B-433, B-434, B-435, B-436, B-437
 
-### T-371 — No composable blur effect node
+### B-433 — No composable blur effect node
 
-Apply blur to a rendered input inside T-049's graph, independently of the painter's draw-time blur
+Apply blur to a rendered input inside B-205's graph, independently of the painter's draw-time blur
 shader.
 
-- Related: T-049, T-310
+- Related: B-205, B-388
 
-### T-372 — No composable offset effect node
+### B-434 — No composable offset effect node
 
 Translate an effect input while correctly expanding and propagating its bounds.
 
-- Related: T-049, T-310
+- Related: B-205, B-388
 
-### T-373 — No composable color-matrix effect node
+### B-435 — No composable color-matrix effect node
 
 Apply a declared color matrix inside the graph with the working-space behavior coordinated with
-T-052.
+B-207.
 
-- Related: T-049, T-052
+- Related: B-205, B-207
 
-### T-374 — No composable blend effect node
+### B-436 — No composable blend effect node
 
-Blend two graph inputs using the painter's artistic blend modes and T-052's color-space contract.
+Blend two graph inputs using the painter's artistic blend modes and B-207's color-space contract.
 
-- Related: T-049, T-052
+- Related: B-205, B-207
 
-### T-375 — No composable merge effect node
+### B-437 — No composable merge effect node
 
 Merge an ordered set of graph inputs without requiring them to be blended pairwise by callers.
 
-- Related: T-049
+- Related: B-205
 
 ## Tier A — SVG input fidelity
 
-### T-186 — SVG gradient geometry is incomplete
+### B-307 — SVG gradient geometry is incomplete
 
 - Linear and centered radial paint servers, stops, spreads, percentages, user-space units and
   translate/scale gradient transforms are parsed. Radial focal points and non-square
   object-bounding-box ellipses still need a brush representation that both renderers share.
 - Gradient inheritance resolves an already parsed `href`; forward inheritance chains and cycles
   still need a deferred resolver with explicit invalid-reference behavior.
-- Related: T-189, T-191, T-192
+- Related: B-308, B-309, B-310
 
-### T-189 — SVG clipping paths are not parsed
+### B-308 — SVG clipping paths are not parsed
 
 Implement `clipPath` over the existing painter clipping facilities.
 
-- Related: T-049, T-186, T-326
+- Related: B-205, B-307, B-402
 
-### T-326 — SVG masks are not parsed
+### B-402 — SVG masks are not parsed
 
 Implement `mask` as a compositing operation over render targets independently of clipping paths.
 
-- Related: T-049, T-186, T-189
+- Related: B-205, B-307, B-308
 
-### T-191 — SVG markers are not parsed
+### B-309 — SVG markers are not parsed
 
 Implement start, mid, and end markers with correct path tangent orientation.
 
-- Related: T-186, T-209
+- Related: B-307, B-325
 
-### T-192 — SVG symbols are not parsed
+### B-310 — SVG symbols are not parsed
 
 Implement `symbol` instancing and viewport behavior independently of ordinary `use` references.
 
-- Related: T-186
+- Related: B-307
 
 ---
 
 ## Tier B — Pixel precision and representation
 
-### T-051 — No 16-bit integer pixel formats
+### B-206 — No 16-bit integer pixel formats
 
 - `PixelFormat` is `BGR8`, `BGRA8`, `RGB8`, `RGBA8`. Add 16-bit integer RGB/RGBA formats with codec,
   filter, conversion, and render-target behavior stated.
 - Consequence: no HDR imaging, no high-precision intermediate for a filter chain, and no headroom
-  in the render targets that T-049 would introduce. A multi-stage effect graph quantising to
+  in the render targets that B-205 would introduce. A multi-stage effect graph quantising to
   eight bits at every step is where banding comes from.
-- Related: T-195, T-196, T-197
+- Related: B-311, B-312, B-313
 
-### T-195 — No half-float pixel formats
+### B-311 — No half-float pixel formats
 
 Add half-float formats with defined NaN, infinity, conversion, and render-target semantics.
 
-- Related: T-051, T-052, T-200, T-207, T-353
+- Related: B-206, B-207, B-316, B-323, B-422
 
-### T-353 — No full-float pixel formats
+### B-422 — No full-float pixel formats
 
 Add full-float formats independently of half precision, preserving the same conversion and
 render-target contract.
 
-- Related: T-195, T-207
+- Related: B-311, B-323
 
-### T-196 — No single-channel pixel format
+### B-312 — No single-channel pixel format
 
 Add grayscale/mask storage suitable for distance fields and effect masks without expanding each
 sample to RGB.
 
-- Related: T-051, T-189
+- Related: B-206, B-308
 
-### T-197 — Premultiplication is not represented in pixel formats
+### B-313 — Premultiplication is not represented in pixel formats
 
 Make straight versus premultiplied alpha explicit in the type or format contract and test every
 conversion boundary.
 
-- Related: T-051, T-052
+- Related: B-206, B-207
 
 ## Tier B — Colour management and display range
 
-### T-052 — No colour management
+### B-207 — No colour management
 
 - Nothing in the API distinguishes sRGB from linear. Declare the working space and transfer
   behavior in images, brushes, blending, filters, and surfaces.
@@ -184,43 +184,33 @@ conversion boundary.
   standard cause of gradients and antialiased edges reading darker than they should — so this is a
   fidelity question, not a checkbox. Skia and Direct2D both take a position on it; this module
   takes none, which means the caller cannot take one either.
-- Related: T-195, T-198, T-199, T-200
+- Related: B-311, B-314, B-315, B-316
 
-### T-198 — No ICC profile handling
+### B-314 — No ICC profile handling
 
 Read, preserve, and convert embedded ICC profiles independently of choosing the default working
 space.
 
-- Related: T-052
+- Related: B-207
 
-### T-199 — No wide-gamut surface contract
+### B-315 — No wide-gamut surface contract
 
 Let images and surfaces declare a wide-gamut space such as Display P3 and convert to it correctly.
 
-- Related: T-052, T-198, T-200
+- Related: B-207, B-314, B-316
 
-### T-200 — No HDR output path
+### B-316 — No HDR output path
 
 Define HDR surface formats, transfer functions, luminance metadata, and tone-mapping boundaries.
 
-- Related: T-195, T-199
+- Related: B-311, B-315
 
 ---
 
 ## Tier C — Rendering backends and vector output
 
-### T-053 — OpenGL is the only GPU backend
 
-- `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
-- On Windows this is the weakest choice available: OpenGL driver quality varies widely, and some
-  ARM devices have no usable implementation at all. Skia ships GL, Vulkan, Metal and D3D.
-- This also intersects
-  [T-028](core.md#t-028--process-services-have-no-second-platform-backend). A second platform
-  needs a second backend regardless,
-  so choose the target with that in mind rather than twice.
-- The backend boundary is already two implementations deep, so a third is additive.
-
-### T-054 — No vector output
+### B-209 — No vector output
 
 Add PDF output that preserves text and paths as vectors and embeds raster content at source
 resolution. This is the vector target needed by printing.
@@ -228,112 +218,94 @@ resolution. This is the vector target needed by printing.
 - Note: the repository's PDF writer lives in `std/gui` (`gui/src/controls/pdf/encode.swg`), above
   this module. Taking this entry up means either moving that writer below both consumers or
   growing a painter-native one here; do not duplicate it silently.
-- Related: T-201, T-202, T-238, T-047
+- Related: B-317, B-318, B-346, B-204
 
-### T-201 — No SVG output
+### B-317 — No SVG output
 
 Serialize supported painter content to SVG with explicit fallback behavior for effects and raster
 operations that have no direct representation.
 
-- Related: T-054, T-186
+- Related: B-209, B-307
 
-### T-202 — No PostScript output
+### B-318 — No PostScript output
 
 Add PostScript only as a separately justified output backend; it must not be hidden inside PDF
 completion.
 
-- Related: T-054
+- Related: B-209
 
 ## Tier C — Image and texture codecs
 
-### T-055 — No QOI codec
+### B-210 — No QOI codec
 
 Add QOI encoding and decoding as the smallest remaining general-purpose codec.
 
-- Related: T-203, T-204, T-205, T-206, T-207, T-208
+- Related: B-319, B-320, B-321, B-322, B-323, B-324
 
-### T-203 — No AVIF codec
+### B-319 — No AVIF codec
 
 Add AVIF decoding and encoding as its own dependency and color-management decision.
 
-- Related: T-052, T-055
+- Related: B-207, B-210
 
-### T-204 — No JPEG XL codec
+### B-320 — No JPEG XL codec
 
 Add JPEG XL decoding and encoding independently of AVIF.
 
-- Related: T-055
+- Related: B-210
 
-### T-205 — No DDS texture container
+### B-321 — No DDS texture container
 
 Read and write DDS metadata and supported block-compressed payloads without coupling it to KTX2.
 
-- Related: T-053, T-206
+- Related: B-208, B-322
 
-### T-206 — No KTX2 texture container
+### B-322 — No KTX2 texture container
 
 Read and write KTX2 and define which GPU-compressed formats can remain compressed through upload.
 
-- Related: T-053, T-205
+- Related: B-208, B-321
 
-### T-207 — No EXR codec
+### B-323 — No EXR codec
 
 Add OpenEXR-compatible high-dynamic-range image I/O after floating-point formats exist.
 
-- Related: T-195
+- Related: B-311
 
-### T-208 — No PSD importer
+### B-324 — No PSD importer
 
 Import a documented PSD subset, including how layers, masks, color modes, and unsupported effects
 map into Pixel structures.
 
-- Related: T-049, T-055
+- Related: B-205, B-210
 
 ## Tier C — Geometry and font resources
 
-### T-056 — Path effects
+### B-211 — Path effects
 
 Dashing exists. Add path trimming by normalized or absolute arc-length ranges.
 
-- Related: T-209, T-210, T-211
+- Related: B-325, B-326, B-327
 
-### T-209 — No public path arc-length measurement
+### B-325 — No public path arc-length measurement
 
 Expose total length and point/tangent sampling with stated flattening tolerance.
 
-- Related: T-056, T-191
+- Related: B-211, B-309
 
-### T-210 — No corner path effect
+### B-326 — No corner path effect
 
 Add a corner-rounding effect independently of trimming and measurement.
 
-- Related: T-056
+- Related: B-211
 
-### T-211 — Painter paths cannot use polygon boolean operations
+### B-327 — Painter paths cannot use polygon boolean operations
 
 Define the conversion and tolerance contract that makes `poly/` boolean operations available to a
 painter path.
 
-- Related: T-056
+- Related: B-211
 
-### T-057 — A collection face is selected by name, and a localized Windows will miss
-
-`TypeFace.createFromHfont` now asks GDI for the `ttcf` table, and picks the face out of the
-collection by matching the family GDI enumerated against `Face.familyNameAt`. That match is between
-the name Windows reports for the current locale and the best-scoring `name` record in the face,
-which this module scores towards English. Where they disagree the match fails and face zero is
-taken, which is a wrong family rather than a refusal.
-
-Verified on a French Windows 11: all twelve collection-backed families — `MS Gothic`, `MS PGothic`,
-`MS UI Gothic`, `Cambria`, `Cambria Math`, `SimSun`, `NSimSun`, `Yu Gothic`, `Nirmala UI`,
-`Nirmala Text`, `Microsoft JhengHei`, `Microsoft YaHei` — resolve to their own face and render.
-A Japanese or Chinese Windows enumerates `ＭＳ ゴシック` and `宋体` instead, and has not been tried.
-
-The bounded fix is to match against every `name` record a face declares rather than only the
-best-scoring one, which needs `truetype` to answer "does this face call itself X" rather than
-"what is this face called". Weigh that against reading the face index out of the offset tables
-instead, which is locale-proof but needs the synthesized single-face file as well as the
-collection, and so reads the font twice.
 
 ---
 

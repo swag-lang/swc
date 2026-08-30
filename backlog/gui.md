@@ -34,102 +34,74 @@ Both entries have the same shape: each one excludes a population of users entire
 is verifiable by looking at the window procedure. `src/surface.win32.swg` handles twenty-seven
 messages. What is absent from that list is this section.
 
-### T-037 — No accessibility
 
-- Problem: `WM_GETOBJECT` is not handled anywhere in the module. That single message is how
-  Windows asks an application to describe itself to assistive technology. Without it there is no
-  UI Automation provider, no MSAA, and no accessible tree of any kind.
-- Consequence: **no screen reader can see a Swag application.** Not partially — at all. Narrator,
-  NVDA and JAWS receive nothing. Keyboard-only navigation exists, but nothing announces what has
-  focus.
-- This is also a procurement and legal question, not only an ethical one. The European
-  Accessibility Act has applied since June 2025 and US Section 508 governs federal purchasing. Qt,
-  GTK, WinUI, Avalonia, Flutter and Slint all implement this, and egui added it through AccessKit
-  precisely because its absence was disqualifying.
-- Fix: a UI Automation provider rooted at the surface, exposing the widget tree with roles, names,
-  values, states and focus. The tree already exists and already knows its own structure; what is
-  missing is the mapping and the message. Start with roles, names and focus — a partial provider is
-  worth far more than none.
-- This is the single most important entry in any of the five module backlogs.
-
-### T-038 — No input method support
-
-- Problem: no `WM_IME_STARTCOMPOSITION`, `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION`,
-  `WM_IME_SETCONTEXT` or `WM_IME_NOTIFY`. Text input is `WM_CHAR` and `WM_KEYDOWN` only.
-- Consequence: **Chinese, Japanese and Korean text cannot be typed** into an `EditBox`, a
-  `PasswordEdit`, or the rich editor. Nor can Vietnamese or any other input relying on composition.
-  This is not degraded input; it does not work.
-- Fix: handle the composition messages, position the candidate window against the caret the editor
-  already tracks, and render the composition string with its clause underlines in place.
-- The caret geometry needed to position the candidate window is already computed — `EditBox`
-  measures snapped caret positions today.
 
 ---
 
 ## Tier B — Clipboard and resource overrides
 
-### T-316 — Clipboard data cannot represent virtual files
+### B-393 — Clipboard data cannot represent virtual files
 
 Expose the same virtual-file descriptor and deferred contents through clipboard ownership without
 making clipboard completion depend on drag interaction.
 
-- Related: T-074
+- Related: B-226
 
-### T-040 — Vector resource overrides bypass the parsed cache
+### B-198 — Vector resource overrides bypass the parsed cache
 
 The resource and language systems ship, but a disk override of `theme/widgets.svg` or
 `theme/icons.svg` registers in the bundle while rasterization still uses the process-wide parsed
 cache. Make vector overrides invalidate and replace that cache like fonts, theme sheets, and
 language files already do.
 
-- Related: T-217, T-218
+- Related: B-328, B-329
 
 ## Tier B — Localization
 
-### T-217 — Construction-time text does not automatically retranslate
+### B-328 — Construction-time text does not automatically retranslate
 
 Define an automatic binding or required notification contract for text that was resolved once at
 construction. Command-driven surfaces and explicitly rebuilt grids already refresh; static text
 must not depend on each application remembering a manual handler.
 
-- Related: T-040, T-218
+- Related: B-198, B-329
 
-### T-218 — French is the only shipped GUI translation
+### B-329 — French is the only shipped GUI translation
 
 Add each additional shipped language as an independently reviewable resource contribution, with
 coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
 date/name data and plural selection instead of maintaining GUI-local culture tables.
 
-- Related: T-040, T-217
+- Related: B-198, B-328
 
 ## Tier B — Live system changes
 
-### T-041 — System theme changes are ignored
+### B-199 — System theme changes are ignored
 
 Handle the platform settings-change notification and update live light/dark policy without
 restarting the application.
 
-- Related: T-219
+- Related: B-330
 
-### T-219 — System high-contrast changes are ignored
+### B-330 — System high-contrast changes are ignored
 
 Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
 theme choices as required for accessibility.
 
-- Related: T-037, T-041
+- Related: B-196, B-199
 
-### T-220 — Display-topology changes are ignored
+### B-331 — Display-topology changes are ignored
 
 Refresh monitor enumeration, placement constraints, and dependent application state when a monitor
 is added, removed, or rearranged.
 
-- Related: T-084, T-230
+- Related: B-234, B-338
 
-### T-221 — Input-language changes are ignored
+### B-332 — Input-language changes are ignored
 
 Handle the platform input-language notification and update keyboard-layout-dependent state.
 
-- Related: T-038
+- Related: B-197
 
 ---
 
@@ -141,24 +113,24 @@ accessibility, input and system-event contracts above rather than merely open a 
 therefore names the smallest coherent version that can ship and the existing controls or
 applications that would prove it.
 
-### T-042 — Focused controls are not scrolled into view
+### B-200 — Focused controls are not scrolled into view
 
 Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking
 every scroll ancestor and shifting only the amount missing from each viewport; test nested scrolls
 and the module's paint/hit-test offset convention.
 
-- Related: T-222
+- Related: B-333
 
-### T-222 — No keyboard access keys
+### B-333 — No keyboard access keys
 
 Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
 one keyboard access-key contract.
 
-- Related: T-042, T-037
+- Related: B-200, B-196
 
 ## Tier C — Pointer, gesture, touch, and pen input
 
-### T-044 — No pointer-event model
+### B-201 — No pointer-event model
 
 No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE` is handled. `MouseEvent` describes one mouse position,
 one button and one global capture owner; it has no pointer identifier, device kind, contact area,
@@ -171,288 +143,198 @@ The smallest coherent input layer is:
 - Add a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
   surface position, buttons, pressure, tilt and contact rectangle, routed and bubbled like the
   existing events;
-- Related: T-226, T-227, T-228, T-229
+- Related: B-334, B-335, B-336, B-337
 
-### T-226 — Pointer capture is application-wide rather than per pointer
+### B-334 — Pointer capture is application-wide rather than per pointer
 
 Add capture per pointer rather than one application-wide mouse capture, with cancellation when the
   OS takes a contact away and an explicit rule for suppressing compatibility mouse events;
-- Related: T-044, T-227
+- Related: B-201, B-335
 
-### T-227 — Gesture recognizers have no claim arbitration
+### B-335 — Gesture recognizers have no claim arbitration
 
 Add an arena or claim rule so a child control and its scrolling parent cannot both execute one raw
 pointer sequence.
 
-- Related: T-044, T-226, T-361, T-362, T-363, T-364, T-365
+- Related: B-201, B-334, B-423, B-424, B-425, B-426, B-427
 
-### T-361 — No tap recognizer
+### B-423 — No tap recognizer
 
 Recognize a tap with platform-appropriate distance and timing thresholds.
 
-- Related: T-227, T-376
+- Related: B-335, B-438
 
-### T-376 — No double-tap recognizer
+### B-438 — No double-tap recognizer
 
 Recognize double tap as a composition of successful taps without delaying the single-tap contract
 unless a control explicitly requests it.
 
-- Related: T-227, T-361
+- Related: B-335, B-423
 
-### T-362 — No long-press recognizer
+### B-424 — No long-press recognizer
 
 Recognize long press with movement cancellation and an explicit interaction with context menus.
 
-- Related: T-227
+- Related: B-335
 
-### T-363 — No pan recognizer
+### B-425 — No pan recognizer
 
 Recognize single- and multi-pointer pan with capture transfer and velocity reporting.
 
-- Related: T-227, T-366
+- Related: B-335, B-428
 
-### T-364 — No pinch recognizer
+### B-426 — No pinch recognizer
 
 Report scale around the contact centroid without combining pinch completion with rotation.
 
-- Related: T-227, T-365
+- Related: B-335, B-427
 
-### T-365 — No rotate recognizer
+### B-427 — No rotate recognizer
 
-Report rotation independently of pinch scale while sharing T-227's arbitration.
+Report rotation independently of pinch scale while sharing B-335's arbitration.
 
-- Related: T-227, T-364
+- Related: B-335, B-426
 
-### T-228 — No touch-sized input profile
+### B-336 — No touch-sized input profile
 
 Add a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
   the 12-pixel slider thumb and the small scroll-bar profile are not finger targets.
 
-- Related: T-227, T-366, T-367
+- Related: B-335, B-428, B-429
 
-### T-366 — Touch scrolling has no inertia
+### B-428 — Touch scrolling has no inertia
 
-Drive kinetic scrolling from the shared animation scheduler using the velocity reported by T-363,
+Drive kinetic scrolling from the shared animation scheduler using the velocity reported by B-425,
 with deterministic deceleration and reduced-motion behavior.
 
-- Related: T-363
+- Related: B-425
 
-### T-367 — Nested scroll views do not chain touch motion
+### B-429 — Nested scroll views do not chain touch motion
 
 Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
 
-- Related: T-227, T-363, T-366
+- Related: B-335, B-425, B-428
 
-### T-229 — Pen pressure is not modeled end to end
+### B-337 — Pen pressure is not modeled end to end
 
 Carry pressure and pen identity from native input through drawing tools. `Swag Capture` is the proving
 application, and the headless host must inject pen events so the behavior is testable without
 hardware.
 
-- Related: T-044, T-318
+- Related: B-201, B-394
 
-### T-318 — No palm rejection during a pen stroke
+### B-394 — No palm rejection during a pen stroke
 
 Suppress competing touch contacts according to an explicit rule while a pen owns the drawing
 gesture, with headless mixed-device tests.
 
-- Related: T-226, T-227, T-229
+- Related: B-334, B-335, B-337
 
 ## Tier C — Second-platform GUI integration
 
-### T-045 — No second-platform surface and presentation backend
 
-Inherited from [T-028](core.md#t-028--process-services-have-no-second-platform-backend), and gated by it.
-The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
-`clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
-themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
-but five replacement files are not yet a porting plan.
 
-Choose one platform and implement the application loop, surface creation/destruction, native
-resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
 
-- Related: T-230, T-231, T-232
 
-### T-230 — No second-platform monitor and DPI integration
 
-Implement monitor enumeration and per-monitor scale for the platform whose surface exists under
-T-045.
 
-- Related: T-045, T-220, T-319, T-320, T-321
 
-### T-319 — No second-platform keyboard routing
 
-Translate native key identity, modifier, repeat, and layout state into the portable keyboard
-events.
 
-- Related: T-045, T-221, T-343, T-344
 
-### T-343 — No second-platform text-input routing
 
-Translate committed native text input into the portable text event independently of IME
-composition.
 
-- Related: T-038, T-319, T-324
-
-### T-344 — No second-platform pointer routing
-
-Translate mouse, touch, and pen input into the portable pointer contract.
-
-- Related: T-044, T-319
-
-### T-320 — No second-platform clipboard integration
-
-Implement clipboard ownership and platform-format conversion behind the portable typed-value
-contract.
-
-- Related: T-045, T-296
-
-### T-321 — No second-platform system-theme notifications
-
-Translate the platform's live theme and high-contrast changes into the portable settings event.
-
-- Related: T-041, T-045, T-219
-
-### T-231 — No second-platform GUI packaging
-
-Package the GUI runtime and native dependencies for the chosen second platform.
-
-- Related: T-045, T-322, T-323
-
-### T-322 — No second-platform GUI font integration
-
-Connect GUI font selection and fallback to the installed-font catalog for the chosen platform.
-
-- Related: T-109, T-231
-
-### T-323 — No second-platform file-dialog integration
-
-Connect the toolkit-owned file dialog to the target filesystem and native path expectations.
-
-- Related: T-132, T-231
-
-### T-232 — Accessibility has no second-platform integration
-
-Map the platform's native assistive-technology service to the accessibility contract from T-037.
-
-- Related: T-037, T-045, T-324, T-325
-
-### T-324 — IME has no second-platform integration
-
-Map the platform's composition and candidate-window service to the input-method contract from
-T-038.
-
-- Related: T-038, T-045
-
-### T-325 — Drag and drop has no second-platform integration
-
-Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
-backend already implements.
-
-- Related: T-045
-
-Platform-neutral events must not expose native message numbers, and the Win32 backend should keep
-passing its existing tests throughout the extraction. The headless backend remains the contract
-test; backend integration tests then prove native focus, DPI, clipboard and input on each system.
-T-045 is complete when a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
-second platform. The higher integrations retain their own completion identifiers.
-
-This only removes the interface blocker for the applications. Swag Capture still needs its separate
-capture backend in [T-084](capture.md#t-084--cross-platform-capture-backend); Swag Vault still
-needs the FUSE backend in [T-100](vault.md#t-100--no-linux-fuse-backend), plus the
-Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
-from being mistaken for two ported products.
 
 ## Tier C — Docking and document hosts
 
-### T-046 — No docking layout host
+### B-203 — No docking layout host
 
 The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
 known panes, and a `Surface` can own a window. Add the split-tree model whose leaves are tab stacks
 and whose panes have stable identity. Interaction, floating, persistence, and document semantics
-are T-368, T-369, T-370, and T-233 respectively.
+are B-430, B-431, B-432, and B-341 respectively.
 
 `DockHost` owns a split tree whose leaves are tab stacks. It supports tab reorder, docking to an
 edge or stack, close/hide, and minimum sizes. Start with programmatic docked layout and stable pane
 identity; drag interaction, floating surfaces, and persistence have their own identifiers.
 
-- Related: T-233, T-368, T-369, T-370
+- Related: B-341, B-430, B-431, B-432
 
-### T-368 — Docking has no tab-reorder or landing-preview interaction
+### B-430 — Docking has no tab-reorder or landing-preview interaction
 
 Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
 rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
 
-- Related: T-046
+- Related: B-203
 
-### T-369 — Docked panes cannot float and redock
+### B-431 — Docked panes cannot float and redock
 
 Move a pane into a floating surface and redock it while preserving identity, focus, and DPI-correct
 geometry.
 
-- Related: T-046, T-368, T-370
+- Related: B-203, B-430, B-432
 
-### T-370 — Docking layouts cannot be persisted
+### B-432 — Docking layouts cannot be persisted
 
 Serialize stable pane identifiers, splits, active tabs, and floating rectangles. Restore constrains
 missing-monitor rectangles and ignores panes the application no longer registers.
 
-- Related: T-046, T-220, T-369
+- Related: B-203, B-331, B-431
 
-### T-233 — No multi-document host
+### B-341 — No multi-document host
 
 Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
 close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
 pages, and test close veto and focus independently of docking. Swag Capture's open captures are the
 first consumer; Swag Vault does not need this merely as a demonstration.
 
-- Related: T-046
+- Related: B-203
 
 ## Tier C — Printing
 
-### T-047 — No printable-document pagination contract
+### B-204 — No printable-document pagination contract
 
 Let a document answer page count and paint page `n` into a page-sized `Pixel.Painter` using
 physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
 without coupling the document to one printer backend. A fake backend records commands for CI.
 
-- Related: T-054, T-234, T-235, T-236
+- Related: B-209, B-342, B-343, B-344
 
-### T-234 — No printer discovery or native print-job backend
+### B-342 — No printer discovery or native print-job backend
 
-Enumerate printers and capabilities, open a native job, spool every page from T-047, and report
+Enumerate printers and capabilities, open a native job, spool every page from B-204, and report
 failure at each stage. Keep one optional virtual-PDF integration test; correctness must
 not depend on an installed driver.
 
-- Related: T-047, T-235, T-237
+- Related: B-204, B-343, B-345
 
-### T-237 — Print jobs cannot be cancelled
+### B-345 — Print jobs cannot be cancelled
 
 Propagate cancellation from the GUI through pagination and the platform spooler, with a distinct
 cancelled result and cleanup tests in the fake backend.
 
-- Related: T-047, T-234
+- Related: B-204, B-342
 
-### T-235 — No page-setup model
+### B-343 — No page-setup model
 
 Model paper, orientation, margins, scale/fit, and copies independently of printer discovery and
-preview. Validate requested settings against the capabilities supplied by T-234.
+preview. Validate requested settings against the capabilities supplied by B-342.
 
-- Related: T-047, T-234, T-236
+- Related: B-204, B-342, B-344
 
-### T-236 — No print preview
+### B-344 — No print preview
 
-Render through exactly T-047's page callback into a zoomable on-screen view; do not create a second
+Render through exactly B-204's page callback into a zoomable on-screen view; do not create a second
 pagination path that can disagree with paper.
 
-- Related: T-047, T-235, T-238
+- Related: B-204, B-343, B-346
 
 ---
 
 ## Out of scope
 
 **A declarative markup language.** Qt has QML, Slint and Flutter have their own.
-[F-006](gui.md#f-006--data-driven-ui-resource-for-stdgui)
+[B-569](gui.md#b-569--data-driven-ui-resource-for-stdgui)
 already records the investigation that killed `FormCtrl`: a data-described UI is only worth it when
 the caller never needs the controls back, and every consumer immediately recovered typed pointers
 by string identifier. Do not revisit this without solving the compile-time half first — that entry
@@ -473,7 +355,7 @@ as [capture.md](capture.md).
 
 ## Declarative UI and headless automation
 
-### F-006 — Data-driven UI resource for `std/gui`
+### B-569 — Data-driven UI resource for `std/gui`
 
 - Area: bin/std
 - Found while: simplifying the Swag Vault vault cards after `FormCtrl` was judged too heavy
@@ -497,7 +379,7 @@ as [capture.md](capture.md).
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### F-020 — Arming the headless modal driver for an absent button fails silently
+### B-570 — Arming the headless modal driver for an absent button fails silently
 
 - Area: std/gui
 - Found while: the two `Swag Capture` dialog tests that did not pass — both armed a button their
@@ -519,7 +401,7 @@ as [capture.md](capture.md).
 
 ## Keyboard interaction and focus
 
-### F-026 — Escape in the property grid commits the edit it is supposed to cancel
+### B-572 — Escape in the property grid commits the edit it is supposed to cancel
 
 - Area: std/gui
 - Found while: putting the dialog keyboard model on its feet. `EditBox` now reverts to the text it
@@ -541,7 +423,7 @@ as [capture.md](capture.md).
   captured on the same focus event. Pin it with a headless test that types into a grid row, presses
   Escape, and asserts both the stored value and the empty undo stack.
 
-### F-030 — A control can hold the keyboard on a surface that refuses input
+### B-573 — A control can hold the keyboard on a surface that refuses input
 
 - Area: std/gui
 - Found while: making the file box answer Escape and give the keyboard back on the way out.
@@ -560,7 +442,7 @@ as [capture.md](capture.md).
   it with a headless test whose frame handler focuses a control of the caller surface while a
   dialog runs, and which asserts the box still answers Escape.
 
-### F-031 — A rich edit inside a dialog makes the box unanswerable from the keyboard
+### B-574 — A rich edit inside a dialog makes the box unanswerable from the keyboard
 
 - Area: std/gui
 - Found while: fixing the same defect in `ListView`, which is what a file box opens the keyboard on.
@@ -578,7 +460,7 @@ as [capture.md](capture.md).
 
 ## Layout invalidation and alignment
 
-### F-038 — A check box does not line up with the fields of the form it stands in
+### B-577 — A check box does not line up with the fields of the form it stands in
 
 - Area: std/gui
 - Found while: adding the read-only option to the Swag Vault open-vault card, which put the first
@@ -600,7 +482,7 @@ as [capture.md](capture.md).
   from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
   already describes itself.
 
-### F-044 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
+### B-579 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
 
 - Area: std/gui
 - Found while: making a `FormLayoutCtrl` answer for its own height, so a card's help paragraph stops
@@ -629,7 +511,7 @@ as [capture.md](capture.md).
 
 ## Text presentation and semantics
 
-### F-083 — Text outside a framed field is still centered on its line box, so its height follows the face
+### B-599 — Text outside a framed field is still centered on its line box, so its height follows the face
 
 - Area: std/gui
 - Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
@@ -656,7 +538,7 @@ as [capture.md](capture.md).
   widgets that draw a frame. Pin the decision with a headless test that puts one field of each
   family side by side and asserts their capitals share a center.
 
-### F-113 — A message taller than the box's cap is still clipped
+### B-610 — A message taller than the box's cap is still clipped
 
 - Area: std/gui
 - Found while: fixing the two-sentence error box that clipped its own message
@@ -674,7 +556,7 @@ as [capture.md](capture.md).
   when the bound bites. Then extend the length sweep in `dialogs.layout.test.swg` past the cap: it
   is written to walk lengths already and would have caught this one had it gone far enough.
 
-### F-114 — A composite that commits a measured size loses the fraction the layout rounds off
+### B-611 — A composite that commits a measured size loses the fraction the layout rounds off
 
 - Area: std/gui
 - Found while: the same investigation; the dialog family is fixed, nothing else is
@@ -697,7 +579,7 @@ as [capture.md](capture.md).
   `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
 
 
-### F-144 — The gui10 palettes page paints one frame in the neutral theme
+### B-620 — The gui10 palettes page paints one frame in the neutral theme
 
 - Area: examples/gui10
 - Found while: the second iteration of the visual chart, comparing the four theme variants side by side
@@ -721,7 +603,7 @@ as [capture.md](capture.md).
   it, drop it, and read `app.theme.colors.hilight` before and after.
 
 
-### F-172 — A denser monitor frees the frames every stored icon points at
+### B-627 — A denser monitor frees the frames every stored icon points at
 
 - Area: bin/std
 - Found while: giving Swag Scope's viewer selector one glyph per viewer (2026-08-21), which stores
@@ -742,7 +624,7 @@ as [capture.md](capture.md).
   either keep retired lists alive until the frame ends, or make `Icon` name its set and size and
   resolve the list at paint time.
 
-### F-174 — A splitter's first pane silently ignores the size it is added with
+### B-628 — A splitter's first pane silently ignores the size it is added with
 
 - Area: bin/std
 - Found while: the Swag Scope history panel opened one row tall (2026-08-21), although it declares
@@ -762,7 +644,7 @@ as [capture.md](capture.md).
   apply it on the first resize that has room. Cover it with a splitter test that adds two panes
   before the control is ever laid out and then resizes.
 
-### F-175 — Copying a window by value silently releases the theme every other window is using
+### B-629 — Copying a window by value silently releases the theme every other window is using
 
 - Area: bin/std
 - Found while: giving the Markdown view a document-wide selection (2026-08-21). A hit test wrote
@@ -786,7 +668,7 @@ as [capture.md](capture.md).
   explicit `share` instead. The rule it enforces is already written down: *design-swag-bin-modules*
   says to mark exclusive owners `#[Swag.NoCopy]`.
 
-### F-191 — One dirty rectangle for the whole surface makes two small changes cost the window
+### B-635 — One dirty rectangle for the whole surface makes two small changes cost the window
 
 - Area: bin/std
 - Found while: chasing the small, regular stalls the Swag Scope video viewer showed on the

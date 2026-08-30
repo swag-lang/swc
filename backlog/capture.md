@@ -28,96 +28,79 @@ effects that makes a capture look produced, and output.
 
 ## Tier A — Output and text extraction
 
-### T-074 — Copy a capture as a clipboard file
 
-- A capture leaves as a file, bitmap clipboard data, or an outgoing drag, but cannot be copied as a
-  file object. Reuse `DragData` through `OleSetClipboard` so paste targets receive the same file and
-  bitmap media as drag targets.
-- Note: drag-out already carries its PNG as a file with no path, produced when a target asks for
-  it, so `DragData.addContent` is what copy-as-file publishes too.
-- Related: T-238, T-316
-
-### T-238 — Print the current capture
+### B-346 — Print the current capture
 
 Add actual-size, fit-to-page, and centered printing with a clear clipping warning. Consume the GUI
 pagination/preview contract and Pixel vector output rather than creating an application-only print
 path.
 
-- Related: T-047, T-054, T-236
+- Related: B-204, B-209, B-344
 
-### T-075 — Grab Text
-
-- Problem: no text recognition anywhere in the module. The Windows Snipping Tool has it, Snagit
-  has it, ShareX has it. It has gone from a differentiator to an expectation.
-- Fix: Windows exposes an OCR engine in the OS. No third-party component, no model to ship, no
-  network. Bind it, add a command that runs it over the current capture or the current pixel
-  selection, and put the result on the clipboard.
-- Why this high: it is the most visible remaining reason to reach for the built-in tool instead of
-  this one, and the platform does the hard part.
 
 ## Tier A — Capture effects
 
-### T-076 — No capture-level effect pipeline
+### B-228 — No capture-level effect pipeline
 
 - `Capture` has geometry, a background image, and forms, but nowhere to store and order effects.
   Add an effect list applied identically by preview, flatten, and export, with the property panel
   generated through the existing reflective editor system.
 - Why this high: this is Snagit's actual signature — not the annotations, the finish. It is also
   a natural fit for the existing architecture rather than a foreign subsystem.
-- Related: T-239, T-240, T-241, T-242, T-049
+- Related: B-347, B-348, B-349, B-350, B-205
 
-### T-239 — No capture border effect
+### B-347 — No capture border effect
 
-Add border width, color, placement, and corner interaction as the first effect using T-076.
+Add border width, color, placement, and corner interaction as the first effect using B-228.
 
-- Related: T-076, T-310
+- Related: B-228, B-388
 
-### T-310 — No capture drop-shadow effect
+### B-388 — No capture drop-shadow effect
 
 Add a drop shadow with offset, blur, spread, and color through Pixel's effect graph.
 
-- Related: T-049, T-076, T-239
+- Related: B-205, B-228, B-347
 
-### T-240 — No torn-edge capture effect
+### B-348 — No torn-edge capture effect
 
 Add deterministic torn-edge mask generation with scale-independent parameters.
 
-- Related: T-076, T-311
+- Related: B-228, B-389
 
-### T-311 — No faded-edge capture effect
+### B-389 — No faded-edge capture effect
 
 Add a faded-edge mask independently of torn-edge generation.
 
-- Related: T-076, T-240
+- Related: B-228, B-348
 
-### T-241 — No capture perspective effect
+### B-349 — No capture perspective effect
 
 Add perspective transformation with explicit output bounds and resampling behavior.
 
-- Related: T-076
+- Related: B-228
 
-### T-242 — No capture watermark effect
+### B-350 — No capture watermark effect
 
 Add reusable image/text watermarks with placement, opacity, scale, and export persistence.
 
-- Related: T-076
+- Related: B-228
 
 ## Tier A — Capture workflows
 
-### T-077 — Capture hotkeys are fixed
+### B-229 — Capture hotkeys are fixed
 
 - `MainWnd.setupHotKeys` registers four fixed combinations. Persist user-rebindable hotkeys in the
   existing options, handle conflicts, and report registration failures.
 - Note: PrintScreen is contested on Windows 11, which now binds it to the Snipping Tool by default.
   A tool that cannot rebind its own hotkey is stuck behind that.
-- Related: T-243
+- Related: B-351
 
-### T-243 — No named capture presets
+### B-351 — No named capture presets
 
-Persist named combinations of capture mode, delay, cursor policy, and destination, then allow T-077
+Persist named combinations of capture mode, delay, cursor policy, and destination, then allow B-229
 to bind a hotkey to a preset rather than a raw command.
 
-- Related: T-077
+- Related: B-229
 
 ---
 
@@ -126,62 +109,53 @@ to bind a hotkey to a preset rather than a raw command.
 Both entries below are subsystems rather than features. They are what people actually buy Snagit
 for, and they are honestly expensive. Ship Tier A first.
 
-### T-080 — Scrolling capture
 
-- Snagit's most-cited feature; ShareX has it too. Capture a window taller or wider than the screen
-  by scrolling it and stitching the frames.
-- Cost: real. It needs scroll driving through UI Automation or synthesized scroll messages, frame
-  stitching with overlap detection, and a fallback path for windows that refuse to cooperate. The
-  stitching itself is the tractable part; driving arbitrary applications reliably is not.
-- Sequence it after Tier A, and scope it to the common cases — a browser page, a document, a list
-  view — rather than promising it works everywhere.
-
-### T-081 — No video recording
+### B-231 — No video recording
 
 - Add a timed frame-capture loop and hardware video encoder with bounded buffering and observable
   dropped-frame behavior.
 - Recommendation: treat it as a deliberate decision rather than an assumed goal. A still-capture
   tool with an outstanding editor is a coherent product. A half-finished recorder is not.
-- Related: T-244, T-245, T-246
+- Related: B-352, B-353, B-354
 
-### T-244 — No animated GIF recording
+### B-352 — No animated GIF recording
 
 Record and export an animated GIF independently of the video codec pipeline, with a stated frame
 rate, palette, dithering, and size contract.
 
-- Related: T-081
+- Related: B-231
 
-### T-245 — Recordings cannot include audio
+### B-353 — Recordings cannot include audio
 
 Capture microphone or loopback audio and mux it into video without making audio a prerequisite for
 silent recording.
 
-- Related: T-065, T-176, T-081
+- Related: B-218, B-298, B-231
 
-### T-246 — Recordings cannot be trimmed in the editor
+### B-354 — Recordings cannot be trimmed in the editor
 
 Add non-destructive in/out trimming and export for captured recordings after the base recorder can
 produce a playable artifact.
 
-- Related: T-081, T-244
+- Related: B-231, B-352
 
 ---
 
 ## Tier D — Canvas composition and reusable annotations
 
-### T-082 — Captures cannot be combined on one canvas
+### B-232 — Captures cannot be combined on one canvas
 
 Compose several captures into one editable, laid-out image using the existing form model.
 
-- Related: T-247
+- Related: B-355
 
-### T-247 — No reusable capture layout templates
+### B-355 — No reusable capture layout templates
 
 Persist and apply named layout descriptions independently of combining captures manually.
 
-- Related: T-082
+- Related: B-232
 
-### T-083 — Stamp library
+### B-233 — Stamp library
 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
@@ -189,12 +163,8 @@ clip art.
 
 ## Tier D — Portability and output conventions
 
-### T-084 — Cross-platform capture backend
 
-`src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform boundary on the
-capture side. The editor, the forms, the library, and the serialization are already portable.
-
-### T-085 — File naming convention drift
+### B-235 — File naming convention drift
 
 `build-swag-standard-apps` asks for dots between the named parts of a coherent file family, and
 warns against a prefix that repeats its own scope. `src/actions/actimage.swg` and its siblings
@@ -209,7 +179,7 @@ pass rather than drifting further.
 **Hosted share destinations.** Snagit lists more than twenty and ShareX more than eighty. Reaching
 them means embedding third-party OAuth credentials in a compiler repository and maintaining those
 integrations against other companies' API changes. Local outputs — clipboard, file, drag-out,
-print, `mailto` — cover the same need without shipping secrets. T-074 is deliberately scoped to
+print, `mailto` — cover the same need without shipping secrets. B-226 is deliberately scoped to
 those.
 
 **Machine-learning editing features.** Snagit's object detection and text replacement are model
@@ -231,7 +201,7 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
 
 ## Window automation and lifecycle
 
-### F-040 — Swag Capture dies when its window is moved and resized in one call
+### B-578 — Swag Capture dies when its window is moved and resized in one call
 
 - Area: apps/swagcapture, std/gui
 - Found while: driving the shipped window from a script to photograph its pages. The window opens
@@ -260,7 +230,7 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
 
 ## Editor interactivity
 
-### F-126 — The one-second auto-save freezes the interface for the duration of a full deflate
+### B-614 — The one-second auto-save freezes the interface for the duration of a full deflate
 
 - Area: apps/swagcapture
 - Found while: making a form drag fluid. The per-move repaint and the mid-gesture save are fixed
@@ -280,11 +250,11 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   small enough, or whether the save must move off the interface thread (which needs a snapshot of
   the form list to stay race-free).
 
-### F-137 — Loading a capture blocks the interface for the duration of one inflate
+### B-618 — Loading a capture blocks the interface for the duration of one inflate
 
 - Area: apps/swagcapture, std/core (Compress)
 - Found while: investigating the lag felt when clicking a capture in the recent strip. This is the
-  load counterpart of [F-126](#f-126--the-one-second-auto-save-freezes-the-interface-for-the-duration-of-a-full-deflate);
+  load counterpart of [B-614](#b-614--the-one-second-auto-save-freezes-the-interface-for-the-duration-of-a-full-deflate);
   both come from the same decision to deflate raw pixels.
 - Observation: `RecentView.select` calls `Capture.load` synchronously on the interface thread, and
   the whole cost of that load is inflating the background chunk. Nothing is shown in the meantime,
@@ -314,4 +284,4 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   deflate path, so this is additive.
   A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
   what is left of it is a backend matter, in
-  [F-136](optimization.md#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).
+  [B-617](optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).

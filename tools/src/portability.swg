@@ -80,7 +80,7 @@ private const NativeImportFiles = [
     "bin/std/modules/core/module.swg",
     "bin/std/modules/audio/module.swg"]
 
-// These neutral files select a portable value, test, or backend at compile time. T-298 owns the
+// These neutral files select a portable value, test, or backend at compile time. B-384 owns the
 // repeated Audio dispatch; new policy does not join this list.
 private const OsDispatchFiles = [
     "bin/std/modules/core/module.swg",
@@ -93,7 +93,7 @@ private const NativeNamespaces = ["Win32", "Gdi32", "Gdi32Priv", "Gdiplus", "XIn
 
 // Identifiers whose appearance in ordinary code proves that a native representation crossed the
 // boundary. Namespace use catches native functions and constants; this list covers unqualified
-// ABI types and the public virtual-key adapter tracked by T-287.
+// ABI types and the public virtual-key adapter tracked by B-375.
 private const NativeIdentifiers = [
     "ATOM", "BITMAP", "BITMAPINFO", "BITMAPINFOHEADER", "BLENDFUNCTION", "BOOL", "BOOLEAN",
     "BYTE", "CHAR", "COLORREF", "COMDLG_FILTERSPEC", "CRITICAL_SECTION", "DWORD", "DWORD_PTR",
@@ -109,8 +109,8 @@ private const NativeIdentifiers = [
 private const NativeIdentifierPrefixes = [
     "DPI_AWARENESS_CONTEXT_", "GWL_", "GWLP_", "SWP_", "VK_", "WM_", "WS_", "XINPUT_"]
 
-// Existing native API adapters are exact declarations, not blanket file approvals. T-109 owns
-// the installed-font descriptor; T-287 owns image, surface, and keyboard interoperability.
+// Existing native API adapters are exact declarations, not blanket file approvals. B-250 owns
+// the installed-font descriptor; B-375 owns image, surface, and keyboard interoperability.
 private const NativeDeclarationApprovals = [
     "bin/std/modules/core/src/input/key.swg",
     "public alias VirtualKey = u32",

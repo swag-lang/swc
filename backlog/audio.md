@@ -44,7 +44,7 @@ effects, no capture.
 - Complete when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
 
-### T-564 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
+### B-563 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
 
 - Intent: Layer III decodes correctly at every sampling frequency of the three versions, within
   2.3e-5 of full scale of FFmpeg. Nothing about its speed has been measured, and its ISO-BMFF
@@ -59,7 +59,7 @@ effects, no capture.
   and `mp4.swg` rejects every object type but AAC's 0x40.
 ## Tier A — Playback control
 
-### T-059 — Volume changes are instantaneous, so they click
+### B-213 — Volume changes are instantaneous, so they click
 
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
   applies it at the next processing pass without smoothing, so any gain change during playback is a
@@ -72,25 +72,25 @@ effects, no capture.
 
 ## Tier A — Output-device lifecycle
 
-### T-061 — No output-device enumeration
+### B-214 — No output-device enumeration
 
 - Enumerate output devices with stable session identifiers and enough capabilities for a caller to
   present a choice.
-- Related: T-170, T-171
+- Related: B-292, B-293
 
-### T-170 — The engine cannot select an output device
+### B-292 — The engine cannot select an output device
 
-Allow `createEngine` or a dedicated switch operation to target one identifier returned by T-061,
+Allow `createEngine` or a dedicated switch operation to target one identifier returned by B-214,
 with a defined fallback when that device is unavailable.
 
-- Related: T-061, T-171
+- Related: B-214, B-293
 
-### T-171 — Output-device loss is not reported or recovered
+### B-293 — Output-device loss is not reported or recovered
 
 Handle the backend's critical-error signal, report the loss, and rebuild or fail over according to
 an explicit policy when headphones, USB audio, or the default device changes.
 
-- Related: T-061, T-170
+- Related: B-214, B-292
 
 ---
 
@@ -99,51 +99,34 @@ an explicit policy when headphones, USB audio, or the default device changes.
 Two features are already paid for in the backend and simply not exposed. They are cheap in a way
 the rest of this list is not.
 
-### T-062 — Spatialization, with X3DAudio already initialized
 
-- `src/driver/xaudio2.swg` calls `X3DAudioInitialize` and stores the handle in `x3DInstance`. That
-  handle is never read again. The 3D engine is initialized on every engine creation and does
-  nothing.
-- Missing above it: a listener, a per-voice position, distance attenuation, and a matrix apply on
-  the source voice. X3DAudio computes the output matrix; the module has to feed it and apply the
-  result.
-- Related: T-172
-
-### T-172 — No stereo pan control
+### B-294 — No stereo pan control
 
 Add backend-neutral stereo panning to `Voice` without requiring the listener and distance model of
-T-062.
+B-215.
 
-- Related: T-062
+- Related: B-215
 
 ## Tier B — Voice effects
 
-### T-063 — Filters, with the voice flag already set
 
-- Submix voices are created with `XAUDIO2_VOICE_USEFILTER` in `src/driver/xaudio2.swg`. The
-  capability is requested and no API exposes it.
-- XAudio2 gives a per-voice low-pass, high-pass, band-pass and notch filter once that flag is set.
-- A cutoff and resonance on `Voice` and `Bus` is a small surface over a capability that is already
-  being paid for on every submix.
-- Related: T-173, T-174, T-067
-
-### T-173 — No reverb effect
+### B-295 — No reverb effect
 
 Expose a reverb effect independently of the basic voice filters and of a general effects graph.
 
-- Related: T-063, T-067
+- Related: B-216, B-220
 
-### T-174 — No echo effect
+### B-296 — No echo effect
 
 Expose an echo/delay effect independently of reverb and the general effects graph.
 
-- Related: T-063, T-067
+- Related: B-216, B-220
 
 ---
 
 ## Tier C — Startup and capture workflows
 
-### T-064 — Engine creation cost on the startup path
+### B-217 — Engine creation cost on the startup path
 
 - `DriverNative.createNative` does COM initialization, `XAudio2Create`, mastering-voice creation,
   channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
@@ -154,41 +137,35 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 - Related: no other backlog entry covers this. If measurement shows the cost is in XAudio2
   rather than in this module, record it there instead.
 
-### T-065 — No audio capture input
+### B-218 — No audio capture input
 
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `Swag Capture` ever records video with sound —
-  [T-081](capture.md#t-081--no-video-recording).
-- Related: T-175, T-176, T-245
+  [B-231](capture.md#b-231--no-video-recording).
+- Related: B-297, B-298, B-353
 
-### T-175 — No full-duplex audio session
+### B-297 — No full-duplex audio session
 
 Allow synchronized input and output in one engine session for voice communication and live
 processing.
 
-- Related: T-065
+- Related: B-218
 
-### T-176 — No system-output loopback capture
+### B-298 — No system-output loopback capture
 
 Expose desktop/output loopback as a distinct capture source when the backend supports it.
 
-- Related: T-065, T-245
+- Related: B-218, B-353
 
 ## Tier C — Backend and graph architecture
 
-### T-066 — A second platform
 
-- `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
-- The backend boundary in `src/driver/backend.swg` is clean and already has two implementations, so
-  a third is additive rather than structural. CoreAudio and ALSA or PulseAudio are the obvious
-  targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
-
-### T-067 — Effects graph
+### B-220 — Effects graph
 
 - Buses route and scale gain. They do not process. FMOD, Wwise, SoLoud and miniaudio all expose a
   DSP or node graph where an effect can be inserted on a bus.
-- Sequence this after T-063: a per-voice filter answers most of the need, and an effects graph is
+- Sequence this after B-216: a per-voice filter answers most of the need, and an effects graph is
   a much larger commitment. Do not build the graph to get the filter.
 
 ---

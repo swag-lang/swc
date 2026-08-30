@@ -61,7 +61,7 @@ report into a professional inspection workflow.
   headers and sections.
 - Complete when: paired trees show added/removed/changed/moved rows, irrelevant offsets can be
   ignored explicitly, raw-byte differences remain reachable, and comparison stays bounded.
-- Related: B-022, T-397
+- Related: B-022, B-448
 
 ## Analysis depth
 
@@ -89,7 +89,7 @@ report into a professional inspection workflow.
 
 ### B-094 — Container inspection is one level deep
 
-- Evidence: ZIP, archive, RIFF, SCC, and other container reports list members or chunks, while T-403
+- Evidence: ZIP, archive, RIFF, SCC, and other container reports list members or chunks, while B-452
   records that entries cannot be opened. Nested containers, compressed payload provenance, preview
   budgets, and a breadcrumb back to parents are absent.
 - Next: define a virtual child-file contract carrying parent identity, offset, compression, sizes,
@@ -97,7 +97,7 @@ report into a professional inspection workflow.
 - Complete when: nested supported content opens in the appropriate viewer, breadcrumbs retain the
   complete container path, decompression bombs and traversal names are bounded, and raw extraction
   remains an explicit action.
-- Related: T-403
+- Related: B-452
 
 ### B-095 — Previews cannot be selected, enlarged, copied, or traced to their source
 
@@ -115,7 +115,7 @@ compression, cryptography, or codec work stays with the standard module that imp
 
 ## Containers
 
-### T-403 — An archive's entries cannot be opened
+### B-452 — An archive's entries cannot be opened
 
 - Intent: a ZIP lists its central directory and stops; `tar`, `gzip`, `xz`, `zstd`, `7z`, `RAR`,
   `CAB` and `MSI` are only identified. Looking inside an archive is one of the two things a viewer
@@ -124,7 +124,7 @@ compression, cryptography, or codec work stays with the standard module that imp
   without extracting the whole archive, starting with the deflate and stored methods that
   `Core.Inflate` already covers, and with `tar`/`gzip` listing.
 
-### T-412 — MP4 and Matroska containers are only identified
+### B-459 — MP4 and Matroska containers are only identified
 
 - Intent: playback and structural inspection answer different questions. The `Video` viewer reads
   the supported picture and sound tracks, while the `Binary` alternative should expose the
@@ -134,21 +134,21 @@ compression, cryptography, or codec work stays with the standard module that imp
 
 ## Structured developer data
 
-### T-410 — SQLite databases are only identified
+### B-457 — SQLite databases are only identified
 
 - Intent: `.db` and `.sqlite` reach the entropy line. The schema and a bounded table read are what a
   reader wants, and the file format is documented and stable.
 - Complete when: the schema, the tables and their row counts are listed, and a table is browsable
   through a bounded window over its pages.
 
-### T-411 — Certificates and keys are not decoded
+### B-458 — Certificates and keys are not decoded
 
 - Intent: `.pem`, `.der`, `.crt`, `.cer` and `.p12` show base64 or bytes. `Core.Crypto` and the
   binary viewer's structure model already give the two halves of what is needed.
 - Complete when: an ASN.1 tree and a decoded X.509 summary — subject, issuer, validity, key, and
   extensions — are shown, with no validation claim of any kind.
 
-### T-413 — A program database is only identified
+### B-460 — A program database is only identified
 
 - Intent: this repository writes PDBs. Reading one back with the same tool that inspects the image
   it belongs to is a capability the competition does not have, and it is a debugging asset here.

@@ -37,23 +37,23 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier A — Font containers and outlines
 
-### T-177 — WOFF containers are rejected
+### B-299 — WOFF containers are rejected
 
 Add WOFF decompression over the existing face parser using `Core`'s zlib support.
 
-- Related: T-178
+- Related: B-300
 
-### T-178 — WOFF2 containers are rejected
+### B-300 — WOFF2 containers are rejected
 
 Add WOFF2 reconstruction and Brotli decompression as a separate format implementation.
 
-- Related: T-177
+- Related: B-299
 
 ---
 
 ## Tier B — Glyph substitution
 
-### T-069 — No GSUB single-substitution processing
+### B-221 — No GSUB single-substitution processing
 
 - `GPOS` is read for pair adjustment only and there is no `GSUB` processing. Implement
   single-substitution lookups first, with unsupported lookup kinds reported or documented.
@@ -61,87 +61,87 @@ Add WOFF2 reconstruction and Brotli decompression as a separate format implement
   definitions in both formats, value-record decoding, and extension-lookup resolution. Every one of
   those is needed by the rest of `GPOS` and by `GSUB`, so shaping starts from the lookup navigation
   rather than from the bytes.
-- Related: T-181, T-345, T-346, T-347, T-348
+- Related: B-303, B-414, B-415, B-416, B-417
 
-### T-345 — No GSUB multiple-substitution processing
+### B-414 — No GSUB multiple-substitution processing
 
 Implement multiple-substitution lookups independently of the single-substitution path.
 
-- Related: T-069
+- Related: B-221
 
-### T-346 — No GSUB alternate-substitution processing
+### B-415 — No GSUB alternate-substitution processing
 
 Implement alternate selection with an explicit feature/user-choice contract.
 
-- Related: T-069
+- Related: B-221
 
-### T-347 — No GSUB ligature-substitution processing
+### B-416 — No GSUB ligature-substitution processing
 
 Implement ligature substitution for declared features such as `liga`, including cluster mapping.
 
-- Related: T-069
+- Related: B-221
 
-### T-348 — No GSUB contextual-substitution processing
+### B-417 — No GSUB contextual-substitution processing
 
 Implement contextual and chaining-context application over the other supported substitution
 lookups.
 
-- Related: T-069, T-345, T-346, T-347
+- Related: B-221, B-414, B-415, B-416
 
-### T-181 — Shaping has no decided module boundary
+### B-303 — Shaping has no decided module boundary
 
 Decide whether shaping stays in `truetype` or becomes a separate module above face parsing. Record
 the ownership and dependency rule before the shaping API expands.
 
-- Related: T-069, T-179, T-180
+- Related: B-221, B-301, B-302
 
 ## Tier B — Mark positioning
 
-### T-179 — Combining marks ignore GPOS attachment
+### B-301 — Combining marks ignore GPOS attachment
 
 Implement mark-to-base positioning so combining accents use the base glyph's anchors.
 
-- Related: T-069, T-349, T-350
+- Related: B-221, B-418, B-419
 
-### T-349 — No GPOS mark-to-ligature attachment
+### B-418 — No GPOS mark-to-ligature attachment
 
 Position marks against the selected component anchors of a ligature glyph.
 
-- Related: T-179, T-347
+- Related: B-301, B-416
 
-### T-350 — No GPOS mark-to-mark attachment
+### B-419 — No GPOS mark-to-mark attachment
 
 Position one combining mark relative to another independently of base and ligature attachment.
 
-- Related: T-179
+- Related: B-301
 
 ## Tier B — Script shaping
 
-### T-180 — Arabic text is not shaped
+### B-302 — Arabic text is not shaped
 
 Implement Arabic joining forms, direction-aware cluster processing, and required feature
 application end to end.
 
-- Related: T-069, T-179, T-351, T-352
+- Related: B-221, B-301, B-420, B-421
 
-### T-351 — Indic text is not shaped
+### B-420 — Indic text is not shaped
 
 Implement one explicitly named Indic shaping model, reordering, conjunct formation, and required
 features as its own script-support deliverable.
 
-- Related: T-069, T-179
+- Related: B-221, B-301
 
-### T-352 — Thai marks are not shaped
+### B-421 — Thai marks are not shaped
 
 Implement Thai mark ordering and positioning independently of Arabic and Indic support.
 
-- Related: T-179
+- Related: B-301
 
 ---
 
 ## Tier C — Variable and color fonts
 
-### T-070 — Variable fonts
+### B-222 — Variable fonts
 
 - No `fvar`, `gvar`, `avar` or `HVAR`. A variable font loads only at its default instance, so a
   single file that should provide a whole weight and width range provides one static face.
@@ -149,42 +149,42 @@ Implement Thai mark ordering and positioning independently of Arabic and Indic s
   rather than an exotic feature. CFF2 variation data is part of this entry; the CFF1 charstring
   support already in the module is only its static foundation.
 
-### T-071 — No COLR/CPAL layered color glyphs
+### B-223 — No COLR/CPAL layered color glyphs
 
 - `COLR` version 0 is the cheapest useful subset: layered glyph references with a palette, which
   the existing outline pipeline can already draw.
 - The `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves the emoji and
   text presentation selectors. What is missing is a glyph to draw for the emoji one.
-- Related: T-182, T-183, T-184
+- Related: B-304, B-305, B-306
 
-### T-182 — No `sbix` color bitmap strikes
+### B-304 — No `sbix` color bitmap strikes
 
 Decode and select `sbix` strikes independently of layered COLR glyphs.
 
-- Related: T-071, T-183
+- Related: B-223, B-305
 
-### T-183 — No CBDT/CBLC color bitmap strikes
+### B-305 — No CBDT/CBLC color bitmap strikes
 
 Decode and select CBDT/CBLC strikes independently of Apple's `sbix` container.
 
-- Related: T-071, T-182
+- Related: B-223, B-304
 
-### T-184 — No SVG glyph table
+### B-306 — No SVG glyph table
 
 Parse and render the OpenType SVG table through Pixel's SVG support, with explicit recursion and
 resource limits.
 
-- Related: T-071, T-186
+- Related: B-223, B-307
 
 ## Tier C — Writing direction and hinting
 
-### T-072 — Vertical writing
+### B-224 — Vertical writing
 
 - No `vhea` or `vmtx`. Vertical CJK layout has no metrics to work from.
 - Small and well-bounded: the two tables mirror `hhea` and `hmtx`, which `parseFace` and
   `buildGlyphMetrics` already read, run-length compression included.
 
-### T-073 — TrueType bytecode hinting
+### B-225 — TrueType bytecode hinting
 
 - `Face.hintVertical` is a vertical hinting heuristic, not the TrueType interpreter — `fpgm`,
   `prep` and `cvt ` are not executed.

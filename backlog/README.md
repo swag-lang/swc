@@ -18,7 +18,7 @@ prompt per long-running campaign, with the target, current measurements, and sto
 | [compiler.md](compiler.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
 | [core.md](core.md) | `std/core` |
 | [doc.md](doc.md) | The `doc` command |
-| [scope.md](scope.md) | The Swag Scope application shell, document lifecycle, window hosting, and system integration |
+| [scope.md](scope.md) | The Swag Scope application shell, document lifecycle, and window hosting |
 | [scope.audio.md](scope.audio.md) | The Swag Scope sound viewer |
 | [scope.binary.md](scope.binary.md) | The Swag Scope structured-binary and container viewer |
 | [scope.document.md](scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers |
@@ -37,7 +37,7 @@ prompt per long-running campaign, with the target, current measurements, and sto
 | [optimization.md](optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [pdf.md](pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
 | [pixel.md](pixel.md) | `std/pixel` |
-| [portability.md](portability.md) | Cross-platform boundaries in `bin/`, the runtime host ABI, and preparation for Linux |
+| [portability.md](portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable |
 | [runtime.md](runtime.md) | `bin/runtime`, and the allocator in particular |
 | [safety.md](safety.md) | Borrow, lifetime, and sanity analysis |
 | [simd.md](simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |
@@ -52,6 +52,10 @@ Put an entry in the domain where it will be investigated or fixed, not where it 
 noticed. Create a new domain file only when a real cluster forms; a category holding one isolated
 entry costs more to navigate than it saves.
 
+Operating-system work is the deliberate exception: every new OS backend, application port,
+target-specific integration, and Windows-bound API or policy that must be extracted for portability
+belongs in [portability.md](portability.md), whatever module or application owns the code.
+
 ## Number Every Entry
 
 Every entry carries a permanent identifier in its heading:
@@ -60,13 +64,11 @@ Every entry carries a permanent identifier in its heading:
 ### B-001 — A short, descriptive title
 ```
 
-Next identifier: B-167
+Next identifier: B-642
 
 - `B-*` is the identifier family for every new entry. Take the number above and advance the
   counter in the same change.
-- Existing identifiers below `F-203` and `T-572` are permanent legacy identifiers. Their prefix
-  records how the entry entered the old split backlog; it no longer controls its location, shape,
-  or maturity. Those two families are closed to new allocations.
+- Every active entry uses `B-*`; the former `T-*` and `F-*` families are closed.
 - Never renumber or reuse an identifier. A deleted entry takes its identifier with it, so an old
   conversation, commit message, link, or code comment keeps its meaning.
 - Position expresses expected value where entries are comparable. Put an untriaged lead at the end
@@ -92,7 +94,7 @@ Every new entry uses this compact core:
 - Evidence: observation, reproduction, measurement, competitive gap, or other reason this remains
 - Next: the smallest useful investigation or implementation step
 - Complete when: observable condition for deleting the entry or rewriting its next action
-- Related: B-001, T-002, F-003 (when applicable)
+- Related: B-001, B-168, B-203 (when applicable)
 ```
 
 Explanatory paragraphs and additional fields may follow when they materially help execution. For

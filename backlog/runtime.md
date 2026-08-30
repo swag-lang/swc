@@ -13,7 +13,7 @@ masking the address down to its page. The header path serves larger blocks, over
 every allocation made while a diagnostic mode is on.
 
 Measured against the previous design on the same machine, alternating both binaries
-(`bench/` has no allocator workload yet — T-019):
+(`bench/` has no allocator workload yet — B-182):
 
 | workload | before | after |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ## Tier A - Prove and close the main gaps
 
-### T-019 — Add a reproducible allocator benchmark suite
+### B-182 — Add a reproducible allocator benchmark suite
 
 - The numbers above come from a throwaway probe. Nothing in the repository measures the allocator,
   so a regression in it is invisible until something else gets slower.
@@ -48,7 +48,7 @@ The remaining work below is what turns that into a measured allocator contract.
 - Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
   representative workload more than 25% slower, and no unbounded retained-memory case.
 
-### T-020 — Close the remaining distance to mimalloc on the hot path
+### B-183 — Close the remaining distance to mimalloc on the hot path
 
 - An allocate/free pair on a cached block costs about 77 ns. mimalloc is in the 10-20 ns range,
   so the structural work is done and what is left is the constant factor.
@@ -61,9 +61,9 @@ The remaining work below is what turns that into a measured allocator contract.
   the compiler now refuses at the declaration: the per-thread block is released by the
   thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
   keeps in thread-local storage has to be a plain value.
-- Measure with T-019 before and after, not with a probe written for the occasion.
+- Measure with B-182 before and after, not with a probe written for the occasion.
 
-### T-021 — Return idle memory without being asked
+### B-184 — Return idle memory without being asked
 
 - `trim()` decommits every page with no live block and returns the segments left without one, but
   nothing calls it on its own. A program that allocates in bursts keeps the high-water mark of
@@ -77,16 +77,16 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ## Tier B - Concurrent paths and allocation classes
 
-### T-022 — Make remote frees batched rather than one atomic each
+### B-185 — Make remote frees batched rather than one atomic each
 
 - A block freed by a thread that does not own its page costs one compare-exchange, and the owner
   drains the list only when the page runs dry. That is already far better than the previous design,
   but a producer/consumer pair still pays one atomic per block in each direction.
 - Measure whether a per-page batch handoff pays for itself against the current single push, using
-  the producer/consumer workload from T-019. Bound the drain so one allocation cannot inherit an
+  the producer/consumer workload from B-182. Bound the drain so one allocation cannot inherit an
   arbitrarily long pause.
 
-### T-023 — Add a medium-allocation tier above 64 KiB
+### B-186 — Add a medium-allocation tier above 64 KiB
 
 - Requests above 64 KiB take the header path: one `VirtualAlloc` reservation each, released on
   free. That is correct and wastes almost nothing, but a buffer that doubles across the boundary
@@ -95,16 +95,16 @@ The remaining work below is what turns that into a measured allocator contract.
   the boundary is hot, the answer is a size-class tier above 64 KiB carved from whole segments, not
   a cache of arbitrary blocks.
 
-- Related: T-163
+- Related: B-289
 
-### T-163 — Huge allocations have no separately measured policy
+### B-289 — Huge allocations have no separately measured policy
 
 Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
 medium tier is separated. Benchmark large growth and release independently of size-class caching.
 
-- Related: T-019, T-023
+- Related: B-182, B-186
 
-### T-024 — Tune size classes from traces rather than from the table
+### B-187 — Tune size classes from traces rather than from the table
 
 - Classes split each power of two into four above 128 bytes, which bounds the step at a fifth of
   the class it lands in. Eight-way splitting would halve that at the cost of doubling the class
@@ -114,7 +114,7 @@ medium tier is separated. Benchmark large growth and release independently of si
 
 ## Tier C - Failure, platform, and security hardening
 
-### T-025 — Add allocator OS-failure injection
+### B-188 — Add allocator OS-failure injection
 
 - `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
   obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
@@ -123,24 +123,17 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Inject reserve and commit failures at every transition and verify that page masks, segment lists,
   and the abandoned list stay consistent and that the allocation returns null rather than a
   half-built page.
-- Related: T-164, T-165
+- Related: B-290, B-291
 
-### T-164 — Allocator stress is not run under Windows heap instrumentation
+### B-290 — Allocator stress is not run under Windows heap instrumentation
 
 Run the allocator stress suite under Windows Application Verifier and page heap, and make the
 invocation reproducible without folding it into failure injection.
 
-- Related: T-019, T-025
+- Related: B-182, B-188
 
-### T-165 — The page allocator has no real second-platform OS primitives
 
-Implement equivalents of `allocatorOsCommit`, `allocatorOsDecommit`, page protection, release, and
-thread-exit cleanup before enabling the page path on another target. The compiled fallbacks are
-placeholders, not an implementation.
-
-- Related: T-025, T-270
-
-### T-026 — Decide what the security properties are, and write them down
+### B-189 — Decide what the security properties are, and write them down
 
 - Shipped: free-list links are obfuscated with a per-page key and validated on pop; a free rejects
   any address that does not start a block of its page; an immediate double free of the most recently

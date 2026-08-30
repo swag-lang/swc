@@ -22,7 +22,7 @@ module's roadmap.
 
 ## Tier A — Block I/O throughput
 
-### T-087 — No block cache
+### B-236 — No block cache
 
 - Owner: Swag Vault
 - Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
@@ -34,39 +34,14 @@ module's roadmap.
 
 ## Tier A — Key and release security
 
-### T-089 — Keys live in pageable memory
 
-- Owner: `bin/std` for the locked allocation, Swag Vault for the policy
-- Problem: `Crypto.Keys` and the unwrapped master key are ordinary memory. The page file or a crash
-  minidump can capture the master key. VeraCrypt locks its key pages.
-- Fix: provide a locked-memory allocation in `bin/std` and require Swag Vault's unwrapped keys to use
-  it. Keep dump exclusion and lifecycle wiping independently testable.
-- Related: T-253
 
-### T-253 — Key pages are not excluded from Windows crash dumps
-
-- Owner: Swag Vault
-- Register key regions for exclusion from Windows Error Reporting dumps and verify the configured
-  dump policy.
-- Related: T-089
-
-### T-090 — The executable is not signed
-
-- Owner: release process
-- Problem: the application requests UAC elevation to start the driver. Unsigned, the consent dialog
-  reads "Unknown publisher" for an encryption tool. This is a larger adoption obstacle than any
-  feature on this list.
-- Fix: an OV or EV code-signing certificate, applied to `swagvault.exe`.
-- Note: elevation is only required because the portable WinFsp driver has to be registered by the
-  guardian process. A system-wide WinFsp installation makes `loadWinFsp` take the installed runtime
-  and skip the guardian entirely, which is also what allows an automated end-to-end test loop
-  without a consent dialog on every run.
 
 ---
 
 ## Tier B — Automatic and forced unmounting
 
-### T-091 — A busy volume cannot be forcibly unmounted
+### B-239 — A busy volume cannot be forcibly unmounted
 
 - Owner: Swag Vault
 - Add an explicit forced-unmount flow when an open handle keeps a volume busy, including user
@@ -77,7 +52,7 @@ module's roadmap.
 
 ## Tier B — Credentials
 
-### T-092 — Additional password slots are not in the interface
+### B-240 — Additional password slots are not in the interface
 
 - Owner: Swag Vault
 - Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
@@ -90,7 +65,7 @@ module's roadmap.
 
 ## Tier B — Container maintenance
 
-### T-094 — Header backup and restore
+### B-241 — Header backup and restore
 
 - Owner: Swag Vault
 - Problem: the key slots and both header slots live in the same file, in its first megabytes. One
@@ -102,7 +77,7 @@ module's roadmap.
 
 ## Tier B — Filesystem concurrency
 
-### T-097 — Filesystem mutations still use one volume-wide lock
+### B-242 — Filesystem mutations still use one volume-wide lock
 
 - Owner: Swag Vault
 - Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
@@ -116,7 +91,7 @@ module's roadmap.
 
 ## Tier C — Format design and resilience
 
-### T-098 — Hidden volume
+### B-243 — Hidden volume
 
 - Owner: Swag Vault
 - The format already permits it: the container is entirely random, carries no magic, and derives
@@ -128,62 +103,48 @@ module's roadmap.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### T-099 — No normative container-format specification
+### B-244 — No normative container-format specification
 
 - Owner: Swag Vault
 - Write a normative format document independent of the implementation, covering layout, key
   derivation, record framing, validation order, versioning, and failure indistinguishability.
-- Related: T-261, T-262, T-263, T-264, T-101
+- Related: B-360, B-361, B-362, B-363, B-246
 
-### T-261 — No published Swag Vault format test vectors
+### B-360 — No published Swag Vault format test vectors
 
 - Owner: Swag Vault
 - Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
   containers so independent implementations can be compared.
-- Related: T-099, T-101
+- Related: B-244, B-246
 
-### T-262 — Attacker-controlled container decoders are not fuzzed
+### B-361 — Attacker-controlled container decoders are not fuzzed
 
 - Owner: Swag Vault
 - Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
   reproducible corpora and sanitizer coverage.
-- Related: T-099, T-101
+- Related: B-244, B-246
 
-### T-263 — Crash tests do not cover torn records or checkpoint kills
+### B-362 — Crash tests do not cover torn records or checkpoint kills
 
 - Owner: Swag Vault
 - Extend crash consistency beyond between-operation snapshots to torn writes inside a record and
   process termination during checkpointing.
-- Related: T-099
+- Related: B-244
 
 ## Tier C — Scale, platform reach, and independent assurance
 
-### T-264 — Metadata scaling stops at 1,200 files
+### B-363 — Metadata scaling stops at 1,200 files
 
 - Owner: Swag Vault
 - Add a bounded performance and correctness test at one hundred thousand files.
-- Related: T-087, T-099
+- Related: B-236, B-244
 
-### T-100 — No Linux FUSE backend
 
-- Owner: Swag Vault
-- The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
-  `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
-  container format, the logical filesystem, the password widget — is platform-independent already.
-  Real work, no design risk.
-- Related: T-265
 
-### T-265 — No macOS filesystem backend
-
-- Owner: Swag Vault
-- Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
-  native filesystem mechanism explicitly.
-- Related: T-100
-
-### T-101 — External audit
+### B-246 — External audit
 
 - Owner: project
-- After T-099. Until it happens, the format and the implementation have had no independent
+- After B-244. Until it happens, the format and the implementation have had no independent
   cryptographic review, and Swag Vault is not a proven replacement for VeraCrypt on critical data — no
   matter what else on this list ships.
 

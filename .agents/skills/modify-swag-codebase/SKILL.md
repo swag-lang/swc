@@ -123,9 +123,8 @@ identifier does not.
   entry count: it keeps rising as entries are deleted.
 - Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
   old commit message still means what it meant.
-- Existing identifiers below `F-203` and `T-572` are permanent legacy identifiers. Their prefixes
-  no longer determine file, shape, ordering, or maturity; those families are closed and every new
-  entry uses `B-*`.
+- Every active entry uses `B-*`. The former `T-*` and `F-*` families are closed and must not appear
+  in current backlog entries or references.
 - Position expresses expected value where entries are comparable. Put an untriaged lead at the end
   of the closest relevant section until its priority is understood, then move it without changing
   its identifier.
@@ -140,6 +139,8 @@ that keeps evidence, open decisions, and committed outcomes together. Read
 
 - `backlog/compiler.md`, `optimization.md`, `safety.md`, `gui.md`, and their peers are split by the
   domain where the issue will be investigated or fixed, not by the task that noticed it.
+- `backlog/portability.md` is the cross-domain exception: every operating-system backend, product
+  port, target integration, and Windows-bound contract that must be made portable lives there.
 - Evidence and intent are properties of an entry, not different storage classes. Use `Next:` to
   state the smallest useful investigation or implementation step and `Complete when:` to state
   when the entry can be deleted or its next action rewritten.

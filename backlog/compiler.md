@@ -8,7 +8,7 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 ## Tier A — Persisted compiler state
 
-### T-001 — Dependencies cross the module boundary as regenerated source
+### B-167 — Dependencies cross the module boundary as regenerated source
 
 **Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
 
@@ -19,9 +19,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
 - Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
 
-**Related:** T-002, T-006, T-008, T-338.
+**Related:** B-168, B-171, B-173, B-407.
 
-### T-002 — Front-end invalidation is module-wide
+### B-168 — Front-end invalidation is module-wide
 
 **Intent.** Persist lexical, parsed, and semantic state per source file. Cache keys must include the source content, relevant build configuration, and fingerprints of imported public symbols actually observed by the file.
 
@@ -30,12 +30,12 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Editing a private body reanalyzes only the changed file and its semantic dependents.
 - Changing a public signature invalidates every consumer that observed it.
 - Adding, removing, or renaming a file, changing relevant configuration, and changing compiler versions invalidate the correct state.
-- Statistics from T-004 report reused and rebuilt files, tokens, and semantic work.
+- Statistics from B-169 report reused and rebuilt files, tokens, and semantic work.
 - Clean and incremental workspace builds are covered by equivalent-result tests.
 
-**Related:** T-001, T-004, T-122, T-125.
+**Related:** B-167, B-169, B-258, B-260.
 
-### T-122 — Code-generation invalidation is module-wide
+### B-258 — Code-generation invalidation is module-wide
 
 **Intent.** Cache code generation at function granularity. A reusable artifact must be keyed by the function's semantic fingerprint plus the reachable ABI and inlinable-body dependencies that can affect its generated code.
 
@@ -46,11 +46,11 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - A deterministic test compares clean and warm native images, manifests, and observable behavior.
 - Cache entries reject compiler, target, configuration, ABI, and relevant optimization changes.
 
-**Related:** T-001, T-002, T-004.
+**Related:** B-167, B-168, B-169.
 
 ## Tier B — Measurement and budgets
 
-### T-004 — The benchmark campaign measures only hello world
+### B-169 — The benchmark campaign measures only hello world
 
 **Evidence.** `bench/history.json` currently uses protocol 2 and contains three records, all dated 2026-08-07. They cover only `hello_build_ms` (99.5432–112.6252 ms) and `hello_build_peak_mb` (105.28125–107.4375 MiB). They do not establish full-core, warm no-op, or touched-file baselines.
 
@@ -63,11 +63,11 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - At least five clean baseline campaigns establish stable thresholds before regressions are enforced.
 - The campaign and CI report threshold violations without silently rewriting the baseline.
 
-**Related:** T-002, T-005, T-007.
+**Related:** B-168, B-170, B-172.
 
-### T-005 — Compiler memory has no attributed, enforced budget
+### B-170 — Compiler memory has no attributed, enforced budget
 
-**Intent.** Use external profiling and the T-004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
+**Intent.** Use external profiling and the B-169 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
 
 **Complete when.**
 
@@ -76,11 +76,11 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Thresholds, host normalization, and variance policy are stored with the campaign.
 - External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
 
-**Related:** T-004, T-007.
+**Related:** B-169, B-172.
 
 ## Tier B — Reused and parallel compiler work
 
-### T-006 — Every process rebuilds the prelude state
+### B-171 — Every process rebuilds the prelude state
 
 **Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
 
@@ -89,11 +89,11 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
 - Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
 - Fresh and reused prelude paths produce identical diagnostics and artifacts.
-- The T-004 campaign demonstrates the reduced fixed startup floor.
+- The B-169 campaign demonstrates the reduced fixed startup floor.
 
-**Related:** T-001, T-004, T-125.
+**Related:** B-167, B-169, B-260.
 
-### T-007 — Workspace front ends and code generation run serially
+### B-172 — Workspace front ends and code generation run serially
 
 **Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
 
@@ -104,14 +104,14 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
 - Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
 - Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
-- The concurrency cap accounts for the memory measurements and budget from T-005.
+- The concurrency cap accounts for the memory measurements and budget from B-170.
 - Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
 
-**Related:** T-004, T-005.
+**Related:** B-169, B-170.
 
 ## Tier C — Language-server capabilities
 
-### T-008 — There is no persistent language-server process
+### B-173 — There is no persistent language-server process
 
 **Intent.** Add a compiler-hosted LSP transport and session layer: initialization and shutdown, workspace discovery, document open/change/close notifications, versioned snapshots, request cancellation, and orderly teardown. Requests must call compiler-library services instead of launching a compiler process per operation.
 
@@ -119,12 +119,12 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 - A standard LSP client can open a workspace, edit unsaved buffers, cancel obsolete requests, and shut down cleanly.
 - Responses are computed from the requested document version and stale work cannot publish newer state.
-- The session reuses persisted compiler state from T-001 and T-002 when available.
+- The session reuses persisted compiler state from B-167 and B-168 when available.
 - Protocol integration tests run independently of the VSCode extension.
 
-**Related:** T-001, T-002, T-337, T-338, T-339, T-340, T-381, T-382.
+**Related:** B-167, B-168, B-406, B-407, B-408, B-409, B-440, B-441.
 
-### T-381 — Open documents have no incremental diagnostics
+### B-440 — Open documents have no incremental diagnostics
 
 **Intent.** Publish parser and semantic diagnostics for the accepted version of every open document, including affected dependents, without requiring a workspace build.
 
@@ -135,9 +135,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Diagnostic identifiers, severity, primary and related locations, source snippets, and normalized paths survive the protocol conversion.
 - A multi-file protocol test covers an edit that introduces and then repairs a dependent-file error.
 
-**Related:** T-002, T-008.
+**Related:** B-168, B-173.
 
-### T-337 — The editor has no semantic completion service
+### B-406 — The editor has no semantic completion service
 
 **Intent.** Provide completion candidates from the semantic snapshot at a source position, including local scope, members, visible imports, generic parameters, and applicable language constructs.
 
@@ -148,9 +148,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Results are deterministic and cancellable, and a stale request cannot populate a newer buffer.
 - Protocol tests cover local, member, import, generic, incomplete-expression, and inaccessible-symbol cases.
 
-**Related:** T-008, T-338, T-339.
+**Related:** B-173, B-407, B-408.
 
-### T-338 — The editor cannot navigate to definitions
+### B-407 — The editor cannot navigate to definitions
 
 **Intent.** Resolve the symbol referenced at a source position and return its canonical declaration location, including declarations in dependencies represented by persisted interfaces.
 
@@ -161,9 +161,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Paths and ranges are valid for open snapshots and on-disk dependency sources.
 - Protocol tests cover same-file, cross-file, cross-module, overload, and no-result cases.
 
-**Related:** T-001, T-008, T-382.
+**Related:** B-167, B-173, B-441.
 
-### T-382 — The editor cannot find semantic references
+### B-441 — The editor cannot find semantic references
 
 **Intent.** Enumerate references to the resolved declaration at a source position across the workspace, distinguishing declarations from uses and excluding textually identical but semantically different symbols.
 
@@ -174,9 +174,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Shadowed names, comments, strings, and unrelated overloads do not appear.
 - Results are deterministic, deduplicated, cancellable, and covered by same-file and cross-module protocol tests.
 
-**Related:** T-008, T-338, T-340.
+**Related:** B-173, B-407, B-409.
 
-### T-339 — The editor has no semantic hover service
+### B-408 — The editor has no semantic hover service
 
 **Intent.** Render concise semantic information for the resolved entity at a source position: declaration signature, inferred type or constant value, ownership and relevant attributes, and public documentation.
 
@@ -187,9 +187,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Unknown or ambiguous positions return no misleading result.
 - Protocol tests cover imported documentation, inferred values, overload resolution, and no-result cases.
 
-**Related:** T-008, T-337, T-338.
+**Related:** B-173, B-406, B-407.
 
-### T-340 — The editor cannot rename a symbol semantically
+### B-409 — The editor cannot rename a symbol semantically
 
 **Intent.** Validate a requested identifier at a resolved declaration, reuse the semantic reference set, and produce a versioned workspace edit without changing unrelated text.
 
@@ -200,11 +200,11 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Edits are sorted, non-overlapping, versioned where required, and rejected when snapshots become stale.
 - Protocol tests cover shadowing, members, overloads, aliases, cross-module use, collision, and cancellation.
 
-**Related:** T-008, T-382.
+**Related:** B-173, B-441.
 
 ## Tier C — Command-line and script workflows
 
-### T-124 — The VSCode task provider emits obsolete command lines
+### B-259 — The VSCode task provider emits obsolete command lines
 
 **Evidence.** `vscode/src/providers.js` currently constructs `swag build -w:${workspaceFolder}` and `swag format -f:${file}` as command strings. These spellings do not match the current long-form CLI and string concatenation makes paths with spaces shell-dependent. The module-level task array can also accumulate duplicates across repeated provider calls.
 
@@ -217,24 +217,10 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Repeated task discovery returns a stable set without duplicates.
 - An automated extension test, or an injectable command-builder test, asserts the exact executable and argument vector.
 
-**Related:** T-008.
+**Related:** B-173.
 
-### T-102 — Bare `.swgs` execution has no supported shell contract
 
-**Evidence.** `tools/setup.swgs` installs the current-user file association used by double-click launch, but its own guidance still requires elevated `assoc`/`ftype` configuration for bare script execution in a shell.
-
-**Intent.** Define and implement the supported Windows behavior for double-click and bare command-line execution, with machine-wide mutation remaining explicit and opt-in.
-
-**Complete when.**
-
-- Setup reports whether bare execution is supported for the current shell and either configures it safely or prints the exact remaining elevated step.
-- A fresh `cmd.exe` and Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that contract.
-- Existing double-click behavior remains intact.
-- Moving the checkout and rerunning setup refreshes stale interpreter paths, and removal instructions undo installed associations.
-
-**Related:** T-125.
-
-### T-125 — Tool scripts recompile on every invocation
+### B-260 — Tool scripts recompile on every invocation
 
 **Intent.** Persist compiled script artifacts using a dependency-complete key over loaded source files, imported public interfaces, compiler version, target, and relevant build configuration.
 
@@ -245,9 +231,9 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Cached and fresh paths preserve diagnostics, forwarded arguments, environment handling, output, and exit code.
 - Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
 
-**Related:** T-001, T-002, T-006, T-102.
+**Related:** B-167, B-168, B-171, B-247.
 
-### T-385 — Compiler linker optimizations are disabled for iteration speed
+### B-443 — Compiler linker optimizations are disabled for iteration speed
 
 **Intent.** Restore whole-program optimization in the Release and DevMode configurations of `swc.vcxproj` once link time is acceptable again or when producing a shipping binary: `/GL` with full LTCG in Release, incremental LTCG in DevMode, and `/OPT:REF` plus `/OPT:ICF` in both. They were switched off because LTCG made links far too long for day-to-day iteration; DevMode uses conventional incremental linking in the meantime.
 
@@ -258,7 +244,7 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - The DevMode `Link` block uses `UseFastLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again, with conventional incremental linking disabled.
 - The resulting DevMode and Release builds pass their compiler validation workflows.
 
-### T-560 — `swc.exe` is still built for the pre-baseline instruction set
+### B-560 — `swc.exe` is still built for the pre-baseline instruction set
 
 **Intent.** `swc.vcxproj` sets no `EnableEnhancedInstructionSet`, so MSVC compiles the compiler itself at the x64 default (SSE2) even though everything it emits, and everything its JIT executes, is now `x86-64-v3`. Raising the compiler's own build to `/arch:AVX2` lets MSVC use the same baseline for `swc`, which is a plain speedup of the compiler.
 
@@ -273,7 +259,7 @@ This is a compiler-performance change, not part of the baseline contract: it mov
 - A host reporting no AVX2 still gets the diagnostic instead of a fault.
 - Compile time and `swc.exe` size are measured before and after, alternating order, and recorded.
 
-**Related:** T-385.
+**Related:** B-443.
 
 ## Deliberately out of scope
 
@@ -295,7 +281,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 
 ## Published symbols, imports, and name resolution
 
-### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
+### B-571 — An ambiguous `.member` still reads "not published yet" as "not there"
 
 - Area: compiler
 - Found while: fixing the same race for the unambiguous case, which was making `Swag Capture` fail to
@@ -322,7 +308,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   A cheaper answer may be to park only while at least one candidate type has an `impl` block whose
   body has not run.
 
-### F-111 — Concurrent type generation can corrupt declared-method traversal
+### B-609 — Concurrent type generation can corrupt declared-method traversal
 
 - Area: compiler
 - Found while: rerunning `tools/tests.swgs dm --all-cfg` for F-106 after an unrelated intermittent
@@ -355,7 +341,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 
 ## JIT-hosted runs
 
-### F-124 — A dangling reference into a destroyed compiler instance has no deterministic detector
+### B-612 — A dangling reference into a destroyed compiler instance has no deterministic detector
 
 - Area: compiler
 - Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
@@ -382,7 +368,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   class reproduce on the first run. Then add a `bin/unittests/workspace` case that rebuilds a
   dependency and asserts `Env.executablePath()` is a valid, existing path from the tested module.
 
-### F-125 — A JIT '#test' can call through a function slot that was never patched
+### B-613 — A JIT '#test' can call through a function slot that was never patched
 
 - Area: compiler
 - Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
@@ -408,7 +394,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
 
-### F-164 — DevMode assigns a semantic payload to the same slice node twice
+### B-625 — DevMode assigns a semantic payload to the same slice node twice
 
 - Area: compiler
 - Found while: building the shared `bin/apps` workspace after integrating Swag Scope's viewers.
@@ -438,7 +424,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   capture both `setSemaPayload` calls for the slice node before changing payload ownership; a
   reduction that does not fail on demand cannot be turned into a `bin/unittests/sema` case.
 
-### F-182 — A JIT '#test' can silently compute a wrong value in a release run
+### B-630 — A JIT '#test' can silently compute a wrong value in a release run
 
 - Area: compiler
 - Found while: validating the `x86-64-v3` baseline change with
@@ -447,7 +433,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 - Observation: `bin/unittests/native/casts/autocast_pointer_receiver.swg:35` reported
   `assertion does not hold: AutoCastStorage.lo == 16` from the JIT `#test` at line 31, which writes
   a file-scope struct through a pointer receiver. Nothing faulted: the global simply did not hold
-  what the call had written. This widens the class F-124 and F-125 describe -- both of those
+  what the call had written. This widens the class B-612 and B-613 describe -- both of those
   manifest as a hardware exception, so a run that survives is trusted; here a run survived and the
   data was wrong, which no `#test` outside this one would have noticed.
 - Evidence: the failure reproduced twice in a row -- once in the full suite, once with
@@ -470,7 +456,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   and from the filtered one and compare; two compiles of the same function that differ is what to
   look for before the allocator or global-segment publication.
 
-### F-192 — A clean documentation workspace cannot JIT a transitive dependency
+### B-636 — A clean documentation workspace cannot JIT a transitive dependency
 
 - Area: compiler
 - Found while: regenerating the website after removing unused runtime attributes, which changed

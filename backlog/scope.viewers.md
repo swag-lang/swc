@@ -74,7 +74,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 
 ## Shared reading behavior
 
-### T-388 — Select-all in a streamed document silently means the resident window
+### B-444 — Select-all in a streamed document silently means the resident window
 
 - Evidence: the basic text and `Code` viewers use `RichEditCtrl`; Ctrl+A selects only their
   resident 256 KiB window. The Markdown viewer likewise selects only materialized blocks. The
@@ -85,14 +85,14 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 - Complete when: select-all reaches the whole file or the copy command says exactly which bounded
   part will leave, before the user pastes it.
 
-### T-398 — A document cannot be printed
+### B-449 — A document cannot be printed
 
 - Intent: a viewer that renders a document should be able to put it on paper through the same
   pagination contract as the rest of the GUI rather than through application-local paths.
 - Next: define the application adapter once the GUI pagination and preview contract is ready.
 - Complete when: text, code, Markdown, HTML, image, and hexadecimal dump views print through that
   contract, with actual-size or fit-to-page choices where they have meaning.
-- Related: T-047, T-234, T-236
+- Related: B-204, B-342, B-344
 
 ### B-043 — Viewer state is forgotten when a file or application closes
 
@@ -114,7 +114,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
   partial-publication rules, and a shared terminal status.
 - Complete when: opening and analysis operations remain interruptible, replacement files retire old
   work promptly, the overlay names the current phase, and cancellation never becomes an error.
-- Related: B-025, T-459
+- Related: B-025, B-494
 
 ### B-045 — External file replacement and growth have no viewer-wide reload policy
 
@@ -126,7 +126,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 - Complete when: atomic replacement, append, truncation, deletion, and permission loss are
   distinguished; stale search results are retired; reload can preserve a valid logical position;
   and each viewer states whether live following is supported.
-- Related: B-027, T-409
+- Related: B-027, B-456
 
 ### B-046 — File facts are scattered across terse summaries instead of one inspectable panel
 
@@ -138,19 +138,19 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 - Complete when: facts are selectable and copyable, byte sizes and dates have exact forms, format
   detection explains its evidence, hashes are cancellable for large files, and viewers can link a
   property to the content it describes.
-- Related: B-031, T-405
+- Related: B-031, B-453
 
 ### B-047 — Custom-painted viewers cannot expose a professional accessibility model
 
 - Evidence: image, waveform, piano-roll, font-map, video-overlay, and hexadecimal surfaces paint
   meaning without semantic children. The toolkit itself still has no accessibility bridge, so
   keyboard focus alone cannot describe values, ranges, selection, or playback state.
-- Next: specify the semantic tree and keyboard contract for every custom viewer while T-037 builds
+- Next: specify the semantic tree and keyboard contract for every custom viewer while B-196 builds
   the toolkit bridge, beginning with roles, names, values, bounds, and change notifications.
 - Complete when: each viewer has an accessibility fixture, all actions are keyboard reachable,
   focus order is stable, animation and playback state are announced without flooding, and the
   shipped platform bridge exposes the same model.
-- Related: T-037, B-035
+- Related: B-196, B-035
 
 ### B-048 — Viewer commands have no common discoverability or remapping surface
 
@@ -161,7 +161,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
   discoverable description before adding a palette and shortcut sheet.
 - Complete when: every non-pointer-only action can be found and invoked by name, shortcuts can be
   inspected and remapped, conflicts are reported, and toolbar/menu/key execution share one state.
-- Related: B-042, T-222
+- Related: B-042, B-333
 
 ### B-049 — The viewer family has no release-quality compatibility matrix
 
@@ -173,7 +173,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 - Complete when: the application smoke validates every registered viewer in light and dark themes,
   the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
   format choice, cancellation, accessibility, or resource bounds fail a focused suite.
-- Related: F-156
+- Related: B-622
 
 ## Format coverage
 
@@ -191,15 +191,15 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | Markdown | `.md` `.markdown` | full | outline, synchronized source, resource diagnostics | [B-069](scope.document.md) |
 | HTML | `.html` `.htm` `.xhtml` | full | DOM/source/resource inspection; advanced engine layout | [B-074](scope.document.md), [HTML roadmap](html.md) |
 | JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
-| Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | [T-408](scope.text.md) |
-| Log | `.log` | text | level coloring, timestamps, tail | [T-409](scope.text.md) |
+| Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | [B-455](scope.text.md) |
+| Log | `.log` | text | level coloring, timestamps, tail | [B-456](scope.text.md) |
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript | cue navigation, source/styled modes, media check | [B-059](scope.text.md) |
-| Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB | bounded streaming, dialect, sort/filter, types | [T-402](scope.text.md), [B-063](scope.text.md) |
-| PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [T-401](scope.document.md), [B-079](scope.document.md), [pdf.md](pdf.md) |
-| Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [T-407](scope.document.md) |
-| OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | [T-407](scope.document.md) |
+| Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB | bounded streaming, dialect, sort/filter, types | [B-451](scope.text.md), [B-063](scope.text.md) |
+| PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [B-450](scope.document.md), [B-079](scope.document.md), [pdf.md](pdf.md) |
+| Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [B-454](scope.document.md) |
+| OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | [B-454](scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
-| EPUB | `.epub` | structure | spine read through `HtmlView` | [T-415](scope.document.md) |
+| EPUB | `.epub` | structure | spine read through `HtmlView` | [B-462](scope.document.md) |
 | RTF | `.rtf` | text | — | — |
 | Mail | `.eml` `.msg` | none | — | — |
 | Notebook | `.ipynb` | code | rendered cells | — |
@@ -210,14 +210,14 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | Raster | `.bmp` `.gif` `.ico` `.jpg` `.png` `.tga` `.tiff` `.webp` | full | pixel, histogram, comparison, progressive huge-image tools | [B-096](scope.image.md) |
-| Vector | `.svg` | full | clipping, masks, markers, symbols | T-189, T-191, T-192, T-326 |
-| Metadata | EXIF, ICC, XMP | none | panel, orientation, color management | [T-405](scope.image.md) |
-| Simple raster | `.qoi` `.pnm` `.ppm` | none | Pixel codecs | T-055 |
-| Modern codecs | `.avif` `.heic` `.jxl` | none | Pixel codecs | T-203, T-204 |
-| High dynamic range | `.exr` `.hdr` | none | Pixel codecs | T-207 |
-| Layered | `.psd` `.xcf` | signature | Pixel importer | T-208 |
-| GPU textures | `.dds` `.ktx2` | none | Pixel containers | T-205, T-206 |
-| Camera RAW | `.cr2` `.nef` `.arw` `.dng` | signature | embedded preview extraction | [T-414](scope.image.md) |
+| Vector | `.svg` | full | clipping, masks, markers, symbols | B-308, B-309, B-310, B-402 |
+| Metadata | EXIF, ICC, XMP | none | panel, orientation, color management | [B-453](scope.image.md) |
+| Simple raster | `.qoi` `.pnm` `.ppm` | none | Pixel codecs | B-210 |
+| Modern codecs | `.avif` `.heic` `.jxl` | none | Pixel codecs | B-319, B-320 |
+| High dynamic range | `.exr` `.hdr` | none | Pixel codecs | B-323 |
+| Layered | `.psd` `.xcf` | signature | Pixel importer | B-324 |
+| GPU textures | `.dds` `.ktx2` | none | Pixel containers | B-321, B-322 |
+| Camera RAW | `.cr2` `.nef` `.arw` `.dng` | signature | embedded preview extraction | [B-461](scope.image.md) |
 
 #### Audio and video
 
@@ -225,10 +225,10 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | --- | --- | --- | --- | --- |
 | WAV PCM and float | `.wav` | full, streamed | professional transport/analysis; ADPCM | [B-106](scope.audio.md), T-169 |
 | Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | the format carries no sound | — |
-| Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full with supported container audio | uncommon chroma layouts | T-426 |
+| Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full with supported container audio | uncommon chroma layouts | B-467 |
 | Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | professional transport/analysis; remaining module coverage | [B-106](scope.audio.md), T-166, T-168 |
-| Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; others identified | ISO-BMFF and EBML trees | [T-412](scope.binary.md) |
-| Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [B-117](scope.video.md), [T-420](scope.video.md) |
+| Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; others identified | ISO-BMFF and EBML trees | [B-459](scope.binary.md) |
+| Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [B-117](scope.video.md), [B-464](scope.video.md) |
 | MIDI | `.mid` `.midi` | piano roll and structure | playback, event lanes, scalable timeline | [B-142](scope.midi.md) |
 
 #### Binaries, containers, and developer artifacts
@@ -241,13 +241,13 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | WebAssembly | `.wasm` | structure | — | — |
 | RIFF | `.wav` `.avi` | structure | — | — |
 | Swag chunk container | `.scc` | structure through `Core.Scc` | — | — |
-| ZIP family | `.zip` `.jar` `.apk` `.vsix` | central directory | open an entry | [T-403](scope.binary.md) |
-| Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [T-403](scope.binary.md) |
+| ZIP family | `.zip` `.jar` `.apk` `.vsix` | central directory | open an entry | [B-452](scope.binary.md) |
+| Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [B-452](scope.binary.md) |
 | TrueType fonts | `.ttf` `.ttc` | specimen and first-face character map | face selector, glyph/metric/coverage inspection | [B-130](scope.font.md) |
-| CFF and web fonts | `.otf` `.woff` `.woff2` | OTF specimen; WOFF structure | professional inspection; WOFF containers | [B-130](scope.font.md), T-177, T-178 |
-| Program databases | `.pdb` | signature | MSF streams and CodeView match | [T-413](scope.binary.md) |
-| Databases | `.sqlite` `.db` | signature | schema and bounded table browse | [T-410](scope.binary.md) |
-| Certificates and keys | `.pem` `.der` `.crt` `.p12` | none | ASN.1 and X.509 decode | [T-411](scope.binary.md) |
+| CFF and web fonts | `.otf` `.woff` `.woff2` | OTF specimen; WOFF structure | professional inspection; WOFF containers | [B-130](scope.font.md), B-299, B-300 |
+| Program databases | `.pdb` | signature | MSF streams and CodeView match | [B-460](scope.binary.md) |
+| Databases | `.sqlite` `.db` | signature | schema and bounded table browse | [B-457](scope.binary.md) |
+| Certificates and keys | `.pem` `.der` `.crt` `.p12` | none | ASN.1 and X.509 decode | [B-458](scope.binary.md) |
 | Managed code | `.class` `.dex` | signature | — | — |
 | Crash dumps | `.dmp` | none | — | — |
 | Disk images | `.iso` `.vhd` | none | — | — |

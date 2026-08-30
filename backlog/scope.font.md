@@ -80,29 +80,29 @@ remains in [truetype.md](truetype.md).
 - Complete when: chosen script, language, direction, features, glyph IDs, clusters, advances, and
   positioning are visible; toggles update the specimen; unsupported tables/features say so; and
   original text-to-glyph mapping remains inspectable.
-- Related: T-069, T-179, T-181
+- Related: B-221, B-301, B-303
 
 ### B-137 — Variable-font axes and named instances cannot be explored
 
-- Evidence: T-070 records that the font engine lacks variable fonts, while the viewer has no axis
+- Evidence: B-222 records that the font engine lacks variable fonts, while the viewer has no axis
   sliders, ranges/defaults, named instances, STAT/avar information, or comparison at two locations.
-- Next: specify the axis/instance viewer model and connect it when T-070 exposes variation-aware
+- Next: specify the axis/instance viewer model and connect it when B-222 exposes variation-aware
   faces and glyph metrics.
 - Complete when: axes show tag/name/min/default/max/current values, named instances select exact
   coordinates, specimen/map/metrics update together, out-of-range input is rejected, and two
   instances can be compared.
-- Related: T-070
+- Related: B-222
 
 ### B-138 — Color, bitmap, SVG, and vertical glyph capabilities have no viewer modes
 
-- Evidence: T-071/T-182/T-183/T-184/T-072 track missing font-engine features. The viewer cannot
+- Evidence: B-223/B-304/B-305/B-306/B-224 track missing font-engine features. The viewer cannot
   identify which glyphs use COLR/CPAL, bitmap strikes, SVG, or vertical metrics, select palettes or
   strikes, or compare fallback outline rendering.
 - Next: reserve explicit glyph-source and writing-mode controls, then connect each engine capability
   without silently flattening it into the default monochrome horizontal view.
 - Complete when: available source layers/strikes/palettes are listed, vertical specimen and metrics
   are correct, fallback is labelled, and the glyph inspector links to underlying tables.
-- Related: T-071, T-072, T-182, T-183, T-184
+- Related: B-223, B-224, B-304, B-305, B-306
 
 ### B-139 — Specimen presets and size controls are fixed
 

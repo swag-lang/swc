@@ -39,51 +39,44 @@ and `Math.max` among them, because a generic root always publishes its source. A
 kernel was therefore unaffected while a data-movement-bound one paid one call per operation, and
 the scalar kernels those prototypes were measured against usually paid none: the H.264 and JPEG
 sample paths use in-module branchless helpers instead of the `Math` family. So the bias usually
-understates the packed side, and where it does not — PNG Paeth scoring, T-548 — it inflates it
+understates the packed side, and where it does not — PNG Paeth scoring, B-551 — it inflates it
 instead. It applies to the accepted kernels as much as to the discarded ones: every number dated
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
 ## Tier A — Target selection, widths, and calling boundaries
 
-### T-509 — Standard modules cannot dispatch SIMD by host capability
+### B-529 — Standard modules cannot dispatch SIMD by host capability
 
 - Intent: add one authoritative CPU-feature query and function-multiversioning mechanism so a
   distributed standard module can select scalar/SSE2, AVX2, and later AVX-512 implementations
   without executing an unsupported instruction or duplicating ad-hoc dispatch in every module.
 - Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
   builds, and one runtime or codec kernel ships scalar, 128-bit, and 256-bit variants through it.
-- Related: T-506, T-510.
+- Related: B-527, B-530.
 
-### T-506 — 256-bit vectors are not expressible
+### B-527 — 256-bit vectors are not expressible
 
 - Intent: extend the type constructor to 32-byte geometry (`#simd [32] u8`, `#simd [8] f32`) gated
   on AVX2, with YMM registers, 32-byte spills/constants/alignment, operators, intrinsics, arguments,
   returns, type information, cross-module exports, and matching `Math.Simd` aliases.
 - Complete when: every supported 32-byte shape compiles and runs, crosses a module boundary, and
   128-bit code generation remains byte-identical when the wider path is not selected.
-- Related: T-509, T-507.
+- Related: B-529, B-528.
 
-### T-510 — 512-bit vectors and AVX-512 masks have no representation
+### B-530 — 512-bit vectors and AVX-512 masks have no representation
 
 - Intent: add 64-byte `#simd` shapes, ZMM register allocation, and explicit predicate-mask values
   for AVX-512 targets without making AVX-512 a baseline requirement.
 - Complete when: arithmetic, comparison, masked load/store, calls, spills, constants, reflection,
   and cross-module use work behind feature gating, with AVX2 and SSE2 fallbacks still selected on
   machines that lack the feature.
-- Related: T-509, T-506, T-516, T-517.
+- Related: B-529, B-527, B-532, B-533.
 
-### T-522 — Foreign vector ABIs are unavailable
-
-- Intent: support explicitly selected platform vector ABIs for foreign declarations where the ABI
-  is stable, while continuing to reject an ambiguous bare C-vector contract.
-- Complete when: supported Windows x64 vector parameters and returns interoperate with a C/C++
-  fixture, unsupported conventions fail semantically, and the contract is documented per target.
-- Related: T-506.
 
 ## Tier A — Missing packed operations
 
-### T-511 — Packed numeric lane conversion is incomplete
+### B-531 — Packed numeric lane conversion is incomplete
 
 - Intent: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
   the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
@@ -94,9 +87,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
   runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
   them.
-- Related: T-547, T-549, T-552.
+- Related: B-550, B-552, B-555.
 
-### T-556 — Packed integer division and modulo have no portable lowering
+### B-558 — Packed integer division and modulo have no portable lowering
 
 - Intent: define integer lane division/remainder semantics and implement constant-divisor strength
   reduction plus a profitable target-independent sequence or explicit fallback, instead of treating
@@ -104,9 +97,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: signed/unsigned lanes, zero divisors, `Min / -1`, constant and variable divisors,
   constant folding, and runtime execution have one documented contract and the cost model declines
   transformations that would lose to scalar code.
-- Related: T-535, T-545, T-547.
+- Related: B-542, B-548, B-550.
 
-### T-516 — Vector tails require scalar cleanup
+### B-532 — Vector tails require scalar cleanup
 
 - Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
   defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
@@ -115,9 +108,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   splat.
 - Complete when: arbitrary byte counts can be processed without reading or writing outside the
   slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
-- Related: T-510, T-531, T-544, T-545.
+- Related: B-530, B-540, B-547, B-548.
 
-### T-517 — Gather, scatter, compress, and expand are unavailable
+### B-533 — Gather, scatter, compress, and expand are unavailable
 
 - Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
   a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
@@ -128,49 +121,49 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   Both of those numbers were taken inside the call window described in the introduction, with the
   gather itself lowered as a call, so the cost of the operation is not established. Re-measure it
   before concluding anything about gather, and before reading the gather-driven rejections of
-  T-549 and T-541 as evidence against it.
+  B-552 and B-546 as evidence against it.
 - Complete when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
   compress/expand are encoded, and the fallback never performs an invalid masked access.
-- Related: T-510, T-548, T-551, T-554.
+- Related: B-530, B-551, B-554, B-557.
 
-### T-558 — Packed memory access has no alignment or cache policy
+### B-559 — Packed memory access has no alignment or cache policy
 
 - Intent: add aligned load/store assertions or hints, broadcast loads, non-temporal stores, and
   prefetch controls with semantics that remain safe when a target ignores the hint.
 - Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
   image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
   remains the default portable operation.
-- Related: T-509, T-545, T-552.
+- Related: B-529, B-548, B-555.
 
-### T-519 — Polynomial and cryptographic instructions have no typed surface
+### B-534 — Polynomial and cryptographic instructions have no typed surface
 
 - Intent: expose carry-less multiplication and, separately gated, AES round/key instructions as
   typed packed operations rather than opaque inline machine code.
 - Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
   and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
-- Related: T-539.
+- Related: B-545.
 
-### T-520 — Dot products have no VNNI form
+### B-535 — Dot products have no VNNI form
 
 - Intent: select the VNNI dot-product instructions where the host has them. Unsigned and signed
   byte SAD (`psadbw`), the 16-bit pairwise product (`pmaddwd`) and the unsigned/signed byte
   product (`pmaddubsw`) are the baseline forms and are already selected.
 - Complete when: a VNNI accumulation is chosen on a host that reports the feature, the baseline
   sequence still runs everywhere else, and both answer the same on the differential tests.
-- Related: T-509, T-507, T-536, T-546, T-549, T-550.
+- Related: B-529, B-528, B-543, B-549, B-552, B-553.
 
-### T-521 — Core has no vector math implementation
+### B-536 — Core has no vector math implementation
 
 - Intent: implement vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
   trigonometric family with documented accuracy tiers instead of treating absent machine
   instructions as a permanent reason to keep callers scalar.
 - Complete when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
   tested, and benchmarks justify the chosen polynomial/table implementations.
-- Related: T-547, T-553, T-554.
+- Related: B-550, B-556, B-557.
 
 ## Tier B — Backend quality and automatic vectorization
 
-### T-507 — Packed code generation misses idiomatic hardware forms
+### B-528 — Packed code generation misses idiomatic hardware forms
 
 - Intent: select immediate shuffles, fused multiply-add, horizontal forms, SAD, and direct lane
   insert instead of generic sequences. Landed 2026-08-22: `Swag.vecselect` is one `vpblendvb` (the
@@ -180,35 +173,35 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   and every transposed store compile to. Narrow lanes and dynamic indices still take the spill.
 - Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
-- Related: T-520.
+- Related: B-535.
 
-### T-523 — Unrolling does not expose constant-index SIMD packs
+### B-538 — Unrolling does not expose constant-index SIMD packs
 
 - Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
   combining needed for SLP to recognize adjacent loads and stores.
 - Complete when: the ChaCha key-stream XOR and a neutral array kernel become packed after unrolling,
   with no code-size-only unroll when vectorization does not follow.
-- Related: F-034.
+- Related: B-575.
 
-### T-524 — Loop vectorization cannot form reductions or masked tails
+### B-539 — Loop vectorization cannot form reductions or masked tails
 
 - Intent: teach the loop vectorizer to recognize associative reductions, version alias/alignment
   checks, and generate masked or peeled tails using the explicit SIMD operation set.
 - Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
   configured feature ceiling with scalar-equivalent results and profitable cost decisions.
-- Related: T-516, T-531.
+- Related: B-532, B-540.
 
 ## Tier B — Runtime and Core bulk primitives
 
-### T-531 — UTF-8 validation still lacks a profitable packed fast path
+### B-540 — UTF-8 validation still lacks a profitable packed fast path
 
 - Intent: improve `isValid` beyond its current unrolled scalar ASCII scan; a direct U8x16 bitmask
   path measured 20.76 to 20.42 GiB/s and was rejected.
 - Complete when: malformed boundaries and arbitrary tails match the scalar implementation and an
   ASCII-heavy benchmark improves rather than only replacing the load width.
-- Related: T-516, T-524.
+- Related: B-532, B-539.
 
-### T-534 — Vector4 and Pixel.Color do not use their native packed shape
+### B-541 — Vector4 and Pixel.Color do not use their native packed shape
 
 - Intent: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
   and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics;
@@ -216,19 +209,19 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
 - Complete when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
   and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
-- Related: T-511, T-521, T-552.
+- Related: B-531, B-536, B-555.
 
-### T-535 — NumericArray cannot specialize legal packed geometries
+### B-542 — NumericArray cannot specialize legal packed geometries
 
 - Intent: specialize generic equality, arithmetic, fill, copy, and mul-add when the instantiated
   element/count/operator combination has supported packed semantics.
 - Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
   generated-code tests prove no hidden conversion or temporary array.
-- Related: T-506, T-511.
+- Related: B-527, B-531.
 
 ## Tier B — Cryptography and checksums
 
-### T-251 — The Argon2 permutation remains scalar
+### B-357 — The Argon2 permutation remains scalar
 
 - Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
   retaining Argon2id's exact memory-index and synchronization semantics.
@@ -243,9 +236,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
-- Related: T-252 in [core.md](core.md).
+- Related: B-358 in [core.md](core.md).
 
-### T-536 — Blake2b compression remains scalar
+### B-543 — Blake2b compression remains scalar
 
 - Intent: run paired G functions and message/state permutations in packed 64-bit lanes, using native
   rotates or defined shift/or lowering.
@@ -255,31 +248,31 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. A viable
   kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
 
-### T-250 — Poly1305 remains scalar
+### B-356 — Poly1305 remains scalar
 
 - Intent: implement a packed limb strategy or several-message kernel, selected only where it beats
   the current scalar carry chain.
 - Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
   exact, and authenticated-encryption throughput improves end to end.
 
-### T-538 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
+### B-544 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
 
 - Intent: add batch APIs or internal batching that process independent message blocks across lanes,
   instead of attempting to vectorize one recurrence-dependent stream.
 - Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
   back for a single stream, and improve aggregate hashing throughput.
 
-### T-539 — CRC32 cannot use polynomial folding
+### B-545 — CRC32 cannot use polynomial folding
 
 - Intent: add a carry-less-multiply folding implementation with feature dispatch and retain the
   table implementation as the portable fallback.
 - Complete when: incremental CRC values match for every alignment and tail and large-buffer
   throughput improves on supported machines without illegal-instruction risk.
-- Related: T-509, T-519.
+- Related: B-529, B-534.
 
 ## Tier B — Audio and video codecs
 
-### T-541 — H.264 strong chroma deblocking remains scalar vertically
+### B-546 — H.264 strong chroma deblocking remains scalar vertically
 
 - Intent: find a profitable vertical strong-chroma layout and confirm the retained strong luma
   and horizontal chroma kernels in a complete decode profile. The weak paths are done: horizontal
@@ -303,9 +296,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   (1.07x slower) and was rejected, so strong vertical chroma retains its scalar two-line segments.
 - Complete when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
-- Related: T-520, T-420 in [scope.video.md](scope.video.md).
+- Related: B-535, B-464 in [scope.video.md](scope.video.md).
 
-### T-544 — H.264 dequantization and irregular directional intra prediction remain scalar
+### B-547 — H.264 dequantization and irregular directional intra prediction remain scalar
 
 - Intent: profile dequantization and the remaining gather- or shuffle-heavy directional modes.
   Residual addition is already part of the packed inverse transforms. The 16x16 vertical,
@@ -331,37 +324,37 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   slower; those paths remain scalar.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
-- Related: T-516.
+- Related: B-532.
 
 ## Tier C — Pixel processing and image codecs
 
-### T-545 — Half-size and simple gradients still dispatch one callback per pixel
+### B-548 — Half-size and simple gradients still dispatch one callback per pixel
 
 - Intent: add row/chunk kernels for half-size and simple gradients, and assess a packed
   source-over kernel beyond its row-wise scalar implementation. Fill already copies complete rows;
   the other original candidates now have measured chunk or row kernels.
 - Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
-- Related: T-511, T-516, T-520.
+- Related: B-531, B-532, B-535.
 
-### T-546 — Convolution, resize, smart-crop, and Haar kernels remain scalar
+### B-549 — Convolution, resize, smart-crop, and Haar kernels remain scalar
 
 - Intent: vectorize interior convolution, horizontal/vertical resampling, integral-image box output,
   Sobel/normalization maps, and contiguous Haar passes while keeping borders and unfavorable gathers
   scalar.
 - Complete when: golden images remain within the declared numeric tolerance and representative
   large-image workloads show per-stage gains.
-- Related: T-517, T-520.
+- Related: B-533, B-535.
 
-### T-547 — LUT and transcendental image filters have no packed path
+### B-550 — LUT and transcendental image filters have no packed path
 
 - Intent: use gathered tables or vector math to accelerate gamma, contrast, fade, colorize, HSL, and
   noise kernels without weakening their output contract merely to fit today's instruction set.
 - Complete when: each filter declares exact or bounded-error parity, uses the profitable gather/math
   path under feature dispatch, and retains a scalar fallback.
-- Related: T-511, T-517, T-521.
+- Related: B-531, B-533, B-536.
 
-### T-548 — PNG packed samples, filters, and color conversion remain scalar
+### B-551 — PNG packed samples, filters, and color conversion remain scalar
 
 - Intent: complete non-paletted color conversion and decoder Sub for byte strides 1/3/6.
   Decode and encode `Up` now process 64 bytes per iteration (1.59x and 1.27x), exact RGB/RGBA
@@ -407,9 +400,9 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   conversion kernel shows as a few percent end to end.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
-- Related: T-516, T-517, T-520.
+- Related: B-532, B-533, B-535.
 
-### T-549 — The JPEG forward transform and quantization remain scalar
+### B-552 — The JPEG forward transform and quantization remain scalar
 
 - State: the decoder is packed. Colour conversion of every layout, the direct-RGB interleave and
   the inverse transform all run on vectors, and the encoder converts colour packed as well. All of
@@ -420,7 +413,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   encoder now spends most of its time.
 - Problem to settle first: the forward transform is the float AAN one, and its samples reach it
   through a `s16` staging array only because no packed `s32` to `f32` lane conversion exists
-  (T-511). Packing it therefore means either keeping the float operation order lane by lane —
+  (B-531). Packing it therefore means either keeping the float operation order lane by lane —
   where the optimizer is free to contract a multiply and an add and change the last bit — or
   moving to an integer transform, which changes the encoded bytes outright. Decide whether
   byte-exactness with today's output is a property to keep before writing the kernel.
@@ -435,17 +428,17 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   a whole-block DC shortcut is worth 16% on a smooth fixture where a per-line one had regressed.
 - Complete when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered, and
   encode throughput improves in an interleaved A/B on a quiet machine.
-- Related: T-511, T-520.
+- Related: B-531, B-535.
 
-### T-550 — WebP reconstruction and transforms remain mostly scalar
+### B-553 — WebP reconstruction and transforms remain mostly scalar
 
 - Intent: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
   and lossless subtract-green/cross-color/predictor transforms.
 - Complete when: lossy and lossless fixture pixels remain identical where specified, predictor and
   boundary modes are exhaustive, and stage benchmarks show the retained gains.
-- Related: T-516, T-520.
+- Related: B-532, B-535.
 
-### T-551 — Packed and indexed pixel formats lack gather/shuffle kernels
+### B-554 — Packed and indexed pixel formats lack gather/shuffle kernels
 
 - Intent: complete GIF/PNG palette expansion, fixed quantization, and 24/32-bit channel packing
   using shuffle or gather according to the active target. BMP's default BGR555 path now expands
@@ -501,31 +494,31 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   claim on a re-measure in this file.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
-- Related: T-517.
+- Related: B-533.
 
-### T-552 — The CPU renderer has no packed span pipeline
+### B-555 — The CPU renderer has no packed span pipeline
 
 - Intent: process four or more horizontal pixels per iteration for clear, alpha blend, solid and
   gradient shading, MSDF coverage, and profitable texture paths, with specialized kernels instead
   of one branch-heavy universal loop.
 - Complete when: command-stream goldens remain stable, clip and layer boundaries are exact, simple
   spans improve first, and gather-dependent sampling is enabled only by measurement.
-- Related: T-511, T-517, T-521, T-534.
+- Related: B-531, B-533, B-536, B-541.
 
 ## Tier C — Text, fonts, and PDF
 
-### T-553 — TrueType raster and MSDF kernels remain scalar
+### B-556 — TrueType raster and MSDF kernels remain scalar
 
 - Intent: vectorize analytic coverage conversion and process multiple sample points in MSDF
   distance evaluation, using vector math and gathers only where edge traversal remains profitable.
 - Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster and
   MSDF are benchmarked separately across small and large glyphs.
-- Related: T-517, T-521.
+- Related: B-533, B-536.
 
-### T-554 — PDF packed samples and mask composition remain scalar
+### B-557 — PDF packed samples and mask composition remain scalar
 
 - Intent: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
   mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
 - Complete when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.
-- Related: T-511, T-517, T-521.
+- Related: B-531, B-533, B-536.

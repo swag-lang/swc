@@ -29,7 +29,7 @@ missing pixel formats and render primitives remain in [pixel.md](pixel.md).
 
 ### B-098 — Color management and HDR state are invisible to the reader
 
-- Evidence: T-052/T-198 record that the pixel stack has no colour/ICC handling, and the image
+- Evidence: B-207/B-314 record that the pixel stack has no colour/ICC handling, and the image
   viewer does not report embedded profile, transfer function, primaries, bit depth per channel,
   conversion, monitor target, or out-of-gamut/clipping status.
 - Next: define the viewer information and soft-proof controls now, then connect them to the pixel
@@ -37,19 +37,19 @@ missing pixel formats and render primitives remain in [pixel.md](pixel.md).
 - Complete when: source and display color spaces are named, embedded profiles can be inspected,
   untagged assumptions are explicit, color conversion can be toggled for diagnosis, HDR content
   has a declared tone-map/output path, and screenshots never silently redefine source values.
-- Related: T-052, T-198, T-199, T-200
+- Related: B-207, B-314, B-315, B-316
 
 ### B-099 — Source orientation is not distinguished from the temporary view transform
 
 - Evidence: the viewer has a complete non-destructive dihedral view transform, but decoded images
   do not expose EXIF orientation and future selection, pixel-probe, and export features have no
   shared source-to-display coordinate contract.
-- Next: expose normalized source orientation through T-405, then define one coordinate mapping for
+- Next: expose normalized source orientation through B-453, then define one coordinate mapping for
   image dimensions, pan, selection, probes, animation frames, and the products in B-104.
 - Complete when: source orientation and temporary orientation are stated separately; every image
   coordinate consumer agrees with the displayed transform; raw export keeps source bytes; and
   rendered export declares the applied orientation.
-- Related: T-405
+- Related: B-453
 
 ### B-100 — Zoom lacks navigator, numeric entry, interpolation choice, and comparison scale
 
@@ -66,12 +66,12 @@ missing pixel formats and render primitives remain in [pixel.md](pixel.md).
 
 - Evidence: sibling navigation replaces the current image. There is no synchronized pair, flicker,
   opacity wipe, difference/heat map, alignment, or per-pixel delta readout.
-- Next: build a two-image comparison surface on T-397 with synchronized transform and an explicit
+- Next: build a two-image comparison surface on B-448 with synchronized transform and an explicit
   alignment anchor.
 - Complete when: side-by-side, overlay, flicker, absolute difference, and heat-map modes work;
   pan/zoom can synchronize; size/color-space mismatches are stated; and the pixel probe reports
   both values plus delta.
-- Related: T-397
+- Related: B-448
 
 ### B-102 — Animated images have no frame-step, speed, loop, or disposal inspection
 
@@ -90,7 +90,7 @@ missing pixel formats and render primitives remain in [pixel.md](pixel.md).
   layers, mip levels, and embedded previews without pretending they share playback semantics.
 - Complete when: every decoded item is enumerable and selectable, thumbnails load lazily, item
   identity survives view changes, and format-specific relationships and dimensions are visible.
-- Related: T-205, T-206, T-208
+- Related: B-321, B-322, B-324
 
 ### B-104 — The displayed image cannot be copied or exported with an explicit transformation policy
 
@@ -121,18 +121,18 @@ by the application.
 
 ## Metadata and camera files
 
-### T-405 — An image's metadata is not shown
+### B-453 — An image's metadata is not shown
 
 - Intent: no EXIF, no ICC, no XMP anywhere. Orientation is therefore ignored, so a phone photograph
   displays rotated, and camera, exposure and capture date are invisible.
 - Complete when: a metadata panel shows the decoded tags, EXIF orientation is applied on load, and
   an embedded ICC profile is at least reported.
-- Related: T-052, T-198
+- Related: B-207, B-314
 
-### T-414 — Camera RAW files show nothing
+### B-461 — Camera RAW files show nothing
 
 - Intent: full RAW development is out of scope, but every RAW file embeds a JPEG preview, and
   showing it is most of the value at a fraction of the cost.
 - Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
-  displayed, with the metadata panel from T-405 beside it.
-- Related: T-405
+  displayed, with the metadata panel from B-453 beside it.
+- Related: B-453

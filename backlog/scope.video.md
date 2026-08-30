@@ -76,13 +76,13 @@ inspection around `std/video`; codec implementation work remains in [video.md](v
 
 - Evidence: the summary names codec and CPU decoder but not matrix, primaries, transfer, full versus
   limited range, chroma location, bit depth, HDR metadata, tone mapping, or interlace handling.
-  T-567 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
+  B-564 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
 - Next: surface stream color/interlace metadata and conversion path, then add safe temporary
   override and comparison controls as the video/pixel pipelines support them.
 - Complete when: source and output color facts are inspectable, unspecified values state defaults,
   HDR/tone-map and deinterlace modes are explicit, overrides reset cleanly, and a test chart verifies
   range and matrix handling.
-- Related: T-052, T-198, T-200, T-567
+- Related: B-207, B-314, B-316, B-564
 
 ### B-124 — Subtitle files can only be auto-discovered, not deliberately loaded and managed
 
@@ -106,7 +106,7 @@ inspection around `std/video`; codec implementation work remains in [video.md](v
 - Complete when: delay adjusts in fine and coarse steps, current drift and selected layout are
   visible, track flags/language/title are preserved, downmix policy is inspectable, and reset returns
   to container timing.
-- Related: F-188, B-110
+- Related: B-633, B-110
 
 ### B-126 — Track and stream metadata have no complete media-information panel
 
@@ -162,7 +162,7 @@ or [audio.md](audio.md); this file owns how those capabilities reach the applica
 
 ## Playback coverage and fallback
 
-### T-420 — WebM and VP9/AV1 Matroska video cannot be played
+### B-464 — WebM and VP9/AV1 Matroska video cannot be played
 
 - Intent: Matroska now plays H.264, H.265, or MPEG-4 Part 2 with selectable AAC-LC, AC-3, E-AC-3,
   DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus tracks through a compact EBML block index. WebM,
@@ -171,11 +171,11 @@ or [audio.md](audio.md); this file owns how those capabilities reach the applica
   what remains is picture and sound codec support rather than another container design.
 - Complete when: the `Video` viewer shows the picture with transport, a seekable timeline and the
   frame position for VP9 or AV1 in WebM and Matroska, and the registry moves those extensions off
-  the binary line for playback while T-412 keeps the structure reader available as a second
+  the binary line for playback while B-459 keeps the structure reader available as a second
   viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
-- Related: T-412
+- Related: B-459
 
-### T-571 — An unsupported picture codec hides sound tracks the application can play
+### B-568 — An unsupported picture codec hides sound tracks the application can play
 
 - Intent: a container currently fails as a video document when its picture codec is unavailable,
   even if one of its sound tracks has a registered decoder. The measured library exposes this with
@@ -183,14 +183,14 @@ or [audio.md](audio.md); this file owns how those capabilities reach the applica
 - Complete when: Swag Scope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
   unchanged when both sides are supported.
-- Related: T-568 in [video.md](video.md)
+- Related: B-565 in [video.md](video.md)
 
 ## Real-device validation
 
-### F-188 — Audio-to-video synchronisation has never been observed against a real output device
+### B-633 — Audio-to-video synchronisation has never been observed against a real output device
 
 - Area: apps/swagscope
-- Found while: T-504, after the video viewer started presenting against the audio clock.
+- Found while: B-526, after the video viewer started presenting against the audio clock.
 - Observation: the viewer presents each picture at the time the sound has reached, and nothing has
   yet confirmed that the time the sound reports is the time it is playing. On this machine the
   played-sample counter of a source voice stays at zero for a whole run even with buffers queued

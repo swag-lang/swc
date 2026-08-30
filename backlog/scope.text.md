@@ -7,7 +7,7 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
 
 ## Shared text reading
 
-### T-394 — No zoom or text-size control
+### B-446 — No zoom or text-size control
 
 - Intent: the `Image` viewer zooms; no text-bearing view does. Ctrl+wheel and Ctrl+plus/minus do
   nothing in text, code, Markdown or HTML, so a dense source file is stuck at one size.
@@ -47,13 +47,13 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
 
 ### B-053 — Streamed text cannot select, copy, or export a range outside its resident window
 
-- Evidence: T-388 records that select-all means only the resident window. The same limitation
+- Evidence: B-444 records that select-all means only the resident window. The same limitation
   prevents a reader from naming two whole-file positions and extracting the text between them.
 - Next: give streamed text a byte-backed range model and a cancellable decoder-to-clipboard/file
   path with explicit size estimates.
 - Complete when: a non-resident range can be selected by endpoints, copied within a documented
   clipboard bound, exported without that bound, and decoded consistently across chunk boundaries.
-- Related: T-388
+- Related: B-444
 
 ## Source code
 
@@ -143,7 +143,7 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
 
 ## Tabular text
 
-### T-402 — The table viewer is bounded to 32 MiB
+### B-451 — The table viewer is bounded to 32 MiB
 
 - Intent: the table viewer detects comma, semicolon, tab or pipe separators, understands quoted
   fields and embedded line breaks, keeps its header visible, and virtualizes the GUI rows. It reads
@@ -170,7 +170,7 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
   investigation.
 - Next: add a view index over source rows plus column presentation state, initially one stable sort,
   value/text filters, visibility, width, order, and frozen leading columns.
-- Complete when: operations stay bounded through T-402, source row numbers remain available,
+- Complete when: operations stay bounded through B-451, source row numbers remain available,
   multi-column stable sort and composable filters can be cleared, and no operation rewrites the file.
 
 ### B-065 — Table values have no type inference or professional formatting
@@ -211,14 +211,14 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
 
 ## Dedicated developer-text views
 
-### T-408 — Diff and patch files read as plain text
+### B-455 — Diff and patch files read as plain text
 
 - Intent: unified diffs are among the most frequently opened developer files and are the format
   where flat text costs the most.
 - Complete when: hunks, added and removed lines and file headers are colored from the active theme,
   and per-file navigation moves between hunks.
 
-### T-409 — Log files have no dedicated view
+### B-456 — Log files have no dedicated view
 
 - Intent: a log is the archetypal huge file, which is where the streaming architecture already
   wins — but it opens at the beginning, uncolored, with no way to reach the end that matters.

@@ -5,7 +5,7 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### F-127 — Compiler builds and tool-driven runs are CPU-capped for the development machine
+### B-615 — Compiler builds and tool-driven runs are CPU-capped for the development machine
 
 - Area: tooling
 - Found while: keeping the machine responsive while builds and test campaigns run alongside other work
@@ -13,7 +13,7 @@ being compiled by it.
 - Evidence: 22-logical-processor machine saturated by an unbounded `/MP` compile plus unbounded `swc` job managers; caps added 2026-08-13.
 - Next step: when the machine stops hosting several concurrent agents, or when the tools run on a dedicated CI machine, re-evaluate both caps — remove them so builds and campaigns take the whole machine again, or keep them behind an explicit opt-in.
 
-### F-198 — A differential harness must line pictures up by time, not by rank
+### B-640 — A differential harness must line pictures up by time, not by rank
 
 - Area: tooling
 - Found while: measuring the video library against FFmpeg.
@@ -29,7 +29,7 @@ being compiled by it.
 - Next step: make the differential harness record the timestamp of each reference picture and ask
   this reader for the rank that carries it before comparing decoded pixels.
 
-### F-200 — A Matroska fixture cannot state what a real file states about itself
+### B-641 — A Matroska fixture cannot state what a real file states about itself
 
 - Area: tooling
 - Found while: fixing two defects a real film exposed and trying to pin them with a fixture

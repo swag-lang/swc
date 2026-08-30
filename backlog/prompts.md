@@ -176,7 +176,7 @@ RULES
   - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
     believed, and the Release sequence before anything is recorded. A pass that miscompiles under
     the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
-    catches it (see F-036).
+    catches it (see B-576).
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
     takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
@@ -444,7 +444,7 @@ delta. Cumulative total at the top, so the number is one line at any moment.
 
 ```
 You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/compiler.md T-001, T-002, T-004, T-006 and T-007.
+then backlog/compiler.md B-167, B-168, B-169, B-171 and B-172.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -483,7 +483,7 @@ beating them. It is about the loop a person actually sits in.
 
 START BY BUILDING THE INSTRUMENT
 
-Do this before any optimization; nothing below can be judged without it, and it is T-004 in
+Do this before any optimization; nothing below can be judged without it, and it is B-169 in
 backlog/compiler.md.
 
 Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
@@ -514,7 +514,7 @@ They are not independent, and taking them out of order wastes the work:
 
   1. The module boundary is re-parsed Swag source. core publishes 16 files and 12 328 lines per
      configuration, and every dependent module lexes, parses and re-analyzes all of it. A binary
-     module interface, loaded lazily by name, is T-001 and it unlocks T-002, T-006 and T-008.
+     module interface, loaded lazily by name, is B-167 and it unlocks B-168, B-171 and B-173.
   2. Incrementality stops at the module. Editing one line rebuilds 291 files. Per-file frontend
      caching first, then per-function codegen caching - the second is where the win is and it is
      unreachable without lever 1.
@@ -559,7 +559,7 @@ and what it bought.
 
 ```
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
-backlog/compiler.md T-005.
+backlog/compiler.md B-170.
 
 WORK IN A SEPARATE WORKTREE
 

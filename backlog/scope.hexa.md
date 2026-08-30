@@ -47,14 +47,14 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### B-022 — The hexadecimal viewer cannot compare files or regions
 
 - Evidence: Swag Scope has no byte-difference model, synchronized paired grids, result list, or
-  difference navigation. Application work T-397 is the prerequisite for hosting two documents,
+  difference navigation. Application work B-448 is the prerequisite for hosting two documents,
   not the comparison itself.
 - Next: design a bounded comparison result stream for two file ranges, then present its first
   differing block in synchronized read-only grids.
 - Complete when: two files or two regions of one file can be compared, insertions and deletions are
   aligned rather than shifting every later byte, differing blocks are listed and colored, scrolling
   can synchronize, and previous/next difference remains bounded on multi-gigabyte inputs.
-- Related: T-397
+- Related: B-448
 
 ### B-023 — Hexadecimal navigation has no landmarks or history
 
@@ -183,7 +183,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: a screen reader can announce current offset, byte, decoded character, selection,
   column, and active inspector value; keyboard-only operation reaches every command; high-contrast
   themes retain caret and selection distinction; and virtualization does not materialize the file.
-- Related: T-037, B-047
+- Related: B-196, B-047
 
 ### B-041 — Selection is limited to one contiguous range
 
@@ -297,4 +297,4 @@ are what separate that capable grid from a professional binary-analysis viewer.
 Byte replacement, insertion, deletion, replace, undo/redo, save, raw-disk writing, and process-memory
 writing are not missing hexadecimal features. Swag Scope is a read-only viewer; those operations
 would create a different application and security model. Printing the hexadecimal dump remains the
-shared viewer task T-398 in [scope.viewers.md](scope.viewers.md).
+shared viewer task B-449 in [scope.viewers.md](scope.viewers.md).

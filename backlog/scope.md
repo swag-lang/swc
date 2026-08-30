@@ -20,44 +20,22 @@ ordered by expected product value, not implementation effort.
 
 ## System integration
 
-### T-389 — Nothing appears in the Explorer preview pane
 
-- Intent: the shipped viewers are reachable from where a file is selected. This is the whole reason
-  QuickLook won its category: select, look, move on, without launching an application.
-- Complete when: a registered preview handler renders the same views inside Explorer's preview
-  pane, and `--register-file-types` installs it.
-- Note: the handler hosts a view in a process it does not own, so the viewer request/result contract
-  has to be usable without the application window. That constraint is worth checking before committing.
-- Related: T-396, T-418
 
-### T-396 — Explorer shows no thumbnail for a viewable file
-
-- Intent: the image, SVG, and Markdown views can produce a representative bitmap; Explorer asks for
-  one and gets nothing.
-- Complete when: a registered thumbnail provider renders a bounded preview for the formats that can
-  produce one, with a size and timeout budget that never blocks a folder listing.
-- Related: T-389
-
-### T-418 — File-type registration is Windows-only
-
-- Intent: `Env.registerApplication`, `Env.associateFileExtension`, and the shell integration entries
-  above are the whole platform boundary; the viewers, streaming, and structure readers are portable.
-- Complete when: desktop registration goes through whatever portable contract T-288 settles on.
-- Related: T-266, T-288
 
 ## Document lifecycle
 
-### T-397 — One document per window and per process
+### B-448 — One document per window and per process
 
 - Intent: every association launch starts another process with one document. There is no tab, no
   second document in the same window, and no side-by-side comparison of two files.
 - Complete when: a running instance is reused, documents open as tabs, and two documents can be
   shown side by side.
-- Related: T-233, B-022 in [scope.hexa.md](scope.hexa.md)
+- Related: B-341, B-022 in [scope.hexa.md](scope.hexa.md)
 
 ## Window hosting
 
-### F-156 — Swag Scope sizes its viewer layout in physical pixels, so every viewer overflows at non-100% DPI
+### B-622 — Swag Scope sizes its viewer layout in physical pixels, so every viewer overflows at non-100% DPI
 
 - Area: apps/swagscope
 - Found while: migrating the PDF engine into `std/gui` and verifying the new `PdfView` inside the

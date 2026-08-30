@@ -34,7 +34,7 @@ the shared backlog conventions.
 
 ## Loop vectorization
 
-### F-034 — Unrolling the key-stream loop no longer loses its constant offsets, and still does not pay
+### B-575 — Unrolling the key-stream loop no longer loses its constant offsets, and still does not pay
 
 - Area: compiler/backend
 - Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
@@ -62,7 +62,7 @@ the shared backlog conventions.
 
 ## Register allocation and frame-slot promotion
 
-### F-036 — Folding copy-then-operate before register allocation miscompiles
+### B-576 — Folding copy-then-operate before register allocation miscompiles
 
 - Area: compiler/backend
 - Found while: generalizing non-destructive pre-RA operations to the float paths, where
@@ -94,7 +94,7 @@ the shared backlog conventions.
   cheaply first: restrict the fold to `FloatAdd` alone and run `swc tools/scripts.swgs dm` - a crash
   there means the shape, a pass means the operation.
 
-### F-066 — Tracking frame addresses transitively through mem2reg does not pay on its own
+### B-595 — Tracking frame addresses transitively through mem2reg does not pay on its own
 
 - Area: compiler/backend
 - Found while: closing the generated-code gap `bench/` measures (campaign 20260806-202546,
@@ -123,9 +123,9 @@ the shared backlog conventions.
   third time. If it returns, it has to come with an explanation of why promoting those extra slots
   makes register allocation emit FEWER memory operations in the loops, not more — the two
   measurements so far both say it emits more.
-- Related: [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers)
+- Related: [B-596](#b-596--complex-loop-carried-frame-slots-still-lose-registers)
 
-### F-068 — Complex loop-carried frame slots still lose registers
+### B-596 — Complex loop-carried frame slots still lose registers
 
 - Area: compiler/backend
 - Found while: the same campaign, asking why the identical loop compiles differently in two places
@@ -143,7 +143,7 @@ the shared backlog conventions.
 
 ## Decompression
 
-### F-136 — A hot loop's loop-carried locals all live in stack slots
+### B-617 — A hot loop's loop-carried locals all live in stack slots
 
 - Area: compiler/backend
 - Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
@@ -190,19 +190,19 @@ the shared backlog conventions.
     `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
     already run on vectors. The whole path is too small to pay for the two shuffle tables.
 - The register half was then traced to its mechanism and moved to
-  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers), which
+  [B-619](#b-619--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers), which
   carries the numbers.
-- Next step: this is [F-068](#f-068--complex-loop-carried-frame-slots-still-lose-registers) seen
+- Next step: this is [B-596](#b-596--complex-loop-carried-frame-slots-still-lose-registers) seen
   from a second workload, and the case is small enough to drive the fix — a loop whose whole
   live set fits in registers twice over and is spilled anyway. The bottleneck is the allocator's
   policy, local linear scan with furthest-use eviction, and the work that addresses it is the
   global interval allocator, not another peephole.
 
-### F-138 — A whole-hull reservation cannot keep a loop's working set in registers
+### B-619 — A whole-hull reservation cannot keep a loop's working set in registers
 
 - Area: compiler/backend
 - Found while: chasing the register half of
-  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) into
+  [B-617](#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) into
   `assignGlobalRegisters`, with a temporary trace over its candidate list.
 - Observation: a value that crosses a control-flow boundary is either given one physical
   register for **the whole hull of its live range**, or it is given a stable spill slot and
@@ -245,10 +245,10 @@ the shared backlog conventions.
   which already computes the spans, the benefits and the concrete-claim positions a splitting
   allocator needs.
 
-### F-165 — Integer selects written as early returns still lower to branches
+### B-626 — Integer selects written as early returns still lower to branches
 
 - Area: compiler
-- Found while: T-504, profiling the H.264 decoder on a 1080p30 Main stream in release.
+- Found while: B-526, profiling the H.264 decoder on a 1080p30 Main stream in release.
 - Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
   compare and a conditional move: the ternary diamond converts when both arms are short, pure
   and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
@@ -266,10 +266,10 @@ the shared backlog conventions.
   — into a select feeding one `ret`, then re-measure the decoder's deblock and conversion loops
   against the hand-written sign-bit forms and retire those if the select matches them.
 
-### F-187 — An atomic read is a locked read-modify-write
+### B-632 — An atomic read is a locked read-modify-write
 
 - Area: optimization
-- Found while: T-504, giving the H.264 decoder per-row reference progress so pictures overlap.
+- Found while: B-526, giving the H.264 decoder per-row reference progress so pictures overlap.
 - Observation: `Core.Atomic.get` is written as `Swag.atomcmpxchg(addr, 0, 0)`, so every atomic read
   compiles to a `LOCK CMPXCHG`. That takes the cache line exclusively, writes it, and orders the
   whole pipeline, for what is only a read. On x86-64 an aligned load of that width is already
@@ -288,10 +288,10 @@ the shared backlog conventions.
   `Atomic.get` use it. Measure `tools/unittests.swgs dm cpp` for the intrinsic itself, then the
   `Jobs` scheduler and the deblocking wavefront before and after; both spin on it today.
 
-### F-190 — A short branching function spills with the whole register file free
+### B-634 — A short branching function spills with the whole register file free
 
 - Area: compiler/backend
-- Found while: T-504, closing the distance between the H.264 entropy parse and FFmpeg's, starting
+- Found while: B-526, closing the distance between the H.264 entropy parse and FFmpeg's, starting
   from the emitted code of one bin as that entry says to.
 - Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
   from one two-way branch, and its whole live set is about eight scalars. It is called roughly
@@ -300,8 +300,8 @@ the shared backlog conventions.
   pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
   and the result — to that frame before the branch and reloading them on both sides. Sixteen
   integer registers exist and the function needs about half of them.
-- This is [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
-  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) without
+- This is [B-617](#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
+  [B-619](#b-619--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) without
   the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
   happens. That makes it a much smaller reproducer than the inflate block loop for the same
   allocator policy, which is why it is worth keeping separately.
@@ -314,7 +314,7 @@ the shared backlog conventions.
   still there. Two smaller costs sit in the same function and belong to the same dump:
   each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
   next to the spills and was already elided once for
-  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
+  [B-617](#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
 - Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
   unconditionally and a conditional move supplies the operand-width answer for zero, so the
   sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
@@ -330,10 +330,10 @@ the shared backlog conventions.
   baseline is AVX, so adopting them raises the Intel floor from Sandy Bridge to Haswell — a
   decision about what the compiler targets, not an optimization to slip in.
 
-### F-193 — A SIMD routine keeps its strides and counts in the frame
+### B-637 — A SIMD routine keeps its strides and counts in the frame
 
 - Area: compiler/backend
-- Found while: T-504, after mem2reg was taught the vector load and store and the memory traffic
+- Found while: B-526, after mem2reg was taught the vector load and store and the memory traffic
   of the motion-compensation path fell by a quarter.
 - Observation: promotion now reaches the vector temporaries, so the intermediate values of a
   `#simd` expression stay in registers. What is still in memory is everything the local
@@ -349,7 +349,7 @@ the shared backlog conventions.
   10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
   is 44 percent of that picture.
 - **The same shape is what the H.265 decoder is now bound by, and it is worth more than any
-  one of its stages (2026-08-26, T-563).** Three hot routines dumped at pre-emit, all of them
+  one of its stages (2026-08-26, B-562).** Three hot routines dumped at pre-emit, all of them
   already vectorized and already at their instruction budget on paper:
   - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
     loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
@@ -373,7 +373,7 @@ the shared backlog conventions.
   - this compiler, release: **40.6 ms** (82 ns a segment)
 - So this backend is **2.2x behind clang's best on identical scalar code**, and that is the
   largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
-  forms of T-506, and larger than anything left in the decoder's own algorithms. The frame
+  forms of B-527, and larger than anything left in the decoder's own algorithms. The frame
   traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
   routine, against 61 in 443 for clang's build of the same function.
 - The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
@@ -388,16 +388,16 @@ the shared backlog conventions.
   Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
   belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
   The remaining traffic is
-  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
+  [B-617](#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
 - Next step: use `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` as the large
-  acceptance workloads for F-136's interval allocator work. Re-run the recorded frame-access and
+  acceptance workloads for B-617's interval allocator work. Re-run the recorded frame-access and
   per-segment measurements after that allocator can split live ranges; do not extend the post-RA
   hoist unless one of these dumps first shows an invariant value with a reusable destination.
 
-### F-194 — Loop-invariant code motion stops at a lane broadcast
+### B-638 — Loop-invariant code motion stops at a lane broadcast
 
 - Area: compiler/backend
-- Found while: T-504, reading the chroma interpolation loop of the H.264 decoder after the
+- Found while: B-526, reading the chroma interpolation loop of the H.264 decoder after the
   vector temporaries stopped round-tripping through the frame.
 - Observation: the loop rebuilds the same four lane broadcasts on every row. Each is `movd`
   from an integer register followed by `pshufd`, and both operands are loop-invariant: the
@@ -416,12 +416,12 @@ the shared backlog conventions.
   turned it away. The `movd` is `LoadRegReg` with a float destination and an integer source,
   which is already eligible today, so the answer is in one of the other four tests and the
   trace names it in one run.
-### F-195 — A loop header drops every mapping, and the register to fix it is already spoken for
+### B-639 — A loop header drops every mapping, and the register to fix it is already spoken for
 
 - Area: compiler/backend
 - Found while: taking
-  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) and
-  [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free) at their
+  [B-619](#b-619--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) and
+  [B-634](#b-634--a-short-branching-function-spills-with-the-whole-register-file-free) at their
   word and instrumenting the allocator instead of reading its output.
 - Observation: **the allocator reloads values at points where it has registers to spare, so what
   costs is the decision that put them in memory, not the supply at the use.** Over a release build
@@ -477,11 +477,11 @@ the shared backlog conventions.
 - Ruled out, with numbers, so none of it is tried again. Admitting values that cross no
   control-flow boundary as hull candidates on the access ranking: the raytrace kernel gained 7
   instructions and 3 frame accesses, the Levenshtein loop lost 7 and 6, a byte scan lost 3 and 4.
-  A callee-saved fallback for ordinary floats gated on loop depth (the variant F-136 left open):
+  A callee-saved fallback for ordinary floats gated on loop depth (the variant B-617 left open):
   seventeen failed lookups became eleven for two more instructions. Reserving only the live
   sub-ranges of a hull instead of its whole span: the blocking hulls were live at every contended
   point in all four kernels, so there is nothing to hand back. And removing every hull from the
-  CABAC bin of F-190 changes its emitted code by not one instruction, so the mechanism is inert
+  CABAC bin of B-634 changes its emitted code by not one instruction, so the mechanism is inert
   there.
 - The candidate-list route was built next and measured to lose, so it is retired: one loop-scoped
   reservation candidate per (value, loop), competing on the whole-span ranking, displaces short
@@ -517,7 +517,7 @@ the shared backlog conventions.
   distance-before-clean measured flat on the HEVC decode and was reverted; the remaining lever is
   allocation quality with a real cost model — interval-style assignment with live-range
   splitting, whose justification stands unchanged in
-  [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free): at equal
+  [B-634](#b-634--a-short-branching-function-spills-with-the-whole-register-file-free): at equal
   supply this allocator spills an order of magnitude more than clang on the same body.
 - Re-measured 2026-08-27 with the cause trace rebuilt on build 224 (the patch is parked in the
   session scratchpad, `ratrace-parked.diff` — reapply it locally, never land it). Whole video
@@ -569,7 +569,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   loop) rather than pinning a register - in-loop constant rematerialization is the behavior
   LLVM itself chooses on this kernel, because an immediate materialization is dependency-free
   and near-zero cost on an out-of-order core. There is no gap here to close.
-- Related: the loop-invariant recomputation half of F-193; B-009 closed the eviction-policy route.
+- Related: the loop-invariant recomputation half of B-637; B-009 closed the eviction-policy route.
 
 ### B-002 — Loop-carried slot promotion covers multi-access, multi-exit loops
 
@@ -579,11 +579,11 @@ cmov-to-branch back-conversion, and profile-gated passes.
   single-exit shape, mirroring LLVM's `promoteLoopAccessesToScalars`. Branch-dense codec
   accumulators updated in several arms are exactly what the current gate misses.
 - Next: extend `promoteCarriedSlots` to a slot with several arms and exits, seed load before
-  the header and one write-back per exit edge, and audit the rewrite with the T-563 trace.
+  the header and one write-back per exit edge, and audit the rewrite with the B-562 trace.
 - Complete when: an accumulator written in two arms of a hot loop keeps its register across the
   back edge with no per-iteration store (dump-verified), a trace-based drop/store audit like
-  T-563's validates the rewrite, and HEVC serial decode does not regress.
-- Related: T-563, F-193.
+  B-562's validates the rewrite, and HEVC serial decode does not regress.
+- Related: B-562, B-637.
 
 ### B-003 — Virtual-register webs get unique names
 
@@ -648,7 +648,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   (call-argument setup shifts the offset coordinate system) - and the full video release run stays
   green. A parked prototype with all three fixes exists (session scratchpad,
   `dse-parked`).
-- Related: F-190. The machine-dependent lane-count assertion that failed the prototype's validation run (h264.test.swg, fixed 2026-08-27) is gone, so the parked prototype can be retried as-is.
+- Related: B-634. The machine-dependent lane-count assertion that failed the prototype's validation run (h264.test.swg, fixed 2026-08-27) is gone, so the parked prototype can be retried as-is.
 
 ### B-006 — Integer reloads fold into their consumers' memory operands
 
@@ -670,7 +670,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   `InlineSpiller::eliminateRedundantSpills` shape) over the corpus: 1-2 deletable accesses per
   hot function out of 167-288 - between a boundary store and its reload the register really is
   reused, so post-RA cleanup cannot remove the traffic. The demapping decision itself is the
-  target (F-195).
+  target (B-639).
 - Related: B-005.
 
 ### B-007 — One alias oracle serves every pre-RA memory optimization
@@ -704,7 +704,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   aoc2019 miscompile), compile time and code size stay within the campaign's budgets, and the
   full validation campaign passes. Sema ordering races (the parse-time verdict, the
   CalleeReturn=CALLER gate) make this the last entry to attempt.
-- Related: B-001 through B-007 all gain from it; the inlining half of F-193.
+- Related: B-001 through B-007 all gain from it; the inlining half of B-637.
 
 ### B-018 — An inlined by-value aggregate argument is copied even when the body only reads it
 
@@ -743,7 +743,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   per-line preloads already serve once per segment. Wrapped distance alone (comparator and the
   `K_KEEP_MAX_NEXT_USE_DISTANCE` boundary drop): byte-identical on all probes and hot
   functions; corpus-wide, release DLL sizes moved by at most one 512-byte alignment quantum in
-  mixed directions. The sealed-loop residency of T-563 already exempts resident values from both
+  mixed directions. The sealed-loop residency of B-562 already exempts resident values from both
   the boundary drop and back-edge eviction, which is where the predicted pathology would have
   lived.
 - Next: none while residency holds the hot loops; re-measure only if B-002, B-003 or B-004
@@ -751,7 +751,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   parked in the session scratchpad (`r1-wrap-parked.diff`).
 - Complete when: a loop-pressure change from B-002, B-003 or B-004 re-opens the question and
   the parked wrapped-distance diff is measured against it; delete otherwise.
-- Related: F-190, F-195.
+- Related: B-634, B-639.
 
 ### B-012 — The split allocator claims a whole instruction for an implicit operand
 
@@ -771,4 +771,4 @@ cmov-to-branch back-conversion, and profile-gated passes.
   still fires at all.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
-- Related: F-190, F-195, B-003.
+- Related: B-634, B-639, B-003.

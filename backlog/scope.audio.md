@@ -107,12 +107,12 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 - Evidence: the viewer acquires the default engine or disables playback. It cannot select a device,
   show negotiated sample format/latency, follow default-device changes, or recover from removal;
-  the engine gaps are already T-061, T-170, and T-171.
+  the engine gaps are already B-214, B-292, and B-293.
 - Next: design the viewer selector/status around those engine APIs and retain waveform-only
   inspection when output is unavailable.
 - Complete when: available outputs and active format/latency are shown, a selected or default device
   can be changed, loss has an actionable state and recovery, and analysis never depends on output.
-- Related: T-061, T-170, T-171
+- Related: B-214, B-292, B-293
 
 ### B-116 — Audio selections cannot be copied or exported with exact provenance
 

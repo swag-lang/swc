@@ -10,12 +10,12 @@ integration around those engines.
 ### B-069 — Markdown has no document outline or heading breadcrumbs
 
 - Evidence: the viewer offers reading width and appearance, while heading hierarchy is only part of
-  the rendered page. `Gui.Markdown.View` navigation work is already T-498, but Swag Scope has no
+  the rendered page. `Gui.Markdown.View` navigation work is already B-520, but Swag Scope has no
   outline panel, filter, visible-section tracking, or heading history to present it.
-- Next: define the viewer-side outline model and wire it to engine heading anchors as T-498 lands.
+- Next: define the viewer-side outline model and wire it to engine heading anchors as B-520 lands.
 - Complete when: headings form a filterable hierarchy, activating one reveals it, the current path
   follows scrolling, duplicate headings remain distinct, and keyboard navigation is complete.
-- Related: T-498
+- Related: B-520
 
 ### B-070 — Markdown cannot switch between rendered, source, and synchronized split views
 
@@ -31,13 +31,13 @@ integration around those engines.
 
 - Evidence: links can activate and images depend on engine work, but the viewer does not list local
   and remote targets, broken anchors, missing images, blocked schemes, or resources outside the
-  document directory. The engine's T-499 and preview security policy remain undecided.
+  document directory. The engine's B-521 and preview security policy remain undecided.
 - Next: inventory every parsed target and classify resolution, availability, scheme, and trust
   without fetching remote content implicitly.
 - Complete when: a resource panel links each target to source and rendered content, broken local
   references are explained, remote access requires explicit policy, and blocked content remains
   visible as a diagnostic.
-- Related: T-491, T-499
+- Related: B-516, B-521
 
 ### B-072 — Markdown reading position and presentation cannot be shared or exported
 
@@ -46,8 +46,8 @@ integration around those engines.
 - Next: define stable heading/block locators and a read-only export contract for HTML and paginated
   output after the shared print path exists.
 - Complete when: a logical reading position restores through B-043, heading links can be copied,
-  self-contained HTML preserves safe local assets, and paginated output uses T-398.
-- Related: B-043, T-398
+  self-contained HTML preserves safe local assets, and paginated output uses B-449.
+- Related: B-043, B-449
 
 ## HTML reading
 
@@ -89,7 +89,7 @@ integration around those engines.
 - Complete when: every requested resource shows resolved path/origin, type, bytes, result, and
   blocker; remote fetch is opt-in; traversal outside allowed roots is prevented; and entries link
   to the requesting node.
-- Related: T-489
+- Related: B-515
 
 ### B-077 — HTML navigation has no history, address model, or fragment overview
 
@@ -110,7 +110,7 @@ integration around those engines.
   reader view from semantic blocks without replacing faithful mode.
 - Complete when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
-- Related: T-487
+- Related: B-513
 
 This backlog covers application-owned PDF presentation and the document viewers built by composing
 Swag Scope's existing HTML, table, and container facilities. Parser and renderer gaps owned by the
@@ -118,7 +118,7 @@ reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gu
 
 ## PDF presentation
 
-### T-401 — A PDF the module cannot fully decode is shown as a failure, not as a page
+### B-450 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
 - Intent: the module's own coverage gaps now live in [pdf.md](pdf.md), which is the
   roadmap for `std/pdf`. What stays here is the viewer's half: `PdfViewer` reports whatever
@@ -128,7 +128,7 @@ reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gu
   not represent in localized text beside it rather than as a raw module error, and keeps page
   navigation working across a page it could only partly decode.
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
-- Related: T-431, T-447
+- Related: B-469, B-483
 
 ### B-079 — PDF page navigation has no thumbnails or direct page entry
 
@@ -138,17 +138,17 @@ reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gu
   readout an address control.
 - Complete when: thumbnails prioritize the visible neighborhood, direct numeric and page-label
   jumps validate input, the current page is selected, and thousand-page documents stay responsive.
-- Related: T-449
+- Related: B-485
 
 ### B-080 — PDF bookmarks and destinations have no viewer surface
 
-- Evidence: the PDF engine does not yet read outlines, named destinations, or link targets (T-448),
+- Evidence: the PDF engine does not yet read outlines, named destinations, or link targets (B-484),
   and Swag Scope has no panel or history ready to present them once decoded.
 - Next: define a filterable hierarchical bookmark/destination model and viewer navigation contract
-  against the engine API planned by T-448.
+  against the engine API planned by B-484.
 - Complete when: outline items, internal links, named destinations, and back/forward navigation
   preserve page plus coordinates and zoom; invalid destinations are visible rather than ignored.
-- Related: T-448
+- Related: B-484
 
 ### B-081 — PDF viewing is limited to one fitted page or actual size
 
@@ -171,18 +171,18 @@ reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gu
 
 ### B-083 — PDF text selection, copy, and reading order are not a complete workflow
 
-- Evidence: search can select one matched word, while T-447 records that page text cannot yet be
+- Evidence: search can select one matched word, while B-483 records that page text cannot yet be
   extracted in reading order. The viewer has no drag selection across runs/pages, copy options,
   reflow reading, or scanned-page explanation.
-- Next: design viewer selection and copy semantics around the ordered text model from T-447,
+- Next: design viewer selection and copy semantics around the ordered text model from B-483,
   preserving glyph/source coordinates for exact and logical forms.
 - Complete when: text can be selected by pointer and keyboard across lines and pages, copied as
   logical or visual order, search and selection agree, and image-only pages state that OCR is absent.
-- Related: T-447
+- Related: B-483
 
 ### B-084 — PDF annotations, attachments, forms, layers, and signatures are hidden
 
-- Evidence: engine tasks cover annotation appearance (T-432) and optional content (T-438), but the
+- Evidence: engine tasks cover annotation appearance (B-470) and optional content (B-475), but the
   viewer has no read-only inventory for annotations, embedded files, AcroForm fields, layers,
   digital signatures, JavaScript actions, or security permissions.
 - Next: define a safe document-components panel and add sections as the parser exposes each object
@@ -190,19 +190,19 @@ reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gu
 - Complete when: components link to page bounds or objects, attachment extraction is explicit and
   sanitized, signatures report cryptographic status and limits, layers can be toggled temporarily,
   form values are inspectable, and active content never runs.
-- Related: T-432, T-438
+- Related: B-470, B-475
 
 ### B-085 — Password-protected PDFs have no application interaction
 
-- Evidence: T-427 records that encrypted documents are refused, and the viewer result can only
+- Evidence: B-468 records that encrypted documents are refused, and the viewer result can only
   return a terminal failure string. There is no secure password prompt, retry policy, permissions
   summary, or credential lifetime decision.
 - Next: extend progressive viewer opening with a credential request that never persists or logs the
-  password, then connect it to the engine work from T-427.
+  password, then connect it to the engine work from B-468.
 - Complete when: empty and entered passwords can unlock supported encryption, cancellation returns
   to a stable viewer state, retry is bounded, permissions are shown, and secrets leave memory when
   the document closes.
-- Related: T-427
+- Related: B-468
 
 ### B-086 — PDF pages and embedded assets cannot be exported for inspection
 
@@ -216,17 +216,17 @@ reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gu
 
 ## Packaged documents
 
-### T-407 — Office and OpenDocument files stop at the ZIP structure
+### B-454 — Office and OpenDocument files stop at the ZIP structure
 
 - Intent: `.docx` and `.odt` show a list of parts, which is right for an archive and useless for a
   document. Full fidelity is not the target; readable content is.
 - Complete when: paragraphs, headings, lists and tables come out as a readable document through the
   existing reading column, and a spreadsheet's cells come out through the table view.
-- Related: T-402, T-403
+- Related: B-451, B-452
 
-### T-415 — EPUB stops at the ZIP structure
+### B-462 — EPUB stops at the ZIP structure
 
 - Intent: an EPUB is a spine of HTML documents, and the HTML view already renders them.
 - Complete when: the spine order is read from the container manifest and its documents stream into
   the reading column in order.
-- Related: T-403
+- Related: B-452

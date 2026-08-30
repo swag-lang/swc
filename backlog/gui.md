@@ -817,3 +817,27 @@ as [capture.md](capture.md).
   whether the clip should stay one rectangle: a short list of dirty rectangles, or painting each
   dirty subtree under its own clip, would remove the coupling between two widgets that happen to be
   far apart, which is the common shape for any animated widget beside a static one.
+
+### B-166 — A wall-clock budget makes the markdown stream's resident window load-dependent
+
+- Area: gui
+- Found while: running the standard-library suite repeatedly to tell a stale golden apart from a
+  real failure.
+- Observation: `Markdown.View`'s streaming turn stops on elapsed time, not on work done —
+  `stopwatch.elapsedMicroseconds() >= StreamFrameBudget` (3 ms) in
+  `bin/std/modules/gui/src/controls/markdown/view.swg`. How much source one timer tick consumes is
+  therefore a fact about how busy the machine is. That is right for a window, which owes the reader
+  a frame; it makes a headless test that drives `fireTimers()` in a loop non-deterministic, because
+  where `residentStart` lands after a seek depends on how many bytes each of those ticks happened
+  to swallow.
+- Evidence: `markdownview.test.swg` (the scrollbar-reversal test, `#test` at line 973) failed at
+  `Swag.assert(view.residentStart < staleOffset / 2)` in one run of the full `gui` suite, and
+  passed in the four others; the same file run alone passed three times out of three. The suite
+  timings across those runs were 52 s, 1 min 12 s and 1 min 56 s for identical work, which is the
+  load spread the budget is reading.
+- Next: give the headless host a streaming turn that is bounded by work rather than by the clock —
+  a byte or block budget `Testing.HeadlessHost` installs — so `fireTimers()` converges to the same
+  resident window on any machine. Neither weakening the assertion nor raising the iteration cap
+  addresses it: both leave the outcome a function of machine load.
+- Complete when: the scrollbar-reversal test's resident window is decided by the number of ticks
+  fired and not by their duration, shown by the full `gui` suite passing under deliberate CPU load.

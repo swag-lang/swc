@@ -844,7 +844,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         var cb       = expect src.encode("memory.bmp")
         let rowBytes = cast(u64) Width * src.bytesPerPixel
         let stride   = Bmp.rowStride(Width, src.bitsPerPixel)
-        Swag.assert(cb.count == #sizeof(BmpFH) + #sizeof(Bmp.Header) + stride * Height)
+        Swag.assert(cb.count() == #sizeof(BmpFH) + #sizeof(Bmp.Header) + stride * Height)
         cb.makeLinear()
         let bytes = nnBytes(cb.toSlice())
         if pixelFormat == .RGB8
@@ -1048,13 +1048,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
 
     // File must contain alignment padding: 5 rows x 16 bytes = 80 bytes pixel data
-    Swag.assert(cb.count == 134)     // 14+40+80
+    Swag.assert(cb.count() == 134)     // 14+40+80
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     Swag.assert(bytes != null)
     let fh = cast(const *BmpFH) bytes.buffer
     let bh = cast(const *Bmp.Header) (bytes.buffer + #sizeof(BmpFH))
-    Swag.assert(fh.bfSize == cast(u32) cb.count)
+    Swag.assert(fh.bfSize == cast(u32) cb.count())
     Swag.assert(fh.bfOffBits == 54'u32)
     Swag.assert(bh.biSizeImage == 80'u32)
 

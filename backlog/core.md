@@ -307,7 +307,7 @@ unsafe legacy modes excluded from the default surface.
   `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 1.4x *faster*, a date with capture groups
   1.5x slower, `[a-z]+ing` 2x, and `\w+` 1.6x. Nothing is more than 2x, and what is behind is
   what matches often.
-- What is left, in decreasing value:
+- Next: what is left, in decreasing value:
   - **A search still costs more to start than to run**, against roughly thirty nanoseconds for
     the crate. Looking for every occurrence runs the engines from one loop rather than through
     the façade once per match, tries the pattern at the offset itself where no scan can skip
@@ -350,7 +350,7 @@ unsafe legacy modes excluded from the default surface.
   `\p{Sm}` and `\p{Z}` work, negated by `\P`. `\p{Greek}`, `\p{Han}`, `\p{Alphabetic}` and
   the rest fail to compile. The engine itself needs nothing new: a property is a set of scalar
   intervals, and the compiler already turns any such set into a UTF-8 automaton.
-- What is left: the interval tables. `Unicode` ships general-category tables ported from Go;
+- Next: the interval tables. `Unicode` ships general-category tables ported from Go;
   scripts would be another table of the same shape, generated the same way, and the property
   lookup in `RuneClass.unicodeProperty` is one more `switch` arm per table.
 - Complete when: the script names of UAX #24 resolve, a test matches text in two scripts, and the

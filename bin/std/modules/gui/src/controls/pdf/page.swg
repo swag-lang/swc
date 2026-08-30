@@ -219,8 +219,16 @@ impl Page
 
 internal impl Page
 {
+    // Records one item in paint order, dropping a clip that cannot cut it.
+    //
+    // A writer that draws every glyph through a form of its own gives each one that form's
+    // bounding box as a clip, and the box is the glyph. Such a clip removes nothing, and keeping
+    // it costs a clipping pass per item and cuts the antialiased fringe of the very shape it
+    // bounds, which is what makes a page of small text read as rough.
     mtd appendItem(item: #move Item)
     {
+        if item.hasClip and item.clip.contains(item.paintBounds()) do
+            item.hasClip = false
         .items.add(#move item)
     }
 }

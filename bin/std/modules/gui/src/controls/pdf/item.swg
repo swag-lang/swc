@@ -77,6 +77,42 @@ struct Item
     }
 }
 
+internal impl Item
+{
+    // Returns the page-space box this item's marks cannot leave.
+    //
+    // Text is the one kind that cannot answer: a run's extent needs the resolved face, which the
+    // page does not hold, so it reports the whole plane and is treated as unbounded.
+    mtd const paintBounds()->Math.Rectangle
+    {
+        var local: Math.Rectangle
+        switch .kind
+        {
+        case .Path:  local = .path.controlBounds()
+        case .Image: local = {0, 0, 1, 1}
+        case .Text:  return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
+        }
+
+        let corners: [4] Vector2 = [
+            .transform.transformPoint({local.x, local.y}),
+            .transform.transformPoint({local.right(), local.y}),
+            .transform.transformPoint({local.right(), local.bottom()}),
+            .transform.transformPoint({local.x, local.bottom()})]
+
+        var min = corners[0]
+        var max = corners[0]
+        for corner in corners
+        {
+            min.x = Math.min(min.x, corner.x)
+            min.y = Math.min(min.y, corner.y)
+            max.x = Math.max(max.x, corner.x)
+            max.y = Math.max(max.y, corner.y)
+        }
+
+        return {min.x, min.y, max.x - min.x, max.y - min.y}
+    }
+}
+
 impl Item
 {
     // Returns the text carried by a text item, or an empty string for another kind.

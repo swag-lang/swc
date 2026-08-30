@@ -1216,7 +1216,7 @@ impl PdfParser
             return result
         switch filters.back().toString()
         {
-        case "DCTDecode", "DCT", "JPXDecode", "JBIG2Decode", "CCITTFaxDecode", "CCF": result = filters.back()
+        case "DCTDecode", "DCT", "JPXDecode", "JBIG2Decode": result = filters.back()
         }
 
         return result
@@ -1280,6 +1280,17 @@ impl PdfParser
                 var decoded = #move try decodeRunLength(result.toSlice())
                 result.free()
                 result = #move decoded
+
+            case "CCITTFaxDecode", "CCF":
+                var ccitt: CcittParameters
+                ccitt.k         = .integer(.dict(parameters, "K"), 0)
+                ccitt.columns   = .integer(.dict(parameters, "Columns"), 1728)
+                ccitt.rows      = .integer(.dict(parameters, "Rows"), .integer(.dict(id, "Height"), 0))
+                ccitt.blackIs1  = .boolean(.dict(parameters, "BlackIs1"), false)
+                ccitt.byteAlign = .boolean(.dict(parameters, "EncodedByteAlign"), false)
+                var expanded = #move try decodeCcittFax(result.toSlice(), ccitt)
+                result.free()
+                result = #move expanded
 
             case "Crypt":
                 break

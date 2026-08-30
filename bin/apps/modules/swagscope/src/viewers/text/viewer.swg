@@ -16,9 +16,42 @@ private const NamedExtensions = ".txt;.text;.log;.nfo;.diz;.rst;.adoc;.asc;.srt;
 
 private func textPluginName()->string => textStrings().ui_Name
 
+// Reports whether `fileName` is one of the names the plain-text surface owns.
+//
+// A subtitle track has a viewer that plays it against the film and is still a text file a
+// reader may want to read; that is what this list is for. Every other format keeps the viewer
+// that claimed it.
+private func textNamesFile(fileName: string)->bool
+{
+    var extension = String.from(Path.extension(fileName) orelse "")
+    extension = extension.toLower()
+    var baseName = String.from(Path.fileName(fileName) orelse "")
+    baseName = baseName.toLower()
+
+    for selector in Tokenize.split(NamedExtensions, ';'u8)
+    {
+        if selector[0] == '.'
+        {
+            if selector == extension.toString() do
+                return true
+        }
+        elif selector == baseName.toString() do
+            return true
+    }
+
+    return false
+}
+
+// Offers the plain-text surface for a file no other viewer answers for, and for the text
+// formats it owns by name.
+//
+// Reading the head of a file is a weak question: a PDF, an office document and a font all open
+// with enough printable bytes to pass it, and offering to read one of them as a page of text
+// says something untrue about the file. A format that already has a viewer keeps it.
 private func textPluginProbe(fileName: string, hasNamedMatch: bool)->bool
 {
-    discard hasNamedMatch
+    if hasNamedMatch and !textNamesFile(fileName) do
+        return false
     return TextView.supports(fileName)
 }
 

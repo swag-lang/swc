@@ -1,6 +1,6 @@
 //! Format: Joint Photographic Experts Group (JPEG) decoder component.
-//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images.
-//! Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts.
+//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, directly sampled RGB, and CMYK or YCCK images.
+//! Not supported: Arithmetic coding, lossless JPEG, and unsupported chroma sampling layouts.
 //! Role: This file owns marker parsing, component metadata, and top-level decoding.
 //
 #global namespace Jpg
@@ -24,6 +24,7 @@ private
     const YH1V2           = 3
     const YH2V2           = 4
     const RGBH1V1         = 5
+    const CmykH1V1        = 6
     const Failed          = -1
     const Done            = 1
     const Okay            = 0

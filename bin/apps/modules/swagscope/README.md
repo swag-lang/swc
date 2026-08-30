@@ -17,8 +17,9 @@ registries, so their application coverage cannot drift behind the formats the mo
 There is no runtime index, dynamic library, exported entry point, or versioned ABI yet.
 
 Several viewers may claim the same extension. The selector lists format-specific viewers first,
-`Basic text` next when the file is readable UTF-8, then the `Binary` and `Hexadecimal` fallbacks,
-each beside the glyph its viewer owns. Changing the selector reuses a view already opened for the
+`Basic text` next when nothing else claims the file and it reads as text, or when the file is one
+of the text formats that surface names, then the `Binary` and `Hexadecimal` fallbacks, each beside
+the glyph its viewer owns. Changing the selector reuses a view already opened for the
 current file or creates it on demand; it does not reopen the window.
 
 The first choice is the default, and choosing another one is remembered for that kind of file: the
@@ -27,10 +28,14 @@ opens the next video in bytes whatever container it arrives in. Choosing the ord
 removes the decision rather than recording one more. The stable key, not the display name, is what
 the persisted state carries.
 
-Basic text is available for every readable text file. It loads small UTF-8 segments on demand and
-stays about two viewports ahead, so a large source file does not need to fit in memory before its
-first screen appears. Binary content directs the reader to the hexadecimal alternative instead of
-guessing an encoding.
+Basic text is available for a readable text file no other viewer answers for, and for the text
+formats it owns by name — a subtitle track is played against its film and is still a text file a
+reader may want to read. It never offers itself for a document another viewer claims: a PDF, an
+office file and a font all open with enough printable bytes to pass a content probe, and offering
+to read one as a page of text says something untrue about the file. It loads small UTF-8 segments
+on demand and stays about two viewports ahead, so a large source file does not need to fit in
+memory before its first screen appears. Binary content directs the reader to the hexadecimal
+alternative instead of guessing an encoding.
 
 ## Shipped viewers
 

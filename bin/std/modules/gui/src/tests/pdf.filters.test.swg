@@ -121,3 +121,52 @@ using Core, Pdf
     Swag.assert(image.pixelColor(0, 2).r == 12)
     Swag.assert(image.pixelColor(3, 2).r == 42)
 }
+
+// The facsimile filter is checked against the exact samples its encoder started from.
+//
+// The fixture is one Group 4 page written by a reference encoder next to the bitmap it encoded,
+// so a single wrong entry in either run table changes a row and is caught here rather than as a
+// smudge on a scanned document.
+#test
+{
+    let encoded  = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.bin"))
+    let expected = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.samples.bin"))
+
+    var params: CcittParameters
+    params.k       = -1
+    params.columns = 64
+    params.rows    = 48
+
+    let decoded = expect decodeCcittFax(encoded.toSlice(), params)
+    Swag.assert(decoded.count == expected.count)
+    for value, index in decoded do
+        Swag.assert(value == expected[index])
+
+    // `BlackIs1` names the sample value black takes, so the same stream decodes to the complement.
+    params.blackIs1 = true
+    let inverted = expect decodeCcittFax(encoded.toSlice(), params)
+    Swag.assert(inverted.count == expected.count)
+    for value, index in inverted do
+        Swag.assert(value == ~expected[index])
+}
+
+// A stream that ends early still describes an image of the height its dictionary declares, and a
+// declared width of zero is a damaged dictionary rather than an empty image.
+#test
+{
+    let encoded = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.bin"))
+
+    var params: CcittParameters
+    params.k       = -1
+    params.columns = 64
+    params.rows    = 60
+
+    let decoded = expect decodeCcittFax(encoded.toSlice(), params)
+    Swag.assert(decoded.count == 60 * 8)
+    for index in 48 * 8 until decoded.count do
+        Swag.assert(decoded[index] == 0xFF)
+
+    params.columns = 0
+    discard catch decodeCcittFax(encoded.toSlice(), params) as widthError
+    Swag.assert(widthError != null)
+}

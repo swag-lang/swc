@@ -152,6 +152,34 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertLoadedJpg("testA.jpg", 1200, 704, 30'u8, 30'u8, 30'u8)
 }
 
+// A four-component frame is the ink layout a print-ready photograph is written in.
+//
+// The fixture is a red, green and blue band saved as CMYK, so a correct decode returns exactly
+// the colours it was made from: the Adobe marker says the inks are stored complemented, and the
+// three bands are what proves the complement and the ink-to-screen conversion agree.
+#test
+{
+    let img = expect Image.load(getTestDataPath("cmyk.jpg"))
+    Swag.assert(img.width == 48 and img.height == 32)
+    Swag.assert(img.pixelFormat == .BGR8)
+
+    let row = cast(u64) (img.height - 1 - 16) * cast(u64) img.width * 3
+    let red = img.pixels.buffer! + row + 8 * 3
+    assertNearByte(red[0], 0'u8, 8'u8)
+    assertNearByte(red[1], 0'u8, 8'u8)
+    assertNearByte(red[2], 255'u8, 8'u8)
+
+    let green = img.pixels.buffer! + row + 24 * 3
+    assertNearByte(green[0], 0'u8, 8'u8)
+    assertNearByte(green[1], 255'u8, 8'u8)
+    assertNearByte(green[2], 0'u8, 8'u8)
+
+    let blue = img.pixels.buffer! + row + 40 * 3
+    assertNearByte(blue[0], 255'u8, 8'u8)
+    assertNearByte(blue[1], 0'u8, 8'u8)
+    assertNearByte(blue[2], 0'u8, 8'u8)
+}
+
 // Decode from preloaded bytes and verify .jpeg extension routing.
 #test
 {

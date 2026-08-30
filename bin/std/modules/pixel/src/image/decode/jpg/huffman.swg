@@ -1,6 +1,6 @@
 //! Format: Joint Photographic Experts Group (JPEG) decoder component.
-//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images.
-//! Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts.
+//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, directly sampled RGB, and CMYK or YCCK images.
+//! Not supported: Arithmetic coding, lossless JPEG, and unsupported chroma sampling layouts.
 //! Role: This file owns Huffman table construction and entropy decoding.
 //
 #global namespace Jpg

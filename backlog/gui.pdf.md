@@ -23,7 +23,9 @@ and `/ToUnicode`, embedded TrueType, OpenType, Type 1, and bare CFF programs add
 file keys them,
 and every sample representation a raster can use from one to sixteen bits per component across
 the device, calibrated, ICC-based, indexed, Lab, separation and DeviceN spaces, with decode
-arrays, stencil masks, soft masks and color key masks.
+arrays, stencil masks, soft masks and color key masks. Group 3 and Group 4 facsimile images
+decode here, and four-component photographs decode through `pixel`, so the two encodings a
+scanned or print-ready office document hides behind both reach the page.
 
 Three things stand out.
 
@@ -97,18 +99,18 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ### gui.pdf.002 — One unsupported construct loses the whole page
 
-- Intent: `loadPage` fails as a unit. A single JBIG2 scan, one CCITT logo, or one CMYK photograph
-  anywhere in a content stream costs the caller the entire page, including the text and vectors
-  that decoded perfectly. For a viewer that is the difference between a page with a gap in it and
-  a page that will not display. It also means every entry below this one is, today, a way to lose
-  a page rather than a way to lose a mark.
+- Intent: `loadPage` fails as a unit. A single JBIG2 scan or one JPEG 2000 photograph anywhere in
+  a content stream costs the caller the entire page, including the text and vectors that decoded
+  perfectly. For a viewer that is the difference between a page with a gap in it and a page that
+  will not display. It also means every entry below this one is, today, a way to lose a page
+  rather than a way to lose a mark.
 - Complete when: a page decodes as far as it can, each construct it could not represent is
   recorded against the item that needed it with enough detail to name the feature, `Page` exposes
   those limitations to the caller, and a document-level failure is reserved for input that cannot
   be parsed at all.
 - Note: the messages reach a user through Swag Scope's failure reporting, so they are user-facing
   English and must read as such.
-- Related: gui.pdf.011, gui.pdf.012, gui.pdf.013, gui.pdf.014
+- Related: gui.pdf.011, gui.pdf.012, gui.pdf.014, gui.pdf.015
 
 ### gui.pdf.003 — Annotation appearance streams are never drawn
 
@@ -181,6 +183,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   capability exists one layer down.
 - Complete when: a non-rectangular clip path is carried to the painter as a region rather than a
   rectangle, nesting intersects regions, and the even-odd form of `W*` is distinguished from `W`.
+- Note: a clip that cannot cut the item it bounds is already dropped when the page is decoded, and
+  consecutive items sharing one clip push it once. That is what made a page of per-glyph form
+  XObjects both correct and affordable; the region work below is about clips that do decide
+  something.
 - Related: gui.pdf.010
 
 ### gui.pdf.010 — Text render modes other than fill and invisible are drawn filled
@@ -212,26 +218,22 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier B — Images a page cannot decode
 
-### gui.pdf.012 — A CMYK or YCCK JPEG fails the whole page
+### gui.pdf.012 — The `/Decode` array is not applied to a DCT image
 
-- Intent: a `DCTDecode` stream is handed to `Image.decode(".jpg", …)`, whose frame initializer
-  reports `unsupported color space` for any frame that is not one or three components. Print-ready
-  documents routinely carry four-component photographs, and one of them fails the page. The
-  `/Decode` array is also not applied on the DCT path, so the inverted samples Adobe writers
-  produce would still be wrong once the frame decodes.
-- Complete when: a four-component JPEG decodes — through `pixel` gaining CMYK and YCCK support,
-  which is where the frame work belongs — the Adobe transform marker selects between them, the
-  `/Decode` array is honoured for a DCT image as it is for a sampled one, and the corpus carries a
-  CMYK fixture.
-- Related: gui.pdf.002
-
-### gui.pdf.013 — CCITT Group 3 and Group 4 images are refused
-
-- Intent: `CCITTFaxDecode` is named as an image codec and then rejected. It is the codec of
-  scanned bilevel documents, which is a large fraction of the PDFs that exist at all; a scanned
-  contract or invoice cannot be displayed.
-- Complete when: one and two dimensional Group 3 and Group 4 decoding is implemented over the
-  `/DecodeParms` geometry, with `/BlackIs1`, byte alignment and damaged-row recovery.
+- Intent: four-component frames decode now, but a DCT image is the one sample representation whose
+  `/Decode` array is ignored, because the frame reaches this module already converted to screen
+  colours. A file that states its inks are stored complemented through that array rather than
+  through the Adobe marker therefore renders inverted, and a partial range on a gray or colour
+  photograph is dropped silently.
+- Evidence: `decodeImage` hands `DCTDecode` straight to `Image.decode(".jpg", …)` and returns its
+  colour result; every sampled representation beside it goes through `readSamplePlane`, which does
+  read `/Decode`. The four-component path in `pixel` applies the Adobe complement itself, which is
+  what a standalone CMYK JPEG needs and what a `/Decode` array would then apply twice.
+- Next: decide where ink values are allowed to exist — either a four-component frame comes back from
+  `pixel` as inks and this module converts them, or the decoder takes the decode ranges as an
+  option — then apply the array on the DCT path for every component count.
+- Complete when: a DCT image honours `/Decode` exactly as a sampled image does, and a fixture
+  carries a CMYK photograph inverted through that array.
 - Related: gui.pdf.002
 
 ### gui.pdf.014 — JBIG2 images are refused
@@ -240,7 +242,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   scanner firmware and PDF optimizers emit.
 - Complete when: the generic region and text region decoding procedures are implemented, including
   the embedded stream form with a shared `/JBIG2Globals` segment.
-- Related: gui.pdf.002, gui.pdf.013
+- Related: gui.pdf.002, gui.pdf.015
 
 ### gui.pdf.015 — JPEG 2000 images are refused
 
@@ -459,6 +461,28 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   declared-size attacks with the expected error for each, a large fixture shows that opening
   costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
   budget.
+
+### gui.pdf.032 — The first paint of a page costs ten times the ones after it
+
+- Intent: a page is tessellated by the frame that first draws it, on the GUI thread. Dragging a
+  window border enlarges the view, which asks for a finer flattening than the cache holds, and the
+  whole page is flattened and triangulated again inside that frame. The reader sees the window
+  stop following the pointer for a fifth of a second, once per power-of-two step of the zoom, and
+  then never again at that size — which is exactly how it is reported: very laggy the first few
+  times, fine afterwards.
+- Evidence: swag Scope showing a four-page tax notice on a 1727x1074 window, timing
+  `Surface.paintWnd` and splitting it between recording the hierarchy and submitting it. Recording
+  costs 15 to 25 ms once the caches are warm and 78 to 236 ms for the first frames at a new scale;
+  submitting costs 2 to 13 ms throughout. The render target is not the cost: it is rebuilt twice
+  over a whole drag, for 1.2 ms and 2.4 ms, and the layout pass exceeded 1.5 ms exactly once.
+  `LinePath.flatten` keeps the finest tolerance produced so far, so shrinking the window is free
+  and only growing it pays.
+- Next: tessellate a decoded page off the GUI thread. The page loader already runs on a worker and
+  knows the scale the view will first draw at, so the flattening and triangulation it will need can
+  be produced there; the frame then finds them cached. Measure the same trace afterwards, and check
+  what remains against the 15 to 25 ms steady state.
+- Complete when: no frame that only resizes a window costs materially more than the frame before
+  it, on a page of a few thousand items.
 
 ---
 

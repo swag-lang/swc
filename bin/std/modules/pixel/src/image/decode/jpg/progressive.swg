@@ -1,6 +1,6 @@
 //! Format: Joint Photographic Experts Group (JPEG) decoder component.
-//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images.
-//! Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts.
+//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, directly sampled RGB, and CMYK or YCCK images.
+//! Not supported: Arithmetic coding, lossless JPEG, and unsupported chroma sampling layouts.
 //! Role: This file owns progressive scan coefficient refinement.
 //
 #global namespace Jpg
@@ -269,9 +269,6 @@ impl Decoder
 
     mtd initProgressive() fail
     {
-        if .compsInFrame == 4 do
-            fail UnsupportedFormatError{"unsupported color space"}
-
         for i in .compsInFrame
         {
             .dcCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 1, 1)

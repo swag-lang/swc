@@ -433,6 +433,15 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
 
     let fontCache    = painter.renderer().fontCache()
     var textureIndex = 0'u64
+
+    // Consecutive items usually share one clip — a paragraph inside a text box states it once per
+    // show operation — so the region is pushed when it changes and held across the run rather than
+    // pushed and popped around every mark.
+    var activeClip:    Math.Rectangle
+    var hasActiveClip: bool
+    defer if hasActiveClip do
+        painter.popClippingRect()
+
     for &item in page.items
     {
         var placed = item.transform
@@ -441,18 +450,27 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
 
         // The clip is stated in page coordinates, so it maps through the page transform
         // rather than through the item's own.
+        var clip: Math.Rectangle
         if item.hasClip
         {
-            var clip = item.clip
-            clip.x      = clip.x * pageToSurface.m11 + pageToSurface.tx
-            clip.y      = clip.y * pageToSurface.m22 + pageToSurface.ty
-            clip.width  *= pageToSurface.m11
-            clip.height *= pageToSurface.m22
-            painter.pushClippingSurfaceRect(clip)
+            clip.x      = item.clip.x * pageToSurface.m11 + pageToSurface.tx
+            clip.y      = item.clip.y * pageToSurface.m22 + pageToSurface.ty
+            clip.width  = item.clip.width * pageToSurface.m11
+            clip.height = item.clip.height * pageToSurface.m22
         }
 
-        defer if item.hasClip do
+        if hasActiveClip and (!item.hasClip or clip != activeClip)
+        {
             painter.popClippingRect()
+            hasActiveClip = false
+        }
+
+        if item.hasClip and !hasActiveClip
+        {
+            painter.pushClippingSurfaceRect(clip)
+            activeClip    = clip
+            hasActiveClip = true
+        }
 
         switch item.kind
         {

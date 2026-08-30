@@ -67,12 +67,50 @@ struct ViewerPluginHost
     hostServices:    Viewer.HostServices
 }
 
+// One group a viewer contributes to the information band, sized to what it actually shows.
+//
+// The band lays the general details and this group out as one right-aligned run, so a group
+// that always answered the width its author reserved would push the general details left by
+// the room it is not using. That width stays the maximum; the content decides the rest.
+struct ViewerInfoGroup
+{
+    using wnd: Wnd
+}
+
+impl IWnd for ViewerInfoGroup
+{
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        var result: retval
+        for child in .children where child.isLocallyVisible()
+        {
+            let size = child.itf.measureContent(available)
+            result.x = Math.max(result.x, size.x + child.margin.x + child.margin.z)
+            result.y = Math.max(result.y, size.y + child.margin.y + child.margin.w)
+        }
+
+        return result
+    }
+}
+
 private impl ViewerPluginHost
 {
     mtd createGroup(parent: *Wnd, width: f32)->*Wnd
     {
         let result = Wnd.create'Wnd(parent, {0, 0, width, 36})
         result.backgroundStyle = .Transparent
+        return result
+    }
+
+    mtd createInfoWnd(parent: *Wnd, width: f32)->*Wnd
+    {
+        let result = Wnd.create'ViewerInfoGroup(parent, {0, 0, width, 36})
+        result.backgroundStyle = .Transparent
+
+        // The width the plugin asks for is the most this group may take, and the band shrinks the
+        // group to what it shows. Recording it as the preferred size is what keeps the maximum
+        // available after the first pass has already narrowed the group.
+        result.preferredSize.x = width
         return result
     }
 }
@@ -95,7 +133,7 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl createInfoGroup(width: f32)->*Wnd
     {
         Debug.assert(.session.info == null)
-        .session.info = .createGroup(.infoParent, width)
+        .session.info = .createInfoWnd(.infoParent, width)
         .session.info!.style.addStyleSheetColors("label_TextLight $label_TextFaint")
         .session.info!.computeStyle()
         return .session.info!

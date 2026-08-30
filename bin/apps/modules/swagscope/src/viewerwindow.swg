@@ -10,6 +10,7 @@ const ViewerSearchNoOptionsFieldWidth         = 256.0
 const ViewerSearchCountWidth                  = 52.0
 const ViewerSearchGroupSpacing                = 16.0
 const ViewerInfoGroupSpacing                  = 16.0
+const ViewerInfoFileSpacing                   = 8.0
 const ViewerInfoSideButtonSpacing             = 8.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
@@ -111,9 +112,11 @@ impl ViewerActionBar
     }
 }
 
-// Keeps file identity on the left, viewer-specific readouts on the right, and general file
-// details geometrically centered in the band rather than centered in whatever room happens to
-// remain between two unequal groups.
+// Keeps file identity on the left and every reading of that file on the right.
+//
+// The general details and whatever the viewer adds to them form one run ending at the band's
+// right edge, in that order. Anchoring the run there rather than centring the general details
+// is what lets a long reading spend the whole band before it has to end in an ellipsis.
 struct ViewerInfoLayout
 {
     using wnd: Wnd
@@ -143,7 +146,6 @@ impl ViewerInfoLayout
     mtd computeLayout()
     {
         let client = .paddedClientRect()
-        let center = client.horzCenter()
 
         let filesWidth = .filesButton.isLocallyVisible() ? .filesButton.position.width : 0
         if filesWidth
@@ -152,40 +154,68 @@ impl ViewerInfoLayout
             .filesButton.applyLayout()
         }
 
-        let fileLeft     = client.x + filesWidth + ViewerInfoGroupSpacing
-        let maxFileWidth = Math.max(center - fileLeft - ViewerInfoGroupSpacing, 0)
+        // The button that opens the panel of files and the file it opened read as one group, so
+        // they sit closer together than two unrelated groups of the band do.
+        let fileLeft     = client.x + (filesWidth ? filesWidth + ViewerInfoFileSpacing : 0)
+        let maxFileWidth = Math.max(client.horzCenter() - fileLeft - ViewerInfoGroupSpacing, 0)
         let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent({maxFileWidth, client.height}).x), maxFileWidth)
         .fileGroup.setPosition({fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
         .fileGroup.computeLayout()
 
-        var viewerLeft = client.right()
-        var hasViewer: bool
+        var right = client.right()
         if .sideButton and .sideButton!.isLocallyVisible()
         {
             let button = .sideButton!
-            viewerLeft -= button.position.width
-            button.setPosition({viewerLeft, client.y, button.position.width, client.height}, computeLayout: false)
+            right -= button.position.width
+            button.setPosition({right, client.y, button.position.width, client.height}, computeLayout: false)
             button.applyLayout()
-            viewerLeft -= ViewerInfoSideButtonSpacing
-            hasViewer  = true
+            right -= ViewerInfoSideButtonSpacing
         }
 
+        // What the viewer contributes is measured first, because it says exactly what it needs;
+        // the general details then spend everything that is left before they ellipsize.
+        let leftBound = .fileGroup.position.right() + ViewerInfoGroupSpacing
+        let available = Math.max(right - leftBound, 0)
+
+        var viewers: Array'(*Wnd)
         for child in .children
         {
             if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton!) or !child.isLocallyVisible() do
                 continue
-
-            let width = Math.min(child.position.width, Math.max(viewerLeft - client.x, 0))
-            viewerLeft -= width
-            child.setPosition({viewerLeft, client.y, width, client.height}, computeLayout: false)
-            child.applyLayout()
-            hasViewer = true
+            viewers.add(child)
         }
 
-        let leftBound  = .fileGroup.position.right() + ViewerInfoGroupSpacing
-        let rightBound = viewerLeft - (hasViewer ? ViewerInfoGroupSpacing : 0)
-        let halfWidth  = .generalLabel.name.isEmpty() ? 0 : Math.max(Math.min(center - leftBound, rightBound - center), 0)
-        .generalLabel.setPosition({center - halfWidth, client.y, 2 * halfWidth, client.height}, computeLayout: false)
+        var widths: Array'f32
+        var run:    f32
+        for one in viewers
+        {
+            // The room a viewer reserved is its preferred size, never the width the last pass gave
+            // it: reading the current width back would let the group only ever shrink.
+            let spacing = run ? ViewerInfoGroupSpacing : 0
+            let limit   = one.preferredSize.x > 0 ? one.preferredSize.x : one.position.width
+            let wanted  = Math.min(Math.ceil(one.itf.measureContent({available, client.height}).x), limit)
+            let width   = Math.max(Math.min(wanted, available - run - spacing), 0)
+            widths.add(width)
+            if width do
+                run += spacing + width
+        }
+
+        let generalSpacing = run ? ViewerInfoGroupSpacing : 0
+        let generalWanted  = .generalLabel.name.isEmpty() ? 0 : Math.ceil(.generalLabel.itf.measureContent({}).x)
+        let generalWidth   = Math.max(Math.min(generalWanted, available - run - generalSpacing), 0)
+
+        var x = right - run - generalWidth - (generalWidth ? generalSpacing : 0)
+        .generalLabel.setPosition({x, client.y, generalWidth, client.height}, computeLayout: false)
+        if generalWidth do
+            x += generalWidth + generalSpacing
+
+        for one, i in viewers
+        {
+            one.setPosition({x, client.y, widths[i], client.height}, computeLayout: false)
+            one.applyLayout()
+            if widths[i] do
+                x += widths[i] + ViewerInfoGroupSpacing
+        }
     }
 }
 
@@ -1297,7 +1327,7 @@ impl ViewerWindow
         with result.infoStatsLabel = Label.create(result.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
         {
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Center, .OpticalCenter)
+            .setTextAlignment(.Right, .OpticalCenter)
         }
 
         result.infoContentGroup.fileGroup    = result.infoFileGroup
@@ -2467,7 +2497,7 @@ impl ViewerWindow
         }
         elif !.searchComplete
         {
-            .searchCountLabel.setText("â€¦")
+            .searchCountLabel.setText("…")
             .searchCountLabel.toolTip = appStrings().ui_Searching
         }
         elif .searchMatches.isEmpty()

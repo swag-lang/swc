@@ -238,6 +238,47 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(transform.m11 == 20 and transform.m22 == 10)
 }
 
+// A scanned stencil and a print-ready photograph reach the page from one file.
+//
+// The fixture carries a Group 4 facsimile image and a four-component JPEG, which are the two
+// image encodings an office document most often hides behind: before they decoded, either one
+// cost the whole page it appeared on.
+#test
+{
+    var reader = expect Reader.open(corpusPdfPath("synthetic-ccitt-cmyk.pdf"))
+    Swag.assert(reader.pageCount() == 1)
+    var page = expect reader.loadPage(0)
+
+    var fax:   #null const *Image
+    var photo: #null const *Image
+    for item in page.items where item.kind == .Image
+    {
+        let image = item.imageValue()!
+        if image.width == 64 do
+            fax = image
+        elif image.width == 48 do
+            photo = image
+    }
+
+    Swag.assert(fax != null and photo != null)
+    Swag.assert(fax!.width == 64 and fax!.height == 48)
+    Swag.assert(fax!.pixelColor(0, 0).r == 255)
+    Swag.assert(fax!.pixelColor(20, 10).r == 0)
+
+    // The three bands are the colours the fixture was made from, so the ink complement and the
+    // ink-to-screen conversion are both checked here rather than only inside the decoder.
+    Swag.assert(photo!.width == 48 and photo!.height == 32)
+    let red = photo!.pixelColor(8, 16)
+    Swag.assert(red.r > 200 and red.g < 60 and red.b < 60)
+    let green = photo!.pixelColor(24, 16)
+    Swag.assert(green.g > 200 and green.r < 60 and green.b < 60)
+    let blue = photo!.pixelColor(40, 16)
+    Swag.assert(blue.b > 200 and blue.r < 60 and blue.g < 60)
+
+    let rendered = expect page.render({scale: 1})
+    Swag.assert(rendered.isValid())
+}
+
 // An unsupported codec is reported instead of producing a wrong picture.
 #test
 {

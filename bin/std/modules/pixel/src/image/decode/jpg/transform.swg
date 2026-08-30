@@ -1,6 +1,6 @@
 //! Format: Joint Photographic Experts Group (JPEG) decoder component.
-//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images.
-//! Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts.
+//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, directly sampled RGB, and CMYK or YCCK images.
+//! Not supported: Arithmetic coding, lossless JPEG, and unsupported chroma sampling layouts.
 //! Role: This file owns inverse DCT and sample reconstruction.
 //
 #global namespace Jpg
@@ -343,6 +343,60 @@ impl Decoder
 
             d += 24
             s += 64 * 3
+        }
+    }
+
+    // Turns one row of a four-component unit into blue-green-red triplets.
+    //
+    // Four components are the inks of a printed page, in one of two spellings. The luminance and
+    // chrominance form carries the three chromatic inks the way a photograph carries colour, and
+    // its definition already complements them: converting the three back yields the complement of
+    // each ink, and the black channel is stored plainly. The direct form spells the four inks
+    // themselves, complemented when the file carries the Adobe marker, which is what that
+    // producer writes and what the marker is read for here.
+    //
+    // The scalar form is deliberate: this layout is unsubsampled, so the vector helpers of the
+    // luma paths have no group of pixels to share one chroma correction over.
+    mtd convertCmykH1V1()
+    {
+        let row       = .maxMcuSizeY - .mcuLinesLeft
+        let chromatic = .adobeTransform == 2
+        let inverse   = .hasAdobeMarker and !chromatic
+        var d         = .scanLine0.buffer!
+        var s         = .safeSampleBuf() + row * 8
+        for i in rangeTo(1, .maxMcusPerRow).reversed()
+        {
+            for x in 8
+            {
+                var cyan    = cast(s32) s[x]
+                var magenta = cast(s32) s[64 + x]
+                var yellow  = cast(s32) s[128 + x]
+                var black   = cast(s32) s[192 + x]
+
+                if chromatic
+                {
+                    let luma = cyan
+                    let kb   = (magenta << 1) - 256
+                    let kr   = (yellow << 1) - 256
+                    cyan    = 255 - Math.clamp(luma + ((FixCrToR * kr + (1 << 15)) >> 16), 0, 255)
+                    magenta = 255 - Math.clamp(luma + ((FixCrToG * kr + FixCbToG * kb + (1 << 15)) >> 16), 0, 255)
+                    yellow  = 255 - Math.clamp(luma + ((FixCbToB * kb + (1 << 15)) >> 16), 0, 255)
+                }
+                elif inverse
+                {
+                    cyan    = 255 - cyan
+                    magenta = 255 - magenta
+                    yellow  = 255 - yellow
+                    black   = 255 - black
+                }
+
+                d[3 * x + 0] = cast(u8) (255 - Math.min(255, yellow + black))
+                d[3 * x + 1] = cast(u8) (255 - Math.min(255, magenta + black))
+                d[3 * x + 2] = cast(u8) (255 - Math.min(255, cyan + black))
+            }
+
+            d += 24
+            s += 64 * 4
         }
     }
 

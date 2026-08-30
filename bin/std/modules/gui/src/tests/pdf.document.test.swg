@@ -431,3 +431,27 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     var page = expect reader.loadPage(0)
     Swag.assert(pageText(&page) == "second")
 }
+
+// A clip that cannot cut the mark it bounds is not kept.
+//
+// A writer that draws every glyph through a form of its own gives each one that form's bounding
+// box as a clip, and the box is the glyph. Keeping such a clip costs a clipping pass per mark and
+// cuts the antialiased fringe of the very shape it bounds, so it is dropped where it decides
+// nothing and kept where it decides something.
+#test
+{
+    let content  = "q 20 20 60 40 re W n 30 30 m 70 30 l 70 50 l 30 50 l h f Q q 20 20 20 20 re W n 10 10 m 90 10 l 90 60 l h f Q"
+    let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, cast(const [..] u8) "", "[0 0 200 100]").toSlice())
+    let page     = document.pages[0]
+
+    var paths: Array'(const *Pdf.Item)
+    for item in page.items where item.kind == .Path do
+        paths.add(item)
+    Swag.assert(paths.count == 2)
+
+    // The first rectangle is inside its clip, so the clip decides nothing.
+    Swag.assert(!paths[0].itemClip().clipped)
+
+    // The second triangle leaves its clip on every side, so the clip stays.
+    Swag.assert(paths[1].itemClip().clipped)
+}

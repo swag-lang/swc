@@ -1310,7 +1310,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
     Swag.assert(window.infoStatsLabel.position.width > 0)
     Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
-    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - window.infoBar.paddedClientRect().horzCenter()) < 0.01)
+    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - window.infoBar.paddedClientRect().right()) < 0.01)
     Swag.assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
     Swag.assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
 
@@ -1324,8 +1324,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         Swag.assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
     }
 
-    // General details stay centered on the complete information band whenever they fit. Only a
-    // real shortage shrinks that centered line.
+    // General details end at the right edge of the band, which is what leaves them the whole
+    // band to spend. Only a real shortage shrinks the line.
     let wideDetails = "3840 × 2160 · 120000 frames · 59.94 fps · 01:02:03 · AAC-LC · 48000 Hz · 6 channels · 24 bit · Swag CPU decoder"
     window.resize(1600, 680)
     window.currentFile = "clip.mp4"
@@ -1335,7 +1335,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let wideDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
     Swag.assert(wideFileWidth + wideDetailWidth <= wideClient.width)
     Swag.assert(window.infoStatsLabel.position.width >= wideDetailWidth)
-    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - wideClient.horzCenter()) < 0.01)
+    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - wideClient.right()) < 0.01)
     Swag.assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
 
     window.resize(ViewerMinWidth, 680)
@@ -1346,7 +1346,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let narrowDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
     Swag.assert(narrowFileWidth + narrowDetailWidth > narrowClient.width)
     Swag.assert(window.infoStatsLabel.position.width < narrowDetailWidth)
-    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - narrowClient.horzCenter()) < 0.01)
+    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - narrowClient.right()) < 0.01)
     Swag.assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
 }
 

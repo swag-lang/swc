@@ -1,6 +1,6 @@
 //! Format: Joint Photographic Experts Group (JPEG) decoder component.
-//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images.
-//! Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts.
+//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, directly sampled RGB, and CMYK or YCCK images.
+//! Not supported: Arithmetic coding, lossless JPEG, and unsupported chroma sampling layouts.
 //! Role: This file owns scan parsing, entropy decode, sampling, and color conversion.
 //
 #global namespace Jpg
@@ -266,6 +266,10 @@ impl Decoder
             .convertRgbH1V1()
             scanLineOfs[] = .scanLine0.buffer
 
+        case CmykH1V1:
+            .convertCmykH1V1()
+            scanLineOfs[] = .scanLine0.buffer
+
         case GrayScale:
             .convertGrayscale()
             scanLineOfs[] = .scanLine0.buffer
@@ -343,6 +347,23 @@ impl Decoder
                 else do
                     fail InvalidFormatError{"invalid samp factors"}
             }
+        }
+        elif .compsInFrame == 4
+        {
+            // Four components are the inks of a printed page, written either as they are or with
+            // their three chromatic channels carried the way luma and chroma are. Neither form
+            // subsamples in practice, and the layout that does is well formed and simply not read
+            // here.
+            for i in 4
+            {
+                if .compSampH[i] != 1 or .compSampV[i] != 1 do
+                    fail UnsupportedFormatError{Errors.mkString(Format.toString("JPEG four-component sampling of %x% is not supported", .compSampH[i], .compSampV[i]))}
+            }
+
+            .scanType        = CmykH1V1
+            .maxBlocksPerMcu = 4
+            .maxMcuSizeX     = 8
+            .maxMcuSizeY     = 8
         }
         else do
             fail UnsupportedFormatError{"unsupported color space"}

@@ -159,6 +159,12 @@
 			}
 		},
 		{
+			"scope": "entity.name.namespace.builtin.swag",
+			"settings": {
+				"foreground": "#94A3B8"
+			}
+		},
+		{
 			"scope": "invalid",
 			"settings": {
 				"foreground": "#FF6666"

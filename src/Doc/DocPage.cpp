@@ -1004,6 +1004,7 @@ body {
 .SFct { color: #b4560d; }
 .SCst { color: #17867a; }
 .SItr { color: #8a7600; }
+.SNsp { color: #64748b; }
 .STpe { color: #a2690b; }
 .SKwd { color: #2b6cab; }
 .SLgc { color: #8e4d99; }
@@ -1020,6 +1021,7 @@ body {
     :root:not([data-theme="light"]) .SFct { color: #e8a06a; }
     :root:not([data-theme="light"]) .SCst { color: #56c2b3; }
     :root:not([data-theme="light"]) .SItr { color: #cbb45c; }
+    :root:not([data-theme="light"]) .SNsp { color: #94a3b8; }
     :root:not([data-theme="light"]) .STpe { color: #e0b464; }
     :root:not([data-theme="light"]) .SKwd { color: #74aae0; }
     :root:not([data-theme="light"]) .SLgc { color: #c48fd0; }
@@ -1035,6 +1037,7 @@ body {
 :root[data-theme="dark"] .SFct { color: #e8a06a; }
 :root[data-theme="dark"] .SCst { color: #56c2b3; }
 :root[data-theme="dark"] .SItr { color: #cbb45c; }
+:root[data-theme="dark"] .SNsp { color: #94a3b8; }
 :root[data-theme="dark"] .STpe { color: #e0b464; }
 :root[data-theme="dark"] .SKwd { color: #74aae0; }
 :root[data-theme="dark"] .SLgc { color: #c48fd0; }

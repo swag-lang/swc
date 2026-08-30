@@ -676,4 +676,24 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(lib.tagFilter == "work")
     Swag.assert(lib.view.items.count == 1)
     Swag.assert(lib.view.items[0] == slack)
+
+    // A malformed legacy executable path must keep the application filter usable and
+    // simply omit its optional shell icon.
+    chrome.capture!.sourceExecutable = "bad|application.exe"
+    lib.refreshAutomaticFilters()
+    var foundApplication = false
+    for i in lib.listCtrl.lineCount()
+    {
+        let line = lib.listCtrl.lineAt(cast(u32) i)!
+        if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Application do
+            continue
+        let idx = cast(u64) line.userData0
+        if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
+        {
+            foundApplication = true
+            Swag.assert(!line.itemAt(0).icon.isValid())
+        }
+    }
+
+    Swag.assert(foundApplication)
 }

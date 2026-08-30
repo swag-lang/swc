@@ -105,6 +105,7 @@ SWC_TEST_BEGIN(Compiler_DocMarkdownRendersSupportedBlocks)
 ```swag
 
 const value = 1
+Swag.assert(value)
 
 ```
 
@@ -130,6 +131,8 @@ plain payload
     if (!html.contains("blockquote-note"))
         return Result::Error;
     if (!html.contains("class=\"code-block\""))
+        return Result::Error;
+    if (!html.contains("<span class=\"SNsp\">Swag</span>.<span class=\"SFct\">assert</span>"))
         return Result::Error;
     if (!html.contains("<div class=\"code-block\"><span class=\"SCde\">plain payload</span></div>\n"))
         return Result::Error;

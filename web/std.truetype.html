@@ -156,10 +156,10 @@
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> count
 {
-    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SCst">Swag</span>.index)) != <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index)) != <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
         <span class="SLgc">continue</span>
 
-    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SCst">Swag</span>.index))!
+    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index))!
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
     <span class="SLgc">break</span>
 }</span></div>
@@ -899,7 +899,7 @@
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> count
 {
-    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SCst">Swag</span>.index)) == <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index)) == <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
         <span class="SLgc">break</span>
 }</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">familyNameAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
@@ -999,7 +999,7 @@
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> count
 {
-    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SCst">Swag</span>.index))!
+    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index))!
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 }</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
@@ -1083,7 +1083,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.286</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.287</div>
 </footer>
 </section>
 </main>

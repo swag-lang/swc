@@ -41,10 +41,11 @@ Examples of compiler instructions:
 
 # Intrinsics
 
-Names beginning with '@' represent compiler-provided intrinsic values and
-operations. Availability depends on the intrinsic and context: 'Swag.compiler()' is
-compile-time only, while math and memory intrinsics can also generate runtime
-code.
+Compiler-provided intrinsic values and operations live in the built-in 'Swag'
+namespace. Collection views expose '.count' and '.buffer' through ordinary member
+access instead. Availability depends on the intrinsic and context:
+'Swag.compiler()' is compile-time only, while math and memory intrinsics can also
+generate runtime code.
 
 Examples of intrinsic functions:
 

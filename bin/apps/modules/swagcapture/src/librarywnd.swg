@@ -378,7 +378,7 @@ impl LibraryWnd
         for value, i in values[]
         {
             var icon: Icon
-            if kind == .Application and !value.executable.isEmpty()
+            if kind == .Application and !value.executable.isEmpty() and Path.isValidPathName(value.executable)
             {
                 icon       = .app().fileIcon(value.executable)
                 icon.color = Argb.White

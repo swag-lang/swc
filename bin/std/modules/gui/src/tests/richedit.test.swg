@@ -19,6 +19,31 @@ using Swag, Core
     Swag.assert(line.dirtyStyle)
 }
 
+// The built-in namespace keeps its own style while its member retains the semantic style.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 220)
+    defer host.shutdown()
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
+    var lexer: RichEditLexerSwag
+    ed.setLexer(&lexer)
+    ed.setText("Swag.assert(value)\nSwag.vecsplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)")
+    ed.lexAll()
+
+    Swag.assert(ed.runeAt({0, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt({0, 4}).style == RichEditLexerSwag.Style.Default)
+    Swag.assert(ed.runeAt({0, 5}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.assert(ed.runeAt({1, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt({1, 5}).style == RichEditLexerSwag.Style.Builtin)
+    Swag.assert(ed.runeAt({2, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt({2, 5}).style == RichEditLexerSwag.Style.Class)
+    Swag.assert(ed.runeAt({3, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt({3, 5}).style == RichEditLexerSwag.Style.Function)
+    Swag.assert(ed.runeAt({4, 0}).style == RichEditLexerSwag.Style.Class)
+}
+
 // The default shortcut table contains one command per key/modifier pair.
 #test
 {

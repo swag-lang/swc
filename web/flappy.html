@@ -50,14 +50,14 @@
 <span class="SFct">#run</span>
 {
     <span class="SCmt">// Obtain the compiler interface and this script's mutable build configuration.</span>
-    <span class="SKwd">let</span> itf = <span class="SCst">Swag</span>.<span class="SFct">compiler</span>()
+    <span class="SKwd">let</span> itf = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()
     <span class="SKwd">let</span> cfg = itf.<span class="SFct">getBuildCfg</span>()!
 
     <span class="SCmt">// Keep runtime safety guards outside release builds.</span>
     <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"release"</span> <span class="SLgc">do</span>
-        cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">None</span>
+        cfg.safetyGuards = <span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">None</span>
     <span class="SLgc">else</span> <span class="SLgc">do</span>
-        cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
+        cfg.safetyGuards = <span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
 }</span></div>
 <p>Semicolons are optional. This script follows the canonical formatter and omits them.</p>
 <p>Each standard module exposes its API in a namespace. File-scope <span class="code-inline">using</span> declarations make the frequently used Core, Pixel, and Gui names available without a prefix. Audio remains qualified so sound operations stay visible at their call sites.</p>
@@ -377,7 +377,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">start</span>()
 {
     <span class="SCmt">// Reinitialize one Bird value to its declared defaults.</span>
-    <span class="SCst">Swag</span>.<span class="SFct">init</span>(&amp;g_Bird, <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">init</span>(&amp;g_Bird, <span class="SNum">1</span>)
 
     g_Bird.pos.x = g_Rect.<span class="SFct">horzCenter</span>()
     g_Bird.pos.y = g_Rect.<span class="SFct">vertCenter</span>()
@@ -425,7 +425,7 @@
 }</span></div>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.286</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.287</div>
 </footer>
 </section>
 </main>

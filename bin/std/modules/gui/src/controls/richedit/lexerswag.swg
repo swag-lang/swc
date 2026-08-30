@@ -16,6 +16,7 @@ struct RichEditLexerSwag
             Keyword          // Selects keyword.
             Control          // Selects control.
             Intrinsic        // Selects intrinsic.
+            Namespace        // Selects the built-in `Swag` namespace.
             Builtin          // Compiler builtin functions such as `Swag.sqrt` and `Swag.memcpy`.
             Function         // Selects function.
             Preprocessor     // Selects preprocessor.
@@ -40,6 +41,7 @@ struct RichEditLexerSwag
         Declaration           // Selects declaration.
         Control               // Selects control.
         Intrinsic             // Selects intrinsic.
+        Namespace             // Built-in `Swag` namespace.
         Builtin               // Compiler builtin function.
         Compiler              // Selects compiler.
         CompilerFunction      // Selects compiler function.
@@ -79,6 +81,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapStyles[State.Control]           = Control
         .mapStyles[State.Declaration]       = Keyword
         .mapStyles[State.Intrinsic]         = Intrinsic
+        .mapStyles[State.Namespace]         = Namespace
         .mapStyles[State.Builtin]           = Builtin
         .mapStyles[State.CompilerFunction]  = Function
         .mapStyles[State.CompilerGlobal]    = Preprocessor
@@ -320,6 +323,36 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("Swag.tan", State.Builtin)
         .mapWords.add("Swag.tanh", State.Builtin)
         .mapWords.add("Swag.trunc", State.Builtin)
+        .mapWords.add("Swag.vecalign", State.Builtin)
+        .mapWords.add("Swag.vecall", State.Builtin)
+        .mapWords.add("Swag.vecany", State.Builtin)
+        .mapWords.add("Swag.vecavgr", State.Builtin)
+        .mapWords.add("Swag.vecgather", State.Builtin)
+        .mapWords.add("Swag.vecinterleavehi", State.Builtin)
+        .mapWords.add("Swag.vecinterleavelo", State.Builtin)
+        .mapWords.add("Swag.vecmadd", State.Builtin)
+        .mapWords.add("Swag.vecmaddubs", State.Builtin)
+        .mapWords.add("Swag.vecmask", State.Builtin)
+        .mapWords.add("Swag.vecmulhi", State.Builtin)
+        .mapWords.add("Swag.vecpackss", State.Builtin)
+        .mapWords.add("Swag.vecpackus", State.Builtin)
+        .mapWords.add("Swag.vecperm", State.Builtin)
+        .mapWords.add("Swag.vecreduceadd", State.Builtin)
+        .mapWords.add("Swag.vecreduceand", State.Builtin)
+        .mapWords.add("Swag.vecreducemax", State.Builtin)
+        .mapWords.add("Swag.vecreducemin", State.Builtin)
+        .mapWords.add("Swag.vecreduceor", State.Builtin)
+        .mapWords.add("Swag.vecreducexor", State.Builtin)
+        .mapWords.add("Swag.vecsad", State.Builtin)
+        .mapWords.add("Swag.vecsatadd", State.Builtin)
+        .mapWords.add("Swag.vecsatsub", State.Builtin)
+        .mapWords.add("Swag.vecselect", State.Builtin)
+        .mapWords.add("Swag.vecshuffle", State.Builtin)
+        .mapWords.add("Swag.vecshuffle2", State.Builtin)
+        .mapWords.add("Swag.vecsplat", State.Builtin)
+        .mapWords.add("Swag.vectruncs32", State.Builtin)
+        .mapWords.add("Swag.vecwidenhi", State.Builtin)
+        .mapWords.add("Swag.vecwidenlo", State.Builtin)
 
         .mapWords.add("#run", State.CompilerFunction)
         .mapWords.add("#test", State.CompilerFunction)
@@ -402,20 +435,21 @@ impl IRichEditLexer for RichEditLexerSwag
         using RichEditLexerSwag.Style
         let ground = ed.themeColors().richEdit_Bk
 
-        ed.styles[cast(u64) Comment].colFg      = onGround(0xFF6A9955, ground)
-        ed.styles[cast(u64) Keyword].colFg      = onGround(0xFF569CD6, ground)
-        ed.styles[cast(u64) Control].colFg      = onGround(0xFFD8A0DF, ground)
-        ed.styles[cast(u64) Intrinsic].colFg    = onGround(0xFFDCDCAA, ground)
-        ed.styles[cast(u64) Builtin].colFg      = onGround(0xFFF67F56, ground)
-        ed.styles[cast(u64) Function].colFg     = onGround(0xFFFF7411, ground)
-        ed.styles[cast(u64) Preprocessor].colFg = onGround(0xFFAAAAAA, ground)
-        ed.styles[cast(u64) CharEscape].colFg   = onGround(0xFFD7BA7D, ground)
-        ed.styles[cast(u64) Type].colFg         = onGround(0xFFF6CC86, ground)
-        ed.styles[cast(u64) Class].colFg        = onGround(0xFF4EC9B0, ground)
-        ed.styles[cast(u64) String].colFg       = onGround(0xFFCE9178, ground)
-        ed.styles[cast(u64) Character].colFg    = onGround(0xFFCE9178, ground)
-        ed.styles[cast(u64) Numeric].colFg      = onGround(0xFFB5CEA8, ground)
-        ed.styles[cast(u64) Error].colFg        = onGround(0xFFF44747, ground)
+        ed.styles[cast(u64) Comment].colFg      = onGround(0xFF7AA86A, ground)
+        ed.styles[cast(u64) Keyword].colFg      = onGround(0xFF74AAE0, ground)
+        ed.styles[cast(u64) Control].colFg      = onGround(0xFFC48FD0, ground)
+        ed.styles[cast(u64) Intrinsic].colFg    = onGround(0xFFCBB45C, ground)
+        ed.styles[cast(u64) Namespace].colFg    = onGround(0xFF94A3B8, ground)
+        ed.styles[cast(u64) Builtin].colFg      = onGround(0xFFE8A06A, ground)
+        ed.styles[cast(u64) Function].colFg     = onGround(0xFFE8A06A, ground)
+        ed.styles[cast(u64) Preprocessor].colFg = onGround(0xFF9A9AA6, ground)
+        ed.styles[cast(u64) CharEscape].colFg   = onGround(0xFFCBB45C, ground)
+        ed.styles[cast(u64) Type].colFg         = onGround(0xFFE0B464, ground)
+        ed.styles[cast(u64) Class].colFg        = onGround(0xFF56C2B3, ground)
+        ed.styles[cast(u64) String].colFg       = onGround(0xFFE0937C, ground)
+        ed.styles[cast(u64) Character].colFg    = onGround(0xFFE0937C, ground)
+        ed.styles[cast(u64) Numeric].colFg      = onGround(0xFF9EC98F, ground)
+        ed.styles[cast(u64) Error].colFg        = onGround(0xFFFF6666, ground)
     }
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
@@ -670,6 +704,7 @@ impl IRichEditLexer for RichEditLexerSwag
 
                     let seekEnd = seek
                     seek = saveSeek
+                    let isSwagNamespace = word.startsWith("Swag.")
 
                     if word == "opVisit" do
                         currentState = State.FunctionSpecOp
@@ -678,12 +713,27 @@ impl IRichEditLexer for RichEditLexerSwag
                         let res = .mapWords.tryFind(word.toString())
                         if res do
                             currentState = res.value
+                        elif isSwagNamespace and word.count > 5 and Latin1.isUpper(word[5]) do
+                            currentState = State.UserType
+                        elif isSwagNamespace and word.count > 5 and c == '(' do
+                            currentState = State.FunctionCall
                         elif Latin1.isUpper(word[0]) do
                             currentState = State.UserType
                         elif c == '(' and (Latin1.isLetter(word[0]) or word[0] == '_') do
                             currentState = State.FunctionCall
                         else do
                             currentState = State.Default
+                    }
+
+                    if isSwagNamespace
+                    {
+                        let memberState = currentState
+                        currentState = State.Namespace
+                        for 4 do
+                            .seekNext()
+                        currentState = State.Default
+                        .seekNext()
+                        currentState = memberState
                     }
 
                     while seek != seekEnd do

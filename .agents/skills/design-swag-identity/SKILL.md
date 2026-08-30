@@ -286,10 +286,11 @@ much by what it leaves empty as by the cut, the voltage, and the ink — clean f
 The size ceilings that hold that line in an application live in
 [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md).
 
-## Match The Editor
+## Match Every Syntax Surface
 
-`vscode/themes/swag-dark.json` uses the same token colors as the documentation, so code
-looks the same in the editor and on the page. The mapping is fixed:
+`vscode/themes/swag-dark.json`, the generated documentation colorizer, and
+`RichEditLexerSwag` use the same token colors, so code looks the same in VSCode, on a page,
+and in a Swag GUI editor. The mapping is fixed:
 
 | Token | Color | Documentation class |
 | --- | --- | --- |
@@ -298,6 +299,7 @@ looks the same in the editor and on the page. The mapping is fixed:
 | keyword.control | `#C48FD0` | `SLgc` |
 | entity.name.function | `#E8A06A` | `SFct` |
 | entity.name.function.intrinsic | `#CBB45C` | `SItr` |
+| built-in `Swag` namespace | `#94A3B8` | `SNsp` |
 | entity.name.type, class | `#56C2B3` | `SCst` |
 | storage.type | `#E0B464` | `STpe` |
 | constant.numeric | `#9EC98F` | `SNum` |
@@ -305,7 +307,10 @@ looks the same in the editor and on the page. The mapping is fixed:
 | preprocessor, attribute | `#9A9AA6` | `SCmp`, `SAtr` |
 | invalid | `#FF6666` | `SInv` |
 
-Change one side and change the other in the same commit.
+Change one surface and change the other two in the same commit. The RichEdit lexer passes these
+dark-palette values through `Color.ensureContrast` so the same hues remain legible on every GUI
+theme. When the compiler intrinsic catalog changes, compare both syntax lexers against
+`Tokens.Def.inc`; neither keeps a partial hand-written catalog.
 
 ## Keep The Voice
 

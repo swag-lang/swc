@@ -42,6 +42,9 @@ namespace
             case SyntaxColor::Intrinsic:
                 rgb = {.r = 0xdc, .g = 0xdc, .b = 0xaa};
                 break;
+            case SyntaxColor::Namespace:
+                rgb = {.r = 0x94, .g = 0xA3, .b = 0xB8};
+                break;
             case SyntaxColor::Type:
                 rgb = {.r = 0xf6, .g = 0xcc, .b = 0x86};
                 break;
@@ -129,6 +132,9 @@ namespace
                         break;
                     case SyntaxColor::Intrinsic:
                         colorName = SYN_INTRINSIC;
+                        break;
+                    case SyntaxColor::Namespace:
+                        colorName = SYN_NAMESPACE;
                         break;
                     case SyntaxColor::Type:
                         colorName = SYN_TYPE;
@@ -472,6 +478,14 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             if (identifier[0] == '@' || identifier[0] == '#')
             {
                 result += syntaxColorToAnsi(ctx, SyntaxColor::Invalid, mode);
+                result += identifier;
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                continue;
+            }
+
+            if (identifier == "Swag" && c == '.')
+            {
+                result += syntaxColorToAnsi(ctx, SyntaxColor::Namespace, mode);
                 result += identifier;
                 result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
                 continue;

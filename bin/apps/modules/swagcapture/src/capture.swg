@@ -80,6 +80,39 @@ struct CaptureLibraryMetadata
     rating:            u8
 }
 
+impl CaptureLibraryMetadata
+{
+    private func isValidText(value: String)->bool
+    {
+        if !Utf8.isValid(value.toSlice()) do
+            return false
+        for c in value where c < 32 do
+            return false
+        return true
+    }
+
+    // A preview header is optional indexing data. Older migrations can carry bytes from
+    // a legacy document field in one of these slots, so discard only the invalid value
+    // instead of letting it reach path APIs or visible library text.
+    mtd sanitize()
+    {
+        if !.linkedImage.isEmpty() and (!isValidText(.linkedImage) or !Path.isValidPathName(.linkedImage))
+        {
+            .linkedImage.clear()
+            .linkedUpToDate = true
+        }
+
+        if !isValidText(.sourceApplication) do
+            .sourceApplication.clear()
+        if !.sourceExecutable.isEmpty() and (!isValidText(.sourceExecutable) or !Path.isValidPathName(.sourceExecutable)) do
+            .sourceExecutable.clear()
+        if !isValidText(.sourceWindowTitle) do
+            .sourceWindowTitle.clear()
+        if !isValidText(.sourceWindowClass) do
+            .sourceWindowClass.clear()
+    }
+}
+
 // Editable capture state stored independently from the large background images.
 #[Serialization.Version(1)]
 struct CaptureFileModel
@@ -756,6 +789,7 @@ impl Capture
             var decoder: Decoder'Read.TagBin
             let metadata = decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())!
             defer Memory.delete(metadata)
+            metadata.sanitize()
             capture = fromLibraryMetadata(metadata[], reader.manifest())
         }
         else

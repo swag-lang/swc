@@ -225,3 +225,37 @@ using Swag, Core
     Swag.assert(!libraryItem.capture!.previewBytes.isEmpty())
     Swag.assert(libraryItem.haar.size != 0)
 }
+
+// Preview metadata came from several legacy migrations. Invalid text or paths are
+// indexing damage, not document damage: loading the Library drops those optional values
+// while leaving the capture available to open through its full model.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.capture.width, f.capture.widthOrg   = 8
+    f.capture.height, f.capture.heightOrg = 6
+    f.capture.backImg                     = Image.create(8, 6, .BGRA8)
+    f.capture.sourceApplication           = "bad\napplication"
+    f.capture.sourceExecutable            = "bad|application.exe"
+    f.capture.sourceWindowTitle           = "bad\nwindow"
+    f.capture.sourceWindowClass           = "bad\nclass"
+    f.capture.linkedImage                 = "bad|linked.png"
+    f.capture.linkedUpToDate              = false
+
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    f.capture.file    = path
+    f.capture.changed = true
+
+    expect f.capture.save()
+    let preview = expect Capture.load(path, preview: true)!
+    defer Memory.delete(preview)
+    Swag.assert(preview.sourceApplication.isEmpty())
+    Swag.assert(preview.sourceExecutable.isEmpty())
+    Swag.assert(preview.sourceWindowTitle.isEmpty())
+    Swag.assert(preview.sourceWindowClass.isEmpty())
+    Swag.assert(preview.linkedImage.isEmpty())
+    Swag.assert(preview.linkedUpToDate)
+}

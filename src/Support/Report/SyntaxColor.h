@@ -15,6 +15,7 @@ enum class SyntaxColor
     Function,
     Constant,
     Intrinsic,
+    Namespace,
     Type,
     Keyword,
     Logic,
@@ -36,6 +37,7 @@ static constexpr std::string_view SYN_COMPILER   = "SCmp";
 static constexpr std::string_view SYN_FUNCTION   = "SFct";
 static constexpr std::string_view SYN_CONSTANT   = "SCst";
 static constexpr std::string_view SYN_INTRINSIC  = "SItr";
+static constexpr std::string_view SYN_NAMESPACE  = "SNsp";
 static constexpr std::string_view SYN_TYPE       = "STpe";
 static constexpr std::string_view SYN_KEYWORD    = "SKwd";
 static constexpr std::string_view SYN_LOGIC      = "SLgc";

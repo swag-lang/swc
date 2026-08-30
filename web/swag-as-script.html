@@ -32,7 +32,7 @@ swc hello.swgs</span></div>
 <p>The generated file contains a <span class="code-inline">#main</span> hook:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#main</span>
 {
-    <span class="SCst">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"Hello, world!\n"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"Hello, world!\n"</span>)
 }</span></div>
 <p>The <span class="code-inline">.swgs</span> extension selects script mode, so there is no separate <span class="code-inline">script</span> command. The path splits the command line in two: what comes before it configures the compilation, and everything after it is the script's own command line, reaching it through <span class="code-inline">Swag.args()</span> and the Core environment helpers.</p>
 <div class="code-block"><span class="SCde">swc -bc release hello.swgs --colors 16 report.txt</span></div>
@@ -63,8 +63,8 @@ swc hello.swgs</span></div>
 <p>A top-level <span class="code-inline">#run</span> block can update the script's build configuration before the rest of the file is compiled:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
-    <span class="SKwd">let</span> cfg = <span class="SCst">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()!
-    cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
+    <span class="SKwd">let</span> cfg = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()!
+    cfg.safetyGuards = <span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
 }</span></div>
 <p>Prefer command-line build configurations for ordinary runs and reserve setup code for properties the script owns.</p>
 <h2 id="Break_into_a_debugger">Break into a debugger</h2>
@@ -73,7 +73,7 @@ swc hello.swgs</span></div>
 <p>The repository includes games, visualizations, utilities, and demonstrations under <a href="https://github.com/swag-lang/swc/tree/master/bin/examples/scripts">`bin/examples/scripts`</a>. The <a href="flappy.html">Flappy Bird walkthrough</a> explains imports, compile-time module configuration, GUI events, graphics, audio, and asset loading in one file.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.286</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.287</div>
 </footer>
 </section>
 </main>

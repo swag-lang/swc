@@ -358,12 +358,15 @@ private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: stri
         return 1
     }
 
+    // A file filter is an argument the executable reads, not a second executable. The run above
+    // reused the published one, so nothing of its own may be left anywhere -- '.output' is
+    // covered by the walk, and '.tmp' is where a filtered build used to put its copy.
     if focused
     {
         let focusedExecutable = Path.combine(workspace, ".tmp", "consumer_exe", "test", buildCfg, targetArch, "consumer_exe.test.focused.exe")
-        if !File.exists(focusedExecutable)
+        if File.exists(focusedExecutable)
         {
-            Console.println("Focused workspace test executable is missing from '.tmp'.")
+            Console.println("Focused workspace test built an executable of its own: ", focusedExecutable.toString())
             return 1
         }
     }

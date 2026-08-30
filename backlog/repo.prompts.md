@@ -797,8 +797,14 @@ and add its regression test. Never hand-edit generated output to make the diff l
 RUN THE COMPLETE VALIDATION LADDER
 
 Run these in order, stopping at the first failure as the tooling requires. After any fix, rerun the
-smallest focused reproducer first, then restart every affected aggregate campaign. Once the tree
-appears clean, run this entire ladder again from the beginning on the final sources:
+smallest focused reproducer first, then restart the smallest aggregate campaign that contains it.
+Resume the ladder at the earliest step the fix can actually affect; keep earlier independent green
+steps valid. A stale golden, fixture, generated asset, packaging input, or similarly local data
+change does not invalidate compiler builds or unrelated workspace campaigns merely because it was
+committed later. Restart the ladder from the beginning only when the fix changes a shared compiler,
+runtime, standard-library, repository-tooling, or build input that earlier steps consumed, or when
+the impact cannot be bounded confidently. Record the invalidation decision in the live campaign
+table so both a full restart and a narrow resume have explicit evidence:
 
   1. Build `swc.dm.exe` with the DevMode solution configuration.
   2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release and devmode,

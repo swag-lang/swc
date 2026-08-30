@@ -727,7 +727,7 @@ indent-style = spaces</span></div>
 <span class="SFct">#run</span>
 <span class="SFct">#main</span></span></div>
 <h3 id="_002_006_identifiers_swg_Intrinsics">Intrinsics</h3>
-<p>Names beginning with <span class="code-inline">@</span> represent compiler-provided intrinsic values and operations. Availability depends on the intrinsic and context: <span class="code-inline">Swag.compiler()</span> is compile-time only, while math and memory intrinsics can also generate runtime code.</p>
+<p>Compiler-provided intrinsic values and operations live in the built-in <span class="code-inline">Swag</span> namespace. Collection views expose <span class="code-inline">.count</span> and <span class="code-inline">.buffer</span> through ordinary member access instead. Availability depends on the intrinsic and context: <span class="code-inline">Swag.compiler()</span> is compile-time only, while math and memory intrinsics can also generate runtime code.</p>
 <p>Examples of intrinsic functions:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">min</span>()
 <span class="SNsp">Swag</span>.<span class="SFct">max</span>()

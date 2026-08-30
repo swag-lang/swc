@@ -16,7 +16,6 @@ struct RichEditLexerSwag
             Keyword          // Selects keyword.
             Control          // Selects control.
             Intrinsic        // Selects intrinsic.
-            Namespace        // Selects the built-in `Swag` namespace.
             Builtin          // Compiler builtin functions such as `Swag.sqrt` and `Swag.memcpy`.
             Function         // Selects function.
             Preprocessor     // Selects preprocessor.
@@ -27,6 +26,7 @@ struct RichEditLexerSwag
             Character        // Selects character.
             Numeric          // Selects numeric.
             Error            // Selects error.
+            Namespace        // Selects the built-in `Swag` namespace.
         }
     }
 

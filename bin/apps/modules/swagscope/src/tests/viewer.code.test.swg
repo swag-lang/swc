@@ -281,6 +281,6 @@ struct CodeLanguageSample
     Swag.assert(view.editor.runeAt({0, 23}).style == RichEditLexerSwag.Style.Namespace)
     Swag.assert(view.editor.runeAt({0, 27}).style == RichEditLexerSwag.Style.Default)
     Swag.assert(view.editor.runeAt({0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt({0, 36}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt({0, 41}).style == RichEditLexerSwag.Style.Control)
+    Swag.assert(view.editor.runeAt({0, 40}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(view.editor.runeAt({0, 45}).style == RichEditLexerSwag.Style.Control)
 }

@@ -16155,7 +16155,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Gui_RichEditLexerSwag_State" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">RichEditLexerSwag.State</span> <a class="api-item-permalink" href="#Gui_RichEditLexerSwag_State" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/richedit/lexerswag.swg#L35">src</a></div>
+<div class="api-item api-item-enum"><span id="Gui_RichEditLexerSwag_State" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">RichEditLexerSwag.State</span> <a class="api-item-permalink" href="#Gui_RichEditLexerSwag_State" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/richedit/lexerswag.swg#L36">src</a></div>
 <p>Identifies the lexical state carried between lines.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Incomplete]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_ToolTip_State">State</a></span>: <span class="STpe">s32</span></span></div>
@@ -16201,6 +16201,8 @@ busy.<span class="SFct">hide</span>()</span></div>
 <tr><td id="Gui_RichEditLexerSwag_State_LineComment" class="code-type">LineComment</td><td><p>Selects line comment.</p>
 </td></tr>
 <tr><td id="Gui_RichEditLexerSwag_State_Modifier" class="code-type">Modifier</td><td><p>Selects modifier.</p>
+</td></tr>
+<tr><td id="Gui_RichEditLexerSwag_State_Namespace" class="code-type">Namespace</td><td><p>Built-in <span class="code-inline">Swag</span> namespace.</p>
 </td></tr>
 <tr><td id="Gui_RichEditLexerSwag_State_Numeric" class="code-type">Numeric</td><td><p>Selects numeric.</p>
 </td></tr>
@@ -16253,6 +16255,8 @@ busy.<span class="SFct">hide</span>()</span></div>
 <tr><td id="Gui_RichEditLexerSwag_Style_Intrinsic" class="code-type">Intrinsic</td><td><p>Selects intrinsic.</p>
 </td></tr>
 <tr><td id="Gui_RichEditLexerSwag_Style_Keyword" class="code-type">Keyword</td><td><p>Selects keyword.</p>
+</td></tr>
+<tr><td id="Gui_RichEditLexerSwag_Style_Namespace" class="code-type">Namespace</td><td><p>Selects the built-in <span class="code-inline">Swag</span> namespace.</p>
 </td></tr>
 <tr><td id="Gui_RichEditLexerSwag_Style_Numeric" class="code-type">Numeric</td><td><p>Selects numeric.</p>
 </td></tr>
@@ -25013,6 +25017,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.RichEditLexerSwag.State.Keyword|Gui_RichEditLexerSwag_State_Keyword|Selects keyword.",
 "k|Gui.RichEditLexerSwag.State.LineComment|Gui_RichEditLexerSwag_State_LineComment|Selects line comment.",
 "k|Gui.RichEditLexerSwag.State.Modifier|Gui_RichEditLexerSwag_State_Modifier|Selects modifier.",
+"k|Gui.RichEditLexerSwag.State.Namespace|Gui_RichEditLexerSwag_State_Namespace|Built-in Swag namespace.",
 "k|Gui.RichEditLexerSwag.State.Numeric|Gui_RichEditLexerSwag_State_Numeric|Selects numeric.",
 "k|Gui.RichEditLexerSwag.State.NumericBin|Gui_RichEditLexerSwag_State_NumericBin|Selects numeric bin.",
 "k|Gui.RichEditLexerSwag.State.NumericFrac|Gui_RichEditLexerSwag_State_NumericFrac|Selects numeric frac.",
@@ -25034,6 +25039,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.RichEditLexerSwag.Style.Function|Gui_RichEditLexerSwag_Style_Function|Selects function.",
 "k|Gui.RichEditLexerSwag.Style.Intrinsic|Gui_RichEditLexerSwag_Style_Intrinsic|Selects intrinsic.",
 "k|Gui.RichEditLexerSwag.Style.Keyword|Gui_RichEditLexerSwag_Style_Keyword|Selects keyword.",
+"k|Gui.RichEditLexerSwag.Style.Namespace|Gui_RichEditLexerSwag_Style_Namespace|Selects the built-in Swag namespace.",
 "k|Gui.RichEditLexerSwag.Style.Numeric|Gui_RichEditLexerSwag_Style_Numeric|Selects numeric.",
 "k|Gui.RichEditLexerSwag.Style.Preprocessor|Gui_RichEditLexerSwag_Style_Preprocessor|Selects preprocessor.",
 "k|Gui.RichEditLexerSwag.Style.String|Gui_RichEditLexerSwag_Style_String|Selects string.",

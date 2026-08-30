@@ -1103,7 +1103,8 @@ namespace
         // the new line would step one level further right at every break.
         struct PendingWrap
         {
-            uint32_t lineStart = INVALID_PIECE;
+            uint32_t lineStart     = INVALID_PIECE;
+            uint32_t operandAnchor = INVALID_PIECE;
             Utf8     indent;
             bool     continuation = false;
         };
@@ -1118,7 +1119,7 @@ namespace
 
             std::deque<PendingWrap> queue;
             for (const uint32_t lineStart : lineStarts)
-                queue.push_back({lineStart, {}, false});
+                queue.push_back({.lineStart = lineStart});
 
             uint32_t guard = 0;
             while (!queue.empty() && guard < 100000)
@@ -1128,7 +1129,7 @@ namespace
                 queue.pop_front();
 
                 PendingWrap produced;
-                produced.lineStart = wrapLine(pending, produced.indent);
+                produced.lineStart = wrapLine(pending, produced.indent, produced.operandAnchor);
                 if (produced.lineStart != INVALID_PIECE)
                 {
                     produced.continuation = true;
@@ -1137,7 +1138,39 @@ namespace
             }
         }
 
-        uint32_t wrapLine(const PendingWrap& pending, Utf8& outIndent) const
+        uint32_t operandAnchorForBinaryBreak(const std::vector<PieceColumn>& columns, const uint32_t breakPiece) const
+        {
+            if (!options_->alignOperands.value_or(false) || columns.empty())
+                return INVALID_PIECE;
+
+            bool isTopLevelBinaryBreak = false;
+            for (size_t c = 0; c < columns.size(); ++c)
+            {
+                const FormatPiece& piece = model_->piece(columns[c].piece);
+                if (piece.depth == model_->piece(columns.front().piece).depth && piece.hasRole(FormatRoleE::BinaryOp) &&
+                    breakCandidateAt(columns, c) == breakPiece)
+                {
+                    isTopLevelBinaryBreak = true;
+                    break;
+                }
+            }
+            if (!isTopLevelBinaryBreak)
+                return INVALID_PIECE;
+
+            for (size_t c = 0; c < columns.size(); ++c)
+            {
+                const FormatPiece& piece = model_->piece(columns[c].piece);
+                if (piece.roles.hasAny({FormatRoleE::AssignOp, FormatRoleE::InitAssign}))
+                    return c + 1 < columns.size() ? columns[c + 1].piece : INVALID_PIECE;
+            }
+
+            const FormatPiece& first = model_->piece(columns.front().piece);
+            if (first.hasRole(FormatRoleE::ControlKeyword))
+                return columns.size() > 1 ? columns[1].piece : INVALID_PIECE;
+            return columns.front().piece;
+        }
+
+        uint32_t wrapLine(const PendingWrap& pending, Utf8& outIndent, uint32_t& outOperandAnchor) const
         {
             std::vector<PieceColumn> columns;
             const uint32_t           width = FormatPassUtil::computeLineColumns(*model_, pending.lineStart, &columns);
@@ -1148,8 +1181,29 @@ namespace
             if (breakPiece == INVALID_PIECE)
                 return INVALID_PIECE;
 
-            outIndent = pending.continuation ? pending.indent : continuationIndent(pending.lineStart, columns, breakPiece);
+            outOperandAnchor = pending.operandAnchor;
+            if (outOperandAnchor == INVALID_PIECE)
+                outOperandAnchor = operandAnchorForBinaryBreak(columns, breakPiece);
+
+            if (outOperandAnchor != INVALID_PIECE)
+            {
+                uint32_t anchorColumn = UINT32_MAX;
+                for (const PieceColumn& column : columns)
+                {
+                    if (column.piece == outOperandAnchor)
+                    {
+                        anchorColumn = column.column;
+                        break;
+                    }
+                }
+                outIndent = anchorColumn == UINT32_MAX ? pending.indent : FormatPassUtil::indentForColumns(*model_, anchorColumn);
+            }
+            else
+                outIndent = pending.continuation ? pending.indent : continuationIndent(pending.lineStart, columns, breakPiece);
+
             model_->setGapBreak(breakPiece, 1, outIndent.view());
+            if (outOperandAnchor != INVALID_PIECE)
+                model_->hangingLines().push_back({breakPiece, outOperandAnchor, 0});
             return breakPiece;
         }
 

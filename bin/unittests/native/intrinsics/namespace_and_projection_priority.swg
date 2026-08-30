@@ -1,9 +1,9 @@
 #global private
 
 func assert(value: s32)->s32 => value + 1
-func index()->s32             => 7
-func count()->s32             => 11
-func buffer()->s32            => 13
+func index()->s32            => 7
+func count()->s32            => 11
+func buffer()->s32           => 13
 
 struct CountMemberWins
 {
@@ -43,7 +43,7 @@ impl BufferMemberWins
 #test
 {
     var external: [1] u8 = [42]
-    var value = BufferMemberWins{buffer: &external[0], data: [1, 2]}
+    var value            = BufferMemberWins{buffer: &external[0], data: [1, 2]}
 
     Swag.assert(value.buffer == &external[0])
     Swag.assert(value.buffer[] == 42)

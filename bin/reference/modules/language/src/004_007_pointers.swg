@@ -376,7 +376,7 @@ readable without parentheses.
     var value = 42
     let ptr   = &value
     Swag.assert(ptr[] == 42)     // Reads the value stored at the pointer
-    ptr[] = 7                // Replaces the whole pointed value
+    ptr[] = 7                    // Replaces the whole pointed value
     Swag.assert(value == 7)
 
     // Being postfix, it chains without parentheses.

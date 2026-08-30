@@ -547,6 +547,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     var painter = Painter.create(renderer)
     painter.setContentScale(options.scale)
     painter.begin()
+
     // A resolved alpha channel costs a second rasterization of the whole page in the
     // renderer's scalar path, and an opaque ground then overwrites every byte it produced.
     // Ask for it only when the caller wants the page's own coverage back.

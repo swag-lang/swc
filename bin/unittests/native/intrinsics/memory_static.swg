@@ -72,7 +72,7 @@ func fillStatic67(target: [*] u8, value: u8) { Swag.memset(target, value, 67) }
 
     for position in 64
     {
-        let saved    = right[position]
+        let saved = right[position]
         right[position] = saved ^ 0x80'u8
 
         Swag.assert(compareStatic64(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 64))

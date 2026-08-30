@@ -17,7 +17,7 @@ public struct SystemFontFamilyInfo
 {
     public
     {
-        name:  String                                             // Family name.
+        name:  String                                         // Family name.
         faces: [FontFamilyStyle.count] SystemFontFaceInfo     // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
     }
 }

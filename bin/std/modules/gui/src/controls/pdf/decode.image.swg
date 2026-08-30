@@ -664,6 +664,7 @@ private func planeToImage(plane: const *SamplePlane, fill: #null const *Color)->
 {
     let width  = cast(u64) plane.width
     let height = cast(u64) plane.height
+
     // A plane is stored top-down and an image bottom-up, so the rows are reversed on the way
     // out. Building a second buffer to hand to `create` would walk every pixel one more time
     // for nothing: the rows go straight into the image's own storage.
@@ -721,6 +722,7 @@ private func planeToImage(plane: const *SamplePlane, fill: #null const *Color)->
             coverage  += 1
         }
     }
+
     return #move result
 }
 

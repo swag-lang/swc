@@ -1549,10 +1549,7 @@ private impl RenderCpu
         // expression the sampler evaluates, so the bytes stored are the same bytes.
         let paint = &.paintCommand.texture0
         let white = Color.fromArgb(Argb.White).argb
-        if fastAlpha and !batch.solidPaint and !stencilTest and batch.paintImage != null and
-           v0.color == white and v1.color == white and v2.color == white and
-           paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and
-           (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
+        if fastAlpha and !batch.solidPaint and !stencilTest and batch.paintImage != null and v0.color == white and v1.color == white and v2.color == white and paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
         {
             let source = batch.paintImage!
             if source.pixelFormat != .Yuv420

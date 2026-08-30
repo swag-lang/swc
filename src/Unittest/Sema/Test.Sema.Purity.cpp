@@ -49,7 +49,7 @@ func divideByRuntimeDenominator(value: u64)->u64
     cmdLine.name            = "sema_purity_global_variable_read";
     cmdLine.moduleNamespace = "SemaPurity";
     cmdLine.silent          = true;
-    cmdLine.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+    cmdLine.optimLevel      = Runtime::BuildCfgBackendOptimLevel::O2;
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -96,7 +96,7 @@ func divideByRuntimeDenominator(value: u64)->u64
     cmdLine.name            = "sema_purity_namespace_qualified_global_field_read";
     cmdLine.moduleNamespace = "SemaPurity";
     cmdLine.silent          = true;
-    cmdLine.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+    cmdLine.optimLevel      = Runtime::BuildCfgBackendOptimLevel::O2;
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 

@@ -157,14 +157,14 @@ struct CommandLine
     Utf8 targetCpu = "unknown-cpu";
 #endif
 
-    Utf8                buildCfg = "devmode";
-    Utf8                name;
-    Utf8                newProjectName;
-    Utf8                moduleNamespace;
-    Utf8                workspaceModuleFilter;
-    Utf8                moduleNamespaceStorage;
-    Utf8                outDirStorage;
-    Utf8                workDirStorage;
+    Utf8 buildCfg = "devmode";
+    Utf8 name;
+    Utf8 newProjectName;
+    Utf8 moduleNamespace;
+    Utf8 workspaceModuleFilter;
+    Utf8 moduleNamespaceStorage;
+    Utf8 outDirStorage;
+    Utf8 workDirStorage;
 
     Runtime::BuildCfgBackendOptimLevel optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
 
@@ -261,15 +261,15 @@ struct CommandLine
     std::set<fs::path> importApiDirs;
     std::set<fs::path> importApiFiles;
 
-    fs::path          configFile;
-    fs::path          newScriptPath;
-    fs::path          moduleFilePath;
-    fs::path          modulePath;
-    fs::path          workspacePath;
-    fs::path          exportApiDir;
-    fs::path          docOutputDir;
-    fs::path          outDir;
-    fs::path          workDir;
+    fs::path configFile;
+    fs::path newScriptPath;
+    fs::path moduleFilePath;
+    fs::path modulePath;
+    fs::path workspacePath;
+    fs::path exportApiDir;
+    fs::path docOutputDir;
+    fs::path outDir;
+    fs::path workDir;
 
     // Where a shared-library module also publishes the static archive built from the very same
     // objects, so an executable can link its code in instead of importing it from the DLL. The

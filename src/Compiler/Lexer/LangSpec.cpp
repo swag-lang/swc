@@ -15,15 +15,15 @@ void LangSpec::setup()
 
 void LangSpec::setupKeywords()
 {
-#define SWC_TOKEN_DEF(__id, __name, __kind)                             \
-    if (Token::isSpecialWord(TokenId::__id) &&                          \
+#define SWC_TOKEN_DEF(__id, __name, __kind)                                       \
+    if (Token::isSpecialWord(TokenId::__id) &&                                    \
         (!Token::isIntrinsic(TokenId::__id) || Token::isCompiler(TokenId::__id))) \
-    {                                                                   \
-        auto hash64 = Math::hash(__name);                               \
-        keywordMap_.insert_or_assign(__name, hash64, TokenId::__id);    \
-        keywordIdMap_[TokenId::__id] = __name;                          \
-        SWC_ASSERT(keywordMap_.contains(__name, hash64));               \
-        SWC_ASSERT(*keywordMap_.find(__name, hash64) == TokenId::__id); \
+    {                                                                             \
+        auto hash64 = Math::hash(__name);                                         \
+        keywordMap_.insert_or_assign(__name, hash64, TokenId::__id);              \
+        keywordIdMap_[TokenId::__id] = __name;                                    \
+        SWC_ASSERT(keywordMap_.contains(__name, hash64));                         \
+        SWC_ASSERT(*keywordMap_.find(__name, hash64) == TokenId::__id);           \
     }
 
 #include "Compiler/Lexer/Tokens.Def.inc"

@@ -11,7 +11,7 @@ impl Swag.IAllocator for RejectAllocationAllocator
     mtd impl alloc(request: *Swag.AllocatorRequest)
     {
         Swag.getContext().user0 = cast(u64) request
-        request.address     = null
+        request.address         = null
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }

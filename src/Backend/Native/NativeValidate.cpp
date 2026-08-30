@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeValidate.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 #if SWC_HAS_VALIDATE_NATIVE

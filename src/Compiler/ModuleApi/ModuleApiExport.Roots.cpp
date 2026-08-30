@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 

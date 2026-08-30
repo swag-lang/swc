@@ -129,6 +129,7 @@
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>
         <ClCompile Include="src\Unittest\ABI\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ConstantManager.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandFormat.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandNew.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Doc.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.GeneratedAst.cpp"/>

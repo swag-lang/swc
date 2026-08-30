@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -22,6 +21,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8Helper.h"

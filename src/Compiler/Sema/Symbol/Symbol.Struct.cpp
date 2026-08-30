@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -15,6 +14,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
 

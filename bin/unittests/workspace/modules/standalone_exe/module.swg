@@ -7,7 +7,7 @@
 #run
 {
     let cfg = Swag.compiler().getBuildCfg()!
-    cfg.moduleNamespace      = "StandaloneExe"
-    cfg.backendKind          = .Executable
-    cfg.publishDependencies  = true
+    cfg.moduleNamespace     = "StandaloneExe"
+    cfg.backendKind         = .Executable
+    cfg.publishDependencies = true
 }

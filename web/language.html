@@ -582,18 +582,38 @@ indent-style = spaces</span></div>
 <tbody>
 <tr><td><span class="code-inline">&lt;workspace&gt;/.output/&lt;module&gt;</span></td><td>what building that module produced and what modules in the same workspace consume</td></tr>
 <tr><td><span class="code-inline">&lt;workspace&gt;/.dep/&lt;module&gt;</span></td><td>the copy the workspace consumes for a dependency imported from outside itself</td></tr>
-<tr><td>beside the executable</td><td>the copy that lets the program run with nothing else present</td></tr>
+<tr><td>beside the executable</td><td>the shared libraries a program still imports at run time</td></tr>
 </tbody>
 </table>
 <p>Modules in the same workspace compile and link directly against their producer's <span class="code-inline">.output</span> artifacts. The <span class="code-inline">.dep</span> copy exists only for external dependencies because compile-time execution loads a dependency's shared library and holds it open, and a held file cannot be replaced: reading an external workspace's original would stop a build that has to rewrite it.</p>
-<p>An executable asks for the third copy itself:</p>
+<h3 id="_002_001_workspaces_modules_and_dependencies_swg_How_a_Dependency_Is_Taken_In">How a Dependency Is Taken In</h3>
+<p>A module that builds a library publishes its code twice, from one compilation:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Directory</th><th>Holds</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">&lt;module&gt;/shared-library/&lt;config&gt;/&lt;arch&gt;</span></td><td>the shared library, and the API every consumer compiles against</td></tr>
+<tr><td><span class="code-inline">&lt;module&gt;/static-library/&lt;config&gt;/&lt;arch&gt;</span></td><td>an archive of the same code, one function per member</td></tr>
+</tbody>
+</table>
+<p>Both are needed, and they answer different questions. The compiler loads the shared library to run that module's code at compile time — a <span class="code-inline">#run</span> calling into <span class="code-inline">core</span> calls into <span class="code-inline">core.dll</span>. The archive is what a program links.</p>
+<p>The consumer chooses, and its own kind chooses for it:</p>
+<ul>
+<li>An <b>executable</b> links its dependencies' code in. It ships as one file, and it carries only the functions it actually reaches, because the linker pulls archive members on demand.</li>
+<li>A <b>shared library</b> keeps importing its dependencies, so everything that loads it shares one copy of a module's code and of the runtime state that comes with it — one allocator, one context.</li>
+</ul>
+<p>An import states a kind explicitly with <span class="code-inline">link:</span>:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"plugin_host"</span>, link: <span class="SStr">"shared-library"</span>)</span></div>
+<p>Asking for one shared library asks for all of them. An executable that linked one module in while loading another built against that same module's library would run two copies of it, with two allocators and two runtime contexts, and memory could not cross between them. So the answer covers the whole import closure or none of it: one 'link: "shared-library"' makes every dependency of that executable shared.</p>
+<p>An executable that still imports at run time asks for its libraries to be placed beside it:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
     <span class="SKwd">let</span> cfg = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()!
     cfg.backendKind         = .<span class="SCst">Executable</span>
     cfg.publishDependencies = <span class="SKwd">true</span>
 }</span></div>
-<p>The link then places every shared library the program needs beside it, so it runs from its own directory without the compiler. Whether a program has to stand on its own is a fact about the program, so it is stated in <span class="code-inline">module.swg</span> and not on the command line: no later command can take it away.</p>
+<p>The link then places every shared library the program still needs beside it, and takes back out any that an earlier build left there and the program no longer imports. Whether a program has to stand on its own is a fact about the program, so it is stated in <span class="code-inline">module.swg</span> and not on the command line: no later command can take it away.</p>
 <h3 id="_002_001_workspaces_modules_and_dependencies_swg_Sharing_Source_Between_Modules">Sharing Source Between Modules</h3>
 <p><span class="code-inline">#load</span> belongs in <span class="code-inline">module.swg</span> too, and names one extra source file by path. The file becomes part of the module, exactly as if it sat under <span class="code-inline">src</span>:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"gui"</span>, location: <span class="SStr">"swag@std"</span>)
@@ -1857,8 +1877,8 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> readings: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">10</span>}, {value: <span class="SNum">20</span>}]
-    <span class="SKwd">var</span> nearby: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span>   = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">21</span>}]
-    <span class="SKwd">var</span> distant: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span>  = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">30</span>}]
+    <span class="SKwd">var</span> nearby:   [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">21</span>}]
+    <span class="SKwd">var</span> distant:  [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">30</span>}]
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(readings == nearby)     <span class="SCmt">// every element decides it is the same reading</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(readings != distant)
@@ -3180,7 +3200,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> value = <span class="SNum">42</span>
     <span class="SKwd">let</span> ptr   = &amp;value
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">42</span>)     <span class="SCmt">// Reads the value stored at the pointer</span>
-    ptr[] = <span class="SNum">7</span>                <span class="SCmt">// Replaces the whole pointed value</span>
+    ptr[] = <span class="SNum">7</span>                    <span class="SCmt">// Replaces the whole pointed value</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">7</span>)
 
     <span class="SCmt">// Being postfix, it chains without parentheses.</span>
@@ -7315,7 +7335,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">var</span> v = <span class="SNum">0</span>
     <span class="SLgc">defer</span> <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v == <span class="SNum">1</span>)     <span class="SCmt">// Ensures v equals 1 on scope exit.</span>
-    v += <span class="SNum">1</span>                    <span class="SCmt">// Increment v.</span>
+    v += <span class="SNum">1</span>                        <span class="SCmt">// Increment v.</span>
 
 <span class="SCmt">// When the scope ends, the deferred expression executes here.</span>
 }</span></div>
@@ -7355,7 +7375,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">var</span> x = <span class="SNum">1</span>
     <span class="SLgc">defer</span> <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">2</span>)     <span class="SCmt">// Executes second</span>
-    <span class="SLgc">defer</span> x *= <span class="SNum">2</span>              <span class="SCmt">// Executes first</span>
+    <span class="SLgc">defer</span> x *= <span class="SNum">2</span>                  <span class="SCmt">// Executes first</span>
 
 <span class="SCmt">// Execution order is reversed for predictable cleanup flow.</span>
 }</span></div>
@@ -7427,7 +7447,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">enum</span> <span class="SCst">RGB</span> { <span class="SCst">R</span>, <span class="SCst">G</span>, <span class="SCst">B</span> }
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">RGB</span>.<span class="SCst">R</span> == <span class="SNum">0</span>)     <span class="SCmt">// Fully qualified access.</span>
 
-    <span class="SKwd">using</span> <span class="SCst">RGB</span>           <span class="SCmt">// Import enum members into the current scope.</span>
+    <span class="SKwd">using</span> <span class="SCst">RGB</span>               <span class="SCmt">// Import enum members into the current scope.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">G</span> == <span class="SNum">1</span>)     <span class="SCmt">// 'G' accessible directly without 'RGB.' prefix.</span>
 }</span></div>
 <h3 id="_011_003_using_swg__using__with_Struct_Fields"><span class="code-inline">using</span> with Struct Fields</h3>
@@ -9377,7 +9397,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.288</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.294</div>
 </footer>
 </section>
 </main>
@@ -9668,6 +9688,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|The module.swg File|_002_001_workspaces_modules_and_dependencies_swg_The__module_swg__File|",
 "h|Importing Another Module|_002_001_workspaces_modules_and_dependencies_swg_Importing_Another_Module|",
 "h|Where a Dependency Lives|_002_001_workspaces_modules_and_dependencies_swg_Where_a_Dependency_Lives|",
+"h|How a Dependency Is Taken In|_002_001_workspaces_modules_and_dependencies_swg_How_a_Dependency_Is_Taken_In|",
 "h|Sharing Source Between Modules|_002_001_workspaces_modules_and_dependencies_swg_Sharing_Source_Between_Modules|",
 "h|Source Files|_002_002_source_files_swg|",
 "h|Source Files|_002_002_source_files_swg_Source_Files|",

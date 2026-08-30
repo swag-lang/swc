@@ -51,17 +51,17 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
             return
 
         let menu = host.capturedPopupMenu()
-            Swag.assert(menu != null)
-            Swag.assert(button.icon.sizeX == themeActionIconSize(main.themeMetrics()) and button.icon.sizeY == themeActionIconSize(main.themeMetrics()))
-            Swag.assert(menu!.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
+        Swag.assert(menu != null)
+        Swag.assert(button.icon.sizeX == themeActionIconSize(main.themeMetrics()) and button.icon.sizeY == themeActionIconSize(main.themeMetrics()))
+        Swag.assert(menu!.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, golden)
-            Swag.assert(host.dismissPopupMenu())
+        Swag.assert(host.dismissPopupMenu())
         captured[] = true
     }
 
     button.sigPressed.call(cast(*Button) button)
-        Swag.assert(captured)
+    Swag.assert(captured)
     host.pump()
 }
 
@@ -87,8 +87,8 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     host.finishAnimations()
 
     let bar = main.topMenu
-        Swag.assert(bar.items.count == 6)
-        Swag.assert(index < bar.items.count)
+    Swag.assert(bar.items.count == 6)
+    Swag.assert(index < bar.items.count)
     discard host.render(bar)
 
     let item  = bar.items[index]!
@@ -101,9 +101,9 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     host.sendMouseEvent(bar, .Pressed, pt, .Left, .None)
 
     let popup = host.capturedPopupMenu()
-        Swag.assert(popup != null)
-        Swag.assert(popup == item.popup)
-        Swag.assert(popup!.themeMetrics().menuPopup_IconSize == 16)
+    Swag.assert(popup != null)
+    Swag.assert(popup == item.popup)
+    Swag.assert(popup!.themeMetrics().menuPopup_IconSize == 16)
 
     // Keep the complete shipped surface. Cropping at an arbitrary content coordinate used to
     // bisect the right tool panel, which made the fixture itself look broken and hid regressions
@@ -111,7 +111,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, golden)
 
-        Swag.assert(host.dismissPopupMenu())
+    Swag.assert(host.dismissPopupMenu())
 }
 
 // The complete Swag Capture surface must survive its first layout and paint without a desktop.
@@ -127,7 +127,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         g_Main = null
     }
 
-        Swag.assert(!main.quickStyleBar.flags.has(.HideDividers))
+    Swag.assert(!main.quickStyleBar.flags.has(.HideDividers))
 
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 400
@@ -152,21 +152,21 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     let gutter     = main.themeMetrics().panel_GutterSize
     let editRect   = main.editWnd.surfaceRect()
     let recentRect = main.recentWnd.surfaceRect()
-        Swag.assert(main.editWnd.backgroundStyle == .Transparent)
-        Swag.assert(main.editBar.backgroundStyle == .ToolBar)
-        Swag.assert(main.editBar.padding.y == gutter)
-        Swag.assert(main.rightBar.children.count == 1)
+    Swag.assert(main.editWnd.backgroundStyle == .Transparent)
+    Swag.assert(main.editBar.backgroundStyle == .ToolBar)
+    Swag.assert(main.editBar.padding.y == gutter)
+    Swag.assert(main.rightBar.children.count == 1)
     let rightRect = main.rightBar.children[0].surfaceRect()
-        Swag.assert(main.toolTitle.font().regular == main.theme().res.fontDefaultFs.regular)
-        Swag.assert(main.recentWnd.themeColors().scrollBar_Bk == main.recentWnd.themeColors().wnd_Bk)
-        Swag.assert(main.quickStyleBar.themeMetrics().splitView_BarSize == gutter + 1)
-        Swag.assert(main.quickStyleBar.items[0]!.view.backgroundStyle == .Panel)
-        Swag.assert(main.quickStyleBar.items[1]!.view.backgroundStyle == .Panel)
-        Swag.assert(editRect.y - main.topBar.surfaceRect().bottom() == gutter)
-        Swag.assert(rightRect.y == editRect.y and rightRect.bottom() == editRect.bottom())
-        Swag.assert(recentRect.y - editRect.bottom() == gutter)
-        Swag.assert(recentRect.x == editRect.x and recentRect.right() == rightRect.right())
-        Swag.assert(recentRect.bottom() == main.surfaceRect().bottom())
+    Swag.assert(main.toolTitle.font().regular == main.theme().res.fontDefaultFs.regular)
+    Swag.assert(main.recentWnd.themeColors().scrollBar_Bk == main.recentWnd.themeColors().wnd_Bk)
+    Swag.assert(main.quickStyleBar.themeMetrics().splitView_BarSize == gutter + 1)
+    Swag.assert(main.quickStyleBar.items[0]!.view.backgroundStyle == .Panel)
+    Swag.assert(main.quickStyleBar.items[1]!.view.backgroundStyle == .Panel)
+    Swag.assert(editRect.y - main.topBar.surfaceRect().bottom() == gutter)
+    Swag.assert(rightRect.y == editRect.y and rightRect.bottom() == editRect.bottom())
+    Swag.assert(recentRect.y - editRect.bottom() == gutter)
+    Swag.assert(recentRect.x == editRect.x and recentRect.right() == rightRect.right())
+    Swag.assert(recentRect.bottom() == main.surfaceRect().bottom())
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "surface")
@@ -180,14 +180,14 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
     let sideRect    = main.libWnd.sideBar.surfaceRect()
     let contentRect = main.libWnd.contentPanel.surfaceRect()
-        Swag.assert(main.libWnd.backgroundStyle == .ToolBar)
-        Swag.assert(main.libWnd.padding == Math.Rectangle{gutter, gutter, gutter, gutter})
-        Swag.assert(main.libWnd.sideBar.backgroundStyle == .Panel)
-        Swag.assert(main.libWnd.contentPanel.backgroundStyle == .Panel)
-        Swag.assert(contentRect.x - sideRect.right() == gutter)
-        Swag.assert(main.libWnd.captureHost.backgroundStyle == .Panel)
-        Swag.assert(main.libWnd.captureHost.themeColors().wnd_Bk == main.libWnd.captureHost.themeColors().view_Bk)
-        Swag.assert(main.libWnd.captureHost.margin == Math.Rectangle{gutter, gutter, gutter, gutter})
+    Swag.assert(main.libWnd.backgroundStyle == .ToolBar)
+    Swag.assert(main.libWnd.padding == Math.Rectangle{gutter, gutter, gutter, gutter})
+    Swag.assert(main.libWnd.sideBar.backgroundStyle == .Panel)
+    Swag.assert(main.libWnd.contentPanel.backgroundStyle == .Panel)
+    Swag.assert(contentRect.x - sideRect.right() == gutter)
+    Swag.assert(main.libWnd.captureHost.backgroundStyle == .Panel)
+    Swag.assert(main.libWnd.captureHost.themeColors().wnd_Bk == main.libWnd.captureHost.themeColors().view_Bk)
+    Swag.assert(main.libWnd.captureHost.margin == Math.Rectangle{gutter, gutter, gutter, gutter})
 
     image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "library.surface")
@@ -305,6 +305,6 @@ func testAssertMainMenuGolden(index: u32, golden: string)
         f.editView.setCapture(capture)
         f.editView.setZoom(1)
         var rendered = f.gui.render(f.editView)
-            Swag.assert(rendered.isValid())
+        Swag.assert(rendered.isValid())
     }
 }

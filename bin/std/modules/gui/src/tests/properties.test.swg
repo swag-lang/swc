@@ -1753,7 +1753,7 @@ struct PropDecorData
     Swag.assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
     Swag.assert(headingIt.typeValue.name == "Body")
     Swag.assert(spacerIt.line.position.height == 16)     // Gap(16)
-    Swag.assert(Swag.isSet(noteIt.label))                    // the info bar label
+    Swag.assert(Swag.isSet(noteIt.label))                // the info bar label
 
     // Decorators are inert: not focusable and never expandable.
     Swag.assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))

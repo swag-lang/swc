@@ -17,7 +17,6 @@ const SurfaceId     = "swag.capture"
     Reflection.registerType(#typeof(FormStep))
     Reflection.registerType(#typeof(FormText))
     Reflection.registerType(#typeof(FormCallout))
-
 }
 
 #main

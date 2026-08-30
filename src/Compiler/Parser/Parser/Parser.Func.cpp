@@ -274,7 +274,7 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     if (ast_->srcView().isRuntimeFile() && !hasContextFlag(ParserContextFlagsE::InNamespace) && nodePtr->tokNameRef.isValid())
     {
-        const Token& tok = ast_->srcView().token(nodePtr->tokNameRef);
+        const Token& tok     = ast_->srcView().token(nodePtr->tokNameRef);
         nodePtr->intrinsicId = Token::intrinsicFromName(tok.string(ast_->srcView()));
     }
 
@@ -423,9 +423,9 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
         }
     }
 
-    const TokenRef tokCallRef = ref();
+    const TokenRef         tokCallRef = ref();
     const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-    const SpanRef spanArgsRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
+    const SpanRef          spanArgsRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return lowerSwagIntrinsicCall(nodeExpr, spanArgsRef, tokCallRef);
 }
 
@@ -458,9 +458,9 @@ AstNodeRef Parser::lowerSwagIntrinsicValue(const AstNodeRef nodeExpr)
     if (intrinsicId != TokenId::IntrinsicIndex)
         return nodeExpr;
 
-    const auto& member             = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
-    const auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IntrinsicValue>(ast_->node(member.nodeRightRef).tokRef());
-    nodePtr->intrinsicId           = intrinsicId;
+    const auto& member            = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicValue>(ast_->node(member.nodeRightRef).tokRef());
+    nodePtr->intrinsicId          = intrinsicId;
     return nodeRef;
 }
 
@@ -479,15 +479,15 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
 
     SmallVector<AstNodeRef> args;
     ast_->appendNodes(args, spanArgsRef);
-    const auto& member      = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
+    const auto&    member     = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
     const TokenRef tokNameRef = ast_->node(member.nodeRightRef).tokRef();
 
     auto requireArgs = [&](const uint32_t count) {
         if (args.size() == count)
             return;
-        const DiagnosticId id = args.size() < count ? DiagnosticId::parser_err_too_few_arguments : DiagnosticId::parser_err_too_many_arguments;
-        const AstNodeRef errorRef = args.size() > count ? args[count] : AstNodeRef::invalid();
-        const TokenRef endRef = errorRef.isValid() ? ast_->node(errorRef).tokRef() : tokCallRef;
+        const DiagnosticId id       = args.size() < count ? DiagnosticId::parser_err_too_few_arguments : DiagnosticId::parser_err_too_many_arguments;
+        const AstNodeRef   errorRef = args.size() > count ? args[count] : AstNodeRef::invalid();
+        const TokenRef     endRef   = errorRef.isValid() ? ast_->node(errorRef).tokRef() : tokCallRef;
         reportArgumentCountError(id, tokNameRef, endRef, count, static_cast<uint32_t>(args.size())).report(*ctx_);
     };
 

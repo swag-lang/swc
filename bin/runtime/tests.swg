@@ -58,7 +58,7 @@ func __isTestFileSelected(path: string)->bool
         if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count) do
             continue
 
-        hasFilter       = true
+        hasFilter = true
         let filterCount = arg.count - prefix.count
         if filterCount > path.count do
             continue

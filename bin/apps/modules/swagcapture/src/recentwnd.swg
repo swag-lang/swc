@@ -461,8 +461,8 @@ impl RecentWnd
         if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
 
-        let file        = .pendingRecentFiles[.pendingRecentIndex]
-        let initialLoad = !.main.editWnd.editView.capture
+        let file                    = .pendingRecentFiles[.pendingRecentIndex]
+        let initialLoad             = !.main.editWnd.editView.capture
         let capture: #null *Capture = catch Capture.load(file, preview: !initialLoad)
         if capture
         {

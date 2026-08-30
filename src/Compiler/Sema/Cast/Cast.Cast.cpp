@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -16,6 +15,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"

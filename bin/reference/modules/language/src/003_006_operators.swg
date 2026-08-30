@@ -212,8 +212,8 @@ contiguous run of bytes. A struct member that is an array follows the same rule.
 #test
 {
     var readings: [2] Tolerance = [{value: 10}, {value: 20}]
-    var nearby: [2] Tolerance   = [{value: 11}, {value: 21}]
-    var distant: [2] Tolerance  = [{value: 11}, {value: 30}]
+    var nearby:   [2] Tolerance = [{value: 11}, {value: 21}]
+    var distant:  [2] Tolerance = [{value: 11}, {value: 30}]
 
     Swag.assert(readings == nearby)     // every element decides it is the same reading
     Swag.assert(readings != distant)

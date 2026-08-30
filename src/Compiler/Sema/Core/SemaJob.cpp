@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 
 SWC_BEGIN_NAMESPACE();

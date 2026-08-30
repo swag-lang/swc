@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -25,6 +24,7 @@
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1452,17 +1452,17 @@ namespace
 
     Result lowerProjectionByName(Sema& sema, AstMemberAccessExpr& node, const IdentifierRef idRef, bool& outHandled)
     {
-        outHandled = false;
+        outHandled                  = false;
         const std::string_view name = sema.idMgr().get(idRef).name;
         if (name == "count")
         {
             node.projectionId = TokenId::IntrinsicCountOf;
-            outHandled = true;
+            outHandled        = true;
         }
         else if (name == "buffer")
         {
             node.projectionId = TokenId::IntrinsicDataOf;
-            outHandled = true;
+            outHandled        = true;
         }
 
         return Result::Continue;

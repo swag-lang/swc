@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/CallConv.h"
@@ -21,6 +20,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 

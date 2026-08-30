@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
@@ -8,6 +7,7 @@
 #include "Compiler/SourceFile.h"
 #include "Format/Formatter.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Thread/JobManager.h"

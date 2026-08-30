@@ -11,7 +11,7 @@ members. For enums, it simplifies code by avoiding repetitive type prefixes.
     enum RGB { R, G, B }
     Swag.assert(RGB.R == 0)     // Fully qualified access.
 
-    using RGB           // Import enum members into the current scope.
+    using RGB               // Import enum members into the current scope.
     Swag.assert(G == 1)     // 'G' accessible directly without 'RGB.' prefix.
 }
 

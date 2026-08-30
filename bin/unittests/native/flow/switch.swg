@@ -431,7 +431,7 @@ func switchStringWhere(value: string, allow: bool)->s32
 #test
 {
     var buffer: [16] u8
-    let kept    = switchStringAtRuntime(&buffer[0], "keep")
+    let kept = switchStringAtRuntime(&buffer[0], "keep")
     Swag.assert(switchStringWhere(kept, true) == 1)
     Swag.assert(switchStringWhere(kept, false) == 2)
 

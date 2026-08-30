@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/Match.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -10,6 +9,7 @@
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

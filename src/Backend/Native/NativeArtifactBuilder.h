@@ -11,13 +11,13 @@ class TaskContext;
 
 struct NativeArtifactPaths
 {
-    Utf8                  name;
-    Utf8                  artifactExtension;
-    fs::path              workDir;
-    fs::path              buildDir;
-    fs::path              outDir;
-    fs::path              artifactPath;
-    fs::path              pdbPath;
+    Utf8     name;
+    Utf8     artifactExtension;
+    fs::path workDir;
+    fs::path buildDir;
+    fs::path outDir;
+    fs::path artifactPath;
+    fs::path pdbPath;
 
     // The static archive a shared library publishes beside its DLL, from the same objects. Empty
     // unless the build was asked for one through CommandLine::staticLibraryOutDir.
@@ -61,8 +61,8 @@ public:
     Result partitionArchiveObjects() const;
 
 private:
-    Result        buildRuntimeHook(TaskContext& ctx) const;
-    Result        buildStartup(TaskContext& ctx) const;
+    Result buildRuntimeHook(TaskContext& ctx) const;
+    Result buildStartup(TaskContext& ctx) const;
 
     NativeBackendBuilder* builder_ = nullptr;
 };

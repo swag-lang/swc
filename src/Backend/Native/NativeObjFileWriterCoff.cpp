@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
@@ -7,6 +6,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"

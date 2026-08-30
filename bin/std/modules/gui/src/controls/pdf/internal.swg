@@ -79,9 +79,9 @@ struct PdfParser
     // Where each object lives, from the file's own cross-reference chain, and how deep the
     // lazy parse currently is. An object is parsed the first time something asks for it, and
     // `objects` is where the parsed node is remembered.
-    xref:         HashTable'(u32, XrefEntry)
-    objectDepth:  u32
-    hasScanned:   bool
+    xref:        HashTable'(u32, XrefEntry)
+    objectDepth: u32
+    hasScanned:  bool
 
     objectStreams:     ArrayPtr'ObjectStream
     objectStreamIndex: HashTable'(u32, u32)

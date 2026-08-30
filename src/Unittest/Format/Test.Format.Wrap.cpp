@@ -927,6 +927,32 @@ SWC_TEST_BEGIN(FormatWrap_ColumnLimitBreaksHighestInTheExpression)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_ColumnLimitAlignsNewOperandLinesInOnePass)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    result = compute(alpha, beta) + compute(gamma, delta) + compute(epsilon, zeta)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    result = compute(alpha, beta) +\n"
+        "             compute(gamma, delta) +\n"
+        "             compute(epsilon, zeta)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                = FormatIndentStyle::Spaces;
+    options.indentWidth                = 4;
+    options.columnLimit                = 40;
+    options.alignOperands              = true;
+    options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::After;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_ColumnLimitBreaksAtTheLoosestOperator)
 {
     static constexpr std::string_view SOURCE =

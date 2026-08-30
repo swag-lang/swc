@@ -178,6 +178,91 @@ private func auditBacklogLinks(fileName: string)->u32 fail
     return errors
 }
 
+private func isBacklogIdentifier(text: string)->bool
+{
+    let firstDot = Utf8.indexOf(cast(const [..] u8) text, ".")
+    if firstDot == Swag.U64.Max or firstDot == 0 do
+        return false
+
+    let secondOffset = Utf8.indexOf(cast(const [..] u8) text[firstDot + 1 until text.count], ".")
+    if secondOffset == Swag.U64.Max do
+        return false
+
+    let secondDot = firstDot + 1 + secondOffset
+    if secondDot == firstDot + 1 or secondDot + 4 != text.count do
+        return false
+
+    for i in firstDot
+    {
+        if !Latin1.isLower(text[i]) and !Latin1.isDigit(text[i]) do
+            return false
+    }
+
+    for i in firstDot + 1 until secondDot
+    {
+        if !Latin1.isLower(text[i]) and !Latin1.isDigit(text[i]) do
+            return false
+    }
+
+    for i in secondDot + 1 until text.count
+    {
+        if !Latin1.isDigit(text[i]) do
+            return false
+    }
+
+    return true
+}
+
+// A Related field is a live dependency graph, not historical prose. Every identifier it names
+// must therefore still exist after entries are removed, merged, or moved.
+private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 fail
+{
+    let content = try File.readAllText(fileName)
+
+    var errors:     u32
+    var lineNumber: u64
+    var related:    bool
+
+    for line in Tokenize.splitLines(content.toString())
+    {
+        lineNumber += 1
+        let trimmed = Latin1.trim(line)
+        if Utf8.startsWith(cast(const [..] u8) trimmed, "- Related:") do
+            related = true
+        elif related and line.count != 0 and (line[0] == ' ' or line[0] == '\t') do
+            related = true
+        else do
+            related = false
+
+        if !related do
+            continue
+
+        var start: u64
+        while start < line.count
+        {
+            while start < line.count and !Latin1.isLower(line[start]) do
+                start += 1
+            if start == line.count do
+                break
+
+            var end = start + 1
+            while end < line.count and (Latin1.isLower(line[end]) or Latin1.isDigit(line[end]) or line[end] == '.') do
+                end += 1
+
+            let candidate = line[start until end]
+            if isBacklogIdentifier(candidate) and !seen.contains(candidate)
+            {
+                Console.println("error: ", fileName, ":", lineNumber, ": Related identifier '", candidate, "' is not live")
+                errors += 1
+            }
+
+            start = end
+        }
+    }
+
+    return errors
+}
+
 // Checks the permanent backlog contract before every repository test campaign.
 public func auditBacklog(context: *Context)->s32 fail
 {
@@ -213,6 +298,14 @@ public func auditBacklog(context: *Context)->s32 fail
         }
 
         errors += try auditBacklogFile(file.fullname.toString(), &seen)
+    }
+
+    for file in files
+    {
+        let name = Path.fileName(file.fullname.toString()) orelse ""
+        if name == "README.md" or name == "repo.prompts.md" do
+            continue
+        errors += try auditBacklogRelated(file.fullname.toString(), &seen)
     }
 
     if errors != 0

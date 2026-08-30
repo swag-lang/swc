@@ -307,6 +307,7 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
 private func parseHtmlInline(text: string, start: u64, references: #null const [..] Reference)->HtmlInlineInfo
 {
     var result: retval
+
     // A fragment: inline markup belongs to the Markdown paragraph around it, not to a document.
     var document = HtmlDocument.create()
     var parser: HtmlParser

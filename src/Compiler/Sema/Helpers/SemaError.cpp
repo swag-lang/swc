@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
@@ -12,6 +11,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"

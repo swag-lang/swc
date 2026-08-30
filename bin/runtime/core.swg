@@ -249,8 +249,8 @@ func args()->const [..] string
 // Make a build configuration copy
 const __buildCfg = #run Swag.compiler().getBuildCfg()![]
 
-func runtimeFlags()   => Swag.getContext().runtimeFlags
-func jit()->bool => Swag.getContext().runtimeFlags & .FromCompiler ? true : false
+func runtimeFlags() => Swag.getContext().runtimeFlags
+func jit()->bool    => Swag.getContext().runtimeFlags & .FromCompiler ? true : false
 
 func __runtimeAllocator()->IAllocator
 {

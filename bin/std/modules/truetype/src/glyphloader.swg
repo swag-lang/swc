@@ -32,7 +32,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
     for contourCount
     {
         contourEnds[Swag.index] = readU16(glyphData, offset)
-        offset              += 2
+        offset += 2
     }
 
     let pointCount        = contourCount ? contourEnds.back() + 1 : 0

@@ -168,6 +168,9 @@
     <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandFormat.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandNew.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>

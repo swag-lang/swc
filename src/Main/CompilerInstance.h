@@ -373,8 +373,8 @@ private:
         // Where this module publishes the archive of its own code, when it publishes one. The
         // executable-wide choice below is what turns it into linkDir; a module that contributes no
         // code of its own ('export') leaves both empty and takes part in either choice.
-        fs::path                     staticDir;
-        fs::path                     sourceRoot;
+        fs::path staticDir;
+        fs::path sourceRoot;
     };
 
     struct ResolvedDependencyNode
@@ -508,38 +508,38 @@ private:
     // module at compile time, and it stays known even when the executable links the module's code
     // in instead: publication reads it to take a DLL an earlier build left beside the executable
     // back out.
-    std::vector<fs::path>                          importedDependencySharedDirs_;
-    std::unordered_set<fs::path>                   importedDependencySharedDirSet_;
-    std::vector<std::unique_ptr<Utf8>>             ownedBuildCfgStrings_;
-    const ModuleSetupSnapshot*                     precomputedModuleSetup_    = nullptr;
-    const DependencyPlan*                          precomputedDependencyPlan_ = nullptr;
-    std::unique_ptr<DependencyPlan>                ownedDependencyPlan_;
-    bool                                           deferNativeLink_ = false;
-    std::unique_ptr<NativeBackendBuilder>          deferredBuilder_;
-    Utf8                                           lastArtifactLabel_;
-    bool                                           nativeArtifactBuilt_ = false;
-    WorkspaceBuildLogState                         workspaceBuildLogState_{};
-    std::optional<WorkspaceModuleLogState>         workspaceModuleLogState_;
-    bool                                           suppressBuildConfigurationLog_ = false;
-    uint64_t                                       commandWallTimeNs_             = 0;
-    Runtime::ICompiler                             runtimeCompiler_{};
-    Runtime::IAllocator                            runtimeAllocator_{};
-    Runtime::CompilerMessage                       runtimeCompilerMessage_{};
-    mutable std::unique_ptr<JITExecManager>        jitExecMgr_;
-    mutable std::once_flag                         jitExecMgrOnce_;
-    void*                                          runtimeCompilerITable_[4]{};
-    mutable std::shared_mutex                      sourceStorageMutex_;
-    mutable std::shared_mutex                      nativeCodeSegmentMutex_;
-    mutable std::shared_mutex                      nativeSpecialFunctionsMutex_;
-    mutable std::shared_mutex                      nativeGlobalFunctionInitTargetsMutex_;
-    mutable std::shared_mutex                      nativeGlobalVariablesMutex_;
-    mutable std::shared_mutex                      jitPreparedFunctionsMutex_;
-    mutable std::mutex                             foreignLibsMutex_;
-    std::atomic<bool>                              changed_{true};
-    std::mutex                                     globalFunctionBindingsMutex_;
-    std::atomic<uint64_t>                          globalFunctionBindingsVersion_{1};
-    std::atomic<uint64_t>                          patchedGlobalFunctionBindingsVersion_{0};
-    std::atomic<uint64_t>                          nativeGlobalFunctionInitTargetsVersion_{1};
+    std::vector<fs::path>                   importedDependencySharedDirs_;
+    std::unordered_set<fs::path>            importedDependencySharedDirSet_;
+    std::vector<std::unique_ptr<Utf8>>      ownedBuildCfgStrings_;
+    const ModuleSetupSnapshot*              precomputedModuleSetup_    = nullptr;
+    const DependencyPlan*                   precomputedDependencyPlan_ = nullptr;
+    std::unique_ptr<DependencyPlan>         ownedDependencyPlan_;
+    bool                                    deferNativeLink_ = false;
+    std::unique_ptr<NativeBackendBuilder>   deferredBuilder_;
+    Utf8                                    lastArtifactLabel_;
+    bool                                    nativeArtifactBuilt_ = false;
+    WorkspaceBuildLogState                  workspaceBuildLogState_{};
+    std::optional<WorkspaceModuleLogState>  workspaceModuleLogState_;
+    bool                                    suppressBuildConfigurationLog_ = false;
+    uint64_t                                commandWallTimeNs_             = 0;
+    Runtime::ICompiler                      runtimeCompiler_{};
+    Runtime::IAllocator                     runtimeAllocator_{};
+    Runtime::CompilerMessage                runtimeCompilerMessage_{};
+    mutable std::unique_ptr<JITExecManager> jitExecMgr_;
+    mutable std::once_flag                  jitExecMgrOnce_;
+    void*                                   runtimeCompilerITable_[4]{};
+    mutable std::shared_mutex               sourceStorageMutex_;
+    mutable std::shared_mutex               nativeCodeSegmentMutex_;
+    mutable std::shared_mutex               nativeSpecialFunctionsMutex_;
+    mutable std::shared_mutex               nativeGlobalFunctionInitTargetsMutex_;
+    mutable std::shared_mutex               nativeGlobalVariablesMutex_;
+    mutable std::shared_mutex               jitPreparedFunctionsMutex_;
+    mutable std::mutex                      foreignLibsMutex_;
+    std::atomic<bool>                       changed_{true};
+    std::mutex                              globalFunctionBindingsMutex_;
+    std::atomic<uint64_t>                   globalFunctionBindingsVersion_{1};
+    std::atomic<uint64_t>                   patchedGlobalFunctionBindingsVersion_{0};
+    std::atomic<uint64_t>                   nativeGlobalFunctionInitTargetsVersion_{1};
 
     std::vector<PerThreadData>                                                                                   perThreadData_;
     std::atomic<uint32_t>                                                                                        atomicId_ = 0;

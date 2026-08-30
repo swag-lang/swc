@@ -486,7 +486,8 @@ impl IWnd for IconButton
                 nw = Math.max(nw, metrics.btnIcon_ArrowSize)
                 nh += metrics.btnIcon_ArrowSize + metrics.btnIcon_SpacingArrowV
 
-            case .None:         break
+            case .None:
+                break
             }
 
             pos.x      = pos.horzCenter() - nw * 0.5
@@ -794,6 +795,7 @@ impl IconButton
                 width += metrics.btnIcon_SpacingTextH
             width += textWidth
         }
+
         if .arrowPosition != .None
         {
             if width do

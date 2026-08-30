@@ -15,6 +15,50 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasDotPathComponent(const fs::path& path)
+    {
+        for (const fs::path& part : path)
+        {
+            const std::string component = part.string();
+            if (component.size() > 1 && component[0] == '.' && component != "..")
+                return true;
+        }
+
+        return false;
+    }
+
+    bool isVisibleFormatPath(const CommandLine& cmdLine, const fs::path& path)
+    {
+        for (const fs::path& explicitFile : cmdLine.files)
+        {
+            if (FileSystem::pathEquals(path, explicitFile))
+                return true;
+        }
+
+        bool insideInputRoot = false;
+        for (const fs::path& directory : cmdLine.directories)
+        {
+            if (!FileSystem::pathStartsWith(path, directory))
+                continue;
+
+            insideInputRoot = true;
+            if (!hasDotPathComponent(path.lexically_relative(directory)))
+                return true;
+        }
+
+        if (!cmdLine.modulePath.empty() && FileSystem::pathStartsWith(path, cmdLine.modulePath))
+        {
+            insideInputRoot = true;
+            if (!hasDotPathComponent(path.lexically_relative(cmdLine.modulePath)))
+                return true;
+        }
+
+        if (insideInputRoot)
+            return false;
+
+        return !hasDotPathComponent(path);
+    }
+
     // `--dump-config` answers "what would you do here", so it resolves the
     // cascade for the first named input, exactly like a real run would. Without
     // an input there is still an answer: the configuration of the current
@@ -72,16 +116,6 @@ namespace Command
         std::vector<FormatJob*> jobs;
         jobs.reserve(compiler.files().size());
 
-        const auto insideDotDirectory = [](const fs::path& path) {
-            for (const fs::path& part : path)
-            {
-                const std::string component = part.string();
-                if (component.size() > 1 && component[0] == '.' && component != "..")
-                    return true;
-            }
-            return false;
-        };
-
         for (SourceFile* file : compiler.files())
         {
             if (!file)
@@ -94,7 +128,7 @@ namespace Command
 
             // Generated caches (`.dep`, ...) hold compiler-produced sources
             // that must never be reformatted.
-            if (insideDotDirectory(file->path()))
+            if (!isVisibleFormatPath(ctx.cmdLine(), file->path()))
                 continue;
 
             FormatOptions formatOptions;
@@ -125,7 +159,10 @@ namespace Command
         }
 
         std::vector<Utf8> statItems;
-        statItems.push_back(ScopedTimedLog::formatStatCount(ctx, jobs.size(), "file"));
+        if (jobs.empty())
+            statItems.emplace_back("no source files selected");
+        else
+            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, jobs.size(), "file"));
         if (rewrittenFiles)
             statItems.push_back(ScopedTimedLog::formatStatCount(ctx, rewrittenFiles, "rewritten file"));
         if (skippedFmtFiles)

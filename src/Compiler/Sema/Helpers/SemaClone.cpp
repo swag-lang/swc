@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
-#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
@@ -10,9 +8,11 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1141,9 +1141,9 @@ namespace
         // to override the pin with (an auto-inlined `v + Swag.vecsplat(1'u32)` came back as sixteen
         // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
         // whenever the source kept one.
-        const auto* intrinsicFunction          = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
-        const bool intrinsicName               = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
-        const bool sourceSymbolOwnedByFunction = storedView &&
+        const auto* intrinsicFunction           = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
+        const bool  intrinsicName               = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
+        const bool  sourceSymbolOwnedByFunction = storedView &&
                                                  storedView->sym &&
                                                  storedView->sym->ownerSymMap() &&
                                                  storedView->sym->ownerSymMap()->isFunction();

@@ -74,7 +74,7 @@ std::string_view Token::intrinsicName(const TokenId id)
     if (!isIntrinsic(id) || isCompiler(id))
         return {};
 
-    std::string_view name = toName(id);
+    std::string_view name   = toName(id);
     constexpr auto   prefix = std::string_view{"Swag."};
     if (!name.starts_with(prefix))
         return {};

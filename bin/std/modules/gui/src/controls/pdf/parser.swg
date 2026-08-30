@@ -521,7 +521,6 @@ impl PdfParser
         .hasScanned = true
     }
 
-
     // Follows `startxref` and the `/Prev` chain, newest section first.
     //
     // Reading the index is what an incremental update means: a revision that reinstates an
@@ -742,7 +741,7 @@ impl PdfParser
                     var value = 0'u64
                     for widths[k]
                     {
-                        value = (value << 8) | cast(u64) data[cursor]
+                        value  = (value << 8) | cast(u64) data[cursor]
                         cursor += 1
                     }
 
@@ -785,7 +784,7 @@ impl PdfParser
     mtd withPrevious(section: { ok, hasPrev: bool, prev: u64 }, dictId: u32)->{ ok, hasPrev: bool, prev: u64 }
     {
         var result: retval = section
-        let previous = .dictRaw(dictId, "Prev")
+        let previous       = .dictRaw(dictId, "Prev")
         if previous != InvalidNode and .nodes[previous].kind == .Integer and .nodes[previous].integer >= 0
         {
             result.hasPrev = true
@@ -1025,7 +1024,7 @@ impl PdfParser
         defer
         {
             .objectDepth -= 1
-            .pos = savedPos
+            .pos         = savedPos
         }
 
         .pos = offset
@@ -1066,8 +1065,8 @@ impl PdfParser
         defer
         {
             .objectDepth -= 1
-            .bytes = savedBytes
-            .pos   = savedPos
+            .bytes       = savedBytes
+            .pos         = savedPos
         }
 
         .bytes = stream!.data.toSlice()

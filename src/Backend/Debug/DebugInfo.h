@@ -66,9 +66,9 @@ struct DebugInfoFunctionRecord
 
 struct DebugInfoObjectRequest
 {
-    TaskContext*                             ctx      = nullptr;
-    Runtime::TargetOs                        targetOs = Runtime::TargetOs::Windows;
-    fs::path                                 objectPath;
+    TaskContext*      ctx      = nullptr;
+    Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
+    fs::path          objectPath;
 
     // Position of this object among the ones the module emits. It names the object exactly, where
     // the hash of its path only names it probably: an archive splitting a module one function per

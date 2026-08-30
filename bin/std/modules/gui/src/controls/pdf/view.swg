@@ -762,6 +762,7 @@ impl PdfView
                     if !options.wholeWord or isWholeWord(source, found, value.count) do
                         result.add({pageIndex, found, value.count})
                 }
+
                 return
             }
 

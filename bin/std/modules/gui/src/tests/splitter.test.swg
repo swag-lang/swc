@@ -25,7 +25,7 @@ using Swag, Core
     splitter.addPane(pane1)
     splitter.sendResizeEvent()
 
-        Swag.assert(splitter.themeMetrics().splitView_BarSize == splitter.themeMetrics().panel_GutterSize + 1)
+    Swag.assert(splitter.themeMetrics().splitView_BarSize == splitter.themeMetrics().panel_GutterSize + 1)
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "splitter.panel-panes.vertical")
 }
@@ -42,17 +42,17 @@ using Swag, Core
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 
-        Swag.assert(splitter.items.count == 2)
-        Swag.assert(splitter.numVisiblePanes == 2)
-        Swag.assert(splitter.isPaneVisible(0))
-        Swag.assert(splitter.isPaneVisible(1))
-        Swag.assert(splitter.items[1]!.view == pane1)
-        Swag.assert(pane1.parent == splitter)
+    Swag.assert(splitter.items.count == 2)
+    Swag.assert(splitter.numVisiblePanes == 2)
+    Swag.assert(splitter.isPaneVisible(0))
+    Swag.assert(splitter.isPaneVisible(1))
+    Swag.assert(splitter.items[1]!.view == pane1)
+    Swag.assert(pane1.parent == splitter)
 
     let client  = splitter.paddedClientRect()
     let barSize = splitter.themeMetrics().splitView_BarSize
     let total   = splitter.items[0]!.size + splitter.items[1]!.size + barSize
-        Swag.assert(Math.abs(total - client.width) < 1.5)
+    Swag.assert(Math.abs(total - client.width) < 1.5)
 }
 
 // A pane can be hidden and shown again, updating the visible-pane count.
@@ -68,14 +68,14 @@ using Swag, Core
     splitter.addPane(pane1, 100)
 
     splitter.setPaneVisible(1, false)
-        Swag.assert(!splitter.isPaneVisible(1))
-        Swag.assert(splitter.numVisiblePanes == 1)
-        Swag.assert(!pane1.isLocallyVisible())
+    Swag.assert(!splitter.isPaneVisible(1))
+    Swag.assert(splitter.numVisiblePanes == 1)
+    Swag.assert(!pane1.isLocallyVisible())
 
     splitter.setPaneVisible(1, true)
-        Swag.assert(splitter.isPaneVisible(1))
-        Swag.assert(splitter.numVisiblePanes == 2)
-        Swag.assert(pane1.isLocallyVisible())
+    Swag.assert(splitter.isPaneVisible(1))
+    Swag.assert(splitter.numVisiblePanes == 2)
+    Swag.assert(pane1.isLocallyVisible())
 }
 
 // setPaneSize clamps to the pane minimum size.
@@ -93,7 +93,7 @@ using Swag, Core
     let pane0It = splitter.items[0]!
     pane0It.minimumSize = 20
     splitter.setPaneSize(0, -50)
-        Swag.assert(pane0It.size >= 20)
+    Swag.assert(pane0It.size >= 20)
 }
 
 // Hidden panes do not absorb size transferred between visible neighbors.
@@ -111,15 +111,15 @@ using Swag, Core
     let item2    = splitter.addPane(pane2, 90)
 
     splitter.setPaneVisible(1, false)
-        Swag.assert(!pane1.isLocallyVisible())
-        Swag.assert(item1.label and !item1.label.isLocallyVisible())
+    Swag.assert(!pane1.isLocallyVisible())
+    Swag.assert(item1.label and !item1.label.isLocallyVisible())
 
     let middleSize = item1.size
     let total      = item0.size + item2.size
     let requested  = item0.size + 30
     splitter.setPaneSize(0, requested)
 
-        Swag.assert(Math.abs(item0.size - requested) < 0.01)
-        Swag.assert(Math.abs(item0.size + item2.size - total) < 0.01)
-        Swag.assert(item1.size == middleSize)
+    Swag.assert(Math.abs(item0.size - requested) < 0.01)
+    Swag.assert(Math.abs(item0.size + item2.size - total) < 0.01)
+    Swag.assert(item1.size == middleSize)
 }

@@ -442,8 +442,31 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     defer if hasActiveClip do
         painter.popClippingRect()
 
+    // What is being repainted, in the painter's own space. A page holds thousands of marks and a
+    // frame usually shows a band of it, so a mark that cannot land in that band is worth naming
+    // here rather than tessellating it and letting the renderer clip it away.
+    let repainted = painter.clippingRect()
+
     for &item in page.items
     {
+        // Text is the one kind whose extent the page cannot state on its own, so it is always
+        // recorded; everything else answers for the box its marks cannot leave.
+        if item.kind != .Text
+        {
+            let local = item.paintBounds()
+            var mapped: Math.Rectangle
+            mapped.x      = local.x * pageToSurface.m11 + pageToSurface.tx
+            mapped.y      = local.y * pageToSurface.m22 + pageToSurface.ty
+            mapped.width  = local.width * pageToSurface.m11
+            mapped.height = local.height * pageToSurface.m22
+            if !mapped.intersects(repainted)
+            {
+                if item.kind == .Image do
+                    textureIndex += 1
+                continue
+            }
+        }
+
         var placed = item.transform
         placed.multiply(pageToSurface)
         painter.setTransform(placed)

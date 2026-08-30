@@ -74,6 +74,13 @@ struct Item
         // it means to show.
         clip:    Math.Rectangle
         hasClip: bool
+
+        // Page-space box this item's marks cannot leave, and whether it is known at all. It is
+        // computed when the item joins a page and refreshed by every operation that moves or
+        // widens its marks, because a frame asks for it once per item and a path answers it in
+        // one pass over its segments.
+        paintBox:      Math.Rectangle
+        paintBoxKnown: bool
     }
 }
 
@@ -85,12 +92,31 @@ internal impl Item
     // page does not hold, so it reports the whole plane and is treated as unbounded.
     mtd const paintBounds()->Math.Rectangle
     {
+        if !.paintBoxKnown do
+            return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
+        return .paintBox
+    }
+
+    // Recomputes the box, after the item is built or after something moved or widened its marks.
+    mtd refreshPaintBounds()
+    {
         var local: Math.Rectangle
         switch .kind
         {
         case .Path:  local = .path.controlBounds()
         case .Image: local = {0, 0, 1, 1}
-        case .Text:  return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
+
+        case .Text: .paintBox = {}
+            .paintBoxKnown = false
+            return
+        }
+
+        // A stroke is laid on the path rather than inside it, and a miter reaches past the join
+        // by as much as the limit allows, so the marks of a stroked path leave the path's own box.
+        if .kind == .Path and .hasStroke
+        {
+            let reach = .strokeWidth * 0.5 * Math.max(.strokeStyle.miterLimit, 1)
+            local.applyPadding({-reach, -reach, -reach, -reach})
         }
 
         let corners: [4] Vector2 = [
@@ -109,7 +135,8 @@ internal impl Item
             max.y = Math.max(max.y, corner.y)
         }
 
-        return {min.x, min.y, max.x - min.x, max.y - min.y}
+        .paintBox      = {min.x, min.y, max.x - min.x, max.y - min.y}
+        .paintBoxKnown = true
     }
 }
 

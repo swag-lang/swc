@@ -160,6 +160,7 @@ impl Page
         Debug.assert(index < .items.count, "item index out of range")
         Debug.assert(isFiniteTransform(transform), "invalid item transform")
         .items[index].transform = transform
+        .items[index].refreshPaintBounds()
     }
 
     // Replaces the fill color of a text or path item.
@@ -175,6 +176,7 @@ impl Page
         Debug.assert(index < .items.count and .items[index].kind == .Path, "item is not a path")
         .items[index].strokeColor = color
         .items[index].hasStroke   = true
+        .items[index].refreshPaintBounds()
     }
 
     // Replaces the non-negative stroke width of a path item and enables its stroke.
@@ -186,6 +188,7 @@ impl Page
         Debug.assert(width >= 0 and Math.isFinite(width), "invalid stroke width")
         .items[index].strokeWidth = width
         .items[index].hasStroke   = true
+        .items[index].refreshPaintBounds()
     }
 
     // Replaces the cap, join, miter, and dash geometry of a path stroke.
@@ -197,6 +200,7 @@ impl Page
         Debug.assert(isValidStrokeStyle(&style), "invalid path stroke style")
         .items[index].strokeStyle = normalizedStrokeStyle(style)
         .items[index].hasStroke   = true
+        .items[index].refreshPaintBounds()
     }
 
     // Removes every page item while preserving the page dimensions.
@@ -227,6 +231,7 @@ internal impl Page
     // bounds, which is what makes a page of small text read as rough.
     mtd appendItem(item: #move Item)
     {
+        item.refreshPaintBounds()
         if item.hasClip and item.clip.contains(item.paintBounds()) do
             item.hasClip = false
         .items.add(#move item)

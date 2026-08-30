@@ -309,6 +309,12 @@ struct Painter
         stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
         curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
 
+        // Whether the bound target rebuilds its alpha by replaying the recording, as the caller
+        // asked when it bound. The target carries the same answer, but only once the renderer has
+        // executed that bind: while a frame is being recorded, this is the one that is true.
+        stackPaintAlpha: Array'bool
+        curPaintAlpha:   bool
+
         lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
         lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
         hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
@@ -883,7 +889,9 @@ impl Painter
         .texture0Dirty  = true
         .curTextProgram = 0
         .curRT          = null
+        .curPaintAlpha  = false
         .stackRT.clear()
+        .stackPaintAlpha.clear()
 
         .resetState()
     }
@@ -1302,7 +1310,9 @@ impl Painter
 
         if .curRT do
             .stackRT.add(.curRT)
-        .curRT = tgt
+        .stackPaintAlpha.add(.curPaintAlpha)
+        .curRT         = tgt
+        .curPaintAlpha = paintAlpha
     }
 
     // Bind a render target
@@ -1318,6 +1328,8 @@ impl Painter
             Debug.assert(.curRT != null)
             .curRT = null
         }
+
+        .curPaintAlpha = .stackPaintAlpha.count ? .stackPaintAlpha.popBack() : false
     }
 
     // Release the render target

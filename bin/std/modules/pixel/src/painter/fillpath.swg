@@ -19,14 +19,13 @@ public impl Painter
     // stay seamless (no per-edge wedges).
     //
     // 'innerOff'/'outerOff' place the full-coverage (cov=1) and zero-coverage (cov=0)
-    // rings relative to the contour. The convex fill insets its solid by AAHalf and
-    // uses a centered band (-AAHalf / +AAHalf). The non-convex (triangulated) fill
-    // cannot inset its cached triangulation, so it keeps the solid on the true contour
-    // and places the band fully outside (0 / 2*AAHalf): the full-coverage ring then
-    // coincides with the solid's hard edge, leaving a single clean outward ramp. A
-    // centered band there leaves the hard solid edge exposed at full coverage, which
-    // survives intact when alpha is later extracted via the MAX pass of a paintAlpha
-    // render target — producing visibly aliased text.
+    // rings relative to the contour. A centered band (-AAHalf / +AAHalf) is what keeps a
+    // shape the size it states, and both fills use it wherever the colour channels decide
+    // the edge. The non-convex fill cannot inset its cached triangulation, so on a
+    // paintAlpha render target — whose alpha is rebuilt by replaying the draws under a
+    // maximum, which keeps the solid's own hard edge — it places the band fully outside
+    // (0 / 2*AAHalf) instead, so the full-coverage ring coincides with that edge and one
+    // clean outward ramp survives the maximum.
     private mtd fillContourAA(polygon: *Polygon, color: Color, innerOff: f32, outerOff: f32)
     {
         let count = polygon.points.count - 1
@@ -59,23 +58,32 @@ public impl Painter
             tess.clear()
         }
 
-        // Paint the solid interior on the true contour (the triangulation is cached,
-        // so it must not be inset). The fringe is added separately as a centered band;
-        // its inner half overlaps the solid, which is harmless for opaque fills (same
-        // colour over same colour). Convex fills inset the solid to avoid the overlap
-        // entirely; non-convex fills accept a faint rim on translucent colours.
+        // Paint the solid interior on the true contour: the triangulation is cached, so it
+        // cannot be inset the way a convex fill insets its own. The band that follows is what
+        // places the edge, and a translucent colour pays a faint rim for it.
         for i in p.triangles.triangleCount()
         {
             let vertexIndex = i * 3
             discard .pushTriangle(p.triangles.vertices[vertexIndex], p.triangles.vertices[vertexIndex + 1], p.triangles.vertices[vertexIndex + 2], brush.color)
         }
 
-        // Solid sits on the true contour (the triangulation is cached and must not be
-        // inset), so push the fringe fully outside: the cov=1 ring meets the solid edge.
+        // The band is centered on the contour, so the shape keeps the size it states. A solid
+        // that cannot be inset plus a band pushed fully outside grows every contour by half a
+        // pixel on each side, which at reading sizes is what turns a page of vector glyphs into
+        // bold smudges; the inner half of a centered band merely repaints the solid, which an
+        // opaque colour does not notice.
+        //
+        // A paint-alpha target is the exception. Its alpha channel is rebuilt by replaying the
+        // draws under a maximum, where the solid's own hard edge writes full coverage and
+        // survives; only a band that starts on that edge and ramps outward leaves one clean ramp
+        // for the maximum to keep.
         if .curState.paintParams & .Antialiased
         {
             let aa = .aaHalfPathSpace()
-            .fillContourAA(&p.polygon, brush.color, 0, 2 * aa)
+            if .curPaintAlpha do
+                .fillContourAA(&p.polygon, brush.color, 0, 2 * aa)
+            else do
+                .fillContourAA(&p.polygon, brush.color, -aa, aa)
         }
     }
 

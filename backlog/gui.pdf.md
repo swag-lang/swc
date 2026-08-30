@@ -484,6 +484,44 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: no frame that only resizes a window costs materially more than the frame before
   it, on a page of a few thousand items.
 
+### gui.pdf.033 — A page still costs several times what MuPDF spends on it
+
+- Intent: the offline path renders the same four-page notice at 1.5 in 170 ms, 340 ms, 270 ms and
+  125 ms a page, against tens of milliseconds for MuPDF on the same pages, and a reader watching a
+  page of a few thousand marks scroll can see the difference. The remaining cost is in recording,
+  not in submitting: every mark states its transform, looks its tessellation up, and appends its
+  vertices, once per frame, whatever the frame before it drew.
+- Evidence: a page of per-glyph form XObjects is the shape that hurts — 3300 items on one page of
+  this document. Three passes have already come out of it: a clip that cannot cut its item is
+  dropped when the page is decoded, consecutive items sharing one clip push it once instead of per
+  mark, and a mark whose box cannot reach the repainted region is skipped before it is recorded.
+  Together those roughly halved the page and made the small text legible; what is left is the flat
+  per-mark cost.
+- Next: measure where a warm frame's 15 to 25 ms goes inside `drawPageItems` — transform setup,
+  cache lookup, vertex append — on the 3300-item page, then decide between recording a page once
+  into a reusable vertex buffer the frame replays under a transform, and merging adjacent marks
+  that share a colour and a clip into one path.
+- Complete when: a page of a few thousand marks records in single-digit milliseconds on a warm
+  cache.
+- Related: gui.pdf.032
+
+### gui.pdf.034 — Small vector text is heavier than the same text through a face
+
+- Intent: a glyph drawn as a path is a shape a few pixels across, and the fill puts its edge with a
+  one-pixel band around a triangulation it cannot inset. That band is now centered on the contour,
+  which is what made this document's five-point text legible, but the shape still carries a whole
+  pixel of transition where a scanline rasterizer computes exact area coverage, so small text reads
+  heavier than the same page in a reference reader.
+- Evidence: page one of the notice at 0.75, ours against MuPDF's, is where it shows: the letters
+  are the right shapes and the right size and still too dark. The convex fill has no such problem —
+  it insets its own solid — so the gap is exactly the cached triangulation.
+- Next: cache, beside the triangulation, the outward normal of every vertex that came from the
+  contour, so the solid can be inset by the fringe half-width when it is pushed rather than when it
+  is tessellated. The paintAlpha exception in `Painter.fillPath` disappears with it: an inset solid
+  leaves no hard edge for the maximum pass to keep.
+- Complete when: a non-convex fill places its edge exactly where a convex one does, at every scale,
+  on and off a paintAlpha target.
+
 ---
 
 ## Out of scope

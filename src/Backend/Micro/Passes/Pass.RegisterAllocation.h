@@ -163,7 +163,7 @@ private:
     using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
 
 public:
-    // B-012: interval-splitting allocation (Wimmer & Mössenböck, VEE 2005)
+    // compiler.optimization.024: interval-splitting allocation (Wimmer & Mössenböck, VEE 2005)
     // behind a per-function gate, implemented in
     // Pass.RegisterAllocation.Interval.cpp. Positions number each instruction
     // twice: index*2 is its input (read) slot, index*2+1 its output (write)

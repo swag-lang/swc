@@ -18,7 +18,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ## Tier A — Core forensic reading
 
-### B-020 — The live data inspector lacks domain readings and copy
+### scope.hexa.001 — The live data inspector lacks domain readings and copy
 
 - Evidence: the information band now follows `HexGridView.sigCaretChanged` and simultaneously
   spells the exact caret bytes as signed, unsigned, hexadecimal, binary, octal, `f32`/`f64`, and
@@ -32,7 +32,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   boolean, character, GUID, common timestamps, IP addresses, colors, BCD, and varints where enough
   bytes remain; every value can be copied, invalid readings are explicit, and endian is selectable.
 
-### B-021 — Structured fields and hexadecimal bytes do not identify each other
+### scope.hexa.002 — Structured fields and hexadecimal bytes do not identify each other
 
 - Evidence: the `Binary` and `Hexadecimal` viewers open the same file as independent cached views.
   A binary report row can reveal a host search offset, but selecting a row does not select its bytes,
@@ -42,21 +42,21 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: selecting a structured field reveals and marks its byte range in hexadecimal,
   placing the hexadecimal caret selects the narrowest owning field, nested fields remain
   distinguishable, and PE/ELF/Mach-O views can name file offset plus relevant RVA/VA addresses.
-- Related: B-038
+- Related: scope.hexa.019
 
-### B-022 — The hexadecimal viewer cannot compare files or regions
+### scope.hexa.003 — The hexadecimal viewer cannot compare files or regions
 
 - Evidence: Swag Scope has no byte-difference model, synchronized paired grids, result list, or
-  difference navigation. Application work B-448 is the prerequisite for hosting two documents,
+  difference navigation. Application work app.scope.001 is the prerequisite for hosting two documents,
   not the comparison itself.
 - Next: design a bounded comparison result stream for two file ranges, then present its first
   differing block in synchronized read-only grids.
 - Complete when: two files or two regions of one file can be compared, insertions and deletions are
   aligned rather than shifting every later byte, differing blocks are listed and colored, scrolling
   can synchronize, and previous/next difference remains bounded on multi-gigabyte inputs.
-- Related: B-448
+- Related: app.scope.001
 
-### B-023 — Hexadecimal navigation has no landmarks or history
+### scope.hexa.004 — Hexadecimal navigation has no landmarks or history
 
 - Evidence: navigation is limited to scrolling, Home/End, host search, and a Go To dialog accepting
   hexadecimal, decimal, percentage, `caret`, `filesize`, and caret-relative positions. There are no
@@ -67,7 +67,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   label, color, and note, previous/next bookmark is available, and bookmarks can be listed,
   exported, and restored only when file identity still matches.
 
-### B-024 — The text lane is ASCII-only
+### scope.hexa.005 — The text lane is ASCII-only
 
 - Evidence: `isHexPrintable` accepts only bytes `0x20..0x7E`; every other byte becomes a dot. The
   lane cannot decode UTF-8, UTF-16/32, Windows/OEM pages, or EBCDIC, and selection has no way to
@@ -78,7 +78,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   invalid sequences and control characters are visible; selection, copy, and search use the same
   encoding; and multi-byte characters highlight all contributing bytes.
 
-### B-025 — Whole-file search cannot yield early, cancel visibly, or bound its matches
+### scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
 
 - Evidence: host search appends every occurrence to `ViewerWindow.searchMatches`, enables
   navigation only after EOF, and exposes no progress or cancellation action. A file filled with a
@@ -90,7 +90,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   bytes, cancellation is immediate, result storage stays bounded on a repetitive multi-gigabyte
   file, and forward/backward/all plus file/selection/range scopes behave consistently.
 
-### B-026 — Scrolling can perform synchronous file I/O during paint
+### scope.hexa.007 — Scrolling can perform synchronous file I/O during paint
 
 - Evidence: `HexGridView.onPaint` calls `HexDocument.ensure`; crossing a resident-window boundary
   can seek and read 256 KiB on the GUI thread. Local SSD tests hide the stall, while slow disks,
@@ -101,7 +101,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   data, distant jumps retire obsolete reads, progress/error presentation is shared with the host,
   and resident memory remains explicitly bounded.
 
-### B-027 — External file changes can make offsets and search results stale
+### scope.hexa.008 — External file changes can make offsets and search results stale
 
 - Evidence: `HexDocument` records size at open, display and search use separate streams, and a
   later short read permanently fails the document. Growth, truncation, replacement, and writes by
@@ -111,11 +111,11 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: external change is detected, stale matches and interpretations are invalidated,
   reload can preserve a still-valid offset, truncation never presents old bytes as current, and the
   user can distinguish retryable change from a genuine read failure.
-- Related: B-045
+- Related: scope.viewers.005
 
 ## Tier B — Navigation, presentation, and interchange
 
-### B-028 — Navigation address expressions remain partial
+### scope.hexa.009 — Navigation address expressions remain partial
 
 - Evidence: the information band now reports the caret in hexadecimal and decimal, selection
   bounds and length, the active value, and whole-file percentage. Go To accepts bare and `0x`
@@ -128,7 +128,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   percentage, decimal/hex input, configurable base address, and a named bookmark origin; invalid
   and out-of-range expressions remain explicit.
 
-### B-029 — Row layout and reading presentation are only partly configurable
+### scope.hexa.010 — Row layout and reading presentation are only partly configurable
 
 - Evidence: row width is auto or one of 8/16/32/64, byte grouping is fixed at eight in raw-byte
   mode, and grouping and scalar interpretation are coupled. Endian is now an explicit Little/Big
@@ -139,7 +139,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   structure separators, explicit Little/Big endian choice, address radix, control-character style,
   and Ctrl+wheel/Ctrl+plus/minus font scaling all remain readable at the minimum window size.
 
-### B-030 — Copy is capped text, not bounded binary interchange
+### scope.hexa.011 — Copy is capped text, not bounded binary interchange
 
 - Evidence: copy materializes at most the first 1 MiB and emits spaced hex, printable ASCII with
   dots, or the visible dump. There is no raw-byte clipboard form, streamed save-selection path,
@@ -150,7 +150,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   Motorola S-record text; a selection of any size can be exported to a file without becoming
   resident; and every bounded clipboard command names its exact limit before execution.
 
-### B-033 — A proportional scrollbar gives no whole-file overview
+### scope.hexa.012 — A proportional scrollbar gives no whole-file overview
 
 - Evidence: the fixed-span scrollbar keeps every row reachable but shows no distribution of search
   matches, selections, bookmarks, differences, structures, or high-entropy regions. Search now
@@ -160,9 +160,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: a compact minimap marks current viewport, selection, search results, bookmarks,
   comparison blocks, structured ranges, and optional entropy without loading the file or obscuring
   ordinary scrollbar interaction.
-- Related: B-022, B-023, B-032
+- Related: scope.hexa.003, scope.hexa.004, scope.hexa.018
 
-### B-034 — Hexadecimal state is not restored
+### scope.hexa.013 — Hexadecimal state is not restored
 
 - Evidence: application serialization persists window, search, recent-file, and viewer-choice
   state, but not hexadecimal width, representation, endian, row layout, encoding, font size,
@@ -172,9 +172,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: stable presentation preferences survive application restarts, reopening the same
   file restores its last useful position and panels, changed files do not inherit unsafe offsets or
   annotations, and state remains bounded across recent files.
-- Related: B-023, B-024, B-029, B-043
+- Related: scope.hexa.004, scope.hexa.005, scope.hexa.010, scope.viewers.003
 
-### B-035 — The custom-painted grid exposes no accessibility semantics
+### scope.hexa.014 — The custom-painted grid exposes no accessibility semantics
 
 - Evidence: bytes, characters, caret, selection, and column headers are painted directly by one
   `Wnd`; no accessible grid, cell, value, or selection model is published.
@@ -183,9 +183,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: a screen reader can announce current offset, byte, decoded character, selection,
   column, and active inspector value; keyboard-only operation reaches every command; high-contrast
   themes retain caret and selection distinction; and virtualization does not materialize the file.
-- Related: B-196, B-047
+- Related: platform.portability.048, scope.viewers.007
 
-### B-041 — Selection is limited to one contiguous range
+### scope.hexa.015 — Selection is limited to one contiguous range
 
 - Evidence: byte selection is now independent from scalar presentation, and a captured drag
   autoscrolls on a timer and ends safely on release or focus loss. The grid still stores only one
@@ -195,9 +195,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: rectangular selection can address repeated row columns, multiple ranges
   copy/export in a documented order, and every command states whether it acts on the primary range
   or the complete collection.
-- Related: B-020, B-030
+- Related: scope.hexa.001, scope.hexa.011
 
-### B-042 — Important hexadecimal commands need first-class actions and shortcuts
+### scope.hexa.016 — Important hexadecimal commands need first-class actions and shortcuts
 
 - Evidence: the visible command group exposes width, representation, and endian; Go To, row width,
   copy-as-text, copy-as-dump, and select-all are now reachable through a visible compact commands
@@ -209,11 +209,11 @@ are what separate that capable grid from a professional binary-analysis viewer.
   and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
   and remappable through the application convention; and the document remains the majority of the
   minimum-size surface.
-- Related: B-048
+- Related: scope.viewers.008
 
 ## Tier C — Binary analysis
 
-### B-031 — The viewer cannot calculate checksums or hashes
+### scope.hexa.017 — The viewer cannot calculate checksums or hashes
 
 - Evidence: neither the whole file nor a selected range can be verified from the hexadecimal
   surface, although checksum comparison is a routine integrity and reverse-engineering operation.
@@ -223,7 +223,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
   selection with progress and cancellation, never make the range resident, and copy a result with
   its algorithm and range.
 
-### B-032 — Byte-distribution analysis lacks block-level findings
+### scope.hexa.018 — Byte-distribution analysis lacks block-level findings
 
 - Evidence: the analysis action now streams either the current selection or the whole file through
   a cancellable 256 KiB job. Its panel publishes a 256-value byte map with exact hover counts,
@@ -235,9 +235,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: histogram, entropy, zero/printable ratios, chunked entropy, repeated-block hints,
   and ASCII/UTF string extraction operate on file or selection, results navigate back to bytes, and
   every analysis remains bounded and labels inference as inference.
-- Related: B-024, B-033
+- Related: scope.hexa.005, scope.hexa.012
 
-### B-038 — There is no safe declarative binary schema for unknown formats
+### scope.hexa.019 — There is no safe declarative binary schema for unknown formats
 
 - Evidence: the `Binary` viewer contains curated compiled readers, but a reader cannot describe a
   private or experimental structure without changing and rebuilding Swag Scope. General-purpose
@@ -248,9 +248,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: a local schema can parse on demand in bounded work, produces the common
   field/value/offset/meaning tree, colors exact hexadecimal ranges, reports resource limits and
   invalid reads, and never acquires authority beyond reading the open file.
-- Related: B-021
+- Related: scope.hexa.002
 
-### B-039 — Executable bytes cannot be disassembled
+### scope.hexa.020 — Executable bytes cannot be disassembled
 
 - Evidence: PE, ELF, and Mach-O structure readers identify executable regions, but the hexadecimal
   viewer cannot interpret a selected code range or use image metadata to choose architecture,
@@ -260,9 +260,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: supported executable architectures disassemble selected bytes with file offset and
   virtual address, instructions navigate back to exact byte ranges, invalid opcodes advance safely,
   and no execution or process attachment is introduced.
-- Related: B-021, B-028
+- Related: scope.hexa.002, scope.hexa.009
 
-### B-040 — Selected binary data has no domain visualizers
+### scope.hexa.021 — Selected binary data has no domain visualizers
 
 - Evidence: a raw selection cannot be previewed as pixels, palette entries, PCM samples, or a
   numeric series even though Swag Scope already ships reusable image, audio, and plot-capable
@@ -275,7 +275,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ## Quality debt
 
-### B-037 — Existing hexadecimal guarantees lack boundary and interaction tests
+### scope.hexa.022 — Existing hexadecimal guarantees lack boundary and interaction tests
 
 - Evidence: current tests cover ordinary and synthetic multi-gigabyte streaming geometry, 16-digit
   offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
@@ -285,16 +285,16 @@ are what separate that capable grid from a professional binary-analysis viewer.
   order, font zoom/reset, focus-safe mouse capture, non-integer DPI, live English/French wording,
   layout, and dark-theme goldens. Slow-I/O behavior, external file-version changes, and
   accessibility have no deterministic seam yet.
-- Next: add the injectable range-reader seam with B-026/B-027, then test delayed completion and
-  version changes without timing or filesystem races, and add accessibility coverage with B-035.
+- Next: add the injectable range-reader seam with scope.hexa.007/scope.hexa.008, then test delayed completion and
+  version changes without timing or filesystem races, and add accessibility coverage with scope.hexa.014.
 - Complete when: those remaining guarantees have deterministic focused tests, generated fixtures
   remain bounded on disk, and future feature entries add their own acceptance coverage instead of
   accumulating here.
-- Related: B-049
+- Related: scope.viewers.009
 
 ## Deliberate boundary
 
 Byte replacement, insertion, deletion, replace, undo/redo, save, raw-disk writing, and process-memory
 writing are not missing hexadecimal features. Swag Scope is a read-only viewer; those operations
 would create a different application and security model. Printing the hexadecimal dump remains the
-shared viewer task B-449 in [scope.viewers.md](scope.viewers.md).
+shared viewer task scope.viewers.002 in [scope.viewers.md](scope.viewers.md).

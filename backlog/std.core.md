@@ -40,7 +40,7 @@ The gaps are not about polish. Two of them are structural.
 These two entries are the difference between a standard library and a complete one. They are
 independent: neither blocks the other, and neither should be allowed to block everything else.
 
-### B-190 — No blocking TCP sockets
+### std.core.001 — No blocking TCP sockets
 
 - Problem: there are no TCP sockets. A Swag program cannot open even a blocking connection.
 - Consequence: this rules out servers, clients, tooling that talks to a registry or an API, package
@@ -49,56 +49,56 @@ independent: neither blocks the other, and neither should be allowed to block ev
 - Put the blocking TCP and address foundation in a `net` module importing `core`; do not put a
   network stack in the module every program links. Implement Winsock and BSD-socket leaves behind
   the same contract.
-- Related: B-261, B-262, B-263, B-264, B-265, B-266, B-410
+- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008, std.core.002
 
-### B-410 — No UDP sockets
+### std.core.002 — No UDP sockets
 
 Add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
 independently of TCP connection semantics.
 
-- Related: B-190, B-261, B-262
+- Related: std.core.001, std.core.003, std.core.004
 
-### B-261 — No DNS resolver
+### std.core.003 — No DNS resolver
 
 Add host/service resolution to the `net` module over the platform resolver, with explicit address
 ordering, cancellation, and failure semantics.
 
-- Related: B-190
+- Related: std.core.001
 
-### B-262 — No non-blocking socket readiness API
+### std.core.004 — No non-blocking socket readiness API
 
-Add non-blocking sockets and readiness notification after the concurrency decision in B-177. Keep
+Add non-blocking sockets and readiness notification after the concurrency decision in language.design.005. Keep
 the readiness mechanism separate from the blocking socket foundation.
 
-- Related: B-190, B-177, B-288
+- Related: std.core.001, language.design.005, std.core.028
 
-### B-263 — No TLS transport
+### std.core.005 — No TLS transport
 
 Provide client and server TLS over the socket contract. Decide explicitly whether each platform
 binds its native provider or the project owns a portable implementation.
 
-- Related: B-190, B-192, B-281, B-282
+- Related: std.core.001, std.core.010, std.core.015, std.core.016
 
-### B-264 — No HTTP client
+### std.core.006 — No HTTP client
 
-Implement an HTTP/1.1 client over B-190 and B-263, with streaming bodies, redirects, cancellation,
+Implement an HTTP/1.1 client over std.core.001 and std.core.005, with streaming bodies, redirects, cancellation,
 and bounded parsing as its own public contract.
 
-- Related: B-190, B-263
+- Related: std.core.001, std.core.005
 
-### B-265 — No HTTP server
+### std.core.007 — No HTTP server
 
 Implement HTTP/1.1 server parsing, response streaming, connection lifetime, and limits independently
 of the client API.
 
-- Related: B-190, B-262, B-263, B-264
+- Related: std.core.001, std.core.004, std.core.005, std.core.006
 
-### B-266 — No WebSocket protocol
+### std.core.008 — No WebSocket protocol
 
 Add WebSocket handshake and frame processing above HTTP without making it part of the HTTP client's
 completion criteria.
 
-- Related: B-264, B-265
+- Related: std.core.006, std.core.007
 
 
 
@@ -119,75 +119,75 @@ completion criteria.
 
 ## Tier B — Cryptography
 
-### B-358 — Independent Argon2 lanes run serially
+### std.core.009 — Independent Argon2 lanes run serially
 
 - Intent: run independent lanes within each legal slice through `Jobs`, respecting Argon2's
   synchronization points and the configured `parallelism` contract.
 - Complete when: multi-lane published vectors still agree, the requested lane count executes in
   parallel, and a benchmark separates the lane-parallel gain from the packed permutation work.
-- Related: B-357 in [cpu.simd.md](cpu.simd.md)
+- Related: cpu.simd.018 in [cpu.simd.md](cpu.simd.md)
 
-### B-192 — No AES implementation
+### std.core.010 — No AES implementation
 
 - Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2, ChaCha20, and
   several non-cryptographic hashes.
 - Add AES with hardware acceleration where available and constant-time fallback behavior, then add
   separately numbered modes only when their contracts are chosen.
-- Related: B-263, B-277, B-278, B-279, B-280, B-281, B-282, B-283
+- Related: std.core.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015, std.core.016, std.core.017
 
-### B-277 — No SHA-512 family
+### std.core.011 — No SHA-512 family
 
 Implement SHA-384/SHA-512 and HMAC variants with standard vectors and streaming parity with the
 existing SHA-256 API.
 
-- Related: B-192
+- Related: std.core.010
 
-### B-278 — No SHA-3 family
+### std.core.012 — No SHA-3 family
 
 Implement the SHA-3 digest family and SHAKE extendable-output functions as a distinct sponge-based
 API.
 
-- Related: B-192
+- Related: std.core.010
 
-### B-279 — No BLAKE2 implementation
+### std.core.013 — No BLAKE2 implementation
 
 Add BLAKE2 variants with keyed and unkeyed modes independently of BLAKE3.
 
-- Related: B-280
+- Related: std.core.014
 
-### B-280 — No BLAKE3 implementation
+### std.core.014 — No BLAKE3 implementation
 
 Add BLAKE3 hashing, keyed hashing, key derivation, and parallel tree processing as one algorithm
 contract.
 
-- Related: B-279
+- Related: std.core.013
 
-### B-281 — No Ed25519 signatures
+### std.core.015 — No Ed25519 signatures
 
 Add key generation, signing, verification, strict input validation, and published vectors for
 Ed25519.
 
-- Related: B-263, B-282
+- Related: std.core.005, std.core.016
 
-### B-282 — No X25519 key agreement
+### std.core.016 — No X25519 key agreement
 
 Add X25519 key generation and shared-secret derivation with low-order input handling stated and
 tested.
 
-- Related: B-263, B-281
+- Related: std.core.005, std.core.015
 
-### B-283 — No RSA interoperability
+### std.core.017 — No RSA interoperability
 
 Provide only the RSA operations and padding schemes justified by external interoperability, with
 unsafe legacy modes excluded from the default surface.
 
-- Related: B-263
+- Related: std.core.005
 
 ---
 
 ## Tier B — Compression throughput
 
-### B-561 — Deflate is still four-fifths match search
+### std.core.018 — Deflate is still four-fifths match search
 
 - Intent: close the rest of the gap between `Compress.Deflate` and the compressors it competes
   with. It is the whole cost of writing a PNG — 97% of an encode is Deflate — and it is also what
@@ -205,18 +205,18 @@ unsafe legacy modes excluded from the default surface.
   128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
   chosen, so each has to report compressed size beside time.
 - The other half is not in this file: the block loop spends its time in stack slots rather than
-  registers, which [B-617](compiler.optimization.md) measured at 1.6x against clang for the
+  registers, which [compiler.optimization.006](compiler.optimization.md) measured at 1.6x against clang for the
   matching Inflate loop and is a backend problem, not a library one.
 - Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than it is
   now with no more than 1% growth in compressed size, and every `core` compression test still
   round-trips.
-- Related: B-193, B-284
+- Related: std.core.021, std.core.022
 
 ---
 
 ## Tier B — Regular expression throughput
 
-### B-154 — The last gaps between the regular-expression engine and the Rust crate
+### std.core.019 — The last gaps between the regular-expression engine and the Rust crate
 
 - Intent: keep `Parser.RegExp` at the speed of the fastest engine available, which is what the
   rewrite of 2026-08-29 set out to reach.
@@ -259,9 +259,9 @@ unsafe legacy modes excluded from the default surface.
   experiment. That is the latency of three dependent loads on this machine.
 - Complete when: no benchmark in that set is more than 1.5x the crate, and captures cost what a
   search without them costs.
-- Related: B-155
+- Related: std.core.020
 
-### B-155 — Unicode properties are limited to the general categories
+### std.core.020 — Unicode properties are limited to the general categories
 
 - Intent: `\p{...}` should name the scripts and the common derived properties, not only the
   handful of general categories the Unicode tables in `core` happen to carry.
@@ -274,32 +274,32 @@ unsafe legacy modes excluded from the default surface.
   lookup in `RuneClass.unicodeProperty` is one more `switch` arm per table.
 - Complete when: the script names of UAX #24 resolve, a test matches text in two scripts, and the
   tables are generated rather than hand-written.
-- Related: B-154
+- Related: std.core.019
 
 ---
 
 ## Tier C — Archives, calendars, and time zones
 
-### B-193 — No gzip container support
+### std.core.021 — No gzip container support
 
 Add the gzip container over the existing deflate/inflate and zlib support, including headers,
 trailers, checksums, and concatenated members.
 
-- Related: B-284, B-285
+- Related: std.core.022, std.core.023
 
-### B-284 — No ZIP container support
+### std.core.022 — No ZIP container support
 
 Add bounded ZIP reading and writing with central-directory validation and explicit support limits.
 
-- Related: B-193
+- Related: std.core.021
 
-### B-285 — No TAR container support
+### std.core.023 — No TAR container support
 
 Add streaming TAR reading and writing, with the supported metadata and extension variants stated.
 
-- Related: B-193
+- Related: std.core.021
 
-### B-194 — Time zones
+### std.core.024 — Time zones
 
 `time` handles UTC and local. There is no IANA zone database, no historical offsets, and no DST
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
@@ -307,44 +307,44 @@ stuck at the boundary.
 
 ## Tier C — Concurrency and asynchronous I/O
 
-### B-195 — No future or task abstraction
+### std.core.025 — No future or task abstraction
 
 `Jobs` gives parallel visiting and loops, but no value-bearing or failing asynchronous task that a
 caller can await, combine, cancel, or observe.
 
 This is as much a language question as a library one — Go answered it with goroutines and channels,
 Rust with `async` and a futures machinery that reaches into the type system, .NET with `Task`. It
-should be decided deliberately and early, because B-190 will force the question the moment
+should be decided deliberately and early, because std.core.001 will force the question the moment
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-The language-design half is [B-177](language.design.md#b-177--the-concurrency-model-is-undecided).
+The language-design half is [language.design.005](language.design.md#languagedesign005--the-concurrency-model-is-undecided).
 Record decisions there, not here.
 
-- Related: B-177, B-286, B-287, B-288
+- Related: language.design.005, std.core.026, std.core.027, std.core.028
 
-### B-286 — No channel abstraction
+### std.core.026 — No channel abstraction
 
-Add typed communication channels only after B-177 decides whether they are a language-level
+Add typed communication channels only after language.design.005 decides whether they are a language-level
 coordination primitive or an ordinary library type.
 
-- Related: B-177, B-195
+- Related: language.design.005, std.core.025
 
-### B-287 — No condition variable
+### std.core.027 — No condition variable
 
 Add condition variables with a predicate-loop usage contract and clear interaction with mutex
 ownership and cancellation.
 
-- Related: B-195
+- Related: std.core.025
 
-### B-288 — No asynchronous I/O contract
+### std.core.028 — No asynchronous I/O contract
 
 Define asynchronous I/O completion, cancellation, buffer lifetime, and scheduler integration
 without coupling it to the first non-blocking socket backend.
 
-- Related: B-177, B-195, B-262
+- Related: language.design.005, std.core.025, std.core.004
 
-### B-465 — A buffered byte source over a file or memory is written once per module
+### std.core.029 — A buffered byte source over a file or memory is written once per module
 
 - Problem: `Core.ByteStream` is a cursor over borrowed bytes and cannot read a file, and
   `File.FileStream` is an unbuffered handle, so every module that decodes a format larger than
@@ -361,14 +361,14 @@ without coupling it to the first non-blocking socket backend.
   than the window itself. Read `Video.Sink.patch` beside it: a container writer reserves the
   totals of its header and rewrites them once the last frame lands, and that operation is what
   keeps a writer at the cost of one frame instead of the cost of the file.
-- Related: B-288
+- Related: std.core.028
 
 ---
 
 ## Out of scope
 
 **A package registry client.** That belongs to the tooling around the compiler, not to the standard
-library, even after B-190 makes it possible.
+library, even after std.core.001 makes it possible.
 
 **Bundling ICU.** Globalization should grow toward what applications need from compact locale
 profiles or platform data. Vendoring a multi-megabyte dependency into the module every program

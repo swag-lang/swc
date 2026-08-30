@@ -24,17 +24,17 @@ ordered by expected product value, not implementation effort.
 
 ## Document lifecycle
 
-### B-448 — One document per window and per process
+### app.scope.001 — One document per window and per process
 
 - Intent: every association launch starts another process with one document. There is no tab, no
   second document in the same window, and no side-by-side comparison of two files.
 - Complete when: a running instance is reused, documents open as tabs, and two documents can be
   shown side by side.
-- Related: B-341, B-022 in [scope.hexa.md](scope.hexa.md)
+- Related: std.gui.029, scope.hexa.003 in [scope.hexa.md](scope.hexa.md)
 
 ## Window hosting
 
-### B-622 — Swag Scope sizes its viewer layout in physical pixels, so every viewer overflows at non-100% DPI
+### app.scope.002 — Swag Scope sizes its viewer layout in physical pixels, so every viewer overflows at non-100% DPI
 
 - Area: apps/swagscope
 - Found while: migrating the PDF engine into `std/gui` and verifying the new `PdfView` inside the

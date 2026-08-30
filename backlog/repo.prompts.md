@@ -176,7 +176,7 @@ RULES
   - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
     believed, and the Release sequence before anything is recorded. A pass that miscompiles under
     the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
-    catches it (see B-576).
+    catches it (see compiler.optimization.003).
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
     takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
@@ -444,7 +444,7 @@ delta. Cumulative total at the top, so the number is one line at any moment.
 
 ```
 You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/compiler.core.md B-167, B-168, B-169, B-171 and B-172.
+then backlog/compiler.core.md compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.006 and compiler.core.007.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -483,7 +483,7 @@ beating them. It is about the loop a person actually sits in.
 
 START BY BUILDING THE INSTRUMENT
 
-Do this before any optimization; nothing below can be judged without it, and it is B-169 in
+Do this before any optimization; nothing below can be judged without it, and it is compiler.core.004 in
 backlog/compiler.core.md.
 
 Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
@@ -514,7 +514,7 @@ They are not independent, and taking them out of order wastes the work:
 
   1. The module boundary is re-parsed Swag source. core publishes 16 files and 12 328 lines per
      configuration, and every dependent module lexes, parses and re-analyzes all of it. A binary
-     module interface, loaded lazily by name, is B-167 and it unlocks B-168, B-171 and B-173.
+     module interface, loaded lazily by name, is compiler.core.001 and it unlocks compiler.core.002, compiler.core.006 and compiler.core.008.
   2. Incrementality stops at the module. Editing one line rebuilds 291 files. Per-file frontend
      caching first, then per-function codegen caching - the second is where the win is and it is
      unreachable without lever 1.
@@ -559,7 +559,7 @@ and what it bought.
 
 ```
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
-backlog/compiler.core.md B-170.
+backlog/compiler.core.md compiler.core.005.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -714,8 +714,8 @@ Leave one reproducible baseline from which new work can start without inheriting
     changes nothing.
   - Generated documentation and website assets are current, reviewed, and reproducible; a second
     generation changes nothing.
-  - Every backlog entry is truthful, current, unique, correctly numbered, correctly linked, and
-    stored in the right domain. Resolved or invalid entries are gone.
+  - Every backlog entry is truthful, current, uniquely identified by its owning file, correctly
+    linked, and stored in the right domain. Resolved or invalid entries are gone.
   - Inline TODO, FIXME, HACK, and XXX markers have either been resolved or moved into a properly
     evidenced backlog entry; stale comments and dead instructions are gone.
   - Temporary files, misplaced output folders, abandoned snapshots, crash residue, and editor or
@@ -746,14 +746,22 @@ Build an inventory before the first fix:
      results under fresh identifiers, move work to the domain that owns it, refresh evidence,
      acceptance conditions, and next actions, merge duplicates, and re-evaluate semantic priority.
      When investigation establishes implementation work, update the same entry in place and retain
-     its identifier. Audit files with no recent commit too, and delete empty category files rather
-     than treating their existence as coverage.
-  4. Check backlog invariants mechanically: unique permanent identifiers, the `Next identifier`
-     counter above every allocated `B-*` identifier, valid Markdown anchors and file links, no
-     dangling live cross-reference, and no undocumented backlog file. A `Related:` line names live
-     entries only; a retired identifier may remain solely as explicit historical provenance.
-     Position expresses expected value and must be judged semantically, not sorted by identifier.
-  5. Check repository instructions, READMEs, public API documentation, the language reference,
+     its identifier. A move to another domain is the exception: allocate that file's next suffix and
+     update every live reference and Markdown fragment. Audit files with no recent commit too, and
+     delete empty category files rather than treating their existence as coverage.
+  4. Check backlog invariants mechanically: every domain file follows `<family>.<what>.md`; every
+     entry identifier is that file name without `.md` plus a three-digit suffix; live identifiers
+     are unique; and a new suffix is one above the greatest suffix ever allocated in that file.
+     Compare with Git history when needed to prove that a deleted suffix was not reused. Check valid
+     Markdown anchors and file links, no dangling live cross-reference, and no domain file missing
+     from the README inventory. The README is an index and naming contract, not a counter registry.
+     A `Related:` line names live entries only; a retired identifier may remain solely as explicit
+     historical provenance. Position expresses expected value and must be judged semantically, not
+     sorted by identifier.
+  5. Check the portability exception explicitly: every operating-system backend, product port,
+     target integration, and Windows-bound contract that must become portable lives in
+     `backlog/platform.portability.md`, with none of that work scattered through owner-domain files.
+  6. Check repository instructions, READMEs, public API documentation, the language reference,
      examples, command help, and website prose against the code that exists now. Update every stale
      command, count, name, guarantee, prerequisite, or link you find.
 

@@ -29,78 +29,78 @@ effects that makes a capture look produced, and output.
 ## Tier A — Output and text extraction
 
 
-### B-346 — Print the current capture
+### app.capture.001 — Print the current capture
 
 Add actual-size, fit-to-page, and centered printing with a clear clipping warning. Consume the GUI
 pagination/preview contract and Pixel vector output rather than creating an application-only print
 path.
 
-- Related: B-204, B-209, B-344
+- Related: std.gui.030, pixel.image.022, std.gui.034
 
 
 ## Tier A — Capture effects
 
-### B-228 — No capture-level effect pipeline
+### app.capture.002 — No capture-level effect pipeline
 
 - `Capture` has geometry, a background image, and forms, but nowhere to store and order effects.
   Add an effect list applied identically by preview, flatten, and export, with the property panel
   generated through the existing reflective editor system.
 - Why this high: this is Snagit's actual signature — not the annotations, the finish. It is also
   a natural fit for the existing architecture rather than a foreign subsystem.
-- Related: B-347, B-348, B-349, B-350, B-205
+- Related: app.capture.003, app.capture.005, app.capture.007, app.capture.008, pixel.image.002
 
-### B-347 — No capture border effect
+### app.capture.003 — No capture border effect
 
-Add border width, color, placement, and corner interaction as the first effect using B-228.
+Add border width, color, placement, and corner interaction as the first effect using app.capture.002.
 
-- Related: B-228, B-388
+- Related: app.capture.002, app.capture.004
 
-### B-388 — No capture drop-shadow effect
+### app.capture.004 — No capture drop-shadow effect
 
 Add a drop shadow with offset, blur, spread, and color through Pixel's effect graph.
 
-- Related: B-205, B-228, B-347
+- Related: pixel.image.002, app.capture.002, app.capture.003
 
-### B-348 — No torn-edge capture effect
+### app.capture.005 — No torn-edge capture effect
 
 Add deterministic torn-edge mask generation with scale-independent parameters.
 
-- Related: B-228, B-389
+- Related: app.capture.002, app.capture.006
 
-### B-389 — No faded-edge capture effect
+### app.capture.006 — No faded-edge capture effect
 
 Add a faded-edge mask independently of torn-edge generation.
 
-- Related: B-228, B-348
+- Related: app.capture.002, app.capture.005
 
-### B-349 — No capture perspective effect
+### app.capture.007 — No capture perspective effect
 
 Add perspective transformation with explicit output bounds and resampling behavior.
 
-- Related: B-228
+- Related: app.capture.002
 
-### B-350 — No capture watermark effect
+### app.capture.008 — No capture watermark effect
 
 Add reusable image/text watermarks with placement, opacity, scale, and export persistence.
 
-- Related: B-228
+- Related: app.capture.002
 
 ## Tier A — Capture workflows
 
-### B-229 — Capture hotkeys are fixed
+### app.capture.009 — Capture hotkeys are fixed
 
 - `MainWnd.setupHotKeys` registers four fixed combinations. Persist user-rebindable hotkeys in the
   existing options, handle conflicts, and report registration failures.
 - Note: PrintScreen is contested on Windows 11, which now binds it to the Snipping Tool by default.
   A tool that cannot rebind its own hotkey is stuck behind that.
-- Related: B-351
+- Related: app.capture.010
 
-### B-351 — No named capture presets
+### app.capture.010 — No named capture presets
 
-Persist named combinations of capture mode, delay, cursor policy, and destination, then allow B-229
+Persist named combinations of capture mode, delay, cursor policy, and destination, then allow app.capture.009
 to bind a hotkey to a preset rather than a raw command.
 
-- Related: B-229
+- Related: app.capture.009
 
 ---
 
@@ -110,52 +110,52 @@ Both entries below are subsystems rather than features. They are what people act
 for, and they are honestly expensive. Ship Tier A first.
 
 
-### B-231 — No video recording
+### app.capture.011 — No video recording
 
 - Add a timed frame-capture loop and hardware video encoder with bounded buffering and observable
   dropped-frame behavior.
 - Recommendation: treat it as a deliberate decision rather than an assumed goal. A still-capture
   tool with an outstanding editor is a coherent product. A half-finished recorder is not.
-- Related: B-352, B-353, B-354
+- Related: app.capture.012, app.capture.013, app.capture.014
 
-### B-352 — No animated GIF recording
+### app.capture.012 — No animated GIF recording
 
 Record and export an animated GIF independently of the video codec pipeline, with a stated frame
 rate, palette, dithering, and size contract.
 
-- Related: B-231
+- Related: app.capture.011
 
-### B-353 — Recordings cannot include audio
+### app.capture.013 — Recordings cannot include audio
 
 Capture microphone or loopback audio and mux it into video without making audio a prerequisite for
 silent recording.
 
-- Related: B-218, B-298, B-231
+- Related: std.audio.011, std.audio.013, app.capture.011
 
-### B-354 — Recordings cannot be trimmed in the editor
+### app.capture.014 — Recordings cannot be trimmed in the editor
 
 Add non-destructive in/out trimming and export for captured recordings after the base recorder can
 produce a playable artifact.
 
-- Related: B-231, B-352
+- Related: app.capture.011, app.capture.012
 
 ---
 
 ## Tier D — Canvas composition and reusable annotations
 
-### B-232 — Captures cannot be combined on one canvas
+### app.capture.015 — Captures cannot be combined on one canvas
 
 Compose several captures into one editable, laid-out image using the existing form model.
 
-- Related: B-355
+- Related: app.capture.016
 
-### B-355 — No reusable capture layout templates
+### app.capture.016 — No reusable capture layout templates
 
 Persist and apply named layout descriptions independently of combining captures manually.
 
-- Related: B-232
+- Related: app.capture.015
 
-### B-233 — Stamp library
+### app.capture.017 — Stamp library
 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
@@ -164,7 +164,7 @@ clip art.
 ## Tier D — Output conventions
 
 
-### B-235 — File naming convention drift
+### app.capture.018 — File naming convention drift
 
 `build-swag-standard-apps` asks for dots between the named parts of a coherent file family, and
 warns against a prefix that repeats its own scope. `src/actions/actimage.swg` and its siblings
@@ -179,7 +179,7 @@ pass rather than drifting further.
 **Hosted share destinations.** Snagit lists more than twenty and ShareX more than eighty. Reaching
 them means embedding third-party OAuth credentials in a compiler repository and maintaining those
 integrations against other companies' API changes. Local outputs — clipboard, file, drag-out,
-print, `mailto` — cover the same need without shipping secrets. B-226 is deliberately scoped to
+print, `mailto` — cover the same need without shipping secrets. platform.portability.068 is deliberately scoped to
 those.
 
 **Machine-learning editing features.** Snagit's object detection and text replacement are model
@@ -201,7 +201,7 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
 
 ## Window automation and lifecycle
 
-### B-578 — Swag Capture dies when its window is moved and resized in one call
+### app.capture.019 — Swag Capture dies when its window is moved and resized in one call
 
 - Area: apps/swagcapture, std/gui
 - Found while: driving the shipped window from a script to photograph its pages. The window opens
@@ -230,7 +230,7 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
 
 ## Editor interactivity
 
-### B-614 — The one-second auto-save freezes the interface for the duration of a full deflate
+### app.capture.020 — The one-second auto-save freezes the interface for the duration of a full deflate
 
 - Area: apps/swagcapture
 - Found while: making a form drag fluid. The per-move repaint and the mid-gesture save are fixed
@@ -250,11 +250,11 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   small enough, or whether the save must move off the interface thread (which needs a snapshot of
   the form list to stay race-free).
 
-### B-618 — Loading a capture blocks the interface for the duration of one inflate
+### app.capture.021 — Loading a capture blocks the interface for the duration of one inflate
 
 - Area: apps/swagcapture, std/core (Compress)
 - Found while: investigating the lag felt when clicking a capture in the recent strip. This is the
-  load counterpart of [B-614](#b-614--the-one-second-auto-save-freezes-the-interface-for-the-duration-of-a-full-deflate);
+  load counterpart of [app.capture.020](#appcapture020--the-one-second-auto-save-freezes-the-interface-for-the-duration-of-a-full-deflate);
   both come from the same decision to deflate raw pixels.
 - Observation: `RecentView.select` calls `Capture.load` synchronously on the interface thread, and
   the whole cost of that load is inflating the background chunk. Nothing is shown in the meantime,
@@ -284,4 +284,4 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   deflate path, so this is additive.
   A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
   what is left of it is a backend matter, in
-  [B-617](compiler.optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).
+  [compiler.optimization.006](compiler.optimization.md#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).

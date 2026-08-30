@@ -32,7 +32,7 @@ and no capture. Operating-system backend work lives in
 
 ## Tier A — Compressed audio formats
 
-### B-011 — DTS Core advanced coding tools remain unsupported
+### std.audio.001 — DTS Core advanced coding tools remain unsupported
 
 - Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
   ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
@@ -45,7 +45,7 @@ and no capture. Operating-system backend work lives in
 - Complete when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
 
-### B-563 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
+### std.audio.002 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
 
 - Intent: Layer III decodes correctly at every sampling frequency of the three versions, within
   2.3e-5 of full scale of FFmpeg. Nothing about its speed has been measured, and its ISO-BMFF
@@ -60,7 +60,7 @@ and no capture. Operating-system backend work lives in
   and `mp4.swg` rejects every object type but AAC's 0x40.
 ## Tier A — Playback control
 
-### B-213 — Volume changes are instantaneous, so they click
+### std.audio.003 — Volume changes are instantaneous, so they click
 
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
   applies it at the next processing pass without smoothing, so any gain change during playback is a
@@ -73,25 +73,25 @@ and no capture. Operating-system backend work lives in
 
 ## Tier A — Output-device lifecycle
 
-### B-214 — No output-device enumeration
+### std.audio.004 — No output-device enumeration
 
 - Enumerate output devices with stable session identifiers and enough capabilities for a caller to
   present a choice.
-- Related: B-292, B-293
+- Related: std.audio.005, std.audio.006
 
-### B-292 — The engine cannot select an output device
+### std.audio.005 — The engine cannot select an output device
 
-Allow `createEngine` or a dedicated switch operation to target one identifier returned by B-214,
+Allow `createEngine` or a dedicated switch operation to target one identifier returned by std.audio.004,
 with a defined fallback when that device is unavailable.
 
-- Related: B-214, B-293
+- Related: std.audio.004, std.audio.006
 
-### B-293 — Output-device loss is not reported or recovered
+### std.audio.006 — Output-device loss is not reported or recovered
 
 Handle the backend's critical-error signal, report the loss, and rebuild or fail over according to
 an explicit policy when headphones, USB audio, or the default device changes.
 
-- Related: B-214, B-292
+- Related: std.audio.004, std.audio.005
 
 ---
 
@@ -101,33 +101,33 @@ Two features are already paid for in the backend and simply not exposed. They ar
 the rest of this list is not.
 
 
-### B-294 — No stereo pan control
+### std.audio.007 — No stereo pan control
 
 Add backend-neutral stereo panning to `Voice` without requiring the listener and distance model of
-B-215.
+platform.portability.063.
 
-- Related: B-215
+- Related: platform.portability.063
 
 ## Tier B — Voice effects
 
 
-### B-295 — No reverb effect
+### std.audio.008 — No reverb effect
 
 Expose a reverb effect independently of the basic voice filters and of a general effects graph.
 
-- Related: B-216, B-220
+- Related: platform.portability.064, std.audio.014
 
-### B-296 — No echo effect
+### std.audio.009 — No echo effect
 
 Expose an echo/delay effect independently of reverb and the general effects graph.
 
-- Related: B-216, B-220
+- Related: platform.portability.064, std.audio.014
 
 ---
 
 ## Tier C — Startup and capture workflows
 
-### B-217 — Engine creation cost on the startup path
+### std.audio.010 — Engine creation cost on the startup path
 
 - `DriverNative.createNative` does COM initialization, `XAudio2Create`, mastering-voice creation,
   channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
@@ -138,35 +138,35 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 - Related: no other backlog entry covers this. If measurement shows the cost is in XAudio2
   rather than in this module, record it there instead.
 
-### B-218 — No audio capture input
+### std.audio.011 — No audio capture input
 
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `Swag Capture` ever records video with sound —
-  [B-231](app.capture.md#b-231--no-video-recording).
-- Related: B-297, B-298, B-353
+  [app.capture.011](app.capture.md#appcapture011--no-video-recording).
+- Related: std.audio.012, std.audio.013, app.capture.013
 
-### B-297 — No full-duplex audio session
+### std.audio.012 — No full-duplex audio session
 
 Allow synchronized input and output in one engine session for voice communication and live
 processing.
 
-- Related: B-218
+- Related: std.audio.011
 
-### B-298 — No system-output loopback capture
+### std.audio.013 — No system-output loopback capture
 
 Expose desktop/output loopback as a distinct capture source when the backend supports it.
 
-- Related: B-218, B-353
+- Related: std.audio.011, app.capture.013
 
 ## Tier C — Backend and graph architecture
 
 
-### B-220 — Effects graph
+### std.audio.014 — Effects graph
 
 - Buses route and scale gain. They do not process. FMOD, Wwise, SoLoud and miniaudio all expose a
   DSP or node graph where an effect can be inserted on a bus.
-- Sequence this after B-216: a per-voice filter answers most of the need, and an effects graph is
+- Sequence this after platform.portability.064: a per-voice filter answers most of the need, and an effects graph is
   a much larger commitment. Do not build the graph to get the filter.
 
 ---

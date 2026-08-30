@@ -12,10 +12,10 @@ What the module competes with is ffmpeg's demuxers, and the distance is measured
 than in design: what is missing is decoders.
 
 The picture codec of an AVI stream is the Pixel one, so what Motion JPEG this module reads is
-decided there — [B-467](pixel.image.md#b-467--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
+decided there — [pixel.image.001](pixel.image.md#pixelimage001--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
 is the layout it does not read yet.
 
-### B-526 — H.264 decoding costs about twice what FFmpeg does per picture
+### std.video.001 — H.264 decoding costs about twice what FFmpeg does per picture
 
 - Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and now
   decodes well above real time, but it still spends about twice the processor time per picture that
@@ -32,7 +32,7 @@ is the layout it does not read yet.
   Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
   limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
   in every run, and handing one picture over cost 3 to 8 ms. What limited the picture rate was the
-  presentation path — see B-635 in std.gui.md — and two defects in the player, both fixed:
+  presentation path — see std.gui.049 in std.gui.md — and two defects in the player, both fixed:
   the run-ahead was taken with an unstable array removal, which left eight of its ten slots holding
   pictures that would never be shown, and presentation was capped at one picture per turn of the
   application loop, which let the picture fall up to 79 frames behind the clock without anything
@@ -59,7 +59,7 @@ is the layout it does not read yet.
   alias the frame, which it cannot when no address into the frame exists; the frame register is
   no longer set up in a function that names none and whose stack shape the unwind codes already
   describe; and `Swag.bitCountLz`/`Swag.bitCountTz` no longer branch. See
-  [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+  [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
   for what the same dumps say is left.
 - Do not repeat this measurement of the call cost: marking `CabacReader.decision` `#[Swag.Inline]`
   reads as a 32 percent gain under a harness that lets the AVC lanes run, and as nothing at all
@@ -113,7 +113,7 @@ is the layout it does not read yet.
   93.6 against 93.9 — inside the noise. An earlier three-run reading said four percent and was
   contaminated by another agent building; do not trust an unpaired figure here.
   This is the same verdict the shift-guard elision got in
-  [B-617](compiler.optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
+  [compiler.optimization.006](compiler.optimization.md#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
   the bin is latency-bound on its serial chain — context byte, table load, subtract, compare,
   context store — so removing a third of its instructions buys almost nothing. The change is kept
   because it is strictly less code and less memory traffic, not because it made the decoder fast.
@@ -122,7 +122,7 @@ is the layout it does not read yet.
   it — measured at nothing beyond the noise floor, and is kept only because it is plainly less
   work. Do not expect the per-4x4 grid caching below to pay merely because it removes accesses.
 - What the emitted code says is left, and it is not a source shape:
-  [B-634](compiler.optimization.md#b-634--a-short-branching-function-spills-with-the-whole-register-file-free).
+  [compiler.optimization.010](compiler.optimization.md#compileroptimization010--a-short-branching-function-spills-with-the-whole-register-file-free).
   After the hoisting the bin still opens with seven callee-saved pushes and a 160-byte frame, and
   still spills three values across its one branch with sixteen integer registers available. At
   roughly 568,000 context-coded bins per picture that prologue alone is about nine million
@@ -173,7 +173,7 @@ is the layout it does not read yet.
 - Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
   machine.
 
-### B-566 — Refreshing a bounded sound window interrupts playback
+### std.video.002 — Refreshing a bounded sound window interrupts playback
 
 - Intent: the sixty-second Matroska sound window now rebuilds asynchronously and keeps the picture
   queue full even when an SMB scan takes 1.3 to 2.2 seconds, but every rebuild publishes a new
@@ -183,17 +183,17 @@ is the layout it does not read yet.
 - Constraint: `Audio.SoundFile.openPacketStream` currently takes its packet table by value and a
   voice reads it without a lock. The ownership and synchronization contract must change before a
   playing stream can observe appended packets safely.
-- Related: B-567
+- Related: std.video.003
 
-### B-567 — Retired sound windows remain alive until the video closes
+### std.video.003 — Retired sound windows remain alive until the video closes
 
 - Intent: release superseded bounded `SoundFile` windows as soon as no player or decoder can still
   hold a pointer into them; today every published window stays alive until the whole file closes.
 - Complete when: window ownership makes the last consumer observable, several refreshes keep only
   the active and genuinely referenced windows, and a seek cannot read freed packet storage.
-- Related: B-566
+- Related: std.video.002
 
-### B-466 — An AVI larger than four gigabytes is refused
+### std.video.004 — An AVI larger than four gigabytes is refused
 
 - Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that
   would run past four gigabytes and the decoder reads only the `idx1` table. OpenDML answers both
@@ -202,7 +202,7 @@ is the layout it does not read yet.
 - Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
   encoder emits them instead of failing once the stream approaches the limit.
 
-### B-562 — H.265 costs three times what FFmpeg does per picture, and reads 4:2:0 alone
+### std.video.005 — H.265 costs three times what FFmpeg does per picture, and reads 4:2:0 alone
 
 - Intent: the decoder is byte-exact against five JCT-VC conformance bitstreams and against x265
   output in both containers, so what it decodes it decodes correctly. What it is judged on next is
@@ -236,7 +236,7 @@ is the layout it does not read yet.
   reloaded inside the innermost body**. Reading the taps once per block took the table
   addressing out (20 pointer loads to 5, 105 multiplies to 85) and is kept for that, but **it
   did not move the clock**: the loop is not bound by those instructions. The spills are, and
-  they are B-637's shape — twelve of them survive in one function. A luma filter call covers
+  they are compiler.optimization.011's shape — twelve of them survive in one function. A luma filter call covers
   about 800 samples in 1.73 microseconds, which is 8.6 cycles a sample where the instruction
   count predicts about three.
 - What that says about where the gap is, and it is not one thing:
@@ -246,21 +246,21 @@ is the layout it does not read yet.
     compiler in release — 2.2x**. (clang's own `-march=native` build takes 34.1 ms: its
     auto-vectorizer costs it 1.9x on this code, so a clang figure is only an answer sheet once
     you have checked which clang figure it is.) See
-    [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
+    [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
     which carries the instruction and frame-access counts on both sides.
   - **Where that leaves the work, in order**: closing the backend's 2.2x is worth more than
     every decoder change left in this entry put together, and it helps every module of the
     library at once. After it, the stages still written scalar — the loop filter (15.7 ms) and
     the residual add (3) — and then 256-bit forms for what is already paired through `pmaddwd`:
-    motion compensation (33) and the inverse transform (8.5), which B-527 covers.
+    motion compensation (33) and the inverse transform (8.5), which cpu.simd.002 covers.
     First backend instalment measured (2026-08-26): loop residency in the register allocator
     plus per-object frame reachability in the post-RA hoist took the serial conformance decode
     (wpp-main10 + ipred, alternated processor time of the test binary) down 3 to 7 percent, and
     the back-edge reload cause across the `video` workspace from 5060 to 242. What bounds the
     next instalment is eviction churn under real pressure — see
-    [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+    [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
     and the residency notes under
-    [B-639](compiler.optimization.md#b-639--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
+    [compiler.optimization.013](compiler.optimization.md#compileroptimization013--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
     Second instalment (2026-08-26 evening), measured on a C twin of the scalar loop filter
     compiled by clang-cl 20 at `/O2`, same checksum on both sides: the early-return decision
     path alone ran **2.5x** behind clang, and it decomposes into the per-call prologue of the
@@ -275,7 +275,7 @@ is the layout it does not read yet.
     `filterLumaEdge` emits 776 instructions with 171 frame accesses, `interpolateLuma` spills
     its accumulators inside the innermost body, and both run at roughly a third of the
     instructions per cycle their instruction counts predict. See
-    [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
+    [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
     which now carries these numbers. This is the first lever, ahead of the two below.
   - **Deblocking is bound by the memory it touches, not by the instructions it runs.** Filtering
     the four lines of a horizontal edge in lanes rather than one at a time took 7.5 ms to 6.5.
@@ -291,11 +291,11 @@ is the layout it does not read yet.
   - **The sample work is at the ceiling of 128-bit vectors.** The interpolation filters already
     pair their taps through `pmaddwd`, and 16 ms for 15.7 million bi-predicted luma samples is
     about what that instruction count costs. FFmpeg runs the same filters 256 bits wide. This is
-    B-527, and it is worth roughly half of motion compensation and a third of the transform.
-  - **The parse is not bin-bound.** One picture of the clip in B-526's harness decodes 1,055,000
+    cpu.simd.002, and it is worth roughly half of motion compensation and a third of the transform.
+  - **The parse is not bin-bound.** One picture of the clip in std.video.001's harness decodes 1,055,000
     context bins and 288,000 bypass bins; at 27 to 44 ms that is 30 to 50 ns a bin against the
     ten or so a tuned decoder needs, and the bin itself is a short serial chain that instruction
-    count barely moves (B-526 measured exactly that). What is left is everything around it: the
+    count barely moves (std.video.001 measured exactly that). What is left is everything around it: the
     context derivations, the scan bookkeeping and the coefficient store. Deriving the
     significance context once a sub-block instead of once a coefficient took 2 ms off 44; there
     is more of that shape in `residualCoding`.
@@ -378,7 +378,7 @@ is the layout it does not read yet.
   is 44**, inter prediction 19, the inverse transform 9, adding the residual 7, intra 0.4, and
   the walk's own bookkeeping 14. Outside it, deblocking is 18, sample adaptive offset 10 and the
   reduction to eight bits 4. One picture decodes **1,055,000 context bins and 288,000 bypass
-  bins**, so the parse spends about 33 ns a bin — the ratio B-526 records for H.264, and the
+  bins**, so the parse spends about 33 ns a bin — the ratio std.video.001 records for H.264, and the
   same conclusion: the bin itself is a short serial chain that instruction count barely moves.
 - What the parse gave up anyway (2026-08-26): the `sig_coeff_flag` context was derived per
   coefficient although only the position inside the sub-block varies — which neighbouring
@@ -420,9 +420,9 @@ is the layout it does not read yet.
   the film then reads the stage directly, with no machine drift in it.
 - Complete when: the serial cost of one 3840x2076 Main10 picture is within a third of FFmpeg's on
   the same machine.
-- Related: B-526
+- Related: std.video.001
 
-### B-564 — Interlaced H.264 is the last picture feature a real library asks for
+### std.video.006 — Interlaced H.264 is the last picture feature a real library asks for
 
 - Measured 2025-08-25 over 592 films of one personal library, twelve pictures each against FFmpeg:
   590 decode, and one of the two that do not is refused with `video decoder does not support
@@ -434,11 +434,11 @@ is the layout it does not read yet.
 - Worth knowing before starting: the same library holds no interlaced H.265 and no interlaced
   MPEG-4 Part 2, so this is one codec's feature rather than a shape the module lacks everywhere.
 
-### B-565 — RealVideo RV40 is one film, and a whole codec
+### std.video.007 — RealVideo RV40 is one film, and a whole codec
 
 - The last film of the 592 that does not open is `V_REAL/RV40`, a 1999 encode. RealVideo 9/10 is an
   H.264 relative with its own slice format, its own bitstream syntax, and no relationship to
   anything this module reads.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
   codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
-- Related: B-568 in [scope.video.md](scope.video.md)
+- Related: scope.video.015 in [scope.video.md](scope.video.md)

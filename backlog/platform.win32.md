@@ -4,7 +4,7 @@ The Windows native modules and their checked API boundary under `bin/std/modules
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### B-598 — A Windows call that fails without setting a last error is reported as success
+### platform.win32.001 — A Windows call that fails without setting a last error is reported as success
 
 - Area: std/win32
 - Found while: asking GDI for the `ttcf` table of a font that is not part of a collection

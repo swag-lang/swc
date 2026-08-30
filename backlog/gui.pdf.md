@@ -67,15 +67,15 @@ zooming freeze. The offline rasterization (`Page.render` over a CPU renderer) re
 headless boundary: tests, thumbnails, and export.
 
 One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode`) now lives above
-`pixel`, so [B-209](pixel.image.md#b-209--no-vector-output) — PDF output from the painter — can no
+`pixel`, so [pixel.image.022](pixel.image.md#pixelimage022--no-vector-output) — PDF output from the painter — can no
 longer be satisfied by calling into it from `pixel`. When that entry is taken up, either the
-writer moves below both consumers or `pixel` grows its own, and that choice belongs to B-209.
+writer moves below both consumers or `pixel` grows its own, and that choice belongs to pixel.image.022.
 
 ---
 
 ## Tier A — Documents that do not open
 
-### B-468 — Encrypted documents are refused, including the empty-password case
+### gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
 - Intent: `indexDocument` fails the whole document as soon as an `/Encrypt` entry or a standard
   security handler is seen. A large share of production files are encrypted with an *empty* user
@@ -95,7 +95,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier B — Pages that do not render what they mean
 
-### B-469 — One unsupported construct loses the whole page
+### gui.pdf.002 — One unsupported construct loses the whole page
 
 - Intent: `loadPage` fails as a unit. A single JBIG2 scan, one CCITT logo, or one CMYK photograph
   anywhere in a content stream costs the caller the entire page, including the text and vectors
@@ -108,9 +108,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   be parsed at all.
 - Note: the messages reach a user through Swag Scope's failure reporting, so they are user-facing
   English and must read as such.
-- Related: B-478, B-479, B-480, B-481
+- Related: gui.pdf.011, gui.pdf.012, gui.pdf.013, gui.pdf.014
 
-### B-470 — Annotation appearance streams are never drawn
+### gui.pdf.003 — Annotation appearance streams are never drawn
 
 - Intent: `/Annots` is not read. Links, form widgets, stamps, highlights, sticky notes, redaction
   marks and signature appearances all live in annotation appearance streams, and none of them
@@ -121,9 +121,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   no-view flags honoured, and annotations without an appearance stream skipped rather than
   synthesized.
 - Note: draw appearances only. Never execute an `/AA`, an `/A` action, or embedded JavaScript.
-- Related: B-484
+- Related: gui.pdf.017
 
-### B-471 — Constant alpha and blend modes are ignored
+### gui.pdf.004 — Constant alpha and blend modes are ignored
 
 - Intent: `applyExtGState` reads `/LW` and `/Font` and nothing else. `/ca` and `/CA` are dropped,
   so a watermark set at ten percent is painted opaque and covers the text it was meant to sit
@@ -131,9 +131,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: fill and stroke constant alpha modulate the item's color through the graphics
   state stack, the separable blend modes the painter can express are honoured, and a blend mode it
   cannot express is recorded as a limitation rather than silently normalized.
-- Related: B-469, B-474
+- Related: gui.pdf.002, gui.pdf.007
 
-### B-472 — Axial and radial shadings are not painted
+### gui.pdf.005 — Axial and radial shadings are not painted
 
 - Intent: the `sh` operator falls through the content switch and paints nothing, and a shading
   pattern used as a fill paints nothing. Type 2 and type 3 shadings with sampled, exponential and
@@ -141,27 +141,27 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: `sh` paints an axial or radial shading through the current clip, a shading
   pattern selected by `scn` fills a path with the same code, the `/Function` types needed by those
   two are evaluated, and the remaining shading types are reported per item.
-- Related: B-473
+- Related: gui.pdf.006
 
-### B-473 — Tiling patterns are not painted
+### gui.pdf.006 — Tiling patterns are not painted
 
 - Intent: a type 1 pattern is a content stream tiled over a region — hatching in engineering
   drawings, texture fills in presentations. None of it is drawn.
 - Complete when: a tiling pattern's cell is decoded once through the existing content parser,
   tiled over the filled region under the pattern matrix, and both paint types are handled, with
   the uncolored form taking its color from the `scn` operands.
-- Related: B-472
+- Related: gui.pdf.005
 
-### B-474 — A soft mask named by an ExtGState is ignored
+### gui.pdf.007 — A soft mask named by an ExtGState is ignored
 
 - Intent: `/SMask` in an `ExtGState` establishes a luminosity or alpha mask from a transparency
   group and is how a soft-edged vignette, a feathered shadow, or a gradient-masked image is
   expressed. Image-level `/SMask` is handled; the graphics-state one is not read at all.
 - Complete when: a luminosity or alpha soft mask is rendered from its group and applied to
   subsequent marks, and `/None` restores the unmasked state.
-- Related: B-471
+- Related: gui.pdf.004
 
-### B-475 — Optional content is always drawn
+### gui.pdf.008 — Optional content is always drawn
 
 - Intent: `BDC`, `BMC` and `EMC` fall through the content switch and `/OC` on an XObject is not
   read, so every optional content group is painted whatever its default configuration says. A
@@ -171,7 +171,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   visible, marked-content sections and XObjects belonging to a hidden group are skipped, and the
   group list is exposed so a caller can override the configuration.
 
-### B-476 — A clip is only ever its bounding box
+### gui.pdf.009 — A clip is only ever its bounding box
 
 - Intent: `applyPendingClip` reduces the clip path to `controlBounds()`, which for a bezier
   includes its control points. The module documents this as deliberately conservative, and it is —
@@ -181,9 +181,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   capability exists one layer down.
 - Complete when: a non-rectangular clip path is carried to the painter as a region rather than a
   rectangle, nesting intersects regions, and the even-odd form of `W*` is distinguished from `W`.
-- Related: B-477
+- Related: gui.pdf.010
 
-### B-477 — Text render modes other than fill and invisible are drawn filled
+### gui.pdf.010 — Text render modes other than fill and invisible are drawn filled
 
 - Intent: `Tr` is stored and then only consulted to detect the invisible modes 3 and 7. Mode 1
   paints outlined text, mode 2 fills and strokes it, and modes 4 through 7 add the run to the clip
@@ -192,13 +192,13 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   renders as flat letters.
 - Complete when: an item carries its render mode, stroke and fill-and-stroke modes paint with the
   stroke color and width, and the clipping modes contribute the run's outline to the clip.
-- Related: B-476
+- Related: gui.pdf.009
 
 ---
 
 ## Tier B — Fonts a page cannot draw
 
-### B-478 — Type3 fonts are not decoded
+### gui.pdf.011 — Type3 fonts are not decoded
 
 - Intent: a Type3 font defines each glyph as a content stream under a `/FontMatrix`. Nothing here
   recognizes the subtype, so the run is handed to the substitute path, and its `/Widths` — which
@@ -212,7 +212,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier B — Images a page cannot decode
 
-### B-479 — A CMYK or YCCK JPEG fails the whole page
+### gui.pdf.012 — A CMYK or YCCK JPEG fails the whole page
 
 - Intent: a `DCTDecode` stream is handed to `Image.decode(".jpg", …)`, whose frame initializer
   reports `unsupported color space` for any frame that is not one or three components. Print-ready
@@ -223,38 +223,38 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   which is where the frame work belongs — the Adobe transform marker selects between them, the
   `/Decode` array is honoured for a DCT image as it is for a sampled one, and the corpus carries a
   CMYK fixture.
-- Related: B-469
+- Related: gui.pdf.002
 
-### B-480 — CCITT Group 3 and Group 4 images are refused
+### gui.pdf.013 — CCITT Group 3 and Group 4 images are refused
 
 - Intent: `CCITTFaxDecode` is named as an image codec and then rejected. It is the codec of
   scanned bilevel documents, which is a large fraction of the PDFs that exist at all; a scanned
   contract or invoice cannot be displayed.
 - Complete when: one and two dimensional Group 3 and Group 4 decoding is implemented over the
   `/DecodeParms` geometry, with `/BlackIs1`, byte alignment and damaged-row recovery.
-- Related: B-469
+- Related: gui.pdf.002
 
-### B-481 — JBIG2 images are refused
+### gui.pdf.014 — JBIG2 images are refused
 
 - Intent: `JBIG2Decode` is the modern successor to CCITT for scanned text, and is what recent
   scanner firmware and PDF optimizers emit.
 - Complete when: the generic region and text region decoding procedures are implemented, including
   the embedded stream form with a shared `/JBIG2Globals` segment.
-- Related: B-469, B-480
+- Related: gui.pdf.002, gui.pdf.013
 
-### B-482 — JPEG 2000 images are refused
+### gui.pdf.015 — JPEG 2000 images are refused
 
 - Intent: `JPXDecode` appears in print production and in some scanner output. It is the largest
   single decoder on this list and the rarest of the three, which is why it sits last.
 - Complete when: the codestream form used by PDF decodes, or the codec is removed from the
   recognized set and reported as a first-class limitation instead of being half-recognized.
-- Related: B-469
+- Related: gui.pdf.002
 
 ---
 
 ## Tier C — What a reader cannot say about a document
 
-### B-483 — A page's text cannot be extracted in reading order
+### gui.pdf.016 — A page's text cannot be extracted in reading order
 
 - Intent: `Item.textValue` returns one show-string at a time, in paint order, with no geometry
   beyond the item transform. There is no way to get a page's text as text, to find a string in it,
@@ -265,19 +265,19 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: a page yields its text with words and lines assembled from the item geometry
   rather than from the order the writer emitted, a search returns the page-space rectangles of
   each match, and each character maps back to a position so a selection can be drawn.
-- Related: B-484
+- Related: gui.pdf.017
 
-### B-484 — Outline, destinations, and link targets are not read
+### gui.pdf.017 — Outline, destinations, and link targets are not read
 
 - Intent: the catalog's `/Outlines`, its `/Names` destination tree and the `/Dest` or `/A` of a
   link annotation are never read, so a document has no navigable structure: no bookmarks pane, and
-  a link that is drawn (once B-470 lands) still cannot be followed.
+  a link that is drawn (once gui.pdf.003 lands) still cannot be followed.
 - Complete when: the outline is exposed as a tree of titles and targets, a named or explicit
   destination resolves to a page index and a page-space position, and a link annotation reports
   its target — an internal destination, a URI, or neither.
-- Related: B-470, B-483
+- Related: gui.pdf.003, gui.pdf.016
 
-### B-485 — Page labels, dates, and XMP metadata are not read
+### gui.pdf.018 — Page labels, dates, and XMP metadata are not read
 
 - Intent: `Metadata` carries the six Info strings. `/CreationDate` and `/ModDate` are not read, the
   `/Metadata` XMP stream is not read, and `/PageLabels` is not read — so a document numbered
@@ -290,7 +290,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier C — The writer
 
-### B-486 — Text output cannot leave Windows-1252 and the fourteen standard faces
+### gui.pdf.019 — Text output cannot leave Windows-1252 and the fourteen standard faces
 
 - Intent: `Page.addText` accepts UTF-8 and `windows1252` then fails the whole `save` on the first
   character outside that page. No font can be embedded. A document generator that cannot write
@@ -301,13 +301,13 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   searchable and copyable; the standard faces remain the default so a Latin document still carries
   no font program; and a character that cannot be represented is reported with enough context to
   name it.
-- Related: B-487, B-488
+- Related: gui.pdf.020, gui.pdf.021
 
-### B-487 — Pages cannot be merged, split, or reordered without being redrawn
+### gui.pdf.020 — Pages cannot be merged, split, or reordered without being redrawn
 
 - Intent: `Document` can add and remove whole `Page` values, but a page loaded from a reader has
   been decoded into items and can only be written back through the writer — which re-encodes its
-  text with a standard face, rasterizes nothing it cannot express, and loses everything in B-488.
+  text with a standard face, rasterizes nothing it cannot express, and loses everything in gui.pdf.021.
   Merging two documents and splitting one are the two most common things anyone does to a PDF, and
   neither can be done here without degrading the pages. There is also no insert-at-index and no
   reorder.
@@ -315,9 +315,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   content streams, resources and font programs carried across unchanged and renumbered — a page
   can be inserted at a position and moved, and a merge of two files that this module can open
   produces pages byte-identical in content to their sources.
-- Related: B-486, B-491
+- Related: gui.pdf.019, gui.pdf.024
 
-### B-488 — A decoded page loses its fill rule, its clips, and its intra-run positions
+### gui.pdf.021 — A decoded page loses its fill rule, its clips, and its intra-run positions
 
 - Intent: the round trip is lossier than it looks. `appendPath` emits `f`, `B` and `S` and never
   their star forms, so a path decoded with the even-odd rule is written back with the winding rule
@@ -328,9 +328,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: the even-odd rule survives a decode-encode cycle, a clipped item is written back
   inside `q W n … Q`, a text run is written as a `TJ` array carrying the retained per-code
   advances, and a round-trip test compares rendered pages rather than only re-reading the model.
-- Related: B-486, B-495
+- Related: gui.pdf.019, gui.pdf.030
 
-### B-489 — An image is always rewritten as a Flate raster
+### gui.pdf.022 — An image is always rewritten as a Flate raster
 
 - Intent: `encodeImagePixels` reduces every image to eight-bit gray or RGB and Flate-compresses
   it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
@@ -340,7 +340,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.
 
-### B-490 — Links, outline, and page labels cannot be written
+### gui.pdf.023 — Links, outline, and page labels cannot be written
 
 - Intent: the writer emits a catalog, a page tree, an info dictionary, content, fonts and images.
   There is no way to write a link, a bookmark, a page label, or a document date, so a generated
@@ -348,24 +348,24 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   for.
 - Complete when: a page can carry link annotations to a URI or to another page, a document can
   carry an outline tree and page labels, and `/CreationDate` and `/ModDate` are written.
-- Related: B-484, B-485
+- Related: gui.pdf.017, gui.pdf.018
 
-### B-491 — The writer emits only a classic cross-reference table
+### gui.pdf.024 — The writer emits only a classic cross-reference table
 
 - Intent: every object is written uncompressed with a classic `xref` table, so a document with
   many small objects is larger than it needs to be, and there is no way to save a change to an
-  existing file except by rewriting it whole — which, per B-487, degrades every page it did not
+  existing file except by rewriting it whole — which, per gui.pdf.020, degrades every page it did not
   originate.
 - Complete when: objects can be written into object streams behind a cross-reference stream, and a
   document opened from a file can be saved as an incremental update that appends rather than
   rewrites.
-- Related: B-487
+- Related: gui.pdf.020
 
 ---
 
 ## Tier D — Cost
 
-### B-158 — Decoding a page costs five times what MuPDF charges for it
+### gui.pdf.025 — Decoding a page costs five times what MuPDF charges for it
 
 - Evidence: measured against MuPDF 1.28.2 over the whole corpus, alternating the two so both see
   the same machine, in release configuration and taking the best of three. Opening the sixteen
@@ -383,9 +383,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   one image costs what a thousand text runs cost, and how much of that is the copy an image item
   takes rather than the decode itself.
 - Complete when: the corpus decodes within twice MuPDF, measured the same way.
-- Related: B-162
+- Related: gui.pdf.026
 
-### B-162 — An image is copied once per page item that shows it
+### gui.pdf.026 — An image is copied once per page item that shows it
 
 - Evidence: a decoded image is kept per document, so the second page showing a slide template
   does not decode it again — but it does copy it. `Item.image` is an owned `Image`, because
@@ -397,9 +397,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   exist, or a narrower ownership contract for `Page`, which is a decision rather than a change.
 - Complete when: showing the same image on a hundred pages costs one copy of it, or the entry is
   rewritten around the ownership decision that says it may not.
-- Related: B-493, B-158
+- Related: gui.pdf.028, gui.pdf.025
 
-### B-492 — Typefaces built for a document are never released
+### gui.pdf.027 — Typefaces built for a document are never released
 
 - Intent: the program is now hashed once, when the font is read, and the key travels on the
   `FontResource`. What remains is the other half: the typefaces registered in the process-wide
@@ -408,9 +408,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   back, so this needs an unregister on that side before it can be honoured here.
 - Complete when: `Pixel` can release a typeface it created, and the typefaces a document created
   are released with it.
-- Related: B-493
+- Related: gui.pdf.028
 
-### B-493 — An embedded font program is copied once per page that uses it
+### gui.pdf.028 — An embedded font program is copied once per page that uses it
 
 - Intent: the *work* of decoding a font is now paid once per document, but each page still takes
   its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
@@ -422,7 +422,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   a decoded font program is shared between the pages that reference the same font object, and a
   `Document` load of the corpus costs one copy per distinct program.
 
-### B-494 — A render cannot be cancelled or bounded in time
+### gui.pdf.029 — A render cannot be cancelled or bounded in time
 
 - Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
   with a pathological number of paths can take arbitrarily long. The interactive viewer no
@@ -435,7 +435,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier E — Proof
 
-### B-495 — No rendered page is compared against a golden
+### gui.pdf.030 — No rendered page is compared against a golden
 
 - Intent: `corpus.test.swg` renders 354 pages and asserts `image.isValid()`. That catches a crash
   and a hard failure and nothing else: every entry in Tier B above would pass it today, and so
@@ -444,9 +444,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: a representative page from each corpus family has a golden, the fixtures that
   exercise text, images, strokes and forms compare rendered output rather than model fields, and a
   round trip through the writer is judged on its rendered result.
-- Related: B-488
+- Related: gui.pdf.021
 
-### B-496 — The corpus has no malformed, hostile, or large document
+### gui.pdf.031 — The corpus has no malformed, hostile, or large document
 
 - Intent: every fixture is a well-formed file under three megabytes produced by a working writer.
   Nothing exercises a truncated stream, a cyclic page tree, a lying `/Length`, an object that
@@ -468,10 +468,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 launch or submit behaviour are read as data at most, and never run. This is a permanent boundary,
 not a gap.
 
-**Encryption authoring.** B-468 decrypts what a reader must open. Writing an encrypted document,
+**Encryption authoring.** gui.pdf.001 decrypts what a reader must open. Writing an encrypted document,
 and anything that would strip or weaken a permission a file declares, stays out.
 
-**Interactive form filling.** Drawing a form widget's appearance is B-470; a field model with
+**Interactive form filling.** Drawing a form widget's appearance is gui.pdf.003; a field model with
 values, validation, calculation order and appearance regeneration is a separate product and no
 consumer needs it.
 

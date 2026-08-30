@@ -6,7 +6,7 @@
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Core/DenseBits.h"
 
-// B-012: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005,
+// compiler.optimization.024: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005,
 // the allocator of HotSpot's client compiler), as a second allocation path the
 // pass selects per function, with the existing scan as the always-available
 // fallback. This file owns everything interval-shaped; the walk mutates

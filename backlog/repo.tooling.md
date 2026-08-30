@@ -5,7 +5,7 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### B-615 — Compiler builds and tool-driven runs are CPU-capped for the development machine
+### repo.tooling.001 — Compiler builds and tool-driven runs are CPU-capped for the development machine
 
 - Area: tooling
 - Found while: keeping the machine responsive while builds and test campaigns run alongside other work
@@ -13,7 +13,7 @@ being compiled by it.
 - Evidence: 22-logical-processor machine saturated by an unbounded `/MP` compile plus unbounded `swc` job managers; caps added 2026-08-13.
 - Next step: when the machine stops hosting several concurrent agents, or when the tools run on a dedicated CI machine, re-evaluate both caps — remove them so builds and campaigns take the whole machine again, or keep them behind an explicit opt-in.
 
-### B-640 — A differential harness must line pictures up by time, not by rank
+### repo.tooling.002 — A differential harness must line pictures up by time, not by rank
 
 - Area: tooling
 - Found while: measuring the video library against FFmpeg.
@@ -29,7 +29,7 @@ being compiled by it.
 - Next step: make the differential harness record the timestamp of each reference picture and ask
   this reader for the rank that carries it before comparing decoded pixels.
 
-### B-641 — A Matroska fixture cannot state what a real file states about itself
+### repo.tooling.003 — A Matroska fixture cannot state what a real file states about itself
 
 - Area: tooling
 - Found while: fixing two defects a real film exposed and trying to pin them with a fixture
@@ -52,10 +52,10 @@ being compiled by it.
   for exactly the header a defect needs. `std/video` already writes Matroska nowhere, so this is
   test tooling rather than a module feature.
 
-### B-013 — A tool relaunched under the selected compiler can relaunch itself forever
+### repo.tooling.004 — A tool relaunched under the selected compiler can relaunch itself forever
 
 - Area: tooling
-- Found while: building the standard library under the interval allocator gate for B-012's A/B.
+- Found while: building the standard library under the interval allocator gate for compiler.optimization.024's A/B.
 - Observation: `relaunchToolIfNeeded` (`tools/src/context.swg`) re-runs the script under the
   selected compiler with `--rebuild` whenever the running executable differs from the selected
   one, and nothing marks the relaunched process as such. When that decision misfires in the

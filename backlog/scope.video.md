@@ -7,7 +7,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ## Professional transport
 
-### B-117 — Video playback has no speed or pitch policy
+### scope.video.001 — Video playback has no speed or pitch policy
 
 - Evidence: playback runs at the stream rate only. There is no 0.25x–4x selector, frame-rate
   override, pitch-preserving audio mode, or indication of the frame-drop/duplication policy.
@@ -17,7 +17,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   A/V sync and subtitle timing hold at supported rates, frame scheduling declares drops, and reset
   returns exactly to 1x.
 
-### B-118 — Video has no previous/next frame or exact time/frame address
+### scope.video.002 — Video has no previous/next frame or exact time/frame address
 
 - Evidence: Left/Right seek by ten seconds and the timeline seeks approximately. A reader cannot
   step one decoded frame while paused, enter a timestamp, seek to a presentation frame/index, or
@@ -28,17 +28,17 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   validate their interpretation, variable-frame-rate content never invents a constant mapping, and
   the current PTS/DTS/keyframe state is inspectable.
 
-### B-119 — Video cannot mark or loop an A/B range
+### scope.video.003 — Video cannot mark or loop an A/B range
 
 - Evidence: the timeline carries only a playhead. There is no set A/B, range selection, loop,
   play-once selection, or duration readout for a scene under inspection.
-- Next: reuse the source-time range contract from B-107 on the video clock and seek pipeline.
+- Next: reuse the source-time range contract from scope.audio.002 on the video clock and seek pipeline.
 - Complete when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
   preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range
   restores normal end behavior.
-- Related: B-107
+- Related: scope.audio.002
 
-### B-120 — Chapters, editions, markers, and seek history are absent
+### scope.video.004 — Chapters, editions, markers, and seek history are absent
 
 - Evidence: container chapters and Matroska editions are not surfaced, and repeated seeks have no
   back/forward history or temporary bookmarks.
@@ -48,7 +48,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   back/forward preserve exact times; invalid/overlapping chapters warn; and bookmarks export without
   modifying the video.
 
-### B-121 — Timeline seeking has no thumbnails or buffered/decode-cost feedback
+### scope.video.005 — Timeline seeking has no thumbnails or buffered/decode-cost feedback
 
 - Evidence: dragging shows a time position only. There is no hover/scrub thumbnail, keyframe marks,
   buffered range, pending-seek state, decode distance, or distinction between exact and approximate
@@ -61,7 +61,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ## Presentation and tracks
 
-### B-122 — Aspect ratio, crop, rotation, mirroring, and zoom cannot be corrected
+### scope.video.006 — Aspect ratio, crop, rotation, mirroring, and zoom cannot be corrected
 
 - Evidence: frames fit the available view using decoded geometry. The reader cannot inspect or
   override sample/display aspect ratio, rotation metadata, clean aperture, crop, zoom, pan, mirror,
@@ -72,19 +72,19 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   reversible, pan/zoom is bounded, subtitle placement follows display geometry, and screenshots
   use the chosen explicit transform.
 
-### B-123 — Color, HDR, range, chroma, and deinterlace decisions are invisible
+### scope.video.007 — Color, HDR, range, chroma, and deinterlace decisions are invisible
 
 - Evidence: the summary names codec and CPU decoder but not matrix, primaries, transfer, full versus
   limited range, chroma location, bit depth, HDR metadata, tone mapping, or interlace handling.
-  B-564 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
+  std.video.006 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
 - Next: surface stream color/interlace metadata and conversion path, then add safe temporary
   override and comparison controls as the video/pixel pipelines support them.
 - Complete when: source and output color facts are inspectable, unspecified values state defaults,
   HDR/tone-map and deinterlace modes are explicit, overrides reset cleanly, and a test chart verifies
   range and matrix handling.
-- Related: B-207, B-314, B-316, B-564
+- Related: pixel.image.018, pixel.image.019, pixel.image.021, std.video.006
 
-### B-124 — Subtitle files can only be auto-discovered, not deliberately loaded and managed
+### scope.video.008 — Subtitle files can only be auto-discovered, not deliberately loaded and managed
 
 - Evidence: same-stem sidecars are discovered and a menu selects embedded or found tracks. There is
   no Open Subtitle File, reload after edit, encoding override, multiple simultaneous tracks,
@@ -94,9 +94,9 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Complete when: arbitrary supported sidecars can be attached/reloaded/detached, encoding and FPS
   policy are visible, primary and secondary tracks can coexist, parse warnings link to cues, and
   language preference persists without hiding other tracks.
-- Related: B-060, B-061
+- Related: scope.text.012, scope.text.013
 
-### B-125 — Audio synchronization and channel output cannot be inspected or corrected
+### scope.video.009 — Audio synchronization and channel output cannot be inspected or corrected
 
 - Evidence: subtitle delay is adjustable, but audio delay is not. Track entries show codec,
   channels, and rate while channel layout, downmix matrix, language/default/forced flags, loudness,
@@ -106,24 +106,24 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Complete when: delay adjusts in fine and coarse steps, current drift and selected layout are
   visible, track flags/language/title are preserved, downmix policy is inspectable, and reset returns
   to container timing.
-- Related: B-633, B-110
+- Related: scope.video.016, scope.audio.005
 
-### B-126 — Track and stream metadata have no complete media-information panel
+### scope.video.010 — Track and stream metadata have no complete media-information panel
 
 - Evidence: the host summary compresses picture size, codec, FPS, frame count, and one audio detail.
   Container brands, duration provenance, bitrate, time base, frame-rate mode, codec profile/level,
   pixel format, track IDs, language/flags, tags, attachments, chapters, and decoder warnings are not
   presented together.
-- Next: define a container/stream metadata tree and publish it through B-046 without coupling it to
+- Next: define a container/stream metadata tree and publish it through scope.viewers.006 without coupling it to
   transport widgets.
 - Complete when: container plus every stream has exact technical metadata and original tags,
   derived values identify their source, attachments open safely, warnings link to track/time where
   possible, and the report can be copied/exported.
-- Related: B-046
+- Related: scope.viewers.006
 
 ## Capture, performance, and continuity
 
-### B-127 — A frame cannot be copied, saved, or compared
+### scope.video.011 — A frame cannot be copied, saved, or compared
 
 - Evidence: there is no snapshot, Copy Frame, Save Frame, contact sheet, or compare-two-frames
   command, despite decoded frames already existing in memory.
@@ -132,20 +132,20 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Complete when: output names source timestamp/frame, decoded pixel format, transform, color
   conversion, and subtitle inclusion; contact-sheet sampling is configurable and cancellable; and
   two frames can open in the image comparison surface.
-- Related: B-101, B-104
+- Related: scope.image.006, scope.image.009
 
-### B-128 — Playback position and track choices are not resumed safely
+### scope.video.012 — Playback position and track choices are not resumed safely
 
 - Evidence: closing or replacing a video loses time, rate, volume/mute, audio/subtitle track,
   subtitle settings, and view transform. Blindly restoring by path would apply stale time to a
   replaced file or resume near credits without consent.
 - Next: specify media state fields, stable stream matching, identity checks, completion threshold,
-  and privacy controls on top of B-043.
+  and privacy controls on top of scope.viewers.003.
 - Complete when: opted-in resume restores a compatible position and tracks, completed media restarts
   according to policy, replacement identity clears stale state, and one action forgets history.
-- Related: B-043
+- Related: scope.viewers.003
 
-### B-129 — Video decode and presentation have no selectable performance path
+### scope.video.013 — Video decode and presentation have no selectable performance path
 
 - Evidence: the detail line explicitly says `Swag CPU`; there is no hardware-decoder path, GPU
   upload/presentation mode, dropped/late frame counter, decode queue telemetry, power policy, or
@@ -162,7 +162,7 @@ or [std.audio.md](std.audio.md); this file owns how those capabilities reach the
 
 ## Playback coverage and fallback
 
-### B-464 — WebM and VP9/AV1 Matroska video cannot be played
+### scope.video.014 — WebM and VP9/AV1 Matroska video cannot be played
 
 - Intent: Matroska now plays H.264, H.265, or MPEG-4 Part 2 with selectable AAC-LC, AC-3, E-AC-3,
   DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus tracks through a compact EBML block index. WebM,
@@ -171,11 +171,11 @@ or [std.audio.md](std.audio.md); this file owns how those capabilities reach the
   what remains is picture and sound codec support rather than another container design.
 - Complete when: the `Video` viewer shows the picture with transport, a seekable timeline and the
   frame position for VP9 or AV1 in WebM and Matroska, and the registry moves those extensions off
-  the binary line for playback while B-459 keeps the structure reader available as a second
+  the binary line for playback while scope.binary.011 keeps the structure reader available as a second
   viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
-- Related: B-459
+- Related: scope.binary.011
 
-### B-568 — An unsupported picture codec hides sound tracks the application can play
+### scope.video.015 — An unsupported picture codec hides sound tracks the application can play
 
 - Intent: a container currently fails as a video document when its picture codec is unavailable,
   even if one of its sound tracks has a registered decoder. The measured library exposes this with
@@ -183,14 +183,14 @@ or [std.audio.md](std.audio.md); this file owns how those capabilities reach the
 - Complete when: Swag Scope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
   unchanged when both sides are supported.
-- Related: B-565 in [std.video.md](std.video.md)
+- Related: std.video.007 in [std.video.md](std.video.md)
 
 ## Real-device validation
 
-### B-633 — Audio-to-video synchronisation has never been observed against a real output device
+### scope.video.016 — Audio-to-video synchronisation has never been observed against a real output device
 
 - Area: apps/swagscope
-- Found while: B-526, after the video viewer started presenting against the audio clock.
+- Found while: std.video.001, after the video viewer started presenting against the audio clock.
 - Observation: the viewer presents each picture at the time the sound has reached, and nothing has
   yet confirmed that the time the sound reports is the time it is playing. On this machine the
   played-sample counter of a source voice stays at zero for a whole run even with buffers queued

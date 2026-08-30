@@ -9,7 +9,7 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 
 ## Borrow invalidation
 
-### B-019 — A pointer read out of a container is judged to view the container
+### compiler.safety.001 — A pointer read out of a container is judged to view the container
 
 - Area: compiler/sema, `SemaEscape`
 - Found while: making a written `#[Inline]` honored across files (2026-08-28), which lets the

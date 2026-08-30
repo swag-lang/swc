@@ -67,7 +67,7 @@ namespace
 
     // Both allocators owe the same contract - no virtual register left, and every
     // physical one belonging to the call convention - so every case is run through
-    // each of them. The build configuration is what selects one (B-012).
+    // each of them. The build configuration is what selects one (compiler.optimization.024).
     Result runCase(TaskContext& ctx, const BuildCaseFn& buildFn)
     {
         // O0 keeps the scan that assigns one register per value; from O1 the

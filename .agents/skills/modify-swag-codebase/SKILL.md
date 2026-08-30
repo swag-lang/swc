@@ -100,31 +100,29 @@ local workaround merely because the original request exposed it indirectly.
   record vague wishes.
 - Search the whole backlog before adding an entry. Enrich an existing item instead of creating a
   duplicate.
-- Give the new entry the identifier the `Next identifier` line in
-  [backlog/README.md](../../../backlog/README.md) names, then advance that line. See the rule below.
+- Give the new entry the next file-scoped identifier for its domain. See the rule below.
 
 The backlog is not a promise that every observed lead will be implemented, and not a substitute for
 fixing a root cause that is already safe and in scope.
 
 ## Number Every Entry
 
-Every backlog entry carries a permanent identifier in its heading:
+Every backlog entry carries a stable, file-scoped identifier in its heading:
 
 ```
-### B-023 — A menu bar does not follow a live language switch
+### std.gui.051 — A menu bar does not follow a live language switch
 ```
 
 The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
 another backlog entry, in a code comment. A title, position, or next action can change; the
 identifier does not.
 
-- Take the `B` identifier from the `Next identifier` line in
-  [backlog/README.md](../../../backlog/README.md), then advance that line. It is a counter, not an
-  entry count: it keeps rising as entries are deleted.
-- Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
-  old commit message still means what it meant.
-- Every active entry uses `B-*`. The former `T-*` and `F-*` families are closed and must not appear
-  in current backlog entries or references.
+- Derive the prefix from the domain file name without `.md`: `std.gui.md` owns `std.gui.*`.
+- Use exactly three digits. Allocate one more than the greatest suffix ever used in that file;
+  deleted suffixes remain retired. The README is an index and contract, not a counter registry.
+- Never renumber or reuse an identifier while an entry remains in its file. If an entry moves to a
+  different domain, allocate the destination file's next suffix and update every live reference
+  and Markdown fragment in the same change.
 - Position expresses expected value where entries are comparable. Put an untriaged lead at the end
   of the closest relevant section until its priority is understood, then move it without changing
   its identifier.

@@ -22,7 +22,7 @@ module's roadmap.
 
 ## Tier A — Block I/O throughput
 
-### B-236 — No block cache
+### app.vault.001 — No block cache
 
 - Owner: Swag Vault
 - Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
@@ -39,7 +39,7 @@ module's roadmap.
 
 ## Tier B — Automatic and forced unmounting
 
-### B-239 — A busy volume cannot be forcibly unmounted
+### app.vault.002 — A busy volume cannot be forcibly unmounted
 
 - Owner: Swag Vault
 - Add an explicit forced-unmount flow when an open handle keeps a volume busy, including user
@@ -50,7 +50,7 @@ module's roadmap.
 
 ## Tier B — Credentials
 
-### B-240 — Additional password slots are not in the interface
+### app.vault.003 — Additional password slots are not in the interface
 
 - Owner: Swag Vault
 - Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
@@ -63,7 +63,7 @@ module's roadmap.
 
 ## Tier B — Container maintenance
 
-### B-241 — Header backup and restore
+### app.vault.004 — Header backup and restore
 
 - Owner: Swag Vault
 - Problem: the key slots and both header slots live in the same file, in its first megabytes. One
@@ -75,7 +75,7 @@ module's roadmap.
 
 ## Tier B — Filesystem concurrency
 
-### B-242 — Filesystem mutations still use one volume-wide lock
+### app.vault.005 — Filesystem mutations still use one volume-wide lock
 
 - Owner: Swag Vault
 - Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
@@ -89,7 +89,7 @@ module's roadmap.
 
 ## Tier C — Format design and resilience
 
-### B-243 — Hidden volume
+### app.vault.006 — Hidden volume
 
 - Owner: Swag Vault
 - The format already permits it: the container is entirely random, carries no magic, and derives
@@ -101,48 +101,48 @@ module's roadmap.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### B-244 — No normative container-format specification
+### app.vault.007 — No normative container-format specification
 
 - Owner: Swag Vault
 - Write a normative format document independent of the implementation, covering layout, key
   derivation, record framing, validation order, versioning, and failure indistinguishability.
-- Related: B-360, B-361, B-362, B-363, B-246
+- Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
 
-### B-360 — No published Swag Vault format test vectors
+### app.vault.008 — No published Swag Vault format test vectors
 
 - Owner: Swag Vault
 - Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
   containers so independent implementations can be compared.
-- Related: B-244, B-246
+- Related: app.vault.007, app.vault.012
 
-### B-361 — Attacker-controlled container decoders are not fuzzed
+### app.vault.009 — Attacker-controlled container decoders are not fuzzed
 
 - Owner: Swag Vault
 - Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
   reproducible corpora and sanitizer coverage.
-- Related: B-244, B-246
+- Related: app.vault.007, app.vault.012
 
-### B-362 — Crash tests do not cover torn records or checkpoint kills
+### app.vault.010 — Crash tests do not cover torn records or checkpoint kills
 
 - Owner: Swag Vault
 - Extend crash consistency beyond between-operation snapshots to torn writes inside a record and
   process termination during checkpointing.
-- Related: B-244
+- Related: app.vault.007
 
 ## Tier C — Scale and independent assurance
 
-### B-363 — Metadata scaling stops at 1,200 files
+### app.vault.011 — Metadata scaling stops at 1,200 files
 
 - Owner: Swag Vault
 - Add a bounded performance and correctness test at one hundred thousand files.
-- Related: B-236, B-244
+- Related: app.vault.001, app.vault.007
 
 
 
-### B-246 — External audit
+### app.vault.012 — External audit
 
 - Owner: project
-- After B-244. Until it happens, the format and the implementation have had no independent
+- After app.vault.007. Until it happens, the format and the implementation have had no independent
   cryptographic review, and Swag Vault is not a proven replacement for VeraCrypt on critical data — no
   matter what else on this list ships.
 

@@ -14,7 +14,7 @@ ships; history lives in git, not here.
 
 ## Data modeling and exhaustive control flow
 
-### B-174 — Enum switches are silently non-exhaustive
+### language.design.001 — Enum switches are silently non-exhaustive
 
 - A `switch` over a three-value enum that handles two of them compiles with no error, no warning,
   and no `default`; the third value simply falls through to nothing. Exhaustiveness exists but is
@@ -28,7 +28,7 @@ ships; history lives in git, not here.
   rides on the warning policy layer that now exists (`#[Swag.Warning]`, `cfg.warnings`,
   `--warn-*`) — without one, the only two answers available are "error" and "silence".
 
-### B-175 — There is no tagged union
+### language.design.002 — There is no tagged union
 
 - `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written is legal and meaningless
@@ -42,39 +42,39 @@ ships; history lives in git, not here.
   ([painter.swg:147-149](../bin/std/modules/pixel/src/painter/painter.swg#L147-L149)). Nothing
   checks that sentence. Rust, Swift, Zig and modern C# all consider the checked version table
   stakes; it is arguably the single largest expressiveness gap in the language.
-- It interacts with B-174 (a tagged union is where exhaustive matching earns its keep) and with
+- It interacts with language.design.001 (a tagged union is where exhaustive matching earns its keep) and with
   the error-handling design already shipped (`fail`/`try`/`catch`), which chose a different axis
   and should not be re-litigated by the same feature.
 
 ## Generic contracts and execution semantics
 
-### B-176 — The generic instantiation chain omits the call site
+### language.design.003 — The generic instantiation chain omits the call site
 
 - The diagnostic is already better than most: it reports the error inside the generic *and*
   attaches a note naming the specialization (`while checking generic function 'doubleIt' with
   T = Point`). What it does not do is name the call site that caused the instantiation — the one
   line the user has to change. Adding that frame to the instantiation chain is a small, immediate
   win.
-- Related: B-257
+- Related: language.design.004
 
-### B-257 — Generic constraints cannot name a required interface
+### language.design.004 — Generic constraints cannot name a required interface
 
 `where` is a compile-time boolean over generic parameters
 ([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)).
 There is no declaration-site way to state that `T` must provide a member or satisfy a named
 contract, so a missing operation fails only inside an instantiation. Decide named contracts versus
-predicates after B-176 makes the current model's diagnostics complete.
+predicates after language.design.003 makes the current model's diagnostics complete.
 
-- Related: B-176
+- Related: language.design.003
 
-### B-177 — The concurrency model is undecided
+### language.design.005 — The concurrency model is undecided
 
-- The library omissions are split into B-195 (tasks), B-286 (channels), B-287 (condition
-  variables), and B-288 (asynchronous I/O). This entry owns only the language-level concurrency
+- The library omissions are split into std.core.025 (tasks), std.core.026 (channels), std.core.027 (condition
+  variables), and std.core.028 (asynchronous I/O). This entry owns only the language-level concurrency
   decision that must precede those API choices.
 - Go answered with goroutines and channels, Rust with `async` and a futures machinery that reaches
   into the type system, .NET with `Task`. Each answer changed the language, not just the library.
-- The forcing function is already scheduled: [B-190](std.core.md#b-190--no-blocking-tcp-sockets) puts
+- The forcing function is already scheduled: [std.core.001](std.core.md#stdcore001--no-blocking-tcp-sockets) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.
 
@@ -101,7 +101,7 @@ with exactly one language and keeps deliberately.
 
 ## Binding, defaults, and local control flow
 
-### B-580 — Positional destructuring binds by position even when every name matches a field
+### language.design.006 — Positional destructuring binds by position even when every name matches a field
 
 - Area: language
 - Found while: a reading pass over the whole language reference
@@ -134,7 +134,7 @@ with exactly one language and keeps deliberately.
   [007_008_retval.swg:49](../bin/reference/modules/language/src/007_008_retval.swg#L49), where the
   names read as field names and happen to be in order.
 
-### B-581 — One default in a grouped declaration silently defaults every name in the group
+### language.design.007 — One default in a grouped declaration silently defaults every name in the group
 
 - Area: language
 - Found while: the same pass
@@ -162,7 +162,7 @@ with exactly one language and keeps deliberately.
 
 ## Value and conversion semantics
 
-### B-582 — Mixing a signed and an unsigned operand of the same width converts the signed one
+### language.design.008 — Mixing a signed and an unsigned operand of the same width converts the signed one
 
 - Area: language
 - Found while: the same pass
@@ -192,7 +192,7 @@ with exactly one language and keeps deliberately.
 
 ## Failure handling
 
-### B-583 — Error propagation has three spellings, one of them invisible and one context-dependent
+### language.design.009 — Error propagation has three spellings, one of them invisible and one context-dependent
 
 - Area: language
 - Found while: the same pass
@@ -218,7 +218,7 @@ with exactly one language and keeps deliberately.
   the second, `expect` already exists and says what it means; the `#test` aliasing buys three saved
   characters and costs a reader the ability to read one line in isolation.
 
-### B-584 — `catch` without a capture substitutes the type default and says nothing
+### language.design.010 — `catch` without a capture substitutes the type default and says nothing
 
 - Area: language
 - Found while: the same pass
@@ -245,7 +245,7 @@ with exactly one language and keeps deliberately.
 
 ## Overloaded syntax and declaration rules
 
-### B-585 — The apostrophe carries three unrelated roles
+### language.design.011 — The apostrophe carries three unrelated roles
 
 - Area: language
 - Found while: the same pass
@@ -273,7 +273,7 @@ with exactly one language and keeps deliberately.
   carry a copy of the same lookbehind rule, that is the argument for a distinct generic-argument
   spelling.
 
-### B-586 — The leading dot carries four unrelated roles
+### language.design.012 — The leading dot carries four unrelated roles
 
 - Area: language
 - Found while: the same pass
@@ -287,7 +287,7 @@ with exactly one language and keeps deliberately.
   block and switching on an enum, three of them are live at once, and the resolution order between
   `with` and `me` had to be fixed by hand in the compiler.
 - Evidence: the ordering fix is in the tree (`Sema.Member.Auto.cpp`), and the ambiguous-`.member`
-  diagnostic is already a separate finding (B-571 in
+  diagnostic is already a separate finding (compiler.core.019 in
   [compiler.core.md](compiler.core.md)).
 - Elsewhere: the languages with a leading dot give it exactly one rule. Swift's `.member` is
   implicit-member lookup on the contextual type, and Zig's `.Field` is resolved by the expected
@@ -302,7 +302,7 @@ with exactly one language and keeps deliberately.
   precedence table in the reference — one place stating which subject a leading dot binds to, in
   which order — rather than four pages that each mention their own case.
 
-### B-587 — A `switch` accepts several `default` clauses
+### language.design.013 — A `switch` accepts several `default` clauses
 
 - Area: language
 - Found while: the same pass
@@ -331,7 +331,7 @@ with exactly one language and keeps deliberately.
   Check whether `default where` can be spelled that way instead and `default` restored to exactly
   one unguarded arm — a small change with a mechanical migration, if `bin/` does not lean on it.
 
-### B-588 — The slice upper bound is inclusive
+### language.design.014 — The slice upper bound is inclusive
 
 - Area: language
 - Found while: the same pass
@@ -358,7 +358,7 @@ with exactly one language and keeps deliberately.
   `bin/`, and check whether the off-by-one it invites shows up in the test corpus. That number
   decides whether this is a wart or a trap.
 
-### B-589 — `#[Swag.EnumFlags]` silently renumbers every member
+### language.design.015 — `#[Swag.EnumFlags]` silently renumbers every member
 
 - Area: language
 - Found while: the same pass
@@ -384,7 +384,7 @@ with exactly one language and keeps deliberately.
 
 ## Strings, mixins, and macros
 
-### B-590 — `++` is compile-time only, and there is no runtime string concatenation at all
+### language.design.016 — `++` is compile-time only, and there is no runtime string concatenation at all
 
 - Area: language
 - Found while: the same pass
@@ -411,7 +411,7 @@ with exactly one language and keeps deliberately.
   judged on its own merits — as a constant-folding operator that a `#[Swag.ConstExpr]` function
   could arguably provide instead.
 
-### B-591 — Mixins resolve their body in the caller's scope
+### language.design.017 — Mixins resolve their body in the caller's scope
 
 - Area: language
 - Found while: the same pass
@@ -439,7 +439,7 @@ with exactly one language and keeps deliberately.
 - Related: `#uniq0`..`#uniq9` exist precisely to work around the collisions this creates, and there
   are exactly ten of them.
 
-### B-592 — A macro can redefine `break` and `continue` inside the block the caller wrote
+### language.design.018 — A macro can redefine `break` and `continue` inside the block the caller wrote
 
 - Area: language
 - Found while: the same pass
@@ -466,7 +466,7 @@ with exactly one language and keeps deliberately.
 
 ## Cross-feature semantic consistency
 
-### B-593 — `if let x = f() where cond` reads as a conjunction and is not one
+### language.design.019 — `if let x = f() where cond` reads as a conjunction and is not one
 
 - Area: language
 - Found while: the same pass
@@ -492,7 +492,7 @@ with exactly one language and keeps deliberately.
   non-nullable operand
   ([003_006_operators.swg:209-227](../bin/reference/modules/language/src/003_006_operators.swg#L209-L227)).
 
-### B-594 — There are two metaprogramming systems and they do not meet
+### language.design.020 — There are two metaprogramming systems and they do not meet
 
 - Area: language
 - Found while: the same pass
@@ -522,7 +522,7 @@ with exactly one language and keeps deliberately.
 
 ## Literal typing
 
-### B-600 — The base a number is written in decides its signedness
+### language.design.021 — The base a number is written in decides its signedness
 
 - Area: language
 - Found while: a second reading pass over the reference, checking what the type of a literal depends
@@ -531,7 +531,7 @@ with exactly one language and keeps deliberately.
   binary one is an unsized constant of *unsigned* sign. Both adapt to an imposed type, so the
   difference is invisible wherever the target is written down — and it becomes the constant's real
   type the moment nobody writes one. `const Mask = 0xF0` is a `u32`, `const Mask = 240` is an `s32`,
-  and from there the difference travels into every expression the constant enters, where B-582's
+  and from there the difference travels into every expression the constant enters, where language.design.008's
   "the unsigned type wins" rule applies it to the other operand. The reference documents the
   defaulting ("hexadecimal or binary literals default to type `u32`"
   ([003_002_number_literals.swg:38-57](../bin/reference/modules/language/src/003_002_number_literals.swg#L38-L57)))
@@ -569,13 +569,13 @@ with exactly one language and keeps deliberately.
 - Next step: decide whether the base should pin the sign, or only the width. The cheap experiment is
   to build `swc` with the hex and binary paths using `Sign::Unknown` like the decimal one and run
   the suites: what breaks is the set of places relying on a bare `0x...` being unsigned, and that
-  number is the argument either way. If the rule stays, B-582's proposed warning at a
+  number is the argument either way. If the rule stays, language.design.008's proposed warning at a
   mixed-signedness operator covers the damage, and the `#print`-visible surprise is worth one
   sentence on the number-literals page.
-- Related: [B-582](#b-582--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
+- Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
   is what turns the difference into arithmetic.
 
-### B-601 — The width of an inferred float literal depends on its digits
+### language.design.022 — The width of an inferred float literal depends on its digits
 
 - Area: language
 - Found while: the same pass
@@ -618,7 +618,7 @@ with exactly one language and keeps deliberately.
 
 ## Conversions the call site does not show
 
-### B-602 — A blank `cast()` performs whatever conversion the target turns out to need
+### language.design.023 — A blank `cast()` performs whatever conversion the target turns out to need
 
 - Area: language
 - Found while: the same pass
@@ -654,7 +654,7 @@ with exactly one language and keeps deliberately.
   same-kind narrowing, and that a float-to-integer truncation needs its type written. That keeps the
   convenience where it is a convenience and removes it where it is a silent behaviour change.
 
-### B-603 — A `#move` parameter accepts a plain value and copies it
+### language.design.024 — A `#move` parameter accepts a plain value and copies it
 
 - Area: language
 - Found while: the same pass
@@ -689,7 +689,7 @@ with exactly one language and keeps deliberately.
 
 ## Declining and leaking
 
-### B-604 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
+### language.design.025 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
 
 - Area: language
 - Found while: the same pass
@@ -701,7 +701,7 @@ with exactly one language and keeps deliberately.
   scopes its binding to the branch, `for` to the body, `switch ... as` to the case. The consequence
   the reference states — two catches in one scope collide — is the visible half; the invisible half
   is that the name is live for the rest of the block whether or not it was read, so the "did I look
-  at the error" question B-584 wants to ask has nowhere to be asked from.
+  at the error" question language.design.010 wants to ask has nowhere to be asked from.
 - Evidence: the reference's own paragraph, and its `blockCatchCode` example, where `err` is declared
   by a `catch { ... } as err` block and tested two statements later
   ([013_001_error_management.swg:148-160](../bin/reference/modules/language/src/013_001_error_management.swg#L148-L160)).
@@ -712,17 +712,17 @@ with exactly one language and keeps deliberately.
   be re-declared or reassigned per scope is the same collision problem, solved by making the
   declaration visible. Even the constructs that deliberately extend a binding's reach — C's
   `for (int i = ...)`, C++17's `if (auto x = f(); x)` — scope inward, never outward.
-- Next step: this is worth settling together with B-584, since both are about what happens to a
+- Next step: this is worth settling together with language.design.010, since both are about what happens to a
   caught error nobody looked at. The narrow question here is whether the capture could scope to the
   statement plus the statements dominated by its test — which is what every use in the reference
   actually needs — and whether anything in `bin/` reads an `err` outside the block that produced it.
   Count that first; if the answer is nothing, the change is a scope narrowing with a mechanical
   migration.
-- Related: [B-584](#b-584--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
+- Related: [language.design.010](#languagedesign010--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
 
 ## Types and bindings that do not own what they name
 
-### B-605 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
+### language.design.026 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
 
 - Area: language
 - Found while: the same pass
@@ -747,13 +747,13 @@ with exactly one language and keeps deliberately.
   cheap guard is a warning when the two appear in one module's public surface, since the cost lands
   on the consumer who cannot see the declarations side by side.
 
-### B-606 — The index binding has three different integer types depending on what is iterated
+### language.design.027 — The index binding has three different integer types depending on what is iterated
 
 - Area: language
 - Found while: the same pass, while reviewing index bindings
 - Observation: one role, three types. Binding the index over a collection gives a `u64`, over a
   counted loop a `u32`, and over a range an `s32`. Nothing at the use site distinguishes the three,
-  and the difference is exactly the one B-582 turns into arithmetic: an index that is unsigned in
+  and the difference is exactly the one language.design.008 turns into arithmetic: an index that is unsigned in
   two of the three forms, next to a `.count` that is always `u64` and a signed computation that is
   `s32`. The reference asserts the collection case (`#assert(#typeof(index) == u64)`
   ([005_003_for_elements.swg:29-40](../bin/reference/modules/language/src/005_003_for_elements.swg#L29-L40)))
@@ -787,7 +787,7 @@ with exactly one language and keeps deliberately.
 
 ## Where a move can land
 
-### B-621 — A moved value cannot initialize an aggregate literal field or a conditional branch
+### language.design.028 — A moved value cannot initialize an aggregate literal field or a conditional branch
 
 - Area: language
 - Found while: fixing a case where those two expressions asserted in code generation instead of
@@ -812,7 +812,7 @@ with exactly one language and keeps deliberately.
 
 ## What a payload pointer promises
 
-### B-631 — '.buffer' answers a non-null pointer for a payload that can be absent
+### language.design.029 — '.buffer' answers a non-null pointer for a payload that can be absent
 
 - Area: language
 - Found while: widening the never-null condition rule. The `bin/` sweep it forced stopped

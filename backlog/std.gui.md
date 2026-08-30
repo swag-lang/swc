@@ -34,68 +34,68 @@ That is a real toolkit. The gaps below are not about widget count.
 
 ## Tier B — Clipboard and resource overrides
 
-### B-393 — Clipboard data cannot represent virtual files
+### std.gui.001 — Clipboard data cannot represent virtual files
 
 Expose the same virtual-file descriptor and deferred contents through clipboard ownership without
 making clipboard completion depend on drag interaction.
 
-- Related: B-226
+- Related: platform.portability.068
 
-### B-198 — Vector resource overrides bypass the parsed cache
+### std.gui.002 — Vector resource overrides bypass the parsed cache
 
 The resource and language systems ship, but a disk override of `theme/widgets.svg` or
 `theme/icons.svg` registers in the bundle while rasterization still uses the process-wide parsed
 cache. Make vector overrides invalidate and replace that cache like fonts, theme sheets, and
 language files already do.
 
-- Related: B-328, B-329
+- Related: std.gui.003, std.gui.004
 
 ## Tier B — Localization
 
-### B-328 — Construction-time text does not automatically retranslate
+### std.gui.003 — Construction-time text does not automatically retranslate
 
 Define an automatic binding or required notification contract for text that was resolved once at
 construction. Command-driven surfaces and explicitly rebuilt grids already refresh; static text
 must not depend on each application remembering a manual handler.
 
-- Related: B-198, B-329
+- Related: std.gui.002, std.gui.004
 
-### B-329 — French is the only shipped GUI translation
+### std.gui.004 — French is the only shipped GUI translation
 
 Add each additional shipped language as an independently reviewable resource contribution, with
 coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
 date/name data and plural selection instead of maintaining GUI-local culture tables.
 
-- Related: B-198, B-328
+- Related: std.gui.002, std.gui.003
 
 ## Tier B — Live system changes
 
-### B-199 — System theme changes are ignored
+### std.gui.005 — System theme changes are ignored
 
 Handle the platform settings-change notification and update live light/dark policy without
 restarting the application.
 
-- Related: B-330
+- Related: std.gui.006
 
-### B-330 — System high-contrast changes are ignored
+### std.gui.006 — System high-contrast changes are ignored
 
 Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
 theme choices as required for accessibility.
 
-- Related: B-196, B-199
+- Related: platform.portability.048, std.gui.005
 
-### B-331 — Display-topology changes are ignored
+### std.gui.007 — Display-topology changes are ignored
 
 Refresh monitor enumeration, placement constraints, and dependent application state when a monitor
 is added, removed, or rearranged.
 
-- Related: B-234, B-338
+- Related: platform.portability.071, platform.portability.051
 
-### B-332 — Input-language changes are ignored
+### std.gui.008 — Input-language changes are ignored
 
 Handle the platform input-language notification and update keyboard-layout-dependent state.
 
-- Related: B-197
+- Related: platform.portability.049
 
 ---
 
@@ -107,24 +107,24 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
-### B-200 — Focused controls are not scrolled into view
+### std.gui.009 — Focused controls are not scrolled into view
 
 Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking
 every scroll ancestor and shifting only the amount missing from each viewport; test nested scrolls
 and the module's paint/hit-test offset convention.
 
-- Related: B-333
+- Related: std.gui.010
 
-### B-333 — No keyboard access keys
+### std.gui.010 — No keyboard access keys
 
 Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
 one keyboard access-key contract.
 
-- Related: B-200, B-196
+- Related: std.gui.009, platform.portability.048
 
 ## Tier C — Pointer, gesture, touch, and pen input
 
-### B-201 — No pointer-event model
+### std.gui.011 — No pointer-event model
 
 No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE` is handled. `MouseEvent` describes one mouse position,
 one button and one global capture owner; it has no pointer identifier, device kind, contact area,
@@ -137,92 +137,92 @@ The smallest coherent input layer is:
 - Add a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
   surface position, buttons, pressure, tilt and contact rectangle, routed and bubbled like the
   existing events;
-- Related: B-334, B-335, B-336, B-337
+- Related: std.gui.012, std.gui.013, std.gui.020, std.gui.023
 
-### B-334 — Pointer capture is application-wide rather than per pointer
+### std.gui.012 — Pointer capture is application-wide rather than per pointer
 
 Add capture per pointer rather than one application-wide mouse capture, with cancellation when the
   OS takes a contact away and an explicit rule for suppressing compatibility mouse events;
-- Related: B-201, B-335
+- Related: std.gui.011, std.gui.013
 
-### B-335 — Gesture recognizers have no claim arbitration
+### std.gui.013 — Gesture recognizers have no claim arbitration
 
 Add an arena or claim rule so a child control and its scrolling parent cannot both execute one raw
 pointer sequence.
 
-- Related: B-201, B-334, B-423, B-424, B-425, B-426, B-427
+- Related: std.gui.011, std.gui.012, std.gui.014, std.gui.016, std.gui.017, std.gui.018, std.gui.019
 
-### B-423 — No tap recognizer
+### std.gui.014 — No tap recognizer
 
 Recognize a tap with platform-appropriate distance and timing thresholds.
 
-- Related: B-335, B-438
+- Related: std.gui.013, std.gui.015
 
-### B-438 — No double-tap recognizer
+### std.gui.015 — No double-tap recognizer
 
 Recognize double tap as a composition of successful taps without delaying the single-tap contract
 unless a control explicitly requests it.
 
-- Related: B-335, B-423
+- Related: std.gui.013, std.gui.014
 
-### B-424 — No long-press recognizer
+### std.gui.016 — No long-press recognizer
 
 Recognize long press with movement cancellation and an explicit interaction with context menus.
 
-- Related: B-335
+- Related: std.gui.013
 
-### B-425 — No pan recognizer
+### std.gui.017 — No pan recognizer
 
 Recognize single- and multi-pointer pan with capture transfer and velocity reporting.
 
-- Related: B-335, B-428
+- Related: std.gui.013, std.gui.021
 
-### B-426 — No pinch recognizer
+### std.gui.018 — No pinch recognizer
 
 Report scale around the contact centroid without combining pinch completion with rotation.
 
-- Related: B-335, B-427
+- Related: std.gui.013, std.gui.019
 
-### B-427 — No rotate recognizer
+### std.gui.019 — No rotate recognizer
 
-Report rotation independently of pinch scale while sharing B-335's arbitration.
+Report rotation independently of pinch scale while sharing std.gui.013's arbitration.
 
-- Related: B-335, B-426
+- Related: std.gui.013, std.gui.018
 
-### B-336 — No touch-sized input profile
+### std.gui.020 — No touch-sized input profile
 
 Add a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
   the 12-pixel slider thumb and the small scroll-bar profile are not finger targets.
 
-- Related: B-335, B-428, B-429
+- Related: std.gui.013, std.gui.021, std.gui.022
 
-### B-428 — Touch scrolling has no inertia
+### std.gui.021 — Touch scrolling has no inertia
 
-Drive kinetic scrolling from the shared animation scheduler using the velocity reported by B-425,
+Drive kinetic scrolling from the shared animation scheduler using the velocity reported by std.gui.017,
 with deterministic deceleration and reduced-motion behavior.
 
-- Related: B-425
+- Related: std.gui.017
 
-### B-429 — Nested scroll views do not chain touch motion
+### std.gui.022 — Nested scroll views do not chain touch motion
 
 Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
 
-- Related: B-335, B-425, B-428
+- Related: std.gui.013, std.gui.017, std.gui.021
 
-### B-337 — Pen pressure is not modeled end to end
+### std.gui.023 — Pen pressure is not modeled end to end
 
 Carry pressure and pen identity from native input through drawing tools. `Swag Capture` is the proving
 application, and the headless host must inject pen events so the behavior is testable without
 hardware.
 
-- Related: B-201, B-394
+- Related: std.gui.011, std.gui.024
 
-### B-394 — No palm rejection during a pen stroke
+### std.gui.024 — No palm rejection during a pen stroke
 
 Suppress competing touch contacts according to an explicit rule while a pen owns the drawing
 gesture, with headless mixed-device tests.
 
-- Related: B-334, B-335, B-337
+- Related: std.gui.012, std.gui.013, std.gui.023
 
 
 
@@ -239,94 +239,94 @@ gesture, with headless mixed-device tests.
 
 ## Tier C — Docking and document hosts
 
-### B-203 — No docking layout host
+### std.gui.025 — No docking layout host
 
 The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
 known panes, and a `Surface` can own a window. Add the split-tree model whose leaves are tab stacks
 and whose panes have stable identity. Interaction, floating, persistence, and document semantics
-are B-430, B-431, B-432, and B-341 respectively.
+are std.gui.026, std.gui.027, std.gui.028, and std.gui.029 respectively.
 
 `DockHost` owns a split tree whose leaves are tab stacks. It supports tab reorder, docking to an
 edge or stack, close/hide, and minimum sizes. Start with programmatic docked layout and stable pane
 identity; drag interaction, floating surfaces, and persistence have their own identifiers.
 
-- Related: B-341, B-430, B-431, B-432
+- Related: std.gui.029, std.gui.026, std.gui.027, std.gui.028
 
-### B-430 — Docking has no tab-reorder or landing-preview interaction
+### std.gui.026 — Docking has no tab-reorder or landing-preview interaction
 
 Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
 rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
 
-- Related: B-203
+- Related: std.gui.025
 
-### B-431 — Docked panes cannot float and redock
+### std.gui.027 — Docked panes cannot float and redock
 
 Move a pane into a floating surface and redock it while preserving identity, focus, and DPI-correct
 geometry.
 
-- Related: B-203, B-430, B-432
+- Related: std.gui.025, std.gui.026, std.gui.028
 
-### B-432 — Docking layouts cannot be persisted
+### std.gui.028 — Docking layouts cannot be persisted
 
 Serialize stable pane identifiers, splits, active tabs, and floating rectangles. Restore constrains
 missing-monitor rectangles and ignores panes the application no longer registers.
 
-- Related: B-203, B-331, B-431
+- Related: std.gui.025, std.gui.007, std.gui.027
 
-### B-341 — No multi-document host
+### std.gui.029 — No multi-document host
 
 Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
 close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
 pages, and test close veto and focus independently of docking. Swag Capture's open captures are the
 first consumer; Swag Vault does not need this merely as a demonstration.
 
-- Related: B-203
+- Related: std.gui.025
 
 ## Tier C — Printing
 
-### B-204 — No printable-document pagination contract
+### std.gui.030 — No printable-document pagination contract
 
 Let a document answer page count and paint page `n` into a page-sized `Pixel.Painter` using
 physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
 without coupling the document to one printer backend. A fake backend records commands for CI.
 
-- Related: B-209, B-342, B-343, B-344
+- Related: pixel.image.022, std.gui.031, std.gui.033, std.gui.034
 
-### B-342 — No printer discovery or native print-job backend
+### std.gui.031 — No printer discovery or native print-job backend
 
-Enumerate printers and capabilities, open a native job, spool every page from B-204, and report
+Enumerate printers and capabilities, open a native job, spool every page from std.gui.030, and report
 failure at each stage. Keep one optional virtual-PDF integration test; correctness must
 not depend on an installed driver.
 
-- Related: B-204, B-343, B-345
+- Related: std.gui.030, std.gui.033, std.gui.032
 
-### B-345 — Print jobs cannot be cancelled
+### std.gui.032 — Print jobs cannot be cancelled
 
 Propagate cancellation from the GUI through pagination and the platform spooler, with a distinct
 cancelled result and cleanup tests in the fake backend.
 
-- Related: B-204, B-342
+- Related: std.gui.030, std.gui.031
 
-### B-343 — No page-setup model
+### std.gui.033 — No page-setup model
 
 Model paper, orientation, margins, scale/fit, and copies independently of printer discovery and
-preview. Validate requested settings against the capabilities supplied by B-342.
+preview. Validate requested settings against the capabilities supplied by std.gui.031.
 
-- Related: B-204, B-342, B-344
+- Related: std.gui.030, std.gui.031, std.gui.034
 
-### B-344 — No print preview
+### std.gui.034 — No print preview
 
-Render through exactly B-204's page callback into a zoomable on-screen view; do not create a second
+Render through exactly std.gui.030's page callback into a zoomable on-screen view; do not create a second
 pagination path that can disagree with paper.
 
-- Related: B-204, B-343, B-346
+- Related: std.gui.030, std.gui.033, app.capture.001
 
 ---
 
 ## Out of scope
 
 **A declarative markup language.** Qt has QML, Slint and Flutter have their own.
-[B-569](std.gui.md#b-569--data-driven-ui-resource-for-stdgui)
+[std.gui.035](std.gui.md#stdgui035--data-driven-ui-resource-for-stdgui)
 already records the investigation that killed `FormCtrl`: a data-described UI is only worth it when
 the caller never needs the controls back, and every consumer immediately recovered typed pointers
 by string identifier. Do not revisit this without solving the compile-time half first — that entry
@@ -347,7 +347,7 @@ as [app.capture.md](app.capture.md).
 
 ## Declarative UI and headless automation
 
-### B-569 — Data-driven UI resource for `std/gui`
+### std.gui.035 — Data-driven UI resource for `std/gui`
 
 - Area: bin/std
 - Found while: simplifying the Swag Vault vault cards after `FormCtrl` was judged too heavy
@@ -371,7 +371,7 @@ as [app.capture.md](app.capture.md).
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### B-570 — Arming the headless modal driver for an absent button fails silently
+### std.gui.036 — Arming the headless modal driver for an absent button fails silently
 
 - Area: std/gui
 - Found while: the two `Swag Capture` dialog tests that did not pass — both armed a button their
@@ -393,7 +393,7 @@ as [app.capture.md](app.capture.md).
 
 ## Keyboard interaction and focus
 
-### B-572 — Escape in the property grid commits the edit it is supposed to cancel
+### std.gui.037 — Escape in the property grid commits the edit it is supposed to cancel
 
 - Area: std/gui
 - Found while: putting the dialog keyboard model on its feet. `EditBox` now reverts to the text it
@@ -415,7 +415,7 @@ as [app.capture.md](app.capture.md).
   captured on the same focus event. Pin it with a headless test that types into a grid row, presses
   Escape, and asserts both the stored value and the empty undo stack.
 
-### B-573 — A control can hold the keyboard on a surface that refuses input
+### std.gui.038 — A control can hold the keyboard on a surface that refuses input
 
 - Area: std/gui
 - Found while: making the file box answer Escape and give the keyboard back on the way out.
@@ -434,7 +434,7 @@ as [app.capture.md](app.capture.md).
   it with a headless test whose frame handler focuses a control of the caller surface while a
   dialog runs, and which asserts the box still answers Escape.
 
-### B-574 — A rich edit inside a dialog makes the box unanswerable from the keyboard
+### std.gui.039 — A rich edit inside a dialog makes the box unanswerable from the keyboard
 
 - Area: std/gui
 - Found while: fixing the same defect in `ListView`, which is what a file box opens the keyboard on.
@@ -452,7 +452,7 @@ as [app.capture.md](app.capture.md).
 
 ## Layout invalidation and alignment
 
-### B-577 — A check box does not line up with the fields of the form it stands in
+### std.gui.040 — A check box does not line up with the fields of the form it stands in
 
 - Area: std/gui
 - Found while: adding the read-only option to the Swag Vault open-vault card, which put the first
@@ -474,7 +474,7 @@ as [app.capture.md](app.capture.md).
   from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
   already describes itself.
 
-### B-579 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
+### std.gui.041 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
 
 - Area: std/gui
 - Found while: making a `FormLayoutCtrl` answer for its own height, so a card's help paragraph stops
@@ -503,7 +503,7 @@ as [app.capture.md](app.capture.md).
 
 ## Text presentation and semantics
 
-### B-599 — Text outside a framed field is still centered on its line box, so its height follows the face
+### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
 
 - Area: std/gui
 - Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
@@ -530,7 +530,7 @@ as [app.capture.md](app.capture.md).
   widgets that draw a frame. Pin the decision with a headless test that puts one field of each
   family side by side and asserts their capitals share a center.
 
-### B-610 — A message taller than the box's cap is still clipped
+### std.gui.043 — A message taller than the box's cap is still clipped
 
 - Area: std/gui
 - Found while: fixing the two-sentence error box that clipped its own message
@@ -548,7 +548,7 @@ as [app.capture.md](app.capture.md).
   when the bound bites. Then extend the length sweep in `dialogs.layout.test.swg` past the cap: it
   is written to walk lengths already and would have caught this one had it gone far enough.
 
-### B-611 — A composite that commits a measured size loses the fraction the layout rounds off
+### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
 
 - Area: std/gui
 - Found while: the same investigation; the dialog family is fixed, nothing else is
@@ -571,7 +571,7 @@ as [app.capture.md](app.capture.md).
   `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
 
 
-### B-620 — The gui10 palettes page paints one frame in the neutral theme
+### std.gui.045 — The gui10 palettes page paints one frame in the neutral theme
 
 - Area: examples/gui10
 - Found while: the second iteration of the visual chart, comparing the four theme variants side by side
@@ -595,7 +595,7 @@ as [app.capture.md](app.capture.md).
   it, drop it, and read `app.theme.colors.hilight` before and after.
 
 
-### B-627 — A denser monitor frees the frames every stored icon points at
+### std.gui.046 — A denser monitor frees the frames every stored icon points at
 
 - Area: bin/std
 - Found while: giving Swag Scope's viewer selector one glyph per viewer (2026-08-21), which stores
@@ -616,7 +616,7 @@ as [app.capture.md](app.capture.md).
   either keep retired lists alive until the frame ends, or make `Icon` name its set and size and
   resolve the list at paint time.
 
-### B-628 — A splitter's first pane silently ignores the size it is added with
+### std.gui.047 — A splitter's first pane silently ignores the size it is added with
 
 - Area: bin/std
 - Found while: the Swag Scope history panel opened one row tall (2026-08-21), although it declares
@@ -636,7 +636,7 @@ as [app.capture.md](app.capture.md).
   apply it on the first resize that has room. Cover it with a splitter test that adds two panes
   before the control is ever laid out and then resizes.
 
-### B-629 — Copying a window by value silently releases the theme every other window is using
+### std.gui.048 — Copying a window by value silently releases the theme every other window is using
 
 - Area: bin/std
 - Found while: giving the Markdown view a document-wide selection (2026-08-21). A hit test wrote
@@ -660,7 +660,7 @@ as [app.capture.md](app.capture.md).
   explicit `share` instead. The rule it enforces is already written down: *design-swag-bin-modules*
   says to mark exclusive owners `#[Swag.NoCopy]`.
 
-### B-635 — One dirty rectangle for the whole surface makes two small changes cost the window
+### std.gui.049 — One dirty rectangle for the whole surface makes two small changes cost the window
 
 - Area: bin/std
 - Found while: chasing the small, regular stalls the Swag Scope video viewer showed on the
@@ -692,7 +692,7 @@ as [app.capture.md](app.capture.md).
   dirty subtree under its own clip, would remove the coupling between two widgets that happen to be
   far apart, which is the common shape for any animated widget beside a static one.
 
-### B-166 — A wall-clock budget makes the markdown stream's resident window load-dependent
+### std.gui.050 — A wall-clock budget makes the markdown stream's resident window load-dependent
 
 - Area: gui
 - Found while: running the standard-library suite repeatedly to tell a stale golden apart from a

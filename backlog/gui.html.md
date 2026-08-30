@@ -70,7 +70,7 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Tier B — Pages that lay out other than they mean
 
-### B-497 — Content wider than its container cannot be reached
+### gui.html.001 — Content wider than its container cannot be reached
 
 - Intent: nothing in the engine scrolls horizontally. The widget's `ScrollWnd` is created with
   `DisableHorizontal` and the canvas is always laid out at viewport width; an `overflow` region
@@ -82,7 +82,7 @@ mean, and CSS surface that is read and silently dropped.
   a document whose minimum content width exceeds the viewport either pans or is reported as a
   deliberate refusal rather than silently cut.
 
-### B-498 — `colspan` and `rowspan` are ignored
+### gui.html.002 — `colspan` and `rowspan` are ignored
 
 - Intent: `layoutTable` assigns each cell to the column of its index, so a header spanning three
   columns compresses into one and every row below it shifts. Spans are the first thing a real
@@ -90,9 +90,9 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a cell's `colspan` and `rowspan` attributes place and size it across its
   columns and rows, column min/max measurement distributes a spanning cell's width over the
   columns it covers, and `html.tables.html` gains span cases checked against a browser.
-- Related: B-499
+- Related: gui.html.003
 
-### B-499 — A table has no column model
+### gui.html.003 — A table has no column model
 
 - Intent: columns are sized from cell content alone. A `width` on a cell or a `<col>`, a
   percentage column, `table-layout: fixed`, `border-spacing`, `border-collapse` and
@@ -102,9 +102,9 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: an author-declared column width wins over content sizing, `table-layout: fixed`
   sizes from the first row, border spacing separates and `border-collapse: collapse` merges
   adjacent cell borders, and the tables fixture compares those against browser geometry.
-- Related: B-498, B-510
+- Related: gui.html.002, gui.html.014
 
-### B-500 — A grid places items in source order only
+### gui.html.004 — A grid places items in source order only
 
 - Intent: `layoutGrid` fills declared columns left to right, row by row. `grid-column` and
   `grid-row` are parsed as bare integers and then never read by layout; spans, negative lines,
@@ -116,7 +116,7 @@ mean, and CSS surface that is read and silently dropped.
   `grid-template-rows` sizes declared rows, and `html.flex-grid.html` gains placed-and-spanned
   cases checked against a browser.
 
-### B-501 — Flex containers ignore half of their alignment surface
+### gui.html.005 — Flex containers ignore half of their alignment surface
 
 - Intent: four parsed properties never reach flex layout. `order` is stored and never sorted on.
   `align-content` never distributes the cross axis of a wrapped container. `align-items:
@@ -128,7 +128,7 @@ mean, and CSS surface that is read and silently dropped.
   main-axis space per `justify-content`, and the flex fixture asserts each against browser
   geometry.
 
-### B-502 — A positioned box is positioned against the wrong ancestor
+### gui.html.006 — A positioned box is positioned against the wrong ancestor
 
 - Intent: three related divergences. `layoutAbsolute` positions an absolute box against its
   direct parent box, not against its nearest positioned ancestor, so the standard pattern —
@@ -144,7 +144,7 @@ mean, and CSS surface that is read and silently dropped.
   every container layout routes its out-of-flow children through `layoutAbsolute`, and a
   positioned descendant paints at its stacking-context level rather than its tree level.
 
-### B-503 — Right-to-left text is drawn left-to-right
+### gui.html.007 — Right-to-left text is drawn left-to-right
 
 - Intent: there is no notion of direction anywhere: `dir` is an attribute like any other,
   `direction` and `unicode-bidi` are not property names, `text-align: start` is a synonym for
@@ -156,7 +156,7 @@ mean, and CSS surface that is read and silently dropped.
   follows direction, and the residual shaping limit is recorded against the text stack rather
   than silently absorbed here.
 
-### B-504 — Percentage heights resolve against nothing in normal flow
+### gui.html.008 — Percentage heights resolve against nothing in normal flow
 
 - Intent: `layoutBlockChildren` builds each child's containing block with a width and
   `hasHeight: false`, so `height: 100%` resolves only for the root and for absolutely
@@ -170,7 +170,7 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Tier B — Pages that paint other than they mean
 
-### B-505 — SVG never draws, in a toolkit that rasterizes SVG for its own theme
+### gui.html.009 — SVG never draws, in a toolkit that rasterizes SVG for its own theme
 
 - Intent: two halves. Inline `<svg>` is on the `isSkippedTag` list, so a page's diagrams and
   icons vanish silently. And `<img src="figure.svg">` fails because `Pixel.Image.load` has no
@@ -182,7 +182,7 @@ mean, and CSS surface that is read and silently dropped.
   width and height honoured, and an SVG feature the rasterizer lacks degrades to the placeholder
   rather than to nothing.
 
-### B-506 — A gradient is read as no background at all
+### gui.html.010 — A gradient is read as no background at all
 
 - Intent: `background` keeps only a color; `background-image`, `linear-gradient` and
   `radial-gradient` are deliberately dropped so the box keeps what is behind it. For a hero
@@ -196,7 +196,7 @@ mean, and CSS surface that is read and silently dropped.
   documented conservative choice. A real mask is the same image machinery this entry builds,
   applied as an alpha source, and should follow it.
 
-### B-507 — Shadows are not drawn
+### gui.html.011 — Shadows are not drawn
 
 - Intent: `box-shadow` is not a property the parser resolves, and `text-shadow` is not either.
   Cards cast no elevation and outlined hero text loses its legibility layer. The engine's own
@@ -205,7 +205,7 @@ mean, and CSS surface that is read and silently dropped.
   (inset may be recorded as a limitation), `text-shadow` draws behind the run, and both respect
   border radius.
 
-### B-508 — Dashed, dotted and double borders paint solid
+### gui.html.012 — Dashed, dotted and double borders paint solid
 
 - Intent: `HtmlBorderStyle` distinguishes the styles and `paintDecorations` never reads them —
   every side is filled as a solid rectangle or trapezoid, so `border: 1px dashed` draws exactly
@@ -215,7 +215,7 @@ mean, and CSS surface that is read and silently dropped.
   corner uses its own radius, and mixed side colors on a rounded box either draw correctly or
   are recorded as the one documented approximation.
 
-### B-509 — `transform` does not exist
+### gui.html.013 — `transform` does not exist
 
 - Intent: no transform property is parsed and the painter applies none, so a rotated badge, a
   scaled thumbnail or a translated decoration renders untransformed in place. Unlike the entries
@@ -229,7 +229,7 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Tier C — CSS and HTML surface that is silently dropped
 
-### B-510 — Presentational HTML is ignored
+### gui.html.014 — Presentational HTML is ignored
 
 - Intent: the attributes legacy documents style themselves with — `width`, `height` (read only
   on replaced elements), `align`, `valign`, `bgcolor`, `border`, `cellpadding`, `cellspacing`,
@@ -241,9 +241,9 @@ mean, and CSS surface that is read and silently dropped.
   a zero-specificity author rule, the legacy elements carry their traditional default styles,
   and a fixture from the attribute era renders with its table borders, cell padding and centered
   blocks.
-- Related: B-499
+- Related: gui.html.003
 
-### B-511 — Selector matching diverges where documents notice
+### gui.html.015 — Selector matching diverges where documents notice
 
 - Intent: two bounded divergences remain. A complex selector inside `:is()`/`:not()` is
   truncated to its first compound — `:is(nav a)` matches `nav` — which over- and under-styles
@@ -252,7 +252,7 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: `:is()`/`:not()` either match their full complex argument or reject the rule
   rather than truncate it, and layered rules order below unlayered ones.
 
-### B-512 — The global keywords do nothing
+### gui.html.016 — The global keywords do nothing
 
 - Intent: `inherit`, `initial`, `unset` and `revert` are explicitly rejected by
   `htmlParseLength` and fall through every keyword switch, so `background: inherit` and
@@ -266,7 +266,7 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Tier C — What a reader cannot do
 
-### B-513 — What the document says about itself never reaches the reader
+### gui.html.017 — What the document says about itself never reaches the reader
 
 - Intent: `<title>` is parsed as raw text and exposed to nothing, so a host tab or window shows
   a file name where the document names itself. A `title` attribute — the tooltip half the web
@@ -277,7 +277,7 @@ mean, and CSS surface that is read and silently dropped.
   element with a `title` shows it as a themed tooltip after the toolkit's delay, and Swag Scope
   captions its HTML tab with the title.
 
-### B-514 — A search cannot cross a text-node boundary
+### gui.html.018 — A search cannot cross a text-node boundary
 
 - Intent: `findText` runs `Utf8.indexOf` inside one text node at a time, so a phrase
   interrupted by any inline markup — `find <b>this</b> phrase` — can never be found, and the
@@ -293,7 +293,7 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Tier D — Robustness
 
-### B-515 — A hostile document has no budget guard beyond depth and size
+### gui.html.019 — A hostile document has no budget guard beyond depth and size
 
 - Intent: the byte cap (48 MB) and the element depth cap (256, flattening with a visible
   notice) are the only limits. There is still no fixture for truncation at a hostile point, an
@@ -302,7 +302,7 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a malformed corpus covers truncated tags at chunk edges, pathological
   attribute lengths and pathological stylesheets with the expected outcome for each.
 
-### B-160 — What is left between this parser and a zero-copy one
+### gui.html.020 — What is left between this parser and a zero-copy one
 
 - Intent: the page above parses in 130 ms where `tl` takes 64 ms. Where the remaining difference
   sits, measured by ablation on the 8.15 MB page: the tokenizer's own scan is about 40% of the
@@ -345,7 +345,7 @@ The entries below were open investigations when the unified backlog was introduc
 identifiers remain permanent; update their next action in place as the evidence matures. They retain
 their former order until re-triaged, so position in this imported block carries no priority claim.
 
-### B-623 — The HTML box build allocates one heap String per word of the document
+### gui.html.021 — The HTML box build allocates one heap String per word of the document
 
 - Area: std/gui (HTML)
 - Found while: the HTML engine performance pass (2026-08-18), profiling where a large page's
@@ -365,7 +365,7 @@ their former order until re-triaged, so position in this imported block carries 
   rebuild that does not clear the document can borrow them — and measure the load of
   `std.pixel.html` before and after.
 
-### B-624 — A streaming rebuild re-parses every stylesheet from scratch
+### gui.html.022 — A streaming rebuild re-parses every stylesheet from scratch
 
 - Area: std/gui (HTML)
 - Found while: the same HTML engine performance pass.

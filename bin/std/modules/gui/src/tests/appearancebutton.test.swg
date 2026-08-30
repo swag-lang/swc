@@ -65,7 +65,7 @@ using Swag, Core, Pixel
 
     host.surface.flags        = SurfaceFlags.StandardWindow
     host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
-    host.root.setParent(&host.surfaceWnd)
+    host.surfaceWnd.create(&host.root, null)
     host.surfaceWnd.sendResizeEvent()
 
     let button = AppearanceButton.create(&host.surface)

@@ -2,7 +2,7 @@
 
 Everything this repository intends to do, and everything it has observed and not yet explained,
 lives here. Each domain has one file: evidence, open decisions, and committed outcomes stay
-together so an entry can mature without moving or changing identity.
+together so an entry can mature without changing identity while it remains in that domain.
 
 Only unfinished work belongs in the backlog. When an entry is resolved, invalidated, or completed,
 delete it or cut it down to the part that genuinely remains. History lives in Git.
@@ -61,19 +61,19 @@ belongs in [platform.portability.md](platform.portability.md), whatever module o
 
 ## Number Every Entry
 
-Every entry carries a permanent identifier in its heading:
+Every entry carries a file-scoped identifier in its heading:
 
 ```text
-### B-001 — A short, descriptive title
+### app.scope.001 — A short, descriptive title
 ```
 
-Next identifier: B-642
-
-- `B-*` is the identifier family for every new entry. Take the number above and advance the
-  counter in the same change.
-- Every active entry uses `B-*`; the former `T-*` and `F-*` families are closed.
-- Never renumber or reuse an identifier. A deleted entry takes its identifier with it, so an old
-  conversation, commit message, link, or code comment keeps its meaning.
+- The identifier prefix is the file name without `.md`; `app.scope.md` owns `app.scope.*`.
+- The suffix has exactly three digits. For a new entry, take one more than the greatest suffix ever
+  allocated in that file. There is no repository-wide counter and no counter stored in this index.
+- Never renumber or reuse an identifier inside a file. A deleted entry takes its suffix with it, so
+  an old conversation, commit message, link, or code comment keeps its meaning.
+- Moving an entry to another domain changes its prefix and suffix. Allocate the destination file's
+  next suffix and update every live reference and Markdown fragment in the same change.
 - Position expresses expected value where entries are comparable. Put an untriaged lead at the end
   of the closest relevant section until its priority is understood; move it when evidence changes
   that judgment. Identifiers never encode priority.
@@ -92,12 +92,12 @@ without also completing unrelated work hidden under the same heading.
 Every new entry uses this compact core:
 
 ```text
-### B-000 — Short outcome or open question
+### app.scope.023 — Short outcome or open question
 
 - Evidence: observation, reproduction, measurement, competitive gap, or other reason this remains
 - Next: the smallest useful investigation or implementation step
 - Complete when: observable condition for deleting the entry or rewriting its next action
-- Related: B-001, B-168, B-203 (when applicable)
+- Related: app.scope.001, std.gui.014 (when applicable)
 ```
 
 Explanatory paragraphs and additional fields may follow when they materially help execution. For

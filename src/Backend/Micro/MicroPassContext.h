@@ -97,7 +97,7 @@ struct MicroPassContext
     SmallVector<MicroReg> globalReservedRegs;
 
     // The first sweep assigned the function with the interval allocator
-    // (B-012). Its output holds every value under a register's own name, so a
+    // (compiler.optimization.024). Its output holds every value under a register's own name, so a
     // later sweep allocates through the concrete-liveness guards alone and
     // globalReservedRegs lists what that sweep may borrow around a scratch -
     // every pool register - rather than what it must keep away from.

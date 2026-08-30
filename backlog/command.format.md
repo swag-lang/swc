@@ -34,30 +34,30 @@ data table. Reopen that decision only for a wrapping shape that cannot be stated
 
 ## Automation and editor workflows
 
-### B-181 — Add a CI check mode
+### command.format.001 — Add a CI check mode
 
 `--dry-run` suppresses writes and counts what *would* be rewritten, but there is no check-mode
 exit-code contract, no list of differing files, and no optional diff. Add those as one CI-facing
 contract. The file list must also expose end-of-line-only rewrites that `git diff` can hide.
 
-### B-252 — Format stdin to stdout
+### command.format.002 — Format stdin to stdout
 
 The command only reads paths and writes files in place. Accept a buffer on standard input and
 return the formatted result on standard output so an editor can format unsaved content without a
 filesystem round trip.
 
-- Related: B-253, B-259
+- Related: command.format.003, compiler.core.015
 
-### B-253 — Format a selected source range
+### command.format.003 — Format a selected source range
 
 Add a line- or offset-based range contract for editor format-selection. Define how the requested
 range expands to syntactic boundaries and which returned edits may fall outside it.
 
-- Related: B-252, B-254
+- Related: command.format.002, command.format.005
 
 ## Canonical and resilient formatting
 
-### B-442 — Repair a continuation line the author indented badly
+### command.format.004 — Repair a continuation line the author indented badly
 
 - Intent: a wrongly indented continuation line inside a bracket comes out at a sensible column
   instead of staying where it was written.
@@ -73,13 +73,13 @@ range expands to syntactic boundaries and which returned edits may fall outside 
   committed answer, and `bin/` churn stays nil.
 - Related: the wrapping contract at the top of `Pass.Wrap.cpp`
 
-### B-254 — Format source that is temporarily invalid
+### command.format.005 — Format source that is temporarily invalid
 
 A file that fails to parse is counted and skipped
 ([FormatJob.cpp:40](../src/Format/FormatJob.cpp#L40)). Define and implement the token-level recovery
 contract needed for format-on-type, without making successful parsing a prerequisite.
 
-- Related: B-252, B-253
+- Related: command.format.002, command.format.003
 
 ---
 
@@ -89,7 +89,7 @@ their former order until re-triaged, so position in this imported block carries 
 
 Evidence about defects in the `format` command and its formatting passes.
 
-### B-597 — `swc format` silently skips every path under a dot directory
+### command.format.006 — `swc format` silently skips every path under a dot directory
 
 - Area: compiler
 - Found while: validating a `bin/std` change made in a git worktree under `.claude/worktrees/`
@@ -115,7 +115,7 @@ Evidence about defects in the `format` command and its formatting passes.
   the files to a path with no dot segment, copy `bin/.swc-format` beside them, format there, and
   copy the result back.
 
-### B-607 — A comment inside a bracket needs two format passes to settle its column
+### command.format.007 — A comment inside a bracket needs two format passes to settle its column
 
 - Area: compiler
 - Found while: a mangling campaign over `bin/` sources, feeding `swc format` badly indented but
@@ -133,9 +133,9 @@ Evidence about defects in the `format` command and its formatting passes.
   next code line, and `recordHangingLine` then records both against the same anchor. Check whether
   the comment's record is dropped — `canEditGap`, or an anchor that is invalid for a comment line —
   because the code line alone is repaired by `Pass.Align::repairHangingLines`.
-- Related: B-442
+- Related: command.format.004
 
-### B-608 — `column-limit` with `align-operands` needs two format passes
+### command.format.008 — `column-limit` with `align-operands` needs two format passes
 
 - Area: compiler
 - Found while: measuring the greedy wrapper against clang-format on dense expressions

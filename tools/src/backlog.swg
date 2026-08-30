@@ -2,15 +2,6 @@
 
 using Core
 
-private struct BacklogEntry
-{
-    heading:        String
-    line:           u64
-    nextAction:     bool
-    completeWhen:   bool
-    requiresFields: bool
-}
-
 private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
 {
     var value: u32
@@ -24,63 +15,37 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
     return {value, pos}
 }
 
-private func reportBacklogFields(fileName: string, entry: *BacklogEntry)->u32
+private func auditBacklogFile(fileName: string, seen: *HashSet'String)->u32 fail
 {
+    let content = try File.readAllText(fileName)
+    let stem    = Path.fileNameWithoutExtension(fileName) orelse ""
+
+    var headingPrefix = String.from("### ")
+    headingPrefix += stem
+    headingPrefix += "."
+
     var errors: u32
-    if !entry.nextAction
-    {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Next:' field")
-        errors += 1
-    }
-
-    if !entry.completeWhen
-    {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Complete when:' field")
-        errors += 1
-    }
-
-    return errors
-}
-
-private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklog: *u32)->u32 fail
-{
-    let content    = try File.readAllText(fileName)
-    var errors: u32
-    var entry:  BacklogEntry
-    var haveEntry  = false
     var lineNumber = 0'u64
 
     for line in Tokenize.splitLines(content.toString())
     {
         lineNumber += 1
-        if !Utf8.startsWith(cast(const [..] u8) line, "### ")
-        {
-            if haveEntry and entry.requiresFields
-            {
-                entry.nextAction   = entry.nextAction or Utf8.startsWith(cast(const [..] u8) line, "- Next:")
-                entry.completeWhen = entry.completeWhen or Utf8.startsWith(cast(const [..] u8) line, "- Complete when:")
-            }
+        if !Utf8.startsWith(cast(const [..] u8) line, "### ") do
+            continue
 
+        if !Utf8.startsWith(cast(const [..] u8) line, headingPrefix.toString())
+        {
+            Console.println("error: ", fileName, ":", lineNumber, ": backlog entry identifier does not match its file name")
+            errors += 1
             continue
         }
 
-        if haveEntry and entry.requiresFields do
-            errors += reportBacklogFields(fileName, &entry)
-
-        if line.count < 7 or line[4] != 'B' or line[5] != '-'
-        {
-            Console.println("error: ", fileName, ":", lineNumber, ": backlog entry heading has no permanent identifier")
-            errors    += 1
-            haveEntry = false
-            continue
-        }
-
-        let parsed = parseDecimal(line, 6)
-        if parsed.end == 6 or !Utf8.startsWith(cast(const [..] u8) line[parsed.end until line.count], " — ")
+        let digitStart = headingPrefix.count
+        let parsed     = parseDecimal(line, digitStart)
+        if parsed.value == 0 or parsed.end != digitStart + 3 or !Utf8.startsWith(cast(const [..] u8) line[parsed.end until line.count], " — ")
         {
             Console.println("error: ", fileName, ":", lineNumber, ": malformed backlog identifier heading")
-            errors    += 1
-            haveEntry = false
+            errors += 1
             continue
         }
 
@@ -92,30 +57,9 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
         }
         else do
             seen.add(key)
-
-        maxBacklog[] = Math.max(maxBacklog[], parsed.value)
-
-        // B-167 through B-641 were migrated from the closed T/F families without rewriting their
-        // established entry shapes. Earlier B entries and every future allocation use the compact
-        // fields from README.md.
-        let migrated = parsed.value >= 167 and parsed.value <= 641
-        entry     = BacklogEntry{heading: key, line: lineNumber, requiresFields: !migrated}
-        haveEntry = true
     }
 
-    if haveEntry and entry.requiresFields do
-        errors += reportBacklogFields(fileName, &entry)
     return errors
-}
-
-private func readCounter(readme: string)->u32
-{
-    let prefix = "Next identifier: B-"
-
-    let start = Utf8.indexOf(cast(const [..] u8) readme, prefix)
-    if start == Swag.U64.Max do
-        return 0
-    return parseDecimal(readme, start + prefix.count).value
 }
 
 private func markdownHeadingAnchor(line: string)->String
@@ -241,9 +185,8 @@ public func auditBacklog(context: *Context)->s32 fail
     let readmeFile = Path.combine(backlogDir.toString(), "README.md")
     let readme     = try File.readAllText(readmeFile.toString())
 
-    var seen:       HashSet'String
-    var maxBacklog: u32
-    var errors:     u32
+    var seen:   HashSet'String
+    var errors: u32
 
     let files = try Directory.enumerateFiles(backlogDir.toString(), ".md")
     for file in files
@@ -254,20 +197,22 @@ public func auditBacklog(context: *Context)->s32 fail
         if name == "README.md" or name == "repo.prompts.md" do
             continue
 
+        let stem      = Path.fileNameWithoutExtension(name) orelse ""
+        let familyEnd = Utf8.indexOf(cast(const [..] u8) stem, ".")
+        let ownerEnd  = familyEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(cast(const [..] u8) stem[familyEnd + 1 until stem.count], ".")
+        if familyEnd == Swag.U64.Max or familyEnd == 0 or familyEnd + 1 == stem.count or ownerEnd != Swag.U64.Max
+        {
+            Console.println("error: backlog file name '", name, "' does not follow <family>.<what>.md")
+            errors += 1
+        }
+
         if Utf8.indexOf(cast(const [..] u8) readme.toString(), name) == Swag.U64.Max
         {
             Console.println("error: backlog/README.md does not document ", name)
             errors += 1
         }
 
-        errors += try auditBacklogFile(file.fullname.toString(), &seen, &maxBacklog)
-    }
-
-    let nextBacklog = readCounter(readme.toString())
-    if nextBacklog <= maxBacklog
-    {
-        Console.println("error: the next backlog identifier must be greater than B-", maxBacklog)
-        errors += 1
+        errors += try auditBacklogFile(file.fullname.toString(), &seen)
     }
 
     if errors != 0

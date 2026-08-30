@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -4521,7 +4521,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     computeVirtualLiveSpans();
     setupPools();
 
-    // B-012: the gated interval path replaces everything below when it
+    // compiler.optimization.024: the gated interval path replaces everything below when it
     // succeeds; any bail falls back to the existing allocator untouched.
     if (runIntervalAllocation())
     {

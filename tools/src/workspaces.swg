@@ -11,20 +11,14 @@ program without `#test` is smoked: testing it would report zero tests and prove 
 */
 public func runStd(context: *Context, options: *Options)->s32 fail
 {
-    var arguments: Arguments
-    arguments.add(["build", "--workspace", context.workspacePath("std").toString(), "--build-cfg", options.buildCfg.toString()])
-    if !options.module.isEmpty() do
-        arguments.add(["--workspace-module", options.module.toString()])
-
-    options.appendExtra(&arguments)
-
-    let built = try context.runCompiler(arguments)
-    if built != 0 do
-        return built
     if options.command != "test" do
-        return 0
+        return try buildStd(context, options)
 
-    // A module is tested from its own module file, against the API the workspace build published.
+    var testArguments: Arguments
+    testArguments.add(["test", "--workspace", context.workspacePath("std").toString(), "--artifact-kind", "executable"])
+    testArguments.add(["--build-cfg", options.buildCfg.toString()])
+
+    var hasTests = false
     for name in context.workspaceModules("std")
     {
         if !options.module.isEmpty() and options.module != name[] do
@@ -34,12 +28,33 @@ public func runStd(context: *Context, options: *Options)->s32 fail
         if !hasUnitTests(moduleDir.toString()) do
             continue
 
-        let code = try testStdModule(context, options, name.toString(), moduleDir.toString())
-        if code != 0 do
-            return code
+        hasTests = true
+        testArguments.add(["--workspace-module", name.toString()])
     }
 
-    return 0
+    if !hasTests do
+        return try buildStd(context, options)
+
+    // Native execution covers the library contract in every configuration. Release also keeps
+    // the JIT pass as a cross-backend check where inlining is most aggressive.
+    if options.buildCfg != "release" do
+        testArguments.add(["--no-test-jit"])
+
+    options.appendTest(&testArguments)
+    options.appendExtra(&testArguments)
+    options.appendRunArguments(&testArguments)
+    return try context.runCompiler(testArguments)
+}
+
+private func buildStd(context: *Context, options: *Options)->s32 fail
+{
+    var arguments: Arguments
+    arguments.add(["build", "--workspace", context.workspacePath("std").toString(), "--build-cfg", options.buildCfg.toString()])
+    if !options.module.isEmpty() do
+        arguments.add(["--workspace-module", options.module.toString()])
+
+    options.appendExtra(&arguments)
+    return try context.runCompiler(arguments)
 }
 
 // Reports whether a standard library module declares unit tests of its own.
@@ -64,29 +79,6 @@ private func holdsTestSource(directory: string)->bool
     }
 
     return false
-}
-
-private func testStdModule(context: *Context, options: *Options, name: string, moduleDir: string)->s32 fail
-{
-    let paths  = context.artifactPaths(Format.toString("std/%", name).toString(), "test", options.buildCfg.toString())
-    let outDir = options.test.count() == 0 ? paths.outDir : paths.workDir
-
-    var arguments: Arguments
-    arguments.add(["test", "--artifact-kind", "executable"])
-    arguments.add(["--module-file", Path.combine(moduleDir, "module.swg").toString(), "-d", "src"])
-    arguments.add(["--out-dir", outDir.toString(), "--work-dir", paths.workDir.toString()])
-    arguments.add(["--build-cfg", options.buildCfg.toString()])
-    arguments.add(["--import-api-dir", context.workspaceOutput("std").toString()])
-
-    // Native execution covers the library contract in every configuration. Release also keeps
-    // the JIT pass as a cross-backend check where inlining is most aggressive.
-    if options.buildCfg != "release" do
-        arguments.add(["--no-test-jit"])
-
-    options.appendTest(&arguments)
-    options.appendExtra(&arguments)
-    options.appendRunArguments(&arguments)
-    return try context.runCompiler(arguments)
 }
 
 // Builds, runs, tests, or smokes the examples workspace, whole or one module.

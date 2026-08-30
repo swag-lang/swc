@@ -46,15 +46,48 @@ func __isTestRun()->bool
     return false
 }
 
+// The compiler normalizes both sides before launching the artifact. Matching here keeps the
+// executable independent of a particular invocation's file filters.
+func __isTestFileSelected(path: string)->bool
+{
+    let prefix    = "swag.test-file="
+    var hasFilter = false
+
+    for arg in Swag.args()
+    {
+        if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count) do
+            continue
+
+        hasFilter       = true
+        let filterCount = arg.count - prefix.count
+        if filterCount > path.count do
+            continue
+        if !filterCount do
+            return true
+
+        for offset in path.count - filterCount + 1
+        {
+            if !Swag.memcmp(path.buffer + offset, arg.buffer + prefix.count, filterCount) do
+                return true
+        }
+    }
+
+    return !hasFilter
+}
+
 // Optimizations stay off: recovery re-enters this function with the registers captured before the
 // test ran, so every local must live on the stack rather than in a register the call could reuse.
 #[Swag.Optimize(false)]
-func __runTest(fn: *void, name: const [*] u8)
+func __runTest(fn: *void, name: const [*] u8, path: const [*] u8)
 {
     if !__isTestRun() do
         return
 
     let testName = Swag.makeString(name, (cast(const cstring) name).count)
+    let testPath = Swag.makeString(path, (cast(const cstring) path).count)
+    if !__isTestFileSelected(testPath) do
+        return
+
     Swag.print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
 
     g_TestsExecuted += 1

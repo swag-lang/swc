@@ -3,6 +3,7 @@
 #include "Format/FormatOptions.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/WarningPolicy.h"
 
@@ -55,6 +56,10 @@ inline constexpr CommandInfo COMMANDS[] = {
 };
 
 inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
+
+// Selects #test functions at execution time. The generated test executable keeps every test
+// entry point, so changing this repeatable argument never changes the artifact itself.
+inline constexpr std::string_view SWAG_TEST_FILE_RUN_ARG = "swag.test-file";
 
 // Asks the runtime to isolate the generated executable from real machine state before any
 // user code runs. Without a value the process picks its own private root; the runtime does
@@ -315,14 +320,12 @@ constexpr std::string_view commandName(const CommandKind command)
 // compiles `#test` bodies in, answers `#command` with `Test` so the source can
 // select different constants, and forces exceptions on. Without a
 // distinct name the two overwrite each other's executable, PDB, and object files,
-// and `run` happily launches whichever was built last. A focused test gets a third
-// name because its executable deliberately omits the unselected test entry points.
+// and `run` happily launches whichever was built last. A file filter changes only which
+// entry points the reusable test executable runs, so every test command shares this name.
 inline std::string_view artifactModeSuffix(const CommandLine& cmdLine)
 {
     if (!cmdLine.sourceDrivenTest)
         return "";
-    if (!cmdLine.testFileFilter.empty())
-        return ".test.focused";
     return ".test";
 }
 
@@ -331,6 +334,15 @@ inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cm
     std::vector<Utf8> result = cmdLine.runArgs;
     if (cmdLine.command == CommandKind::Test && !hasRunArg(result, SWAG_TEST_RUN_ARG))
         result.emplace_back(SWAG_TEST_RUN_ARG);
+
+    if (cmdLine.command == CommandKind::Test)
+    {
+        for (const Utf8& filter : cmdLine.testFileFilter)
+        {
+            const Utf8 normalizedFilter = Utf8Helper::normalizePathForCompare(fs::path(filter.c_str()));
+            result.emplace_back(std::format("{}={}", SWAG_TEST_FILE_RUN_ARG, normalizedFilter));
+        }
+    }
 
     // A smoke run is the real program, bounded. The frame budget travels with it so no
     // application has to recognize that it is being exercised.

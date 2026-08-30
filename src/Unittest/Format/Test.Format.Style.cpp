@@ -78,6 +78,35 @@ SWC_TEST_BEGIN(FormatStyle_SwagIsTheCanonicalLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagIntrinsicCallsStayStable)
+{
+    static constexpr std::string_view SOURCE =
+        "func contextSaysJit()->bool\n"
+        "{\n"
+        "    return Swag.getContext().runtimeFlags & .FromCompiler ? true : false\n"
+        "}\n"
+        "\n"
+        "func jitCallMatchesContext()->bool\n"
+        "{\n"
+        "    return Swag.jit() == contextSaysJit()\n"
+        "}\n"
+        "\n"
+        "#test\n"
+        "{\n"
+        "    var context = Swag.getContext()\n"
+        "    #assert(#defined(context.panic))\n"
+        "    Swag.assert(#defined(context.panic))\n"
+        "\n"
+        "    Swag.setContext(context)\n"
+        "    Swag.assert(Swag.getContext() == &context)\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return checkStyleRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStyle_SwagKeepsAccessModifiersWithTheirDeclarations)
 {
     static constexpr std::string_view SOURCE =

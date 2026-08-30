@@ -503,6 +503,12 @@ impl Surface
         let sz  = .size()
         let sdw = .shadowMargin()
         .wnd.setPosition({sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
+
+        // A resize can reuse the existing power-of-two render target, in which case
+        // resource creation has no reason to dirty the surface. The newly exposed
+        // client area still needs a complete frame independently of WM_PAINT: native
+        // placement and the application frame loop are two separate repaint sources.
+        .invalidate()
     }
 
     // Returns the transparent margin, in logical units, the surface keeps around its body.

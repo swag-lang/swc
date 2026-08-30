@@ -1198,8 +1198,9 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     // A clean exit is not a pass. The tally is the only evidence the tests ran, and its absence
     // means '__testsDone' never printed one, so the executable ran none of them -- exactly the
     // outcome a green test run must not hide.
-    if (compiler_->cmdLine().command == CommandKind::Test && !testFunctions.empty() && nativeTestsExecuted != testFunctions.size())
-        return reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_VALUE, nativeTestsExecuted, Diagnostic::ARG_COUNT, static_cast<uint32_t>(testFunctions.size()));
+    const size_t selectedTestCount = selectedNativeTestCount();
+    if (compiler_->cmdLine().command == CommandKind::Test && !testFunctions.empty() && nativeTestsExecuted != selectedTestCount)
+        return reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_VALUE, nativeTestsExecuted, Diagnostic::ARG_COUNT, static_cast<uint32_t>(selectedTestCount));
 
     return Result::Continue;
 }
@@ -1218,7 +1219,16 @@ void NativeBackendBuilder::updateNativeTestProgress(ScopedTimedLog& stage, const
     if (!parseNativeTestProgressEvent(event, line))
         return;
 
-    stage.setProgressStat(ScopedTimedLog::formatTestProgress(ctx_, event.executed, testFunctions.size(), event.failed, event.name));
+    const size_t selectedTestCount = selectedNativeTestCount();
+    const size_t progressTotal     = selectedTestCount ? selectedTestCount : event.executed;
+    stage.setProgressStat(ScopedTimedLog::formatTestProgress(ctx_, event.executed, progressTotal, event.failed, event.name));
+}
+
+size_t NativeBackendBuilder::selectedNativeTestCount() const
+{
+    return std::ranges::count_if(testFunctions, [this](const SymbolFunction* symbol) {
+        return symbol && compiler_->matchesTestFileFilter(*symbol);
+    });
 }
 
 bool NativeBackendBuilder::parseNativeTestProgressEvent(NativeTestProgressEvent& outEvent, const std::string_view line)

@@ -57,14 +57,11 @@ struct RecentView
 
 impl RecentView
 {
-    mtd select(idx: u64, force = false)
+    private mtd selectLoaded(idx: u64, capture: *Capture)
     {
-        if .selected == idx and !force do
-            return
-
         if idx >= .items.count
         {
-            .selected = Swag.U64.Max
+            Memory.delete(capture)
             return
         }
 
@@ -77,25 +74,38 @@ impl RecentView
             sel.zoom = view.zoom
         }
 
+        // Only commit the selection once the capture has actually loaded,
+        // otherwise .selected would point at an item never shown in the view.
+        .selected = idx
+        let previousCapture = .main.editWnd.getCapture()
+        if previousCapture do
+            .main.saveCapture(previousCapture)
+        view.setCapture(capture)
+        let item = .items[idx]!
+        if item.zoom == 0 do
+            view.zoomToFit(false)
+        else do
+            view.setZoom(item.zoom)
+        view.main.freezeSelection(false)
+        .invalidate()
+    }
+
+    mtd select(idx: u64, force = false)
+    {
+        if .selected == idx and !force do
+            return
+
+        if idx >= .items.count
+        {
+            .selected = Swag.U64.Max
+            return
+        }
+
         // Select new recent item
         let item = .items[idx]!
         let capture: #null *Capture = catch Capture.load(item.file)
-        if capture
-        {
-            // Only commit the selection once the capture has actually loaded,
-            // otherwise .selected would point at an item never shown in the view.
-            .selected = idx
-            let previousCapture = .main.editWnd.getCapture()
-            if previousCapture do
-                .main.saveCapture(previousCapture)
-            view.setCapture(capture)
-            if item.zoom == 0 do
-                view.zoomToFit(false)
-            else do
-                view.setZoom(item.zoom)
-            view.main.freezeSelection(false)
-            .invalidate()
-        }
+        if capture do
+            .selectLoaded(idx, capture)
     }
 }
 
@@ -420,18 +430,19 @@ impl RecentWnd
             return
         .loadDone = true
 
-        if !g_Library.loaded do
-            g_Library.fill()
         g_Library.onDeleteFile += func|self = me|(file) { self.onLibraryFileDeleted(file) }
 
-        var res = g_Library.files
+        // The recent strip needs only the newest capture names. Validating every SCC in the
+        // library here used to open the complete collection before the first thumbnail could
+        // appear. Keep that index lazy; each recent candidate is validated as it is loaded.
+        var res = catch Directory.enumerateFiles(Library.getFolder())
         res.sort(func(a, b) { return b.lastWriteTime <=> a.lastWriteTime })
 
         for r in res
         {
+            if Path.lowercaseExtension(r.fullname) != CaptureFileExtension do
+                continue
             .pendingRecentFiles.add(r.fullname)
-            if .pendingRecentFiles.count >= MaxRecent do
-                break
         }
 
         .scheduleLoadNextRecent()
@@ -439,7 +450,7 @@ impl RecentWnd
 
     mtd scheduleLoadNextRecent()
     {
-        if .loadTimer or .pendingRecentIndex >= .pendingRecentFiles.count do
+        if .loadTimer or .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
         .prepareLoadRecent = false
         .loadTimer         = .app().addTimer(1'ms, me)
@@ -447,18 +458,25 @@ impl RecentWnd
 
     mtd loadNextRecent()
     {
-        if .pendingRecentIndex >= .pendingRecentFiles.count do
+        if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
 
-        let idx = .pendingRecentIndex
-        let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false) as err
-        Memory.delete(capture)
+        let file        = .pendingRecentFiles[.pendingRecentIndex]
+        let initialLoad = !.main.editWnd.editView.capture
+        let capture: #null *Capture = catch Capture.load(file, preview: !initialLoad)
+        if capture
+        {
+            let loaded = capture
+            .addRecent(loaded.file, loaded.preview, front: false, linkedUpToDate: loaded.linkedUpToDate, linked: loaded.linkedImage)
+            g_Library.addFile(loaded.file)
 
-        // The capture above is a preview: the strip never needs more. On a fresh
-        // start the first item still becomes the edited capture, through the
-        // selection path, which performs the one full load of the strip.
-        if err == null and idx == 0 and !.main.editWnd.editView.capture do
-            .recentView.select(0, force: true)
+            // The initial document already came through the full-load path above. Hand that
+            // same object to the editor instead of reopening and decoding the file a second time.
+            if initialLoad do
+                .recentView.selectLoaded(.recentView.items.count - 1, loaded)
+            else do
+                Memory.delete(loaded)
+        }
 
         .pendingRecentIndex += 1
         .scheduleLoadNextRecent()

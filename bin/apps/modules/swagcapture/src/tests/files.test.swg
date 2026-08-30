@@ -749,6 +749,45 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.main.recentWnd.recentView.selected == 0)
 }
 
+// Startup must not validate the complete library before showing the recent strip. The newest
+// capture is loaded directly into the editor, while the full library index stays lazy until the
+// user opens the library surface.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let root = Gui.Testing.tempFilePath("capture-startup-", "")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    expect g_Library.setFolder(root)
+
+    f.capture.preview = Gui.Testing.indexedImage(32, 20)
+    f.capture.file    = Path.combine(root, "newest.scc")
+    f.capture.changed = true
+    expect f.capture.save()
+    let capturePath = String.from(f.capture.file)
+
+    f.editView.capture = null
+    Memory.delete(f.capture)
+    f.main.recentWnd = RecentWnd.create(f.main, f.main)
+    f.main.recentWnd.loadRecent()
+
+    Swag.assert(!g_Library.loaded)
+    while f.main.recentWnd.loadTimer
+    {
+        let timer = f.main.recentWnd.loadTimer!
+        f.gui.fireTimer(timer)
+    }
+
+    Swag.assert(!g_Library.loaded)
+    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
+    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.assert(f.main.editWnd.getCapture()!.file == capturePath)
+    Swag.assert(g_Library.files.count == 1)
+}
+
 // Captures created from an in-memory image use the preview overload directly. Keep that path
 // bounded too, otherwise each new capture retains another thumbnail texture indefinitely.
 #test

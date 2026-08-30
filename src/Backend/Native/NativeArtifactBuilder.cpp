@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -9,9 +8,12 @@
 #include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/ScopedTimedLog.h"
@@ -923,6 +925,15 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             const MicroReg       testNameReg = nextVirtualIntReg(nextVirtualIntRegIndex);
             builder.emitLoadRegPtrReloc(testNameReg, reinterpret_cast<uint64_t>(testNameCst.getString().data()), testNameRef);
 
+            const SourceFile* sourceFile = builder_->compiler().ownerSourceFile(symbol->srcViewRef());
+            if (!sourceFile)
+                sourceFile = builder_->compiler().sourceViewFile(*symbol);
+            const Utf8           testPath    = sourceFile ? Utf8Helper::normalizePathForCompare(sourceFile->path()) : Utf8{};
+            const ConstantRef    testPathRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, testPath));
+            const ConstantValue& testPathCst = ctx.cstMgr().get(testPathRef);
+            const MicroReg       testPathReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+            builder.emitLoadRegPtrReloc(testPathReg, reinterpret_cast<uint64_t>(testPathCst.getString().data()), testPathRef);
+
             ABICall::PreparedArg testFnArg;
             testFnArg.srcReg  = testFnReg;
             testFnArg.kind    = ABICall::PreparedArgKind::Direct;
@@ -933,9 +944,15 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             testNameArg.kind    = ABICall::PreparedArgKind::Direct;
             testNameArg.numBits = 64;
 
+            ABICall::PreparedArg testPathArg;
+            testPathArg.srcReg  = testPathReg;
+            testPathArg.kind    = ABICall::PreparedArgKind::Direct;
+            testPathArg.numBits = 64;
+
             SmallVector<ABICall::PreparedArg> runTestArgs;
             runTestArgs.push_back(testFnArg);
             runTestArgs.push_back(testNameArg);
+            runTestArgs.push_back(testPathArg);
 
             const ABICall::PreparedCall preparedRunTest = ABICall::prepareArgs(builder, runTestFn->callConvKind(), runTestArgs);
             ABICall::callLocal(builder, runTestFn->callConvKind(), runTestFn, preparedRunTest);

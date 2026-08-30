@@ -170,6 +170,7 @@ private:
 
     static void forwardNativeTestProgress(void* userData, std::string_view line);
     void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
+    size_t      selectedNativeTestCount() const;
     void        parseNativeTestSummary(const std::string& output);
     Result      validateTarget();
     Result      buildObjects();

@@ -972,7 +972,6 @@ impl ViewerWindow
 
             .fullScreen = true
             srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
-            srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
             .accentRail.hide()
             .commandBar.dockStyle  = .None
             .infoBarHost.dockStyle = .None
@@ -988,14 +987,12 @@ impl ViewerWindow
             .fullScreenTopVisible        = false
             .fullScreenBottomVisible     = false
             .applyLayout()
+            srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
         }
         else
         {
             .fullScreen = false
             srfn.updateFlags(add: .fullScreenRestoreFlags & (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags), remove: (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags) & ~.fullScreenRestoreFlags)
-            srfn.setPosition(.fullScreenRestorePosition)
-            if .fullScreenWasMaximized do
-                srfn.showMaximized()
             .accentRail.show()
             .commandBar.dockStyle  = .Top
             .infoBarHost.dockStyle = .Top
@@ -1011,8 +1008,12 @@ impl ViewerWindow
             .fullScreenTopVisible        = false
             .fullScreenBottomVisible     = false
             .applyLayout()
+            srfn.setPosition(.fullScreenRestorePosition)
+            if .fullScreenWasMaximized do
+                srfn.showMaximized()
         }
 
+        srfn.invalidate()
         .fullScreenButton.setChecked(.fullScreen)
         .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, themeActionIconSize(.themeMetrics())))
         .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen

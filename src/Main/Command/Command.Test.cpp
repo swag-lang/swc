@@ -526,6 +526,10 @@ namespace
             if (nativeBuilder.prepare() != Result::Continue)
                 return false;
 
+            std::erase_if(nativeBuilder.testFunctions, [&compiler](const SymbolFunction* function) {
+                return !function || !compiler.matchesTestFileFilter(*function);
+            });
+
             allFunctions                            = collectPreparedFunctions(nativeBuilder);
             const JitFunctionSelection jitSelection = selectJitFunctions(compiler, allFunctions, nativeBuilder.testFunctions);
             expectedTestCount                       = jitSelection.expectedTestCount;
@@ -633,14 +637,6 @@ namespace
 
     bool finishTestCommand(CompilerInstance& compiler)
     {
-        if (!compiler.cmdLine().testFileFilter.empty() && compiler.cmdLine().workspacePath.empty() && compiler.nativeTestFunctions().empty())
-        {
-            TaskContext      ctx(compiler);
-            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_file_filter_no_match);
-            diag.report(ctx);
-            return false;
-        }
-
         if (compiler.cmdLine().testJit && !runJitTests(compiler))
             return false;
 
@@ -707,6 +703,7 @@ namespace Command
 
         bool           testPassed   = true;
         const uint64_t errorsBefore = Stats::getNumErrors();
+        const size_t   testsBefore  = Stats::get().numTests.load(std::memory_order_relaxed);
         {
             // Unlike 'build' and 'run', no phase of a test command is called 'tested', so the
             // command-level line stays: it is the only one holding the full tally, including the
@@ -720,6 +717,14 @@ namespace Command
                 testPassed = false;
             else
                 testPassed = finishTestCommand(compiler);
+        }
+
+        if (testPassed && !compiler.cmdLine().testFileFilter.empty() && compiler.cmdLine().workspacePath.empty() &&
+            Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
+        {
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_file_filter_no_match);
+            diag.report(ctx);
+            testPassed = false;
         }
 
         if (!testPassed)

@@ -1085,7 +1085,7 @@ impl Buffer
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
+SWC_TEST_BEGIN(NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime)
 {
     static constexpr std::string_view SOURCE     = R"(#test { Swag.assert(true) }
 )";
@@ -1094,10 +1094,11 @@ SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
     const fs::path                    thirdPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterThird");
 
     CommandLine cmdLine;
-    cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "devmode";
-    cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
-    cmdLine.name        = "test_file_filter";
+    cmdLine.command          = CommandKind::Test;
+    cmdLine.buildCfg         = "devmode";
+    cmdLine.backendKind      = Runtime::BuildCfgBackendKind::Executable;
+    cmdLine.name             = "test_file_filter";
+    cmdLine.sourceDrivenTest = true;
     cmdLine.files.insert(firstPath);
     cmdLine.files.insert(secondPath);
     cmdLine.files.insert(thirdPath);
@@ -1112,26 +1113,40 @@ SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
     Unittest::registerTestSource(compiler, thirdPath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
-        return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "errors after sema");
-    if (compiler.nativeTestFunctions().size() != 2)
-        return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "selected test count is not two");
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "errors after sema");
+    if (compiler.nativeTestFunctions().size() != 3)
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "the reusable artifact does not keep all tests");
+    if (artifactModeSuffix(cmdLine) != ".test")
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "the file filter changes the artifact name");
 
-    bool foundFirst = false;
-    bool foundThird = false;
+    bool   foundFirst    = false;
+    bool   foundThird    = false;
+    size_t selectedCount = 0;
     for (const SymbolFunction* function : compiler.nativeTestFunctions())
     {
         const SourceFile* sourceFile = compiler.ownerSourceFile(function->srcViewRef());
         if (!sourceFile)
             sourceFile = compiler.sourceViewFile(*function);
         if (!sourceFile)
-            return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "selected test has no source file");
+            return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "test has no source file");
 
-        foundFirst |= sourceFile->path() == firstPath;
-        foundThird |= sourceFile->path() == thirdPath;
+        if (compiler.matchesTestFileFilter(*function))
+        {
+            selectedCount++;
+            foundFirst |= sourceFile->path() == firstPath;
+            foundThird |= sourceFile->path() == thirdPath;
+        }
     }
 
-    if (!foundFirst || !foundThird)
-        return failNativeArtifactTest("NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths", "selected tests do not come from the requested source files");
+    if (selectedCount != 2 || !foundFirst || !foundThird)
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "runtime selection does not match the requested source files");
+
+    const std::vector<Utf8> runArgs        = effectiveGeneratedArtifactRunArgs(cmdLine);
+    const size_t            filterArgCount = std::ranges::count_if(runArgs, [](const Utf8& arg) {
+        return arg.view().starts_with("swag.test-file=");
+    });
+    if (filterArgCount != 2)
+        return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "runtime file filters are missing from the artifact arguments");
 }
 SWC_TEST_END()
 

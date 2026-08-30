@@ -165,9 +165,9 @@ namespace
 
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
     {
-        const bool transientTest = cmdLine.command == CommandKind::Test &&
-                                   (backendKind != Runtime::BuildCfgBackendKind::Executable || !cmdLine.testFileFilter.empty());
-        fs::path result = workDirectory || transientTest ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
+        const Runtime::BuildCfgBackendKind effectiveKind = effectiveBackendKind(cmdLine, backendKind);
+        const bool                         transientTest = cmdLine.command == CommandKind::Test && effectiveKind != Runtime::BuildCfgBackendKind::Executable;
+        fs::path                           result        = workDirectory || transientTest ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
         result /= fs::path(moduleName.c_str());
         if (cmdLine.command == CommandKind::Test)
             result /= "test";
@@ -1287,12 +1287,7 @@ namespace
 
         if (cmdLine.command == CommandKind::Test)
         {
-            if (backendKind != Runtime::BuildCfgBackendKind::Executable)
-                return false;
-
-            // A focused executable contains only the selected #test entry points. It must neither
-            // reuse an unfiltered test artifact nor stand in for one on the next invocation.
-            if (!cmdLine.testFileFilter.empty())
+            if (effectiveBackendKind(cmdLine, backendKind) != Runtime::BuildCfgBackendKind::Executable)
                 return false;
             return !cmdLine.testJit && cmdLine.testNative && cmdLine.output;
         }
@@ -1318,11 +1313,6 @@ namespace
             return false;
         if (cmdLine.command != CommandKind::Test)
             return true;
-
-        // Focused artifacts have their own mode suffix and are never reused. Leaving no manifest
-        // keeps every distinct filter set honest without turning the filter into a cache key.
-        if (!cmdLine.testFileFilter.empty())
-            return false;
 
         // A cached test has no AST against which source-driven expectations can be checked.
         // Keep compiling those inputs so every Verify directive is evaluated on every run.
@@ -2522,10 +2512,11 @@ ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& depende
     // `publish` is deliberately inherited: this is a build of the workspace the consuming command
     // requested, and a link that does not publish removes runtime files a previous link placed
     // beside the artifact.
-    CommandLine buildCmdLine      = cmdLine();
-    buildCmdLine.command          = CommandKind::Build;
-    buildCmdLine.commandExplicit  = true;
-    buildCmdLine.sourceDrivenTest = false;
+    CommandLine buildCmdLine          = cmdLine();
+    buildCmdLine.command              = CommandKind::Build;
+    buildCmdLine.commandExplicit      = true;
+    buildCmdLine.sourceDrivenTest     = false;
+    buildCmdLine.artifactKindExplicit = false;
     buildCmdLine.outDir.clear();
     buildCmdLine.workDir.clear();
     buildCmdLine.outDirStorage.clear();
@@ -2646,7 +2637,8 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
             requestedModuleIndices.push_back(it->second);
             snapshotOrder.push_back(it->second);
-            snapshotQueued[it->second] = true;
+            snapshotQueued[it->second]        = true;
+            modules[it->second].commandTarget = true;
         }
 
         for (auto& module : modules)
@@ -2658,7 +2650,8 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         for (size_t i = 0; i < modules.size(); ++i)
         {
             snapshotOrder.push_back(i);
-            snapshotQueued[i] = true;
+            snapshotQueued[i]        = true;
+            modules[i].commandTarget = true;
         }
     }
 
@@ -2728,6 +2721,12 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         }
     }
 
+    const auto isCommandTarget = [this, hasFilter](const WorkspaceModuleBuild& moduleBuild) {
+        if (!isWorkspaceModuleActive(moduleBuild))
+            return false;
+        return cmdLine().command != CommandKind::Test || !hasFilter || moduleBuild.commandTarget;
+    };
+
     std::vector<uint32_t>            indegree(modules.size(), 0);
     std::vector<std::vector<size_t>> dependents(modules.size());
     size_t                           activeModuleCount   = 0;
@@ -2740,7 +2739,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
             ignoredModuleCount++;
             continue;
         }
-        if (modules[i].filteredOut)
+        if (modules[i].filteredOut || !isCommandTarget(modules[i]))
         {
             filteredModuleCount++;
             continue;
@@ -2750,7 +2749,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         for (const Utf8& dependency : modules[i].workspaceDependencies)
         {
             const size_t dependencyIndex = moduleIndices.at(dependency);
-            if (modules[dependencyIndex].ignoreInWorkspace)
+            if (!isCommandTarget(modules[dependencyIndex]))
                 continue;
 
             indegree[i]++;
@@ -2775,7 +2774,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         buildCmdLine.testFileFilter.clear();
         for (const WorkspaceModuleBuild& moduleBuild : modules)
         {
-            if (!isWorkspaceModuleActive(moduleBuild))
+            if (!isCommandTarget(moduleBuild))
                 continue;
 
             const Runtime::BuildCfgBackendKind backendKind = moduleBuild.setup.buildCfg.backendKind;
@@ -2828,12 +2827,20 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     if (cmdLine().command == CommandKind::Test || cmdLine().command == CommandKind::Doc)
     {
         bool hasActiveWorkspaceDependency = false;
-        for (size_t i = 0; i < modules.size() && !hasActiveWorkspaceDependency; ++i)
+        for (const WorkspaceModuleBuild& moduleBuild : modules)
         {
-            if (!isWorkspaceModuleActive(modules[i]))
+            if (!isCommandTarget(moduleBuild))
                 continue;
-            for (const size_t dependentIndex : dependents[i])
-                hasActiveWorkspaceDependency = hasActiveWorkspaceDependency || isWorkspaceModuleActive(modules[dependentIndex]);
+            for (const Utf8& dependency : moduleBuild.workspaceDependencies)
+            {
+                if (isWorkspaceModuleActive(modules[moduleIndices.at(dependency)]))
+                {
+                    hasActiveWorkspaceDependency = true;
+                    break;
+                }
+            }
+            if (hasActiveWorkspaceDependency)
+                break;
         }
 
         if (hasActiveWorkspaceDependency)
@@ -2859,7 +2866,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         size_t nextIndex = static_cast<size_t>(-1);
         for (size_t i = 0; i < modules.size(); ++i)
         {
-            if (!isWorkspaceModuleActive(modules[i]) || scheduled[i] || indegree[i] != 0)
+            if (!isCommandTarget(modules[i]) || scheduled[i] || indegree[i] != 0)
                 continue;
 
             nextIndex = i;
@@ -2870,7 +2877,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         {
             for (size_t i = 0; i < modules.size(); ++i)
             {
-                if (!isWorkspaceModuleActive(modules[i]) || scheduled[i])
+                if (!isCommandTarget(modules[i]) || scheduled[i])
                     continue;
 
                 Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_cycle);

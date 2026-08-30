@@ -151,11 +151,11 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
         options.appendWorkspace(&arguments)
         options.appendRunArguments(&arguments)
 
-        // sFileScope's smoke is a format review, not only a startup check: the application opens
+        // Swag Scope's smoke is a format review, not only a startup check: the application opens
         // the immutable fixture attached to every registered viewer and exits when all are ready.
-        if command == "smoke" and name == "sFileScope" and !options.hasRunArgument("--review-viewers")
+        if command == "smoke" and name == "swagscope" and !options.hasRunArgument("--review-viewers")
         {
-            let fixtures = Path.combine(applicationWorkspace(context).toString(), "modules", "sFileScope", "src", "tests", "datas")
+            let fixtures = Path.combine(applicationWorkspace(context).toString(), "modules", "swagscope", "src", "tests", "datas")
             arguments.add(["--run-arg", Format.toString("--review-viewers=%", fixtures).toString()])
         }
     }
@@ -238,7 +238,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     }
 
     let moduleDir = Path.combine(applicationWorkspace(context).toString(), "modules", name)
-    if name != "sVaultDrive" do
+    if name != "swagvault" do
         return 0
 
     let vendor = Path.combine(moduleDir.toString(), "vendor", "winfsp")

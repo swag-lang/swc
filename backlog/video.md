@@ -29,7 +29,7 @@ is the layout it does not read yet.
   FFmpeg on the same machine needs about 27 ms of processor time per picture single-threaded and
   about 3 ms of wall time frame-threaded.
 - What the gap is no longer responsible for (2026-08-24, release, the same recording played in
-  sFileScope at half and nine tenths of its length, sixty-second runs): the decoder is not what
+  Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
   limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
   in every run, and handing one picture over cost 3 to 8 ms. What limited the picture rate was the
   presentation path — see F-191 in gui.md — and two defects in the player, both fixed:
@@ -441,4 +441,4 @@ is the layout it does not read yet.
   anything this module reads.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
   codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
-- Related: T-571 in [filescope.video.md](filescope.video.md)
+- Related: T-571 in [scope.video.md](scope.video.md)

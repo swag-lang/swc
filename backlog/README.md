@@ -18,17 +18,17 @@ prompt per long-running campaign, with the target, current measurements, and sto
 | [compiler.md](compiler.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
 | [core.md](core.md) | `std/core` |
 | [doc.md](doc.md) | The `doc` command |
-| [filescope.md](filescope.md) | The sFileScope application shell, document lifecycle, window hosting, and system integration |
-| [filescope.audio.md](filescope.audio.md) | The sFileScope sound viewer |
-| [filescope.binary.md](filescope.binary.md) | The sFileScope structured-binary and container viewer |
-| [filescope.document.md](filescope.document.md) | The sFileScope Markdown, HTML, PDF, office-document, and ebook viewers |
-| [filescope.font.md](filescope.font.md) | The sFileScope font viewer |
-| [filescope.hexa.md](filescope.hexa.md) | The sFileScope hexadecimal viewer |
-| [filescope.image.md](filescope.image.md) | The sFileScope image viewer |
-| [filescope.midi.md](filescope.midi.md) | The sFileScope MIDI viewer |
-| [filescope.text.md](filescope.text.md) | The sFileScope basic-text, code, subtitle, table, diff, and log viewers |
-| [filescope.video.md](filescope.video.md) | The sFileScope video viewer |
-| [filescope.viewers.md](filescope.viewers.md) | Contracts and capabilities shared by several sFileScope viewers |
+| [scope.md](scope.md) | The Swag Scope application shell, document lifecycle, window hosting, and system integration |
+| [scope.audio.md](scope.audio.md) | The Swag Scope sound viewer |
+| [scope.binary.md](scope.binary.md) | The Swag Scope structured-binary and container viewer |
+| [scope.document.md](scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers |
+| [scope.font.md](scope.font.md) | The Swag Scope font viewer |
+| [scope.hexa.md](scope.hexa.md) | The Swag Scope hexadecimal viewer |
+| [scope.image.md](scope.image.md) | The Swag Scope image viewer |
+| [scope.midi.md](scope.midi.md) | The Swag Scope MIDI viewer |
+| [scope.text.md](scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers |
+| [scope.video.md](scope.video.md) | The Swag Scope video viewer |
+| [scope.viewers.md](scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers |
 | [format.md](format.md) | The `format` command |
 | [gui.md](gui.md) | `std/gui` |
 | [html.md](html.md) | The HTML engine behind `Gui.HtmlView` |
@@ -41,10 +41,10 @@ prompt per long-running campaign, with the target, current measurements, and sto
 | [runtime.md](runtime.md) | `bin/runtime`, and the allocator in particular |
 | [safety.md](safety.md) | Borrow, lifetime, and sanity analysis |
 | [simd.md](simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |
-| [snapforge.md](snapforge.md) | The sSnapForge application |
+| [capture.md](capture.md) | The Swag Capture application |
 | [tooling.md](tooling.md) | The build, sandbox, and test harness |
 | [truetype.md](truetype.md) | `std/truetype` |
-| [vaultdrive.md](vaultdrive.md) | The sVaultDrive application |
+| [vault.md](vault.md) | The Swag Vault application |
 | [video.md](video.md) | `std/video` |
 | [win32.md](win32.md) | Windows native modules and their checked API boundary |
 
@@ -60,7 +60,7 @@ Every entry carries a permanent identifier in its heading:
 ### B-001 — A short, descriptive title
 ```
 
-Next identifier: B-160
+Next identifier: B-163
 
 - `B-*` is the identifier family for every new entry. Take the number above and advance the
   counter in the same change.

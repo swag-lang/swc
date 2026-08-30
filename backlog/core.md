@@ -288,7 +288,7 @@ unsafe legacy modes excluded from the default surface.
 - The other half is not in this file: the block loop spends its time in stack slots rather than
   registers, which [F-136](optimization.md) measured at 1.6x against clang for the
   matching Inflate loop and is a backend problem, not a library one.
-- Complete when: level 6 on the PNG and `.scapture` fixtures is at least 1.5x faster than it is
+- Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than it is
   now with no more than 1% growth in compressed size, and every `core` compression test still
   round-trips.
 - Related: T-032, T-154

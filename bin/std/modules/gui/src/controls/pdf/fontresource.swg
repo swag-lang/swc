@@ -361,7 +361,7 @@ private const FlagForceBold  = 1'u32 << 18
 // A document that embeds no program still says what the font looked like, and honouring
 // that is the difference between a serif page rendered as a serif page and one silently
 // reset to the renderer's default face.
-private func readDescriptorTraits(parser: const *PdfParser, font: *FontResource, descriptor: u32)
+private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descriptor: u32)
 {
     let flags = cast(u32) parser.integer(parser.dict(descriptor, "Flags"), 0)
     font.fixedPitch = (flags & FlagFixedPitch) != 0
@@ -426,7 +426,7 @@ private func keyFontProgram(font: *FontResource)
     font.programKey = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
 }
 
-private func readSimpleWidths(parser: const *PdfParser, font: *FontResource, metricsId: u32)
+private func readSimpleWidths(parser: *PdfParser, font: *FontResource, metricsId: u32)
 {
     let firstChar = parser.integer(parser.dict(metricsId, "FirstChar"), -1)
     let widthsId  = parser.dict(metricsId, "Widths")
@@ -437,7 +437,7 @@ private func readSimpleWidths(parser: const *PdfParser, font: *FontResource, met
 }
 
 // Reads the `/W` array of a CIDFont, which alternates between a list form and a range form.
-private func readCidWidths(parser: const *PdfParser, font: *FontResource, widthsId: u32)
+private func readCidWidths(parser: *PdfParser, font: *FontResource, widthsId: u32)
 {
     if widthsId == InvalidNode or parser.nodes[widthsId].kind != .Array do
         return
@@ -470,7 +470,7 @@ private func readCidWidths(parser: const *PdfParser, font: *FontResource, widths
     }
 }
 
-private func readEncoding(parser: const *PdfParser, font: *FontResource, encodingRaw: u32)
+private func readEncoding(parser: *PdfParser, font: *FontResource, encodingRaw: u32)
 {
     let encodingId = parser.resolve(encodingRaw)
     if encodingId == InvalidNode do
@@ -637,7 +637,7 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
     }
 }
 
-private func applyCMapChars(font: *FontResource, scanner: const *PdfParser, pending: const [..] u32)
+private func applyCMapChars(font: *FontResource, scanner: *PdfParser, pending: const [..] u32)
 {
     for i in pending.count / 2
     {
@@ -652,7 +652,7 @@ private func applyCMapChars(font: *FontResource, scanner: const *PdfParser, pend
     }
 }
 
-private func applyCMapRanges(font: *FontResource, scanner: const *PdfParser, pending: const [..] u32)
+private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: const [..] u32)
 {
     for i in pending.count / 3
     {

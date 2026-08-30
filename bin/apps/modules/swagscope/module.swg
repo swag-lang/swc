@@ -1,0 +1,27 @@
+#import("gui", location: "swag@std")
+#import("audio", location: "swag@std")
+#import("truetype", location: "swag@std")
+#import("video", location: "swag@std")
+#import("fileviewer")
+
+#run
+{
+    with let cfg = Swag.compiler().getBuildCfg()!
+    {
+        .moduleVersion  = #swcversion
+        .moduleRevision = #swcrevision
+        .moduleBuildNum = #swcbuildnum
+        .backendKind    = .Executable
+        .backendSubKind = .Default
+
+        .name              = "swagscope"
+        .resAppName        = "Swag Scope"
+        .resAppDescription = "Fast universal file viewer"
+        .resAppIcoFileName = "datas/appicon.ico"
+        .ignoreInWorkspace = false
+
+        // A shipped application is launched from its own directory, so the link places the
+        // shared libraries it needs beside it.
+        .publishDependencies = true
+    }
+}

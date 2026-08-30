@@ -20,7 +20,7 @@ About 15 000 lines across fifteen files, and the shape is a real engine, not a t
 translator. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
 the tree the whole file would, partial renderings appear at growing intervals, a 48 MB cap ends
 the load with a visible notice, and every node keeps its source byte offset — which is what lets
-sFileScope reveal a raw-file search hit on the exact line that draws it. It carries the elements a
+Swag Scope reveal a raw-file search hit on the exact line that draws it. It carries the elements a
 document leaves implied — `html`, `head` and `body`, opened where the content says they belong —
 and resolves the standard's complete list of 2 231 named character references, the legacy
 spellings without a semicolon included. The tree builder carries the recoveries browsers
@@ -42,12 +42,19 @@ need a per-frame restyle matches never, and the viewer lights the link while pai
 
 It is also measured against those engines rather than described. Parsing the 8.15 MB rustdoc page
 of `src/tests/datas` into its 429 782 nodes, on the same machine and pinned to the performance
-cores: this engine 193 ms (42 MB/s), html5ever with its reference DOM 278 ms (28 MB/s), the same
-tokenizer with no tree at all 134 ms (58 MB/s), the `tl` crate — a zero-copy, deliberately
-non-conforming DOM — 64 ms (120 MB/s), and lol-html's tokenizer 51 ms (150 MB/s). The tree costs
-67 MB and 147 k allocator blocks, one per element for its children. A node is 88 bytes and every
-string it owns — its text, an unknown tag's name, every attribute name and value, every class —
-is a run of one pool per document, which is what took the parse from 412 ms and 214 MB.
+cores: this engine **130 ms (63 MB/s)**, html5ever with its reference DOM 278 ms (28 MB/s), the
+same tokenizer with no tree at all 134 ms (58 MB/s), the `tl` crate — a zero-copy, deliberately
+non-conforming DOM — 64 ms (120 MB/s), and lol-html's tokenizer, which builds nothing, 51 ms
+(150 MB/s). It started the campaign at 412 ms and 214 MB.
+
+What took it there is that the tree stopped owning anything it could address. A node is 64 bytes:
+its children are a chain rather than an array, so an element costs no allocation at all, and every
+string — a text run, an unknown tag's name, an attribute name and value, a class — is a range of
+the source the document keeps, copied only when the source does not spell it that way (a folded
+name, a run with a character reference). A start tag is read in one pass that answers where it
+ends, whether its name was written in mixed case, and every attribute it carries; a run of text is
+read in one pass that finds both the `<` that ends it and the `&` that would make it need
+decoding.
 
 Two boundaries are deliberate and permanent: nothing the document carries is ever executed, and
 the engine never opens a network connection. A document is displayed from its own bytes and its
@@ -267,7 +274,7 @@ mean, and CSS surface that is read and silently dropped.
   tracking that could trigger it already exists for links. `<meta name="description">` is
   likewise unreachable.
 - Complete when: the view exposes the document title and description to its host, hovering an
-  element with a `title` shows it as a themed tooltip after the toolkit's delay, and sFileScope
+  element with a `title` shows it as a themed tooltip after the toolkit's delay, and Swag Scope
   captions its HTML tab with the title.
 
 ### T-488 — A search cannot cross a text-node boundary
@@ -295,20 +302,18 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a malformed corpus covers truncated tags at chunk edges, pathological
   attribute lengths and pathological stylesheets with the expected outcome for each.
 
-### B-157 — The parser's last per-element allocation is its children array
+### B-160 — What is left between this parser and a zero-copy one
 
-- Intent: after the node storage work the tree costs 67 MB and 147 k allocator blocks for an
-  8.15 MB page, and every one of those blocks is one element's `children: Array'u32`. That is also
-  40 of the 88 bytes a node occupies. The `tl` crate parses the same page into the same 429 784
-  nodes in a third of the time with neither: children are a first/last/next triple of indices, and
-  every string is borrowed from the source instead of copied into a pool.
-- Next: count the children of the 8.15 MB page by parent to see what a compaction pass would cost,
-  then replace the array with sibling links behind `children(node)` and measure both.
-- Complete when: a node's children cost no allocation of their own — sibling links written while
-  parsing, or one pooled child array compacted in document order once the tree settles — the whole
-  engine reads them through the same accessor, and the 8.15 MB page is measured again against the
-  four reference engines named above.
-- Related: B-156
+- Intent: the page above parses in 130 ms where `tl` takes 64 ms. Where the remaining difference
+  sits, measured by ablation on the 8.15 MB page: the tokenizer's own scan is about 40% of the
+  time, storing text about 30%, storing attributes about 24%, and building the 430 k nodes
+  themselves under 10 ms. Nothing here is a single missing idea any more — it is the write traffic
+  of 430 k nodes and 289 k attributes against a scan that already runs at about 100 MB/s.
+- Next: measure what a page costs when the node array is reserved from the source size (already
+  done for a file, not for `createText`), then look at the two remaining per-attribute costs: the
+  `class` test on every attribute name, and the pool append that follows it.
+- Complete when: the page parses under 100 ms, or the remaining distance is recorded here as the
+  cost of the data model rather than of the code.
 
 ---
 

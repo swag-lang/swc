@@ -664,54 +664,78 @@ private func planeToImage(plane: const *SamplePlane, fill: #null const *Color)->
 {
     let width  = cast(u64) plane.width
     let height = cast(u64) plane.height
+    // A plane is stored top-down and an image bottom-up, so the rows are reversed on the way
+    // out. Building a second buffer to hand to `create` would walk every pixel one more time
+    // for nothing: the rows go straight into the image's own storage.
     if !plane.alpha.count and !fill
     {
-        var opaque: Array'u8
-        opaque.reserve(width * height * 3)
-        var row = height
-        while row
-        {
-            row -= 1
-            opaque.add(plane.rgb.toSlice()[row * width * 3 until (row + 1) * width * 3])
-        }
-
-        var result = #move Image.create(plane.width, plane.height, .RGB8, opaque.toSlice())
+        var result = #move Image.create(plane.width, plane.height, .RGB8)
+        let target = result.pixels.buffer!
+        let source = plane.rgb.buffer!
+        let stride = width * 3
+        for row in height do
+            Memory.copy(target + row * cast(u64) result.rowStride, source + (height - row - 1) * stride, stride)
         return #move result
     }
 
-    var pixels: Array'u8
-    pixels.resize(width * height * 4)
-    for y in height
-    {
-        let targetRow = (height - y - 1) * width
-        for x in width
-        {
-            let target = (targetRow + x) * 4
-            if fill
-            {
-                pixels[target + 0] = fill.r
-                pixels[target + 1] = fill.g
-                pixels[target + 2] = fill.b
-            }
-            else
-            {
-                let source = (y * width + x) * 3
-                pixels[target + 0] = plane.rgb[source + 0]
-                pixels[target + 1] = plane.rgb[source + 1]
-                pixels[target + 2] = plane.rgb[source + 2]
-            }
+    var result = #move Image.create(plane.width, plane.height, .RGBA8)
+    let pixels = result.pixels.buffer!
+    let alpha  = plane.alpha.buffer!
 
-            pixels[target + 3] = plane.alpha[y * width + x]
+    // A stencil carries coverage and nothing else: its colour is the fill in force, so there
+    // are no samples to read.
+    if fill
+    {
+        for y in height
+        {
+            var out      = pixels + (height - y - 1) * cast(u64) result.rowStride
+            var coverage = alpha + y * width
+            for width
+            {
+                out[0]   = fill.r
+                out[1]   = fill.g
+                out[2]   = fill.b
+                out[3]   = coverage[0]
+                out      += 4
+                coverage += 1
+            }
         }
+
+        return #move result
     }
 
-    var result = #move Image.create(plane.width, plane.height, .RGBA8, pixels.toSlice())
+    let source = plane.rgb.buffer!
+    for y in height
+    {
+        var out       = pixels + (height - y - 1) * cast(u64) result.rowStride
+        var component = source + y * width * 3
+        var coverage  = alpha + y * width
+        for width
+        {
+            out[0]    = component[0]
+            out[1]    = component[1]
+            out[2]    = component[2]
+            out[3]    = coverage[0]
+            out       += 4
+            component += 3
+            coverage  += 1
+        }
+    }
     return #move result
 }
 
 // Decodes one image XObject or inline image into an owned Pixel image.
 //
 // `fillColor` paints a stencil mask, whose samples carry coverage rather than color.
+// Remembers a decoded image against the object it came from, for as long as the document is open.
+private func cacheDecodedImage(parser: *PdfParser, key: u64, image: const *Image)
+{
+    if parser.imageCacheBytes + image.byteCount > ImageCacheBudget do
+        return
+    parser.imageCacheBytes += image.byteCount
+    parser.imageCache[key] = image[]
+}
+
 internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColor: Color)->Image fail
 {
     if parser.boolean(parser.dict(nodeId, "ImageMask"))
@@ -731,35 +755,6 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         return result
     }
 
-    let codec = #move parser.imageCodec(nodeId)
-    var plane: SamplePlane
-    if !codec.isEmpty()
-    {
-        if codec != "DCTDecode" and codec != "DCT" do
-            fail UnsupportedFormatError{"PDF image codec is not supported"}
-        let raw     = #move try parser.decodeStream(nodeId, true)
-        let decoded = #move try Image.decode(".jpg", raw.toSlice())
-        plane.width  = decoded.width
-        plane.height = decoded.height
-        plane.rgb.resize(cast(u64) decoded.width * cast(u64) decoded.height * 3)
-
-        // Pixel hands back a bottom-up image; the plane is top-down until it is flipped back.
-        let swapRedBlue = decoded.pixelFormat == .BGR8 or decoded.pixelFormat == .BGRA8
-        for y in cast(u64) decoded.height
-        {
-            for x in cast(u64) decoded.width
-            {
-                let source = ((cast(u64) decoded.height - y - 1) * cast(u64) decoded.width + x) * decoded.bytesPerPixel
-                let target = (y * cast(u64) decoded.width + x) * 3
-                plane.rgb[target + 0] = decoded.pixels[source + (swapRedBlue ? 2 : 0)]
-                plane.rgb[target + 1] = decoded.pixels[source + 1]
-                plane.rgb[target + 2] = decoded.pixels[source + (swapRedBlue ? 0 : 2)]
-            }
-        }
-    }
-    else do
-        plane = #move try readSamplePlane(parser, nodeId, resourcesId)
-
     // A soft mask, or a stencil named through /Mask, supplies the alpha channel.
     var maskId  = parser.dict(nodeId, "SMask")
     var stencil = false
@@ -772,6 +767,54 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             stencil = true
         }
     }
+
+    let codec = #move parser.imageCodec(nodeId)
+    var plane: SamplePlane
+    if !codec.isEmpty()
+    {
+        if codec != "DCTDecode" and codec != "DCT" do
+            fail UnsupportedFormatError{"PDF image codec is not supported"}
+        let raw     = #move try parser.decodeStream(nodeId, true)
+        var decoded = #move try Image.decode(".jpg", raw.toSlice())
+
+        // An unmasked photograph is already the answer. It comes back bottom-up, which is how
+        // an image stores its rows, so routing it through the sample plane would flip it to
+        // top-down and back, and copy every pixel three more times on the way. That is most of
+        // what loading an illustrated document used to cost.
+        if maskId == InvalidNode
+        {
+            var result: retval
+            if decoded.pixelFormat == .RGB8 do
+                result = #move decoded
+            else do
+                result = decoded.convertedTo(.RGB8)
+            cacheDecodedImage(parser, cacheKey, &result)
+            return #move result
+        }
+
+        plane.width  = decoded.width
+        plane.height = decoded.height
+        plane.rgb.resize(cast(u64) decoded.width * cast(u64) decoded.height * 3)
+
+        // Pixel hands back a bottom-up image; the plane is top-down until it is flipped back.
+        let swapRedBlue = decoded.pixelFormat == .BGR8 or decoded.pixelFormat == .BGRA8
+        let step        = cast(u64) decoded.bytesPerPixel
+        for y in cast(u64) decoded.height
+        {
+            var out    = plane.rgb.buffer! + y * cast(u64) decoded.width * 3
+            var sample = decoded.pixels.buffer! + (cast(u64) decoded.height - y - 1) * cast(u64) decoded.width * step
+            for cast(u64) decoded.width
+            {
+                out[0] = sample[swapRedBlue ? 2 : 0]
+                out[1] = sample[1]
+                out[2] = sample[swapRedBlue ? 0 : 2]
+                out    += 3
+                sample += step
+            }
+        }
+    }
+    else do
+        plane = #move try readSamplePlane(parser, nodeId, resourcesId)
 
     if maskId != InvalidNode
     {
@@ -790,11 +833,6 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     var result = #move planeToImage(&plane, null)
-    if parser.imageCacheBytes + result.byteCount <= ImageCacheBudget
-    {
-        parser.imageCacheBytes  += result.byteCount
-        parser.imageCache[cacheKey] = result
-    }
-
+    cacheDecodedImage(parser, cacheKey, &result)
     return #move result
 }

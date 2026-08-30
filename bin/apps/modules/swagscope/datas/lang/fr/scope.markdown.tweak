@@ -1,0 +1,11 @@
+# French strings of the Swag Scope Markdown viewer. A key omitted here keeps its English value.
+# The appearances are named after the styles they reproduce, so those names are not translated.
+
+ui_TipWidth  Largeur de lecture
+ui_Narrow    Étroite
+ui_Medium    Moyenne
+ui_Wide      Large
+ui_Fluid     Fluide
+ui_TipTheme  Apparence du Markdown
+ui_ThemeApp  Application
+ui_Details   Markdown · UTF-8 · en flux

@@ -9,8 +9,8 @@ The platform implementations themselves remain owned by
 [T-028](core.md#t-028--process-services-have-no-second-platform-backend),
 [T-045](gui.md#t-045--no-second-platform-surface-and-presentation-backend),
 [T-066](audio.md#t-066--a-second-platform),
-[T-084](snapforge.md#t-084--cross-platform-capture-backend), and
-[T-100](vaultdrive.md#t-100--no-linux-fuse-backend). This file owns the preparation
+[T-084](capture.md#t-084--cross-platform-capture-backend), and
+[T-100](vault.md#t-100--no-linux-fuse-backend). This file owns the preparation
 across those units: move policy, orchestration, parsing, normalization, and data conversion into
 ordinary Swag now, leaving each operating-system backend as a narrow set of mechanisms.
 
@@ -32,8 +32,8 @@ enough to justify one coordinated campaign:
 | `std/gui` (`.win32.swg`, excluding tests) | 5 | 2,967 |
 | `std/pixel` (`.win32.swg`, excluding OpenGL and tests) | 3 | 399 |
 | `std/audio` XAudio2 backend | 1 | 504 |
-| sSnapForge | 1 | 308 |
-| sVaultDrive, including its platform integration test | 11 | 2,454 |
+| Swag Capture | 1 | 308 |
+| Swag Vault, including its platform integration test | 11 | 2,454 |
 
 Those numbers are an inventory, not a deletion target. A small native backend is healthy. The
 target is that code above it compiles and is tested without importing a native binding, and that a

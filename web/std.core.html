@@ -2161,7 +2161,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
 
 <span class="SKwd">let</span> profile = <span class="SKwd">try</span> <span class="SCst"><a href="#Core_Guid128">Guid128</a></span>.<span class="SFct">parse</span>(<span class="SStr">"fc9456cf-5ec9-4710-bd12-b6bdd64a77a5"</span>)
-<span class="SKwd">let</span> role    = <span class="SKwd">try</span> <span class="SCst"><a href="#Core_Guid128">Guid128</a></span>.<span class="SFct">parse</span>(<span class="SStr">"f53e06c1-05a7-4537-9c6a-d85609209874"</span>)
+<span class="SKwd">let</span> role    = <span class="SKwd">try</span> <span class="SCst"><a href="#Core_Guid128">Guid128</a></span>.<span class="SFct">parse</span>(<span class="SStr">"582e4036-ee6f-45b5-86d9-7972bb7e0a19"</span>)
 
 <span class="SKwd">var</span> writer: <span class="SCst"><a href="#namespace_Core_Scc">Scc</a></span>.<span class="SCst"><a href="#Core_Scc_Writer">Writer</a></span>
 writer.<span class="SFct">initialize</span>(profile)
@@ -16034,7 +16034,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Utf8_ComparisonType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Utf8.ComparisonType</span> <a class="api-item-permalink" href="#Core_Utf8_ComparisonType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1164">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Utf8_ComparisonType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Utf8.ComparisonType</span> <a class="api-item-permalink" href="#Core_Utf8_ComparisonType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1245">src</a></div>
 <p>Selects comparison type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span></span></div>
 </section>
@@ -25397,22 +25397,22 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toZeroTerminated</span>(src: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u16</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_beautifyName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.beautifyName</span> <a class="api-item-permalink" href="#Core_Utf8_beautifyName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1334">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_beautifyName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.beautifyName</span> <a class="api-item-permalink" href="#Core_Utf8_beautifyName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1415">src</a></div>
 <p>Defines beautify name.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">beautifyName</span>(name: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_byteIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.byteIndex</span> <a class="api-item-permalink" href="#Core_Utf8_byteIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L777">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_byteIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.byteIndex</span> <a class="api-item-permalink" href="#Core_Utf8_byteIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L843">src</a></div>
 <p>Returns the byte index of the given rune index</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">byteIndex</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, charIndex: <span class="STpe">u64</span>)-&gt;{ index: <span class="STpe">u64</span>, success: <span class="STpe">bool</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_compare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.compare</span> <a class="api-item-permalink" href="#Core_Utf8_compare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1173">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_compare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.compare</span> <a class="api-item-permalink" href="#Core_Utf8_compare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1254">src</a></div>
 <p>Compare two utf8 buffers with the given algorithm</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compare</span>(src, dst: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.contains</span> <a class="api-item-permalink" href="#Core_Utf8_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L982">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.contains</span> <a class="api-item-permalink" href="#Core_Utf8_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1063">src</a></div>
 <p>Returns true if <span class="code-inline">src</span> contains the string <span class="code-inline">what</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">contains</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns true if <span class="code-inline">src</span> contains the string <span class="code-inline">what</span></p>
@@ -25423,45 +25423,45 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">contains</span>(src, what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_countBytesAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countBytesAt</span> <a class="api-item-permalink" href="#Core_Utf8_countBytesAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L734">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_countBytesAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countBytesAt</span> <a class="api-item-permalink" href="#Core_Utf8_countBytesAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L800">src</a></div>
 <p>Returns the number of bytes to encode the first rune of the utf8 buffer</p>
 <p>If it's an invalid encoding, returns 1.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countBytesAt</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_countRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countRunes</span> <a class="api-item-permalink" href="#Core_Utf8_countRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L819">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_countRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countRunes</span> <a class="api-item-permalink" href="#Core_Utf8_countRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L885">src</a></div>
 <p>Returns the number of runes in an utf8 buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countRunes</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_decodeLastRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.decodeLastRune</span> <a class="api-item-permalink" href="#Core_Utf8_decodeLastRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L289">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_decodeLastRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.decodeLastRune</span> <a class="api-item-permalink" href="#Core_Utf8_decodeLastRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L355">src</a></div>
 <p>Get the last unicode rune of the utf8 slice, and the number of bytes to encode it</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeLastRune</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;{ c: <span class="STpe">rune</span>, eat: <span class="STpe">u32</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_decodeRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.decodeRune</span> <a class="api-item-permalink" href="#Core_Utf8_decodeRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L348">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_decodeRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.decodeRune</span> <a class="api-item-permalink" href="#Core_Utf8_decodeRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L414">src</a></div>
 <p>Get the unicode rune pointed by <span class="code-inline">buffer</span>, and the number of bytes to encode it</p>
 <p>Will return <span class="code-inline">RuneError</span> for an invalid utf8 sequence</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeRune</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;{ c: <span class="STpe">rune</span>, eat: <span class="STpe">u32</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_encodeRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.encodeRune</span> <a class="api-item-permalink" href="#Core_Utf8_encodeRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L440">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_encodeRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.encodeRune</span> <a class="api-item-permalink" href="#Core_Utf8_encodeRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L506">src</a></div>
 <p>Convert rune <span class="code-inline">src</span> to an utf8 sequence, and returns the number of bytes that were needed to make the conversion.</p>
 <p><span class="code-inline">dest</span> must be at least 4 bytes long</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeRune</span>(dest: [..] <span class="STpe">u8</span>, src: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_endsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.endsWith</span> <a class="api-item-permalink" href="#Core_Utf8_endsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1125">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_endsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.endsWith</span> <a class="api-item-permalink" href="#Core_Utf8_endsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1206">src</a></div>
 <p>Return true if the string ends with <span class="code-inline">str</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">endsWith</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, str: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_firstRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.firstRune</span> <a class="api-item-permalink" href="#Core_Utf8_firstRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1138">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_firstRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.firstRune</span> <a class="api-item-permalink" href="#Core_Utf8_firstRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1219">src</a></div>
 <p>Returns the first rune of the slice</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">firstRune</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">rune</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_fromUnicode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.fromUnicode</span> <a class="api-item-permalink" href="#Core_Utf8_fromUnicode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L480">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_fromUnicode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.fromUnicode</span> <a class="api-item-permalink" href="#Core_Utf8_fromUnicode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L546">src</a></div>
 <p>Convert a rune array to an utf8 buffer</p>
 <p>Returns the number of bytes written in the destination buffer <span class="code-inline">dest</span> must be at least 4 bytes long</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUnicode</span>(dest: [..] <span class="STpe">u8</span>, src: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>)-&gt;<span class="STpe">u64</span></span></div>
@@ -25469,7 +25469,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUnicode</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_fromUtf16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.fromUtf16</span> <a class="api-item-permalink" href="#Core_Utf8_fromUtf16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L591">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_fromUtf16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.fromUtf16</span> <a class="api-item-permalink" href="#Core_Utf8_fromUtf16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L657">src</a></div>
 <p>Convert an utf16 array to an utf8 buffer</p>
 <p>Returns the number of bytes written in the destination buffer. <span class="code-inline">dest</span> must be at least 4 bytes long</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUtf16</span>(dest: [..] <span class="STpe">u8</span>, src: <span class="SKwd">const</span> [..] <span class="STpe">u16</span>)-&gt;<span class="STpe">u64</span></span></div>
@@ -25477,55 +25477,55 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUtf16</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u16</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_indexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOf</span> <a class="api-item-permalink" href="#Core_Utf8_indexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L847">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_indexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOf</span> <a class="api-item-permalink" href="#Core_Utf8_indexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L913">src</a></div>
 <p>Find the first occurence of rune <span class="code-inline">what</span>, and returns the byte index of it. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">rune</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Find the given string, and returns the byte index of it</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">string</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_indexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_indexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L897">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_indexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_indexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L978">src</a></div>
 <p>Find one of the runes in <span class="code-inline">what</span>, and returns the byte index of it. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Find one of the runes in <span class="code-inline">what</span>, and returns the byte index of it</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValid</span> <a class="api-item-permalink" href="#Core_Utf8_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1263">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValid</span> <a class="api-item-permalink" href="#Core_Utf8_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1344">src</a></div>
 <p>Returns true if the utf8 sequence is valid</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isValid</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_isValidRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValidRune</span> <a class="api-item-permalink" href="#Core_Utf8_isValidRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L720">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_isValidRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValidRune</span> <a class="api-item-permalink" href="#Core_Utf8_isValidRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L786">src</a></div>
 <p>Returns true if the given unicode rune can be encoded in utf8</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isValidRune</span>(c: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOf</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1007">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOf</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1088">src</a></div>
 <p>Find the last rune occurence of <span class="code-inline">what</span>, and returns the byte index of it. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">rune</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Returns the last index (in bytes) of a string. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1014">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1095">src</a></div>
 <p>Returns the last index (in bytes) of a any of the runes in <span class="code-inline">what</span>. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Returns the last index (in bytes) of a any of the bytes in <span class="code-inline">what</span>. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_lastRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastRune</span> <a class="api-item-permalink" href="#Core_Utf8_lastRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1151">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_lastRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastRune</span> <a class="api-item-permalink" href="#Core_Utf8_lastRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1232">src</a></div>
 <p>Returns the last rune of the slice</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastRune</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">rune</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_startsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.startsWith</span> <a class="api-item-permalink" href="#Core_Utf8_startsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1112">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_startsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.startsWith</span> <a class="api-item-permalink" href="#Core_Utf8_startsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1193">src</a></div>
 <p>Return true if the string starts with <span class="code-inline">str</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startsWith</span>(src: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, str: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_visitRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.visitRunes</span> <a class="api-item-permalink" href="#Core_Utf8_visitRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1235">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_visitRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.visitRunes</span> <a class="api-item-permalink" href="#Core_Utf8_visitRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1316">src</a></div>
 <p>Macro to visit the unicode characters of the utf8 sequence. Block parameters:</p>
 <ul>
 <li><span class="code-inline">c</span>:       the character</li>
@@ -26570,7 +26570,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.285</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.286</div>
 </footer>
 </section>
 </main>

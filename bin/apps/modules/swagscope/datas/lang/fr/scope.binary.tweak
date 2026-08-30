@@ -1,0 +1,251 @@
+# French strings of the Swag Scope binary format viewer. A key omitted here keeps its English value.
+# Structure and field names are never translated: they are the identifiers the format itself uses.
+
+ui_ColField       Champ
+ui_ColValue       Valeur
+ui_ColOffset      Décalage
+ui_ColDetail      Signification
+ui_TipExpand      Tout déplier (Ctrl+E)
+ui_TipCollapse    Tout replier (Ctrl+E)
+ui_MenuCopyAll    Copier tout le rapport
+ui_MenuCopyLine   Copier cette ligne
+ui_MenuExpand     Tout déplier
+ui_MenuCollapse   Tout replier
+ui_MenuGoTo       Aller au décalage du fichier
+ui_GoToMessage    Décalage hexadécimal dans le fichier, ou décalage signé depuis la ligne sélectionnée.
+ui_MenuBack       Emplacement précédent
+ui_MenuForward    Emplacement suivant
+ui_NotSet         non défini
+ui_NotDate        date invalide
+ui_Preview        Aperçu
+
+word_Section      section
+word_Sections     sections
+word_Entry        entrée
+word_Entries      entrées
+word_Symbol       symbole
+word_Symbols      symboles
+word_Module       module
+word_Modules      modules
+word_Object       objet
+word_Objects      objets
+word_Page         page
+word_Pages        pages
+word_Fixup        correction
+word_Fixups       corrections
+word_Member       membre
+word_Members      membres
+word_Chunk        bloc
+word_Chunks       blocs
+word_Record       enregistrement
+word_Records      enregistrements
+word_Library      bibliothèque
+word_Libraries    bibliothèques
+word_Property     propriété
+word_Properties   propriétés
+word_Track        piste
+word_Tracks       pistes
+word_Event        événement
+word_Events       événements
+
+shr_Sections      Sections
+shr_Imports       Importations
+shr_Exports       Exportations
+shr_Libraries     Bibliothèques requises
+shr_BuildId       Identité de compilation
+shr_Interpreter   Interpréteur
+shr_Entry         Point d'entrée
+shr_Malformed     la chaîne d'enregistrements s'arrête avant la fin du fichier
+
+rep_File          Fichier
+rep_Size          Taille
+rep_Read          Analysé
+rep_Bounded       seul le début de ce fichier a été analysé
+rep_Truncated     une structure dépasse la fin du fichier
+rep_FirstBytes    Premiers octets
+rep_Entropy       Entropie
+rep_EntropyHigh   compressé, empaqueté ou chiffré
+rep_EntropyMid    mélange de code et de données
+rep_EntropyLow    structuré ou textuel
+rep_NotListed     % entrées supplémentaires non listées
+rep_Unknown       Binaire non reconnu
+rep_UnknownDesc   aucun lecteur ne reconnaît ce fichier
+rep_Empty         fichier vide
+
+pe_DosHeader      En-tête DOS
+pe_DosSignature   signature d'exécutable MS-DOS
+pe_DosLfanew      décalage de la signature PE dans le fichier
+pe_DosStub        Amorce DOS
+pe_DosStubDesc    message affiché si l'image est lancée sous DOS
+pe_Rich           En-tête Rich
+pe_RichDesc       chaîne d'outils qui a produit l'image
+pe_RichKey        clé qui masque chaque entrée
+pe_RichTool       produit %, version de compilation %
+pe_FileHeader     En-tête de fichier
+pe_Optional       En-tête optionnel
+pe_NoOptional     ce fichier ne porte pas d'en-tête optionnel
+pe_Image64        image 64 bits
+pe_Image32        image 32 bits
+pe_ImageRom       image ROM
+pe_NoEntry        aucun point d'entrée
+pe_PreferredBase  adresse de chargement préférée
+pe_InMemory       en mémoire
+pe_OnDisk         sur disque
+pe_Reserved       octets réservés par le chargeur
+pe_NoChecksum     non calculée
+pe_Directories    Répertoires de données
+pe_DirEmpty       vide
+pe_ExportName     nom sous lequel l'image exporte
+pe_ExportBase     premier ordinal
+pe_ByName         Par nom
+pe_ByOrdinal      Par ordinal seulement
+pe_ByOrdinalDesc  symboles inaccessibles par leur nom
+pe_Ordinal        ordinal %
+pe_Forwarded      redirigé vers %
+pe_NotExported    non exporté
+pe_ExportOutside  le répertoire d'exportation est hors de toute section
+pe_ExportTableOut la table d'adresses d'exportation est hors de toute section
+pe_ImportOutside  le répertoire d'importation est hors de toute section
+pe_ImportTotal    Total
+pe_ImportSymbols  symboles importés
+pe_ImportLookup   table de recherche d'importation
+pe_ImportAddress  table d'adresses d'importation
+pe_Bound          lié à une version précise
+pe_Unbound        non lié
+pe_ByOrdinalBind  lié par ordinal
+pe_Hint           indice %
+pe_ThunkOutside   la table de liaison de ce module est hors de toute section
+pe_Outside        hors de toute section
+pe_Delayed        Importations différées
+pe_DelayedDesc    modules chargés à la première utilisation
+pe_DelayRelative  adresses relatives à l'image
+pe_DelayAbsolute  adresses absolues
+pe_Resources      Ressources
+pe_ResourceOut    le répertoire de ressources est hors de toute section
+pe_Unnamed        (sans nom)
+pe_ResourceType   type %
+pe_ResourceId     identifiant %
+pe_ResourceLang   langue %
+pe_ResourceWhere  page de code %, à %
+pe_Version        Informations de version
+pe_VersionDesc    ce qu'affiche la fiche de propriétés du fichier
+pe_VersionMissing la ressource de version ne porte pas de bloc fixe
+pe_Debug          Informations de débogage
+pe_DebugIdentity  identité que le fichier de symboles doit porter
+pe_Exception      Répertoire d'exceptions
+pe_ExceptionDesc  fonctions dotées d'informations de déroulement
+pe_Coverage       Couverture
+pe_Relocations    Relocalisations de base
+pe_Pages          Pages
+pe_Fixups         Corrections
+pe_Tls            Stockage local de thread
+pe_LoadConfig     Configuration de chargement
+pe_Cookie         garde de pile vérifiée par l'image
+pe_Clr            En-tête CLR
+pe_ClrManaged     image managée
+pe_ClrRuntime     cadriciel visé par l'assemblage
+pe_Certificates   Signature
+pe_CertificateAt  ajoutée après l'image
+pe_CertificateNo  le bloc de signature ne porte aucun certificat lisible
+pe_Certificate    certificat %
+pe_Symbols        Symboles
+pe_StringTable    Table de chaînes
+pe_SymbolWhere    % · section %
+
+elf_Header        En-tête ELF
+elf_Identity      Identité
+elf_Class32       objets 32 bits
+elf_Class64       objets 64 bits
+elf_Little        petit-boutiste
+elf_Big           grand-boutiste
+elf_Programs      En-têtes de programme
+elf_ProgramsDesc  ce que le chargeur projette en mémoire
+elf_SectionsDesc  ce avec quoi l'éditeur de liens travaille
+elf_Dynamic       Section dynamique
+elf_DynamicDesc   ce qui est indiqué au chargeur dynamique
+elf_NoSections    les en-têtes de section sont hors du fichier
+
+ar_Archive        Archive
+ar_Members        Membres
+ar_Linker         Répertoire d'édition de liens
+ar_LinkerDesc     quel membre définit quel symbole
+ar_LongNames      Noms longs
+ar_Modified       Modifié
+ar_Mode           Mode
+ar_Owner          Propriétaire
+ar_Import         Descripteur d'importation
+ar_ImportDll      fourni par %
+ar_Malformed      la chaîne des membres s'arrête avant la fin du fichier
+
+scc_Container     Conteneur
+scc_Prefix        Préfixe
+scc_Manifest      Manifeste
+scc_Entries       Entrées virtuelles
+scc_Chunks        Blocs
+scc_Properties    Propriétés
+scc_Tags          Étiquettes
+scc_Created       Créé
+scc_Modified      Modifié
+scc_Directory     répertoire
+scc_VirtualFile   fichier
+scc_Stored        stocké
+scc_Deflate       deflate
+scc_Codec         codec personnalisé
+scc_Unreadable    l'en-tête de ce conteneur n'a pas pu être décodé
+scc_Profile       Données de profil
+
+mo_Header         En-tête Mach-O
+mo_Commands       Commandes de chargement
+mo_CommandsDesc   ce qui est demandé au chargeur
+mo_Fat            Binaire universel
+mo_FatDesc        une image par architecture
+mo_Architecture   Architecture
+mo_Protection     maximum %, initiale %
+mo_Slice          tranche %
+
+zip_Directory     Répertoire central
+zip_DirectoryDesc ce que l'archive déclare contenir
+zip_End           Fin du répertoire central
+zip_Zip64         Localisateur Zip64
+zip_Comment       Commentaire
+zip_Method        Méthode
+zip_Ratio         compressé à %{#0}%% de sa taille
+zip_Encrypted     chiffré
+zip_Folder        dossier
+zip_NoDirectory   aucun répertoire central n'a été trouvé
+
+wasm_Module       Module WebAssembly
+wasm_Custom       Section personnalisée
+wasm_Function     fonction
+wasm_Table        table
+wasm_Memory       mémoire
+wasm_Global       variable globale
+wasm_Malformed    la chaîne des sections s'arrête avant la fin du module
+
+riff_Container    Conteneur RIFF
+riff_Chunks       Blocs
+riff_Form         Forme
+
+midi_File         Fichier MIDI standard
+midi_Tracks       Pistes
+midi_Track        Piste %
+midi_TicksQuarter % impulsions par noire
+midi_Smpte        % images par seconde · % impulsions par image
+midi_At           impulsion %
+midi_AtChannel    impulsion % · canal %
+midi_Malformed    la chaîne d'événements s'arrête avant la fin déclarée de la piste
+midi_NoEnd        la piste ne porte aucun événement End of Track
+midi_Major        majeur
+midi_Minor        mineur
+
+font_Font         Police
+font_Tables       Tables
+font_TablesDesc   ce que lit le moteur de rendu
+font_Names        Noms
+font_Family       Famille
+font_Subfamily    Sous-famille
+font_FullName     Nom complet
+font_Version      Version
+font_Glyphs       Glyphes
+font_UnitsPerEm   Unités par cadratin
+font_Collection   Collection de polices

@@ -2430,11 +2430,7 @@ impl Wnd
             return {}
         let safeCmdId = cmdId orelse ""
 
-        // `retval` storage is deliberately uninitialized. Initialize the complete event, not
-        // only its owned strings: random UpdatedFields bits can otherwise turn ordinary menu
-        // entries into hidden, checked, or renamed items depending on the caller's stack.
         var evtState: retval
-        Swag.init(&evtState, 1)
 
         // User will fill the state
         evtState.kind   = .Compute
@@ -2465,10 +2461,6 @@ impl Wnd
 
         // We first need to be sure that the target can deal with the event
         var evtState: CommandStateEvent
-        Swag.init(&evtState.name, 1)
-        Swag.init(&evtState.longName, 1)
-        Swag.init(&evtState.shortcut, 1)
-        Swag.init(&evtState.toolTip, 1)
         evtState.kind = .Compute
         evtState.id   = safeCmdId
         .sendEvent(&evtState)

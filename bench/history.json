@@ -1008,7 +1008,7 @@
       "date": "2026-08-12T17:34:29+00:00",
       "label": "",
       "commit": "34080a37d",
-      "subject": "Optimize sCapture and sCrypt test execution",
+      "subject": "Optimize Swag Capture and Swag Vault test execution",
       "master": "34080a37d",
       "dirty": false,
       "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",

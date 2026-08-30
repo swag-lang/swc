@@ -306,7 +306,7 @@ internal impl HtmlView
             if current.tag == .Style
             {
                 var css: String
-                for child in current.children where .document.constNode(child).kind == .Text do
+                for child in .document.children(node) where .document.constNode(child).kind == .Text do
                     css += .document.textOf(child)
                 .sheet.parse(css.toString())
                 return
@@ -319,7 +319,7 @@ internal impl HtmlView
             }
         }
 
-        for child in current.children do
+        for child in .document.children(node) do
             .appendStyleSheets(child)
     }
 

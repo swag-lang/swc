@@ -725,7 +725,12 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             TypeRef         setParamRef = TypeRef::invalid();
             SWC_RESULT(resolveStructSetCastCandidate(sema, sema.node(elemNodeRef).codeRef(), srcElemTypeRef, dstElemTypeRef, castRequest.kind, setFn, setParamRef, elemNodeRef));
             if (!setFn && !elemRequest.selectedStructOpCast)
+            {
+                // A runtime aggregate literal must use the concrete slice element storage so
+                // fields omitted from the literal receive their implicit or declared defaults.
+                SWC_RESULT(retargetLiteralRuntimeStorageIfNeeded(sema, elemNodeRef, srcElemTypeRef, dstElemTypeRef, true));
                 continue;
+            }
 
             SemaNodeView elemView(sema, elemNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
             SWC_RESULT(castIfNeeded(sema, elemView, dstElemTypeRef, castRequest.kind, castRequest.flags));

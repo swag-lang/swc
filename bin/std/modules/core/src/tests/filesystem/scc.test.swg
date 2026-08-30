@@ -41,8 +41,8 @@ func sameSccBytes(left, right: const [..] u8)->bool
     defer discard catch File.delete(path)
 
     let kind        = sccTestId("fc9456cf-5ec9-4710-bd12-b6bdd64a77a5")
-    let previewRole = sccTestId("f53e06c1-05a7-4537-9c6a-d85609209874")
-    let imageRole   = sccTestId("04267f4e-d659-4d32-9296-cc68be5bdb9d")
+    let previewRole = sccTestId("582e4036-ee6f-45b5-86d9-7972bb7e0a19")
+    let imageRole   = sccTestId("b390ebc7-2563-4898-82ff-67cc398d7cd3")
     let bytesType   = sccTestId("679e4f35-8ef2-40b1-9af5-a0ddc03276df")
     let deflate     = Scc.deflateCodecId()
 

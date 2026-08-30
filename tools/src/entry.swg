@@ -116,8 +116,8 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     case "web":
         return try runWeb(&context, &options)
 
-    case "vaultdrive":
-        return try runVaultDrive(&context, &options)
+    case "vault":
+        return try runVaultIntegration(&context, &options)
 
     case "vsix":
         return try runVsix(&context, &options)

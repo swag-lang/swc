@@ -28,6 +28,39 @@ struct Node
     entries:   HashTable'(String, u32)
     reference: u32
     stream:    Array'u8
+
+    // Generation of an indirect reference. Two objects may carry the same number with
+    // different generations, and only the pair names one of them.
+    referenceGeneration: u16
+}
+
+// Where the cross-reference index says one object is written.
+enum XrefKind
+{
+    Free         // A hole: the number names no object in this revision.
+    Offset       // Written in the file, at a byte offset from the header.
+    InStream     // Written inside a compressed object stream.
+}
+
+struct XrefEntry
+{
+    kind:          XrefKind
+    offset:        u64     // Offset form: where `N G obj` starts.
+    container:     u32     // Stream form: object number of the containing object stream.
+    indexInStream: u32     // Stream form: position of the object inside that stream.
+    generation:    u16
+}
+
+// One expanded object stream, kept so the objects sharing it are decompressed once.
+//
+// The pointer handed out must stay valid while an object is parsed out of it, and parsing one
+// object can pull another stream in, so these live in an ArrayPtr rather than in the table.
+struct ObjectStream
+{
+    data:    Array'u8
+    numbers: Array'u32
+    offsets: Array'u64
+    first:   u64
 }
 
 struct PdfParser
@@ -42,6 +75,16 @@ struct PdfParser
     trailerRoot: u32 = InvalidNode
     trailerInfo: u32 = InvalidNode
     isEncrypted: bool
+
+    // Where each object lives, from the file's own cross-reference chain, and how deep the
+    // lazy parse currently is. An object is parsed the first time something asks for it, and
+    // `objects` is where the parsed node is remembered.
+    xref:         HashTable'(u32, XrefEntry)
+    objectDepth:  u32
+    hasScanned:   bool
+
+    objectStreams:     ArrayPtr'ObjectStream
+    objectStreamIndex: HashTable'(u32, u32)
 
     // Images already decoded from this document, keyed by the image object together with the
     // resource dictionary that resolved its color space.

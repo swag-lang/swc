@@ -1654,7 +1654,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDragDropEvent</span>(evt: *<span class="SCst"><a href="#Gui_DragDropEvent">DragDropEvent</a></span>)
 {
     <span class="SKwd">let</span> path = evt.data.<span class="SFct">singleFile</span>()
-    <span class="SLgc">if</span> !path <span class="SLgc">or</span> !<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span>.<span class="SFct">hasExtension</span>(path!, <span class="SStr">".scrypt"</span>)
+    <span class="SLgc">if</span> !path <span class="SLgc">or</span> !<span class="SCst"><a href="#Gui_Pdf_ItemKind_Path">Path</a></span>.<span class="SFct">hasExtension</span>(path!, <span class="SStr">".vault"</span>)
     {
         evt.accepted = <span class="SKwd">false</span>
         <span class="SLgc">return</span>
@@ -7387,7 +7387,7 @@ dlg.form.<span class="SFct">computeLayout</span>()
 <p>The <span class="code-inline">addTextField</span>, <span class="code-inline">addPasswordField</span>, <span class="code-inline">addChoiceField</span>, and <span class="code-inline">addOptionField</span> builders create a control, append its row, and return the concrete control, so a caller never looks a field up by name. Add the optional trailing control of the row that was just appended with <a href="#Gui_FormLayoutCtrl_addRowAction">Gui.FormLayoutCtrl.addRowAction</a> or <a href="#Gui_FormLayoutCtrl_addRowChoice">Gui.FormLayoutCtrl.addRowChoice</a>. Use <a href="#Gui_FormLayoutCtrl_addField">Gui.FormLayoutCtrl.addField</a> directly for a control the builders do not create.</p>
 <p>The form owns the labels it creates and the layout of every row; the caller keeps the concrete control pointers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> form = <span class="SCst"><a href="#Gui_FormLayoutCtrl">FormLayoutCtrl</a></span>.<span class="SFct">create</span>(parent)
-<span class="SKwd">let</span> path = form.<span class="SFct">addTextField</span>(<span class="SStr">"CONTAINER FILE"</span>, placeholder: <span class="SStr">"C:\\private.scrypt"</span>)
+<span class="SKwd">let</span> path = form.<span class="SFct">addTextField</span>(<span class="SStr">"CONTAINER FILE"</span>, placeholder: <span class="SStr">"C:\\private.vault"</span>)
 <span class="SKwd">let</span> browse = form.<span class="SFct">addRowAction</span>(<span class="SStr">"Browse"</span>)
 <span class="SKwd">let</span> password = form.<span class="SFct">addPasswordField</span>(<span class="SStr">"PASSWORD"</span>)
 form.<span class="SFct">computeLayout</span>()</span></div>
@@ -21579,17 +21579,17 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSelectedIndex</span>(index: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Testing_actionAccept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionAccept</span> <a class="api-item-permalink" href="#Gui_Testing_actionAccept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L133">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Testing_actionAccept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionAccept</span> <a class="api-item-permalink" href="#Gui_Testing_actionAccept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L129">src</a></div>
 <p>Asks action type T whether it accepts the command, through its IActionUI interface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">actionAccept</span>(wnd: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Testing_actionExecute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionExecute</span> <a class="api-item-permalink" href="#Gui_Testing_actionExecute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L140">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Testing_actionExecute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionExecute</span> <a class="api-item-permalink" href="#Gui_Testing_actionExecute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L136">src</a></div>
 <p>Executes action type T through its IActionUI interface, as the command dispatch would.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">actionExecute</span>(wnd: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Testing_actionUpdate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionUpdate</span> <a class="api-item-permalink" href="#Gui_Testing_actionUpdate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Testing_actionUpdate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionUpdate</span> <a class="api-item-permalink" href="#Gui_Testing_actionUpdate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L143">src</a></div>
 <p>Updates the command state of action type T through its IActionUI interface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">actionUpdate</span>(wnd: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, evt: *<span class="SCst"><a href="#Gui_CommandStateEvent">CommandStateEvent</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -22363,7 +22363,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rectRelativeTo</span>(wnd: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_registerAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.registerAction</span> <a class="api-item-permalink" href="#Gui_Wnd_registerAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2491">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_registerAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.registerAction</span> <a class="api-item-permalink" href="#Gui_Wnd_registerAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2483">src</a></div>
 <p>Register one new action</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">T</span>) <span class="SFct">registerAction</span>()</span></div>
 </section>
@@ -22403,7 +22403,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">screenToSurface</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_sendCommandEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendCommandEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendCommandEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2461">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_sendCommandEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.sendCommandEvent</span> <a class="api-item-permalink" href="#Gui_Wnd_sendCommandEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2457">src</a></div>
 <p>Send the command event with the given id to the window. The command will be updated first, and if it is not disabled, it will be sent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendCommandEvent</span>(cmdId: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)</span></div>
 </section>
@@ -22448,7 +22448,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendToBack</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Wnd_serializeState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.serializeState</span> <a class="api-item-permalink" href="#Gui_Wnd_serializeState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2536">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Wnd_serializeState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wnd.serializeState</span> <a class="api-item-permalink" href="#Gui_Wnd_serializeState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L2528">src</a></div>
 <p>Offers persistent-state serialization to this window, then recursively to children if declined.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">serializeState</span>(ser: *<span class="SCst"><a href="std.core.html#namespace_Core_Serialization">Serialization</a></span>.<span class="SCst"><a href="std.core.html#Core_Serialization_Serializer">Serializer</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -22616,7 +22616,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.285</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.286</div>
 </footer>
 </section>
 </main>

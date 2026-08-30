@@ -120,10 +120,6 @@ func countNonZeroBytes(img: Image)->u64
 func commandState(id: WndId)->CommandStateEvent
 {
     var evt: CommandStateEvent
-    Swag.init(&evt.name, 1)
-    Swag.init(&evt.longName, 1)
-    Swag.init(&evt.shortcut, 1)
-    Swag.init(&evt.toolTip, 1)
     evt.id = id
     return evt
 }

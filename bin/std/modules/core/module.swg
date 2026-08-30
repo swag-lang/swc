@@ -52,7 +52,7 @@ load a thumbnail or metadata chunk without reading the main document.
 using Core
 
 let profile = try Guid128.parse("fc9456cf-5ec9-4710-bd12-b6bdd64a77a5")
-let role    = try Guid128.parse("f53e06c1-05a7-4537-9c6a-d85609209874")
+let role    = try Guid128.parse("582e4036-ee6f-45b5-86d9-7972bb7e0a19")
 
 var writer: Scc.Writer
 writer.initialize(profile)

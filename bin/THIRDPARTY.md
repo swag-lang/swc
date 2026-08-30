@@ -1,7 +1,7 @@
 # Third-party notices
 
-Swag itself is distributed under the repository-level `LICENCE`. The sVaultDrive application is
-separately distributed under the GPL terms in `apps/modules/sVaultDrive/LICENCE.md`; neither licence
+Swag itself is distributed under the repository-level `LICENCE`. The Swag Vault application is
+separately distributed under the GPL terms in `apps/modules/swagvault/LICENCE.md`; neither licence
 is a third-party notice. Files derived from third-party work carry compact `@LICENCE`, `@ORIGIN`,
 `@MODIFIED`, and `@NOTICE` metadata beside the code. This file preserves the corresponding
 attribution and licence text in one place.
@@ -10,8 +10,8 @@ attribution and licence text in one place.
 
 Some redistributions are documented closer to the files they cover:
 
-- `apps/modules/sFileScope/src/tests/datas/THIRDPARTY.md`: media viewer test fixtures.
-- `apps/modules/sVaultDrive/THIRDPARTY.md`: WinFsp and the other sVaultDrive dependencies.
+- `apps/modules/swagscope/src/tests/datas/THIRDPARTY.md`: media viewer test fixtures.
+- `apps/modules/swagvault/THIRDPARTY.md`: WinFsp and the other Swag Vault dependencies.
 - `std/modules/audio/src/tests/datas/THIRDPARTY.md`: audio test fixtures.
 - `std/modules/audio/src/codec/dts/THIRDPARTY.md`: FFmpeg's DTS ADPCM predictor codebook.
 - `std/modules/gui/src/theme/THIRDPARTY.md`: GUI icon sources.

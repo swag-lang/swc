@@ -66,13 +66,13 @@ private const NativeSourceFiles = [
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
     "bin/std/modules/audio/src/driver/xaudio2.swg",
     "bin/std/modules/audio/src/tests/driver.xaudio2.win32.test.swg",
-    "bin/apps/modules/sSnapForge/src/screenshot/screenshot.win32.swg",
-    "bin/apps/modules/sVaultDrive/src/autounmount.win32.swg",
-    "bin/apps/modules/sVaultDrive/src/tests/integration.win32.swg"]
+    "bin/apps/modules/swagcapture/src/screenshot/screenshot.win32.swg",
+    "bin/apps/modules/swagvault/src/autounmount.win32.swg",
+    "bin/apps/modules/swagvault/src/tests/integration.win32.swg"]
 
 // A named backend directory owns every file below it; it is stronger evidence than a suffix and
 // lets one backend keep its ABI, callbacks, lifecycle, and integration test together.
-private const NativeSourceRoots = ["bin/apps/modules/sVaultDrive/src/winfsp/"]
+private const NativeSourceRoots = ["bin/apps/modules/swagvault/src/winfsp/"]
 
 // These module setup files are the only portable-module wiring points allowed to import a raw
 // native module. Each import is conditional on the target OS in the source itself.

@@ -2345,9 +2345,17 @@ impl RenderCpu
         Debug.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
         let storage = .findTexture(rt.colorBuffer.handle)
         Debug.assert(storage != null, "render target is not owned by this renderer")
-        let source         = storage!
-        var result: retval = source.image
-        result.crop(x, y, width, height)
+        let source = storage!
+
+        // Cropping a copy allocates and walks the whole target a second time, and the read that
+        // matters — a page, a thumbnail, a captured frame — asks for the whole of it.
+        if x == 0 and y == 0 and width == source.image.width and height == source.image.height
+        {
+            var whole: retval = source.image
+            return whole
+        }
+
+        var result: retval = source.image.cropped(x, y, width, height)
         return result
     }
 

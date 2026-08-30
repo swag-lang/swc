@@ -8,23 +8,23 @@ the shared backlog conventions.
 
 ## Statement lowering
 
-### B-156 — A `switch` on a string calls a comparison function once per case
+### B-161 — A `switch` on known strings still tests its cases one by one
 
 - Area: compiler/codegen
-- Evidence: `emitStringCompareEqualsJump` in
-  [CodeGen.Switch.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Switch.cpp) prepares an ABI call to the
-  runtime string comparison for every case, in source order, with no cheaper test in front of it,
-  so a switch over a hundred names is a chain of up to a hundred calls. Measured on
-  `HtmlDocument.tagFromName`, 104 cases: about 120 ns per resolved element name, 17.5 ms for the
-  146 945 elements of the 8.15 MB page in `backlog/html.md` — a tenth of what parsing it costs.
-  The CSS property switch in `style.swg`, the color-name switch, and every other large string
-  switch in `bin/` pay the same shape; the HTML entity table stopped being one because of it.
-- Next: emit the length comparison inline before each call — both operands are `string`, and a
-  case literal's length is a compile-time constant — jumping to the next test when they differ,
-  then measure `tagFromName` again. Bucketing the cases by length in the emitted graph is the step
-  after that, if the pre-check is not enough.
-- Complete when: a string switch over a hundred cases costs a handful of comparisons per lookup,
-  the `sema`, `native` and `jit` suites stay green, and the page above parses measurably faster.
+- Evidence: a case whose value is a string the compiler knows is now compared where it stands —
+  the length against an immediate, then the bytes in one or two overlapping chunks, with no call
+  at all (`emitKnownStringCompareEqualsJump` in
+  [CodeGen.Switch.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Switch.cpp)). Measured on a 104-case
+  table with a name that matches none of them, so every case is tested: 97-132 ns before,
+  53-66 ns after. What remains is that the cases are still tested in source order: only the ones
+  of the value's own length can match, and the compiler knows every length before it emits
+  anything. Written by hand in `HtmlDocument.tagFromName`, that grouping is worth another 40% —
+  24 ns per name instead of 40.
+- Next: when every case of a string switch is a known constant and no case carries a `where`,
+  group the tests by length behind one dispatch on the loaded length, then measure the same
+  104-case table and `bin/` as a whole.
+- Complete when: a hand-written length grouping no longer beats what the compiler emits, and the
+  `sema`, `native` and `jit` suites stay green.
 - Also: `Pdf.parseContent` dispatches PDF content operators through forty-nine cases whose labels
   are one to three byte strings, so a three-byte token can cost sixty calls to identify. Replacing
   that one dispatch with a packed-integer switch produced no change any measurement could separate
@@ -161,7 +161,7 @@ the shared backlog conventions.
   `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
   should and the allocator puts the values back.
 - Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
-  deflate payload of `8_9_2025_15_43_58.scapture` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
+  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
   symbol — a stored photograph, so the loop runs about once per output byte). Best of several
   alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
   121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619

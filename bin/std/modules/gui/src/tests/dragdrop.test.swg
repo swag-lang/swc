@@ -260,11 +260,11 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     Swag.assert(data.imageBytes.count == 0)
 
     // Asking for the bytes is what pays, and it pays once.
-    Swag.assert((data.encodedImage()).count != 0)
+    Swag.assert(data.encodedImage().count != 0)
     Swag.assert(data.imageEncoded)
 
     let size = data.imageBytes.count
-    Swag.assert((data.encodedImage()).count == size)
+    Swag.assert(data.encodedImage().count == size)
 }
 
 // A drag started with no desktop under it, or with nothing to carry, goes nowhere.
@@ -357,14 +357,14 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     let edit = EditBox.create(&host.root, "", {0, 0, 240, 26})
     let pt   = edit.surfaceRect().center()
 
-    Swag.assert(host.dropFiles(pt, ["c:/tmp/one.scrypt"]) == DropEffect.None)
+    Swag.assert(host.dropFiles(pt, ["c:/tmp/one.vault"]) == DropEffect.None)
     Swag.assert(edit.text() == "")
 
     edit.updateFlags(.AcceptFileDrop)
-    Swag.assert(host.dropFiles(pt, ["c:/tmp/one.scrypt"]) == DropEffect.Copy)
-    Swag.assert(edit.text() == "c:/tmp/one.scrypt")
+    Swag.assert(host.dropFiles(pt, ["c:/tmp/one.vault"]) == DropEffect.Copy)
+    Swag.assert(edit.text() == "c:/tmp/one.vault")
 
     // Several files name no single value, so the box has nothing to answer.
-    Swag.assert(host.dropFiles(pt, ["c:/tmp/a.scrypt", "c:/tmp/b.scrypt"]) == DropEffect.None)
-    Swag.assert(edit.text() == "c:/tmp/one.scrypt")
+    Swag.assert(host.dropFiles(pt, ["c:/tmp/a.vault", "c:/tmp/b.vault"]) == DropEffect.None)
+    Swag.assert(edit.text() == "c:/tmp/one.vault")
 }

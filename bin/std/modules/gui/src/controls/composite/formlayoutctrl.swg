@@ -57,7 +57,7 @@ struct FormLayoutRow
 //
 // ```swag
 // let form = FormLayoutCtrl.create(parent)
-// let path = form.addTextField("CONTAINER FILE", placeholder: "C:\\private.scrypt")
+// let path = form.addTextField("CONTAINER FILE", placeholder: "C:\\private.vault")
 // let browse = form.addRowAction("Browse")
 // let password = form.addPasswordField("PASSWORD")
 // form.computeLayout()

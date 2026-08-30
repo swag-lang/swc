@@ -21,6 +21,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -221,6 +222,117 @@ namespace
         return caseNode.spanExprRef.isValid();
     }
 
+    // The bytes a case compares against, when the case is a string the compiler already knows.
+    std::optional<std::string_view> knownCaseText(CodeGen& codeGen, AstNodeRef caseExprRef)
+    {
+        if (caseExprRef.isInvalid())
+            return std::nullopt;
+
+        const SemaNodeView caseView = codeGen.viewConstant(caseExprRef);
+        if (caseView.cstRef().isInvalid())
+            return std::nullopt;
+
+        const ConstantValue& constantValue = codeGen.cstMgr().get(caseView.cstRef());
+        if (!constantValue.isString())
+            return std::nullopt;
+
+        return constantValue.getString();
+    }
+
+    // Emits the comparison of `count` bytes at `dataReg` against the same bytes of a known string,
+    // jumping to `failLabel` at the first difference.
+    //
+    // The chunks are read at both ends of the run and may overlap in the middle, which is how a
+    // small memcmp is written: every load stays inside the string, whatever its length, and a name
+    // of eight bytes or less costs two comparisons.
+    void emitKnownBytesCompare(CodeGen& codeGen, MicroReg dataReg, std::string_view text, MicroLabelRef failLabel)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        const auto loadChunk = [&](size_t offset, size_t width) -> uint64_t {
+            uint64_t value = 0;
+            for (size_t index = 0; index < width; ++index)
+                value |= static_cast<uint64_t>(static_cast<uint8_t>(text[offset + index])) << (index * 8);
+            return value;
+        };
+
+        const auto compareChunk = [&](size_t offset, size_t width, MicroOpBits opBits) {
+            const MicroReg chunkReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(chunkReg, dataReg, offset, opBits);
+            const uint64_t expected = loadChunk(offset, width);
+            if (width == 8)
+            {
+                const MicroReg expectedReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegImm(expectedReg, ApInt(expected, 64), MicroOpBits::B64);
+                builder.emitCmpRegReg(chunkReg, expectedReg, MicroOpBits::B64);
+            }
+            else
+            {
+                builder.emitCmpRegImm(chunkReg, ApInt(expected, 64), opBits);
+            }
+
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, failLabel);
+        };
+
+        const size_t count = text.size();
+        size_t       width = 1;
+        MicroOpBits  bits  = MicroOpBits::B8;
+        if (count >= 8)
+        {
+            width = 8;
+            bits  = MicroOpBits::B64;
+        }
+        else if (count >= 4)
+        {
+            width = 4;
+            bits  = MicroOpBits::B32;
+        }
+        else if (count >= 2)
+        {
+            width = 2;
+            bits  = MicroOpBits::B16;
+        }
+
+        compareChunk(0, width, bits);
+        if (count > width)
+            compareChunk(count - width, width, bits);
+    }
+
+    // Compares the switch value against one case without calling anything, when the case is a
+    // string the compiler knows and short enough to read in two chunks.
+    //
+    // A `switch` over strings used to be a chain of calls, one per case, which made a lookup table
+    // written as a hundred cases cost a hundred calls. The length is one load and rejects nearly
+    // every case on its own; the bytes that follow are compared in place.
+    bool emitKnownStringCompareEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseExprRef, MicroLabelRef successLabel)
+    {
+        constexpr size_t MaxInlineLength = 16;
+
+        const std::optional<std::string_view> caseText = knownCaseText(codeGen, caseExprRef);
+        if (!caseText.has_value() || caseText->size() > MaxInlineLength)
+            return false;
+        if (!switchState.switchValuePayload.reg.isValid())
+            return false;
+
+        MicroBuilder&       builder   = codeGen.builder();
+        const MicroLabelRef failLabel = builder.createLabel();
+        const MicroReg      lengthReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(lengthReg, switchState.switchValuePayload.reg, offsetof(Runtime::String, length), MicroOpBits::B64);
+        builder.emitCmpRegImm(lengthReg, ApInt(caseText->size(), 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, failLabel);
+
+        if (!caseText->empty())
+        {
+            const MicroReg dataReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(dataReg, switchState.switchValuePayload.reg, offsetof(Runtime::String, ptr), MicroOpBits::B64);
+            emitKnownBytesCompare(codeGen, dataReg, *caseText, failLabel);
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, successLabel);
+        builder.placeLabel(failLabel);
+        return true;
+    }
+
     Result emitStringCompareEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const CodeGenNodePayload& casePayload, MicroLabelRef successLabel)
     {
         SymbolFunction* stringCmpSymbol = switchState.stringCmpFunction;
@@ -285,7 +397,12 @@ namespace
     {
         const CodeGenNodePayload& casePayload = codeGen.payload(caseExprRef);
         if (switchState.useStringCompare)
+        {
+            if (emitKnownStringCompareEqualsJump(codeGen, switchState, caseExprRef, successLabel))
+                return Result::Continue;
             return emitStringCompareEqualsJump(codeGen, switchState, casePayload, successLabel);
+        }
+
         if (switchState.useTypeInfoCompare)
             return emitTypeInfoCompareEqualsJump(codeGen, switchState, casePayload, successLabel);
 

@@ -340,6 +340,106 @@ alias StrictSwitchF32       = f32
     Swag.assert(hit == 1)
 }
 
+// A switch over strings compares them where it stands rather than calling out per case, so the
+// comparison has to answer for every length, for bytes above 0x7F, and for names that differ only
+// at one end.
+func switchStringName(value: string)->s32
+{
+    switch value
+    {
+    case "":                  return 1
+    case "a":                 return 2
+    case "b":                 return 3
+    case "ab":                return 4
+    case "ba":                return 5
+    case "abc":               return 6
+    case "abd":               return 7
+    case "xbc":               return 8
+    case "abcd":              return 9
+    case "abce":              return 10
+    case "abcde":             return 11
+    case "abcdf":             return 12
+    case "xbcde":             return 13
+    case "abcdefg":           return 14
+    case "abcdefh":           return 15
+    case "abcdefgh":          return 16
+    case "abcdefgi":          return 17
+    case "abcdefghi":         return 18
+    case "abcdefghj":         return 19
+    case "bbcdefghi":         return 20
+    case "abcdefghijklmnop":  return 21
+    case "abcdefghijklmnoq":  return 22
+    case "abcdefghijklmnopq": return 23
+    case "abcdefghijklmnopr": return 24
+    case "caf\xC3\xA9":       return 25
+    case "caf\xC3\xB4":       return 26
+    case "\xFF\xFE":          return 27
+    case "\xFF\xFF":          return 28
+    }
+
+    return 0
+}
+
+// Copies a literal into a buffer and hands back a string over it, so the switch sees a value it
+// cannot fold away.
+func switchStringAtRuntime(buffer: [*] u8, text: string)->string
+{
+    for index in text.count do
+        buffer[index] = text[index]
+    return Swag.makeString(buffer, text.count)
+}
+
+#test
+{
+    var buffer: [64] u8
+
+    let expected: [28] string = [
+        "", "a", "b", "ab", "ba", "abc", "abd", "xbc", "abcd", "abce",
+        "abcde", "abcdf", "xbcde", "abcdefg", "abcdefh", "abcdefgh", "abcdefgi",
+        "abcdefghi", "abcdefghj", "bbcdefghi", "abcdefghijklmnop", "abcdefghijklmnoq",
+        "abcdefghijklmnopq", "abcdefghijklmnopr", "caf\xC3\xA9", "caf\xC3\xB4",
+        "\xFF\xFE", "\xFF\xFF"]
+
+    for text, index in expected
+    {
+        let value = switchStringAtRuntime(&buffer[0], text)
+        Swag.assert(switchStringName(value) == cast(s32) index + 1)
+    }
+
+    // Nothing else matches, including the prefixes and suffixes of what does.
+    let others: [6] string = ["c", "abcdefghijklmno", "abcdefghijklmnops", "abcdefg ", " abcdefg", "caf"]
+    for text in others
+    {
+        let value = switchStringAtRuntime(&buffer[0], text)
+        Swag.assert(!switchStringName(value))
+    }
+}
+
+// A `where` on a string case still falls through to the tests written after it.
+func switchStringWhere(value: string, allow: bool)->s32
+{
+    switch value
+    {
+    case "keep" where allow: return 1
+    case "keep":             return 2
+    case "drop":             return 3
+    }
+
+    return 0
+}
+
+#test
+{
+    var buffer: [16] u8
+    let kept    = switchStringAtRuntime(&buffer[0], "keep")
+    Swag.assert(switchStringWhere(kept, true) == 1)
+    Swag.assert(switchStringWhere(kept, false) == 2)
+
+    var other: [16] u8
+    let dropped = switchStringAtRuntime(&other[0], "drop")
+    Swag.assert(switchStringWhere(dropped, true) == 3)
+}
+
 enum SwitchEnumRangeMode
 {
     None

@@ -12,7 +12,7 @@ using Core, Gui
     host.setup(640, 360)
     defer host.shutdown()
 
-    var result = openTestViewer(&createHtmlViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null)
     Swag.assert(result.commands == null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     Swag.assert(result.isLoading!(result.view!))
@@ -37,7 +37,7 @@ using Core, Gui
     defer host.shutdown()
 
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_scope_html_%.html", Guid64.random()).toString())
-    var result   = openTestViewer(&createHtmlViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result   = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(!result.failureReason.isEmpty())
 }

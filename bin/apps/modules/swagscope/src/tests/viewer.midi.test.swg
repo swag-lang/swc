@@ -40,7 +40,7 @@ func midiTestFixture()->String
     commandBar.padding         = {16, 8, 16, 8}
 
     let fileName = midiTestFixture()
-    var result   = openTestViewer(&createMidiViewer, &host.root, fileName.toString(), commandParent: commandBar)
+    var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar)
     Swag.assert(result.view != null and result.commands != null)
 
     let viewer = cast(*MidiViewer) result.view!
@@ -83,7 +83,7 @@ func midiTestFixture()->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var result = openTestViewer(&createMidiViewer, &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(midiViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let viewer = cast(*MidiViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)

@@ -21,7 +21,7 @@ private func markdownWhiteyFixturePath()->String
     defer host.shutdown()
 
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_scope_markdown_%.md", Guid64.random()).toString())
-    var result   = openTestViewer(&createMarkdownViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(!result.failureReason.isEmpty())
 }
@@ -43,7 +43,7 @@ private func markdownWhiteyFixturePath()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    var result = openTestViewer(&createMarkdownViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     let wnd    = result.view
     Swag.assert(wnd != null)
     Swag.assert(result.commands != null)

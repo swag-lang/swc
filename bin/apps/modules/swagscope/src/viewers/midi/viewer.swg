@@ -2,6 +2,21 @@
 
 using Core, Pixel, Gui
 
+// Describes the MIDI viewer to the host.
+func midiViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "midi"
+    result.staticName   = "MIDI"
+    result.attach       = &registerMidiStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Midi
+    result.create       = &createMidiViewer
+    result.smokeFixture = "viewer.mid"
+    result.addSelectors(".mid;.midi")
+    return result
+}
+
 private const MidiCommandWidth = 432.0
 
 internal struct MidiViewer
@@ -20,11 +35,11 @@ internal struct MidiViewer
     }
 
     details:              String
-    load:                 ViewerBackgroundLoad'MidiDocument
+    load:                 Viewer.BackgroundLoad'MidiDocument
     loadTimer:            #null *Timer
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportLoadingChanged: #null ViewerReportLoadingChanged
+    reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
     failureReason:        String
 }
 
@@ -71,7 +86,7 @@ private impl MidiViewer
         }
         .fillTracks()
         .trackCombo.setSelectedIndex(0, notify: false)
-        .details = Format.toString(midiStrings().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, mediaDurationText(.roll.document.durationSeconds))
+        .details = Format.toString(midiStrings().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
         .applyLayout()
         .roll.refreshLayout()
         .refreshZoom()
@@ -134,9 +149,8 @@ private impl IWnd for MidiViewer
 
 internal impl MidiViewer
 {
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*MidiViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*MidiViewer
     {
-        registerMidiStrings(contentParent.app())
         let result = Wnd.create'MidiViewer(contentParent, "scope.midi")
         result.backgroundStyle      = .View
         result.reportFailure        = reportFailure
@@ -202,14 +216,13 @@ internal impl MidiViewer
 
         result.applyLayout()
         result.load.start(fileName, &loadMidiDocument)
-        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
-func createMidiViewer(host: FileViewer.Host)
+func createMidiViewer(host: Viewer.Host)
 {
-    registerMidiStrings(host.application())
     let services = host.services()
     let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)

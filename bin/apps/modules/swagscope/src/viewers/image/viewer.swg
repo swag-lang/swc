@@ -2,6 +2,28 @@
 
 using Core, Pixel, Gui
 
+// Describes the picture viewer to the host.
+//
+// It offers itself for every raster format the imaging module can decode, plus SVG, so a decoder
+// added there reaches the viewer without a list to update here.
+func imageViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "image"
+    result.staticName   = "Image"
+    result.attach       = &registerImageStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Image
+    result.create       = &createImageViewer
+    result.smokeFixture = "sample.svg"
+
+    let formats = Image.decodableFormats()
+    for format in formats do
+        result.addSelectors(format.extensions)
+    result.addSelectors(".svg")
+    return result
+}
+
 private const ImageActionWidth = 326.0
 private const GifActionWidth   = 570.0
 private const ImageInfoWidth   = 156.0
@@ -72,12 +94,12 @@ internal struct ImageViewer
         frameLabel:      *Label
     }
 
-    navigateFile:         #null ViewerNavigateFile
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportChromeChanged:  #null ViewerReportChromeChanged
-    reportLoadingChanged: #null ViewerReportLoadingChanged
-    load:                 ViewerBackgroundLoad'ImageViewerContent
+    navigateFile:         #null Viewer.NavigateFile
+    reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
+    reportChromeChanged:  #null Viewer.ReportChromeChanged
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    load:                 Viewer.BackgroundLoad'ImageViewerContent
     loadTimer:            #null *Timer
     failureReason:        String
 }
@@ -299,7 +321,7 @@ private impl ImageViewer
         return true
     }
 
-    func create(host: FileViewer.Host)->*ImageViewer
+    func create(host: Viewer.Host)->*ImageViewer
     {
         let services     = host.services()
         let navigateFile = services.navigateFile
@@ -451,13 +473,13 @@ private impl ImageViewer
         result.applyLayout()
         result.setInitialFocus(result.imageView)
         result.load.start(host.fileName(), &loadImageViewerContent)
-        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated image view.
-func createImageViewer(host: FileViewer.Host)
+func createImageViewer(host: Viewer.Host)
 {
     let view = ImageViewer.create(host)
     host.attachView(view)

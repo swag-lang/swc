@@ -2,10 +2,24 @@
 
 using Core, Gui
 
-// Creates the integrated reusable HTML view.
-func createHtmlViewer(host: FileViewer.Host)
+// Describes the HTML viewer to the host.
+func htmlViewerPlugin()->Viewer.Plugin
 {
-    registerHtmlStrings(host.application())
+    var result: retval
+    result.key          = "html"
+    result.staticName   = "HTML"
+    result.attach       = &registerHtmlStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Html
+    result.create       = &createHtmlViewer
+    result.smokeFixture = "viewer.html"
+    result.addSelectors(".htm;.html;.shtml;.xht;.xhtml")
+    return result
+}
+
+// Creates the integrated reusable HTML view.
+func createHtmlViewer(host: Viewer.Host)
+{
     let view = HtmlView.createFile(host.contentParent(), host.fileName())
     if !view.failureReason.isEmpty()
     {

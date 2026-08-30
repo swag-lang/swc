@@ -102,7 +102,7 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(window.searchTimer == null)
 }
 
-func createSidePanelFixture(host: FileViewer.Host)
+func createSidePanelFixture(host: Viewer.Host)
 {
     let panel = host.createSidePanel(220, host.icon(), "Details")
     let label = Label.create(panel.content, "Viewer details")
@@ -124,7 +124,7 @@ func createSidePanelFixture(host: FileViewer.Host)
     defer host.shutdown()
 
     let infoParent = Wnd.create'Wnd(&host.root, {0, 0, 720, 40})
-    var session    = openTestViewer(&createSidePanelFixture, &host.root, "fixture.panel", infoParent: infoParent)
+    var session    = openTestViewer(testViewerPlugin(&createSidePanelFixture), &host.root, "fixture.panel", infoParent: infoParent)
     host.root.applyLayout()
 
     Swag.assert(session.view != null and session.sidePanelHost != null and session.sidePanel != null and session.sidePanelButton != null)
@@ -153,23 +153,23 @@ func createSidePanelFixture(host: FileViewer.Host)
 #test
 {
     const Source = "Cat catalog cat catapult\ncat"
-    var matches: Array'ViewerSearchMatch
-    collectViewerTextMatches(Source, "cat", {}, 0, 0, 0, &matches)
+    var matches: Array'Viewer.SearchMatch
+    Viewer.collectTextMatches(Source, "cat", {}, 0, 0, 0, &matches)
     Swag.assert(matches.count == 5)
 
     matches.clear()
-    collectViewerTextMatches(Source, "cat", {wholeWord: true}, 0, 0, 0, &matches)
+    Viewer.collectTextMatches(Source, "cat", {wholeWord: true}, 0, 0, 0, &matches)
     Swag.assert(matches.count == 3 and matches[0].offset == 0 and matches[1].offset == 12 and matches[2].offset == 25)
 
     matches.clear()
-    collectViewerTextMatches(Source, "cat", {matchCase: true, wholeWord: true}, 0, 0, 0, &matches)
+    Viewer.collectTextMatches(Source, "cat", {matchCase: true, wholeWord: true}, 0, 0, 0, &matches)
     Swag.assert(matches.count == 2 and matches[0].offset == 12 and matches[1].offset == 25)
 
     matches.clear()
-    collectViewerTextMatches(Source, #raw "c.t(a)?", {regularExpression: true}, 0, 0, 0, &matches)
+    Viewer.collectTextMatches(Source, #raw "c.t(a)?", {regularExpression: true}, 0, 0, 0, &matches)
     Swag.assert(matches.count == 5 and matches[0].length == 3 and matches[1].length == 4)
-    Swag.assert(viewerSearchPatternIsValid(#raw "c.t(a)?", {regularExpression: true}))
-    Swag.assert(!viewerSearchPatternIsValid("(", {regularExpression: true}))
+    Swag.assert(Viewer.patternIsValid(#raw "c.t(a)?", {regularExpression: true}))
+    Swag.assert(!Viewer.patternIsValid("(", {regularExpression: true}))
 }
 
 #test
@@ -198,8 +198,8 @@ func createSidePanelFixture(host: FileViewer.Host)
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
-    var viewerSession = openTestViewer(&createBasicTextViewer, &host.root, fileName, commandParent: commands)
-    let view          = cast(*BasicTextView) viewerSession.view!
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
 
@@ -262,16 +262,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let wideFile = writeTempFile("utf16.txt", utf16.toSlice())
     defer discard catch File.delete(wideFile.toString())
 
-    Swag.assert(BasicTextView.supports(wideFile.toString()))
-    let probed = BasicTextView.probe(wideFile.toString())
+    Swag.assert(TextView.supports(wideFile.toString()))
+    let probed = TextView.probe(wideFile.toString())
     Swag.assert(probed.encoding == .Utf16Le and probed.contentStart == 2 and probed.accepted)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
-    var viewerSession = openTestViewer(&createBasicTextViewer, &host.root, wideFile.toString(), commandParent: commands)
-    let view          = cast(*BasicTextView) viewerSession.view!
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, wideFile.toString(), commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
 
@@ -289,14 +289,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let file           = writeTempFile("cp1252.txt", latin)
     defer discard catch File.delete(file.toString())
 
-    Swag.assert(BasicTextView.probe(file.toString()).encoding == .Windows1252)
+    Swag.assert(TextView.probe(file.toString()).encoding == .Windows1252)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
-    var viewerSession = openTestViewer(&createBasicTextViewer, &host.root, file.toString(), commandParent: commands)
-    let view          = cast(*BasicTextView) viewerSession.view!
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, file.toString(), commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
     Swag.assert(view.editor.text() == "café naïve\n")
@@ -324,8 +324,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
-    var viewerSession = openTestViewer(&createBasicTextViewer, &host.root, file.toString(), commandParent: commands)
-    let view          = cast(*BasicTextView) viewerSession.view!
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, file.toString(), commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
 
@@ -333,7 +333,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.fireTimer(view.loadTimer)
     Swag.assert(view.encoding == .Windows1252)
     Swag.assert(Utf8.endsWith(view.editor.text(), "é\n"))
-    Swag.assert(!Utf8.contains(view.editor.text(), appStrings().ui_NotText))
+    Swag.assert(!Utf8.contains(view.editor.text(), textStrings().ui_NotText))
 }
 
 // Deciding an encoding is not accepting the file: code page 1252 gives every byte a meaning, so
@@ -345,7 +345,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         binary.add(cast(u8) ((i * 7) & 0xFF))
     let file = writeTempFile("binary.bin", binary.toSlice())
     defer discard catch File.delete(file.toString())
-    Swag.assert(!BasicTextView.supports(file.toString()))
+    Swag.assert(!TextView.supports(file.toString()))
 }
 
 // The panel lists what is beside the current file and what was read before it, and a row opens
@@ -693,7 +693,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.openFile(first.toString())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.choices.count == 3 and window.choices[0].key == BasicTextViewerKey)
+    Swag.assert(window.choices.count == 3 and window.choices[0].key == TextViewerKey)
     Swag.assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
 
     // Every entry of the selector says which viewer it is before its name is read.
@@ -703,7 +703,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.selectViewer(2)
     Swag.assert(window.choices[window.activeChoiceIndex].key == "hex")
-    Swag.assert(window.preferences.count == 1 and window.preferences[0].kind == BasicTextViewerKey and window.preferences[0].viewer == "hex")
+    Swag.assert(window.preferences.count == 1 and window.preferences[0].kind == TextViewerKey and window.preferences[0].viewer == "hex")
 
     // The next file of the same kind opens where the reader left the previous one.
     window.openFile(second.toString())
@@ -720,7 +720,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.preferences.isEmpty())
     window.openFile(first.toString())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.choices[window.activeChoiceIndex].key == BasicTextViewerKey)
+    Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
 }
 
 // Pins the file panel: two named sections share the left edge, the row naming the open file is
@@ -778,8 +778,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
-    var viewerSession = openTestViewer(&createBasicTextViewer, &host.root, fileName, commandParent: commands)
-    let view          = cast(*BasicTextView) viewerSession.view!
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
     discard host.render(view)
@@ -847,8 +847,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
-    var viewerSession = openTestViewer(&createBasicTextViewer, &host.root, fileName, commandParent: commands)
-    let view          = cast(*BasicTextView) viewerSession.view!
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
     discard host.render(view)
@@ -964,7 +964,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchMatch == target)
     Swag.assert(window.searchMatches.count == 1 and window.searchIndex == 0)
     Swag.assert(window.searchCountLabel.text() == "1/1")
-    let textView = cast(*BasicTextView) window.currentView!
+    let textView = cast(*TextView) window.currentView!
     Swag.assert(textView.editor.selectedText() == query)
     Swag.assert(textView.bytesRead < textView.fileSize)
     discard host.render(textView)
@@ -997,10 +997,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard host.render(window)
     host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
-    let basic = cast(*BasicTextView) window.currentView!
+    let basic = cast(*TextView) window.currentView!
     Swag.assert(basic.editor.selectedText() == "Cat")
     var matchBounds: Math.Rectangle
-    Swag.assert(basicTextSearchBounds(basic, window.searchMatches[window.searchIndex], &matchBounds))
+    Swag.assert(textSearchBounds(basic, window.searchMatches[window.searchIndex], &matchBounds))
     Swag.assert(window.searchOverlay.position.width == Math.round(matchBounds.width + ViewerSearchOverlayInset * 2))
     Swag.assert(window.searchOverlay.position.height == Math.round(matchBounds.height + ViewerSearchOverlayInset * 2))
     window.searchOverlay.phase = 0.25
@@ -1049,7 +1049,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchBox.setText(null)
     Swag.assert(!(window.searchBox.text()).count)
     Swag.assert(!(window.searchCountLabel.text()).count and !window.searchOverlay.isLocallyVisible())
-    Swag.assert((cast(*BasicTextView) window.currentView!).editor.isSelectionEmpty())
+    Swag.assert((cast(*TextView) window.currentView!).editor.isSelectionEmpty())
 }
 
 // Search navigation over a streamed Markdown file materializes every distant occurrence in both
@@ -1601,7 +1601,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
 
-    let textView = cast(*BasicTextView) window.currentView!
+    let textView = cast(*TextView) window.currentView!
     textView.setInitialFocus(textView.editor)
     Swag.assert(textView.editor.hasFocus())
     var comboPoint = window.viewerCombo.surfaceRect().center()
@@ -1652,7 +1652,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Jobs.wait(&window.choiceLoad.job)
     host.fireTimer(window.startupTimer)
 
-    let discardedView  = cast(*BasicTextView) window.currentView!
+    let discardedView  = cast(*TextView) window.currentView!
     let discardedTimer = discardedView.loadTimer!
     window.openFile(secondFile)
     host.fireTimer(window.startupTimer)
@@ -1838,7 +1838,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // arrow reaches the editor instead of walking the folder, and the keyboard follows it.
     window.openFile(Path.combine(folder.toString(), "t1.txt").toString())
     completeQueuedViewerFile(&host, window)
-    let textView = cast(*BasicTextView) window.currentView!
+    let textView = cast(*TextView) window.currentView!
     window.openButton.setFocus()
     Swag.assert(!textView.editor.hasFocus())
     host.keyPress(Input.Key.Right)

@@ -11,14 +11,12 @@ func subtitleViewerFixturePath()->String
 // The dedicated viewer presents a searchable timed transcript rather than raw subtitle syntax.
 #test
 {
-    registerSubtitleStrings(&g_App)
-
     var host: Testing.HeadlessHost
     host.setup(820, 520)
     defer host.shutdown()
 
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(&createSubtitleViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     Swag.assert(result.details.indexOf("SubRip") != Swag.U64.Max and result.details.indexOf("2 cues") != Swag.U64.Max)
@@ -28,7 +26,7 @@ func subtitleViewerFixturePath()->String
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
     Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 
-    var matches: Array'ViewerSearchMatch
+    var matches: Array'Viewer.SearchMatch
     result.collectMatches!(result.view!, "second", {}, &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
     Swag.assert(result.revealMatch!(result.view!, matches[0], "second"))
@@ -40,8 +38,6 @@ func subtitleViewerFixturePath()->String
 // The shipped palette renders the timestamped transcript as the primary document.
 #test
 {
-    registerSubtitleStrings(&g_App)
-
     var host: Testing.HeadlessHost
     host.setup(820, 520)
     defer host.shutdown()
@@ -51,7 +47,7 @@ func subtitleViewerFixturePath()->String
     host.notify(.ThemeChanged)
 
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(&createSubtitleViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null)
     result.view!.dockStyle = .Center
     host.root.applyLayout()

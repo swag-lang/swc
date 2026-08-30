@@ -8,7 +8,7 @@ func viewerRegistryFixturePath(name: string)->String
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 }
 
-private func choicePlugin(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->const *FileViewer.Plugin
+private func choicePlugin(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->const *Viewer.Plugin
 {
     return &registry.plugins[choice.pluginIndex]
 }
@@ -18,28 +18,20 @@ private func choiceName(registry: const *ViewerPluginRegistry, choice: const *Vi
     return choicePlugin(registry, choice).displayName()
 }
 
-private func testPluginIcon(parent: *Wnd, size: f32, data: u64)->Icon
-{
-    discard parent
-    discard size
-    discard data
-    return {}
-}
-
-private func createTestPlugin(host: FileViewer.Host)
+private func createTestPlugin(host: Viewer.Host)
 {
     host.attachView(Wnd.create'Wnd(host.contentParent()))
 }
 
-private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
+private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 {
     var result: retval
     result.key          = key
     result.staticName   = "Custom"
-    result.icon         = &testPluginIcon
+    result.iconAtlas    = viewerIcons()
     result.create       = &createTestPlugin
     result.smokeFixture = "custom.plug"
-    result.selectors.add(String.from(selector))
+    result.addSelectors(selector)
     return result
 }
 
@@ -56,7 +48,7 @@ private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
     let registry = createViewerPluginRegistry()
     Swag.assert(registry.plugins.count == 14)
     for plugin in registry.plugins do
-        Swag.assert(plugin.apiVersion == FileViewer.ViewerApiVersion and plugin.create != null and plugin.icon != null)
+        Swag.assert(plugin.apiVersion == Viewer.ApiVersion and plugin.create != null and plugin.iconAtlas != null)
 
     let picture = registry.choices(binaryFile)
     Swag.assert(picture.count == 3)
@@ -65,7 +57,7 @@ private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
     Swag.assert(choiceName(&registry, &picture[2]) == "Hexadecimal")
 
     let unknown = registry.choices(textFile)
-    Swag.assert(unknown.count == 3 and unknown[0].key == BasicTextViewerKey)
+    Swag.assert(unknown.count == 3 and unknown[0].key == TextViewerKey)
     Swag.assert(choiceName(&registry, &unknown[1]) == "Binary")
     Swag.assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
     Swag.assert(registry.explicitlySupports("clip.gif"))
@@ -134,7 +126,7 @@ private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
 
     let registry = createViewerPluginRegistry()
     let choices  = registry.choices(fileName)
-    Swag.assert(choices[0].key == "code" and choices[1].key == BasicTextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
+    Swag.assert(choices[0].key == "code" and choices[1].key == TextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
     Swag.assert(codeLanguage(fileName) == .Python)
 }
 
@@ -146,20 +138,20 @@ private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
     {
         Swag.assert(!plugin.key.isEmpty() and plugin.key == plugin.key.toLower())
         for other, j in registry.plugins where j > i do
-            Swag.assert(plugin.key != other.key and plugin.iconData != other.iconData)
+            Swag.assert(plugin.key != other.key and plugin.iconIndex != other.iconIndex)
     }
 
     let movie = registry.choices("movie.mp4")
-    Swag.assert(movie[0].key == "video" and cast(ViewerIcons) choicePlugin(&registry, &movie[0]).iconData == .Video)
-    Swag.assert(movie[1].key == "binary" and cast(ViewerIcons) choicePlugin(&registry, &movie[1]).iconData == .Binary)
-    Swag.assert(movie[2].key == "hex" and cast(ViewerIcons) choicePlugin(&registry, &movie[2]).iconData == .Hex)
+    Swag.assert(movie[0].key == "video" and cast(ViewerIcons) choicePlugin(&registry, &movie[0]).iconIndex == .Video)
+    Swag.assert(movie[1].key == "binary" and cast(ViewerIcons) choicePlugin(&registry, &movie[1]).iconIndex == .Binary)
+    Swag.assert(movie[2].key == "hex" and cast(ViewerIcons) choicePlugin(&registry, &movie[2]).iconIndex == .Hex)
 
     let plain = Gui.Testing.tempFilePath("scope-keys-", ".unknown")
     defer discard catch File.delete(plain)
     expect File.writeAllBytes(plain, "plain UTF-8 text")
     let readable = registry.choices(plain)
-    Swag.assert(readable[0].key == BasicTextViewerKey)
-    Swag.assert(cast(ViewerIcons) choicePlugin(&registry, &readable[0]).iconData == .Text)
+    Swag.assert(readable[0].key == TextViewerKey)
+    Swag.assert(cast(ViewerIcons) choicePlugin(&registry, &readable[0]).iconIndex == .Text)
 }
 
 // A descriptor unknown to the built-in registry participates in discovery and creation without
@@ -174,7 +166,7 @@ private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    var session = openTestViewer(choicePlugin(&registry, &choices[0]).create, &host.root, "sample.plug")
+    var session = openTestViewer(choicePlugin(&registry, &choices[0])[], &host.root, "sample.plug")
     Swag.assert(session.view != null and session.failureReason.isEmpty())
 
     var duplicate = testPlugin()
@@ -182,7 +174,7 @@ private func testPlugin(key = "custom", selector = ".plug")->FileViewer.Plugin
     Swag.assert(duplicateError != null)
 
     var incompatible = testPlugin("future", ".future")
-    incompatible.apiVersion = FileViewer.ViewerApiVersion + 1
+    incompatible.apiVersion = Viewer.ApiVersion + 1
     discard catch registry.register(#move incompatible) as versionError
     Swag.assert(versionError != null)
 }

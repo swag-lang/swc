@@ -1,4 +1,47 @@
+#global internal
+
 using Core, Pixel, Gui
+
+// Stable identity and smoke input of the text plugin.
+const TextViewerKey    = "text"
+const TextSmokeFixture = "comprehensive.txt"
+
+// What the text surface owns by name.
+//
+// Which viewer a file is offered is still decided by reading it, since a file with no
+// extension at all can be text and one that ends in `.dat` can be anything. This list is what
+// a row of the file panel can say without opening the file it names, and a plain text file
+// says it plainly enough.
+private const NamedExtensions = ".txt;.text;.log;.nfo;.diz;.rst;.adoc;.asc;.srt;.vtt;.sub;.ssa;.ass;.lrc;.diff;.patch;readme;license;licence;changelog;authors;copying;install;news;todo"
+
+private func textPluginName()->string => textStrings().ui_Name
+
+private func textPluginProbe(fileName: string, hasNamedMatch: bool)->bool
+{
+    discard hasNamedMatch
+    return TextView.supports(fileName)
+}
+
+// Describes the text viewer to the host.
+//
+// The surface offers itself for the extensions a plain text file uses, and answers for any
+// other file whose beginning reads as text. It never claims a file by name alone, so a format
+// with a viewer of its own keeps it.
+func textViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = TextViewerKey
+    result.resolveName  = &textPluginName
+    result.attach       = &registerTextStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Text
+    result.create       = &createTextViewer
+    result.probe        = &textPluginProbe
+    result.matchNames   = false
+    result.smokeFixture = TextSmokeFixture
+    result.addSelectors(NamedExtensions)
+    return result
+}
 
 private const TextStreamChunkSize    = 16 * 1024'u64
 private const TextStreamLookAhead    = 2.0
@@ -25,7 +68,7 @@ struct TextProbe
 }
 
 // Text view available for readable content independently of the format-specific viewers.
-struct BasicTextView
+struct TextView
 {
     using wnd: Wnd
 
@@ -53,28 +96,28 @@ struct BasicTextView
     encoding:          Text.Encoding
     contentStart:      u64
     wrapping = true
-    reportDetails:     #null ViewerReportDetails
+    reportDetails:     #null Viewer.ReportDetails
 }
 
-func basicTextRevealMatch(wnd: *Wnd, match: ViewerSearchMatch, text: string)->bool
+func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool
 {
-    return (cast(*BasicTextView) wnd).revealOffset(match.offset, text)
+    return (cast(*TextView) wnd).revealOffset(match.offset, text)
 }
 
-func basicTextSearchBounds(wnd: *Wnd, match: ViewerSearchMatch, result: *Math.Rectangle)->bool
+func textSearchBounds(wnd: *Wnd, match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
 {
     discard match
-    return richEditSearchBounds((cast(*BasicTextView) wnd).editor, result)
+    return Viewer.richEditMatchBounds((cast(*TextView) wnd).editor, result)
 }
 
-func basicTextClearSearch(wnd: *Wnd)
+func textClearSearch(wnd: *Wnd)
 {
-    clearRichEditSearch((cast(*BasicTextView) wnd).editor)
+    Viewer.clearRichEditMatch((cast(*TextView) wnd).editor)
 }
 
-func basicTextIsLoading(wnd: *Wnd)->bool => (cast(*BasicTextView) wnd).loadTimer != null
+func textIsLoading(wnd: *Wnd)->bool => (cast(*TextView) wnd).loadTimer != null
 
-impl BasicTextView
+impl TextView
 {
     mtd encodingName()->string
     {
@@ -188,7 +231,7 @@ impl BasicTextView
     mtd showReadError()
     {
         .stopLoading()
-        let message = appStrings().ui_NotText
+        let message = textStrings().ui_NotText
         if !.hasText do
             .editor.setText(message)
         else do
@@ -282,7 +325,7 @@ impl BasicTextView
             if text.count
             {
                 if .encoding == .Utf8 do
-                    highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
+                    Viewer.highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
                 else do
                     discard .editor.findText(text)
             }
@@ -298,7 +341,7 @@ impl BasicTextView
     {
         .editor.setFlags(.ReadOnly | (.wrapping ? RichEditFlags.WordWrap : .None))
         .wrapButton.setChecked(.wrapping)
-        .wrapButton.toolTip = .wrapping ? appStrings().ui_WrapOn : appStrings().ui_WrapOff
+        .wrapButton.toolTip = .wrapping ? textStrings().ui_WrapOn : textStrings().ui_WrapOff
         .scheduleMore()
     }
 
@@ -326,7 +369,7 @@ impl BasicTextView
         .virtualHeight = 0
         discard .revealOffset(Math.max(.residentStart, .contentStart), "")
         if .reportDetails do
-            .reportDetails!(me, Format.toString(appStrings().ui_TextDetails, .encodingName()))
+            .reportDetails!(me, Format.toString(textStrings().ui_Details, .encodingName()))
     }
 
     mtd toggleWrap()
@@ -336,7 +379,7 @@ impl BasicTextView
     }
 }
 
-impl IWnd for BasicTextView
+impl IWnd for TextView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
@@ -376,11 +419,11 @@ impl IWnd for BasicTextView
     }
 }
 
-impl BasicTextView
+impl TextView
 {
-    func create(host: FileViewer.Host)->*BasicTextView
+    func create(host: Viewer.Host)->*TextView
     {
-        let result = Wnd.create'BasicTextView(host.contentParent(), "scope.basicText")
+        let result = Wnd.create'TextView(host.contentParent(), "scope.text")
 
         // The document host owns the rounded view ground. Keeping the viewer transparent lets
         // those antialiased corners remain visible instead of repainting them with a square view.
@@ -397,7 +440,7 @@ impl BasicTextView
         with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Left
-            .toolTip   = appStrings().ui_WrapOn
+            .toolTip   = textStrings().ui_WrapOn
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|view = result|(button)
             {
@@ -412,7 +455,7 @@ impl BasicTextView
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .toolTip   = appStrings().ui_Encoding
+            .toolTip   = textStrings().ui_Encoding
             for name in TextEncodingNames do
                 .addItem(name)
             for candidate, index in TextEncodings where candidate == probed.encoding do
@@ -524,14 +567,15 @@ impl BasicTextView
     }
 }
 
-func createBasicTextViewer(host: FileViewer.Host)
+// Creates the streamed plain-text view.
+func createTextViewer(host: Viewer.Host)
 {
-    let view = BasicTextView.create(host)
+    let view = TextView.create(host)
     host.attachView(view)
-    host.setDetails(Format.toString(appStrings().ui_TextDetails, view.encodingName()).toString())
+    host.setDetails(Format.toString(textStrings().ui_Details, view.encodingName()).toString())
     host.setSearch({
-        revealMatch: &basicTextRevealMatch,
-        matchBounds: &basicTextSearchBounds,
-        clear: &basicTextClearSearch})
-    host.setLifecycle({isLoading: &basicTextIsLoading})
+        revealMatch: &textRevealMatch,
+        matchBounds: &textSearchBounds,
+        clear: &textClearSearch})
+    host.setLifecycle({isLoading: &textIsLoading})
 }

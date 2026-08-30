@@ -2,6 +2,21 @@
 
 using Core, Gui
 
+// Describes the Markdown viewer to the host.
+func markdownViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "markdown"
+    result.staticName   = "Markdown"
+    result.attach       = &registerMarkdownStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Markdown
+    result.create       = &createMarkdownViewer
+    result.smokeFixture = "comprehensive.md"
+    result.addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    return result
+}
+
 internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
 {
     var result = Markdown.Style.theme()
@@ -107,9 +122,8 @@ internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIn
 }
 
 // Creates the integrated Markdown view.
-func createMarkdownViewer(host: FileViewer.Host)
+func createMarkdownViewer(host: Viewer.Host)
 {
-    registerMarkdownStrings(host.application())
     let view = Markdown.View.createFile(host.contentParent(), host.fileName(), Markdown.Style.theme())
     if !view.failureReason.isEmpty()
     {

@@ -2,6 +2,21 @@
 
 using Core, Pixel, Gui, TrueType
 
+// Describes the font viewer to the host.
+func fontViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "font"
+    result.staticName   = "Font"
+    result.attach       = &registerFontStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Font
+    result.create       = &createFontViewer
+    result.smokeFixture = "segoeui.ttf"
+    result.addSelectors(".ttf;.ttc")
+    return result
+}
+
 private const FontCommandWidth = 456.0
 
 #[Swag.NoCopy]
@@ -55,11 +70,11 @@ internal struct FontViewer
 
     details:              String
     sampleDefault:        String
-    load:                 ViewerBackgroundLoad'FontViewerContent
+    load:                 Viewer.BackgroundLoad'FontViewerContent
     loadTimer:            #null *Timer
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportLoadingChanged: #null ViewerReportLoadingChanged
+    reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
     failureReason:        String
 }
 
@@ -148,9 +163,8 @@ internal impl FontViewer
         return true
     }
 
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*FontViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*FontViewer
     {
-        registerFontStrings(contentParent.app())
         let result = Wnd.create'FontViewer(contentParent, "scope.font")
         result.backgroundStyle      = .View
         result.reportFailure        = reportFailure
@@ -208,15 +222,14 @@ internal impl FontViewer
 
         result.applyLayout()
         result.load.start(fileName, &loadFontViewerContent)
-        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated TrueType specimen and character-map view.
-func createFontViewer(host: FileViewer.Host)
+func createFontViewer(host: Viewer.Host)
 {
-    registerFontStrings(host.application())
     let services = host.services()
     let view     = FontViewer.create(host.contentParent(), host.createCommandGroup(FontCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)

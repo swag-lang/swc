@@ -34,7 +34,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     defer host.shutdown()
 
     let fixture = fontFixturePath()
-    var result  = openTestViewer(&createFontViewer, &host.root, fixture, commandParent: &host.root)
+    var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
 
     let view = cast(*FontViewer) result.view!
@@ -64,7 +64,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     commandBar.padding         = {16, 8, 16, 8}
 
     let fixture = fontFixturePath()
-    var result  = openTestViewer(&createFontViewer, &host.root, fixture, commandParent: commandBar)
+    var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: commandBar)
     Swag.assert(result.view != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -95,7 +95,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.setup(640, 360)
     defer host.shutdown()
 
-    var result = openTestViewer(&createFontViewer, &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(fontViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

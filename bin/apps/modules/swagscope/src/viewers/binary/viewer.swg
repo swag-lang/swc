@@ -2,6 +2,21 @@
 
 using Core, Pixel, Gui
 
+// Describes the executable and archive inspector to the host.
+func binaryViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "binary"
+    result.staticName   = "Binary"
+    result.attach       = &registerBinaryStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Binary
+    result.create       = &createBinaryViewer
+    result.smokeFixture = "appicon.ico"
+    result.addSelectors(".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.mid;.midi;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
+    return result
+}
+
 private const BinaryOffsetWidth    = 116.0
 private const BinaryDetailMinWidth = 200.0
 private const BinaryFillRows       = 128'u64
@@ -57,9 +72,9 @@ internal struct BinaryViewer
     loadTimer:               #null *Timer
     loadState:               u32
     loadPublished:           bool
-    reportFailure:           #null ViewerReportFailure
-    reportDetails:           #null ViewerReportDetails
-    reportLoadingChanged:    #null ViewerReportLoadingChanged
+    reportFailure:           #null Viewer.ReportFailure
+    reportDetails:           #null Viewer.ReportDetails
+    reportLoadingChanged:    #null Viewer.ReportLoadingChanged
     retireRequested:         bool
     retired:                 bool
     reloadLanguageRequested: bool
@@ -348,23 +363,23 @@ internal impl BinaryViewer
     }
 
     // Indexes the decoded report rather than scanning unrelated raw bytes.
-    mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for row, rowIndex in .doc.report.rows
         {
-            collectViewerTextMatches(row.label.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Field, 0, result)
-            collectViewerTextMatches(row.value.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Value, 0, result)
+            Viewer.collectTextMatches(row.label.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Field, 0, result)
+            Viewer.collectTextMatches(row.value.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Value, 0, result)
             if row.offset != Swag.U64.Max
             {
                 let offset = hexText(row.offset, 8)
-                collectViewerTextMatches(offset.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Offset, 0, result)
+                Viewer.collectTextMatches(offset.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Offset, 0, result)
             }
 
-            collectViewerTextMatches(row.detail.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Detail, 0, result)
+            Viewer.collectTextMatches(row.detail.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Detail, 0, result)
         }
     }
 
-    mtd revealMatch(match: ViewerSearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch)->bool
     {
         if match.major >= .doc.report.rows.count or match.minor > cast(u64) BinaryColumn.Detail do
             return false
@@ -941,9 +956,8 @@ internal impl BinaryViewer
         .retired = true
     }
 
-    func create(host: FileViewer.Host)->#null *BinaryViewer fail
+    func create(host: Viewer.Host)->#null *BinaryViewer fail
     {
-        registerBinaryStrings(host.application())
         let s        = binStrings()
         let services = host.services()
 
@@ -1005,7 +1019,7 @@ private func runBinaryViewerLoad(thread: Threading.Thread)
 }
 
 // Creates the integrated binary format view.
-func createBinaryViewer(host: FileViewer.Host)
+func createBinaryViewer(host: Viewer.Host)
 {
     let view = catch BinaryViewer.create(host) as createError
     if createError != null

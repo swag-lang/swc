@@ -551,7 +551,7 @@ struct ViewerWindow
     }
 
     index:                   ViewerPluginRegistry
-    icons:                   IconSet
+    pluginIcons:             Array'ViewerPluginIcons
     currentView:             #null *Wnd
     currentActions:          #null *Wnd
     currentInfo:             #null *Wnd
@@ -581,7 +581,7 @@ struct ViewerWindow
     searchCarryBase:         u64
     searchProcessed:         u64
     searchSpan:              u64
-    searchMatches:           Array'ViewerSearchMatch
+    searchMatches:           Array'Viewer.SearchMatch
     searchIndex:             u64  = Swag.U64.Max
     searchMatch:             u64  = Swag.U64.Max
     searchComplete:          bool
@@ -790,7 +790,8 @@ impl IWnd for ViewerWindow
         catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
-        .icons.free()
+        for &set in .pluginIcons do
+            set.icons.free()
         if .startupTimer
         {
             .removeTimer(.startupTimer!)
@@ -868,11 +869,22 @@ impl IWnd for ViewerWindow
 
 impl ViewerWindow
 {
-    // Creates an icon descriptor for an application glyph at `size` logical pixels.
-    mtd icon(idx: ViewerIcons, size = 0.0)->Icon
+    // Rasterizes one glyph of a plugin-owned vector document through this window's renderer.
+    //
+    // A plugin names the document it embeds and the cell it wants; the frame textures belong to
+    // the host, which keeps one set per document and releases them with the window.
+    mtd pluginIcon(plugin: const *Viewer.Plugin, size = 0.0)->Icon
     {
+        if !plugin.iconAtlas do
+            return {}
         let resolvedSize = size ? size : themeRowIconSize(.themeMetrics())
-        return .icons.icon(cast(s32) idx, resolvedSize, .theme().res.atlasScale)
+        for &set in .pluginIcons where set.atlas == plugin.iconAtlas do
+            return set.icons.icon(plugin.iconIndex, resolvedSize, .theme().res.atlasScale)
+
+        let added = .pluginIcons.emplaceInitAddress()
+        added.atlas = plugin.iconAtlas
+        added.icons.setup(.app().renderer, plugin.iconAtlas!)
+        return added.icons.icon(plugin.iconIndex, resolvedSize, .theme().res.atlasScale)
     }
 
     // Resolves one descriptor-owned glyph without leaking plugin metadata into the window.
@@ -883,9 +895,7 @@ impl ViewerWindow
         let choice = &.choices[index]
         if choice.pluginIndex >= .index.plugins.count do
             return {}
-        let plugin       = &.index.plugins[choice.pluginIndex]
-        let resolvedSize = size ? size : themeRowIconSize(.themeMetrics())
-        return plugin.icon(me, resolvedSize, plugin.iconData)
+        return .pluginIcon(&.index.plugins[choice.pluginIndex], size)
     }
 
     mtd applyTheme(index: u32)
@@ -1058,7 +1068,7 @@ impl ViewerWindow
         result.backgroundStyle  = .Application
         result.index            = #move index
         result.language         = Gui.ReferenceLanguage
-        result.icons.setup(result.app().renderer, viewerIcons())
+        result.index.attachTo(result.app())
 
         result.appearanceButton                 = AppearanceButton.create(result.surface!, "scope.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
@@ -2127,6 +2137,7 @@ impl ViewerWindow
 
         var next: ViewerSession
         let plugin     = &.index.plugins[choice.pluginIndex]
+        let actionIcon = .pluginIcon(plugin, themeActionIconSize(.themeMetrics()))
         var pluginHost = ViewerPluginHost{
             session: &next,
             documentParent: .documentPanel,
@@ -2135,15 +2146,15 @@ impl ViewerWindow
             infoParent: .infoContentGroup,
             commandParent: .viewerBar,
             sourceFileName: .currentFile.toString(),
-            pluginIcon: plugin.icon(me, themeActionIconSize(.themeMetrics()), plugin.iconData),
+            pluginIcon: actionIcon,
             hostServices: {
                 reportFailure: &reportViewerFailure,
                 reportDetails: &reportViewerDetails,
                 reportChromeChanged: &reportViewerChromeChanged,
                 reportLoadingChanged: &reportViewerLoadingChanged,
                 navigateFile: &navigateViewerFile}}
-        let host: FileViewer.Host = &pluginHost
-        catch plugin.createView(host, &next) as viewerError
+        let host: Viewer.Host = &pluginHost
+        catch next.create(plugin, host) as viewerError
         if viewerError != null
         {
             next.failureReason = Errors.message(viewerError)
@@ -2274,7 +2285,7 @@ impl ViewerWindow
         .navigateSearch(-1)
     }
 
-    private mtd searchOptions()->ViewerSearchOptions =>
+    private mtd searchOptions()->Viewer.SearchOptions =>
     {
         matchCase: .searchMatchCaseOption,
         wholeWord: .searchWholeWordOption,
@@ -2316,17 +2327,17 @@ impl ViewerWindow
             let instance = &.instances[.activeChoiceIndex]
             if instance.view and instance.prepareSearch
             {
-                var plan: ViewerSearchPlan
+                var plan: Viewer.SearchPlan
                 return instance.prepareSearch!(instance.view!, edit.text(), &plan)
             }
         }
 
-        return viewerSearchPatternIsValid(edit.text(), .searchOptions()) ? .Valid : .InvalidVisible
+        return Viewer.patternIsValid(edit.text(), .searchOptions()) ? .Valid : .InvalidVisible
     }
 
     private mtd refreshSearchPresentation()
     {
-        var presentation: ViewerSearchPresentation
+        var presentation: Viewer.SearchPresentation
         presentation.placeholder = appStrings().ui_Search
         if .activeChoiceIndex < .instances.count
         {
@@ -2396,7 +2407,7 @@ impl ViewerWindow
 
         if instance.prepareSearch and instance.view
         {
-            var plan: ViewerSearchPlan
+            var plan: Viewer.SearchPlan
             let state = instance.prepareSearch!(instance.view!, .searchQuery.toString(), &plan)
             if state != .Valid
             {
@@ -2751,11 +2762,11 @@ impl ViewerWindow
         let deferSize = .searchSpan + ViewerSearchCarryMargin
         let stableEnd = eof ? .searchCarry.length : (.searchCarry.length > deferSize ? .searchCarry.length - deferSize : 0)
 
-        var candidates: Array'ViewerSearchMatch
+        var candidates: Array'Viewer.SearchMatch
         if instance.collectFileMatches and instance.view do
             instance.collectFileMatches!(instance.view!, .searchCarry.toString(), .searchCarryBase, &candidates)
         else do
-            collectViewerTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
+            Viewer.collectTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
         for match in candidates where match.offset >= .searchProcessed and (eof or match.offset < .searchCarryBase + stableEnd) do
             .searchMatches.add(match)
 
@@ -2884,7 +2895,7 @@ impl ViewerWindow
         for choice in .choices
         {
             let plugin = &.index.plugins[choice.pluginIndex]
-            .viewerCombo.addItem(plugin.displayName(), icon: plugin.icon(me, themeRowIconSize(.themeMetrics()), plugin.iconData))
+            .viewerCombo.addItem(plugin.displayName(), icon: .pluginIcon(plugin, themeRowIconSize(.themeMetrics())))
         }
 
         .viewerCombo.show()
@@ -2894,7 +2905,7 @@ impl ViewerWindow
         if !.activateChoice(selected)
         {
             selected = Swag.U32.Max
-            for choice, index in .choices where choice.key == BasicTextViewerKey
+            for choice, index in .choices where choice.key == TextViewerKey
             {
                 discard choice
                 selected = cast(u32) index
@@ -3032,7 +3043,7 @@ impl ViewerWindow
             if .index.namePlugin(name, &pluginIndex)
             {
                 let plugin = &.index.plugins[pluginIndex]
-                icon = plugin.icon(me, themeRowIconSize(.themeMetrics()), plugin.iconData)
+                icon = .pluginIcon(plugin, themeRowIconSize(.themeMetrics()))
             }
 
             discard list.createLine(Path.fileName(name) orelse name, icon)

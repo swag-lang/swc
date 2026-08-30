@@ -2,6 +2,21 @@
 
 using Core, Core.Errors, Pixel, Gui
 
+// Describes the delimited-text table viewer to the host.
+func tableViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "table"
+    result.staticName   = "Table"
+    result.attach       = &registerTableStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Table
+    result.create       = &createTableViewer
+    result.smokeFixture = "viewer.csv"
+    result.addSelectors(".csv;.tsv;.tab")
+    return result
+}
+
 private const TableFileLimit         = 32 * 1024 * 1024'u64
 private const TableColumnLimit       = 256'u64
 private const TableColumnMinWidth    = 96.0
@@ -255,11 +270,11 @@ internal struct TableViewer
     searchColumn:         u64
     searchOffset:         u64
     searchLength:         u64
-    load:                 ViewerBackgroundLoad'TableDocument
+    load:                 Viewer.BackgroundLoad'TableDocument
     loadTimer:            #null *Timer
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportLoadingChanged: #null ViewerReportLoadingChanged
+    reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
     failureReason:        String
 }
 
@@ -367,16 +382,16 @@ private impl TableViewer
         }
     }
 
-    mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for row, rowIndex in .document.rows
         {
             for cell, column in row.cells do
-                collectViewerTextMatches(cell.toString(), text, options, rowIndex, column, 0, result)
+                Viewer.collectTextMatches(cell.toString(), text, options, rowIndex, column, 0, result)
         }
     }
 
-    mtd revealMatch(match: ViewerSearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch)->bool
     {
         if match.major >= .document.rows.count or match.minor >= .document.rows[match.major].cells.count do
             return false
@@ -395,7 +410,7 @@ private impl TableViewer
     {
         if .searchRow >= .document.rows.count do
             return false
-        return listRowSearchBounds(.list, cast(u32) .searchRow, result)
+        return Viewer.listRowBounds(.list, cast(u32) .searchRow, result)
     }
 
     mtd clearSearch()
@@ -408,7 +423,7 @@ private impl TableViewer
         .list.invalidate()
     }
 
-    func create(parent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*TableViewer
+    func create(parent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*TableViewer
     {
         let result = Wnd.create'TableViewer(parent, "scope.table")
         result.backgroundStyle      = .View
@@ -430,7 +445,7 @@ private impl TableViewer
         result.applyLayout()
         result.setInitialFocus(result.list)
         result.load.start(fileName, &loadTableDocument)
-        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
@@ -443,9 +458,8 @@ private func fillTableVirtualLine(list: *ListCtrl, line: #null *ListLine, index:
 }
 
 // Creates the integrated CSV/TSV table view.
-func createTableViewer(host: FileViewer.Host)
+func createTableViewer(host: Viewer.Host)
 {
-    registerTableStrings(host.application())
     let services = host.services()
     let view     = TableViewer.create(host.contentParent(), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)

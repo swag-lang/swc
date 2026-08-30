@@ -133,7 +133,7 @@ internal impl MidiRollView
         return Format.toString(midiStrings().ui_Summary,
                                .document.tracks.count,
                                .selectedNoteCount(),
-                               mediaDurationText(.document.durationSeconds),
+                               Viewer.durationText(.document.durationSeconds),
                                midiBpm(&.document),
                                midiMeterText(&.document),
                                midiKeyText(&.document))

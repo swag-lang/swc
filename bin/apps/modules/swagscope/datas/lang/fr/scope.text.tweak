@@ -1,0 +1,8 @@
+# French strings of the Swag Scope text viewer. A key omitted here keeps its English value.
+
+ui_Name      Texte brut
+ui_WrapOn    Retour à la ligne actif (Ctrl+W)
+ui_WrapOff   Retour à la ligne inactif (Ctrl+W)
+ui_Encoding  Encodage des caractères
+ui_NotText   Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
+ui_Details   % · en flux

@@ -2,6 +2,21 @@
 
 using Core, Pixel, Gui
 
+// Describes the PDF viewer to the host.
+func pdfViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "pdf"
+    result.staticName   = "PDF"
+    result.attach       = &registerPdfStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Pdf
+    result.create       = &createPdfViewer
+    result.smokeFixture = "viewer.pdf"
+    result.addSelectors(".pdf")
+    return result
+}
+
 private const PdfCommandWidth = 336.0
 
 struct PdfViewerContent
@@ -27,10 +42,10 @@ internal struct PdfViewer
 {
     using wnd:            Wnd
     details:              String
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportLoadingChanged: #null ViewerReportLoadingChanged
-    load:                 ViewerBackgroundLoad'PdfViewerContent
+    reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    load:                 Viewer.BackgroundLoad'PdfViewerContent
     loadTimer:            #null *Timer
     failureReason:        String
 
@@ -113,7 +128,7 @@ private impl PdfViewer
         return true
     }
 
-    mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         var pdfOptions: PdfTextSearchOptions
         pdfOptions.comparison        = options.matchCase ? .Latin1 : .Latin1NoCase
@@ -124,13 +139,13 @@ private impl PdfViewer
             result.add({match.pageIndex, 0, match.byteOffset, match.byteLength})
     }
 
-    mtd revealMatch(match: ViewerSearchMatch, text: string)->bool
+    mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
     {
         discard text
         return .pdfView.revealTextMatch({match.major, match.offset, match.length})
     }
 
-    mtd searchBounds(match: ViewerSearchMatch, result: *Math.Rectangle)->bool
+    mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
     {
         return .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
     }
@@ -142,7 +157,7 @@ private impl PdfViewer
         .pageLabel.setText(Format.toString("% / %", .pdfView.pageIndex + 1, .pdfView.pageCount()))
     }
 
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*PdfViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null, reportDetails: #null Viewer.ReportDetails = null, reportLoadingChanged: #null Viewer.ReportLoadingChanged = null)->*PdfViewer
     {
         let result = Wnd.create'PdfViewer(contentParent, "scope.pdf")
         result.backgroundStyle      = .View
@@ -247,15 +262,14 @@ private impl PdfViewer
 
         result.applyLayout()
         result.load.start(fileName, &loadPdfViewerContent)
-        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated PDF view.
-func createPdfViewer(host: FileViewer.Host)
+func createPdfViewer(host: Viewer.Host)
 {
-    registerPdfStrings(host.application())
     let services = host.services()
     let view     = PdfViewer.create(host.contentParent(), host.createCommandGroup(PdfCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)

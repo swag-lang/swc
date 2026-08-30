@@ -110,7 +110,7 @@ fixing a root cause that is already safe and in scope.
 Every backlog entry carries a stable, file-scoped identifier in its heading:
 
 ```
-### std.gui.051 — A menu bar does not follow a live language switch
+### <family>.<what>.NNN — A short, descriptive title
 ```
 
 The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
@@ -243,7 +243,7 @@ finished until they would.
 - Watch it fail without the fix before keeping it. A test that passes either way records nothing.
 - Reduce it to the language construct. A suite source is standalone: a case that still needs
   `gui` to reproduce is a `bin/std` test, not a suite test.
-- Record a `B-*` in [backlog/compiler.core.md](../../../backlog/compiler.core.md) when
+- Record an entry in [backlog/compiler.core.md](../../../backlog/compiler.core.md) when
   the case genuinely does not reduce, saying why. That is the only accepted outcome other than a
   new test.
 

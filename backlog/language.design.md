@@ -80,9 +80,9 @@ predicates after language.design.003 makes the current model's diagnostics compl
 
 ---
 
-The entries below were open investigations when the unified backlog was introduced. Their `F-*`
-identifiers remain permanent; update their next action in place as the evidence matures. They retain
-their former order until re-triaged, so position in this imported block carries no priority claim.
+The entries below were open investigations when the unified backlog was introduced. Update their
+next action in place as the evidence matures. They retain their former order until re-triaged, so
+position in this imported block carries no priority claim.
 
 Surprises in the language itself: rules that are consistent on their own page and stop being
 consistent once two pages meet, spellings that carry more than one meaning, and defaults that

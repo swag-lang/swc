@@ -92,12 +92,12 @@ without also completing unrelated work hidden under the same heading.
 Every new entry uses this compact core:
 
 ```text
-### app.scope.023 — Short outcome or open question
+### <family>.<what>.NNN — Short outcome or open question
 
 - Evidence: observation, reproduction, measurement, competitive gap, or other reason this remains
 - Next: the smallest useful investigation or implementation step
 - Complete when: observable condition for deleting the entry or rewriting its next action
-- Related: app.scope.001, std.gui.014 (when applicable)
+- Related: <other-family>.<other-owner>.NNN (when applicable)
 ```
 
 Explanatory paragraphs and additional fields may follow when they materially help execution. For

@@ -76,9 +76,9 @@ that can be enforced independently of API diffing.
 
 ---
 
-The entries below were open investigations when the unified backlog was introduced. Their `F-*`
-identifiers remain permanent; update their next action in place as the evidence matures. They retain
-their former order until re-triaged, so position in this imported block carries no priority claim.
+The entries below were open investigations when the unified backlog was introduced. Update their
+next action in place as the evidence matures. They retain their former order until re-triaged, so
+position in this imported block carries no priority claim.
 
 The `doc` command: what a documentation run collects, what it renders, and what it costs.
 

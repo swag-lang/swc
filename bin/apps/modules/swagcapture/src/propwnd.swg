@@ -843,6 +843,50 @@ impl PropWnd
         }
     }
 
+    // Gives every generated field the width of the widest visible label in the current
+    // language. The controls otherwise reserve a fixed 60 pixels: enough for "Round", but
+    // not for "Thickness", while a larger constant would waste the same room in shorter
+    // translations. One measured column keeps sliders, combos and edits aligned.
+    mtd fitFieldLabelColumn()
+    {
+        var width = 0'f32
+        for item in .grid.items where item!.line.isVisible()
+        {
+            let it = item!
+            var label: #null *Label
+            if Swag.isSet(it.sliderBox) do
+                label = it.sliderBox.label
+            elif Swag.isSet(it.comboBox) and it.comboBox.parent!.type == ComboCtrl do
+                label = (cast(*ComboCtrl) it.comboBox.parent!).label
+            elif Swag.isSet(it.editBox) and it.editBox.parent!.type == EditCtrl do
+                label = (cast(*EditCtrl) it.editBox.parent!).label
+
+            if label do
+                width = Math.max(width, Painter.measureString(label.name.raw.toString(), label.font().regular!).width)
+        }
+
+        width = Math.ceil(width)
+        for item in .grid.items where item!.line.isVisible()
+        {
+            let it = item!
+            if Swag.isSet(it.sliderBox)
+            {
+                let ctrl = it.sliderBox
+                ctrl.setLayoutMetrics(width, ctrl.valueWidth, ctrl.spacing)
+            }
+            elif Swag.isSet(it.comboBox) and it.comboBox.parent!.type == ComboCtrl
+            {
+                let ctrl = cast(*ComboCtrl) it.comboBox.parent!
+                ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
+            }
+            elif Swag.isSet(it.editBox) and it.editBox.parent!.type == EditCtrl
+            {
+                let ctrl = cast(*EditCtrl) it.editBox.parent!
+                ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
+            }
+        }
+    }
+
     mtd selectionHasChanged()
     {
         for it in .topLayout.children do
@@ -876,6 +920,7 @@ impl PropWnd
         .bindGrid()
         .styleCategoryLabels()
         .propXY()
+        .fitFieldLabelColumn()
 
         .topLayout.computeLayout()
         .applyLayout()

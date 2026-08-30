@@ -70,7 +70,7 @@ struct BaseForm
     joinStyle = JoinStyle.Round
     #[Name("Line"), BoolCombo("Straight", "Bezier")]
     bezier: bool
-    #[Category("Effects"), Name("Scale"), SliderMinMax(0, 100), Unit("%")]
+    #[Name("Scale"), SliderMinMax(0, 100), Unit("%")]
     scale: f32 = 0
     #[Name("Rotate"), SliderMinMax(0, 360), Unit("°")]
     rotate: f32 = 0

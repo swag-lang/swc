@@ -167,14 +167,6 @@ public impl IWnd for MenuCtrl
             else do
                 theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)
 
-            if selected and colors.activeRail.a
-            {
-                let size = metrics.activeRail_Size
-                var rail = Math.Rectangle{backPos.x, labelPos.bottom() - size, backPos.width, size}
-                rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
-                painter.fillRect(rail, colors.activeRail)
-            }
-
             // Icon
             if it.icon.isValid()
             {
@@ -265,11 +257,6 @@ public impl IWnd for MenuCtrl
             backPos.height += metrics.menuPopup_SpaceLines
             backPos.inflate(.paddingSel, 0)
             theme.drawSubRect(painter, backPos, &rects.menuPopup_HotBk, colorSel)
-            if isHot and colors.activeRail.a
-            {
-                let rail = Math.Rectangle{backPos.x, backPos.y, metrics.activeRail_Size, backPos.height}
-                painter.fillRect(rail, colors.activeRail)
-            }
 
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin

@@ -15,6 +15,7 @@ const ReadoutWidth    = 88.0      // One machine readout of the command row.
 const VerbsWidth      = 272.0     // The command group: two named application actions.
 const ReadoutsWidth   = 240.0     // The readout group: both cells, their gap, and outer air.
 const RightPanelWidth = 288.0     // Content width of the tool panel on the right.
+const ToolTitleHeight = 26.0      // Heading included in the upper split panel.
 
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
@@ -93,19 +94,19 @@ struct MainWnd
     using wnd: Wnd
     #[Swag.Late]
     {
-        topBar, recentBar, rightBar: *Wnd
-        toolRail, commandReadouts:   *StackLayoutCtrl
-        editWnd:                     *EditWnd
-        quickWnd:                    *QuickWnd
-        propWnd:                     *PropWnd
-        libWnd:                      *LibraryWnd
-        recentWnd:                   *RecentWnd
-        quickStyleBar:               *SplitterCtrl
-        toolTitle:                   *Label
-        topMenu:                     *MenuCtrl
-        libraryBtn, captureBtn:      *PushButton
-        zoomBtn:                     *IconButton
-        appearanceButton:            *AppearanceButton
+        topBar, recentBar, rightBar, editBar: *Wnd
+        toolRail, commandReadouts:            *StackLayoutCtrl
+        editWnd:                              *EditWnd
+        quickWnd:                             *QuickWnd
+        propWnd:                              *PropWnd
+        libWnd:                               *LibraryWnd
+        recentWnd:                            *RecentWnd
+        quickStyleBar:                        *SplitterCtrl
+        toolTitle:                            *Label
+        topMenu:                              *MenuCtrl
+        libraryBtn, captureBtn:               *PushButton
+        zoomBtn:                              *IconButton
+        appearanceButton:                     *AppearanceButton
     }
 
     sizeBtn:       #null *IconButton
@@ -1091,13 +1092,20 @@ impl MainWnd
         res.createToolRail()
         let panelGutter = res.themeMetrics().panel_GutterSize
 
-        // Main edit area
-        with res.editWnd = EditWnd.create(res, res)
+        // Main edit area. The host supplies the structural gutter behind the rounded View;
+        // putting the View directly on the Window ground made the exposed corner pixels read
+        // as a second panel underneath it.
+        with res.editBar = Wnd.create'Wnd(res)
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Panel
-            .margin.y        = panelGutter
-            .style.addStyleSheetColors("wnd_Bk $view_Bk")
+            .backgroundStyle = .ToolBar
+            .padding.y       = panelGutter
+        }
+
+        with res.editWnd = EditWnd.create(res, res.editBar)
+        {
+            .dockStyle            = .Center
+            .backgroundStyle      = .Transparent
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
         }
 
@@ -1128,35 +1136,53 @@ impl MainWnd
         with let rightPanel = Wnd.create'Wnd(res.rightBar, {0, 0, RightPanelWidth, 0})
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Panel
-        }
-
-        // The heading starts on the same margin as the cells and the rows under it: a title
-        // centred over a left-aligned column is a second alignment on one narrow panel.
-        with res.toolTitle = Label.create(rightPanel, "", {0, 0, 0, 26})
-        {
-            .dockStyle = .Top
-            .setTextAlignment(.Left, .Center)
-            .setTextPadding({12, 8, 12, 0})
-            .setTextColor(res.themeColors().label_TextLight)
+            .backgroundStyle = .Transparent
         }
 
         with res.quickStyleBar = SplitterCtrl.create(rightPanel, {0, 0, RightPanelWidth, 600}, vertical: true)
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Transparent
+            .backgroundStyle = .ToolBar
         }
 
-        res.quickWnd = QuickWnd.create(res.quickStyleBar, res)
-        res.propWnd  = PropWnd.create(res.quickStyleBar, res)
+        with let quickPane = Wnd.create'Wnd(res.quickStyleBar)
+        {
+            .backgroundStyle = .Panel
+        }
 
-        with let quickPane = res.quickStyleBar.addPane(res.quickWnd)
+        // The heading starts on the same margin as the cells and the rows under it: a title
+        // centred over a left-aligned column is a second alignment on one narrow panel.
+        with res.toolTitle = Label.create(quickPane, "", {0, 0, 0, ToolTitleHeight})
+        {
+            .dockStyle = .Top
+            .style.setFont(res.theme().res.fontDefaultFs)
+            .setTextAlignment(.Left, .Center)
+            .setTextPadding({12, 8, 12, 0})
+            .setTextColor(res.themeColors().label_TextLight)
+        }
+
+        with res.quickWnd = QuickWnd.create(quickPane, res)
+        {
+            .dockStyle = .Center
+        }
+
+        with let propPane = Wnd.create'Wnd(res.quickStyleBar)
+        {
+            .backgroundStyle = .Panel
+        }
+
+        with res.propWnd = PropWnd.create(propPane, res)
+        {
+            .dockStyle = .Center
+        }
+
+        with let quickItem = res.quickStyleBar.addPane(quickPane)
         {
             .preserveSize = true
         }
 
-        discard res.quickStyleBar.addPane(res.propWnd)
-        res.quickStyleBar.setPaneSize(0, 168)
+        discard res.quickStyleBar.addPane(propPane)
+        res.quickStyleBar.setPaneSize(0, 168 + ToolTitleHeight)
 
         // Initialize everything
         with res

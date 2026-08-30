@@ -274,7 +274,6 @@ act_CaptureMonitorSize Capturer l'écran % (%x%)
 
 # Rows the property grid generates from reflection.
 prop_EndSize               Taille de fin
-prop_Effects               Effets
 prop_Font                  Police
 prop_Joins                 Jointures
 prop_Kind                  Type

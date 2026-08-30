@@ -60,17 +60,19 @@ struct LibraryWnd
 
     #[Swag.Late]
     {
-        main:       *MainWnd
-        view:       *LibraryView
-        sideBar:    *Wnd
-        listCtrl:   *ListCtrl
-        commandBar: *StackLayoutCtrl
-        viewBtn:    *IconButton
-        sortBtn:    *IconButton
-        filterBtn:  *IconButton
-        folderBtn:  *IconButton
-        searchEdit: *EditBox
-        breadcrumb: *BreadcrumbCtrl
+        main:         *MainWnd
+        view:         *LibraryView
+        sideBar:      *Wnd
+        contentPanel: *Wnd
+        captureHost:  *ScrollWnd
+        listCtrl:     *ListCtrl
+        commandBar:   *StackLayoutCtrl
+        viewBtn:      *IconButton
+        sortBtn:      *IconButton
+        filterBtn:    *IconButton
+        folderBtn:    *IconButton
+        searchEdit:   *EditBox
+        breadcrumb:   *BreadcrumbCtrl
     }
 
     previewSize: PreviewSize
@@ -1125,9 +1127,8 @@ impl LibraryWnd
         {
             .main            = parent
             .dockStyle       = .Center
-            .backgroundStyle = .Panel
-            .margin          = {metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
-            .style.addStyleSheetColors("wnd_Bk $view_Bk")
+            .backgroundStyle = .ToolBar
+            .padding         = {metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
             .registerActions()
         }
 
@@ -1138,23 +1139,38 @@ impl LibraryWnd
         // switching modes swapped the meaning of the same edge.
         with res.sideBar = Wnd.create'Wnd(res, {0, 0, SideBarWidth, 0})
         {
-            .dockStyle = .Left
+            .dockStyle       = .Left
+            .backgroundStyle = .Panel
+            .margin.z        = metrics.panel_GutterSize
+            .padding         = {0, 8, 0, 8}
         }
 
-        with let scrollWnd = Wnd.create'ScrollWnd(res)
+        with res.contentPanel = Wnd.create'Wnd(res)
         {
-            .dockStyle = .Center
+            .dockStyle       = .Center
+            .backgroundStyle = .Panel
         }
 
-        with let view = Wnd.create'LibraryView(scrollWnd)
+        // The path and command rows belong to the structural panel. Captures are content, so
+        // they sit on the recessed View ground inside it; the gutter is enough separation and
+        // avoids introducing a decorative rule between the two roles.
+        with res.captureHost = Wnd.create'ScrollWnd(res.contentPanel)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Panel
+            .margin          = {metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
+            .style.addStyleSheetColors("wnd_Bk $view_Bk")
+        }
+
+        with let view = Wnd.create'LibraryView(res.captureHost)
         {
             .libWnd    = res
             .padding   = 8
-            .scrollWnd = scrollWnd
+            .scrollWnd = res.captureHost
             .mainWnd   = parent
         }
 
-        scrollWnd.setView(view)
+        res.captureHost.setView(view)
         res.view = view
 
         with let list = ListCtrl.createMultiColumns(res.sideBar)
@@ -1166,7 +1182,7 @@ impl LibraryWnd
             .updateFlags(.PreserveSelectionOnEmptyClick)
             .scrollWnd.updateFlags(.CompactBars | .AlwaysShowVertical | .TransparentBars)
             .header.hide()
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .updateFlags(.ReserveExpandMargin)
             .dockStyle           = .Center
             .sigSelectionChanged += func|res|(list)
@@ -1182,22 +1198,22 @@ impl LibraryWnd
 
         // Folder path bar: shows the real library folder and lets the user walk it
         // (its sub-folders, incl. the recycle bin, are reachable from the chevrons).
-        with res.breadcrumb = BreadcrumbCtrl.create(res, {0, 0, 0, themeActionButtonSize(metrics)})
+        with res.breadcrumb = BreadcrumbCtrl.create(res.contentPanel, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .sigItemPressed  += func|res|(bc, idx) { res.navigateFolder(bc.items[idx].tag.toString()) }
             .sigFillMenu     += func|res|(bc, idx, menu) { res.fillBreadcrumbMenu(bc, idx, menu) }
             .sigMenuSelected += func|res|(bc, idx, id) { res.navigateFolder(id) }
         }
 
         // Top bar
-        with res.commandBar = StackLayoutCtrl.create(res, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
+        with res.commandBar = StackLayoutCtrl.create(res.contentPanel, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .spacing         = LibButtonGap
             .padding         = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
         }
 
         // View: thumbnail size and optional information painted over thumbnails share

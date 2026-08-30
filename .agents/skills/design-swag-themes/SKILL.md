@@ -87,8 +87,10 @@ of lightness. `band` is a token because a plain information strip must remain di
 strengths are not: they are one ink at three alphas.
 
 When a token is a decision rather than a color, make it one. `railed` is a `bool`, because a
-rail drawn in anything but the signature marks the active item in a language the rest of the
-interface does not speak — and because changing the signature then moves the rail with it.
+rail drawn in anything but the signature marks an active tool or tab in a language the rest of
+the interface does not speak — and because changing the signature then moves the rail with it.
+Lists, trees, popup lists and menus use their selection or hover ground alone: a Voltage rule
+there confuses a chosen row with an active mode.
 `captionGlow` is an `f32` for the same reason: whether the chrome of a window is washed in the
 brand is a decision no other token predicts, and the two ends of the band are derived from it —
 `wnd_CaptionBkLead` toward `signature.ground`, because a wash is a fill and the mark that

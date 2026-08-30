@@ -287,7 +287,6 @@ struct AppStrings
     // [[resolvePropertyText]] matches: adding a labeled row means adding a `prop_` field
     // whose declared value repeats the attribute string exactly.
     prop_EndSize:   string = "End Size"       // Label of the end-cap size of a line.
-    prop_Effects:   string = "Effects"        // Category of the scale, rotation, opacity and shadow rows.
     prop_Font:      string = "Font"           // Label of the font family.
     prop_Joins:     string = "Joins"          // Label of the stroke join style.
     prop_Kind:      string = "Kind"           // Label of the image-form kind.

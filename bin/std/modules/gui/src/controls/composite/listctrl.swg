@@ -162,8 +162,6 @@ struct ListView
 
     // Set when a press was consumed by something else, so the matching release is ignored.
     discardMouseRelease: bool
-    selectionRailY:      f32      // Animated top edge of the single-selection rail.
-    hasSelectionRail:    bool     // Whether a selected row has initialized the rail.
 }
 
 impl ListLine
@@ -609,15 +607,6 @@ impl IWnd for ListView
         let lastIdx            = .list.lastVisibleLineIndex()
         let reserveCheckMargin = !.list.isVirtual and .list.hasVisibleCheckBoxes()
 
-        if .list.selectionMode == .Single and
-           !.app().animator.isActive(me, AnimationChannel.from("Gui.List.SelectionRail"))
-        {
-            let selected = .selectedVisibleIndex()
-            .hasSelectionRail = selected != Swag.U32.Max
-            if .hasSelectionRail do
-                .selectionRailY = cast(f32) selected * .list.lineHeight()
-        }
-
         // Do not display with bigs coordinates to avoid precision issues
         // So we: the scroll by hand, and draw will small coordinates
         var y = cast(f64) firstIdx * .list.lineHeight()
@@ -649,12 +638,6 @@ impl IWnd for ListView
                 if .list.listFlags.has(.HorizontalLines) do
                     painter.drawLine(rect.x, rect.y, rect.right(), rect.y, colors.listItem_Line, 1)
             }
-        }
-
-        if .list.selectionMode == .Single and .hasSelectionRail and colors.activeRail.a
-        {
-            let rail = Math.Rectangle{rect.x, .selectionRailY - .scrollPos.y, metrics.activeRail_Size, .list.lineHeight()}
-            painter.fillRect(rail, colors.activeRail)
         }
 
         if Swag.isSet(.list.header) and .list.listFlags.has(.VerticalLines)
@@ -718,62 +701,6 @@ private impl ListView
         painter.fillRect(width - DropMarkThickness, line - DropMarkCapReach, DropMarkThickness, DropMarkCapReach * 2 + DropMarkThickness, color)
     }
 
-    mtd selectedVisibleIndex()->u32
-    {
-        if .list.selModel.isEmpty() do
-            return Swag.U32.Max
-
-        let selected = .list.selModel.ranges()[0].start
-        if .list.isVirtual do
-            return selected < .list.virtualCount ? selected : Swag.U32.Max
-
-        let found = .list.idxLineToIdxList.tryFind(selected)
-        return found ? found.value : Swag.U32.Max
-    }
-
-    mtd animateSelectionRail()
-    {
-        let channel = AnimationChannel.from("Gui.List.SelectionRail")
-        if .list.selectionMode != .Single
-        {
-            .app().animator.cancel(me, channel)
-            .hasSelectionRail = false
-            return
-        }
-
-        let index = .selectedVisibleIndex()
-        if index == Swag.U32.Max
-        {
-            .app().animator.cancel(me, channel)
-            .hasSelectionRail = false
-            .invalidate()
-            return
-        }
-
-        let destination = cast(f32) index * .list.lineHeight()
-        if !.hasSelectionRail
-        {
-            .selectionRailY   = destination
-            .hasSelectionRail = true
-            .invalidate()
-            return
-        }
-
-        var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
-        options.easing   = .EaseOut
-        discard .app().animator.animateF32(me,
-                                           channel,
-                                           .selectionRailY,
-                                           destination,
-                                           func|view=me|(animationWnd, value)
-                                           {
-                                               discard animationWnd
-                                               view.selectionRailY = value
-                                           },
-                                           options)
-    }
-
     mtd columnPosition(column: u32)->f32
     {
         var x = .list.header.itemPositionForColumn(column)
@@ -798,11 +725,6 @@ private impl ListView
         {
             let colorSel = .hasFocus() ? colors.listItem_FocusSelectedBk : colors.listItem_SelectedBk
             theme.drawSubRect(painter, rect, &rects.selectionBox_Bk, colorSel)
-            if colors.activeRail.a and .list.selectionMode != .Single
-            {
-                let rail = Math.Rectangle{rect.x, rect.y, metrics.activeRail_Size, rect.height}
-                painter.fillRect(rail, colors.activeRail)
-            }
         }
 
         // Hot box
@@ -872,17 +794,11 @@ private impl ListView
             labelPos.x -= .scrollPos.x
             labelPos.x += .list.leftTextMargin + line.leftTextMargin
 
-            // A row keeps its content clear of its own leading edge. Pressed against it, the
-            // glyph sits on the selection band with nothing between them — and, in a theme that
-            // rails, directly against the rule marking the current row, which then reads as an
-            // outline drawn around the glyph rather than as a mark beside it. A list with a
-            // header takes that air from the header's own column inset instead; adding it here
-            // as well would slide every cell out from under its title.
-            if !Swag.isSet(.list.header)
-            {
-                let gutter = metrics.activeRail_Size + metrics.activeRail_Margin
-                labelPos.moveLeft(gutter)
-            }
+            // A row keeps its content clear of its own leading edge. A list with a header takes
+            // that air from the header's own column inset instead; adding it here as well would
+            // slide every cell out from under its title.
+            if !Swag.isSet(.list.header) do
+                labelPos.moveLeft(metrics.list_Padding)
 
             if idxItem == 0
             {
@@ -1190,11 +1106,6 @@ impl ListCtrl
             .listView.focusPolicy = .Inner
             .listView.wndFlags    |= .NoScroll
             .focusDelegate        = .listView
-            .sigSelectionChanged  += func|view=.listView|(changedList)
-            {
-                discard changedList
-                view.animateSelectionRail()
-            }
         }
 
         return list
@@ -1278,11 +1189,6 @@ impl ListCtrl
             .listView.focusPolicy = .Inner
             .listView.wndFlags    |= .NoScroll
             .focusDelegate        = .listView
-            .sigSelectionChanged  += func|view=.listView|(changedList)
-            {
-                discard changedList
-                view.animateSelectionRail()
-            }
         }
 
         return list

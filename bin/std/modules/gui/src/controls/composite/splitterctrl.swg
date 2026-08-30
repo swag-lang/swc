@@ -201,8 +201,8 @@ impl IWnd for SplitterCtrl
                 it.aniBar.apply(me, colorBar)
 
                 // A structural seam occupies its complete layout band. The historical atlas
-                // tiles painted only a thin rule inside this rectangle, so a four-pixel splitter
-                // still looked narrower than a four-pixel panel gutter.
+                // tiles painted only a thin rule inside this rectangle, which hid the facing
+                // rounded corners of adjacent panel panes.
                 painter.fillRect(rect, it.aniBar.cur())
             }
         }

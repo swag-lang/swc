@@ -14,10 +14,10 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 #test
 {
     var root: ListLine
-    Swag.assert(!root.canExpand())
+        Swag.assert(!root.canExpand())
 
     root.forceExpandMark = true
-    Swag.assert(root.canExpand())
+        Swag.assert(root.canExpand())
 
     root.forceExpandMark = false
     let child = root.lines.allocate()
@@ -25,39 +25,39 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     child.level  = 1
     root.lines.add(child)
 
-    Swag.assert(root.canExpand())
-    Swag.assert(root.isParentOf(child))
-    Swag.assert(!child.isParentOf(&root))
+        Swag.assert(root.canExpand())
+        Swag.assert(root.isParentOf(child))
+        Swag.assert(!child.isParentOf(&root))
 
     let grandChild = child.lines.allocate()
     grandChild.parent = child
     grandChild.level  = 2
     child.lines.add(grandChild)
 
-    Swag.assert(root.isParentOf(grandChild))
-    Swag.assert(child.isParentOf(grandChild))
-    Swag.assert(!grandChild.isParentOf(child))
+        Swag.assert(root.isParentOf(grandChild))
+        Swag.assert(child.isParentOf(grandChild))
+        Swag.assert(!grandChild.isParentOf(child))
 }
 
 #test
 {
     var line: ListLine
     let item0 = line.setItem(0, "Name")
-    Swag.assert(line.items.count == 1)
-    Swag.assert(line.itemAt(0) == item0)
-    Swag.assert(item0.name == "Name")
-    Swag.assert(item0.column == 0)
+        Swag.assert(line.items.count == 1)
+        Swag.assert(line.itemAt(0) == item0)
+        Swag.assert(item0.name == "Name")
+        Swag.assert(item0.column == 0)
 
     let item1 = line.setItem(1, "Kind")
-    Swag.assert(line.items.count == 2)
-    Swag.assert(line.itemAt(1) == item1)
-    Swag.assert(item1.name == "Kind")
-    Swag.assert(item1.column == 1)
+        Swag.assert(line.items.count == 2)
+        Swag.assert(line.itemAt(1) == item1)
+        Swag.assert(item1.name == "Kind")
+        Swag.assert(item1.column == 1)
 
     let updated = line.setItem(0, "Renamed")
-    Swag.assert(updated == item0)
-    Swag.assert(line.items.count == 2)
-    Swag.assert(line.itemAt(0).name == "Renamed")
+        Swag.assert(updated == item0)
+        Swag.assert(line.items.count == 2)
+        Swag.assert(line.itemAt(0).name == "Renamed")
 }
 
 #test
@@ -71,21 +71,21 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     separator.separator = true
     let root2 = list.createLine("root2")
 
-    Swag.assert(root0.index == 0)
-    Swag.assert(child0.index == 1)
-    Swag.assert(root1.index == 2)
-    Swag.assert(separator.index == 3)
-    Swag.assert(root2.index == 4)
-    Swag.assert(list.lineCount() == 4)
-    Swag.assert(list.lineAt(0) == root0)
-    Swag.assert(list.lineAt(1) == root1)
-    Swag.assert(list.lineAt(2) == separator)
-    Swag.assert(list.lineAt(3) == root2)
-    Swag.assert(list.idxLineToIdxList.find(root0.index).value == 0)
-    Swag.assert(list.idxLineToIdxList.tryFind(child0.index) == null)
-    Swag.assert(list.idxLineToIdxList.find(root1.index).value == 1)
-    Swag.assert(list.idxLineToIdxList.find(separator.index).value == 2)
-    Swag.assert(list.idxLineToIdxList.find(root2.index).value == 3)
+        Swag.assert(root0.index == 0)
+        Swag.assert(child0.index == 1)
+        Swag.assert(root1.index == 2)
+        Swag.assert(separator.index == 3)
+        Swag.assert(root2.index == 4)
+        Swag.assert(list.lineCount() == 4)
+        Swag.assert(list.lineAt(0) == root0)
+        Swag.assert(list.lineAt(1) == root1)
+        Swag.assert(list.lineAt(2) == separator)
+        Swag.assert(list.lineAt(3) == root2)
+        Swag.assert(list.idxLineToIdxList.find(root0.index).value == 0)
+        Swag.assert(list.idxLineToIdxList.tryFind(child0.index) == null)
+        Swag.assert(list.idxLineToIdxList.find(root1.index).value == 1)
+        Swag.assert(list.idxLineToIdxList.find(separator.index).value == 2)
+        Swag.assert(list.idxLineToIdxList.find(root2.index).value == 3)
 }
 
 #test
@@ -101,27 +101,27 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     let root2 = list.createLine("root2")
 
     list.selectLines(3, 0)
-    Swag.assert(list.isLineSelected(0))
-    Swag.assert(list.isLineSelected(1))
-    Swag.assert(!list.isLineSelected(2))
-    Swag.assert(list.isLineSelected(3))
+        Swag.assert(list.isLineSelected(0))
+        Swag.assert(list.isLineSelected(1))
+        Swag.assert(!list.isLineSelected(2))
+        Swag.assert(list.isLineSelected(3))
 
     let selected = list.selectedLines()
-    Swag.assert(selected.count == 3)
-    Swag.assert(selected[0] == root0)
-    Swag.assert(selected[1] == root1)
-    Swag.assert(selected[2] == root2)
+        Swag.assert(selected.count == 3)
+        Swag.assert(selected[0] == root0)
+        Swag.assert(selected[1] == root1)
+        Swag.assert(selected[2] == root2)
 
     list.selModel.select(hiddenChild.index)
     let selectedVisible = list.selectedLines()
-    Swag.assert(selectedVisible.count == 3)
+        Swag.assert(selectedVisible.count == 3)
 
     root1.canCheck = true
     list.setLineChecked(root1, notify: false)
     list.checkModel.select(hiddenChild.index)
     let checked = list.checkedLines()
-    Swag.assert(checked.count == 1)
-    Swag.assert(checked[0] == root1)
+        Swag.assert(checked.count == 1)
+        Swag.assert(checked[0] == root1)
 }
 
 #test
@@ -134,12 +134,12 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     discard list.createLine("root2")
 
     list.selectLines(0, 2)
-    Swag.assert(!list.isLineSelected(0))
-    Swag.assert(!list.isLineSelected(1))
-    Swag.assert(list.isLineSelected(2))
+        Swag.assert(!list.isLineSelected(0))
+        Swag.assert(!list.isLineSelected(1))
+        Swag.assert(list.isLineSelected(2))
 
     list.selectLines(2, 0, false)
-    Swag.assert(list.selModel.isEmpty())
+        Swag.assert(list.selModel.isEmpty())
 }
 
 #test
@@ -152,24 +152,24 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.setSelectionMode(.Multi)
 
     list.selectLines(4, 2)
-    Swag.assert(!list.isLineSelected(1))
-    Swag.assert(list.isLineSelected(2))
-    Swag.assert(list.isLineSelected(3))
-    Swag.assert(list.isLineSelected(4))
-    Swag.assert(!list.isLineSelected(5))
-    Swag.assert(list.selectedLines().isEmpty())
+        Swag.assert(!list.isLineSelected(1))
+        Swag.assert(list.isLineSelected(2))
+        Swag.assert(list.isLineSelected(3))
+        Swag.assert(list.isLineSelected(4))
+        Swag.assert(!list.isLineSelected(5))
+        Swag.assert(list.selectedLines().isEmpty())
 
     list.selectLine(3, false)
-    Swag.assert(!list.isLineSelected(3))
+        Swag.assert(!list.isLineSelected(3))
 
     list.clear()
-    Swag.assert(!list.isVirtual)
-    Swag.assert(list.lineCount() == 0)
-    Swag.assert(list.selModel.isEmpty())
+        Swag.assert(!list.isVirtual)
+        Swag.assert(list.lineCount() == 0)
+        Swag.assert(list.selModel.isEmpty())
 
     let line = list.createLine("real")
-    Swag.assert(line.index == 0)
-    Swag.assert(list.lineCount() == 1)
+        Swag.assert(line.index == 0)
+        Swag.assert(list.lineCount() == 1)
 }
 
 // Expanding/collapsing a parent line changes the visible line count.
@@ -184,17 +184,17 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.createLine("childB", parentLine: root0)
     list.createLine("root1")
 
-    Swag.assert(list.lineCount() == 2)
-    Swag.assert(root0.canExpand())
-    Swag.assert(!root0.expanded)
+        Swag.assert(list.lineCount() == 2)
+        Swag.assert(root0.canExpand())
+        Swag.assert(!root0.expanded)
 
     list.expand(root0)
-    Swag.assert(root0.expanded)
-    Swag.assert(list.lineCount() == 4)
+        Swag.assert(root0.expanded)
+        Swag.assert(list.lineCount() == 4)
 
     list.collapse(root0)
-    Swag.assert(!root0.expanded)
-    Swag.assert(list.lineCount() == 2)
+        Swag.assert(!root0.expanded)
+        Swag.assert(list.lineCount() == 2)
 }
 
 // Single-selection: selecting another line deselects the previous one.
@@ -206,26 +206,26 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
-    Swag.assert(list.iconSize == 16)
-    Swag.assert(list.lineHeight() >= 24)
+        Swag.assert(list.iconSize == 16)
+        Swag.assert(list.lineHeight() >= 24)
     list.sigSelectionChanged += &listCtrlHeadlessSel
     list.createLine("a")
     list.createLine("b")
 
-    Swag.assert(list.lineCount() == 2)
-    Swag.assert(!list.isLineSelected(0))
+        Swag.assert(list.lineCount() == 2)
+        Swag.assert(!list.isLineSelected(0))
 
     list.selectLine(0)
-    Swag.assert(list.isLineSelected(0))
-    Swag.assert(!list.isLineSelected(1))
+        Swag.assert(list.isLineSelected(0))
+        Swag.assert(!list.isLineSelected(1))
 
     list.selectLine(1)
-    Swag.assert(!list.isLineSelected(0))
-    Swag.assert(list.isLineSelected(1))
+        Swag.assert(!list.isLineSelected(0))
+        Swag.assert(list.isLineSelected(1))
 
     list.unselectAll()
-    Swag.assert(!list.isLineSelected(1))
-    Swag.assert(ListCtrlHeadlessSelCount == 3)
+        Swag.assert(!list.isLineSelected(1))
+        Swag.assert(ListCtrlHeadlessSelCount == 3)
 }
 
 // clear() removes all lines.
@@ -238,10 +238,10 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
-    Swag.assert(list.lineCount() == 3)
+        Swag.assert(list.lineCount() == 3)
 
     list.clear()
-    Swag.assert(list.lineCount() == 0)
+        Swag.assert(list.lineCount() == 0)
 }
 
 // Clicking a line selects it; clicking another (Single mode) moves the selection.
@@ -262,13 +262,13 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     let vs = list.listView.surfaceRect()
 
     host.click({vs.x + 30, vs.y + lh * 0.5})
-    Swag.assert(list.isLineSelected(0))
-    Swag.assert(!list.isLineSelected(1))
+        Swag.assert(list.isLineSelected(0))
+        Swag.assert(!list.isLineSelected(1))
 
     host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5})
-    Swag.assert(list.isLineSelected(2))
-    Swag.assert(!list.isLineSelected(0))
-    Swag.assert(ListCtrlHeadlessSelCount >= 2)
+        Swag.assert(list.isLineSelected(2))
+        Swag.assert(!list.isLineSelected(0))
+        Swag.assert(ListCtrlHeadlessSelCount >= 2)
 }
 
 // Multi-selection: Ctrl+click toggles individual lines.
@@ -289,9 +289,9 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     host.click({vs.x + 30, vs.y + lh * 0.5})
     host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5}, Input.MouseButton.Left, Input.KeyModifiers.Control)
 
-    Swag.assert(list.isLineSelected(0))
-    Swag.assert(!list.isLineSelected(1))
-    Swag.assert(list.isLineSelected(2))
+        Swag.assert(list.isLineSelected(0))
+        Swag.assert(!list.isLineSelected(1))
+        Swag.assert(list.isLineSelected(2))
 }
 
 // Arrow keys move the selection up and down.
@@ -307,15 +307,15 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     host.focus(list.listView!)
 
     host.keyPress(Input.Key.Down)
-    Swag.assert(list.isLineSelected(0))
+        Swag.assert(list.isLineSelected(0))
 
     host.keyPress(Input.Key.Down)
-    Swag.assert(list.isLineSelected(1))
-    Swag.assert(!list.isLineSelected(0))
+        Swag.assert(list.isLineSelected(1))
+        Swag.assert(!list.isLineSelected(0))
 
     host.keyPress(Input.Key.Up)
-    Swag.assert(list.isLineSelected(0))
-    Swag.assert(!list.isLineSelected(1))
+        Swag.assert(list.isLineSelected(0))
+        Swag.assert(!list.isLineSelected(1))
 }
 
 // A list says where a drop would land, and shows it.
@@ -336,23 +336,23 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     let vs = list.listView.surfaceRect()
 
     let top = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.05})
-    Swag.assert(top.index == 0 and top.mark == ListDropMark.Before)
+        Swag.assert(top.index == 0 and top.mark == ListDropMark.Before)
 
     let middle = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.5})
-    Swag.assert(middle.index == 0 and middle.mark == ListDropMark.On)
+        Swag.assert(middle.index == 0 and middle.mark == ListDropMark.On)
 
     let bottom = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.95})
-    Swag.assert(bottom.index == 0 and bottom.mark == ListDropMark.After)
+        Swag.assert(bottom.index == 0 and bottom.mark == ListDropMark.After)
 
     let second = list.dropMarkAt({vs.x + 30, vs.y + lh * 1.5})
-    Swag.assert(second.index == 1 and second.mark == ListDropMark.On)
+        Swag.assert(second.index == 1 and second.mark == ListDropMark.On)
 
     // Past the last row is the gap after it, so a list is appended to by aiming at its empty part.
     let past = list.dropMarkAt({vs.x + 30, vs.y + lh * 10})
-    Swag.assert(past.index == 2 and past.mark == ListDropMark.After)
+        Swag.assert(past.index == 2 and past.mark == ListDropMark.After)
 
-    // Outside the rows entirely is no answer at all.
-    Swag.assert(list.dropMarkAt({vs.x - 20, vs.y + lh * 0.5}).mark == ListDropMark.None)
+        // Outside the rows entirely is no answer at all.
+        Swag.assert(list.dropMarkAt({vs.x - 20, vs.y + lh * 0.5}).mark == ListDropMark.None)
 }
 
 // Showing the mark is what a window does with that answer, and clearing it is what every leave
@@ -366,20 +366,20 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.createLine("a")
     list.createLine("b")
 
-    Swag.assert(list.dropMark == ListDropMark.None)
-    Swag.assert(list.dropMarkIndex == Swag.U32.Max)
+        Swag.assert(list.dropMark == ListDropMark.None)
+        Swag.assert(list.dropMarkIndex == Swag.U32.Max)
 
     list.setDropMark(1, .Before)
-    Swag.assert(list.dropMark == ListDropMark.Before)
-    Swag.assert(list.dropMarkIndex == 1)
+        Swag.assert(list.dropMark == ListDropMark.Before)
+        Swag.assert(list.dropMarkIndex == 1)
 
     list.clearDropMark()
-    Swag.assert(list.dropMark == ListDropMark.None)
-    Swag.assert(list.dropMarkIndex == Swag.U32.Max)
+        Swag.assert(list.dropMark == ListDropMark.None)
+        Swag.assert(list.dropMarkIndex == Swag.U32.Max)
 
     // A mark of `None` keeps no row, whatever index it was given.
     list.setDropMark(1, .None)
-    Swag.assert(list.dropMarkIndex == Swag.U32.Max)
+        Swag.assert(list.dropMarkIndex == Swag.U32.Max)
 }
 
 // An empty list answers the gap before a row that is not there, so a drop still has somewhere
@@ -393,15 +393,15 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 
     let vs   = list.listView.surfaceRect()
     let mark = list.dropMarkAt({vs.x + 30, vs.y + 10})
-    Swag.assert(mark.index == 0 and mark.mark == ListDropMark.Before)
+        Swag.assert(mark.index == 0 and mark.mark == ListDropMark.Before)
 
-    // Outside it is still no answer at all, so the two cases stay apart.
-    Swag.assert(list.dropMarkAt({vs.x - 20, vs.y + 10}).mark == ListDropMark.None)
+        // Outside it is still no answer at all, so the two cases stay apart.
+        Swag.assert(list.dropMarkAt({vs.x - 20, vs.y + 10}).mark == ListDropMark.None)
 
     // And the mark it is asked to show is drawn against a row that is not there.
     list.setDropMark(mark.index, mark.mark)
     host.pump()
-    Swag.assert(list.dropMark == ListDropMark.Before)
+        Swag.assert(list.dropMark == ListDropMark.Before)
 }
 
 // The selected-row state follows the slight corner carried by the theme's selection tile.
@@ -421,10 +421,13 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     host.focus(list.listView!)
     host.finishAnimations()
 
-    let rect   = list.listView.surfaceRect()
-    let image  = host.render()
-    let corner = image.pixelColor(cast(s32) rect.x, cast(s32) rect.y)
-    let center = image.pixelColor(cast(s32) rect.x + 8, cast(s32) rect.y + 8)
-    Swag.assert(center == host.theme.colors.listItem_FocusSelectedBk)
-    Swag.assert(corner != center)
+    let rect    = list.listView.surfaceRect()
+    let image   = host.render()
+    let corner  = image.pixelColor(cast(s32) rect.x, cast(s32) rect.y)
+    let center  = image.pixelColor(cast(s32) rect.x + 8, cast(s32) rect.y + 8)
+    let leading = image.pixelColor(cast(s32) rect.x + 1, cast(s32) (rect.y + list.lineHeight() * 0.5))
+        Swag.assert(center == host.theme.colors.listItem_FocusSelectedBk)
+        Swag.assert(leading == host.theme.colors.listItem_FocusSelectedBk)
+        Swag.assert(leading != host.theme.colors.activeRail)
+        Swag.assert(corner != center)
 }

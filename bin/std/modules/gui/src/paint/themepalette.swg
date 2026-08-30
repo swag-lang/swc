@@ -121,11 +121,11 @@ struct ThemePalette
         caution:   ThemeTone     // Something needs attention.
         info:      ThemeTone     // Something is worth knowing.
 
-        // Whether the theme marks the active item — a checked tool, the open menu, the selected
-        // row — with a rule in the signature, or by filling the item instead. It is a decision,
-        // not a color: a rail drawn in anything other than the signature says the item is active
-        // in a language the rest of the interface does not speak. Changing the signature
-        // therefore moves the rail with it, which is the whole reason this is not a color.
+        // Whether the theme marks an active tool or tab with a rule in the signature, or by
+        // filling the item instead. It is a decision, not a color: a rail drawn in anything
+        // other than the signature says the item is active in a language the rest of the
+        // interface does not speak. Changing the signature therefore moves the rail with it,
+        // which is the whole reason this is not a color.
         railed: bool
 
         // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`, in labels and in

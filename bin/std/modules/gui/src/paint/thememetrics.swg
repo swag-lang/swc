@@ -145,7 +145,7 @@ struct ThemeMetrics
         header_Separator: f32          = 5                  // Theme measurement used for header separator.
 
         panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
-        splitView_BarSize: f32 = 4     // Width of the draggable divider, equal to the structural panel gutter.
+        splitView_BarSize: f32 = 5     // Draggable gap between split panels, one pixel wider than the outer gutter.
 
         progressBar_Height:     f32 = 18      // Theme measurement used for progress bar height.
         progressBar_ClipOffset: f32 = 2       // Theme measurement used for progress bar clip offset.
@@ -163,14 +163,10 @@ struct ThemeMetrics
         separator_HairlineSize: f32 = 1     // Theme measurement used for separator hairline size.
         separator_AccentSize:   f32 = 4     // Theme measurement used for separator accent size.
 
-        // The rule that marks the active item — a checked tool, the open menu, the hovered
-        // entry. It is thin, and it keeps its distance from whatever it marks.
-        //
-        // On a cell it is a mark and stops short of both ends by `activeRail_Margin`; on a row
-        // of a list or a menu it runs the whole edge, because a rule shorter than the row it
-        // marks reads as a second, smaller object inside it.
+        // The rule that marks an active tool or tab. It is thin, and it stops short of both ends
+        // by `activeRail_Margin` so it keeps its distance from the content it marks.
         activeRail_Size:   f32 = 3     // Thickness of the rule.
-        activeRail_Margin: f32 = 8     // Air a cell mark keeps at each end, and between the rule and the content.
+        activeRail_Margin: f32 = 8     // Air the mark keeps at each end, and between the rule and the content.
 
         // The ring that says where the keyboard is. It is a rule around a control, not a fill on
         // it, and it keeps clear of the control's own border so the two never read as one thick edge.

@@ -364,7 +364,7 @@ impl RecentWnd
             .updateFlags(.CompactBars | .AlwaysShowHorizontal)
             .backgroundStyle = .Panel
             .main            = main
-            .style.addStyleSheetColors("scrollBar_Bk $view_Bk")
+            .style.addStyleSheetColors("scrollBar_Bk $wnd_Bk")
 
             .recentView           = recent.createView'RecentView()
             .recentView.padding   = RecentPadding

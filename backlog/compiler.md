@@ -311,7 +311,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 ### B-609 — Concurrent type generation can corrupt declared-method traversal
 
 - Area: compiler
-- Found while: rerunning `tools/tests.swgs dm --all-cfg` for F-106 after an unrelated intermittent
+- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
   semantic-completion assertion had passed on immediate focused rerun.
 - Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
   and a hardware exception while type generation traversed a struct's declared methods. The same

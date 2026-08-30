@@ -223,10 +223,10 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
-| WAV PCM and float | `.wav` | full, streamed | professional transport/analysis; ADPCM | [B-106](scope.audio.md), T-169 |
+| WAV PCM and float | `.wav` | full, streamed | professional transport/analysis | [B-106](scope.audio.md) |
 | Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | the format carries no sound | — |
 | Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full with supported container audio | uncommon chroma layouts | B-467 |
-| Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | professional transport/analysis; remaining module coverage | [B-106](scope.audio.md), T-166, T-168 |
+| Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | professional transport/analysis | [B-106](scope.audio.md) |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; others identified | ISO-BMFF and EBML trees | [B-459](scope.binary.md) |
 | Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [B-117](scope.video.md), [B-464](scope.video.md) |
 | MIDI | `.mid` `.midi` | piano roll and structure | playback, event lanes, scalable timeline | [B-142](scope.midi.md) |

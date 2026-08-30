@@ -790,7 +790,7 @@ with exactly one language and keeps deliberately.
 ### B-621 — A moved value cannot initialize an aggregate literal field or a conditional branch
 
 - Area: language
-- Found while: fixing F-139, where those two expressions asserted in code generation instead of
+- Found while: fixing a case where those two expressions asserted in code generation instead of
   being diagnosed
 - Observation: `blocks.add(Block{kind, #move text})` and
   `var value = condition ? String.from("rule") : #move block.text` now report a clear error
@@ -815,7 +815,7 @@ with exactly one language and keeps deliberately.
 ### B-631 — '.buffer' answers a non-null pointer for a payload that can be absent
 
 - Area: language
-- Found while: widening the never-null condition rule (F-184). The `bin/` sweep it forced stopped
+- Found while: widening the never-null condition rule. The `bin/` sweep it forced stopped
   on `if (ptrAny[]).buffer` in `convertAny`, which reads as "does this value carry a payload" and
   which the type system now calls a constant.
 - Observation: `.buffer` of a `string` or `cstring` now carries the source's `#null`, but the `any`

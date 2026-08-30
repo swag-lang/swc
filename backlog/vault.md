@@ -5,8 +5,8 @@ mature disk-encryption tool. It is scoped to this module and to the `bin/std` pr
 depends on.
 
 Evidence, investigations, and intended outcomes owned by the application stay together here.
-Platform work belongs in [gui.md](gui.md) for the surface and
-[optimization.md](optimization.md) for crypto throughput; compiler and language work belongs in
+Operating-system work belongs in [portability.md](portability.md), and crypto throughput belongs
+in [optimization.md](optimization.md); compiler and language work belongs in
 [compiler.md](compiler.md) and [language.md](language.md). [README.md](README.md) has the whole
 layout.
 
@@ -31,8 +31,6 @@ module's roadmap.
 - Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount.
 - Related: a bounded cache is also the natural place to put an explicit memory budget, which any
   later working-set investigation will need.
-
-## Tier A — Key and release security
 
 
 
@@ -131,7 +129,7 @@ module's roadmap.
   process termination during checkpointing.
 - Related: B-244
 
-## Tier C — Scale, platform reach, and independent assurance
+## Tier C — Scale and independent assurance
 
 ### B-363 — Metadata scaling stops at 1,200 files
 

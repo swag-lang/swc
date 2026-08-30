@@ -100,8 +100,6 @@ completion criteria.
 
 - Related: B-264, B-265
 
-## Tier A — Second-platform system services
-
 
 
 

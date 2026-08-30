@@ -5,7 +5,7 @@ with: Snagit, ShareX, and the Windows Snipping Tool that now ships with video an
 recognition. It is scoped to this module and to the `bin/std` facilities it depends on.
 
 Evidence, investigations, and intended outcomes owned by the application stay together here.
-Platform work belongs in [gui.md](gui.md) and its neighbouring domains; compiler and language work
+Operating-system work belongs in [portability.md](portability.md); compiler and language work
 belongs in [compiler.md](compiler.md) and [language.md](language.md).
 [README.md](README.md) has the whole layout.
 
@@ -161,7 +161,7 @@ A reusable graphics set placed as `FormImage` instances. Small, and it fits the 
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
 clip art.
 
-## Tier D — Portability and output conventions
+## Tier D — Output conventions
 
 
 ### B-235 — File naming convention drift

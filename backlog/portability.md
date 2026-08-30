@@ -1,26 +1,20 @@
-# Bin Portability Backlog
+# Operating-System Portability Backlog
 
-This cross-unit backlog tracks the work that reduces the amount of `bin/` code a Linux port has
-to rewrite. It covers `bin/runtime`, standard modules, and shipped applications. OpenGL is
-deliberately excluded. Compiler work is excluded too, except where an intrinsic cannot honestly be
-made independent of the host runtime without changing its lowering.
+This is the sole backlog for porting any part of Swag to another operating system. It covers
+`bin/runtime`, standard modules, shipped applications, compiler tooling, target ABIs, packaging,
+and desktop integration for Linux, macOS, and future hosts.
 
-The platform implementations themselves remain owned by
-[B-191](core.md#b-191--process-services-have-no-second-platform-backend),
-[B-202](gui.md#b-202--no-second-platform-surface-and-presentation-backend),
-[B-219](audio.md#b-219--a-second-platform),
-[B-234](capture.md#b-234--cross-platform-capture-backend), and
-[B-245](vault.md#b-245--no-linux-fuse-backend). This file owns the preparation
-across those units: move policy, orchestration, parsing, normalization, and data conversion into
-ordinary Swag now, leaving each operating-system backend as a narrow set of mechanisms.
+It also owns every Windows-specific type, protocol, service, policy, or assumption that portable
+code must stop exposing. The owning module still implements the change, but the entry stays here
+with its target backends and prerequisites so one port cannot be scattered across domain files.
 
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are not
-port targets. Explicit adapters such as `Image.from(HBITMAP)` may remain Windows-only. They become
-portability debt only when a portable module or application has to mention their types, constants,
-message numbers, or calling conventions.
+Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
+not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
+Windows-only. The debt begins when portable code or a cross-platform product must mention their
+types, constants, message numbers, calling conventions, or service behavior.
 
 As of 2026-08-22, the platform-specific body, excluding OpenGL and raw binding modules, is large
 enough to justify one coordinated campaign:
@@ -326,12 +320,8 @@ target an operating system, a freestanding environment, deterministic numerics, 
 
 ---
 
-# Operating-system ports and Windows-bound work
-
-Every entry below either implements an operating-system backend or removes a Windows-specific
-type, protocol, service, packaging rule, or behavior from code that must remain portable. This is
-the sole backlog location for that work; the owning module files retain only platform-neutral
-product and implementation work.
+The following entries implement the target backends and remove the Windows-bound behavior exposed
+by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
 ## Runtime and Core operating-system services
 
@@ -439,7 +429,7 @@ placeholders, not an implementation.
 
 ## GUI contracts and operating-system integrations
 
-### B-196 — No accessibility
+### B-196 — Accessibility has no portable semantic tree or Windows adapter
 
 - Problem: `WM_GETOBJECT` is not handled anywhere in the module. That single message is how
   Windows asks an application to describe itself to assistive technology. Without it there is no
@@ -451,27 +441,30 @@ placeholders, not an implementation.
   Accessibility Act has applied since June 2025 and US Section 508 governs federal purchasing. Qt,
   GTK, WinUI, Avalonia, Flutter and Slint all implement this, and egui added it through AccessKit
   precisely because its absence was disqualifying.
-- Fix: a UI Automation provider rooted at the surface, exposing the widget tree with roles, names,
-  values, states and focus. The tree already exists and already knows its own structure; what is
-  missing is the mapping and the message. Start with roles, names and focus — a partial provider is
-  worth far more than none.
+- Next: define a platform-neutral accessible tree with roles, names, values, states, focus, and
+  actions, validate it through the headless host, then expose it through a Windows UI Automation
+  provider rooted at the surface. No portable widget or event may mention UIA or a native message.
+- Complete when: Narrator, NVDA, and JAWS can inspect and operate the first supported controls on
+  Windows, the semantic tree is backend-independent, and B-340 can map another OS without changing
+  widget APIs.
 - This is the single most important entry in any of the five module backlogs.
 
-### B-197 — No input method support
+### B-197 — Text composition has no portable contract or Windows IME adapter
 
 - Problem: no `WM_IME_STARTCOMPOSITION`, `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION`,
   `WM_IME_SETCONTEXT` or `WM_IME_NOTIFY`. Text input is `WM_CHAR` and `WM_KEYDOWN` only.
 - Consequence: **Chinese, Japanese and Korean text cannot be typed** into an `EditBox`, a
   `PasswordEdit`, or the rich editor. Nor can Vietnamese or any other input relying on composition.
   This is not degraded input; it does not work.
-- Fix: handle the composition messages, position the candidate window against the caret the editor
-  already tracks, and render the composition string with its clause underlines in place.
-- The caret geometry needed to position the candidate window is already computed — `EditBox`
-  measures snapped caret positions today.
+- Next: define backend-neutral composition start/update/commit/cancel events, clause styling, and
+  candidate-window geometry, then translate the Windows IME messages into that model. The caret
+  geometry needed for placement already exists in `EditBox`.
+- Complete when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
+  tests cover the common model, and B-400 can add another OS without changing editor APIs.
 
 ### B-202 — No second-platform surface and presentation backend
 
-Inherited from [B-191](core.md#b-191--process-services-have-no-second-platform-backend), and gated by it.
+Inherited from [B-191](#b-191--process-services-have-no-second-platform-backend), and gated by it.
 The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
 `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
 themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
@@ -567,49 +560,55 @@ B-202 is complete when a non-trivial GUI sample opens, lays out, paints, resizes
 second platform. The higher integrations retain their own completion identifiers.
 
 This only removes the interface blocker for the applications. Swag Capture still needs its separate
-capture backend in [B-234](capture.md#b-234--cross-platform-capture-backend); Swag Vault still
-needs the FUSE backend in [B-245](vault.md#b-245--no-linux-fuse-backend), plus the
+capture backend in [B-234](#b-234--cross-platform-capture-backend); Swag Vault still
+needs the FUSE backend in [B-245](#b-245--no-linux-fuse-backend), plus the
 Core and Pixel platform work under B-191. Keeping those dependencies explicit prevents a GUI port
 from being mistaken for two ported products.
 
 ## Audio, graphics, and capture operating-system boundaries
 
-### B-215 — Spatialization, with X3DAudio already initialized
+### B-215 — Spatialization is coupled to an unused X3DAudio handle
 
 - `src/driver/xaudio2.swg` calls `X3DAudioInitialize` and stores the handle in `x3DInstance`. That
   handle is never read again. The 3D engine is initialized on every engine creation and does
   nothing.
-- Missing above it: a listener, a per-voice position, distance attenuation, and a matrix apply on
-  the source voice. X3DAudio computes the output matrix; the module has to feed it and apply the
-  result.
+- Next: define portable listener, source-position, distance-attenuation, and channel-matrix
+  semantics, then lower them through X3DAudio in the Windows backend. Other backends may use their
+  native spatializer or an explicitly supported common fallback.
+- Complete when: the public model contains no X3DAudio types, the Windows matrix is validated, and
+  a backend can declare or implement the same capability without changing `Voice`.
 - Related: B-294
 
-### B-216 — Filters, with the voice flag already set
+### B-216 — Voice filters are specified only by XAudio2 capabilities
 
 - Submix voices are created with `XAUDIO2_VOICE_USEFILTER` in `src/driver/xaudio2.swg`. The
   capability is requested and no API exposes it.
 - XAudio2 gives a per-voice low-pass, high-pass, band-pass and notch filter once that flag is set.
-- A cutoff and resonance on `Voice` and `Bus` is a small surface over a capability that is already
-  being paid for on every submix.
+- Next: specify portable filter kinds, cutoff, resonance, update timing, and unsupported-capability
+  behavior on `Voice` and `Bus`, then map the first implementation to XAudio2.
+- Complete when: no public filter contract names XAudio2, Windows uses its native filters, and a
+  second backend can implement or reject the same operation explicitly.
 - Related: B-295, B-296, B-220
 
-### B-219 — A second platform
+### B-219 — Audio has no real non-Windows backend
 
 - `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
 - The backend boundary in `src/driver/backend.swg` is clean and already has two implementations, so
   a third is additive rather than structural. CoreAudio and ALSA or PulseAudio are the obvious
   targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
+- Complete when: one chosen non-Windows target opens a real output device and passes the common
+  engine, voice, bus, streaming, and device-lifecycle contract while `NoSound` remains explicit.
 
-### B-208 — OpenGL is the only GPU backend
+### B-208 — Renderer backend choice has no target matrix
 
 - `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
 - On Windows this is the weakest choice available: OpenGL driver quality varies widely, and some
   ARM devices have no usable implementation at all. Skia ships GL, Vulkan, Metal and D3D.
-- This also intersects
-  [B-191](core.md#b-191--process-services-have-no-second-platform-backend). A second platform
-  needs a second backend regardless,
-  so choose the target with that in mind rather than twice.
+- This also intersects B-191. Choose the next renderer from the operating systems and hardware the
+  project intends to ship, rather than adding a backend independently of the port plan.
 - The backend boundary is already two implementations deep, so a third is additive.
+- Complete when: the supported OS/GPU matrix names the default and fallback renderer for each
+  target, and the next required backend presents through the portable surface contract.
 
 ### B-212 — A collection face is selected by name, and a localized Windows will miss
 
@@ -630,58 +629,74 @@ best-scoring one, which needs `truetype` to answer "does this face call itself X
 instead, which is locale-proof but needs the synthesized single-face file as well as the
 collection, and so reads the font twice.
 
-### B-226 — Copy a capture as a clipboard file
+- Complete when: the Windows adapter returns the portable file-and-face-index descriptor from
+  B-250/B-378 without locale-dependent matching, and the same descriptor accepts B-379's source.
 
-- A capture leaves as a file, bitmap clipboard data, or an outgoing drag, but cannot be copied as a
-  file object. Reuse `DragData` through `OleSetClipboard` so paste targets receive the same file and
-  bitmap media as drag targets.
-- Note: drag-out already carries its PNG as a file with no path, produced when a target asks for
-  it, so `DragData.addContent` is what copy-as-file publishes too.
+### B-226 — Capture clipboard files are specified as OLE data
+
+- Evidence: a capture leaves as a file, bitmap clipboard data, or an outgoing drag, but cannot be
+  copied as a virtual file. The obvious current implementation reuses `DragData` through
+  `OleSetClipboard`, which would make OLE the application contract.
+- Next: add the virtual-file descriptor and deferred contents to B-393's portable typed clipboard,
+  then map them to OLE only in the Windows backend.
+- Complete when: paste targets receive the file and bitmap media on Windows, while Swag Capture
+  calls no OLE API and another clipboard backend can publish the same virtual file.
 - Related: B-346, B-393
 
-### B-227 — Grab Text
+### B-227 — Capture OCR is specified as a Windows-only service
 
 - Problem: no text recognition anywhere in the module. The Windows Snipping Tool has it, Snagit
   has it, ShareX has it. It has gone from a differentiator to an expectation.
-- Fix: Windows exposes an OCR engine in the OS. No third-party component, no model to ship, no
-  network. Bind it, add a command that runs it over the current capture or the current pixel
-  selection, and put the result on the clipboard.
+- Next: define an OCR provider contract over a pixel selection, bind the Windows OS engine as the
+  first provider, and keep provider availability explicit so another OS can use its native service
+  or an optional local engine without changing the command.
+- Complete when: the command returns text through the provider on Windows, absence is reported
+  honestly, and capture/editor code imports no Windows OCR type.
 - Why this high: it is the most visible remaining reason to reach for the built-in tool instead of
   this one, and the platform does the hard part.
 
-### B-230 — Scrolling capture
+### B-230 — Scrolling capture has no portable scroll-driving backend
 
 - Snagit's most-cited feature; ShareX has it too. Capture a window taller or wider than the screen
   by scrolling it and stitching the frames.
-- Cost: real. It needs scroll driving through UI Automation or synthesized scroll messages, frame
-  stitching with overlap detection, and a fallback path for windows that refuse to cooperate. The
-  stitching itself is the tractable part; driving arbitrary applications reliably is not.
+- Cost: real. Windows can drive scrolling through UI Automation or synthesized messages, while
+  other window systems expose different capabilities. Keep overlap detection and frame stitching
+  common, and put window discovery, scroll requests, bounds, and refusal in a native backend.
 - Sequence it after Tier A, and scope it to the common cases — a browser page, a document, a list
   view — rather than promising it works everywhere.
+- Complete when: the common stitcher consumes backend-neutral frames and scroll results, the
+  Windows backend covers the stated common cases, and unsupported targets fail explicitly.
 
 ### B-234 — Cross-platform capture backend
 
 `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform boundary on the
 capture side. The editor, the forms, the library, and the serialization are already portable.
 
+- Complete when: one chosen non-Windows backend captures the supported screen/window/region set and
+  the application imports no raw OS binding outside named capture backends.
+
 ## Application, shell, and release integrations
 
-### B-445 — Nothing appears in the Explorer preview pane
+### B-445 — Swag Scope has no portable preview-provider boundary
 
 - Intent: the shipped viewers are reachable from where a file is selected. This is the whole reason
   QuickLook won its category: select, look, move on, without launching an application.
-- Complete when: a registered preview handler renders the same views inside Explorer's preview
-  pane, and `--register-file-types` installs it.
+- Next: define an out-of-process-safe preview request/result contract, then host it in an Explorer
+  preview handler as the first OS adapter.
+- Complete when: Explorer renders the same supported views through `--register-file-types`, the
+  application window is not required, and another desktop preview service can host the contract.
 - Note: the handler hosts a view in a process it does not own, so the viewer request/result contract
   has to be usable without the application window. That constraint is worth checking before committing.
 - Related: B-447, B-463
 
-### B-447 — Explorer shows no thumbnail for a viewable file
+### B-447 — Swag Scope has no portable thumbnail-provider boundary
 
 - Intent: the image, SVG, and Markdown views can produce a representative bitmap; Explorer asks for
   one and gets nothing.
-- Complete when: a registered thumbnail provider renders a bounded preview for the formats that can
-  produce one, with a size and timeout budget that never blocks a folder listing.
+- Next: define a bounded thumbnail request over the common viewer renderer, then implement the
+  Windows Explorer provider without exposing its COM types to viewer code.
+- Complete when: registered formats produce bounded thumbnails on Windows and another desktop
+  thumbnail service can consume the same renderer contract.
 - Related: B-445
 
 ### B-463 — File-type registration is Windows-only
@@ -696,24 +711,30 @@ capture side. The editor, the forms, the library, and the serialization are alre
 - Owner: `bin/std` for the locked allocation, Swag Vault for the policy
 - Problem: `Crypto.Keys` and the unwrapped master key are ordinary memory. The page file or a crash
   minidump can capture the master key. VeraCrypt locks its key pages.
-- Fix: provide a locked-memory allocation in `bin/std` and require Swag Vault's unwrapped keys to use
-  it. Keep dump exclusion and lifecycle wiping independently testable.
+- Next: define a locked-memory allocation with explicit availability/failure semantics, implement
+  it with each target's page-locking primitive, and require Swag Vault's unwrapped keys to use it.
+  Keep dump exclusion and lifecycle wiping independently testable.
+- Complete when: supported targets prove the key pages are locked or refuse securely, and Vault
+  contains no direct `VirtualLock`, `mlock`, or equivalent call.
 - Related: B-359
 
-### B-359 — Key pages are not excluded from Windows crash dumps
+### B-359 — Crash-dump exclusion has only a Windows-specific design
 
 - Owner: Swag Vault
-- Register key regions for exclusion from Windows Error Reporting dumps and verify the configured
-  dump policy.
+- Define the portable security capability and its unsupported behavior, register key regions with
+  Windows Error Reporting as the first backend, and verify the configured dump policy. Add target
+  adapters only where the OS offers an enforceable equivalent.
 - Related: B-237
 
-### B-238 — The executable is not signed
+### B-238 — Release signing and elevation policy are Windows-only
 
 - Owner: release process
 - Problem: the application requests UAC elevation to start the driver. Unsigned, the consent dialog
   reads "Unknown publisher" for an encryption tool. This is a larger adoption obstacle than any
   feature on this list.
-- Fix: an OV or EV code-signing certificate, applied to `swagvault.exe`.
+- Next: define signing, verification, elevation, and packaging requirements per shipped target.
+  Apply an OV or EV certificate to `swagvault.exe`; record the corresponding macOS signing and
+  notarization contract before that port ships, and state the Linux package policy explicitly.
 - Note: elevation is only required because the portable WinFsp driver has to be registered by the
   guardian process. A system-wide WinFsp installation makes `loadWinFsp` take the installed runtime
   and skip the guardian entirely, which is also what allows an automated end-to-end test loop
@@ -737,16 +758,19 @@ capture side. The editor, the forms, the library, and the serialization are alre
 
 ## Compiler tooling and target ABIs
 
-### B-247 — Bare `.swgs` execution has no supported shell contract
+### B-247 — Bare `.swgs` execution has only a Windows shell contract
 
 **Evidence.** `tools/setup.swgs` installs the current-user file association used by double-click launch, but its own guidance still requires elevated `assoc`/`ftype` configuration for bare script execution in a shell.
 
-**Intent.** Define and implement the supported Windows behavior for double-click and bare command-line execution, with machine-wide mutation remaining explicit and opt-in.
+**Intent.** Define shell and desktop-launch integration per host without making Windows file
+associations the portable script contract. Machine-wide mutation remains explicit and opt-in.
 
 **Complete when.**
 
 - Setup reports whether bare execution is supported for the current shell and either configures it safely or prints the exact remaining elevated step.
 - A fresh `cmd.exe` and Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that contract.
+- A supported non-Windows shell either executes the same representative script through its
+  documented launcher/shebang path or reports bare execution as unsupported with an exact command.
 - Existing double-click behavior remains intact.
 - Moving the checkout and rerunning setup refreshes stale interpreter paths, and removal instructions undo installed associations.
 
@@ -756,6 +780,7 @@ capture side. The editor, the forms, the library, and the serialization are alre
 
 - Intent: support explicitly selected platform vector ABIs for foreign declarations where the ABI
   is stable, while continuing to reject an ambiguous bare C-vector contract.
-- Complete when: supported Windows x64 vector parameters and returns interoperate with a C/C++
-  fixture, unsupported conventions fail semantically, and the contract is documented per target.
+- Complete when: supported Windows x64 and one non-Windows target's vector parameters and returns
+  interoperate with C/C++ fixtures, unsupported conventions fail semantically, and the contract is
+  documented per target.
 - Related: B-527.

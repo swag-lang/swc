@@ -28,12 +28,6 @@ That is a real toolkit. The gaps below are not about widget count.
 
 ---
 
-## Tier A — Accessibility and text input
-
-Both entries have the same shape: each one excludes a population of users entirely, and each one
-is verifiable by looking at the window procedure. `src/surface.win32.swg` handles twenty-seven
-messages. What is absent from that list is this section.
-
 
 
 ---
@@ -229,8 +223,6 @@ Suppress competing touch contacts according to an explicit rule while a pen owns
 gesture, with headless mixed-device tests.
 
 - Related: B-334, B-335, B-337
-
-## Tier C — Second-platform GUI integration
 
 
 

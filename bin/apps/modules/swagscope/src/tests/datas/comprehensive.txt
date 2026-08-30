@@ -1,0 +1,8 @@
+Swag Scope plain-text verification fixture
+
+ASCII punctuation: ! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
+UTF-8 text: café, naïve, Ελληνικά, 日本語, 한국어, العربية, and 🙂.
+Tabs:	first	second	third
+A deliberately long logical line follows: 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+The plain-text verification marker is searchable.
+

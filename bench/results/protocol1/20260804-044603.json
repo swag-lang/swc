@@ -1078,7 +1078,7 @@
     "date": "2026-08-04T04:46:03+00:00",
     "label": "",
     "commit": "2cedc936a",
-    "subject": "Remove `winfspCallbacks.test.swg` for sCrypt as the test suite is no longer required.",
+    "subject": "Remove `winfspCallbacks.test.swg` for Swag Vault as the test suite is no longer required.",
     "master": "2cedc936a",
     "dirty": false,
     "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",

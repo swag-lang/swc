@@ -70,7 +70,7 @@ action bar, and the way a box fits itself to its content are one composition.
 When adding, migrating, renaming, styling, packaging, or testing an official application under
 `bin/apps`, also read and follow
 [build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app
-uses the two-word `sName` product convention, a specific generated icon, the standard Swag surface,
+uses a two-word `Swag Name` display identity and a lowercase technical stem, a specific generated icon, the standard Swag surface,
 and the application-workspace validation flow.
 
 Everything this repository intends to do, and every lead it has recorded and not yet explained,

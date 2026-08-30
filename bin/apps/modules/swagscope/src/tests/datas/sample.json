@@ -1,0 +1,7 @@
+{
+  "name": "Swag Scope",
+  "features": ["streaming", "search", "syntax highlighting"],
+  "verified": true,
+  "maxResidentBytes": 262144
+}
+

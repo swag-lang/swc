@@ -91,7 +91,7 @@ The remaining work below is what turns that into a measured allocator contract.
 - Requests above 64 KiB take the header path: one `VirtualAlloc` reservation each, released on
   free. That is correct and wastes almost nothing, but a buffer that doubles across the boundary
   pays a kernel round trip per growth.
-- Measure the real distribution first, on compiler, standard-library, GUI, and sVaultDrive traces. If
+- Measure the real distribution first, on compiler, standard-library, GUI, and Swag Vault traces. If
   the boundary is hot, the answer is a size-class tier above 64 KiB carved from whole segments, not
   a cache of arbitrary blocks.
 

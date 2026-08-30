@@ -42,7 +42,7 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | Command | Effect |
 | --- | --- |
 | `swc tools\examples.swgs run gui2` | Launch one example |
-| `swc tools\apps.swgs run sVaultDrive` | Launch one application |
+| `swc tools\apps.swgs run swagvault` | Launch one application |
 | `swc tools\scripts.swgs snake` | Launch one standalone script |
 | `swc tools\std.swgs dm test core` | Test one standard-library module |
 | `swc tools\std.swgs dm test gui --test-file htmlview.test.swg` | Test one file's `#test` functions |
@@ -56,7 +56,7 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `portability.swgs` | The source-only dependency check between portable bin code and native host code |
 | `unittests.swgs` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
 | `build.swgs` | Build every workspace |
-| `vaultdrive.swgs` | The privileged sVaultDrive/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
+| `vault.swgs` | The privileged Swag Vault/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
 `tests.swgs` validates the bin portability boundary, permanent backlog identifiers, the current
 `B-*` counter, required action fields on new entries, Markdown links, and the README inventory

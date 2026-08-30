@@ -298,7 +298,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 ### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
 
 - Area: compiler
-- Found while: fixing the same race for the unambiguous case, which was making `sSnapForge` fail to
+- Found while: fixing the same race for the unambiguous case, which was making `Swag Capture` fail to
   compile with 18 to 26 errors per attempt, a different set every run
 - Observation: `probeAutoMemberCandidates` looks every candidate up with `noWaitOnEmpty`, because
   with several candidates it must step over the ones that legitimately lack the name. An empty
@@ -310,7 +310,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   that block's body runs, and a struct is marked sema-completed once its `impl` blocks are
   *registered* — `decPendingImplRegistrations` fires before the body
   ([Sema.Impl.cpp:157-166](../src/Compiler/Sema/Ast/Sema.Impl.cpp#L157-L166)) — so a lookup on a
-  "complete" type can still miss members. Every sSnapForge failure was that shape:
+  "complete" type can still miss members. Every Swag Capture failure was that shape:
   `struct 'ActionQuickStyle' has no field 'Reset'` for a `Reset` that `newCmdId("Reset")` mints in
   a neighbouring `impl` block. The single-candidate half is fixed; a `with` block or a method
   carrying binding vars puts more than one candidate in scope and reopens it.
@@ -358,7 +358,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 ### F-124 — A dangling reference into a destroyed compiler instance has no deterministic detector
 
 - Area: compiler
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m sSnapForge
+- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
   --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
   per process) keeping `@pinfos.args` slices into the run-argument storage of a dependency-build
   compiler instance that had already been destroyed. That defect is fixed by interning the handed
@@ -370,7 +370,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   cannot be written that reliably turns red without the fix: the dead storage usually still holds
   its old bytes, and every read through it then looks healthy. The DevMode binary never tripped at
   all because its allocator reused the freed block differently.
-- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m sSnapForge --rebuild` loop on the
+- Evidence: pre-fix, iteration 1 of every `swc test -w bin/apps -m swagcapture --rebuild` loop on the
   Release binary failed in `library.test.swg` (the one test that funnels `Env.executablePath()`
   into a validated path API), while the same command on the DevMode binary passed 10/10; post-fix
   the Release loop passed 8/8. A probe comparing the live instance against what JIT code reads
@@ -386,13 +386,13 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 
 - Area: compiler
 - Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
-  strongest reproduction so far of the intermittent sVaultDrive JIT failures the pass set out to track.
-- Observation: in `swc.dm test -w bin/apps -bc debug --rebuild`, six sVaultDrive `#test` functions
+  strongest reproduction so far of the intermittent Swag Vault JIT failures the pass set out to track.
+- Observation: in `swc.dm test -w bin/apps -bc debug --rebuild`, six Swag Vault `#test` functions
   in `mainwindow.test.swg` (109, 133, 163, 363, 384, 494) die on the same hardware exception:
   execution lands at `rip=0x0000000080019060` (memory state FREE, "jit offset: unresolved"), which
   is a jump through a function-pointer slot holding a value no live code owns. The failure hits
   roughly two runs out of three at the first iteration, always with that same rip, and an A/B
-  build bisected it as independent of the concurrent matcher fix added the same day. sSnapForge's
+  build bisected it as independent of the concurrent matcher fix added the same day. Swag Capture's
   151 tests pass in the same runs; the release and fast-debug legs of the same workspace pass far
   more often.
 - Evidence: the run reports `state: Run JIT`, `__test_14` at `mainwindow.test.swg:109:1`,
@@ -411,13 +411,13 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 ### F-164 — DevMode assigns a semantic payload to the same slice node twice
 
 - Area: compiler
-- Found while: building the shared `bin/apps` workspace after integrating sFileScope's viewers.
+- Found while: building the shared `bin/apps` workspace after integrating Swag Scope's viewers.
 - Observation: at 0.1.166, two consecutive runs of a freshly built `swc.dm.exe` asserted
   while semantically checking the unchanged `tools/src/backlog.swg`; the Release compiler checked
   the same tool. At 0.1.167 the reduced witness and the original commands no longer reproduce,
   without a change known to target payload ownership, so this is now an unresolved
   scheduling-dependent lead rather than a deterministic defect.
-- Evidence: two consecutive `bin/swc.dm.exe tools/apps.swgs dm build sFileScope` runs assert
+- Evidence: two consecutive `bin/swc.dm.exe tools/apps.swgs dm build swagscope` runs assert
   in `NodePayload::setSemaPayload` at `NodePayload.cpp:806` because
   `shard->semaPayloads` already contains the node. Both name the `start` reference inside
   `line[start until @countof(line)]` at `tools/src/backlog.swg:172`, under the `#code` body passed
@@ -431,7 +431,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   At 0.1.167, the macro-free witness — a standalone `#test` passing
   `bytes[first until @countof(bytes)]` straight into a `const [..] u8` parameter — compiles and
   runs, every `tools/*.swgs` invocation checks `backlog.swg` without asserting, and two
-  consecutive `bin/swc.dm.exe tools/apps.swgs dm build sFileScope` runs are green. Nothing
+  consecutive `bin/swc.dm.exe tools/apps.swgs dm build swagscope` runs are green. Nothing
   in that release targeted payload ownership, so the double visit is more likely scheduling
   dependent rather than resolved.
 - Next step: re-evaluate on the next occurrence. Persist the failing module when one happens and

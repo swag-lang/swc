@@ -357,14 +357,14 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     let edit = EditBox.create(&host.root, "", {0, 0, 240, 26})
     let pt   = edit.surfaceRect().center()
 
-    @assert(host.dropFiles(pt, ["c:/tmp/one.scrypt"]) == DropEffect.None)
+    @assert(host.dropFiles(pt, ["c:/tmp/one.vault"]) == DropEffect.None)
     @assert(edit.text() == "")
 
     edit.updateFlags(.AcceptFileDrop)
-    @assert(host.dropFiles(pt, ["c:/tmp/one.scrypt"]) == DropEffect.Copy)
-    @assert(edit.text() == "c:/tmp/one.scrypt")
+    @assert(host.dropFiles(pt, ["c:/tmp/one.vault"]) == DropEffect.Copy)
+    @assert(edit.text() == "c:/tmp/one.vault")
 
     // Several files name no single value, so the box has nothing to answer.
-    @assert(host.dropFiles(pt, ["c:/tmp/a.scrypt", "c:/tmp/b.scrypt"]) == DropEffect.None)
-    @assert(edit.text() == "c:/tmp/one.scrypt")
+    @assert(host.dropFiles(pt, ["c:/tmp/a.vault", "c:/tmp/b.vault"]) == DropEffect.None)
+    @assert(edit.text() == "c:/tmp/one.vault")
 }

@@ -22,30 +22,32 @@ information.
 
 ## Name The Product Once
 
-- Name every shipped application with a lowercase `s` followed by exactly two semantic
-  UpperCamelCase words: `sSnapForge`, `sVaultDrive`, `sFileScope`. The `s` identifies the Swag
-  family and does not count as one of the words.
-- Make the pair vivid enough to suggest an action or an image, while still saying what the product
-  does. Prefer a concrete compound such as `SnapForge` over a flat category such as `Capture`,
-  `Crypt`, or `Viewer`; never pad a generic noun with `App`, `Tool`, `Studio`, or `Pro` merely to
-  satisfy the two-word rule.
+- Give every shipped application a two-word display name: the family name `Swag`, followed by one
+  concrete semantic word, as in `Swag Capture`, `Swag Vault`, and `Swag Scope`. Do not abbreviate
+  the family to a lowercase prefix: the full word is the shared identity users can read.
+- Make the semantic word vivid enough to suggest an action or an image while still saying what the
+  product does. Prefer `Capture`, `Vault`, or `Scope` over padding such as `App`, `Tool`, `Studio`,
+  or `Pro`.
 - Before accepting a name, search exact and unprefixed spellings across current software products,
   platform features, package registries, and repositories. Reject a name dominated by an existing
   product or operating-system feature even when capitalization differs.
-- Use the complete spelling for the application module directory,
-  `BuildCfg.name`, resource application name, executable, title, registration identity,
-  documentation, and URLs.
-- Derive new lowercase technical suffixes from the two-word product stem only where a platform
-  convention needs them, such as `.filescope`. Preserve an already published file extension,
-  format marker, cryptographic domain separator, or ABI spelling when changing it would strand
-  user data or third-party integrations;
-  label that spelling as legacy and add an explicit migration or compatibility path.
+- Concatenate and lowercase the display words for technical identities: `swagcapture`, `swagvault`,
+  and `swagscope`. Use that stem for the module directory, `BuildCfg.name`, executable, packaging
+  directory, command-line module selector, registration key, and source URL. Use the spaced display
+  name only for resources, titles, labels, prose, and other user-visible text.
+- Prefer role-based private identities over either spelling: `capture.file.open`, `settings.scc`,
+  and `Swag/Capture` survive a display-name change better than an identifier copied from a title.
+  Shared contracts use their own vocabulary, such as `fileviewer` and `FileViewer`, rather than
+  the current host application's name.
+- Treat published file extensions, format markers, cryptographic domain separators, and ABI names
+  as migration decisions. Preserve them with an explicit compatibility contract when compatibility
+  is required. When a caller explicitly requests a clean break, migrate the owned data, reset the
+  format identity, and remove the obsolete spelling instead of leaving an alias behind.
   Keep namespaces UpperCamelCase and functions lowerCamelCase.
 - Do not wrap private application code in a namespace that repeats the module or product name; the
   module already provides that boundary. Add a namespace only for a real subsystem vocabulary,
   and name it after that subsystem, such as `WinFsp`, rather than after the application.
-- Except for the workspace and primary module directories that carry the exact product spelling,
-  never put `_` or uppercase letters in an app-owned folder or file name. Concatenate the words of
+- Never put spaces, `_`, or uppercase letters in an app-owned folder or file name. Concatenate the words of
   one symbol or indivisible concept, and use dots between the named parts of a coherent file
   family, such as `app.operations.swg`, or `abi.win32.swg` and `callbacks.test.swg` inside a
   `winfsp/` directory. Platform and test suffixes use this notation but do not reserve it.
@@ -74,8 +76,8 @@ glyph, another app's icon, or a letter tile.
    ```powershell
    py -3 .agents/skills/build-swag-standard-apps/scripts/package_app_icon.py `
        generated-master.png `
-       --png bin/apps/modules/sName/datas/appicon.png `
-       --ico bin/apps/modules/sName/datas/appicon.ico
+       --png bin/apps/modules/<application>/datas/appicon.png `
+       --ico bin/apps/modules/<application>/datas/appicon.ico
    ```
 
 6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, using a path relative to the module folder.
@@ -108,7 +110,7 @@ glyph, another app's icon, or a letter tile.
 - **When a second color is genuinely needed, it is the theme's second tone and nothing else.**
   A page the reader can leave to, a link, a mode that is not the work of the surface: those take
   the alternate tone — `PushButtonForm.Alternate` for a filled action, `theme.palette.alternate`
-  for anything drawn by hand. Borrowing a status color for it is the mistake to avoid: sSnapForge
+  for anything drawn by hand. Borrowing a status color for it is the mistake to avoid: Swag Capture
   dressed its Library button in the informational notice palette, which said "notice" in a place
   nothing was being reported and left the app answering for nine colors the theme should have
   answered for. One strong action and at most one alternate per surface.
@@ -206,7 +208,7 @@ hold it. The interface must read as an instrument at arm's length, never as a to
   corner surround the glyph without looking like part of it — the frame takes the form's radius,
   so a rectangular tool keeps the palette's slight corner and a circular one stays round, and the
   mark never cuts across the fill the hovered state leaves under it. A vertical tool rail may
-  instead keep a leading `Left` rule, as sSnapForge does, because the rule then reads beside the
+  instead keep a leading `Left` rule, as Swag Capture does, because the rule then reads beside the
   column. Make
   the indicator an explicit choice; never use a bottom underline on compact horizontal icons, and
   reserve the rail's lane in every state so vertical content never moves when it is checked.
@@ -257,7 +259,7 @@ size, which is the width the text has least room in.
   its own measure, so a band sized by that same measure always "fits" itself. What breaks is a
   band overflowing its parent, and no generic check sees it: a card whose height comes from a grid
   row does not grow for a longer form, it clips it. Write that comparison down for each card the
-  feature touches — sVaultDrive's `assertFormEndsInsideCard` is the worked example — and run it over
+  feature touches — Swag Vault's `assertFormEndsInsideCard` is the worked example — and run it over
   every entry of `Gui.languages()`.
 - **Prefer adapting the text to adapting the interface.** Shortening a sentence is one edit in two
   files and costs nothing; reflowing a card changes the layout for every language including the
@@ -293,7 +295,7 @@ window.applyLayout()
 host.settleAnimations(window, 6)
 
 var image = host.render(window)
-Pixel.Testing.assertImageGolden(&image, "sname.surface")
+Pixel.Testing.assertImageGolden(&image, "surface")
 ```
 
 Three things this gets wrong if they are not said:
@@ -314,7 +316,7 @@ Three things this gets wrong if they are not said:
 ## Keep The Workspace Shippable
 
 - Keep every standard application in the single `bin/apps` workspace. Put its executable module in
-  `bin/apps/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a root-level
+  `bin/apps/modules/<application>` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a root-level
   `datas/` for icons and other immutable app resources. That root-level `datas/` is what the running
   program loads, and it never moves under `src/`; the fixtures a test reads are a separate folder,
   `src/tests/datas/`. An application module lays its tests out exactly like a `bin/std` one — see
@@ -346,12 +348,12 @@ Three things this gets wrong if they are not said:
 Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed behavior:
 
 1. During iteration, run the owning test file with
-   `swc tools/apps.swgs dm test sName --test-file <name>.test.swg`.
+   `swc tools/apps.swgs dm test <application> --test-file <name>.test.swg`.
 2. Run the whole application's tests only when shared application state or several test families
    changed.
-3. Build with `swc tools/apps.swgs dm build sName` when module setup, linking, resources,
+3. Build with `swc tools/apps.swgs dm build <application>` when module setup, linking, resources,
    packaging, or shipped output changed.
-4. Run `swc tools/apps.swgs dm smoke sName` when startup, the main loop, or packaged
+4. Run `swc tools/apps.swgs dm smoke <application>` when startup, the main loop, or packaged
    runtime behavior changed.
 5. Run any affected dedicated integration script. Keep tests that need UAC, drivers, hardware, or
    visible interaction in an explicit `tools/test-<name>-integration.swgs`; do not surprise the

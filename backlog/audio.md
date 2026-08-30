@@ -158,8 +158,8 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
-  if `sSnapForge` ever records video with sound —
-  [T-081](snapforge.md#t-081--no-video-recording).
+  if `Swag Capture` ever records video with sound —
+  [T-081](capture.md#t-081--no-video-recording).
 - Related: T-175, T-176, T-245
 
 ### T-175 — No full-duplex audio session

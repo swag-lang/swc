@@ -71,6 +71,6 @@ direct consumers reviewed together.
 
 ## Applications and examples
 
-- [x] sSnapForge consumer migration
+- [x] Swag Capture consumer migration
 - [x] standard examples and scripts consumer migration
 - [ ] final repository-wide obsolete-name and documentation scan

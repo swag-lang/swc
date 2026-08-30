@@ -265,7 +265,7 @@ attempt to reproduce it by hand.
 The sheets are built from reflection, so a field added to either struct appears without touching
 the example. Do not hand-list names there.
 
-`sVaultDrive` and `sSnapForge` are the confirmation, not the instrument: they show one composition of
+`Swag Vault` and `Swag Capture` are the confirmation, not the instrument: they show one composition of
 the theme, and the parts they do not use are exactly the ones a change breaks silently.
 
 ## Validation
@@ -280,7 +280,7 @@ After changing `apply`, a palette, or a widget's color choice:
    diverged from; `swc tools/goldens.swgs` accepts them in bulk. Review the diff — a golden that
    changed for a part you did not touch is a finding.
 3. The applications keep goldens of their own, and a palette change reaches them:
-   `swc tools/apps.swgs dm test sSnapForge` is the one that shows a whole surface. Look at the
+   `swc tools/apps.swgs dm test swagcapture` is the one that shows a whole surface. Look at the
    `.actual` image before accepting it; that picture is the change.
 4. `swc tools/examples.swgs dm smoke gui10` walks every page of every palette.
 5. Look at the three shipped palettes and the sheet-written example in gui10 before saying the

@@ -9,9 +9,9 @@ what the whole document family is: an offline, script-free, network-free viewer.
 Evidence, investigations, and intended outcomes for the Markdown engine stay together here. The
 engine lives beside its widget inside `gui`, as [pdf.md](pdf.md#where-this-family-lives-and-why)
 records for the document family; application-level zoom stays in
-[filescope.text.md](filescope.text.md), shared printing in
-[filescope.viewers.md](filescope.viewers.md), and shell thumbnail integration in
-[filescope.md](filescope.md).
+[scope.text.md](scope.text.md), shared printing in
+[scope.viewers.md](scope.viewers.md), and shell thumbnail integration in
+[scope.md](scope.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -32,7 +32,7 @@ layout-bearing HTML is hosted by the adjacent HTML engine, including its offline
 The view streams multi-megabyte files behind a byte-to-height estimate,
 reveals an arbitrary byte offset without parsing what precedes it, navigates by line, page and
 document boundary from the keyboard, restyles live from a theme sheet and a typography style —
-the sFileScope viewer ships five complete reading themes on top of it — finds and highlights text,
+the Swag Scope viewer ships five complete reading themes on top of it — finds and highlights text,
 and signals link activation to its host. Tests cover the block grammar, emphasis nesting, inline
 mathematics, wrap, forward and reverse streaming, and both failure paths.
 
@@ -140,7 +140,7 @@ durable artifact; the fixes are the first harvest.
 there. It therefore cannot reach a second match in the same block, move backwards, or report a
 match count. The renderer already has private occurrence-counting and exact-occurrence selection
 for streamed `revealFileOffset`; the remaining work is to expose that machinery as document-wide
-search state and connect it to the host. sFileScope's search panel deserves the same behavior over
+search state and connect it to the host. Swag Scope's search panel deserves the same behavior over
 Markdown as over code.
 
 - Intent: find walks matches one by one and says how many there are

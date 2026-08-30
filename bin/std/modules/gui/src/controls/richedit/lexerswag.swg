@@ -667,6 +667,18 @@ impl IRichEditLexer for RichEditLexerSwag
                 }
 
             case State.Attribute:
+                if c == 'S' and seek + 4 < line.chars.count and line.chars[seek + 1] == 'w' and line.chars[seek + 2] == 'a' and line.chars[seek + 3] == 'g' and line.chars[seek + 4] == '.' and
+                   (seek == 0 or (!Unicode.isLetterOrDigit(line.chars[seek - 1]) and line.chars[seek - 1] != '_'))
+                {
+                    currentState = State.Namespace
+                    for 4 do
+                        .seekNext()
+                    currentState = State.Default
+                    .seekNext()
+                    currentState = State.Attribute
+                    continue
+                }
+
                 if c == ']'
                 {
                     .seekNext()

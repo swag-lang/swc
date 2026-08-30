@@ -263,10 +263,24 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             result += syntaxColorToAnsi(ctx, SyntaxColor::Attribute, mode);
             result += c;
             result += *cur++;
+            const char8_t* const attributeBegin = cur;
 
             int cpt = 1;
             while (cpt && cur < end)
             {
+                if ((end - cur) >= 5 && cur[0] == 'S' && cur[1] == 'w' && cur[2] == 'a' && cur[3] == 'g' && cur[4] == '.' &&
+                    (cur == attributeBegin || !langSpec.isIdentifierPart(cur[-1])))
+                {
+                    result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                    result += syntaxColorToAnsi(ctx, SyntaxColor::Namespace, mode);
+                    result += "Swag";
+                    cur += 4;
+                    result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                    result += *cur++;
+                    result += syntaxColorToAnsi(ctx, SyntaxColor::Attribute, mode);
+                    continue;
+                }
+
                 if (*cur == '"')
                 {
                     result += *cur++;

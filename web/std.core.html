@@ -9051,7 +9051,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Compress_Deflate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Compress.Deflate</span> <a class="api-item-permalink" href="#Core_Compress_Deflate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L170">src</a></div>
 <p>Main structure representing a Deflate compression context</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Compress_Deflate">Deflate</a></span></span></div>
 </section>
 <h3 id="Core_Compress_Deflate_enumerations">Enumerations</h3>
@@ -9081,7 +9081,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Compress_Inflate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Compress.Inflate</span> <a class="api-item-permalink" href="#Core_Compress_Inflate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/inflate.swg#L139">src</a></div>
 <p>Represents inflate.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Compress_Inflate">Inflate</a></span></span></div>
 </section>
 <h3 id="Core_Compress_Inflate_constants">Constants</h3>
@@ -9103,7 +9103,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Compress_ZLib" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Compress.ZLib</span> <a class="api-item-permalink" href="#Core_Compress_ZLib" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/zlib.swg#L9">src</a></div>
 <p>Represents z lib.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Compress_ZLib">ZLib</a></span></span></div>
 </section>
 <h3 id="Core_Compress_ZLib_methods">Methods</h3>
@@ -9586,7 +9586,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <div class="api-item api-item-struct"><span id="Core_Guid64" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.Guid64</span> <a class="api-item-permalink" href="#Core_Guid64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid64.swg#L36">src</a></div>
 <p>Stores a compact 64-bit identifier.</p>
 <p>Unlike <a href="#Core_Guid128">Core.Guid128</a>, a random <span class="code-inline">Guid64</span> cannot provide UUID-level collision resistance. Use it for local object identities and temporary names, not as a security token or a globally coordinated database key.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Operators(opEquals)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals)]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Guid64">Guid64</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -9858,7 +9858,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <div class="api-item api-item-struct"><span id="Core_NativeLibrary" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.NativeLibrary</span> <a class="api-item-permalink" href="#Core_NativeLibrary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/nativelibrary.swg#L27">src</a></div>
 <p>Owns one dynamically loaded native library.</p>
 <p>Loading may run code owned by the library. Resolve symbols only while this value remains open; every address returned by <a href="#Core_NativeLibrary_symbol">Core.NativeLibrary.symbol</a> becomes invalid after <a href="#Core_NativeLibrary_close">Core.NativeLibrary.close</a>. Dropping the value closes it automatically.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_NativeLibrary">NativeLibrary</a></span></span></div>
 </section>
 <h3 id="Core_NativeLibrary_methods">Methods</h3>
@@ -10050,7 +10050,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_ReversedConcatBuffer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedConcatBuffer</span> <a class="api-item-permalink" href="#Core_ReversedConcatBuffer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L54">src</a></div>
 <p>Iterates a borrowed concatenation buffer from its last bucket to its first.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_ReversedConcatBuffer">ReversedConcatBuffer</a></span></span></div>
 </section>
 <h3 id="Core_ReversedConcatBuffer_methods">Methods</h3>
@@ -10063,7 +10063,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_ReversedHashSet" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedHashSet</span> <a class="api-item-permalink" href="#Core_ReversedHashSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L49">src</a></div>
 <p>Iterates a borrowed hash set by descending storage slot.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>) <span class="SCst"><a href="#Core_ReversedHashSet">ReversedHashSet</a></span></span></div>
 </section>
 <h3 id="Core_ReversedHashSet_methods">Methods</h3>
@@ -10076,7 +10076,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_ReversedHashTable" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedHashTable</span> <a class="api-item-permalink" href="#Core_ReversedHashTable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L51">src</a></div>
 <p>Iterates a borrowed hash table by descending storage slot.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>) <span class="SCst"><a href="#Core_ReversedHashTable">ReversedHashTable</a></span></span></div>
 </section>
 <h3 id="Core_ReversedHashTable_methods">Methods</h3>
@@ -10089,7 +10089,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_ReversedList" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedList</span> <a class="api-item-permalink" href="#Core_ReversedList" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/list.swg#L32">src</a></div>
 <p>Iterates a borrowed list from its tail to its head.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SCst"><a href="#Core_ReversedList">ReversedList</a></span></span></div>
 </section>
 <h3 id="Core_ReversedList_methods">Methods</h3>
@@ -10102,7 +10102,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_ReversedOrderedMap" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedOrderedMap</span> <a class="api-item-permalink" href="#Core_ReversedOrderedMap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L34">src</a></div>
 <p>Iterates a borrowed ordered map from its greatest key to its least key.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>) <span class="SCst"><a href="#Core_ReversedOrderedMap">ReversedOrderedMap</a></span></span></div>
 </section>
 <h3 id="Core_ReversedOrderedMap_methods">Methods</h3>
@@ -10116,7 +10116,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_ReversedOrderedSet" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedOrderedSet</span> <a class="api-item-permalink" href="#Core_ReversedOrderedSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L24">src</a></div>
 <p>Iterates a borrowed ordered set from its greatest key to its least key.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>) <span class="SCst"><a href="#Core_ReversedOrderedSet">ReversedOrderedSet</a></span></span></div>
 </section>
 <h3 id="Core_ReversedOrderedSet_methods">Methods</h3>
@@ -10347,7 +10347,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_StringRunes" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.StringRunes</span> <a class="api-item-permalink" href="#Core_StringRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L19">src</a></div>
 <p>Iterates Unicode scalar values decoded lazily from borrowed UTF-8 bytes.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_StringRunes">StringRunes</a></span></span></div>
 </section>
 <h3 id="Core_StringRunes_methods">Methods</h3>
@@ -10378,8 +10378,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Crypto_HmacSha256" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Crypto.HmacSha256</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L11">src</a></div>
 <p>Computes HMAC-SHA-256 incrementally while keeping its keyed state opaque.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
-<span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Crypto_HmacSha256">HmacSha256</a></span></span></div>
 </section>
 <h3 id="Core_Crypto_HmacSha256_methods">Methods</h3>
@@ -10411,8 +10411,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <div class="api-item api-item-struct"><span id="Core_Crypto_Poly1305" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Crypto.Poly1305</span> <a class="api-item-permalink" href="#Core_Crypto_Poly1305" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/poly1305.swg#L33">src</a></div>
 <p>Authenticates a message under a one-time key, following RFC 8439.</p>
 <p>A Poly1305 key authenticates exactly one message. Reusing it across two messages lets an observer recover the key material and forge tags, which is why <a href="#Core_Crypto_chacha20Poly1305Seal">Crypto.chacha20Poly1305Seal</a> derives a fresh one from each nonce.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
-<span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Crypto_Poly1305">Poly1305</a></span></span></div>
 </section>
 <h3 id="Core_Crypto_Poly1305_methods">Methods</h3>
@@ -10503,7 +10503,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <div class="api-item api-item-struct"><span id="Core_Directory_Watcher" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Directory.Watcher</span> <a class="api-item-permalink" href="#Core_Directory_Watcher" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/watcher.swg#L78">src</a></div>
 <p>Owns a cancellable stream of filesystem changes for one directory tree.</p>
 <p><a href="#Core_Directory_Watcher_next">Core.Directory.Watcher.next</a> has at most one outstanding host read. A timeout preserves that request, so the next call continues waiting without a notification gap. <span class="code-inline">cancel</span> may be called from another thread and permanently changes subsequent reads to <span class="code-inline">Cancelled</span>. <span class="code-inline">close</span> releases resources and must not race with <span class="code-inline">next</span> or another <span class="code-inline">close</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Directory_Watcher">Watcher</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -10552,7 +10552,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Env_Monitor" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Monitor</span> <a class="api-item-permalink" href="#Core_Env_Monitor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L57">src</a></div>
 <p>Describes a physical monitor.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Operators(opEquals, opCompare)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals, opCompare)]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -10580,7 +10580,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <div class="blockquote-title-block"><span class="blockquote-title">Attention</span></div>
 <p>A pipe holds a bounded amount of data, so a child that writes more than that blocks until this side reads it. Every wait on this type drains the redirected streams while it waits, which is what keeps the pair from deadlocking; a caller that waits on the platform handle by other means loses that guarantee.</p>
 </div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Process">Process</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -10719,7 +10719,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L54">src</a></div>
 <p>Owns one top-level application window.</p>
 <p>Create a window with <a href="#Core_Env_createWindow">Core.Env.createWindow</a>. The value closes any remaining window when it leaves scope; call <a href="#Core_Env_Window_close">Core.Env.Window.close</a> to release it earlier.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Window">Window</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -11031,7 +11031,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_File_FileStream" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">File.FileStream</span> <a class="api-item-permalink" href="#Core_File_FileStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L10">src</a></div>
 <p>Owns an open file and exposes byte-oriented reading, writing, and seeking.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -11117,7 +11117,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="api-item api-item-struct"><span id="Core_File_MappedFile" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">File.MappedFile</span> <a class="api-item-permalink" href="#Core_File_MappedFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/mappedfile.swg#L19">src</a></div>
 <p>Owns an open file used to create independently owned mapped regions.</p>
 <p>A region keeps the native file resources it needs, so it can outlive this value. Resizing fails when the host refuses to resize a file that still has mapped regions; close those regions and retry. Closing this value does not invalidate regions already returned by <a href="#Core_File_MappedFile_map">Core.File.MappedFile.map</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_File_MappedFile">MappedFile</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -11158,7 +11158,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="api-item api-item-struct"><span id="Core_File_MappedRegion" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">File.MappedRegion</span> <a class="api-item-permalink" href="#Core_File_MappedRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/mappedfile.swg#L128">src</a></div>
 <p>Owns one contiguous view into a <a href="#Core_File_MappedFile">Core.File.MappedFile</a>.</p>
 <p>Byte slices returned by this value remain valid until <a href="#Core_File_MappedRegion_close">Core.File.MappedRegion.close</a>. Closing the source mapped file does not invalidate them. This value is not safe to close while another thread is accessing one of its slices.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_File_MappedRegion">MappedRegion</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -11411,8 +11411,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="api-item api-item-struct"><span id="Core_Hash_Blake2b" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Hash.Blake2b</span> <a class="api-item-permalink" href="#Core_Hash_Blake2b" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/blake2b.swg#L70">src</a></div>
 <p>Computes a BLAKE2b digest incrementally, in unkeyed or keyed mode.</p>
 <p>The digest length is chosen when the sequence starts and is bound into the first state word, so two lengths never share a prefix. Use <a href="#Core_Hash_Blake2b_compute">Core.Hash.Blake2b.compute</a> for a one-shot digest.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
-<span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Hash_Blake2b">Blake2b</a></span></span></div>
 </section>
 <h3 id="Core_Hash_Blake2b_methods">Methods</h3>
@@ -12164,7 +12164,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Math_Rectangle" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Math.Rectangle</span> <a class="api-item-permalink" href="#Core_Math_Rectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L8">src</a></div>
 <p>A simple rectangle struct with position and dimensions. Represents an axis-aligned rectangle using top-left position and width/height dimensions.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Operators(opEquals, opCompare), Serialization.Final]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals, opCompare), Serialization.Final]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Math_Rectangle">Rectangle</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -12893,7 +12893,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td><span class="code-inline">\1</span> to <span class="code-inline">\9</span></td><td>what that capture group matched</td><td></td></tr>
 </tbody>
 </table>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Parser_RegExp">RegExp</a></span></span></div>
 </section>
 <h3 id="Core_Parser_RegExp_methods">Methods</h3>
@@ -12944,7 +12944,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Random_ComplementaryMultiplyWithCarry4096" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Random.ComplementaryMultiplyWithCarry4096</span> <a class="api-item-permalink" href="#Core_Random_ComplementaryMultiplyWithCarry4096" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/cmwc.swg#L7">src</a></div>
 <p>George Marsaglia's CMWC (Complementary Multiply With Carry) 4096 random number generator.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Random_ComplementaryMultiplyWithCarry4096">ComplementaryMultiplyWithCarry4096</a></span></span></div>
 </section>
 <h3 id="Core_Random_ComplementaryMultiplyWithCarry4096_methods">Methods</h3>
@@ -12960,7 +12960,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Random_Generator" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Random.Generator</span> <a class="api-item-permalink" href="#Core_Random_Generator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L7">src</a></div>
 <p>Produces pseudorandom values from the selected algorithm.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span> = <span class="SCst"><a href="#Core_Random_MultiplyWithCarry32">MultiplyWithCarry32</a></span>) <span class="SCst"><a href="#Core_Random_Generator">Generator</a></span></span></div>
 </section>
 <h3 id="Core_Random_Generator_methods">Methods</h3>
@@ -12994,7 +12994,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Random_MersenneTwister64" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Random.MersenneTwister64</span> <a class="api-item-permalink" href="#Core_Random_MersenneTwister64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/mt64.swg#L19">src</a></div>
 <p>MT19937-64 Mersenne Twister generator.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Random_MersenneTwister64">MersenneTwister64</a></span></span></div>
 </section>
 <h3 id="Core_Random_MersenneTwister64_methods">Methods</h3>
@@ -13010,7 +13010,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Random_MultiplyWithCarry32" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Random.MultiplyWithCarry32</span> <a class="api-item-permalink" href="#Core_Random_MultiplyWithCarry32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/mwc.swg#L8">src</a></div>
 <p>George Marsaglia's 32-bit multiply-with-carry generator.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Random_MultiplyWithCarry32">MultiplyWithCarry32</a></span></span></div>
 </section>
 <h3 id="Core_Random_MultiplyWithCarry32_methods">Methods</h3>
@@ -13553,7 +13553,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Scc_Reader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Scc.Reader</span> <a class="api-item-permalink" href="#Core_Scc_Reader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L202">src</a></div>
 <p>Owns an open SCC file and reads chunks on demand.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Scc_Reader">Reader</a></span></span></div>
 </section>
 <h3 id="Core_Scc_Reader_methods">Methods</h3>
@@ -13612,7 +13612,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Scc_Writer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Scc.Writer</span> <a class="api-item-permalink" href="#Core_Scc_Writer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L190">src</a></div>
 <p>Builds a new SCC file from independently encoded chunks.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Scc_Writer">Writer</a></span></span></div>
 </section>
 <h3 id="Core_Scc_Writer_methods">Methods</h3>
@@ -14135,7 +14135,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Sync_Event" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Sync.Event</span> <a class="api-item-permalink" href="#Core_Sync_Event" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/event.win32.swg#L10">src</a></div>
 <p>Represents event.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Sync_Event">Event</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -14231,7 +14231,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Threading_Thread" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Threading.Thread</span> <a class="api-item-permalink" href="#Core_Threading_Thread" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L20">src</a></div>
 <p>Represents thread.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -14286,7 +14286,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Time_DateTime" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Time.DateTime</span> <a class="api-item-permalink" href="#Core_Time_DateTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L59">src</a></div>
 <p>Represents an instant in time, typically expressed as a date and time of day</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Operators(opEquals, opCompare), Serialization.Final]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals, opCompare), Serialization.Final]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -14430,7 +14430,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Time_Timer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Time.Timer</span> <a class="api-item-permalink" href="#Core_Time_Timer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L11">src</a></div>
 <p>Owns an operating-system timer that invokes a callback on a worker thread.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Time_Timer">Timer</a></span></span></div>
 </section>
 <h3 id="Core_Time_Timer_methods">Methods</h3>
@@ -14448,7 +14448,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Time_Timestamp" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Time.Timestamp</span> <a class="api-item-permalink" href="#Core_Time_Timestamp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timestamp.swg#L7">src</a></div>
 <p>Stores a calendar instant as 100-nanosecond ticks since 0001-01-01 00:00:00.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Operators(opCompare)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opCompare)]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Time_Timestamp">Timestamp</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -14572,7 +14572,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-struct"><span id="Core_Serialization_Write_TagBin" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Write.TagBin</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L95">src</a></div>
 <p>Binary writer for serialized data with support for structured and raw output.</p>
 <p>The writer always produces a version 2 stream. See the version marks above for the layout, and <a href="#Core_Serialization_Read_TagBin">Core.Serialization.Read.TagBin</a> for the compatibility contract.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst">TagBin</span></span></div>
 </section>
 <h3 id="Core_Serialization_Write_TagBin_methods">Methods</h3>
@@ -14700,7 +14700,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_LogFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Core.LogFlags</span> <a class="api-item-permalink" href="#Core_LogFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/log.swg#L6">src</a></div>
 <p>Flags to control the format of log output.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_LogFlags">LogFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -14730,7 +14730,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionFlags</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1178">src</a></div>
 <p>Flags controlling compression behavior</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Compress_Deflate_CompressionFlags">CompressionFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -14748,7 +14748,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionLevel" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionLevel</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionLevel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1187">src</a></div>
 <p>Compression level to use (mapped to number of probes and strategies)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Incomplete]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Incomplete]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Compress_Deflate_CompressionLevel">CompressionLevel</a></span>: <span class="STpe">u32</span></span></div>
 </section>
 <h3>Cases</h3>
@@ -14810,7 +14810,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Directory_WatchFilter" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Directory.WatchFilter</span> <a class="api-item-permalink" href="#Core_Directory_WatchFilter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/watcher.swg#L7">src</a></div>
 <p>Filesystem properties that can cause a watcher notification.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Directory_WatchFilter">WatchFilter</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -14953,7 +14953,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Env_WindowFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.WindowFlags</span> <a class="api-item-permalink" href="#Core_Env_WindowFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L23">src</a></div>
 <p>Configures the capabilities exposed by a top-level window.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_WindowFlags">WindowFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -14975,7 +14975,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_File_FileAccess" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">File.FileAccess</span> <a class="api-item-permalink" href="#Core_File_FileAccess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.swg#L17">src</a></div>
 <p>File access permissions</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_File_FileAccess">FileAccess</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -14993,7 +14993,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_File_FileAttributes" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">File.FileAttributes</span> <a class="api-item-permalink" href="#Core_File_FileAttributes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/fileattributes.swg#L7">src</a></div>
 <p>Attributes that define file or directory characteristics</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_File_FileAttributes">FileAttributes</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -15058,7 +15058,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_File_FileShare" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">File.FileShare</span> <a class="api-item-permalink" href="#Core_File_FileShare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.swg#L37">src</a></div>
 <p>File sharing options</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_File_FileShare">FileShare</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -15668,7 +15668,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Input_KeyModifiers" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Input.KeyModifiers</span> <a class="api-item-permalink" href="#Core_Input_KeyModifiers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/key.swg#L9">src</a></div>
 <p>Combines keyboard modifiers used by shortcuts and input events.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Input_KeyModifiers">KeyModifiers</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -15713,7 +15713,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Latin1_CharAttribute" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Latin1.CharAttribute</span> <a class="api-item-permalink" href="#Core_Latin1_CharAttribute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/latin1tables.swg#L12">src</a></div>
 <p>Selects char attribute.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Latin1_CharAttribute">CharAttribute</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -15842,7 +15842,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Scc_ChunkFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Scc.ChunkFlags</span> <a class="api-item-permalink" href="#Core_Scc_ChunkFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L97">src</a></div>
 <p>Controls how a reader treats a chunk.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Scc_ChunkFlags">ChunkFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -15902,7 +15902,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Serialization_DecoderFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Serialization.DecoderFlags</span> <a class="api-item-permalink" href="#Core_Serialization_DecoderFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L79">src</a></div>
 <p>Selects decoder flags.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Serialization_DecoderFlags">DecoderFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -16056,7 +16056,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-enum"><span id="Core_Serialization_Write_TagBinHeaderFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Write.TagBinHeaderFlags</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBinHeaderFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L28">src</a></div>
 <p>Header flags of a version 2 stream.</p>
 <p>These values are the on-disk format; never renumber them.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Serialization_Write_TagBinHeaderFlags">TagBinHeaderFlags</a></span>: <span class="STpe">u32</span></span></div>
 </section>
 <h3>Cases</h3>
@@ -16073,7 +16073,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-enum"><span id="Core_Serialization_Write_TagBinShapeFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Write.TagBinShapeFlags</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBinShapeFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L69">src</a></div>
 <p>Per-field flags stored in a shape directory entry of a version 2 stream.</p>
 <p>These values are the on-disk format; never renumber them.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Serialization_Write_TagBinShapeFlags">TagBinShapeFlags</a></span>: <span class="STpe">u8</span></span></div>
 </section>
 <h3>Cases</h3>
@@ -16115,7 +16115,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-enum"><span id="Core_Serialization_Write_TagBinValueFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Write.TagBinValueFlags</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBinValueFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L59">src</a></div>
 <p>Additional signature for each value of a version 1 stream, and of the ad-hoc sections of a version 2 stream, stored after the value description (crcs)</p>
 <p>These numbers are the on-disk format, so both cases are pinned. Every element ever written carries bit 0, which is why <a href="#Core_Serialization_Write_TagBinValueFlags_None">Core.Serialization.Write.TagBinValueFlags.None</a> is one rather than zero; renumbering them makes an existing stream decode its plain values as compressed ones.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Serialization_Write_TagBinValueFlags">TagBinValueFlags</a></span>: <span class="STpe">u8</span></span></div>
 </section>
 <h3>Cases</h3>
@@ -16848,7 +16848,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Hash_Adler32_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Adler32.compute</span> <a class="api-item-permalink" href="#Core_Hash_Adler32_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/adler32.swg#L118">src</a></div>
 <p>Computes the Adler-32 checksum of <span class="code-inline">buffer</span> in one operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">compute</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -16978,7 +16978,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Array_initNewSlots" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Array.initNewSlots</span> <a class="api-item-permalink" href="#Core_Array_initNewSlots" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/array.swg#L308">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
-<span class="SAtr">#[Swag.NoDoc]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoDoc]</span>
 <span class="SKwd">mtd</span> <span class="SFct">initNewSlots</span>(index, num: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -17437,31 +17437,31 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_bytePosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.bytePosition</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_bytePosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L43">src</a></div>
 <p>Returns the current source byte index.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">bytePosition</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_consumeBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.consumeBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_consumeBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L144">src</a></div>
 <p>Consumes <span class="code-inline">width</span> bits from the buffer (advances the bit position)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">consumeBits</span>(width: <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_currentPointer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.currentPointer</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_currentPointer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L35">src</a></div>
 <p>Returns a borrowed pointer to the current source byte.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">currentPointer</span>() =&gt; (.stream).buffer</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_discardToNextByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.discardToNextByte</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_discardToNextByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L152">src</a></div>
 <p>Discards bits to align to the next byte boundary</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">discardToNextByte</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_isEof" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.isEof</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_isEof" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L47">src</a></div>
 <p>Returns whether a refill reached the end of the source.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">isEof</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
@@ -17477,7 +17477,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_peekBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.peekBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_peekBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L111">src</a></div>
 <p>Returns next <span class="code-inline">width</span> bits without consuming them (refills if needed)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">peekBits</span>(width: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -17493,7 +17493,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L127">src</a></div>
 <p>Reads and consumes <span class="code-inline">width</span> bits from the buffer</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">readBits</span>(width: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -17519,7 +17519,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Compress_BitStream_size" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.size</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_size" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L39">src</a></div>
 <p>Returns the source size in bytes.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">size</span>() =&gt; (.stream)</span></div>
 </section>
 <section class="api-symbol">
@@ -17734,7 +17734,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Hash_City32_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">City32.compute</span> <a class="api-item-permalink" href="#Core_Hash_City32_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/city32.swg#L156">src</a></div>
 <p>Computes CityHash32 for <span class="code-inline">buffer</span>, optionally mixed with <span class="code-inline">seed</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">compute</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, seed: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -17777,7 +17777,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_ComplementaryMultiplyWithCarry4096_nextU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ComplementaryMultiplyWithCarry4096.nextU32</span> <a class="api-item-permalink" href="#Core_Random_ComplementaryMultiplyWithCarry4096_nextU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/cmwc.swg#L32">src</a></div>
 <p>Generates the next 32-bit unsigned random number.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextU32</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -17798,7 +17798,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addStruct</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L272">src</a></div>
 <p>Appends the raw byte content of a struct to the buffer.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">addStruct</span>(val: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -17844,7 +17844,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opVisit</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L99">src</a></div>
 <p>Provides a way to iterate over each bucket in the buffer. This is a macro that accepts a code block to execute for each bucket. Block parameter: <span class="code-inline">bucket</span> is the bucket pointer.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(bucket))</span></div>
 </section>
 <section class="api-symbol">
@@ -18037,13 +18037,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_orderMaxMin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.orderMaxMin</span> <a class="api-item-permalink" href="#Core_orderMaxMin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L31">src</a></div>
 <p>Ensures that the first value is greater than or equal to the second value. If the first value is less than the second, their contents are swapped.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">orderMaxMin</span>(x, y: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_orderMinMax" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.orderMinMax</span> <a class="api-item-permalink" href="#Core_orderMinMax" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L22">src</a></div>
 <p>Ensures that the first value is less than or equal to the second value. If the first value is greater than the second, their contents are swapped.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">orderMinMax</span>(x, y: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -18063,7 +18063,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_swap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.swap</span> <a class="api-item-permalink" href="#Core_swap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L10">src</a></div>
 <p>Swaps the values of two variables. Takes pointers to the two values to be swapped. A pure storage exchange: the values are relocated (<span class="code-inline">#relocate</span> applies <span class="code-inline">opPostMove</span>, so types with a self-referential fixup like the small-string optimization stay valid). After the final relocation, the scratch slot is no longer a live <span class="code-inline">T</span>; its raw storage is zeroed only to suppress a duplicate drop.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">swap</span>(x, y: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -18076,7 +18076,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Hash_Crc32_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crc32.compute</span> <a class="api-item-permalink" href="#Core_Hash_Crc32_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/crc32.swg#L577">src</a></div>
 <p>Computes the CRC-32 checksum of <span class="code-inline">buffer</span> in one operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">compute</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18097,7 +18097,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Hash_Crc64_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crc64.compute</span> <a class="api-item-permalink" href="#Core_Hash_Crc64_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/crc64.swg#L113">src</a></div>
 <p>Computes a CRC-64 checksum in one operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">compute</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, kind = <span class="SCst"><a href="#Core_Hash_Crc64Kind">Crc64Kind</a></span>.<span class="SCst"><a href="#Core_Hash_Crc64Kind_Ecma182">Ecma182</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18108,7 +18108,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Hash_Crc64_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crc64.update</span> <a class="api-item-permalink" href="#Core_Hash_Crc64_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/crc64.swg#L39">src</a></div>
 <p>Includes <span class="code-inline">data</span> in the running checksum.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr, Swag.Safety(.All, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr, </span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.All, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">update</span>(data: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -18418,19 +18418,19 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Debug_assert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.assert</span> <a class="api-item-permalink" href="#Core_Debug_assert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L7">src</a></div>
 <p>Performs the assert operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">assert</span>(expr: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Debug_safety" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safety</span> <a class="api-item-permalink" href="#Core_Debug_safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L18">src</a></div>
 <p>Performs the safety operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span>(what: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_SafetyWhat">SafetyWhat</a></span>) <span class="SFct">safety</span>(expr: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Debug_safetyBoundCheck" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safetyBoundCheck</span> <a class="api-item-permalink" href="#Core_Debug_safetyBoundCheck" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L29">src</a></div>
 <p>Performs the safety bound check operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">safetyBoundCheck</span>(expr50: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -18734,7 +18734,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L268">src</a></div>
 <p>Associate an extension to an executable</p>
 <p>Refused under a sandbox, which reports it as not associated: claiming a file extension changes what the shell does on the whole machine.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">associateFileExtension</span>(extension, appName, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18744,7 +18744,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <p><span class="code-inline">progId</span> is the class name the extension points at, conventionally <span class="code-inline">Vendor.Kind</span>. It is what distinguishes this claim from another program's, so keep it stable: registering the same <span class="code-inline">progId</span> again updates the claim instead of adding a second one. <span class="code-inline">description</span> is the file type as the shell shows it in a folder listing.</p>
 <p>The command it registers passes the opened file and then everything else the caller typed, so an extension claimed this way carries its own arguments.</p>
 <p>Refused under a sandbox, which reports it as not claimed: this changes what the shell does on the whole machine.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">claimFileExtension</span>(extension, progId, description, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18877,14 +18877,14 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Env_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFile</span> <a class="api-item-permalink" href="#Core_Env_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L174">src</a></div>
 <p>Opens <span class="code-inline">path</span> with its system-default application.</p>
 <p>The request is handed to the Windows shell and returns before the application finishes. The result reports whether the shell accepted the request; it does not report what the application subsequently did with the file.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openFile</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_openFileWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFileWith</span> <a class="api-item-permalink" href="#Core_Env_openFileWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L152">src</a></div>
 <p>Asks the platform to let the user pick which application opens <span class="code-inline">path</span>.</p>
 <p>The chooser is the shell's own, so it offers the same applications, the same default-handler checkbox and the same store lookup the file explorer offers. It runs in its own process: the call returns as soon as the request is handed over, long before the user has chosen anything, and reports only whether the chooser could be started.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">openFileWith</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18941,7 +18941,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_showInFileExplorer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.showInFileExplorer</span> <a class="api-item-permalink" href="#Core_Env_showInFileExplorer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L133">src</a></div>
 <p>Selects <span class="code-inline">path</span> in the platform file explorer.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">showInFileExplorer</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -19131,7 +19131,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_readEachLines" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.readEachLines</span> <a class="api-item-permalink" href="#Core_File_readEachLines" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.swg#L137">src</a></div>
 <p>Executes user code for each line read from a file Block parameter: <span class="code-inline">line</span> is the address of the current line buffer.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">readEachLines</span>(fullname: <span class="STpe">string</span>, encoding = <span class="SCst"><a href="#Core_File_TextEncoding">TextEncoding</a></span>.<span class="SCst"><a href="#namespace_Core_Utf8">Utf8</a></span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> line: *<span class="SCst"><a href="#Core_String">String</a></span>)) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -19146,22 +19146,22 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_writeAllBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.writeAllBytes</span> <a class="api-item-permalink" href="#Core_File_writeAllBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.swg#L163">src</a></div>
 <p>Writes the content of a byte slice to a file</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">writeAllBytes</span>(fullname: <span class="STpe">string</span>, buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 <p>Writes the content of a ConcatBuffer to a file</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">writeAllBytes</span>(fullname: <span class="STpe">string</span>, buffer: <span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_writeAllLines" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.writeAllLines</span> <a class="api-item-permalink" href="#Core_File_writeAllLines" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.swg#L184">src</a></div>
 <p>Writes an array of strings to a file, one string per line</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">writeAllLines</span>(fullname: <span class="STpe">string</span>, lines: <span class="SFct">Array</span>'(<span class="STpe">string</span>))-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileInfo_isDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileInfo.isDirectory</span> <a class="api-item-permalink" href="#Core_File_FileInfo_isDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/fileinfo.swg#L25">src</a></div>
 <p>Returns true if the file info represents a directory</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isDirectory</span>() =&gt; .attributes.has</span></div>
 </section>
 <section class="api-symbol">
@@ -19423,7 +19423,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_nextF32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.nextF32</span> <a class="api-item-permalink" href="#Core_Random_Generator_nextF32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L90">src</a></div>
 <p>Range is [0..1[, so 1.0 will never be returned</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextF32</span>()-&gt;<span class="STpe">f32</span></span></div>
 <p>Returns a float value in a given range <span class="code-inline">max</span> is excluded</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextF32</span>(min, max: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
@@ -19431,7 +19431,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_nextF64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.nextF64</span> <a class="api-item-permalink" href="#Core_Random_Generator_nextF64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L97">src</a></div>
 <p>Range is [0..1[, so 1.0 will never be returned</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextF64</span>()-&gt;<span class="STpe">f64</span></span></div>
 <p>Returns a float value in a given range <span class="code-inline">max</span> is excluded</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextF64</span>(min, max: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
@@ -19439,25 +19439,25 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_nextS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.nextS32</span> <a class="api-item-permalink" href="#Core_Random_Generator_nextS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L76">src</a></div>
 <p>Returns a signed 32 bits random value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextS32</span>()-&gt;<span class="STpe">s32</span></span></div>
 <p>Returns a signed random value in a given range <span class="code-inline">max</span> is excluded</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextS32</span>(min, max: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_nextS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.nextS64</span> <a class="api-item-permalink" href="#Core_Random_Generator_nextS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L83">src</a></div>
 <p>Returns a signed 64 bits random value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextS64</span>()-&gt;<span class="STpe">s64</span></span></div>
 <p>Returns a signed random value in a given range <span class="code-inline">max</span> is excluded</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextS64</span>(min, max: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_nextU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.nextU32</span> <a class="api-item-permalink" href="#Core_Random_Generator_nextU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L44">src</a></div>
 <p>Returns an unsigned 32 bits random value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextU32</span>()-&gt;<span class="STpe">u32</span></span></div>
 <p>Returns an unsigned random value in a given range <span class="code-inline">max</span> is excluded</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextU32</span>(min, max: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
@@ -19465,7 +19465,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_nextU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.nextU64</span> <a class="api-item-permalink" href="#Core_Random_Generator_nextU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L57">src</a></div>
 <p>Returns an unsigned 64 bits random value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextU64</span>()-&gt;<span class="STpe">u64</span></span></div>
 <p>Returns an unsigned random value in a given range <span class="code-inline">max</span> is excluded</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextU64</span>(min, max: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
@@ -19478,13 +19478,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_seedU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.seedU32</span> <a class="api-item-permalink" href="#Core_Random_Generator_seedU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L22">src</a></div>
 <p>Seed random generator with a 32 bits value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">seedU32</span>(seed: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_Generator_seedU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Generator.seedU64</span> <a class="api-item-permalink" href="#Core_Random_Generator_seedU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/rng.swg#L33">src</a></div>
 <p>Seed random generator with a 64 bits value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">seedU64</span>(seed: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -19565,7 +19565,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Guid128_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.toString</span> <a class="api-item-permalink" href="#Core_Guid128_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L82">src</a></div>
 <p>Convert guid to a string of the form xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.BoundCheck, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.BoundCheck, false)]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(result: [..] <span class="STpe">u8</span>)</span></div>
 <p>Returns the canonical lowercase UUID representation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
@@ -20151,7 +20151,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Int128_mul" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Int128.mul</span> <a class="api-item-permalink" href="#Core_Math_Int128_mul" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/int128.swg#L72">src</a></div>
 <p>Performs the mul operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">mul</span>(x, y: <span class="STpe">s64</span>)-&gt;<span class="SCst"><a href="#Core_Math_Int128">Int128</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -20218,7 +20218,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <li><span class="code-inline">index</span>: current for index</li>
 <li><span class="code-inline">data</span>:  contextData as passed to the macro</li>
 </ul>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">parallelFor</span>(count: <span class="STpe">u32</span>, contextData: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, stmt: <span class="SItr">#code</span>(index: <span class="STpe">u32</span>, data))</span></div>
 </section>
 <section class="api-symbol">
@@ -20228,7 +20228,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <li><span class="code-inline">buffer</span>: address of the element of the range to process</li>
 <li><span class="code-inline">data</span>:   contextData as passed to the macro</li>
 </ul>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">parallelVisit</span>(range: [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, offset: <span class="STpe">u32</span> = <span class="SNum">1</span>, contextData: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> buffer, data))</span></div>
 </section>
 <section class="api-symbol">
@@ -20486,7 +20486,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Latin1_compareNatural" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Latin1.compareNatural</span> <a class="api-item-permalink" href="#Core_Latin1_compareNatural" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/latin1.swg#L255">src</a></div>
 <p>Compare two utf8 strings in a natural way, dealing only with latin1 table Returns -1, 0 or 1</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Sanity(Swag.SafetyWhat.All, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Sanity(</span><span class="SNsp">Swag</span>.<span class="SAtr">SafetyWhat.All, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">compareNatural</span>(src, dst: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, ignoreCase = <span class="SKwd">false</span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -20616,13 +20616,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_List_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">List.isEmpty</span> <a class="api-item-permalink" href="#Core_List_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/list.swg#L72">src</a></div>
 <p>Returns whether the list contains no elements.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span> =&gt; .count</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_List_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">List.opCount</span> <a class="api-item-permalink" href="#Core_List_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/list.swg#L68">src</a></div>
 <p>Returns the number of elements in the list.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
@@ -21011,9 +21011,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_isNaN" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isNaN</span> <a class="api-item-permalink" href="#Core_Math_isNaN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L141">src</a></div>
 <p>Check if <span class="code-inline">x</span> is NaN (not a number)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.NaN, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.NaN, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">isNaN</span>(x: <span class="STpe">f32</span>) =&gt; x</span></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.NaN, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.NaN, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">isNaN</span>(x: <span class="STpe">f64</span>) =&gt; x</span></div>
 </section>
 <section class="api-symbol">
@@ -21179,7 +21179,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_mulU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.mulU64</span> <a class="api-item-permalink" href="#Core_Math_mulU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/int128.swg#L14">src</a></div>
 <p>Multiplies two unsigned 64-bit values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">mulU64</span>(x, y: <span class="STpe">u64</span>)-&gt;{ hi: <span class="STpe">u64</span>, lo: <span class="STpe">u64</span> }</span></div>
 </section>
 <section class="api-symbol">
@@ -21552,28 +21552,28 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Memory_withAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.withAllocator</span> <a class="api-item-permalink" href="#Core_Memory_withAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L83">src</a></div>
 <p>Runs a code block with allocator installed as the current allocator.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">withAllocator</span>(allocator: <span class="SItr">#null</span> <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>, stmt: <span class="SItr">#code</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Memory_withTemporaryAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.withTemporaryAllocator</span> <a class="api-item-permalink" href="#Core_Memory_withTemporaryAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L97">src</a></div>
 <p>Runs a code block with the temporary allocator installed as the current allocator.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">withTemporaryAllocator</span>(stmt: <span class="SItr">#code</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_MersenneTwister64_nextU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MersenneTwister64.nextU64</span> <a class="api-item-permalink" href="#Core_Random_MersenneTwister64_nextU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/mt64.swg#L89">src</a></div>
 <p>Returns the next pseudorandom 64-bit value.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextU64</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_MersenneTwister64_seedU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MersenneTwister64.seedU64</span> <a class="api-item-permalink" href="#Core_Random_MersenneTwister64_seedU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/mt64.swg#L33">src</a></div>
 <p>Performs the seed u64 operation. Performs the next u64 operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">seedU64</span>(seed: <span class="STpe">u64</span>)</span></div>
 <p>Performs the next u64 operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">seedU64</span>(seed: <span class="SKwd">const</span> [..] <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -21641,7 +21641,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Random_MultiplyWithCarry32_nextU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MultiplyWithCarry32.nextU32</span> <a class="api-item-permalink" href="#Core_Random_MultiplyWithCarry32_nextU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/mwc.swg#L35">src</a></div>
 <p>Returns the next pseudorandom 32-bit value.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">nextU32</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -22112,7 +22112,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Point_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Point.opSet</span> <a class="api-item-permalink" href="#Core_Math_Point_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/point.swg#L25">src</a></div>
 <p>Set both coordinates to the same scalar value. This allows assignment like 'point = 5.0' to set both coordinates to 5.0.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.FullInit]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">FullInit]</span>
 <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -22426,7 +22426,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_area" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.area</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_area" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L355">src</a></div>
 <p>Get the area of the rectangle. Calculated as width × height, may be negative for non-normalized rectangles.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">area</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -22437,19 +22437,19 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_bottom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.bottom</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_bottom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L83">src</a></div>
 <p>Get the bottom edge coordinate. Calculated as y + height.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">bottom</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_bottomLeft" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.bottomLeft</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_bottomLeft" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L422">src</a></div>
 <p>Get the bottom-left corner point. Returns a Point at (x, y + height).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">bottomLeft</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_bottomRight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.bottomRight</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_bottomRight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L430">src</a></div>
 <p>Get the bottom-right corner point. Returns a Point at (x + width, y + height).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">bottomRight</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -22516,7 +22516,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_horzCenter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.horzCenter</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_horzCenter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L44">src</a></div>
 <p>Get the horizontal center coordinate. Calculated as x + width / 2.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">horzCenter</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -22616,13 +22616,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_perimeter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.perimeter</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_perimeter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L363">src</a></div>
 <p>Get the perimeter of the rectangle. Calculated as 2 × (width + height).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">perimeter</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_right" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.right</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_right" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L67">src</a></div>
 <p>Get the right edge coordinate. Calculated as x + width.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">right</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -22650,13 +22650,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_setBottom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.setBottom</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_setBottom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L91">src</a></div>
 <p>Set the bottom edge coordinate by adjusting the height. Modifies <span class="code-inline">height</span> to make the bottom edge equal to <span class="code-inline">value</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setBottom</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_setRight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.setRight</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_setRight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L75">src</a></div>
 <p>Set the right edge coordinate by adjusting the width. Modifies <span class="code-inline">width</span> to make the right edge equal to <span class="code-inline">value</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setRight</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -22667,19 +22667,19 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_size" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.size</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_size" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L438">src</a></div>
 <p>Get the size of the rectangle as a point. Returns a Point containing width and height values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">size</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_topLeft" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.topLeft</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_topLeft" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L406">src</a></div>
 <p>Get the top-left corner point. Returns a Point containing the x and y coordinates.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">topLeft</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_topRight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.topRight</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_topRight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L414">src</a></div>
 <p>Get the top-right corner point. Returns a Point at (x + width, y).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">topRight</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -22690,7 +22690,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Rectangle_vertCenter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Rectangle.vertCenter</span> <a class="api-item-permalink" href="#Core_Math_Rectangle_vertCenter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/rectangle.swg#L52">src</a></div>
 <p>Get the vertical center coordinate. Calculated as y + height / 2.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">vertCenter</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -23266,22 +23266,22 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Serializer_isReading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Serializer.isReading</span> <a class="api-item-permalink" href="#Core_Serialization_Serializer_isReading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/serialize.swg#L69">src</a></div>
 <p>Returns whether reading.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">isReading</span>() =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Serializer_isWriting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Serializer.isWriting</span> <a class="api-item-permalink" href="#Core_Serialization_Serializer_isWriting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/serialize.swg#L65">src</a></div>
 <p>Returns whether writing.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">isWriting</span>() =&gt;</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Serializer_serialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Serializer.serialize</span> <a class="api-item-permalink" href="#Core_Serialization_Serializer_serialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/serialize.swg#L134">src</a></div>
 <p>Serialize one value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Optimize(false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Optimize(false)]</span>
 <span class="SKwd">mtd</span>(<span class="SCst">MT</span>) <span class="SFct">serialize</span>(name: <span class="STpe">string</span>, crc: <span class="STpe">u32</span>, res: *<span class="SCst">MT</span>) <span class="SKwd">fail</span></span></div>
 <p>Serialize one value</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Mixin]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
 <span class="SKwd">mtd</span>(<span class="SCst">MT</span>) <span class="SFct">serialize</span>(name: <span class="STpe">string</span>, res: *<span class="SCst">MT</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -23740,23 +23740,23 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Slice_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Slice.contains</span> <a class="api-item-permalink" href="#Core_Slice_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/slice/find.swg#L185">src</a></div>
 <p>Returns true if the given slice contains the <span class="code-inline">value</span></p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">contains</span>(values: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, value: <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>) <span class="SFct">contains</span>(values: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, value: <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Slice_containsSorted" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Slice.containsSorted</span> <a class="api-item-permalink" href="#Core_Slice_containsSorted" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/slice/find.swg#L178">src</a></div>
 <p>Returns true if the given slice contains the <span class="code-inline">value</span>. The slice must be sorted in ascending order</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>) <span class="SFct">containsSorted</span>(values: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, value: <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Slice_equals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Slice.equals</span> <a class="api-item-permalink" href="#Core_Slice_equals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/slice/find.swg#L200">src</a></div>
 <p>Returns true if two slices are equal</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">equals</span>(dst, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">equals</span>(dst, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -23779,7 +23779,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Slice_forEachMutable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Slice.forEachMutable</span> <a class="api-item-permalink" href="#Core_Slice_forEachMutable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/slice/treat.swg#L7">src</a></div>
 <p>Applies <span class="code-inline">action</span> to the address of every element.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">forEachMutable</span>(values: [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, action: <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>))</span></div>
 </section>
 <section class="api-symbol">
@@ -24077,7 +24077,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Time_Stopwatch_scopeMeasure" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Stopwatch.scopeMeasure</span> <a class="api-item-permalink" href="#Core_Time_Stopwatch_scopeMeasure" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/stopwatch.swg#L77">src</a></div>
 <p>Measures elapsed time for the current scope and prints the result when the scope ends</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Mixin]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
 <span class="SKwd">func</span> <span class="SFct">scopeMeasure</span>(name: <span class="STpe">string</span> = <span class="SStr">"stopwatch"</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -24662,26 +24662,26 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_StringRunes_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StringRunes.opVisit</span> <a class="api-item-permalink" href="#Core_StringRunes_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L27">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Macro, Swag.CalleeReturn]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Macro, </span><span class="SNsp">Swag</span>.<span class="SAtr">CalleeReturn]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(value: <span class="STpe">rune</span>, charIndex: <span class="STpe">u64</span>, byteIndex: <span class="STpe">u64</span>))
     <span class="SLgc">where</span> !ptr</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Sync_scopedLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sync.scopedLock</span> <a class="api-item-permalink" href="#Core_Sync_scopedLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/sync.swg#L6">src</a></div>
 <p>Performs the scoped lock operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Mixin]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">scopedLock</span>(syncObj: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Sync_sharedLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sync.sharedLock</span> <a class="api-item-permalink" href="#Core_Sync_sharedLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/sync.swg#L14">src</a></div>
 <p>Performs the shared lock operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Mixin]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">sharedLock</span>(syncObj: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_System_pushContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">System.pushContext</span> <a class="api-item-permalink" href="#Core_System_pushContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/system.swg#L7">src</a></div>
 <p>Push a new execution context for the given block of code</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">pushContext</span>(cxt: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Context">Context</a></span>, stmt: <span class="SItr">#code</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -24917,7 +24917,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_File_TextReader_readLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TextReader.readLine</span> <a class="api-item-permalink" href="#Core_File_TextReader_readLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/textreader.swg#L83">src</a></div>
 <p>Reads one line into <span class="code-inline">result</span> and returns false at end of file.</p>
 <p>Line-ending bytes are consumed but not included in the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.BoundCheck | .Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.BoundCheck | .Overflow, false)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">readLine</span>(result: *<span class="SCst"><a href="#Core_String">String</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -25532,7 +25532,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <li><span class="code-inline">charIdx</span>: the character index</li>
 <li><span class="code-inline">byteIdx</span>: the byte index of that character within the utf8 sequence</li>
 </ul>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Macro]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">visitRunes</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, stmt: <span class="SItr">#code</span>(c: <span class="STpe">rune</span>, charIdx: <span class="STpe">u64</span>, byteIdx: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
@@ -25578,10 +25578,10 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_cross" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.cross</span> <a class="api-item-permalink" href="#Core_Math_Vector2_cross" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L152">src</a></div>
 <p>Returns the perpendicular vector in the 2D plane scaled by <span class="code-inline">axis</span>. The <span class="code-inline">axis</span> parameter determines the sign and scale of the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cross</span>(axis: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span></span></div>
 <p>Returns the Z component of the cross product (scalar cross product in 2D). Calculates the determinant of the 2x2 matrix formed by the two vectors.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cross</span>(other: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
@@ -25597,7 +25597,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_dot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.dot</span> <a class="api-item-permalink" href="#Core_Math_Vector2_dot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L147">src</a></div>
 <p>Returns the dot product between this vector and <span class="code-inline">other</span>. The dot product is calculated as: (x₁ × x₂) + (y₁ × y₂).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dot</span>(other: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>)-&gt;<span class="STpe">f32</span> =&gt; (.x * other.x)</span></div>
 </section>
 <section class="api-symbol">
@@ -25628,7 +25628,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_isZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.isZero</span> <a class="api-item-permalink" href="#Core_Math_Vector2_isZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L185">src</a></div>
 <p>Returns true if this vector is exactly zero. Performs exact floating-point comparison, which may not work well with computed values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isZero</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -25639,13 +25639,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_length" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.length</span> <a class="api-item-permalink" href="#Core_Math_Vector2_length" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L137">src</a></div>
 <p>Returns the length (magnitude) of the vector. Calculated using the Euclidean distance formula: sqrt(x² + y²).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">length</span>()-&gt;<span class="STpe">f32</span> =&gt; sqrt</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_lengthSquared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.lengthSquared</span> <a class="api-item-permalink" href="#Core_Math_Vector2_lengthSquared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L142">src</a></div>
 <p>Returns the squared length of the vector. Faster than <span class="code-inline">length()</span> when only comparing magnitudes since it avoids the square root operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lengthSquared</span>()-&gt;<span class="STpe">f32</span> =&gt; (.x * .x)</span></div>
 </section>
 <section class="api-symbol">
@@ -25681,7 +25681,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_negate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.negate</span> <a class="api-item-permalink" href="#Core_Math_Vector2_negate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L176">src</a></div>
 <p>Negate the vector in-place. Multiplies both components by -1, effectively reversing the vector direction.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">negate</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -25707,35 +25707,35 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.opAssign</span> <a class="api-item-permalink" href="#Core_Math_Vector2_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L37">src</a></div>
 <p>Compound assignment operators for vector-vector operations (+=, -=, *=, /=). Performs component-wise operations with another vector.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(other: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">MulAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">DivAssign</span></span></div>
 <p>Compound assignment operators for vector-scalar operations (+=, -=, *=, /=). Applies the scalar <span class="code-inline">value</span> to both components of the vector.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(value: <span class="STpe">f32</span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">MulAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">DivAssign</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_opBinary" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.opBinary</span> <a class="api-item-permalink" href="#Core_Math_Vector2_opBinary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L89">src</a></div>
 <p>Binary operators for vector-vector operations (+, -, *, /). Performs component-wise operations between two vectors and returns the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opBinary</span>(other: <span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst"><a href="#Core_Input_Key_Add">Add</a></span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span> <span class="SLgc">or</span> op == .<span class="SCst">Mul</span> <span class="SLgc">or</span> op == .<span class="SCst">Div</span></span></div>
 <p>Binary operators for vector-scalar operations (+, -, *, /). Applies the scalar <span class="code-inline">value</span> to both components and returns the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline, Swag.Commutative(.Add, .Mul)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline, </span><span class="SNsp">Swag</span>.<span class="SAtr">Commutative(.Add, .Mul)]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opBinary</span>(value: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst"><a href="#Core_Input_Key_Add">Add</a></span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span> <span class="SLgc">or</span> op == .<span class="SCst">Mul</span> <span class="SLgc">or</span> op == .<span class="SCst">Div</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.opSet</span> <a class="api-item-permalink" href="#Core_Math_Vector2_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L29">src</a></div>
 <p>Set both components to the same scalar value. This allows assignment like 'vec = 5.0' to set both components to 5.0.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.FullInit, Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">FullInit, </span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_opUnary" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.opUnary</span> <a class="api-item-permalink" href="#Core_Math_Vector2_opUnary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L119">src</a></div>
 <p>Apply unary operations to the vector. Currently supports negation (-) to return a vector with both components negated.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opUnary</span>()-&gt;<span class="SCst"><a href="#Core_Math_Vector2">Vector2</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst">Neg</span></span></div>
 </section>
@@ -25777,7 +25777,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_set" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.set</span> <a class="api-item-permalink" href="#Core_Math_Vector2_set" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L128">src</a></div>
 <p>Set both components of the vector. Parameters <span class="code-inline">x</span> and <span class="code-inline">y</span> specify the new component values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">set</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -25798,7 +25798,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector2_setZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector2.setZero</span> <a class="api-item-permalink" href="#Core_Math_Vector2_setZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector2.swg#L168">src</a></div>
 <p>Set both vector components to zero. Equivalent to assigning the <span class="code-inline">Zero</span> constant but modifies the current instance.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setZero</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -25864,7 +25864,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_cross" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.cross</span> <a class="api-item-permalink" href="#Core_Math_Vector3_cross" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L163">src</a></div>
 <p>Returns the cross product between this vector and <span class="code-inline">other</span>. The cross product produces a vector perpendicular to both input vectors.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cross</span>(other: <span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -25880,7 +25880,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_dot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.dot</span> <a class="api-item-permalink" href="#Core_Math_Vector3_dot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L158">src</a></div>
 <p>Returns the dot product between this vector and <span class="code-inline">other</span>. The dot product is calculated as: (x₁ × x₂) + (y₁ × y₂) + (z₁ × z₂).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dot</span>(other: <span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>)-&gt;<span class="STpe">f32</span> =&gt; (.x * other.x) + (.y * other.y)</span></div>
 </section>
 <section class="api-symbol">
@@ -25916,7 +25916,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_isZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.isZero</span> <a class="api-item-permalink" href="#Core_Math_Vector3_isZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L189">src</a></div>
 <p>Returns true if this vector is exactly zero. Performs exact floating-point comparison, which may not work well with computed values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isZero</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -25927,13 +25927,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_length" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.length</span> <a class="api-item-permalink" href="#Core_Math_Vector3_length" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L148">src</a></div>
 <p>Returns the length (magnitude) of the vector. Calculated using the Euclidean distance formula: sqrt(x² + y² + z²).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">length</span>()-&gt;<span class="STpe">f32</span> =&gt; sqrt</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_lengthSquared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.lengthSquared</span> <a class="api-item-permalink" href="#Core_Math_Vector3_lengthSquared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L153">src</a></div>
 <p>Returns the squared length of the vector. Faster than <span class="code-inline">length()</span> when only comparing magnitudes since it avoids the square root operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lengthSquared</span>()-&gt;<span class="STpe">f32</span> =&gt; (.x * .x) + (.y * .y)</span></div>
 </section>
 <section class="api-symbol">
@@ -25969,7 +25969,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_negate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.negate</span> <a class="api-item-permalink" href="#Core_Math_Vector3_negate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L179">src</a></div>
 <p>Negate the vector in-place. Multiplies all components by -1, effectively reversing the vector direction.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">negate</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -25995,35 +25995,35 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.opAssign</span> <a class="api-item-permalink" href="#Core_Math_Vector3_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L39">src</a></div>
 <p>Compound assignment operators for vector-vector operations (+=, -=, *=, /=). Performs component-wise operations with another vector.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(other: <span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">MulAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">DivAssign</span></span></div>
 <p>Compound assignment operators for vector-scalar operations (+=, -=, *=, /=). Applies the scalar <span class="code-inline">value</span> to all components of the vector.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(value: <span class="STpe">f32</span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">MulAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">DivAssign</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_opBinary" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.opBinary</span> <a class="api-item-permalink" href="#Core_Math_Vector3_opBinary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L99">src</a></div>
 <p>Binary operators for vector-vector operations (+, -, *, /). Performs component-wise operations between two vectors and returns the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opBinary</span>(other: <span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst"><a href="#Core_Input_Key_Add">Add</a></span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span> <span class="SLgc">or</span> op == .<span class="SCst">Mul</span> <span class="SLgc">or</span> op == .<span class="SCst">Div</span></span></div>
 <p>Binary operators for vector-scalar operations (+, -, *, /). Applies the scalar <span class="code-inline">value</span> to all components and returns the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline, Swag.Commutative(.Add, .Mul)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline, </span><span class="SNsp">Swag</span>.<span class="SAtr">Commutative(.Add, .Mul)]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opBinary</span>(value: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst"><a href="#Core_Input_Key_Add">Add</a></span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span> <span class="SLgc">or</span> op == .<span class="SCst">Mul</span> <span class="SLgc">or</span> op == .<span class="SCst">Div</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.opSet</span> <a class="api-item-permalink" href="#Core_Math_Vector3_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L31">src</a></div>
 <p>Set all components to the same scalar value. This allows assignment like 'vec = 5.0' to set all components to 5.0.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.FullInit, Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">FullInit, </span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_opUnary" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.opUnary</span> <a class="api-item-permalink" href="#Core_Math_Vector3_opUnary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L129">src</a></div>
 <p>Apply unary operations to the vector. Currently supports negation (-) to return a vector with all components negated.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opUnary</span>()-&gt;<span class="SCst"><a href="#Core_Math_Vector3">Vector3</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst">Neg</span></span></div>
 </section>
@@ -26045,7 +26045,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_set" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.set</span> <a class="api-item-permalink" href="#Core_Math_Vector3_set" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L138">src</a></div>
 <p>Set all three components of the vector. Parameters <span class="code-inline">x</span>, <span class="code-inline">y</span>, and <span class="code-inline">z</span> specify the new component values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">set</span>(x, y, z: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -26061,7 +26061,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector3_setZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector3.setZero</span> <a class="api-item-permalink" href="#Core_Math_Vector3_setZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector3.swg#L171">src</a></div>
 <p>Set all vector components to zero. Equivalent to assigning the <span class="code-inline">Zero</span> constant but modifies the current instance.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setZero</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -26137,7 +26137,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_dot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.dot</span> <a class="api-item-permalink" href="#Core_Math_Vector4_dot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L170">src</a></div>
 <p>Returns the dot product between this vector and <span class="code-inline">other</span>. The dot product is calculated as: (x₁ × x₂) + (y₁ × y₂) + (z₁ × z₂) + (w₁ × w₂).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dot</span>(other: <span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>)-&gt;<span class="STpe">f32</span> =&gt; (.x * other.x) + (.y * other.y) + (.z * other.z)</span></div>
 </section>
 <section class="api-symbol">
@@ -26173,7 +26173,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_isZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.isZero</span> <a class="api-item-permalink" href="#Core_Math_Vector4_isZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L194">src</a></div>
 <p>Returns true if this vector is exactly zero. Performs exact floating-point comparison, which may not work well with computed values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isZero</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
@@ -26184,13 +26184,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_length" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.length</span> <a class="api-item-permalink" href="#Core_Math_Vector4_length" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L160">src</a></div>
 <p>Returns the length (magnitude) of the vector. Calculated using the Euclidean distance formula: sqrt(x² + y² + z² + w²).</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">length</span>()-&gt;<span class="STpe">f32</span> =&gt; sqrt</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_lengthSquared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.lengthSquared</span> <a class="api-item-permalink" href="#Core_Math_Vector4_lengthSquared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L165">src</a></div>
 <p>Returns the squared length of the vector. Faster than <span class="code-inline">length()</span> when only comparing magnitudes since it avoids the square root operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lengthSquared</span>()-&gt;<span class="STpe">f32</span> =&gt; (.x * .x) + (.y * .y) + (.z * .z)</span></div>
 </section>
 <section class="api-symbol">
@@ -26226,7 +26226,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_negate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.negate</span> <a class="api-item-permalink" href="#Core_Math_Vector4_negate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L183">src</a></div>
 <p>Negate the vector in-place. Multiplies all components by -1, effectively reversing the vector direction.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">negate</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -26252,35 +26252,35 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.opAssign</span> <a class="api-item-permalink" href="#Core_Math_Vector4_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L42">src</a></div>
 <p>Compound assignment operators for vector-vector operations (+=, -=, *=, /=). Performs component-wise operations with another vector.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(other: <span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">MulAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">DivAssign</span></span></div>
 <p>Compound assignment operators for vector-scalar operations (+=, -=, *=, /=). Applies the scalar <span class="code-inline">value</span> to all components of the vector.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(value: <span class="STpe">f32</span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">MulAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">DivAssign</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_opBinary" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.opBinary</span> <a class="api-item-permalink" href="#Core_Math_Vector4_opBinary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L110">src</a></div>
 <p>Binary operators for vector-vector operations (+, -, *, /). Performs component-wise operations between two vectors and returns the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opBinary</span>(other: <span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst"><a href="#Core_Input_Key_Add">Add</a></span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span> <span class="SLgc">or</span> op == .<span class="SCst">Mul</span> <span class="SLgc">or</span> op == .<span class="SCst">Div</span></span></div>
 <p>Binary operators for vector-scalar operations (+, -, *, /). Applies the scalar <span class="code-inline">value</span> to all components and returns the result.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline, Swag.Commutative(.Add, .Mul)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline, </span><span class="SNsp">Swag</span>.<span class="SAtr">Commutative(.Add, .Mul)]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opBinary</span>(value: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst"><a href="#Core_Input_Key_Add">Add</a></span> <span class="SLgc">or</span> op == .<span class="SCst">Sub</span> <span class="SLgc">or</span> op == .<span class="SCst">Mul</span> <span class="SLgc">or</span> op == .<span class="SCst">Div</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.opSet</span> <a class="api-item-permalink" href="#Core_Math_Vector4_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L34">src</a></div>
 <p>Set all components to the same scalar value. This allows assignment like 'vec = 5.0' to set all components to 5.0.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.FullInit, Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">FullInit, </span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_opUnary" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.opUnary</span> <a class="api-item-permalink" href="#Core_Math_Vector4_opUnary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L140">src</a></div>
 <p>Apply unary operations to the vector. Currently supports negation (-) to return a vector with all components negated.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SKwd">const</span> <span class="SFct">opUnary</span>()-&gt;<span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>
     <span class="SLgc">where</span> op == .<span class="SCst">Neg</span></span></div>
 </section>
@@ -26302,7 +26302,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_set" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.set</span> <a class="api-item-permalink" href="#Core_Math_Vector4_set" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L149">src</a></div>
 <p>Set all four components of the vector. Parameters <span class="code-inline">x</span>, <span class="code-inline">y</span>, <span class="code-inline">z</span>, and <span class="code-inline">w</span> specify the new component values.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">set</span>(x, y, z, w: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -26318,7 +26318,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Vector4_setZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Vector4.setZero</span> <a class="api-item-permalink" href="#Core_Math_Vector4_setZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/vector4.swg#L175">src</a></div>
 <p>Set all vector components to zero. Equivalent to assigning the <span class="code-inline">Zero</span> constant but modifies the current instance.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setZero</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -26570,7 +26570,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.287</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.288</div>
 </footer>
 </section>
 </main>

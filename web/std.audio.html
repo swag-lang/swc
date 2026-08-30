@@ -765,7 +765,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="api-item api-item-struct"><span id="Audio_SoundFile" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundFile</span> <a class="api-item-permalink" href="#Audio_SoundFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L121">src</a></div>
 <p>Describes a validated sound source that may be prefetched or streamed.</p>
 <p>The value owns the bytes exposed by <a href="#Audio_SoundFile_preloadedData">Audio.SoundFile.preloadedData</a>. When the payload is not prefetched, voices reopen the source path and read the payload on demand. Keep this value alive while any voice borrows it.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span></span></div>
 </section>
 <h3 id="Audio_SoundFile_methods">Methods</h3>
@@ -854,7 +854,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="api-item api-item-struct"><span id="Audio_Voice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Voice</span> <a class="api-item-permalink" href="#Audio_Voice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L40">src</a></div>
 <p>Controls one playback instance of a sound file.</p>
 <p>A voice borrows its source <a href="#Audio_SoundFile">Audio.SoundFile</a>, which must remain alive until the voice is destroyed. Use <a href="#Audio_Voice_play">Audio.Voice.play</a> for fire-and-forget playback or <a href="#Audio_Voice_create">Audio.Voice.create</a> when the caller needs explicit control.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span></span></div>
 </section>
 <h3 id="Audio_Voice_constants">Constants</h3>
@@ -973,7 +973,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Audio_SoundFileFields" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileFields</span> <a class="api-item-permalink" href="#Audio_SoundFileFields" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L52">src</a></div>
 <p>Identifies which sound-file properties were discovered while loading.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_SoundFileFields">SoundFileFields</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -1005,7 +1005,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Audio_VoiceCreateFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoiceCreateFlags</span> <a class="api-item-permalink" href="#Audio_VoiceCreateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L6">src</a></div>
 <p>Selects optional backend capabilities for a new voice.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_VoiceCreateFlags">VoiceCreateFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -1023,7 +1023,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Audio_VoicePlayFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoicePlayFlags</span> <a class="api-item-permalink" href="#Audio_VoicePlayFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L15">src</a></div>
 <p>Controls one playback run and its end-of-playback lifetime.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Audio_VoicePlayFlags">VoicePlayFlags</a></span></span></div>
 </section>
 <h3>Cases</h3>
@@ -1413,7 +1413,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="api-item api-item-func"><span id="Audio_Voice_play" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.play</span> <a class="api-item-permalink" href="#Audio_Voice_play" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L159">src</a></div>
 <p>Creates and immediately starts a voice.</p>
 <p>The default play flags provide fire-and-forget lifetime by scheduling the voice for destruction when playback finishes. The returned pointer can be retained to adjust playback while it remains valid.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">play</span>(file: <span class="SKwd">const</span> *<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span>, createFlags = <span class="SCst"><a href="#Audio_VoiceCreateFlags">VoiceCreateFlags</a></span>.<span class="SCst">Default</span>, playFlags = <span class="SCst"><a href="#Audio_VoicePlayFlags">VoicePlayFlags</a></span>.<span class="SCst">Default</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Audio_Voice">Voice</a></span> <span class="SKwd">fail</span></span></div>
 <p>Starts or resumes this voice.</p>
 <p>The default keeps the voice allocated after it stops. Add <a href="#Audio_VoicePlayFlags_DestroyOnStop">Audio.VoicePlayFlags.DestroyOnStop</a> for automatic cleanup, or call <a href="#Audio_Voice_destroy">Audio.Voice.destroy</a> explicitly. Calling this while already playing has no effect.</p>
@@ -1477,7 +1477,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.287</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.288</div>
 </footer>
 </section>
 </main>

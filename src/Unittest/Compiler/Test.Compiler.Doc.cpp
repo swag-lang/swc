@@ -104,6 +104,7 @@ SWC_TEST_BEGIN(Compiler_DocMarkdownRendersSupportedBlocks)
 
 ```swag
 
+#[Swag.Inline]
 const value = 1
 Swag.assert(value)
 
@@ -131,6 +132,8 @@ plain payload
     if (!html.contains("blockquote-note"))
         return Result::Error;
     if (!html.contains("class=\"code-block\""))
+        return Result::Error;
+    if (!html.contains("<span class=\"SAtr\">#[</span><span class=\"SNsp\">Swag</span>.<span class=\"SAtr\">Inline]</span>"))
         return Result::Error;
     if (!html.contains("<span class=\"SNsp\">Swag</span>.<span class=\"SFct\">assert</span>"))
         return Result::Error;

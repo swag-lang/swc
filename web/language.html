@@ -372,7 +372,7 @@
 }</span></div>
 <h3 id="_001_003_hello_world_and_beyond_swg_Reusable_Compile-Time_Functions">Reusable Compile-Time Functions</h3>
 <p><span class="code-inline">#[Swag.ConstExpr]</span> allows calls with constant arguments to participate in constant expressions without writing <span class="code-inline">#run</span> at every call site.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">punctuation</span>(excited: <span class="STpe">bool</span>)-&gt;<span class="STpe">string</span>
 {
     <span class="SLgc">return</span> excited ? <span class="SStr">"!"</span> : <span class="SStr">"."</span>
@@ -955,7 +955,7 @@ indent-style = spaces</span></div>
 <h3 id="_002_008_sigils_swg_Choosing_the_Narrowest_Scope">Choosing the Narrowest Scope</h3>
 <p><span class="code-inline">#wrap</span> opts one arithmetic operation into wrapping behavior. Broader runtime guard policy uses <span class="code-inline">Swag.Safety</span> on a scope, and module defaults live in <span class="code-inline">BuildCfg</span>:</p>
 <p>Left shift is already truncating: bits shifted out of the left operand are discarded without an overflow panic. <span class="code-inline">#wrap</span> remains accepted on <span class="code-inline">&lt;&lt;</span> and <span class="code-inline">&lt;&lt;=</span> for compatibility, but it does not change their result or count rules.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 {
     <span class="SCmt">// Overflow guards are disabled only in this lexical scope.</span>
 }</span></div>
@@ -1684,7 +1684,7 @@ indent-style = spaces</span></div>
 <div class="blockquote-title-block"><span class="blockquote-title">Attention</span></div>
 <p>A thread-local global must hold a plain value. Its per-thread copies are released without being dropped, so a type with an <span class="code-inline">opDrop</span> leaks on every thread that touches it.</p>
 </div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Tls]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Tls]</span>
 <span class="SKwd">var</span> <span class="SCst">G</span> = <span class="SNum">0</span>     <span class="SCmt">// One copy per thread, each starting at 0</span></span></div>
 <h4 id="_003_005_variables_swg_Global_Variables">Global Variables</h4>
 <p>A local variable can be marked with <span class="code-inline">#[Swag.Global]</span> to make it global within its function’s scope. It behaves similarly to <span class="code-inline">static</span> variables in C/C++, retaining its value between function calls.</p>
@@ -1692,7 +1692,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">func</span> <span class="SFct">toto</span>()-&gt;<span class="STpe">s32</span>
     {
-        <span class="SAtr">#[Swag.Global]</span>
+        <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Global]</span>
         <span class="SKwd">var</span> <span class="SCst">G1</span> = <span class="SNum">0</span>
         <span class="SCst">G1</span> += <span class="SNum">1</span>
         <span class="SLgc">return</span> <span class="SCst">G1</span>
@@ -1704,7 +1704,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h4 id="_003_005_variables_swg_Compile-Time_Variables">Compile-Time Variables</h4>
 <p>Global variables marked with <span class="code-inline">#[Swag.Compiler]</span> exist only during compile time and are excluded from the final runtime code.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Compiler]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Compiler]</span>
 <span class="SKwd">var</span> <span class="SCst">G2</span> = <span class="SNum">0</span>
 
 <span class="SFct">#run</span>
@@ -2168,7 +2168,7 @@ indent-style = spaces</span></div>
 <p>When you need stronger type safety, you can use the <span class="code-inline">#[Swag.Strict]</span> attribute. This makes the alias a <b>distinct type</b>, disallowing implicit conversions between the alias and its base type. Explicit casting is still permitted.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Strict]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Strict]</span>
     <span class="SKwd">alias</span> <span class="SCst">MyType</span> = <span class="STpe">s32</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SCst">MyType</span>) != <span class="STpe">s32</span>)
 
@@ -2732,7 +2732,7 @@ indent-style = spaces</span></div>
 <p>With <span class="code-inline">#[Swag.EnumFlags]</span>, enum values represent bit flags. They should use unsigned integer types.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.EnumFlags]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
     <span class="SKwd">enum</span> <span class="SCst">MyFlags</span>: <span class="STpe">u8</span> { <span class="SCst">A</span>, <span class="SCst">B</span>, <span class="SCst">C</span>, <span class="SCst">D</span> }
 
     <span class="SCmp">#assert</span>(<span class="SCst">MyFlags</span>.<span class="SCst">A</span> == <span class="SNum">0b00000001</span>)
@@ -2777,7 +2777,7 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">#[Swag.NoDuplicate]</span> prevents duplicate values.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.NoDuplicate]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoDuplicate]</span>
     <span class="SKwd">enum</span> <span class="SCst">MyEnum</span> { <span class="SCst">Val0</span> = <span class="SNum">0</span> }
 }</span></div>
 <h3 id="_004_004_enum_swg_Enum_Type_Inference">Enum Type Inference</h3>
@@ -2814,7 +2814,7 @@ indent-style = spaces</span></div>
 <p>This works with flags too.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.EnumFlags]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
     <span class="SKwd">enum</span> <span class="SCst">Values</span> { <span class="SCst">A</span>, <span class="SCst">B</span> }
 
     <span class="SKwd">let</span> x = <span class="SCst">Values</span>.<span class="SCst">A</span> | <span class="SCst">Values</span>.<span class="SCst">B</span>
@@ -3143,7 +3143,7 @@ indent-style = spaces</span></div>
 
 <span class="SKwd">var</span> g_lateDocStorage: <span class="SCst">LateDocResource</span>
 
-<span class="SAtr">#[Swag.Late]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Late]</span>
 <span class="SKwd">var</span> g_lateDocResource: *<span class="SCst">LateDocResource</span>     <span class="SCmt">// non-null type, set later</span>
 
 <span class="SKwd">func</span> <span class="SFct">setupLateDocResource</span>()
@@ -3238,7 +3238,7 @@ indent-style = spaces</span></div>
 <h3 id="_004_007_pointers_swg_Multi-Value_Pointers">Multi-Value Pointers</h3>
 <p>To enable <b>pointer arithmetic</b> or address <b>contiguous memory blocks</b>, use <span class="code-inline">[*]</span> instead of <span class="code-inline">*</span>.</p>
 <p>This type of pointer behaves like a view over multiple elements, allowing indexed access and pointer movement through memory.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Sanity(Swag.SafetyWhat.All, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Sanity(</span><span class="SNsp">Swag</span>.<span class="SAtr">SafetyWhat.All, false)]</span>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> ptr: <span class="SItr">#null</span> [*] <span class="STpe">u8</span>     <span class="SCmt">// Pointer to a block of 'u8' values</span>
@@ -4929,7 +4929,7 @@ indent-style = spaces</span></div>
 <h3 id="_006_002_impl_swg">Impl</h3>
 <h3 id="_006_002_impl_swg_Struct_Methods_and_Constants">Struct Methods and Constants</h3>
 <p>In Swag, structs can encapsulate methods and constants within them using the <span class="code-inline">impl</span> block. This keeps related functionality close to the data it operates on.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ExportType(.Methods)]</span>     <span class="SCmt">// Enable method reflection for this struct type</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ExportType(.Methods)]</span>     <span class="SCmt">// Enable method reflection for this struct type</span>
 <span class="SKwd">struct</span> <span class="SCst">MyStruct</span>
 {
     x: <span class="STpe">s32</span> = <span class="SNum">5</span>      <span class="SCmt">// Default 5</span>
@@ -5017,7 +5017,7 @@ indent-style = spaces</span></div>
 
         <span class="SCmt">// 'y' is located at the same offset as 'x', so they share the same memory.</span>
         <span class="SCmt">// Changing one reflects in the other (overlay behavior).</span>
-        <span class="SAtr">#[Swag.Offset("x")]</span>
+        <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Offset("x")]</span>
         y: <span class="STpe">s32</span>
     }
 
@@ -5040,7 +5040,7 @@ indent-style = spaces</span></div>
 
         <span class="SCmt">// 'idx' aliases the same memory as 'x', 'y', and 'z'.</span>
         <span class="SCmt">// Access 'x', 'y', and 'z' through indexed reads/writes on 'idx'.</span>
-        <span class="SAtr">#[Swag.Offset("x")]</span>
+        <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Offset("x")]</span>
         idx: [<span class="SNum">3</span>] <span class="STpe">f32</span>
     }
 
@@ -5075,7 +5075,7 @@ indent-style = spaces</span></div>
 <p>Swag allows reducing the packing of struct fields using the <span class="code-inline">#[Swag.Pack]</span> attribute. This attribute specifies the alignment value applied to each field, enabling more compact struct representations. Below are examples demonstrating different levels of packing.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Pack(1)]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Pack(1)]</span>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct1</span>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// offset 0: 1 byte (no padding)</span>
@@ -5086,7 +5086,7 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#offsetof</span>(<span class="SCst">MyStruct1</span>.y) == <span class="SNum">1</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(<span class="SCst">MyStruct1</span>) == <span class="SNum">5</span>)
 
-    <span class="SAtr">#[Swag.Pack(2)]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Pack(2)]</span>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct2</span>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// offset 0: 1 byte</span>
@@ -5097,7 +5097,7 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#offsetof</span>(<span class="SCst">MyStruct2</span>.y) == <span class="SNum">2</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(<span class="SCst">MyStruct2</span>) == <span class="SNum">6</span>)
 
-    <span class="SAtr">#[Swag.Pack(4)]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Pack(4)]</span>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct3</span>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// offset 0: 1 byte</span>
@@ -5135,7 +5135,7 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#offsetof</span>(<span class="SCst">MyStruct1</span>.y) == <span class="SNum">1</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(<span class="SCst">MyStruct1</span>) == <span class="SNum">2</span>)
 
-    <span class="SAtr">#[Swag.Align(8)]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Align(8)]</span>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct2</span>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// 1 byte</span>
@@ -5154,7 +5154,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct1</span>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// offset 0: 1 byte</span>
-        <span class="SAtr">#[Swag.Align(8)]</span>
+        <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Align(8)]</span>
         y: <span class="STpe">bool</span>     <span class="SCmt">// offset 8: aligned to 8 bytes (7 bytes of padding before y)</span>
     }
 
@@ -5162,11 +5162,11 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#offsetof</span>(<span class="SCst">MyStruct1</span>.y) == <span class="SNum">8</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(<span class="SCst">MyStruct1</span>) == <span class="SNum">16</span>)
 
-    <span class="SAtr">#[Swag.Align(8)]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Align(8)]</span>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct2</span>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// offset 0: 1 byte</span>
-        <span class="SAtr">#[Swag.Align(4)]</span>
+        <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Align(4)]</span>
         y: <span class="STpe">bool</span>     <span class="SCmt">// offset 4: aligned to 4 bytes (3 bytes of padding before y)</span>
     <span class="SCmt">// 3 bytes of padding to align struct size to 8</span>
     }
@@ -5192,15 +5192,15 @@ indent-style = spaces</span></div>
 <span class="SKwd">alias</span> <span class="SCst">AnotherType</span>  = <span class="STpe">s32</span>      <span class="SCmt">// Alias for signed 32-bit integer type</span>
 <span class="SKwd">alias</span> <span class="SCst">WhateverType</span> = <span class="STpe">bool</span>     <span class="SCmt">// Another alias for boolean type</span>
 
-<span class="SAtr">#[Swag.Operators(opEquals, opCompare)]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals, opCompare)]</span>
 <span class="SKwd">struct</span> <span class="SCst">AutoComparable</span>
 {
     x, y: <span class="STpe">s32</span>
-    <span class="SAtr">#[Swag.OperatorIgnore]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">OperatorIgnore]</span>
     cachedHash: <span class="STpe">u64</span>
 }
 
-<span class="SAtr">#[Swag.Operators(opEquals, opCompare)]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Operators(opEquals, opCompare)]</span>
 <span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst">AutoComparableBox</span>
 {
     value: <span class="SCst">T</span>
@@ -5365,7 +5365,7 @@ indent-style = spaces</span></div>
 
     <span class="SCmt">// A commutative opBinary can also be used when the struct is the right operand.</span>
     <span class="SCmt">// Restrict the operators when a generic opBinary also handles non-commutative ones.</span>
-    <span class="SAtr">#[Swag.Commutative(.Add, .Mul)]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Commutative(.Add, .Mul)]</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinary</span>(<span class="STpe">me</span>, other: <span class="STpe">u32</span>)-&gt;<span class="SCst">Struct</span>
     {
         <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
@@ -5395,7 +5395,7 @@ indent-style = spaces</span></div>
 
     <span class="SCmt">// Called in a 'for' iteration block to iterate over the struct's elements.</span>
     <span class="SCmt">// Alternative traversals are ordinary view types that define their own opVisit.</span>
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     {
         <span class="SKwd">func</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(<span class="STpe">me</span>, stmt: <span class="SItr">#code</span>) {}
     }
@@ -5440,13 +5440,13 @@ indent-style = spaces</span></div>
 <p>When <span class="code-inline">opSet</span> completely initializes the struct, mark it with <span class="code-inline">#[Swag.FullInit]</span>. This avoids default initialization before assignment for better performance.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">Struct</span>
 {
-    <span class="SAtr">#[Swag.FullInit]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">FullInit]</span>
     <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">u64</span>)
     {
         <span class="STpe">me</span>.x, <span class="STpe">me</span>.y, <span class="STpe">me</span>.z = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) value
     }
 
-    <span class="SAtr">#[Swag.Implicit]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Implicit]</span>
     <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">u16</span>)
     {
         <span class="STpe">me</span>.x, <span class="STpe">me</span>.y = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) value
@@ -5493,7 +5493,7 @@ indent-style = spaces</span></div>
 
 <span class="SKwd">impl</span> <span class="SCst">Vector2</span>
 {
-    <span class="SAtr">#[Swag.ConstExpr]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
     <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(one: <span class="STpe">f32</span>)
     {
         <span class="STpe">me</span>.x, <span class="STpe">me</span>.y = one
@@ -5538,7 +5538,7 @@ indent-style = spaces</span></div>
 <p>The <span class="code-inline">#code</span> parameters are the values made available to loop destructuring. A loop may bind any prefix of them, or discard a position with <span class="code-inline">?</span>. Struct values are handed out by read-only address; scalar values are copied.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">MyStruct</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(item: <span class="STpe">s32</span>, doubled: <span class="STpe">s32</span>, index: <span class="STpe">u64</span>))
         <span class="SLgc">where</span> !ptr
     {
@@ -5572,7 +5572,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">303</span>)
 }
 
-<span class="SAtr">#[Swag.Opaque]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst">ReversedMyStruct</span>
 {
     source: <span class="SKwd">const</span> *<span class="SCst">MyStruct</span>
@@ -5580,7 +5580,7 @@ indent-style = spaces</span></div>
 
 <span class="SKwd">impl</span> <span class="SCst">ReversedMyStruct</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(item: <span class="STpe">s32</span>, index: <span class="STpe">u64</span>))
         <span class="SLgc">where</span> !ptr
     {
@@ -5618,7 +5618,7 @@ indent-style = spaces</span></div>
 
 <span class="SKwd">impl</span> <span class="SCst">SliceStruct</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(item, index: <span class="STpe">u64</span>))
     {
         <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="STpe">me</span>.buffer.count
@@ -5776,7 +5776,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">Duration</span>
 {
     <span class="SCmt">// Handle literals like '5's', '500'ms', '2'min', '1'h'</span>
-    <span class="SAtr">#[Swag.ConstExpr, Swag.Implicit, Swag.Inline]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr, </span><span class="SNsp">Swag</span>.<span class="SAtr">Implicit, </span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
     <span class="SKwd">mtd</span>(suffix: <span class="STpe">string</span>) <span class="SFct">opSetLiteral</span>(value: <span class="STpe">s32</span>)
     {
         <span class="SCmp">#static</span> <span class="SLgc">switch</span> suffix
@@ -6369,7 +6369,7 @@ indent-style = spaces</span></div>
 <h3 id="_007_005_function_overloading_swg">Function Overloading</h3>
 <h3 id="_007_005_function_overloading_swg_Function_Overloading">Function Overloading</h3>
 <p>Swag allows multiple functions to share the same name when their parameter signatures differ. This feature, called <i>function overloading</i>, enables writing concise and intuitive APIs. The compiler chooses the correct overload from the call arguments.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 {
     <span class="SCmt">// Overload: two parameters</span>
     <span class="SKwd">func</span> <span class="SFct">sum</span>(x, y: <span class="STpe">s32</span>) =&gt; x + y
@@ -6491,7 +6491,7 @@ indent-style = spaces</span></div>
 <p>Marking a function with <span class="code-inline">#[Swag.Discardable]</span> allows its return value to be safely ignored. Use this for utility functions whose results are optional.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Discardable]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
     <span class="SKwd">func</span> <span class="SFct">mul</span>(x, y: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> =&gt; x * y
 
     <span class="SCmt">// Return value can be ignored without using 'discard'</span>
@@ -7158,7 +7158,7 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p><span class="code-inline">Swag.Using</span> is the attribute form of the <span class="code-inline">using</span> statement: it opens the named namespaces or types inside the declaration it annotates, so their members resolve unqualified there. Annotating a struct with it is the usual way to let field attributes be written unqualified:</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Using(Properties)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Using(Properties)]</span>
 <span class="SKwd">struct</span> <span class="SCst">CaptureOptions</span>
 {
     <span class="SAtr">#[Description("Show a large cross at the mouse position")]</span>
@@ -7246,7 +7246,7 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">SafetyWhat</span> is shared by runtime safety and static sanity, although not every flag has meaningful behavior in both systems. See the dedicated safety and sanity chapters before overriding defaults.</p>
 <p><span class="code-inline">BorrowSummary</span> is emitted automatically for ordinary Swag functions. Write it manually only for a foreign declaration whose ownership behavior the compiler cannot inspect.</p>
 <h3 id="_010_002_predefined_attributes_swg_Native_Interoperability">Native Interoperability</h3>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Foreign(
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Foreign(
     module: "native_module",
     function: "external_symbol",
     link: "native_import_library",
@@ -7649,7 +7649,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SCmt">// Return a typeinfo based on a constexpr condition</span>
-    <span class="SAtr">#[Swag.ConstExpr]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
     <span class="SKwd">func</span> <span class="SFct">getType</span>(needAString: <span class="STpe">bool</span>)-&gt;<span class="STpe">typeinfo</span>
     {
         <span class="SLgc">if</span> needAString <span class="SLgc">do</span>
@@ -7670,7 +7670,7 @@ indent-style = spaces</span></div>
 <h3 id="_012_001_aggregate_reflection_swg">Aggregate Reflection</h3>
 <h3 id="_012_001_aggregate_reflection_swg_Struct_and_Enum_Reflection">Struct and Enum Reflection</h3>
 <p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Inspect its <span class="code-inline">kind</span> before casting to a specialized descriptor. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ExportType(.Methods)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ExportType(.Methods)]</span>
 <span class="SKwd">struct</span> <span class="SCst">ReflectedPoint</span>
 {
     x: <span class="STpe">s32</span>
@@ -7997,7 +7997,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h4 id="_013_002_safety_swg_Global_Overflow_Safety_Control">Global Overflow Safety Control</h4>
 <p>Disable overflow safety checks in a scope with '#[Swag.Safety(.Overflow, false)]'.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
@@ -8031,7 +8031,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h4 id="_013_002_safety_swg_Disabling_Overflow_Safety_Globally">Disabling Overflow Safety Globally</h4>
 <p>Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.Overflow, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
@@ -8251,7 +8251,7 @@ indent-style = spaces</span></div>
 <p>Like safety, sanity can be disabled per scope with the attribute. Disabling <span class="code-inline">.Lifecycle</span> turns off the analyses above that prove a lifetime fault — the use-after-free, double-free and use-after-move proofs. It does <b>not</b> reach the borrow rules: those are language rules and stay on.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> sanityOptedOutValue: <span class="STpe">s32</span>
 
-<span class="SAtr">#[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Sanity(.Lifecycle, false), </span><span class="SNsp">Swag</span>.<span class="SAtr">Sanity(.Memory, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">sanityOptedOut</span>()-&gt;*<span class="STpe">s32</span>
 {
     <span class="SCmt">// A frame borrow would still be rejected here: what the attribute switches off is</span>
@@ -8260,7 +8260,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_013_003_sanity_swg_The___sanity__Intrinsic">The <span class="code-inline">#sanity</span> Intrinsic</h3>
 <p><span class="code-inline">#sanity(...)</span> evaluates, at compile time, whether a given static check is active at this point — the build-config default combined with the <span class="code-inline">Swag.Sanity</span> overrides in scope. It mirrors <span class="code-inline">#safety(...)</span>, which queries the runtime safety flags.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Sanity(.Lifecycle, false)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Sanity(.Lifecycle, false)]</span>
 <span class="SFct">#test</span>
 {
     <span class="SCmp">#assert</span>(<span class="SItr">#sanity</span>(<span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">Lifecycle</span>) == <span class="SKwd">false</span>)
@@ -8404,16 +8404,16 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>A decision that names a warning outranks a decision that says <span class="code-inline">"all"</span>, and at equal reach the innermost layer wins. So 'swc build --warn-as-error all' turns every warning into an error for that build, while a site that already declared '#[Swag.Warning("sema_warn_unreachable_code", .Disable)]' stays silent: naming a warning is a deliberate act, and it is not overridden from further out.</p>
 <h3 id="_013_005_warnings_swg_Silencing_a_Warning_at_One_Site">Silencing a Warning at One Site</h3>
 <p><span class="code-inline">#[Swag.Warning]</span> takes a warning name and a <span class="code-inline">Swag.WarningLevel</span>: <span class="code-inline">.Disable</span> does not report it at all, <span class="code-inline">.Warning</span> reports it as a warning, and <span class="code-inline">.Error</span> reports it as an error.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Warning("sema_warn_unreachable_code", .Disable)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Warning("sema_warn_unreachable_code", .Disable)]</span>
 <span class="SKwd">func</span> <span class="SFct">firstDraft</span>()-&gt;<span class="STpe">s32</span>
 {
     <span class="SLgc">return</span> <span class="SNum">1</span>
     <span class="SLgc">return</span> <span class="SNum">2</span>     <span class="SCmt">// Deliberate: the second branch of the computation, still to be written</span>
 }</span></div>
 <p>The attribute reaches everything it is written on. On a declaration it covers that declaration, on a block it covers the statements inside, and with <span class="code-inline">#global</span> it covers the whole file.</p>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SAtr">#[Swag.Warning("all", .Error)]</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Warning("all", .Error)]</span></span></div>
 <p>Several decisions compose, so a file can go silent except for the one warning it still wants to hear about.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Warning("all", .Disable), Swag.Warning("sema_warn_unreachable_code", .Error)]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Warning("all", .Disable), </span><span class="SNsp">Swag</span>.<span class="SAtr">Warning("sema_warn_unreachable_code", .Error)]</span>
 <span class="SKwd">func</span> <span class="SFct">everythingOffExceptOne</span>()-&gt;<span class="STpe">s32</span>
 {
     <span class="SLgc">return</span> <span class="SNum">1</span>
@@ -8450,7 +8450,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <h3 id="_014_001_constexpr_swg_Constant-Evaluable_Functions">Constant-Evaluable Functions</h3>
 <p><span class="code-inline">#[Swag.ConstExpr]</span> allows a function to participate in a constant expression. When the call and everything it depends on are constant, <span class="code-inline">swc</span> executes it during compilation. A call with runtime arguments remains an ordinary runtime call.</p>
 <p>Use this attribute for deterministic computation that belongs in array sizes, constants, static conditions, or generated declarations. Use <span class="code-inline">#run</span> when the operation should execute only as a build-time action.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">constexprSquare</span>(value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
 {
     <span class="SLgc">return</span> value * value
@@ -8474,7 +8474,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 }</span></div>
 <h3 id="_014_001_constexpr_swg_Branches__Loops__and_Recursion">Branches, Loops, and Recursion</h3>
 <p>A constant-evaluable function uses ordinary Swag control flow. Recursive definitions still need a valid base case and are subject to the compiler's execution limits.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">constexprFactorial</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span>
 {
     <span class="SLgc">if</span> value &lt;= <span class="SNum">1</span> <span class="SLgc">do</span>
@@ -8482,7 +8482,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SLgc">return</span> value * <span class="SFct">constexprFactorial</span>(value - <span class="SNum">1</span>)
 }
 
-<span class="SAtr">#[Swag.ConstExpr]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">constexprSum</span>(values: <span class="SKwd">const</span> [..] <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
 {
     <span class="SKwd">var</span> result = <span class="SNum">0</span>
@@ -8495,13 +8495,13 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SCmp">#assert</span>(<span class="SFct">constexprSum</span>([<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]) == <span class="SNum">10</span>)</span></div>
 <h3 id="_014_001_constexpr_swg_Constant_User-Defined_Values">Constant User-Defined Values</h3>
 <p>A struct can opt into constant evaluation when its lifecycle operations are valid in that environment. ConstExpr functions may then construct and return instances of that type.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">struct</span> <span class="SCst">ConstexprPoint</span>
 {
     x, y: <span class="STpe">s32</span>
 }
 
-<span class="SAtr">#[Swag.ConstExpr]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">makeConstexprPoint</span>(x, y: <span class="STpe">s32</span>)-&gt;<span class="SCst">ConstexprPoint</span>
 {
     <span class="SLgc">return</span> {x, y}
@@ -8512,7 +8512,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SCmp">#assert</span>(<span class="SCst">ConstexprOrigin</span>.y == <span class="SNum">7</span>)</span></div>
 <h3 id="_014_001_constexpr_swg_Static_Conditions_and_Types">Static Conditions and Types</h3>
 <p>The result can drive '#static if' or any other context that requires a constant:</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">constexprIsPowerOfTwo</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">bool</span>
 {
     <span class="SLgc">return</span> value != <span class="SNum">0</span> <span class="SLgc">and</span> (value &amp; (value - <span class="SNum">1</span>)) == <span class="SNum">0</span>
@@ -8768,7 +8768,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>A mixin in Swag is declared similarly to a function but with the attribute <span class="code-inline">#[Swag.Mixin]</span>. Mixins inject code into the caller's scope, manipulate variables, or execute as if written in that scope. This file provides a clear set of examples and tests.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">myMixin</span>()
     {
     <span class="SCmt">// Basic empty mixin</span>
@@ -8778,7 +8778,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>A mixin can directly modify variables in the caller's scope. This example increments <span class="code-inline">a</span> by 1 each time it is called.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">myMixin</span>()
     {
         a += <span class="SNum">1</span>
@@ -8793,7 +8793,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Mixins behave like functions: they can take parameters, default values, and return values. Here, <span class="code-inline">increment</span> defaults to 1.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">myMixin</span>(increment: <span class="STpe">s32</span> = <span class="SNum">1</span>)
     {
         a += increment
@@ -8808,7 +8808,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>A mixin can accept a <span class="code-inline">#code</span> parameter, representing a Swag code block defined at the call site. The mixin can execute this block multiple times using <span class="code-inline">#inject</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">doItTwice</span>(what: <span class="SItr">#code</span>)
     {
         <span class="SCmp">#inject</span>(what)
@@ -8829,7 +8829,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>When the last parameter is a <span class="code-inline">#code</span> statement block, the code can be provided in a separate block after the call.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">doItTwice</span>(value: <span class="STpe">s32</span>, what: <span class="SItr">#code</span>)
     {
         <span class="SCmp">#inject</span>(what)
@@ -8855,7 +8855,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Like macros, a mixin's <span class="code-inline">#code</span> parameter can declare named block parameters, bound by <span class="code-inline">#inject</span>. Since a mixin already runs in the caller's scope, the bindings are plain declarations there.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">inc10</span>(stmt: <span class="SItr">#code</span>(cell))
     {
         <span class="SCmp">#inject</span>(stmt, cell = <span class="SNum">10</span>)
@@ -8879,7 +8879,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 {
     <span class="SKwd">var</span> total: <span class="STpe">s32</span>
 
-    <span class="SAtr">#[Swag.Mixin]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">toScope</span>()
     {
         <span class="SKwd">var</span> <span class="SItr">#uniq0</span>: <span class="STpe">s32</span> = <span class="SNum">1</span>
@@ -8897,14 +8897,14 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Macros in Swag are declared like functions, but with the <span class="code-inline">#[Swag.Macro]</span> attribute. They are expanded at compile time and can be reused to generate code.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">myMacro</span>() {}
 }</span></div>
 <h3 id="_015_002_macros_swg_Macro_Scope">Macro Scope</h3>
 <p>Macros run in their own scope, isolated from the caller. Unlike mixins, they do not share the caller's scope. Variables defined inside a macro cannot interfere with the caller unless explicitly elevated.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">myMacro</span>()
     {
         <span class="SCmt">// 'a' here is local to the macro</span>
@@ -8925,7 +8925,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p><span class="code-inline">#inject</span> inserts the caller-provided code at the injection point. Injected code is hygienic: it resolves in the caller's scope, and cannot see the macro's own locals.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">myMacro</span>(what: <span class="SItr">#code</span>)
     {
         <span class="SCmp">#inject</span>(what)     <span class="SCmt">// insert provided code</span>
@@ -8951,7 +8951,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Use <span class="code-inline">#code-&gt;T</span> for a code expression that returns a specific type. The expression is evaluated at each <span class="code-inline">#inject</span>, not at the call site. '#code =&gt; expr' is the explicit expression literal, mirroring the short function form 'func() =&gt; expr'.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">myMacro</span>(what: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>)
     {
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCmp">#inject</span>(what))
@@ -8969,7 +8969,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Injected code always resolves in the caller's scope: a macro-local variable never shadows a caller variable used by the injected block.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">myMacro</span>(what: <span class="SItr">#code</span>)
     {
         <span class="SKwd">var</span> a = <span class="SNum">666</span>     <span class="SCmt">// macro-local 'a', invisible to the injected code</span>
@@ -8989,7 +8989,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>The <span class="code-inline">#code(...)</span> parameter names are the macro's contract: <span class="code-inline">#inject</span> binds them by name, and the injected code sees the resulting values under those names. Binding initializers evaluate in the macro's own scope, so no <span class="code-inline">#up</span> or <span class="code-inline">#macro</span> wrapping is needed.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">call</span>(v: <span class="STpe">s32</span>, stmt: <span class="SItr">#code</span>(value: <span class="STpe">s32</span>, double: <span class="STpe">s32</span>))
     {
         <span class="SCmp">#inject</span>(stmt, value = v, double = v * <span class="SNum">2</span>)
@@ -9006,7 +9006,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>The caller can rename the block parameters positionally with a <span class="code-inline">#code(...)</span> literal placed before the block. The same literal works inline, as a regular argument.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">call</span>(v: <span class="STpe">s32</span>, stmt: <span class="SItr">#code</span>(value: <span class="STpe">s32</span>, double: <span class="STpe">s32</span>))
     {
         <span class="SCmp">#inject</span>(stmt, value = v, double = v * <span class="SNum">2</span>)
@@ -9038,7 +9038,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>A <span class="code-inline">var</span> parameter gives the injected code a mutable binding. A typed parameter also types (and checks) the binding.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">withCounter</span>(start: <span class="STpe">s32</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> counter: <span class="STpe">s32</span>))
     {
         <span class="SCmp">#inject</span>(stmt, counter = start)
@@ -9057,7 +9057,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Macros extend the language without function-pointer/lambda overhead. They can be used to generate tight loops with caller-visible indices, etc.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">repeat</span>(count: <span class="STpe">s32</span>, what: <span class="SItr">#code</span>(index: <span class="STpe">s32</span>))
     {
         <span class="SKwd">var</span> a = <span class="SNum">0</span>
@@ -9087,7 +9087,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>You can remap <span class="code-inline">break</span>/<span class="code-inline">continue</span> in injected user code to control which loop they target. Bindings and control-flow replacements live in the same <span class="code-inline">#inject</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">repeatSquare</span>(count: <span class="STpe">u32</span>, what: <span class="SItr">#code</span>)
     {
         <span class="SCmt">// Define a scope label used as the break target</span>
@@ -9118,7 +9118,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>Remap both <span class="code-inline">break</span> and <span class="code-inline">continue</span> to influence outer/inner loop flow.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Macro]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
     <span class="SKwd">func</span> <span class="SFct">repeatSquare</span>(count: <span class="STpe">u32</span>, what: <span class="SItr">#code</span>)
     {
         <span class="SCmt">// Label for controlling the outer loop</span>
@@ -9222,7 +9222,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p><span class="code-inline">#ast</span> must return a string. You can construct it dynamically, e.g. by using a buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SAtr">#[Swag.Compiler]</span>
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Compiler]</span>
     <span class="SKwd">func</span> <span class="SFct">append</span>(buf: [*] <span class="STpe">u8</span>, start: <span class="STpe">s32</span>, val: <span class="STpe">string</span>)-&gt;<span class="STpe">s32</span>
     {
         <span class="SNsp">Swag</span>.<span class="SFct">memcpy</span>(buf + start, val.buffer, <span class="SKwd">cast</span>(<span class="STpe">u64</span>) val.count)
@@ -9336,7 +9336,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p><span class="code-inline">#foreignlib</span> registers the corresponding import library with the native linker. It does not declare functions by itself.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#foreignlib</span>(<span class="SStr">"kernel32"</span>)
 
-<span class="SAtr">#[Swag.Foreign(module: "kernel32", callconv: Swag.CallConv.C)]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Foreign(module: "kernel32", callconv: </span><span class="SNsp">Swag</span>.<span class="SAtr">CallConv.C)]</span>
 {
     <span class="SKwd">func</span> <span class="SFct">GetCurrentProcessId</span>()-&gt;<span class="STpe">u32</span>
     <span class="SKwd">func</span> <span class="SFct">Sleep</span>(milliseconds: <span class="STpe">u32</span>)
@@ -9349,7 +9349,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 }</span></div>
 <h3 id="_016_001_foreign_functions_swg_Renamed_Symbols_and_Separate_Link_Names">Renamed Symbols and Separate Link Names</h3>
 <p>Use <span class="code-inline">function</span> when the local name should differ from the exported symbol. Use <span class="code-inline">link</span> when runtime resolution and native linking use different library names:</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Foreign(
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Foreign(
     module: "vendor_runtime",
     function: "vendor_open_v2",
     link: "vendor_import",
@@ -9377,7 +9377,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.287</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.288</div>
 </footer>
 </section>
 </main>

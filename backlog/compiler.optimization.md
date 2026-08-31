@@ -8,29 +8,41 @@ the shared backlog conventions.
 
 ## Statement lowering
 
-### compiler.optimization.001 — A `switch` on known strings still tests its cases one by one
+### compiler.optimization.001 — A dense switch has no jump table
 
 - Area: compiler/codegen
-- Evidence: a case whose value is a string the compiler knows is now compared where it stands —
-  the length against an immediate, then the bytes in one or two overlapping chunks, with no call
-  at all (`emitKnownStringCompareEqualsJump` in
-  [CodeGen.Switch.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Switch.cpp)). Measured on a 104-case
-  table with a name that matches none of them, so every case is tested: 97-132 ns before,
-  53-66 ns after. What remains is that the cases are still tested in source order: only the ones
-  of the value's own length can match, and the compiler knows every length before it emits
-  anything. Written by hand in `HtmlDocument.tagFromName`, that grouping is worth another 40% —
-  24 ns per name instead of 40.
-- Next: when every case of a string switch is a known constant and no case carries a `where`,
-  group the tests by length behind one dispatch on the loaded length, then measure the same
-  104-case table and `bin/` as a whole.
-- Complete when: a hand-written length grouping no longer beats what the compiler emits, and the
-  `sema`, `native` and `jit` suites stay green.
-- Also: `Pdf.parseContent` dispatches PDF content operators through forty-nine cases whose labels
-  are one to three byte strings, so a three-byte token can cost sixty calls to identify. Replacing
-  that one dispatch with a packed-integer switch produced no change any measurement could separate
-  from the noise, which bounds what the shape costs when the cases are short and the hot operators
-  sit early: this is worth fixing where the case list is long, not everywhere it appears. The same
-  file emits one test per case for an integer switch too, with no table and no binary search.
+- Evidence: a switch whose case values the compiler knows is answered by one search emitted before
+  the first case, which jumps straight to the body that matches (`emitSwitchDispatch` in
+  [CodeGen.Switch.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Switch.cpp)): strings dispatch on their
+  length and then on their first chunk, integers, characters, enumerations and booleans
+  binary-search their sorted intervals. A dense case list still pays those log2(N) comparisons
+  where one indexed jump would answer in constant time.
+- Next: the micro IR has `JumpReg`, but a computed jump sets
+  `hasUnsupportedControlFlowForCfgLiveness_` in
+  [MicroControlFlowGraph.cpp](../src/Backend/Micro/MicroControlFlowGraph.cpp), and the whole
+  enclosing function then falls back to purely local register allocation — a worse trade than the
+  search the table would replace. Give the jump its label set, so the CFG can read its successors,
+  before measuring a table against the search on a dense enumeration.
+- Complete when: a function whose switch dispatches through a table keeps its global register
+  allocation, and the table measures faster than the search.
+
+### compiler.optimization.025 — A type switch still tests one descriptor at a time
+
+- Area: compiler/codegen
+- Found while: giving every other kind of switch one search over its case values
+- Evidence: `case T` matches on runtime identity, which is the hash in the descriptor rather than
+  its address (`emitTypeInfoEqualJump` in
+  [CodeGenCompareHelpers.h](../src/Compiler/CodeGen/Core/CodeGenCompareHelpers.h)), so each case
+  costs a pointer compare, two null tests and two hash loads. That hash is a compile-time value:
+  `TypeInfo::runtimeHash` is what fills `crc` in the emitted descriptor
+  ([TypeGen.Payload.cpp](../src/Compiler/Sema/Type/TypeGen.Payload.cpp)). Reading the value's `crc`
+  once and searching the constant hashes would put a type switch on the same dispatch as the rest.
+- Next: settle whether a case descriptor can be null at run time. The helper treats two null
+  descriptors as the same type, and a search that sends a null value straight to the default would
+  change that; if a case type always materializes a real descriptor, the question does not arise.
+  Then reuse `SwitchDispatchSearch` on the hashes, falling back when two cases collide.
+- Complete when: a type switch of a dozen cases costs one hash load and log2(N) comparisons, and
+  the `native` and `jit` suites stay green.
 
 ## Loop vectorization
 

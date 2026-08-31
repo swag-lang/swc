@@ -79,6 +79,12 @@ impl ActionHex
     newCmdId("CopyDump")
     newCmdId("SelectAll")
     newCmdId("GoTo")
+    newCmdId("RowWidth")
+    newCmdId("RowAuto")
+    newCmdId("Row8")
+    newCmdId("Row16")
+    newCmdId("Row32")
+    newCmdId("Row64")
 }
 
 // Width reserved for one rendered scalar, in fixed-width characters.
@@ -940,6 +946,15 @@ impl HexGridView
         menu.addSeparator()
         menu.addItem(ActionHex.SelectAll)
         menu.addItem(ActionHex.GoTo)
+        menu.addSeparator()
+
+        let widths = MenuCtrl.createPopup(menu, owner: me)
+        widths.addItem(ActionHex.RowAuto)
+        widths.addItem(ActionHex.Row8)
+        widths.addItem(ActionHex.Row16)
+        widths.addItem(ActionHex.Row32)
+        widths.addItem(ActionHex.Row64)
+        menu.addPopup(widths, ActionHex.RowWidth)
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
@@ -1048,7 +1063,7 @@ impl IActionUI for ActionHex
     {
         switch cxt.id
         {
-        case ActionHex.CopyBytes, ActionHex.CopyText, ActionHex.CopyDump, ActionHex.SelectAll, ActionHex.GoTo: return true
+        case ActionHex.CopyBytes, ActionHex.CopyText, ActionHex.CopyDump, ActionHex.SelectAll, ActionHex.GoTo, ActionHex.RowWidth, ActionHex.RowAuto, ActionHex.Row8, ActionHex.Row16, ActionHex.Row32, ActionHex.Row64: return true
         }
 
         return false
@@ -1085,6 +1100,22 @@ impl IActionUI for ActionHex
             evt.name          = hexStrings().ui_GoTo
             evt.shortcut      = "Ctrl+G"
 
+        case ActionHex.RowWidth:
+            evt.updatedFields |= .Name
+            evt.name          = hexStrings().ui_RowWidth
+
+        case ActionHex.RowAuto:
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
+            evt.name          = hexStrings().ui_RowAuto
+            evt.checked       = grid.autoFitRow
+            evt.renderingHint = .ExclusiveGroup
+
+        case ActionHex.Row8, ActionHex.Row16, ActionHex.Row32, ActionHex.Row64:
+            let width = cxt.id == ActionHex.Row8 ? 8'u64 : cxt.id == ActionHex.Row16 ? 16'u64 : cxt.id == ActionHex.Row32 ? 32'u64 : 64'u64
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
+            evt.name          = Format.toString("%", width)
+            evt.checked       = !grid.autoFitRow and grid.bytesPerRow == width
+            evt.renderingHint = .ExclusiveGroup
         }
 
         return true
@@ -1100,6 +1131,12 @@ impl IActionUI for ActionHex
         case ActionHex.CopyDump:  grid.copySelection(.Dump)
         case ActionHex.SelectAll: grid.selectAll()
         case ActionHex.GoTo:      grid.promptGoToOffset()
+        case ActionHex.RowAuto:   grid.setBytesPerRow(0, true)
+        case ActionHex.Row8:      grid.setBytesPerRow(8, false)
+        case ActionHex.Row16:     grid.setBytesPerRow(16, false)
+        case ActionHex.Row32:     grid.setBytesPerRow(32, false)
+        case ActionHex.Row64:     grid.setBytesPerRow(64, false)
+        case ActionHex.RowWidth:  return false
         }
 
         return true

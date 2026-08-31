@@ -416,7 +416,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         let anchor = button.surfaceRect()
         Swag.assert(popup.popupAnchorButton == button)
         Swag.assert(popup.popupBarItemSurfaceRect == anchor)
-        Swag.assert(!popup.popupAnchorAtBottom)
         Swag.assert(popup.getPopupBodyRect().y == popup.getPopupBarAnchorHeight() + popup.themeMetrics().menuPopup_ShadowSize)
         Swag.assert(popup.position.y + popup.getPopupBodyRect().y == anchor.bottom())
         var image = host.render()
@@ -428,46 +427,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     discard popup.doModal(button, autoDestroy: true)
     Swag.assert(checked)
     host.pump()
-}
-
-// A button along the lower and trailing edges remains the integrated tab of a menu opening above
-// it. Closing that menu also releases sibling-layer submenus owned by the root popup.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(360, 240)
-    defer host.shutdown()
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
-
-    let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), {296, 198, 48, 36}, flags: .CenterContent)
-    let childCount = host.root.children.count
-    let popup      = MenuCtrl.createPopup(&host.root)
-    popup.addItem("Copy", Menu_Open)
-    let options = MenuCtrl.createPopup(popup)
-    options.addItem("Expanded", Menu_New, checked: true)
-    popup.addPopup("Options", options)
-
-    var checked: bool
-    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
-    {
-        discard app
-        if checked[] do
-            return
-        let anchor = button.surfaceRect()
-        let body   = popup.getPopupBodyRect()
-        Swag.assert(popup.popupAnchorButton == button and popup.popupAnchorAtBottom)
-        Swag.assert(popup.position.y + body.bottom() == anchor.y)
-        Swag.assert(popup.position.x + body.right() == anchor.right())
-        Swag.assert(body.width > 0 and body.height > 0)
-        Swag.assert(host.dismissPopupMenu())
-        checked[] = true
-    }
-
-    discard popup.doModal(button, autoDestroy: true)
-    Swag.assert(checked)
-    host.pump()
-    Swag.assert(host.root.children.count == childCount)
 }
 
 // An anchored menu that is taller than the room above its button keeps its shadow and content

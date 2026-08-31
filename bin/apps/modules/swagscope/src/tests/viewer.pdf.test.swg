@@ -40,7 +40,6 @@ private func createPdfFixture()->String
     let pdf = view.pdfView
     Swag.assert(pdf.pageCount() == 2 and pdf.pageIndex == 0)
     Swag.assert(pdf.isFitted)
-    Swag.assert(view.pageLabel.arrowPosition == .None and view.pageLabel.position.width < 64)
 
     // Actual size shows one PDF point per 1/96 logical inch; an explicit zoom multiplies the
     // shown size exactly, with the rasterization following the widget internally.

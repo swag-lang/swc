@@ -19,11 +19,9 @@ func hexViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const HexCommandWidth   = 436.0
-private const HexWidthWidth     = 84.0
-private const HexFormatWidth    = 112.0
-private const HexEndianWidth    = 128.0
-private const HexRowWidth       = 80.0
+private const HexCommandWidth   = 516.0
+private const HexComboWidth     = 150.0
+private const HexEndianWidth    = 150.0
 private const HexInspectorWidth = 420.0
 private const HexZoomWidth      = 96.0
 private const HexInfoWidth      = HexInspectorWidth + HexZoomWidth
@@ -84,10 +82,10 @@ internal struct HexViewer
     {
         commands:       *Wnd
         analysisButton: *IconButton
+        moreButton:     *IconButton
         widthCombo:     *ComboBox
         formatCombo:    *ComboBox
         byteOrderCombo: *ComboBox
-        rowCombo:       *ComboBox
         analysisView:   *HexAnalysisView
         grid:           *HexGridView
     }
@@ -99,9 +97,11 @@ internal struct HexViewer
     analysis:             HexAnalysisOperation
     analysisTimer:        #null *Timer
     fileName:             String
+    details:              String
     load:                 Viewer.BackgroundLoad'HexDocument
     loadTimer:            #null *Timer
     reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
     reportLoadingChanged: #null Viewer.ReportLoadingChanged
     failureReason:        String
 }
@@ -269,18 +269,6 @@ internal impl HexViewer
         .grid.setBigEndian(.byteOrderCombo.selectedIndex == 1)
     }
 
-    mtd applyRowWidth()
-    {
-        switch .rowCombo.selectedIndex
-        {
-        case 0:  .grid.setBytesPerRow(0, true)
-        case 1:  .grid.setBytesPerRow(8, false)
-        case 2:  .grid.setBytesPerRow(16, false)
-        case 3:  .grid.setBytesPerRow(32, false)
-        default: .grid.setBytesPerRow(64, false)
-        }
-    }
-
     mtd rebuildFormats()
     {
         let previous = .formatCombo.selectedIndex
@@ -314,18 +302,12 @@ internal impl HexViewer
         .byteOrderCombo.addItem(hexStrings().ui_EndianBig)
         .byteOrderCombo.setSelectedIndex(byteOrder, notify: false)
         .byteOrderCombo.toolTip = hexStrings().ui_TipEndian
-
-        let rowWidth = .rowCombo.selectedIndex
-        .rowCombo.clear()
-        .rowCombo.addItem(hexStrings().ui_RowAuto)
-        .rowCombo.addItem("8")
-        .rowCombo.addItem("16")
-        .rowCombo.addItem("32")
-        .rowCombo.addItem("64")
-        .rowCombo.setSelectedIndex(rowWidth, notify: false)
-        .rowCombo.toolTip       = hexStrings().ui_RowWidth
+        .moreButton.toolTip     = hexStrings().ui_TipCommands
         .analysisButton.toolTip = hexStrings().ui_AnalysisTip
         .analysisView.retranslate()
+        .details = hexStrings().ui_Details
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
         .commands.applyLayout()
         .grid.invalidate()
         .refreshInspector()
@@ -503,6 +485,7 @@ internal impl HexViewer
         let result   = Wnd.create'HexViewer(host.contentParent(), "scope.hex")
         result.backgroundStyle      = .View
         result.reportFailure        = services.reportFailure
+        result.reportDetails        = services.reportDetails
         result.reportLoadingChanged = services.reportLoadingChanged
         result.fileName             = host.fileName()
 
@@ -542,7 +525,18 @@ internal impl HexViewer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexWidthWidth, 36})
+        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = hexStrings().ui_TipCommands
+            .sigPressed += func|view = result|(button)
+            {
+                view.grid.showContextMenu(button.localToSurface(Math.Point{0, button.position.height}))
+            }
+        }
+
+        with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -560,7 +554,7 @@ internal impl HexViewer
             }
         }
 
-        with result.formatCombo = ComboBox.create(result.commands, {0, 0, HexFormatWidth, 36})
+        with result.formatCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -590,25 +584,6 @@ internal impl HexViewer
                 discard combo
                 discard index
                 view.applyByteOrder()
-            }
-        }
-
-        with result.rowCombo = ComboBox.create(result.commands, {0, 0, HexRowWidth, 36})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = hexStrings().ui_RowWidth
-            .addItem(hexStrings().ui_RowAuto)
-            .addItem("8")
-            .addItem("16")
-            .addItem("32")
-            .addItem("64")
-            .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = result|(combo, index)
-            {
-                discard combo
-                discard index
-                view.applyRowWidth()
             }
         }
 
@@ -653,6 +628,7 @@ internal impl HexViewer
             result.grid.doc.reportFailure = func|result, report|(reason) { report(cast(*Wnd) result, reason) }
         }
 
+        result.details = hexStrings().ui_Details
         result.applyLayout()
         result.grid.refreshLayout()
         result.refreshInspector()
@@ -670,6 +646,7 @@ func createHexViewer(host: Viewer.Host)
     let view = HexViewer.create(host)
 
     host.attachView(view)
+    host.setDetails(view.details.toString())
     host.setSearch({
         revealMatch: func(wnd, match, text)->bool
     {

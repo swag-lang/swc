@@ -295,16 +295,7 @@ public impl Json
 
     internal mtd propertyMatches(val: TypeValue)->bool
     {
-        if .propName == val.name do
-            return true
-        for aliasAttr in Reflection.attributes(val, Serialization.Alias)
-        {
-            let name = Reflection.attributeValue(aliasAttr, "name")
-            if name != null and .propName == cast(string) name! do
-                return true
-        }
-
-        return false
+        return .propName == wireFieldKey(val)
     }
 
     // Starts reading a borrowed JSON buffer.

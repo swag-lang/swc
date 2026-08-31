@@ -1,3 +1,4 @@
+#[Serialization.TypeKey("swag.capture.form.polygon")]
 struct FormPolygon
 {
     using base: BaseForm

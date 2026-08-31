@@ -8,17 +8,19 @@ using Core
 // format-specific byte payload. Unknown records can therefore survive a
 // decode/encode round trip without Pixel interpreting their contents.
 //
-// The aliases keep records written under the earlier spelling readable; see
-// [[Pixel.Image]] for why a serialized rename needs one.
-#[Core.Serialization.Alias("ImageMetaData")]
+// Structured TagBin payloads are decoded through the statically requested type, so the
+// source type name is not part of this record's persisted identity.
 struct ImageMetadata
 {
     public
     {
-        #[Core.Serialization.Alias("sig")]
+        #[Core.Serialization.Key("signature")]
         signature: u32     // Codec-defined signature or namespace identifier.
 
-        tag:   Array'u8     // Owned byte tag that identifies the record within `signature`.
+        #[Core.Serialization.Key("tag")]
+        tag: Array'u8     // Owned byte tag that identifies the record within `signature`.
+
+        #[Core.Serialization.Key("value")]
         value: Array'u8     // Owned, codec-defined payload bytes.
     }
 }

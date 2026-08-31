@@ -12,7 +12,7 @@ struct SurfaceState
     {
         position: Math.Rectangle     // Current surface bounds in physical screen pixels.
 
-        #[Serialization.Alias("positionNotMaximized")]
+        #[Serialization.Key("restoredPosition")]
         restoredPosition: Math.Rectangle     // Bounds restored after leaving a maximized state.
 
         isMaximized: bool     // Whether the surface is maximized.

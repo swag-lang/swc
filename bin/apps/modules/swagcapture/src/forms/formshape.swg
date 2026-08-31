@@ -9,6 +9,7 @@ const MinRoundSize = 10.0
 const MaxRoundSize = 50.0
 
 #[Swag.Using(Properties)]
+#[Serialization.TypeKey("swag.capture.form.shape")]
 struct FormShape
 {
     using base: BaseForm

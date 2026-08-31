@@ -3,8 +3,9 @@
 // rect gizmo (resize/move) while the tail tip is a single-anchor point gizmo. Text is
 // rendered by reusing FormText so glyph layout/outline/caching is not duplicated here.
 // Field order below is the display order of the generated properties panel;
-// serialization matches fields by name, so it is free to follow the UI.
+// serialization matches fields by canonical key, so it is free to follow the UI.
 #[Swag.Using(Properties)]
+#[Serialization.TypeKey("swag.capture.form.callout")]
 struct FormCallout
 {
     using base: BaseForm

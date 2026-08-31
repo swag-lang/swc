@@ -166,6 +166,7 @@ struct ChunkOptions
 
 #[Swag.NoDoc]
 #[Serialization.Version(1)]
+#[Serialization.Schema("core.scc.header")]
 struct Header
 {
     containerKind:    Guid128
@@ -286,11 +287,9 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
 private func decodeHeader(bytes: const [..] u8)->Header fail
 {
     var decoder: Decoder'Read.TagBin
-    var result:  retval
-    decoder.start(bytes)
-    decoder.readTypedContent(&result, #typeof(Header))
-    decoder.end()
-    return result
+    let decoded = decoder.readAll'Header(bytes)!
+    defer Memory.delete(decoded)
+    return #move decoded[]
 }
 
 private func findCodec(codecs: Array'ICodec, id: Guid128)->#null ICodec

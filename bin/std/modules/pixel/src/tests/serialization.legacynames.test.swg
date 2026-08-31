@@ -3,24 +3,37 @@
 
 using Swag, Core
 
-// Mirrors the field names 'Pixel.Image' was written under before they were spelled out.
-// Only the names matter here: TagBin keys a field by the CRC of its name, so a stream
-// produced from this struct is byte-compatible with an image saved by an older build.
+// Uses different source field names with the same stable keys as 'Pixel.Image'. This
+// simulates a source rename without adding a second accepted wire name.
+#[Serialization.Schema("pixel.image")]
 struct LegacyImage
 {
     pixels:    Array'u8
+
+    #[Serialization.Key("metadata")]
     metaDatas: Array'LegacyImageMetaData
+
+    #[Serialization.Key("byteCount")]
     size:      u64
     width:     s32
     height:    s32
+
+    #[Serialization.Key("rowStride")]
     width8:    s32
+
+    #[Serialization.Key("pixelFormat")]
     pf:        PixelFormat
+
+    #[Serialization.Key("bitsPerPixel")]
     bpp:       u8
+
+    #[Serialization.Key("bytesPerPixel")]
     bpp8:      u8
 }
 
 struct LegacyImageMetaData
 {
+    #[Serialization.Key("signature")]
     sig:   u32
     tag:   Array'u8
     value: Array'u8
@@ -50,10 +63,7 @@ func makeLegacyImage()->LegacyImage
     return result
 }
 
-// An image saved under the previous field names still decodes. Renaming a serialized field
-// without a 'Serialization.Alias' silently drops its value: the geometry survives because
-// 'width' and 'height' kept their names, while stride, format and depth come back zero and
-// the picture decodes to noise. That is what happened to every stored capture.
+// Stable field keys preserve every image invariant across source-level field renames.
 #test
 {
     let legacy = makeLegacyImage()

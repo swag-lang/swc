@@ -3,23 +3,39 @@
 
 using Swag
 
-// Set the struct version number
+// Defines the version number written with a serialized struct.
 #[AttrUsage(AttributeUsage.Struct)]
 attr Version(v: u32)
 
-// The struct does not need versionning
+// Serializes a POD struct as raw bytes without structural versioning.
 #[AttrUsage(AttributeUsage.Struct)]
 attr Final()
 
-// Accept this other name for the struct field or the struct itself
-#[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable | AttributeUsage.Multi)]
-attr Alias(name: string)
+// Defines the stable, human-readable identity of a serialized document.
+//
+// TagBin writes this value in its header and checks it before decoding the root value.
+// Keep it unchanged when the Swag type or its owning module is renamed.
+#[AttrUsage(AttributeUsage.Struct)]
+attr Schema(name: string)
 
-// Do not serialize a struct or a field
+// Defines the stable, human-readable wire name of a field.
+//
+// A field without this attribute uses its source name.
+#[AttrUsage(AttributeUsage.StructVariable)]
+attr Key(name: string)
+
+// Defines the stable, human-readable wire identity of a serialized struct type.
+//
+// A concrete struct stored through an interface always needs this attribute so its
+// identity does not depend on a Swag type or module name.
+#[AttrUsage(AttributeUsage.Struct)]
+attr TypeKey(name: string)
+
+// Excludes a struct or field from serialization.
 #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
 attr NoSerialize()
 
-// Compress a struct or a field
+// Compresses the serialized payload of a struct or field.
 #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
 attr Compress()
 

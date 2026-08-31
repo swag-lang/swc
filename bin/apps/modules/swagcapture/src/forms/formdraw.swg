@@ -1,3 +1,4 @@
+#[Serialization.TypeKey("swag.capture.form.draw")]
 struct FormDraw
 {
     using base: BaseForm

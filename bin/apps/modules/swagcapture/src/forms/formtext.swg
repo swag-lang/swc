@@ -6,8 +6,9 @@ enum FormTextAlign
 }
 
 // Field order below is the display order of the generated properties panel;
-// serialization matches fields by name, so it is free to follow the UI.
+// serialization matches fields by canonical key, so it is free to follow the UI.
 #[Swag.Using(Properties)]
+#[Serialization.TypeKey("swag.capture.form.text")]
 struct FormText
 {
     using base: BaseForm

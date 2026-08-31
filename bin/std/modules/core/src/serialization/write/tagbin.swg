@@ -4,23 +4,12 @@
 
 using Swag, Core.Errors
 
-// Version marks, written right after the root signature. The constants are disjoint from
-// every 'TagBinSignature' value, which is how the three stream generations tell each other
-// apart:
-//
-// - A version 0 stream carries no mark at all: the root signature is followed straight
-//   away by the first section signature.
-// - A version 1 stream carries 'TagBinVersion1'. Elements have inline name/type crcs, a
-//   per-instance fat of absolute offsets, and a value-flags byte.
-// - A version 2 stream carries 'TagBinVersion2'. The header gains a flags word and a shape
-//   directory: the field list of a struct type is stored once per stream, and every
-//   instance references it instead of repeating the crcs. A version 1 reader that meets a
-//   version 2 stream rewinds to the version 0 path, reads the mark where it expects a
-//   section signature, and fails cleanly.
-const TagBinVersion1 = 0xFAFAFAFA
-const TagBinVersion2 = 0xFAFAFAFB
+// Version mark written after the root signature. This is the only supported TagBin
+// generation. It deliberately differs from every historical marker, so obsolete data
+// stops at the header instead of being interpreted with another layout.
+const TagBinVersion1 = 0xFAFAFAFC
 
-// Header flags of a version 2 stream.
+// Header flags of a version 1 stream.
 //
 // These values are the on-disk format; never renumber them.
 #[Swag.EnumFlags]
@@ -39,7 +28,7 @@ enum TagBinSignature: u32
     Version  = 0xC0DE0003     // Indicates that a version number is present
     Raw      = 0xC0DE0004     // Indicates raw POD data with no structure
     UnRaw    = 0xC0DE0005     // Indicates non-POD structured data
-    ShapeDir = 0xC0DE0006     // Shape directory of a version 2 stream
+    ShapeDir = 0xC0DE0006     // Shape directory of a version 1 stream
 }
 
 // Shape id of a section whose fields are self-described in the stream rather than
@@ -47,8 +36,8 @@ enum TagBinSignature: u32
 // 'Serializer.serialize' and for types that drive their own fields with 'ISerialize'.
 const TagBinAdHocShape = 0xFFFFFFFF'u32
 
-// Additional signature for each value of a version 1 stream, and of the ad-hoc sections
-// of a version 2 stream, stored after the value description (crcs)
+// Additional signature for each value in an ad-hoc section, stored after its key and
+// static type identity.
 //
 // These numbers are the on-disk format, so both cases are pinned. Every element ever
 // written carries bit 0, which is why [[Core.Serialization.Write.TagBinValueFlags.None]] is
@@ -61,7 +50,7 @@ enum TagBinValueFlags: u8
     Compressed = 2     // The value payload is deflate compressed.
 }
 
-// Per-field flags stored in a shape directory entry of a version 2 stream.
+// Per-field flags stored in a shape directory entry of a version 1 stream.
 //
 // These values are the on-disk format; never renumber them.
 #[Swag.EnumFlags]
@@ -77,7 +66,8 @@ struct TagBinSection
     public
     {
         startSeek:    ConcatBufferPosition                      // Position of the patched section header words.
-        mapSeek:      HashTable'(u32, ConcatBufferPosition)     // Ad-hoc sections: maps field crcs to their position.
+        mapSeek:      HashTable'(string, ConcatBufferPosition)  // Ad-hoc sections: maps field keys to their position.
+        keys:         ArrayPtr'String                           // Owns stable text borrowed by 'mapSeek'.
         offsets:      Array'u32                                 // Shaped sections: per-field offsets, relative to the section payload.
         plan:         #null const *Plan                         // Shaped sections: the plan driving the field order.
         payloadStart: u64                                       // Offset of the first payload byte of the section.
@@ -88,8 +78,8 @@ struct TagBinSection
 
 // Binary writer for serialized data with support for structured and raw output.
 //
-// The writer always produces a version 2 stream. See the version marks above for the
-// layout, and [[Core.Serialization.Read.TagBin]] for the compatibility contract.
+// The writer produces the single version 1 layout described by
+// [[Core.Serialization.Read.TagBin]].
 #[Swag.Opaque]
 struct TagBin
 {
@@ -98,6 +88,11 @@ struct TagBin
         compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero          // Compression flags associated with this value.
         compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed     // Compression level associated with this value.
         compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default       // Compression strategy associated with this value.
+
+        // Identifies a document written through the low-level streaming API.
+        //
+        // `writeAll` uses the root type's [[Core.Serialization.Schema]] instead.
+        schema: String
 
         // When true, the whole stream body is compressed as a single deflate payload at the
         // end of the write. This replaces the per-field 'Serialization.Compress' attribute
@@ -108,11 +103,12 @@ struct TagBin
     // Writing state: the compressor, the section stack and the buffer pools it recycles.
     private
     {
+        rootType:     #null typeinfo                                               // Root type supplied by the high-level encoder.
         compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
         finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
         output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.
         body:         ConcatBuffer                                                // Accumulates every section before the final assembly.
-        shapeIds:     HashTable'(u32, u32)                                        // Maps a struct type crc to its shape id.
+        shapeIds:     HashTable'(u64, u32)                                        // Maps each serialization plan address to its shape id.
         shapePlans:   Array'(const *Plan)                                         // The plan of each registered shape, by shape id.
         headerPatch:  ConcatBufferPosition                                        // Position of the shape directory offset in the header.
         freeSections: ArrayPtr'TagBinSection                                      // Pool of reusable section structures.
@@ -132,6 +128,7 @@ private impl TagBin
         {
             let ptr = .freeSections.popBack()!
             ptr.mapSeek.clear()
+            ptr.keys.clear()
             ptr.offsets.clear()
             ptr.plan       = null
             ptr.fieldIndex = 0
@@ -170,7 +167,7 @@ private impl TagBin
     // Returns the shape id of a plan, registering the shape on first use.
     mtd shapeIdFor(plan: const *Plan)->u32
     {
-        let key = getTypeInfoCrc(plan.structType)
+        let key = cast(u64) plan
         let e   = .shapeIds.tryFind(key)
         if e do
             return e.value
@@ -218,6 +215,13 @@ private impl TagBin
 
 impl TagBin
 {
+    // Supplies the root type used to derive the document schema.
+    #[Swag.NoDoc]
+    mtd setRootType(type: typeinfo)
+    {
+        .rootType = type
+    }
+
     // Tagbin is a binary format.
     mtd isTextual()->bool
     {
@@ -230,11 +234,10 @@ impl TagBin
         return wireTypeCrc(type)
     }
 
-    // Writes an unsigned value as LEB128, the framing encoding of a version 2 stream.
-    mtd writeVarint(value: u64)
+    // Writes a varint to an explicit buffer.
+    mtd writeVarintTo(output: *ConcatBuffer, value: u64)
     {
-        let output = .output!
-        var v      = value
+        var v = value
         while v >= 0x80
         {
             output.addNative(cast(u8) ((v & 0x7F) | 0x80))
@@ -242,6 +245,36 @@ impl TagBin
         }
 
         output.addNative(cast(u8) v)
+    }
+
+    // Writes an unsigned value as LEB128, the framing encoding of a version 1 stream.
+    mtd writeVarint(value: u64)
+    {
+        .writeVarintTo(.output!, value)
+    }
+
+    // Validates and returns the stable key of a concrete interface object.
+    #[Swag.NoDoc]
+    mtd interfaceTypeKey(type: #null typeinfo)->string fail
+    {
+        if !type do
+            return ""
+
+        let key = wireTypeKey(type)
+        if key == "" do
+            fail SerializationError{"interface object type needs a Serialization.TypeKey attribute"}
+        if Reflection.typeFromKey(key) != type do
+            fail SerializationError{Errors.mkString(Format.toString("interface object key [[%]] does not resolve to one registered type", key))}
+        return key
+    }
+
+    // Writes the stable key of a concrete interface object.
+    #[Swag.NoDoc]
+    mtd writeInterfaceType(type: #null typeinfo) fail
+    {
+        let key = .interfaceTypeKey(type)
+        .writeVarint(key.count)
+        .output!.addBytes(key)
     }
 
     // Begins writing to a specified output buffer
@@ -262,7 +295,11 @@ impl TagBin
     {
         let header = .finalOutput!
         header.addNative(TagBinSignature.Root)
-        header.addNative(TagBinVersion2)
+        header.addNative(TagBinVersion1)
+
+        let schema = .rootType ? wireSchema(.rootType) : .schema.toString()
+        .writeVarintTo(header, schema.count)
+        header.addBytes(schema)
 
         var flags: TagBinHeaderFlags = .Zero
         if .compressStream do
@@ -290,7 +327,8 @@ impl TagBin
             .writeVarint(plan.fields.count)
             for &pf in plan.fields
             {
-                .body.addNative(pf.crcName)
+                .writeVarint(pf.key.count)
+                .body.addBytes(pf.key)
                 .body.addNative(pf.wireCrc)
                 var flags: TagBinShapeFlags = .Zero
                 if pf.compressed do
@@ -336,6 +374,7 @@ impl TagBin
         }
 
         .body.clear()
+        .rootType = null
     }
 
     // Begins a new section of the specified kind
@@ -378,7 +417,8 @@ impl TagBin
             output.addNative(TagBinSignature.Fat)
             for k, v in sec.mapSeek
             {
-                output.addNative(k)                            // Crc
+                .writeVarint(k.count)
+                output.addBytes(k)
                 output.addNative(ConcatBuffer.offsetOf(v))     // Offset inside the body
             }
 
@@ -448,7 +488,7 @@ impl TagBin
             let plan = sec.plan!
             Debug.assert(sec.fieldIndex < plan.fields.count)
             let pf = plan.fields.buffer! + sec.fieldIndex
-            Debug.assert(pf.crcName == getTypeValueCrc(val))
+            Debug.assert(pf.key == wireFieldKey(val))
             sec.fieldIndex += 1
 
             let off = ConcatBuffer.offsetOf(output.position()) - sec.payloadStart
@@ -460,16 +500,19 @@ impl TagBin
         }
         else
         {
-            let crcName = getTypeValueCrc(val)
+            let key = wireFieldKey(val)
+            if key == "" do
+                fail SerializationError{"serialized field needs a non-empty key", field: val}
 
-            // Two fields hashing to the same wire key would overwrite each other in the
-            // stream index, so the element cannot be written.
-            if sec.mapSeek.contains(crcName) do
-                fail SerializationError{"duplicate serialized field name crc", field: val}
-            sec.mapSeek.add(crcName, output.position())
+            if sec.mapSeek.contains(key) do
+                fail SerializationError{Errors.mkString(Format.toString("serialized ad-hoc field key [[%]] is already used", key)), field: val}
+            let ownedKey = sec.keys.addNew()
+            ownedKey[] = String.from(key)
+            sec.mapSeek.add(ownedKey[].toString(), output.position())
 
             // Write element signature
-            output.addNative(crcName)
+            .writeVarint(key.count)
+            output.addBytes(key)
             output.addNative(wireTypeCrc(val.pointedType))
 
             var valSig: TagBinValueFlags = .None

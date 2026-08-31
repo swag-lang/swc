@@ -7,8 +7,8 @@
 namespace
 {
     constexpr char missingAvx2Message[] =
-        "fatal error: swc needs a CPU with AVX2 (x86-64-v3)\n"
-        "note: swc emits x86-64-v3 code and executes it in its own JIT, so the host CPU needs it too\n";
+        "fatal error: swc needs a CPU with AVX2 (x86-64-v3)\r\n"
+        "note: swc emits x86-64-v3 code and executes it in its own JIT, so the host CPU needs it too\r\n";
 
     void NTAPI verifyHostCpu(PVOID, const DWORD reason, PVOID)
     {

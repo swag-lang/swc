@@ -24,11 +24,14 @@ forwarded to the compiler.
 
 ## Build the compiler manually
 
-`release.bat` and `devmode.bat` are the full-machine entry points for an interactive build. Both
-give MSBuild and the C++ compiler all logical processors. The Release entry point additionally
-enables whole-program optimization, full link-time code generation, reference elimination, and
-identical COMDAT folding. Direct MSBuild builds keep the repository's bounded defaults for IDE,
-agent, and iterative work.
+`max.bat` is the owner-only interactive entry point for producing the most optimized
+`swc.exe`. It gives the C++ compiler all logical processors and enables whole-program optimization,
+aggressive inlining, global-data optimization, full link-time code generation, reference
+elimination, and identical COMDAT folding. It is deliberately excluded from agent and routine
+validation workflows because its compile and link steps can saturate the machine for a long time.
+`release.bat`, `devmode.bat`, direct MSBuild builds, and agent work keep the repository's bounded
+defaults. Release and max builds use separate intermediate trees; switching between them
+invalidates and regenerates `swc.exe` even when no source changed.
 
 ## How a tool is built
 

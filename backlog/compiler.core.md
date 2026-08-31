@@ -248,8 +248,6 @@ This is a compiler-performance change, not part of the baseline contract: it mov
 - A host reporting no AVX2 still gets the diagnostic instead of a fault.
 - Compile time and `swc.exe` size are measured before and after, alternating order, and recorded.
 
-**Related:** compiler.core.017.
-
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

@@ -5,7 +5,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
-#include "Backend/Runtime.h"
 #include "Support/Report/Assert.h"
 
 // Superword-level vectorization of straight-line blocks.

@@ -15,7 +15,6 @@
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaUndefined.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"

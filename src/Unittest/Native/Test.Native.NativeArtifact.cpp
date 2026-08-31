@@ -8,7 +8,6 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeObjFileWriter.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"

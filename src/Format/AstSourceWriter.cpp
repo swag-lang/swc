@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Format/AstSourceWriter.h"
-#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Format/FormatClassifier.h"
 #include "Format/FormatModel.h"

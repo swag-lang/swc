@@ -2,7 +2,6 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Runtime.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Main/Command/CommandLine.h"

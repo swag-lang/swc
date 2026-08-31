@@ -129,6 +129,18 @@ namespace Backend::Unittest
         return microRegSpanContains(regs, reg);
     }
 
+    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                ++count;
+        }
+
+        return count;
+    }
+
     Result assertNoVirtualRegs(MicroBuilder& builder)
     {
         auto& storeOps = builder.operands();

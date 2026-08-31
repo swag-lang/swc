@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,17 +25,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    uint32_t countOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
-    }
 }
 
 // A frame slot only ever reached as the constant-offset base of scalar
@@ -55,9 +45,9 @@ SWC_TEST_BEGIN(MemToReg_PlainSlot_Promotes)
 
     SWC_RESULT(runMemToRegPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -94,9 +84,9 @@ SWC_TEST_BEGIN(MemToReg_RedefinedAddressRegister_BailsFunction)
 
     SWC_RESULT(runMemToRegPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 3)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 3)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
 
     return Result::Continue;

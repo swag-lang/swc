@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,17 +22,6 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
-    }
-
-    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-        return count;
     }
 
     bool firstBinaryRegImm(const MicroBuilder& builder, MicroOp& outOp, uint64_t& outImm)
@@ -64,7 +54,7 @@ SWC_TEST_BEGIN(InstCombine_Identity_AddZero_Erased)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -82,9 +72,9 @@ SWC_TEST_BEGIN(InstCombine_Absorbing_AndZero_BecomesClear)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::ClearReg) == 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -102,7 +92,7 @@ SWC_TEST_BEGIN(InstCombine_Absorbing_OrAllOnes_BecomesLoadImm)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -121,7 +111,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_AddAdd)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
     auto     op  = MicroOp::Add;
     uint64_t imm = 0;
@@ -146,7 +136,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_AddSub_PicksAdd)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
     auto     op  = MicroOp::Add;
     uint64_t imm = 0;
@@ -171,7 +161,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_ShiftLeftChain)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
     auto     op  = MicroOp::Add;
     uint64_t imm = 0;
@@ -196,7 +186,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_ShiftOverflow_NotFolded)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 2)
         return Result::Error;
     return Result::Continue;
 }
@@ -214,9 +204,9 @@ SWC_TEST_BEGIN(InstCombine_RegReg_XorSelf_BecomesClear)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::ClearReg) == 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -234,9 +224,9 @@ SWC_TEST_BEGIN(InstCombine_RegReg_SubSelf_BecomesClear)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::ClearReg) == 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -254,7 +244,7 @@ SWC_TEST_BEGIN(InstCombine_RegReg_AndSelf_DeadErased)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -273,7 +263,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_MulMulSigned)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
     auto     op  = MicroOp::Add;
     uint64_t imm = 0;
@@ -298,7 +288,7 @@ SWC_TEST_BEGIN(InstCombine_Reassociate_OrOr)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
     auto     op  = MicroOp::Add;
     uint64_t imm = 0;
@@ -325,11 +315,11 @@ SWC_TEST_BEGIN(InstCombine_MemFold_Imm_Consecutive)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -352,11 +342,11 @@ SWC_TEST_BEGIN(InstCombine_MemFold_Reg_Consecutive)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -380,11 +370,11 @@ SWC_TEST_BEGIN(InstCombine_MemFold_NonConsecutive)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -409,7 +399,7 @@ SWC_TEST_BEGIN(InstCombine_MemFold_VtReadAfterStore_NotFolded)
 
     // The triple cannot be folded because vt's post-op SSA value has 2 uses
     // (the store and the subsequent copy).
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -504,7 +494,7 @@ SWC_TEST_BEGIN(InstCombine_MaskBeforeLeftShift_KeptWhenMaskTooNarrow)
 
     // The mask itself must survive; the byte-mask AND canonicalizes into the
     // equivalent zero-extending move, which keeps the masking effect.
-    if (countBinaryMicroOp(builder, MicroOp::And) + countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+    if (countBinaryMicroOp(builder, MicroOp::And) + Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }

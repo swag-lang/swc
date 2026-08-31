@@ -12,7 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
@@ -73,19 +73,12 @@ namespace
         }
     }
 
-    TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return typeRef;
-        return ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias);
-    }
-
     TypeRef unwrapPointerOrRef(TaskContext& ctx, TypeRef typeRef)
     {
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         if (type.isReference() || type.isAnyPointer())
-            return unwrapAlias(ctx, type.payloadTypeRef());
-        return unwrapAlias(ctx, typeRef);
+            return ctx.typeMgr().unwrapAlias(ctx, type.payloadTypeRef());
+        return ctx.typeMgr().unwrapAlias(ctx, typeRef);
     }
 
     bool isConstSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
@@ -118,11 +111,11 @@ namespace
         SWC_ASSERT(endIndex <= params.size());
         SWC_ASSERT(params[firstIndex] != nullptr);
 
-        const TypeRef firstTypeRef = unwrapAlias(ctx, params[firstIndex]->typeRef());
+        const TypeRef firstTypeRef = ctx.typeMgr().unwrapAlias(ctx, params[firstIndex]->typeRef());
         for (size_t i = firstIndex + 1; i < endIndex; ++i)
         {
             SWC_ASSERT(params[i] != nullptr);
-            if (unwrapAlias(ctx, params[i]->typeRef()) != firstTypeRef)
+            if (ctx.typeMgr().unwrapAlias(ctx, params[i]->typeRef()) != firstTypeRef)
                 return false;
         }
 
@@ -291,7 +284,7 @@ namespace
         if (!SemaSpecOp::isOwnerStructType(ctx, owner, params[0]->typeRef()))
             return reportSpecOpError(sema, sym, kind);
 
-        const TypeRef returnTypeRef = unwrapAlias(ctx, sym.returnTypeRef());
+        const TypeRef returnTypeRef = typeMgr.unwrapAlias(ctx, sym.returnTypeRef());
         if (returnTypeRef.isInvalid())
             return reportSpecOpError(sema, sym, kind);
 
@@ -302,9 +295,9 @@ namespace
         const bool      returnIsPointer  = returnType.isAnyPointer();
         const bool      returnIsNotVoid  = !returnIsVoid;
         const bool      returnIsStrSlice = returnType.isString() || returnType.isSlice();
-        const TypeRef   u64TypeRef       = unwrapAlias(ctx, typeMgr.typeU64());
-        const TypeRef   boolTypeRef      = unwrapAlias(ctx, typeMgr.typeBool());
-        const TypeRef   s32TypeRef       = unwrapAlias(ctx, typeMgr.typeS32());
+        const TypeRef   u64TypeRef       = typeMgr.unwrapAlias(ctx, typeMgr.typeU64());
+        const TypeRef   boolTypeRef      = typeMgr.unwrapAlias(ctx, typeMgr.typeBool());
+        const TypeRef   s32TypeRef       = typeMgr.unwrapAlias(ctx, typeMgr.typeS32());
         switch (kind)
         {
             case SpecOpKind::None:
@@ -374,7 +367,7 @@ namespace
             }
 
             case SpecOpKind::OpSlice:
-                if (params.size() != 3 || !returnIsStrSlice || unwrapAlias(ctx, params[1]->typeRef()) != u64TypeRef || unwrapAlias(ctx, params[2]->typeRef()) != u64TypeRef)
+                if (params.size() != 3 || !returnIsStrSlice || typeMgr.unwrapAlias(ctx, params[1]->typeRef()) != u64TypeRef || typeMgr.unwrapAlias(ctx, params[2]->typeRef()) != u64TypeRef)
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
@@ -441,8 +434,8 @@ bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, 
     if (type.isReference() || (type.isValuePointer() && !type.isNullable()))
         typeRef = type.payloadTypeRef();
 
-    const TypeRef candidateTypeRef = unwrapAlias(ctx, typeRef);
-    if (candidateTypeRef == unwrapAlias(ctx, owner.typeRef()))
+    const TypeRef candidateTypeRef = ctx.typeMgr().unwrapAlias(ctx, typeRef);
+    if (candidateTypeRef == ctx.typeMgr().unwrapAlias(ctx, owner.typeRef()))
         return true;
 
     if (!candidateTypeRef.isValid())

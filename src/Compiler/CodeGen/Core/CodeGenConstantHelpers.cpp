@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"

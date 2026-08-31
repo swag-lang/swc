@@ -4,7 +4,6 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeRDataCollector.h"
-#include "Backend/Runtime.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"

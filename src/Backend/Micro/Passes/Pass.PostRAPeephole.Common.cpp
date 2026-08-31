@@ -2,7 +2,6 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
-#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

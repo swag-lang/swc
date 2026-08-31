@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -28,18 +29,6 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
-    }
-
-    uint32_t countOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
     }
 
     // First linear position of an opcode, or UINT32_MAX.
@@ -95,11 +84,11 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadStorePair_HoistsAndSinks)
 
     SWC_RESULT(runVecLoopPromotePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 2)
         return Result::Error;
 
     const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadVecRegMem);
@@ -142,7 +131,7 @@ SWC_TEST_BEGIN(VecLoopPromote_OverlappingScalarStore_Blocks)
     const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
     if (posLoad < posLabel)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -172,11 +161,11 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadOnlyChunk_HoistsWithoutStore)
 
     SWC_RESULT(runVecLoopPromotePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 2)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
     const uint32_t posLastLoad = lastPosition(builder, MicroInstrOpcode::LoadVecRegMem);

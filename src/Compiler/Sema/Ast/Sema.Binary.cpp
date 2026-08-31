@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -9,7 +8,6 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -20,30 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return false;
-
-        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
-        return normalizedType.isReference();
-    }
-
-    Result readReferenceValue(Sema& sema, SemaNodeView& view)
-    {
-        if (!shouldReadReferenceValue(sema, view.typeRef()))
-            return Result::Continue;
-
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
-        SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
-        return Result::Continue;
-    }
-
     const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
         const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
@@ -586,8 +560,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     if (handledSpecialOp)
         return Result::Continue;
 
-    SWC_RESULT(readReferenceValue(sema, nodeLeftView));
-    SWC_RESULT(readReferenceValue(sema, nodeRightView));
+    SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeLeftView));
+    SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeRightView));
     SWC_RESULT(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));

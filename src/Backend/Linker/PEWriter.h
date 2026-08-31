@@ -1,6 +1,5 @@
 #pragma once
 #include "Backend/Linker/ImageWriter.h"
-#include "Backend/Linker/PdbWriter.h"
 #include "Backend/Linker/Win32OsPatcher.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"

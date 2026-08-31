@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 

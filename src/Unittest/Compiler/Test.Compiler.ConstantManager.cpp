@@ -2,7 +2,6 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeManager.h"

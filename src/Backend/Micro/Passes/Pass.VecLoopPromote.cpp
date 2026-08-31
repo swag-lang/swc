@@ -8,7 +8,6 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Backend/Runtime.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 

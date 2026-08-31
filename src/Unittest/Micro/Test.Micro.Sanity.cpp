@@ -7,7 +7,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"

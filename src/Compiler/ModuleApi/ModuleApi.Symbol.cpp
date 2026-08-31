@@ -2,7 +2,6 @@
 #include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"

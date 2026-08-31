@@ -4,7 +4,6 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 

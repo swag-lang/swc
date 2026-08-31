@@ -8,7 +8,6 @@
 #include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Doc/DocFile.h"
 #include "Doc/DocGenerator.h"
-#include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"

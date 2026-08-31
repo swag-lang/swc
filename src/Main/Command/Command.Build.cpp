@@ -3,7 +3,6 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/SymbolSort.h"
-#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandRun.h"

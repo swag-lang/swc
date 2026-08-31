@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,18 +23,6 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
-    }
-
-    uint32_t countOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
     }
 
     const MicroInstr* findFirstOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
@@ -59,7 +48,7 @@ SWC_TEST_BEGIN(CopyElim_SelfCopy_Erased)
 
     SWC_RESULT(runCopyEliminationPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -82,7 +71,7 @@ SWC_TEST_BEGIN(CopyElim_ChainedCopies_CanonicalizesSource)
 
     SWC_RESULT(runCopyEliminationPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
     const MicroInstr* copyInst = findFirstOpcode(builder, MicroInstrOpcode::LoadRegReg);
@@ -119,7 +108,7 @@ SWC_TEST_BEGIN(CopyElim_RewritesPureUseAcrossJoin)
 
     SWC_RESULT(runCopyEliminationPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
 
     const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpRegImm);
@@ -149,7 +138,7 @@ SWC_TEST_BEGIN(CopyElim_DoesNotPropagatePastSourceRedefinition)
 
     SWC_RESULT(runCopyEliminationPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
     const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpRegImm);
@@ -182,7 +171,7 @@ SWC_TEST_BEGIN(CopyElim_TransfersForbiddenPhysRegsToCanonicalSource)
 
     if (!builder.isVirtualRegPhysRegForbidden(v1, callConv.intReturn))
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -204,7 +193,7 @@ SWC_TEST_BEGIN(CopyElim_DoesNotRewriteUseDefOperand)
 
     SWC_RESULT(runCopyEliminationPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
     return Result::Continue;

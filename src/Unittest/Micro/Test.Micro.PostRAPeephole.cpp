@@ -10,6 +10,7 @@
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -35,18 +36,6 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, &encoder, passContext);
-    }
-
-    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
     }
 
     bool hasLoadRegReg(const MicroBuilder& builder, MicroReg dst, MicroReg src)
@@ -96,7 +85,7 @@ SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::Nop) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Nop) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -117,9 +106,9 @@ SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardFromStoreClaimedByImmediateFold)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 1)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
     if (hasLoadRegReg(builder, r9, rbx))
         return Result::Error;
@@ -166,7 +155,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesStoreOverwrittenBeforeMemoryAccess)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -186,7 +175,7 @@ SWC_TEST_BEGIN(PostRAPeephole_DoesNotEraseOverwrittenNonFrameStore)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 2)
         return Result::Error;
     return Result::Continue;
 }
@@ -208,7 +197,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesOwnStoreReloadOnConditionalFallthrough)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -228,7 +217,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ForwardsStoredValueToReload)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
     if (!hasLoadRegReg(builder, r9, r8))
         return Result::Error;
@@ -281,7 +270,7 @@ SWC_TEST_BEGIN(Legalize_DoesNotPreserveDeadShiftRegisterAcrossJump)
     X64Encoder encoder(ctx);
     SWC_RESULT(runLegalizePass(builder, encoder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
     if (!hasLoadRegReg(builder, rcx, r9))
         return Result::Error;
@@ -302,7 +291,7 @@ SWC_TEST_BEGIN(Legalize_RewritesB8SignedMultiplyRegMemToRax)
     X64Encoder encoder(ctx);
     SWC_RESULT(runLegalizePass(builder, encoder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
         return Result::Error;
     if (!hasBinaryRegRegDst(builder, rax, MicroOp::MultiplySigned, MicroOpBits::B8))
         return Result::Error;
@@ -324,9 +313,9 @@ SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardB8SignedMultiplyImmediate)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -342,7 +331,7 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_B64_Erased)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -358,7 +347,7 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_IntB32_Preserved)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -378,11 +367,11 @@ SWC_TEST_BEGIN(PostRAPeephole_FallthroughJumpSkipsTrivialGap)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::Nop) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Nop) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -398,7 +387,7 @@ SWC_TEST_BEGIN(PostRAPeephole_DeadCompareBeforeRet_Erased)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -417,9 +406,9 @@ SWC_TEST_BEGIN(PostRAPeephole_DeadCompareAfterRedundantJump_Erased)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -439,9 +428,9 @@ SWC_TEST_BEGIN(PostRAPeephole_LiveCompareForBranch_Preserved)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -462,9 +451,9 @@ SWC_TEST_BEGIN(PostRAPeephole_LoadCondRegRegKeepsCopyBecauseDestinationIsUseDef)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -487,9 +476,9 @@ SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_SubThenCompareZero_CompareErased)
 
     // The sub already set ZF; the redundant compare against zero is gone, but
     // the branch that consumes the flags stays.
-    if (countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -511,7 +500,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_UnsafeCondition_ComparePreserved)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -533,7 +522,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_NonFlagProducer_ComparePreserved)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -553,9 +542,9 @@ SWC_TEST_BEGIN(PostRAPeephole_ZeroToClear_LiveFlagsDead_Converted)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::ClearReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -575,7 +564,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ZeroToClear_DeadReg_NotConverted)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::ClearReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -595,9 +584,9 @@ SWC_TEST_BEGIN(PostRAPeephole_ZeroToClear_FlagsLive_NotConverted)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::ClearReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -615,9 +604,9 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfOperand_FoldsWhenDestinationHoldsTheSlot)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -644,7 +633,7 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfOperand_KeepsMemoryOperandWhenWindowExhausted)
 
     SWC_RESULT(runPostRaPeepholePass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 1)
         return Result::Error;
     return Result::Continue;
 }

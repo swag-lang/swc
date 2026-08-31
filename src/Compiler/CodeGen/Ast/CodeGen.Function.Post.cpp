@@ -18,7 +18,6 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"

@@ -545,18 +545,6 @@ namespace
         return hasSub && hasAdd && hasStore && hasLoad;
     }
 
-    uint32_t countOpcode(MicroBuilder& builder, MicroInstrOpcode opcode)
-    {
-        uint32_t result = 0;
-        for (const auto& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                result++;
-        }
-
-        return result;
-    }
-
     // Instructions of one opcode that sit past the last call. A value live
     // across a call is re-established there, so this is what tells a real
     // rematerialization apart from the definition the fixture already had.
@@ -842,7 +830,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
         // Either spilling kicked in, or every value was rematerialized at its use
         // site (24 fresh loads). Anything below 24 would mean some use lost its value.
         if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)) &&
-            countOpcode(builder, MicroInstrOpcode::LoadRegImm) < 24)
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) < 24)
             return Result::Error;
     }
 }
@@ -1038,7 +1026,7 @@ SWC_TEST_BEGIN(RegAlloc_CoalescesLinearVirtualCopies)
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
         SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(callConvKind)));
 
-        if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
             return Result::Error;
     }
 }
@@ -1065,7 +1053,7 @@ SWC_TEST_BEGIN(RegAlloc_TransfersDeadCopySourcesAcrossBarriers)
         // The copy across the barrier is transferred, never re-made: one
         // register move at most survives (the return marshalling), and none
         // when the allocator lands the value in the return register itself.
-        if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) > 1)
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) > 1)
             return Result::Error;
     }
 }

@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -21,13 +22,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return typeRef;
-        return ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias);
-    }
-
     const SymbolFunction* findDeclaredLifecycleMethod(const TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         const std::string_view expectedName = SemaSpecOp::specOpFunctionName(kind);
@@ -73,7 +67,7 @@ namespace
 
     bool typeHasLifecycleRec(TaskContext& ctx, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visiting)
     {
-        typeRef = unwrapAlias(ctx, typeRef);
+        typeRef = ctx.typeMgr().unwrapAlias(ctx, typeRef);
         if (typeRef.isInvalid())
             return false;
 
@@ -637,7 +631,7 @@ namespace
     Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         outResult = true;
-        typeRef   = unwrapAlias(sema.ctx(), typeRef);
+        typeRef   = sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
         if (typeRef.isInvalid())
             return Result::Continue;
         if (!visiting.insert(typeRef).second)

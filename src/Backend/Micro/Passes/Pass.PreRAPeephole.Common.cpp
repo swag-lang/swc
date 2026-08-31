@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
-#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

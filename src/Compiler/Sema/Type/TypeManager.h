@@ -105,6 +105,15 @@ public:
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
+    // Strips aliases only, leaving an enum wrapper in place; an invalid reference is handed
+    // straight back. Inline because operator-overload resolution asks it of every operand.
+    TypeRef unwrapAlias(const TaskContext& ctx, TypeRef typeRef) const
+    {
+        if (typeRef.isInvalid())
+            return typeRef;
+        return get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias);
+    }
+
     // Like unwrapAliasEnum, but keeps the type itself when it is neither an alias nor an enum.
     // Inline, and reaching TypeInfo directly, because the cast paths call it on every operand.
     TypeRef unwrapAliasEnumOrSelf(const TaskContext& ctx, TypeRef typeRef) const

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
-#include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Fold the copy that legacy SSE forces in front of every float binary operation

@@ -2,7 +2,6 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Runtime.h"
 #include "Doc/DocApi.h"
 #include "Doc/DocGenerator.h"
 #include "Doc/DocMarkdown.h"

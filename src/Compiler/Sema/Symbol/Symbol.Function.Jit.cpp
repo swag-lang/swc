@@ -5,7 +5,6 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITPatchJob.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"

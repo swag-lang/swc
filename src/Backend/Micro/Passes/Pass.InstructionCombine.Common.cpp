@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
-#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

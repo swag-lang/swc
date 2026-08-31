@@ -10,7 +10,6 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"

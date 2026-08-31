@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -9,7 +8,6 @@
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -82,30 +80,6 @@ namespace
         const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
         SWC_ASSERT(typeRef.isValid());
         return sema.typeMgr().get(typeRef);
-    }
-
-    bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return false;
-
-        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
-        return normalizedType.isReference();
-    }
-
-    Result readReferenceValue(Sema& sema, SemaNodeView& view)
-    {
-        if (!shouldReadReferenceValue(sema, view.typeRef()))
-            return Result::Continue;
-
-        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
-        SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
-        return Result::Continue;
     }
 
     Result checkIntegerModifiers(Sema& sema, const AstAssignStmt& node, const SemaNodeView& nodeLeftView)
@@ -396,7 +370,7 @@ namespace
         else
         {
             SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
-            SWC_RESULT(readReferenceValue(sema, nodeRightView));
+            SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeRightView));
         }
 
         if (nodeRightView.cstRef().isValid())
@@ -500,7 +474,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     else
     {
         SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
-        SWC_RESULT(readReferenceValue(sema, nodeRightView));
+        SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeRightView));
         SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
         const TokenId binOp          = Token::assignToBinary(tok.id);
         const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);

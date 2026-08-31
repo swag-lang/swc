@@ -19,7 +19,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
@@ -45,13 +45,6 @@ namespace
         return detail;
     }
 #endif
-
-    TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return typeRef;
-        return ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias);
-    }
 
     TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& argView)
     {
@@ -367,9 +360,9 @@ namespace
         TypeRef         unwrappedTypeRef = view.typeRef();
         const TypeInfo& valueType        = sema.typeMgr().get(unwrappedTypeRef);
         if (valueType.isReference() || (valueType.isValuePointer() && !valueType.isNullable()))
-            unwrappedTypeRef = unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
+            unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
         else
-            unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
+            unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
         if (!unwrappedTypeRef.isValid())
             unwrappedTypeRef = view.typeRef();
 
@@ -541,7 +534,7 @@ namespace
         if (valueType.isReference())
             typeRef = valueType.payloadTypeRef();
 
-        const TypeRef unwrappedTypeRef = unwrapAlias(sema.ctx(), typeRef);
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), typeRef);
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
 
@@ -1677,7 +1670,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     bool writesThroughPtr = false;
     if (indexedView.type())
     {
-        TypeRef indexedTypeRef = unwrapAlias(sema.ctx(), indexedView.typeRef());
+        TypeRef indexedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), indexedView.typeRef());
         if (!indexedTypeRef.isValid())
             indexedTypeRef = indexedView.typeRef();
         const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
@@ -1779,9 +1772,9 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     TypeRef         unwrappedTypeRef = operandView.typeRef();
     const TypeInfo& operandValueType = sema.typeMgr().get(unwrappedTypeRef);
     if (operandValueType.isReference())
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
+        unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
     else
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
+        unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
     if (!unwrappedTypeRef.isValid())
         unwrappedTypeRef = operandView.typeRef();
 

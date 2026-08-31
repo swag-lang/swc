@@ -7,7 +7,6 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"

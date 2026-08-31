@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -51,18 +52,6 @@ namespace
         }
 
         return 0;
-    }
-
-    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
     }
 
     uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op)
@@ -418,7 +407,7 @@ SWC_TEST_BEGIN(StrengthReduction_RemoveAddZeroDeadAcrossJoin)
 
     SWC_RESULT(runStrengthReductionPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
 
     return Result::Continue;

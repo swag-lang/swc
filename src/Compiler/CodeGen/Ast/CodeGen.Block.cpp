@@ -2,7 +2,6 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
 

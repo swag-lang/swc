@@ -10,7 +10,6 @@
 
 #if SWC_HAS_VALIDATE_NATIVE
 
-#include "Backend/Runtime.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Support/Math/Helpers.h"
 

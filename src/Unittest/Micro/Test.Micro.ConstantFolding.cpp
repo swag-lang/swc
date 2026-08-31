@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -23,17 +24,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
-    }
 }
 
 // load v1, 5; add v1, 3  ->  load v1, 8 (folded semantically)
@@ -50,9 +40,9 @@ SWC_TEST_BEGIN(ConstantFolding_FoldBinaryRegImm)
 
     // The add is folded into a LoadRegImm. The original load is now dead
     // (removed by DCE later). We expect: load v1,5; load v1,8; ret.
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
         return Result::Error;
 
     return Result::Continue;
@@ -72,9 +62,9 @@ SWC_TEST_BEGIN(ConstantFolding_FoldCopyFromKnown)
 
     SWC_RESULT(runConstantFoldingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;
@@ -96,9 +86,9 @@ SWC_TEST_BEGIN(ConstantFolding_ChainedFold)
 
     // Each binary op is folded into a LoadRegImm. Dead loads removed by DCE later.
     // Result: load v1,5; load v1,8; load v1,32; ret.
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 3)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 3)
         return Result::Error;
 
     return Result::Continue;
@@ -117,9 +107,9 @@ SWC_TEST_BEGIN(ConstantFolding_FoldFromClearReg)
 
     SWC_RESULT(runConstantFoldingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -146,9 +136,9 @@ SWC_TEST_BEGIN(ConstantFolding_FoldAcrossJoinSameConstant)
 
     SWC_RESULT(runConstantFoldingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 3)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 3)
         return Result::Error;
 
     return Result::Continue;

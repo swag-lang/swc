@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -40,17 +41,6 @@ namespace
         return count;
     }
 
-    uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                ++count;
-        }
-
-        return count;
-    }
 }
 
 // Two identical adds on the same values: the second becomes a plain copy.
@@ -156,7 +146,7 @@ SWC_TEST_BEGIN(ValueNumbering_DedupLoadAddress)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -180,7 +170,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsComputeWhenSourceClobbered)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 2)
         return Result::Error;
 
     return Result::Continue;
@@ -206,9 +196,9 @@ SWC_TEST_BEGIN(ValueNumbering_DedupRepeatedLoad)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -231,7 +221,7 @@ SWC_TEST_BEGIN(ValueNumbering_DedupRepeatedFieldLoad)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -259,7 +249,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsLoadAcrossStore)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 2)
         return Result::Error;
 
     return Result::Continue;
@@ -290,7 +280,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsLoadAcrossLabel)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 2)
         return Result::Error;
 
     return Result::Continue;
@@ -320,7 +310,7 @@ SWC_TEST_BEGIN(ValueNumbering_DedupLoadAcrossFallthroughBranch)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
         return Result::Error;
 
     return Result::Continue;
@@ -346,9 +336,9 @@ SWC_TEST_BEGIN(ValueNumbering_DedupPlainLoadAfterExtendingLoad)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
         return Result::Error;
-    if (countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegMem) != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegMem) != 1)
         return Result::Error;
 
     uint32_t byteCopies = 0;
@@ -382,7 +372,7 @@ SWC_TEST_BEGIN(ValueNumbering_ExtendsEarlierPlainLoad)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegMem) != 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegMem) != 0)
         return Result::Error;
 
     uint32_t extensions = 0;
@@ -417,7 +407,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsFrameLoadsForMemToReg)
 
     SWC_RESULT(runValueNumberingPass(builder));
 
-    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 2)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 2)
         return Result::Error;
 
     return Result::Continue;

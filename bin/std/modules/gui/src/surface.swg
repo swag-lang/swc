@@ -5,7 +5,7 @@ using Core, Pixel, Serialization
 // Serializable placement and display state of a surface.
 //
 // This is what an application persists through [[Gui.Application.saveState]], so a field
-// here keeps an alias for every name it has been written under; see [[Pixel.Image]].
+// declares one stable serialization key before its source name changes; see [[Pixel.Image]].
 struct SurfaceState
 {
     public

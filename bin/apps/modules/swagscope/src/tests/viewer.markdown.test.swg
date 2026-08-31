@@ -13,6 +13,30 @@ private func markdownWhiteyFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
 }
 
+// Theme and line width are viewer preferences, not properties of one Markdown file.
+#test
+{
+    let previous = g_MarkdownViewerSettings
+    defer g_MarkdownViewerSettings = previous
+    g_MarkdownViewerSettings = {themeIndex: 3, widthIndex: 2}
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    var first = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString(), commandParent: &host.root)
+    let firstWidth = cast(*ComboBox) first.commands!.children[0]
+    let firstTheme = cast(*ComboBox) first.commands!.children[1]
+    Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
+    firstWidth.setSelectedIndex(0)
+    firstTheme.setSelectedIndex(5)
+    Swag.assert(g_MarkdownViewerSettings.widthIndex == 0 and g_MarkdownViewerSettings.themeIndex == 5)
+
+    var second = openTestViewer(markdownViewerPlugin(), &host.root, markdownWhiteyFixturePath().toString(), commandParent: &host.root)
+    let secondWidth = cast(*ComboBox) second.commands!.children[0]
+    let secondTheme = cast(*ComboBox) second.commands!.children[1]
+    Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)
+}
+
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.
 #test
 {

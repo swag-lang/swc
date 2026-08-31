@@ -5,8 +5,6 @@ ui_Open         Ouvrir
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_Viewer       Visionneuse
 ui_Files        Fichiers à côté de celui-ci
-ui_FullScreen   Plein écran (F11)
-ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
 ui_Recent       Récents
 ui_ClearHistory Effacer l'historique
@@ -23,6 +21,8 @@ ui_Search       Rechercher dans le document
 ui_SearchPrevious Occurrence précédente (Maj+F3)
 ui_SearchNext   Occurrence suivante (F3)
 ui_SearchOptions Options de recherche
+ui_SearchMode    Rechercher
+ui_FilterMode    Filtrer
 ui_SearchMatchCase Respecter la casse
 ui_SearchWholeWord Rechercher les mots entiers
 ui_SearchRegularExpression Utiliser une expression régulière

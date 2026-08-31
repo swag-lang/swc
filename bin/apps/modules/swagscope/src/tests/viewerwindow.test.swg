@@ -228,6 +228,29 @@ func createSidePanelFixture(host: Viewer.Host)
     Swag.assert(view.editor.scrollPosition().y > beforeEnd.y)
 }
 
+// Line and word totals are computed independently of the resident streaming window and become
+// available in the information summary without forcing the whole document into the editor.
+#test
+{
+    let fileName = writeTempFile("statistics.txt", cast(const [..] u8) "one two\nthree\n")
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName.toString(), commandParent: commands)
+    let view          = cast(*TextView) viewerSession.view!
+    while !Atomic.get(&view.statisticsState) do
+        host.pump()
+    if view.statisticsTimer do
+        host.fireTimer(view.statisticsTimer)
+
+    Swag.assert(view.statistics.lines == 2 and view.statistics.words == 3)
+    let details = view.detailsText()
+    Swag.assert(Utf8.contains(details.toSlice(), "2 lines") and Utf8.contains(details.toSlice(), "3 words"))
+}
+
 func writeTempFile(suffix: string, bytes: const [..] u8)->String
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -244,6 +267,30 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         Swag.assert(window.folderFiles[index] == name[] and window.siblings[index] == name[])
         Swag.assert(window.folderList.lineAt(cast(u32) index)!.itemAt(0).name.raw == (Path.fileName(name[].toString()) orelse name[].toString()))
     }
+}
+
+// Selecting another file cancels the previous file's scan immediately, before asynchronous
+// classification has had a chance to replace the viewer.
+#test
+{
+    let first  = writeTempFile("search-first.txt", cast(const [..] u8) "needle in the first file\n")
+    let second = writeTempFile("search-second.txt", cast(const [..] u8) "second file\n")
+    defer discard catch File.delete(first.toString())
+    defer discard catch File.delete(second.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(first.toString(), remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.searchBox.setText("needle")
+    Swag.assert(window.searchTimer != null)
+
+    window.openFile(second.toString(), remember: false)
+    Swag.assert(window.searchTimer == null)
+    Swag.assert(!(window.searchBox.text()).count and window.searchMatches.isEmpty())
 }
 
 // A file that is not UTF-8 is read as text rather than sent to the hexadecimal view: the mark
@@ -1164,9 +1211,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchGroup.parent == window.commandBar)
     Swag.assert(window.searchBox.parent == window.searchGroup)
     Swag.assert(window.searchNavigation.parent == window.searchGroup)
-    Swag.assert(window.fullScreenButton.parent == window.commandBar)
     Swag.assert(window.openDefaultButton.parent == window.commandBar and !window.openDefaultButton.isEnabled())
-    Swag.assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
     Swag.assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     Swag.assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
     Swag.assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
@@ -1349,45 +1394,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.infoStatsLabel.position.width < narrowDetailWidth)
     Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - narrowClient.right()) < 0.01)
     Swag.assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
-}
-
-// F11 preserves the exact window state around a content-only presentation. Moving at either
-// screen edge reveals the corresponding chrome over the content without shrinking it.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(960, 680)
-    defer host.shutdown()
-
-    let index  = createViewerPluginRegistry()
-    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.openFile(viewerFixturePath(), remember: false)
-    completeQueuedViewerFile(&host, window)
-    window.setFilePanelVisible(true)
-    let position = host.surface.position
-    let flags    = host.surface.flags
-
-    var key = KeyEvent{kind: .Pressed, key: .F11}
-    window.sendEvent(&key)
-    Swag.assert(window.fullScreen and window.fullScreenButton.isChecked)
-    Swag.assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
-    Swag.assert(!host.surface.flags.has(.LargeCaption) and !host.surface.flags.has(.Border))
-    Swag.assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
-    Swag.assert(!window.viewerBar.isLocallyVisible() and !window.filePanelHost.isLocallyVisible())
-
-    window.updateFullScreenChrome({10, 1})
-    Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
-    Swag.assert(!window.viewerBar.isLocallyVisible())
-    window.updateFullScreenChrome({10, window.clientRect().height / 2})
-    Swag.assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
-    window.updateFullScreenChrome({10, window.clientRect().height - 1})
-    Swag.assert(window.viewerBar.isLocallyVisible())
-
-    window.setFullScreen(false)
-    Swag.assert(!window.fullScreen and !window.fullScreenButton.isChecked)
-    Swag.assert(host.surface.flags == flags and host.surface.position == position)
-    Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
-    Swag.assert(window.viewerBar.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.

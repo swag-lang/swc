@@ -6,60 +6,15 @@ using Core, Pixel, Gui
 const TextViewerKey    = "text"
 const TextSmokeFixture = "comprehensive.txt"
 
-// What the text surface owns by name.
-//
-// Which viewer a file is offered is still decided by reading it, since a file with no
-// extension at all can be text and one that ends in `.dat` can be anything. This list is what
-// a row of the file panel can say without opening the file it names, and a plain text file
-// says it plainly enough.
+// What the text surface owns by name, like every other format-specific viewer.
 private const NamedExtensions = ".txt;.text;.log;.nfo;.diz;.rst;.adoc;.asc;.srt;.vtt;.sub;.ssa;.ass;.lrc;.diff;.patch;readme;license;licence;changelog;authors;copying;install;news;todo"
 
 private func textPluginName()->string => textStrings().ui_Name
 
-// Reports whether `fileName` is one of the names the plain-text surface owns.
-//
-// A subtitle track has a viewer that plays it against the film and is still a text file a
-// reader may want to read; that is what this list is for. Every other format keeps the viewer
-// that claimed it.
-private func textNamesFile(fileName: string)->bool
-{
-    var extension = String.from(Path.extension(fileName) orelse "")
-    extension = extension.toLower()
-    var baseName = String.from(Path.fileName(fileName) orelse "")
-    baseName = baseName.toLower()
-
-    for selector in Tokenize.split(NamedExtensions, ';'u8)
-    {
-        if selector[0] == '.'
-        {
-            if selector == extension.toString() do
-                return true
-        }
-        elif selector == baseName.toString() do
-            return true
-    }
-
-    return false
-}
-
-// Offers the plain-text surface for a file no other viewer answers for, and for the text
-// formats it owns by name.
-//
-// Reading the head of a file is a weak question: a PDF, an office document and a font all open
-// with enough printable bytes to pass it, and offering to read one of them as a page of text
-// says something untrue about the file. A format that already has a viewer keeps it.
-private func textPluginProbe(fileName: string, hasNamedMatch: bool)->bool
-{
-    if hasNamedMatch and !textNamesFile(fileName) do
-        return false
-    return TextView.supports(fileName)
-}
-
 // Describes the text viewer to the host.
 //
-// The surface offers itself for the extensions a plain text file uses, and answers for any
-// other file whose beginning reads as text. It never claims a file by name alone, so a format
-// with a viewer of its own keeps it.
+// The surface registers the extensions and extensionless names it owns. Unknown files fall
+// through to the hexadecimal viewer instead of treating readable bytes as a second format.
 func textViewerPlugin()->Viewer.Plugin
 {
     var result: retval
@@ -69,8 +24,6 @@ func textViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Text
     result.create       = &createTextViewer
-    result.probe        = &textPluginProbe
-    result.matchNames   = false
     result.smokeFixture = TextSmokeFixture
     result.addSelectors(NamedExtensions)
     return result
@@ -100,6 +53,12 @@ struct TextProbe
     accepted:     bool              // Whether what it decodes to is text a reader should be shown.
 }
 
+struct TextStatistics
+{
+    lines: u64
+    words: u64
+}
+
 // Text view available for readable content independently of the format-specific viewers.
 struct TextView
 {
@@ -123,6 +82,12 @@ struct TextView
     residentOffsetY:   f32
     virtualHeight:     f32
     loadTimer:         #null *Timer
+    statisticsThread:  Threading.Thread
+    statisticsTimer:   #null *Timer
+    statisticsState:   u32
+    statistics:        TextStatistics
+    statisticsEncoding: Text.Encoding
+    statisticsStart:   u64
     hasText:           bool
     pauseStreaming:    bool
     pendingSeek:       bool
@@ -133,6 +98,85 @@ struct TextView
     wrapping               = true
     zoomPercent:       u32 = 100
     reportDetails:     #null Viewer.ReportDetails
+}
+
+private func runTextStatistics(thread: Threading.Thread)
+{
+    let view    = cast(*TextView) thread.userParam!
+    let context = Swag.getContext()
+    context.allocator = context.defaultAllocator!
+
+    var stream = catch File.openRead(view.fileName.toString()) as openError
+    if openError != null
+    {
+        Atomic.exchange(&view.statisticsState, 2)
+        return
+    }
+    defer stream.close()
+    discard catch stream.seek(.Begin, view.statisticsStart)
+
+    var result: TextStatistics
+    var inWord:       bool
+    var sawRune:      bool
+    var previousCr:   bool
+    var endedWithLineBreak: bool
+    while !thread.requestEnd
+    {
+        let chunk = catch stream.readTextChunk(TextStreamChunkSize, view.statisticsEncoding) as readError
+        if readError != null
+        {
+            Atomic.exchange(&view.statisticsState, 2)
+            return
+        }
+        if chunk.isEmpty() do
+            break
+
+        var scan = 0'u64
+        let text = chunk.toString()
+        while scan < text.count
+        {
+            let {c, eat} = Utf8.decodeRune(text[scan to])
+            scan += eat
+            sawRune = true
+            if c == '\r'
+            {
+                result.lines += 1
+                previousCr = true
+                endedWithLineBreak = true
+                inWord = false
+                continue
+            }
+
+            if c == '\n'
+            {
+                if !previousCr do
+                    result.lines += 1
+                previousCr = false
+                endedWithLineBreak = true
+                inWord = false
+                continue
+            }
+
+            previousCr = false
+            endedWithLineBreak = false
+            if Unicode.isSpace(c)
+            {
+                inWord = false
+                continue
+            }
+
+            if !inWord do
+                result.words += 1
+            inWord = true
+        }
+    }
+
+    if thread.requestEnd do
+        return
+    if sawRune and !endedWithLineBreak do
+        result.lines += 1
+    view.statistics = result
+    Atomic.exchange(&view.statisticsState, 1)
 }
 
 func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool
@@ -155,6 +199,54 @@ func textIsLoading(wnd: *Wnd)->bool => (cast(*TextView) wnd).loadTimer != null
 
 impl TextView
 {
+    mtd detailsText()->String
+    {
+        let encoding = .encodingName()
+        if Atomic.get(&.statisticsState) != 1 do
+            return Format.toString(textStrings().ui_Details, encoding)
+        let lines = .statistics.lines == 1 ? String.from(textStrings().ui_OneLine) : Format.toString(textStrings().ui_Lines, .statistics.lines)
+        let words = .statistics.words == 1 ? String.from(textStrings().ui_OneWord) : Format.toString(textStrings().ui_Words, .statistics.words)
+        return Format.toString(textStrings().ui_DetailsStats, encoding, lines, words)
+    }
+
+    mtd reportStatistics()
+    {
+        if .reportDetails do
+            .reportDetails!(me, .detailsText().toString())
+    }
+
+    mtd startStatistics()
+    {
+        .statisticsState = 0
+        .statisticsEncoding = .encoding
+        .statisticsStart    = .contentStart
+        catch .statisticsThread.init(&runTextStatistics, me, priority: .BelowNormal) as initError
+        if initError != null do
+            return
+        catch .statisticsThread.start() as startError
+        if startError != null do
+            return
+        .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
+    }
+
+    mtd retire()->bool
+    {
+        .stopLoading()
+        if .statisticsTimer
+        {
+            .removeTimer(.statisticsTimer!)
+            .statisticsTimer = null
+        }
+        if .statisticsThread.isValid() and !.statisticsThread.isDone()
+        {
+            .statisticsThread.safeForceEnd()
+            return false
+        }
+        if .statisticsThread.isValid() do
+            .statisticsThread.wait()
+        return true
+    }
+
     mtd encodingName()->string
     {
         for candidate, index in TextEncodings where candidate == .encoding do
@@ -404,8 +496,7 @@ impl TextView
         .contentStart  = Text.hasBom(head.toSlice(), encoding) ? Text.bomLength(encoding) : 0
         .virtualHeight = 0
         discard .revealOffset(Math.max(.residentStart, .contentStart), "")
-        if .reportDetails do
-            .reportDetails!(me, Format.toString(textStrings().ui_Details, .encodingName()))
+        .reportStatistics()
     }
 
     mtd toggleWrap()
@@ -448,11 +539,26 @@ impl IWnd for TextView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        .stopLoading()
+        discard evt
+        discard .retire()
+        if .statisticsThread.isValid() do
+            .statisticsThread.wait()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .statisticsTimer
+        {
+            if !Atomic.get(&.statisticsState) do
+                return
+            .removeTimer(evt.timer)
+            .statisticsTimer = null
+            if .statisticsThread.isValid() do
+                .statisticsThread.wait()
+            .reportStatistics()
+            return
+        }
+
         if evt.timer != .loadTimer
         {
             evt.accepted = false
@@ -473,6 +579,14 @@ impl IWnd for TextView
         if .needsMore() do
             .loadNextChunk()
         .scheduleMore()
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .reportStatistics()
+        else do
+            evt.accepted = false
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -666,6 +780,7 @@ impl TextView
         result.setZoom(100)
         result.applyLayout()
         result.scheduleMore()
+        result.startStatistics()
         result.setInitialFocus(result.editor)
         return result
     }
@@ -676,10 +791,12 @@ func createTextViewer(host: Viewer.Host)
 {
     let view = TextView.create(host)
     host.attachView(view)
-    host.setDetails(Format.toString(textStrings().ui_Details, view.encodingName()).toString())
+    host.setDetails(view.detailsText().toString())
     host.setSearch({
         revealMatch: &textRevealMatch,
         matchBounds: &textSearchBounds,
         clear: &textClearSearch})
-    host.setLifecycle({isLoading: &textIsLoading})
+    host.setLifecycle({
+        isLoading: &textIsLoading,
+        retire: func(wnd)->bool { return (cast(*TextView) wnd).retire() }})
 }

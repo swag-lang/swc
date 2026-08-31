@@ -1342,12 +1342,11 @@ public impl MenuCtrl
         let anchored = button != null or pos == .AnchorTopCenter or pos == .AnchorBottomCenter
         let margin   = .themeMetrics().menuPopup_WindowMargin
 
-        // An attached button can sit inside the first toolbar row, closer to the surface edge
-        // than the popup shadow is deep. Let that invisible shadow start outside the surface;
-        // clamping it to the normal window margin would move the body down and reopen a gap under
-        // the button. The anchor and body themselves remain inside the surface.
-        let verticalMargin = button ? -.themeMetrics().menuPopup_ShadowSize : margin
-        .fitPosInParent(margin, verticalMargin, simX: !anchored, simY: true)
+        // An attached button can sit against either surface edge, closer than the popup shadow is
+        // deep. Let that invisible shadow start outside the surface on both axes; clamping it to
+        // the normal window margin would detach the popup body from a right-aligned trigger.
+        let fitMargin = button ? -.themeMetrics().menuPopup_ShadowSize : margin
+        .fitPosInParent(fitMargin, fitMargin, simX: !anchored, simY: true)
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.

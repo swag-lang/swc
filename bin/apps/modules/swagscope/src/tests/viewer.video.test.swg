@@ -417,11 +417,6 @@ func videoMatroskaFixturePath()->String
 
     let voice = view.voice!
 
-    window.setFullScreen(true)
-    window.updateFullScreenChrome({10, 1})
-    window.updateFullScreenChrome({10, window.clientRect().height - 1})
-    window.setFullScreen(false)
-
     Swag.assert(view.playing and view.voice == voice and voice.isPlaying())
 }
 

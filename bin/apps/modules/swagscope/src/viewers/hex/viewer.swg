@@ -19,9 +19,8 @@ func hexViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const HexCommandWidth   = 516.0
-private const HexComboWidth     = 150.0
-private const HexEndianWidth    = 150.0
+private const HexCommandWidth   = 640.0
+private const HexComboWidth     = 120.0
 private const HexInspectorWidth = 420.0
 private const HexZoomWidth      = 96.0
 private const HexInfoWidth      = HexInspectorWidth + HexZoomWidth
@@ -82,7 +81,7 @@ internal struct HexViewer
     {
         commands:       *Wnd
         analysisButton: *IconButton
-        moreButton:     *IconButton
+        rowWidthCombo:  *ComboBox
         widthCombo:     *ComboBox
         formatCombo:    *ComboBox
         byteOrderCombo: *ComboBox
@@ -269,6 +268,42 @@ internal impl HexViewer
         .grid.setBigEndian(.byteOrderCombo.selectedIndex == 1)
     }
 
+    mtd applyRowWidth()
+    {
+        let index = .rowWidthCombo.selectedIndex
+        if !index
+        {
+            .grid.setBytesPerRow(0, true)
+            return
+        }
+
+        .grid.setBytesPerRow(4'u64 << index, false)
+    }
+
+    // Each selector follows its widest localized entry. The command group then reserves exactly
+    // the sum of those fields and their leading gaps instead of truncating short vocabularies or
+    // carrying unused room for them.
+    private mtd fitCommandBar()
+    {
+        let rowWidth  = Math.ceil(.rowWidthCombo.itf.measureContent({}).x)
+        let value     = Math.ceil(.widthCombo.itf.measureContent({}).x)
+        let format    = Math.ceil(.formatCombo.itf.measureContent({}).x)
+        let byteOrder = Math.ceil(.byteOrderCombo.itf.measureContent({}).x)
+        .rowWidthCombo.preferredSize.x  = rowWidth
+        .widthCombo.preferredSize.x     = value
+        .formatCombo.preferredSize.x    = format
+        .byteOrderCombo.preferredSize.x = byteOrder
+        .rowWidthCombo.resize(rowWidth, 36)
+        .widthCombo.resize(value, 36)
+        .formatCombo.resize(format, 36)
+        .byteOrderCombo.resize(byteOrder, 36)
+
+        let width = rowWidth + value + format + byteOrder + .rowWidthCombo.margin.x + .widthCombo.margin.x + .formatCombo.margin.x + .byteOrderCombo.margin.x
+        .commands.preferredSize.x = width
+        .commands.resize(width, 36)
+        .commands.applyLayout()
+    }
+
     mtd rebuildFormats()
     {
         let previous = .formatCombo.selectedIndex
@@ -285,6 +320,16 @@ internal impl HexViewer
 
     mtd retranslate()
     {
+        let rowWidth = .rowWidthCombo.selectedIndex
+        .rowWidthCombo.clear()
+        .rowWidthCombo.addItem(hexStrings().ui_RowAuto)
+        .rowWidthCombo.addItem("8")
+        .rowWidthCombo.addItem("16")
+        .rowWidthCombo.addItem("32")
+        .rowWidthCombo.addItem("64")
+        .rowWidthCombo.setSelectedIndex(rowWidth, notify: false)
+        .rowWidthCombo.toolTip = hexStrings().ui_RowWidth
+
         let width = .widthCombo.selectedIndex
         .widthCombo.clear()
         .widthCombo.addItem(hexStrings().ui_Width8)
@@ -302,13 +347,12 @@ internal impl HexViewer
         .byteOrderCombo.addItem(hexStrings().ui_EndianBig)
         .byteOrderCombo.setSelectedIndex(byteOrder, notify: false)
         .byteOrderCombo.toolTip = hexStrings().ui_TipEndian
-        .moreButton.toolTip     = hexStrings().ui_TipCommands
         .analysisButton.toolTip = hexStrings().ui_AnalysisTip
         .analysisView.retranslate()
-        .details = hexStrings().ui_Details
+        .details.clear()
         if .reportDetails do
             .reportDetails!(me, .details.toString())
-        .commands.applyLayout()
+        .fitCommandBar()
         .grid.invalidate()
         .refreshInspector()
     }
@@ -525,14 +569,22 @@ internal impl HexViewer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with result.rowWidthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = hexStrings().ui_TipCommands
-            .sigPressed += func|view = result|(button)
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = hexStrings().ui_RowWidth
+            .addItem(hexStrings().ui_RowAuto)
+            .addItem("8")
+            .addItem("16")
+            .addItem("32")
+            .addItem("64")
+            .setSelectedIndex(0, notify: false)
+            .sigChanged += func|view = result|(combo, index)
             {
-                view.grid.showContextMenu(button.localToSurface(Math.Point{0, button.position.height}))
+                discard combo
+                discard index
+                view.applyRowWidth()
             }
         }
 
@@ -571,7 +623,7 @@ internal impl HexViewer
             }
         }
 
-        with result.byteOrderCombo = ComboBox.create(result.commands, {0, 0, HexEndianWidth, 36})
+        with result.byteOrderCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -628,7 +680,8 @@ internal impl HexViewer
             result.grid.doc.reportFailure = func|result, report|(reason) { report(cast(*Wnd) result, reason) }
         }
 
-        result.details = hexStrings().ui_Details
+        result.details.clear()
+        result.fitCommandBar()
         result.applyLayout()
         result.grid.refreshLayout()
         result.refreshInspector()

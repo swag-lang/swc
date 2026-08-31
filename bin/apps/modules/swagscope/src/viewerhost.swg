@@ -16,6 +16,7 @@ struct ViewerSession
     searchBounds:        #null Viewer.SearchMatchBounds
     clearSearch:         #null Viewer.ClearSearch
     collectMatches:      #null Viewer.CollectSearchMatches
+    filterSearch:        #null Viewer.ApplySearchFilter
     describeSearch:      #null Viewer.DescribeSearch
     prepareSearch:       #null Viewer.PrepareSearch
     collectFileMatches:  #null Viewer.CollectFileMatches
@@ -230,6 +231,7 @@ impl Viewer.Host for ViewerPluginHost
         .session.searchBounds       = api.matchBounds
         .session.clearSearch        = api.clear
         .session.collectMatches     = api.collectMatches
+        .session.filterSearch       = api.filter
         .session.describeSearch     = api.describe
         .session.prepareSearch      = api.prepare
         .session.collectFileMatches = api.collectFileMatches

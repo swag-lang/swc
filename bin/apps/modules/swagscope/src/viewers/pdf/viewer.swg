@@ -17,8 +17,9 @@ func pdfViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const PdfCommandWidth = 156.0
-private const PdfInfoWidth    = 96.0
+private const PdfPageWidth = 76.0
+private const PdfZoomWidth = 96.0
+private const PdfInfoWidth = 2 * 32.0 + PdfPageWidth + PdfZoomWidth + 24.0
 
 struct PdfViewerContent
 {
@@ -35,7 +36,7 @@ private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
     if !count do
         fail Errors.InvalidFormatError{"PDF document contains no page"}
     result.page    = #move try result.reader.loadPage(0)
-    result.details = Format.toString("PDF · % %", count, count == 1 ? pdfStrings().ui_Page : pdfStrings().ui_Pages)
+    result.details = "PDF"
     return #move result
 }
 
@@ -52,7 +53,6 @@ internal struct PdfViewer
 
     #[Swag.Late]
     {
-        commands:       *Wnd
         info:           *Wnd
         pdfView:        *PdfView
         previousButton: *IconButton
@@ -210,7 +210,7 @@ private impl PdfViewer
         }
     }
 
-    func create(contentParent, commands, info: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null, reportDetails: #null Viewer.ReportDetails = null, reportLoadingChanged: #null Viewer.ReportLoadingChanged = null)->*PdfViewer
+    func create(contentParent, info: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null, reportDetails: #null Viewer.ReportDetails = null, reportLoadingChanged: #null Viewer.ReportLoadingChanged = null)->*PdfViewer
     {
         let result = Wnd.create'PdfViewer(contentParent, "scope.pdf")
         result.backgroundStyle      = .View
@@ -218,10 +218,9 @@ private impl PdfViewer
         result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
 
-        result.commands = commands
-        result.info     = info
+        result.info = info
 
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with result.previousButton = IconButton.create(result.info, result.theme().icon(.ChevronLeft, themeRowIconSize(result.themeMetrics())), {0, 0, 32, 32})
         {
             .dockStyle  = .Left
             .toolTip    = pdfStrings().ui_Previous
@@ -232,22 +231,10 @@ private impl PdfViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with result.pageLabel = IconButton.create(result.info, {}, {0, 0, PdfPageWidth, 32}, "scope.pdf.page", .CenterContent)
         {
             .dockStyle  = .Left
-            .toolTip    = pdfStrings().ui_Next
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.pdfView.nextPage()
-            }
-        }
-
-        with result.pageLabel = IconButton.create(result.commands, {}, {0, 0, 84, 36}, "scope.pdf.page", .CenterContent)
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .setArrowPosition(.RightDownward)
+            .margin.x   = 8
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
             .toolTip    = pdfStrings().ui_GoToPage
@@ -258,9 +245,21 @@ private impl PdfViewer
             }
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, PdfInfoWidth, 32}, "scope.pdf.zoom", .CenterContent)
+        with result.nextButton = IconButton.create(result.info, result.theme().icon(.ChevronRight, themeRowIconSize(result.themeMetrics())), {0, 0, 32, 32})
         {
-            .dockStyle = .Center
+            .dockStyle  = .Left
+            .toolTip    = pdfStrings().ui_Next
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.pdfView.nextPage()
+            }
+        }
+
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, PdfZoomWidth, 32}, "scope.pdf.zoom", .CenterContent)
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
@@ -308,7 +307,7 @@ private impl PdfViewer
 func createPdfViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = PdfViewer.create(host.contentParent(), host.createCommandGroup(PdfCommandWidth), host.createInfoGroup(PdfInfoWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = PdfViewer.create(host.contentParent(), host.createInfoGroup(PdfInfoWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
 
     // PDF text lives compressed inside the file, so the viewer indexes every page and hands the

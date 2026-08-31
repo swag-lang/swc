@@ -14,8 +14,6 @@ struct PdfStrings
     ui_ZoomMenu:  string = "Zoom options"                 // Tooltip of the zoom value menu.
     ui_GoToPage:  string = "Go to page"                   // Title and tooltip of direct page navigation.
     ui_PageRange: string = "Page number from 1 to %."     // Direct page navigation prompt.
-    ui_Page:      string = "page"                         // One document page.
-    ui_Pages:     string = "pages"                        // Several document pages.
 }
 
 private const FrenchStringsName = "lang/fr/scope.pdf.tweak"

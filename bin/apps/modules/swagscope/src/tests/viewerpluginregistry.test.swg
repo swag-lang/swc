@@ -35,7 +35,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     return result
 }
 
-// The registry treats every built-in, including basic text, as an ordinary plugin descriptor.
+// The registry treats every built-in, including basic text, as an ordinary named plugin
+// descriptor. Readable bytes do not make an unknown extension a text format.
 #test
 {
     let textFile   = Gui.Testing.tempFilePath("scope-index-", ".unknown")
@@ -57,9 +58,9 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(choiceName(&registry, &picture[2]) == "Hexadecimal")
 
     let unknown = registry.choices(textFile)
-    Swag.assert(unknown.count == 3 and unknown[0].key == TextViewerKey)
-    Swag.assert(choiceName(&registry, &unknown[1]) == "Binary")
-    Swag.assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
+    Swag.assert(unknown.count == 2)
+    Swag.assert(choiceName(&registry, &unknown[0]) == "Binary")
+    Swag.assert(choiceName(&registry, &unknown[1]) == "Hexadecimal")
     Swag.assert(registry.explicitlySupports("clip.gif"))
     Swag.assert(!registry.explicitlySupports("clip.bin"))
 }
@@ -117,7 +118,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
         Swag.assert(registry.choices(file)[0].key == "sound")
 }
 
-// The interpreter line claims an extensionless script before readable-text and wildcard plugins.
+// The interpreter line claims an extensionless script before wildcard plugins.
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-shebang-", "")
@@ -126,7 +127,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let registry = createViewerPluginRegistry()
     let choices  = registry.choices(fileName)
-    Swag.assert(choices[0].key == "code" and choices[1].key == TextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
+    Swag.assert(choices[0].key == "code" and choices[1].key == "binary" and choices[2].key == "hex")
     Swag.assert(codeLanguage(fileName) == .Python)
 }
 
@@ -146,7 +147,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(movie[1].key == "binary" and cast(ViewerIcons) choicePlugin(&registry, &movie[1]).iconIndex == .Binary)
     Swag.assert(movie[2].key == "hex" and cast(ViewerIcons) choicePlugin(&registry, &movie[2]).iconIndex == .Hex)
 
-    let plain = Gui.Testing.tempFilePath("scope-keys-", ".unknown")
+    let plain = Gui.Testing.tempFilePath("scope-keys-", ".txt")
     defer discard catch File.delete(plain)
     expect File.writeAllBytes(plain, "plain UTF-8 text")
     let readable = registry.choices(plain)

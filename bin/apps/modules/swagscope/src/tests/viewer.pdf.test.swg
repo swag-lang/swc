@@ -29,11 +29,11 @@ private func createPdfFixture()->String
     host.notify(.ThemeChanged)
 
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands == null and result.info != null)
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert(Utf8.contains(view.details.toString(), "2 pages"))
+    Swag.assert(view.details == "PDF")
     view.resize(640, 420)
     view.applyLayout()
 
@@ -91,14 +91,12 @@ private func createPdfFixture()->String
     infoBar.padding         = {16, 4, 16, 4}
 
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
-    Swag.assert(result.view != null and result.commands != null)
-    commandBar.centerGroup = result.commands
+    Swag.assert(result.view != null and result.commands == null and result.info != null)
     infoBar.centerGroup    = result.info
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
-    view.commands.dockStyle = .None
     result.info!.dockStyle  = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
@@ -118,7 +116,7 @@ private func createPdfFixture()->String
     host.setup(640, 420)
     defer host.shutdown()
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands == null)
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(!view.failureReason.isEmpty())

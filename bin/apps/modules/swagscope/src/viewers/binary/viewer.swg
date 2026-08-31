@@ -20,6 +20,7 @@ func binaryViewerPlugin()->Viewer.Plugin
 private const BinaryOffsetWidth    = 116.0
 private const BinaryDetailMinWidth = 200.0
 private const BinaryFillRows       = 128'u64
+private const BinaryCommandWidth   = 80.0
 
 // Commands shared by the context menu, keyboard, and command bar.
 internal struct ActionBinary {}
@@ -58,7 +59,6 @@ internal struct BinaryViewer
         commands:      *Wnd
         backButton:    *IconButton
         forwardButton: *IconButton
-        moreButton:    *IconButton
         list:          *ListCtrl
     }
 
@@ -74,6 +74,7 @@ internal struct BinaryViewer
     loadStrings:             BinaryStrings
     loadThread:              Threading.Thread
     loadTimer:               #null *Timer
+    filterTimer:             #null *Timer
     loadState:               u32
     loadPublished:           bool
     reportFailure:           #null Viewer.ReportFailure
@@ -92,6 +93,9 @@ internal struct BinaryViewer
     searchOffset:            u64
     searchLength:            u64
     searchVisibleIndex = Swag.U32.Max
+    filterQuery:             String
+    filterOptions:           Viewer.SearchOptions
+    filterIncluded:          Array'bool
 }
 
 // Reads a hexadecimal file offset, with an optional sign relative to `current`.
@@ -202,6 +206,9 @@ internal impl BinaryViewer
 
         for index in .fillIndex until end
         {
+            if !.filterIncluded.isEmpty() and !.filterIncluded[index] do
+                continue
+
             let row   = &.doc.report.rows[index]
             let depth = cast(u64) row.level
             var parent: #null *ListLine = null
@@ -243,6 +250,15 @@ internal impl BinaryViewer
     // are only marked; expanding a root then inserts its whole marked subtree in one pass.
     private mtd applyExpansion()
     {
+        if !.filterQuery.isEmpty()
+        {
+            for row, index in .doc.report.rows where row.level and .rowLines[index] do
+                .rowLines[index]!.expanded = true
+            for row, index in .doc.report.rows where !row.level and .rowLines[index] do
+                .list.expand(.rowLines[index]!)
+            return
+        }
+
         for row, index in .doc.report.rows
         {
             let open = index < .restoreExpanded.count ? .restoreExpanded[index] : row.open
@@ -264,7 +280,8 @@ internal impl BinaryViewer
     {
         if .restoreSelected >= .rowLines.count or !.rowLines[.restoreSelected]
         {
-            .restoreSelected = Swag.U64.Max
+            if .filterQuery.isEmpty() do
+                .restoreSelected = Swag.U64.Max
             return
         }
 
@@ -379,6 +396,8 @@ internal impl BinaryViewer
     {
         for row, rowIndex in .doc.report.rows
         {
+            if !.filterIncluded.isEmpty() and !.filterIncluded[rowIndex] do
+                continue
             Viewer.collectTextMatches(row.label.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Field, 0, result)
             Viewer.collectTextMatches(row.value.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Value, 0, result)
             if row.offset != Swag.U64.Max
@@ -470,6 +489,93 @@ internal impl BinaryViewer
         .searchColumn = 0
         .searchOffset = 0
         .searchLength = 0
+    }
+
+    private mtd rowMatchesFilter(rowIndex: u64, options: Viewer.SearchOptions)->bool
+    {
+        let query = .filterQuery.toString()
+        let row   = &.doc.report.rows[rowIndex]
+        var matches: Array'Viewer.SearchMatch
+        Viewer.collectTextMatches(row.label.toString(), query, options, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.value.toString(), query, options, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.detail.toString(), query, options, 0, 0, 0, &matches)
+        if row.offset != Swag.U64.Max
+        {
+            let offset = hexText(row.offset, 8)
+            Viewer.collectTextMatches(offset.toString(), query, options, 0, 0, 0, &matches)
+        }
+
+        return !matches.isEmpty()
+    }
+
+    // Keeps direct matches and every ancestor needed to reach them. Filtering therefore never
+    // turns a nested field into an orphan row or leaves it behind a collapsed parent.
+    private mtd rebuildFilterIndex()
+    {
+        .filterIncluded.clear()
+        if .filterQuery.isEmpty() do
+            return
+
+        .filterIncluded.resize(.doc.report.rows.count)
+        var options = .filterOptions
+        var expression: Parser.RegExp
+        if options.regularExpression
+        {
+            catch expression.compile(.filterQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+            if expressionError == null do
+                options.expression = &expression
+        }
+        for row, index in .doc.report.rows
+        {
+            discard row
+            .filterIncluded[index] = .rowMatchesFilter(index, options)
+        }
+
+        // Rows are stored in preorder, so walking backward from a direct match finds each parent
+        // at the first preceding shallower level. Mark that chain without leaking a match into an
+        // earlier sibling branch.
+        for matched in .doc.report.rows.count where .filterIncluded[matched]
+        {
+            var depth = cast(u64) .doc.report.rows[matched].level
+            var parent = matched
+            while depth and parent
+            {
+                parent -= 1
+                let candidateDepth = cast(u64) .doc.report.rows[parent].level
+                if candidateDepth >= depth do
+                    continue
+                .filterIncluded[parent] = true
+                depth = candidateDepth
+            }
+        }
+    }
+
+    mtd applyFilter(query: string, options: Viewer.SearchOptions)
+    {
+        let enteringFilter = .filterQuery.isEmpty() and query.count
+        if enteringFilter and .loadPublished do
+            .captureViewState()
+        .filterQuery = query
+        .filterOptions = options
+        .filterOptions.expression = null
+        if !.loadPublished do
+            return
+
+        .rebuildFilterIndex()
+        if .filterTimer
+        {
+            .removeTimer(.filterTimer!)
+            .filterTimer = null
+        }
+
+        .beginFillList()
+        if .fillListStep()
+        {
+            .layoutColumns()
+            .invalidate()
+        }
+        elif !.loadTimer do
+            .filterTimer = .addTimer(1'ms)
     }
 
     // Opens every group between the root and `line`, outermost first.
@@ -768,6 +874,17 @@ internal impl IWnd for BinaryViewer
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .filterTimer
+        {
+            if !.fillListStep() do
+                return
+            .removeTimer(evt.timer)
+            .filterTimer = null
+            .layoutColumns()
+            .invalidate()
+            return
+        }
+
         if evt.timer != .loadTimer
         {
             evt.accepted = false
@@ -812,6 +929,7 @@ internal impl IWnd for BinaryViewer
             .doc                = #move .pendingDoc
             .details            = .doc.report.summary
             .loadPublished      = true
+            .rebuildFilterIndex()
             .beginFillList()
             if .reportDetails do
                 .reportDetails!(me, .details.toString())
@@ -931,6 +1049,12 @@ internal impl BinaryViewer
             .loadTimer = null
         }
 
+        if .filterTimer
+        {
+            .removeTimer(.filterTimer!)
+            .filterTimer = null
+        }
+
         if .reportLoadingChanged do
             .reportLoadingChanged!(me)
     }
@@ -979,7 +1103,7 @@ internal impl BinaryViewer
         result.reportDetails        = services.reportDetails
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
-        result.commands             = host.createCommandGroup(112)
+        result.commands             = host.createCommandGroup(BinaryCommandWidth)
 
         with result.backButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
@@ -1002,18 +1126,6 @@ internal impl BinaryViewer
             {
                 discard button
                 discard view.navigateHistory(1)
-            }
-        }
-
-        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = s.ui_MenuCommands
-            .sigPressed += func|view = result|(button)
-            {
-                let menu = view.createCommandMenu()
-                discard menu.doModal(cast(*IconButton) button, autoDestroy: true)
             }
         }
 
@@ -1080,6 +1192,14 @@ func createBinaryViewer(host: Viewer.Host)
     host.attachView(view!)
     host.setDetails(view!.details.toString())
     host.setSearch({
+        describe: func(wnd, presentation)
+    {
+        discard wnd
+        presentation.canFilter         = true
+        presentation.filterPlaceholder = binStrings().ui_Filter
+        presentation.filterToolTip     = binStrings().ui_FilterTip
+    },
+        filter: func(wnd, text, options) { (cast(*BinaryViewer) wnd).applyFilter(text, options) },
         collectMatches: func(wnd, text, options, matches) { (cast(*BinaryViewer) wnd).collectMatches(text, options, matches) },
         revealMatch: func(wnd, match, text)->bool
     {

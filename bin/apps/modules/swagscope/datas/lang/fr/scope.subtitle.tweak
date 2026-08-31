@@ -2,3 +2,7 @@
 
 ui_OneCue  1 sous-titre
 ui_Cues    % sous-titres
+ui_GoToCue Aller au sous-titre
+ui_CueRange Entrez un numéro de sous-titre entre 1 et %.
+ui_GoToTime Aller au temps
+ui_TimeRange Entrez des secondes, MM:SS ou HH:MM:SS.

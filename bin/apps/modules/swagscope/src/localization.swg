@@ -42,6 +42,8 @@ struct AppStrings
     ui_Unsupported:                    string = "No viewer can show this file."               // No viewer claimed the file.
     ui_OpenStopped:                    string = "The file could not be shown."                // A viewer refused the file it claimed.
     ui_ViewerError:                    string = "This viewer could not decode the file."      // Heading above a viewer's exact decoder error.
+    ui_AboutViewers:                   string = "Viewers and formats"                         // Heading of the about block listing what the application opens.
+    ui_AboutAnyFile:                   string = "any file"                                    // What a viewer offering itself for every file is listed as.
     dlg_TitleOpen:                     string = "Open a file"                                 // Title of the open dialog.
     dlg_ButtonOpen:                    string = "Open"                                        // Confirmation button of the open dialog.
     dlg_AllFiles:                      string = "All files"                                   // Filter matching every extension.

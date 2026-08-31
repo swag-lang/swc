@@ -554,6 +554,11 @@ impl IAllocator for LibraryRejectAllocator
     capture.changed                   = true
     expect capture.save()
     Swag.assert(Capture.isFile(capturePath))
+
+    // A listing classifies by name, so a folder of several hundred captures is not opened
+    // once per row before the window can show anything.
+    Swag.assert(Capture.isFileName(capturePath))
+    Swag.assert(!Capture.isFileName(imagePath))
     Memory.delete(capture)
 
     var image = Gui.Testing.indexedImage(10, 7)

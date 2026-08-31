@@ -1563,7 +1563,41 @@ impl ViewerWindow
             buildDate: BuildDate,
             sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagscope",
             copyrightHolder: "Christophe Beaudet"})
+
+        // What this application is is the list of things it opens, and that list is the registry
+        // itself rather than a copy of it written here: a format added to a viewer is in the box
+        // the same day.
+        let viewers = .aboutViewerList()
+        dlg.addSection(appStrings().ui_AboutViewers, viewers.toString())
         discard dlg.doModal()
+    }
+
+    // Every registered viewer and what it offers itself for, in selection order.
+    //
+    // The order is the one the host resolves in, so a reader comparing two viewers that both name
+    // an extension can see which one wins it.
+    private mtd const aboutViewerList()->String
+    {
+        var result: retval
+        for plugin in .index.plugins
+        {
+            if !result.isEmpty() do
+                result += "\n"
+            result += "<b>"
+            result += plugin.displayName()
+            result += "</b>  "
+
+            var first = true
+            for selector in plugin.selectors
+            {
+                if !first do
+                    result += ", "
+                first  = false
+                result += selector.toString() == "*" ? appStrings().ui_AboutAnyFile : selector.toString()
+            }
+        }
+
+        return result
     }
 
     // Opens `fileName` after the surface has had a chance to paint its first frame.

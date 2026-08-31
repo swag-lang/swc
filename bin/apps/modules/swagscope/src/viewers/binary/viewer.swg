@@ -973,7 +973,7 @@ internal impl BinaryViewer
         with result.list = ListCtrl.createMultiColumns(result)
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
+            .style.setFont(result.theme().createDefaultFontfamilyFS(result.themeMetrics().defaultFixedFontSize))
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines)

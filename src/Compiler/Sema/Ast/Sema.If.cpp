@@ -555,6 +555,15 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     const AstNodeRef   baseExprRef = withBindingExprRef(sema, nodeExprRef);
     const SemaNodeView exprView    = sema.viewNodeTypeSymbol(baseExprRef);
 
+    // The block reaches the subject by writing it out again for every '.member' it holds. That is
+    // exact for a place — a variable, a field, an element — and wrong for anything computed: a
+    // call would run once more per member the block touches, on a different value each time, and
+    // the value the statement itself produced would be dropped. A scope subject (a namespace, an
+    // enum, a struct) names no value and is bound by its symbol map instead.
+    const Symbol* subjectSym = exprView.sym();
+    if (baseExprRef.isValid() && !(subjectSym && subjectSym->isSymMap()) && !sema.isLValue(baseExprRef))
+        return SemaError::raise(sema, DiagnosticId::sema_err_with_needs_a_place, baseExprRef);
+
     auto       scopedFrame = sema.frame();
     SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     SWC_RESULT(configureWithBindings(sema, nodeExprRef, exprView.sym(), exprView.typeRef(), baseExprRef, scopedFrame, *bodyScope));

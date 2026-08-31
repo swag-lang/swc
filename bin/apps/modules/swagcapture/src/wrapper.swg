@@ -106,6 +106,13 @@ impl MainWnd
         case FormText as b:
             .mdlFormText = b[]
 
+            // The model is the style the next text form starts from, not the geometry of this
+            // one: the glyph outlines belong to the text they were built for, and the next form
+            // builds its own. Kept, they make selecting a text form copy every contour of it.
+            .mdlFormText.paths.clear()
+            .mdlFormText.borderPaths.clear()
+            .mdlFormText.isDirty = true
+
         case FormDraw as b:
             .mdlFormDraw = b[]
 

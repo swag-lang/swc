@@ -281,3 +281,28 @@ func semaTest012()
     owner.point = semaWithMakePoint()
     Swag.assert(owner.applyMemberScope() == 1527)
 }
+
+// A 'with' subject is written out again for every member the block reaches, so it names a place.
+// A computed value has to be named first: left as an expression it would be evaluated once per
+// member, on a different value each time.
+func semaWithErr001()
+{
+    with semaWithMakePoint()     // swc-expected-error {{sema_err_with_needs_a_place}}
+    {
+        .x += 1
+    }
+}
+
+func semaWithPointAddr(p: *SemaWithPoint)->*SemaWithPoint
+{
+    return p
+}
+
+func semaWithErr002()
+{
+    var point: SemaWithPoint
+    with semaWithPointAddr(&point)     // swc-expected-error {{sema_err_with_needs_a_place}}
+    {
+        .x += 1
+    }
+}

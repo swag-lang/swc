@@ -266,3 +266,45 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.assert(text.chunks[0].shaped.glyphs.count == ("alpha").count)
     Swag.assert(text.chunks[text.chunks.count - 1].visible)
 }
+
+// A style boundary is not a place to break a line.
+//
+// Markup splits one word into several chunks — '<url>here</url>.' is three of them — and a wrap
+// that fell between two of them put the closing period alone on the next line. The whole word
+// moves down together instead.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    var format: RichStringFormat
+    format.font.regular  = font
+    format.horzAlignment = .Left
+    format.flags         |= .WordWrap
+
+    var text: RichString = "alpha <url>beta</url>."
+    text.compute()
+
+    // Room for 'alpha beta' and not for the period after it, which is where the break used to go.
+    let room = Painter.measureStringSnapped("alpha ", font) + Painter.measureStringSnapped("beta", font) + 1
+    Painter.computeLayout({0, 0, room, 400}, &text, format)
+
+    var alphaChunk, betaChunk, dotChunk: #null *RichChunk
+    for &c in text.chunks
+    {
+        switch c.slice
+        {
+        case "alpha": alphaChunk = c
+        case "beta":  betaChunk = c
+        case ".":     dotChunk = c
+        }
+    }
+
+    Swag.assert(alphaChunk != null and betaChunk != null and dotChunk != null)
+    Swag.assert(alphaChunk.visible and betaChunk.visible and dotChunk.visible)
+
+    // The period stays on the line of the run it closes, and that run left the first line.
+    Swag.assert(dotChunk.pos.y == betaChunk.pos.y)
+    Swag.assert(dotChunk.pos.x > betaChunk.pos.x)
+    Swag.assert(betaChunk.pos.y > alphaChunk.pos.y)
+}

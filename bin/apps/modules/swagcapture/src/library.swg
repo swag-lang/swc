@@ -84,7 +84,7 @@ impl Library
     {
         var result: retval
         let files = try Directory.enumerateFiles(getTrashFolder())
-        for file in files where Capture.isFile(file.fullname) do
+        for file in files where Capture.isFileName(file.fullname) do
             result.add(file)
         return result
     }
@@ -97,7 +97,7 @@ impl Library
         let files = try Directory.enumerateFiles(folder)
         for fi in files
         {
-            if Capture.isFile(fi.fullname) or Image.canLoad(fi.fullname) do
+            if Capture.isFileName(fi.fullname) or Image.canLoad(fi.fullname) do
                 result.add(fi)
         }
 

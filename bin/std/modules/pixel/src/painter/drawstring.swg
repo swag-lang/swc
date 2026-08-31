@@ -830,8 +830,14 @@ impl Painter
         var lines: Array'OneLine
         var line:  OneLine
 
+        // A wrap may only fall where a word ends, so the line is remembered as it stood at the
+        // last space, together with the chunk the word after it starts at. A style boundary is
+        // not a break: `<url>here</url>.` is three chunks and one word, and breaking between
+        // them left its closing period alone on the next line.
+        var wordLine:  OneLine
+        var wordStart = 0
+
         var startLine         = 0
-        var lastWasSpace      = false
         let defaultLineHeight = format.font.regular!.height
         for &resetChunk in text.chunks do
             resetChunk.visible = false
@@ -848,16 +854,7 @@ impl Painter
             c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)
             var ms = c.shaped.metrics
             ms.width    = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
-            c.boundRect = {0, 0, ms.width, ms.height}
-
-            // Whether the chunk before this one was whitespace, which is what decides if a line
-            // closed here ends on a space it should drop. Read into a local and advanced now,
-            // because both branches below leave the iteration early: left to the bottom of the
-            // loop, the flag still described the chunk before last, and a run too wide to break
-            // was mistaken for that trailing space and cut off the line it had just opened —
-            // which made a path or a URL between two spaces vanish from the layout entirely.
-            let previousWasSpace = lastWasSpace
-            lastWasSpace = c.isSpace
+            c.boundRect = {0, 0, ms.width, Math.max(c.font.height, ms.height)}
 
             // User eol
             if c.isEol
@@ -870,14 +867,10 @@ impl Painter
                 line.hasEol = true
                 lines.add(line)
 
-                startLine                                 = line.end + 1
-                line.measure.width, line.measure.height   = 0
-                line.measure.ascent, line.measure.descent = 0
-                line.height                               = 0
-                line.fontAscent, line.fontDescent         = 0
-                line.countSpaces                          = 0
-                line.whiteSpaces                          = 0
-                line.hasEol                               = false
+                startLine = line.end + 1
+                line      = OneLine{}
+                wordStart = startLine
+                wordLine  = line
                 continue
             }
 
@@ -890,35 +883,60 @@ impl Painter
 
                 if curW + c.boundRect.width > pos.width
                 {
-                    if startLine != idx
+                    // Rewind to the first chunk of the word being accumulated when an earlier
+                    // word already holds the line, so the whole word moves down together. A word
+                    // that starts the line has nothing to rewind to and is cut where it runs out.
+                    if !c.isSpace and wordStart > startLine
                     {
-                        line.start = startLine
-                        line.end   = cast(s32) idx
-
-                        // We: not want the current line to end with a space
-                        if previousWasSpace and idx
+                        // The space the word was rewound past ends the closed line, and a line
+                        // does not end on a space.
+                        if wordStart - 1 > startLine
                         {
-                            line.countSpaces -= 1
+                            wordLine.start        = startLine
+                            wordLine.end          = wordStart - 1
+                            wordLine.countSpaces -= 1
                             if format.horzAlignment != .Justify do
-                                line.measure.width -= text.chunks[idx - 1].boundRect.width
+                                wordLine.measure.width -= text.chunks[wordStart - 1].boundRect.width
                             else do
-                                line.whiteSpaces -= text.chunks[idx - 1].boundRect.width
-                            line.end -= 1
+                                wordLine.whiteSpaces -= text.chunks[wordStart - 1].boundRect.width
+
+                            wordLine.height = Math.max(defaultLineHeight, wordLine.fontAscent - wordLine.fontDescent)
+                            if format.minLineHeight > 0 do
+                                wordLine.height = Math.max(wordLine.height, format.minLineHeight)
+                            lines.add(wordLine)
                         }
 
+                        // The word opens the new line whole, so its metrics are accumulated again
+                        // from its first chunk. It carries no space chunk, by construction.
+                        startLine = wordStart
+                        line      = OneLine{}
+                        for w in startLine to cast(s32) idx
+                        {
+                            let wc = &text.chunks[w]
+                            line.measure.width   += wc.boundRect.width
+                            line.measure.ascent  = Math.max(line.measure.ascent, wc.shaped.metrics.ascent)
+                            line.measure.descent = Math.max(line.measure.descent, wc.shaped.metrics.descent)
+                            line.measure.height  = Math.max(line.measure.height, wc.shaped.metrics.height)
+                            line.fontAscent      = Math.max(line.fontAscent, wc.font.ascent)
+                            line.fontDescent     = Math.min(line.fontDescent, wc.font.descent)
+                        }
+
+                        wordLine = OneLine{}
+                        continue
+                    }
+
+                    if startLine != idx
+                    {
+                        line.start  = startLine
+                        line.end    = cast(s32) idx
                         line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
                         if format.minLineHeight > 0 do
                             line.height = Math.max(line.height, format.minLineHeight)
                         lines.add(line)
                     }
 
-                    startLine                                 = cast(s32) idx
-                    line.measure.width, line.measure.height   = 0
-                    line.measure.ascent, line.measure.descent = 0
-                    line.height                               = 0
-                    line.fontAscent, line.fontDescent         = 0
-                    line.countSpaces                          = 0
-                    line.whiteSpaces                          = 0
+                    startLine = cast(s32) idx
+                    line      = OneLine{}
 
                     // We: not want the new line to start with a space
                     if c.isSpace do
@@ -933,6 +951,8 @@ impl Painter
                         line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
                     }
 
+                    wordStart = startLine
+                    wordLine  = OneLine{}
                     continue
                 }
             }
@@ -953,7 +973,13 @@ impl Painter
             line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
             line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
 
-            c.boundRect.height = Math.max(c.font.height, ms.height)
+            // A space closes a word, so the line as it now stands is where a later overflow
+            // rewinds to.
+            if c.isSpace
+            {
+                wordStart = cast(s32) idx + 1
+                wordLine  = line
+            }
         }
 
         if startLine != text.chunks.count

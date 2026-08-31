@@ -440,6 +440,22 @@ impl Theme
         return result
     }
 
+    // Create a fixed-width font family with the given size
+    //
+    // A widget set in the fixed-width face takes the whole family, not its regular face alone:
+    // markup that asks for bold or italic otherwise falls back to the proportional face the
+    // family still carries, which sets one word of a line in another typeface at another size,
+    // and lands it on another optical center than the words beside it.
+    mtd createDefaultFontfamilyFS(size: u32)->FontFamily
+    {
+        var result: retval
+        result.regular    = .fonts.createFont(.res.defaultFsTypeFaceR, size)
+        result.bold       = .fonts.createFont(.res.defaultFsTypeFaceB, size)
+        result.italic     = .fonts.createFont(.res.defaultFsTypeFaceI, size)
+        result.boldItalic = .fonts.createFont(.res.defaultFsTypeFaceBI, size)
+        return result
+    }
+
     // Create a default font with the given size
     mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->*Font
     {

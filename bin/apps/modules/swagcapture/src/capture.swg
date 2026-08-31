@@ -33,6 +33,7 @@ struct FormCache
     layer: Layer           // Retained targets: resolved content, plus the shadow once built.
     zoom:  f32             // View zoom the content was rendered at.
     scale: f32             // Painter content scale the content was rendered at.
+    samples: s32           // Samples per pixel the content was rendered with.
     dirty: bool = true     // The content changed; re-render before the next draw.
 }
 
@@ -600,10 +601,22 @@ impl Capture
     private func originalRole()->Guid128   => sccId("7206ea20-cd74-4832-afa9-0ce33c7699cd")
 
     // Reports whether a path is a capture rather than another document using the SCC extension.
+    // Whether `file` is named like a capture.
+    //
+    // A folder listing asks this once per row, and looking inside a file to answer it costs one
+    // open per row: invisible on a warm local disk, and eighteen seconds over a library of seven
+    // hundred captures a virus scanner reads through first. A row takes its answer from the name,
+    // which is what names are for; the file itself is looked at when one is opened, moved or
+    // deleted.
+    func isFileName(file: string)->bool
+    {
+        return Path.lowercaseExtension(file) == CaptureFileExtension
+    }
+
+    // Whether `file` is named like a capture and holds one.
     func isFile(file: string)->bool
     {
-        let extension = Path.lowercaseExtension(file)
-        if extension != CaptureFileExtension do
+        if !isFileName(file) do
             return false
 
         var reader: Scc.Reader
@@ -1115,9 +1128,18 @@ impl Capture
         if wt2 <= 0 or ht2 <= 0 do
             return false
 
-        let textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
-        let scale           = painter.contentScale()
-        let maxDim          = cast(s32) (MaxFormCacheDim / (scale * textSuperSample))
+        // The retained rendering is the whole point of this. A form whose supersampled extent
+        // passes the layer limit used to leave the cache entirely and re-render — supersampling,
+        // shadow blur and all — on every frame, which is exactly a text form on a large capture
+        // at a readable zoom. Lower the sampling until the layer fits instead, and give the form
+        // up only when one sample per pixel still does not: a slightly softer glyph is a better
+        // answer than repainting the whole form for every mouse move.
+        let scale       = painter.contentScale()
+        var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
+        while textSuperSample > 1 and (wt2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample)) or ht2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample))) do
+            textSuperSample -= 1
+
+        let maxDim = cast(s32) (MaxFormCacheDim / (scale * textSuperSample))
         if wt2 > maxDim or ht2 > maxDim do
             return false
 
@@ -1132,6 +1154,7 @@ impl Capture
         let entry = found!
         let fresh = !entry.dirty and
                     entry.scale == scale and
+                    entry.samples == textSuperSample and
                     entry.layer.contentTarget != null and
                     formContentFresh(f)
         var sharp = fresh and entry.zoom == zoom and entry.layer.width == wt2 and entry.layer.height == ht2
@@ -1166,10 +1189,11 @@ impl Capture
             }
 
             entry.layer.end()
-            entry.zoom  = zoom
-            entry.scale = scale
-            entry.dirty = false
-            sharp       = true
+            entry.zoom    = zoom
+            entry.scale   = scale
+            entry.samples = textSuperSample
+            entry.dirty   = false
+            sharp         = true
         }
 
         let colForm   = Color.fromArgb(cast(u8) Math.map(cast(f32) base.alpha, 0, 100, 0, 255), Argb.White)

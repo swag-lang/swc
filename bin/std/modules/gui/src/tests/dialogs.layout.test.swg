@@ -223,3 +223,44 @@ using Swag, Core, Pixel
         tail += "!"
     }
 }
+
+// An application block added to the about box grows it, and stops growing it at the measure.
+//
+// What an application lists there — the formats it opens, the plugins it carries — has no natural
+// length, so the box follows it only as far as [[Gui.AboutDlg.MaxSectionsHeight]] and the column
+// scrolls from there. A box that followed it further would be as tall as the display.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 900)
+    defer host.shutdown()
+
+    let icon = Image.create(32, 32, .RGBA8)
+    host.app.setAppIcon(icon)
+    let dlg = AboutDlg.createApplication(&host.surface, {
+        productName: "sTestBench",
+        version: "1.2.3",
+        buildDate: {year: 2026, month: 8, day: 23},
+        sourceUrl: "https://example.com/source",
+        copyrightHolder: "Test Holder"})
+
+    let plainHeight = dlg.surface!.position.height
+    Swag.assert(dlg.sectionsScroll == null)
+
+    dlg.addSection("Formats", "One short line of supporting detail.")
+    Swag.assert(dlg.sectionsScroll != null)
+    let oneHeight = dlg.surface!.position.height
+    Swag.assert(oneHeight > plainHeight)
+    Swag.assert(dlg.sectionsScroll.position.height < AboutDlg.MaxSectionsHeight)
+
+    // A list long enough to have no end of its own.
+    var long: String
+    for i in 400 do
+        long += "extension, "
+    dlg.addSection("Everything", long.toString())
+
+    let scroll = dlg.sectionsScroll!
+    Swag.assert(scroll.position.height <= AboutDlg.MaxSectionsHeight)
+    Swag.assert(scroll.scrollSize.y > scroll.position.height)
+    Swag.assert(dlg.surface!.position.height > oneHeight)
+}

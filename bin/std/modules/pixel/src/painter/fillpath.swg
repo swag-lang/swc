@@ -75,15 +75,26 @@ public impl Painter
         if count < 2 do
             return
 
+        // Where a point moves to is a miter — two normalizations and a line intersection — and it
+        // does not depend on how far it moves: the offset only scales it. The ring asked for it
+        // four times per edge, and every point is one edge's start and the previous edge's end,
+        // so a contour paid eight miters per point where it needs one. It is resolved once here
+        // and every corner of the band is that direction scaled.
+        .sharedOffsetDirs.clear()
+        .sharedOffsetDirs.reserve(count)
+        for i in count do
+            .sharedOffsetDirs.add(polygon.offsetPointAt(i, 1) - polygon.points[i])
+
         let argb = color.argb
+        let dirs = .sharedOffsetDirs.buffer!
         for i in count
         {
-            let j      = (i + 1) % count
-            let innerA = polygon.offsetPointAt(i, innerOff)
-            let outerA = polygon.offsetPointAt(i, outerOff)
-            let innerB = polygon.offsetPointAt(j, innerOff)
-            let outerB = polygon.offsetPointAt(j, outerOff)
-            .pushFringeQuad(innerA, outerA, innerB, outerB, argb)
+            let j  = (i + 1) % count
+            let pi = polygon.points[i]
+            let pj = polygon.points[j]
+            let di = dirs[i]
+            let dj = dirs[j]
+            .pushFringeQuad(pi + di * innerOff, pi + di * outerOff, pj + dj * innerOff, pj + dj * outerOff, argb)
         }
     }
 

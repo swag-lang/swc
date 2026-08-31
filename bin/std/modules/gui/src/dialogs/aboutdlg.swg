@@ -19,9 +19,14 @@ public struct AboutDlg
 
     #[Swag.Late]
     {
-        identityView:   *Wnd           // Raised product block carrying the mark and heading.
-        identityAccent: *Separator     // Single Swag accent anchoring that product block.
+        identityView:   *Wnd                 // Raised product block carrying the mark and heading.
+        identityAccent: *Separator           // Single Swag accent anchoring that product block.
+        contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
     }
+
+    sectionsScroll: #null *ScrollWnd          // Bounded column the added sections stand in.
+    sectionsStack:  #null *StackLayoutCtrl    // Stack of headings and paragraphs inside that column.
+    fitsToContent:  bool                      // Whether the caller left the height to the content.
 
     sourceUrl: String     // Source page owned for the lifetime of an application about dialog.
 }
@@ -40,6 +45,8 @@ public struct AboutDlgParams
 }
 
 // Configures the standard identity and provenance shown for an application.
+//
+// Anything past that is the application's own and is added with [[Gui.AboutDlg.addSection]].
 public struct ApplicationAboutDlgParams
 {
     public
@@ -118,6 +125,9 @@ public impl AboutDlg
             .spacing   = metrics.dialog_BtnPadding * 2
         }
 
+        dlg.contentStack  = stackLayout
+        dlg.fitsToContent = height == 0
+
         // VerticalCenter preserves each child's authored cross-axis extent. Resolve the body now
         // so the plain identity window can author the exact width it must keep.
         dlg.applyLayout()
@@ -180,14 +190,107 @@ public impl AboutDlg
         dlg.sendResizeEvent()
         dlg.buttonBar.applyLayout()
         dlg.applyLayout()
-        if height == 0
+        dlg.fitToContent()
+        return dlg
+    }
+
+    // Tallest the added sections grow before the column scrolls instead of the box.
+    //
+    // A list of what an application supports has no natural length, and a box fitted to one is as
+    // tall as the display it opens on. Past this the column keeps the box a box.
+    const MaxSectionsHeight = 320.0'f32
+
+    // Adds a titled block of application-specific detail under the standard provenance text.
+    //
+    // This is where an application says what the reader cannot read off its name: the formats it
+    // opens, the plugins it carries, what it was built against. `title` names the block and
+    // `content` is the rich text under it, wrapped like the rest of the box; either may be empty.
+    // The blocks stack in one column and that column scrolls once it reaches
+    // [[Gui.AboutDlg.MaxSectionsHeight]], so a long list never makes the box taller than the
+    // display it opens on.
+    mtd addSection(title, content: string)
+    {
+        Debug.assert(title.count or content.count, "an about section carries no text")
+
+        let metrics = .themeMetrics()
+        if !.sectionsScroll
         {
-            let availableWidth = Math.max(stackLayout.position.width, 1)
-            let contentHeight  = stackLayout.measure({availableWidth, 0}).preferred.y
-            dlg.fitHeightToContent(contentHeight)
-            srf.center(from)
+            // Authored width, like the identity block above it: the column centers its children
+            // vertically as a group and leaves the cross axis to each of them.
+            with let scroll = Wnd.create'ScrollWnd(.contentStack, "", {0, 0, .contentStack.position.width, 0})
+            {
+                .padding = 0
+                .updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
+            }
+
+            .sectionsScroll = scroll
+            with .sectionsStack = scroll.createView'StackLayoutCtrl()
+            {
+                .mode    = .Top
+                .spacing = metrics.dialog_BtnPadding
+            }
         }
 
-        return dlg
+        let stack = .sectionsStack!
+        if title.count
+        {
+            // The heading is set through the rich-text marker rather than through a face of its
+            // own, so it stays the family the theme gives the box and moves with it.
+            var heading = Format.toString("<b>%</b>", title)
+            let label   = Label.create(stack, heading.toString(), flags: .AutoHeight | .WordWrap)
+            label.setTextAlignment(.Left, .Top)
+        }
+
+        if content.count
+        {
+            let label = Label.create(stack, content, flags: .AutoHeight | .WordWrap | .SecondaryText)
+            label.setTextAlignment(.Left, .Top)
+        }
+
+        .fitToContent()
+    }
+
+    // Gives the sections column the room it asks for, up to the measure, then fits the box.
+    private mtd fitToContent()
+    {
+        let stack = .contentStack!
+        .applyLayout()
+
+        let scroll = .sectionsScroll
+        if scroll
+        {
+            // Measured against the width left once a bar is there, whether or not one is showing:
+            // measured against the full viewport, the text would wrap one line further the moment
+            // the bar appeared, and the column would need the room it was just told it had.
+            let inner  = .sectionsStack!
+            let bar    = .themeMetrics().scrollBar_SmallSize
+            let room   = Math.max(scroll.paddedClientRect().width - bar, 1)
+            // The column's own content, not its measured size: a scroll view resizes its view to
+            // the viewport, and a resized window answers for the size it was given. Rounded out,
+            // because the window it goes in lands on whole units: a viewport a fraction shorter
+            // than its content shows a scroll bar over a list that fits.
+            let needed = Math.ceil(inner.itf.measureContent({room, 0}).y)
+            scroll.position.height = Math.min(needed, MaxSectionsHeight)
+            scroll.setScrollSize(0, needed)
+            .applyLayout()
+
+            // A viewport is not the window around it. Commit the height, then ask what the column
+            // really got and add the difference back, so a list that fits shows no scroll bar.
+            let chrome = scroll.position.height - scroll.paddedClientRect().height
+            if chrome > 0
+            {
+                scroll.position.height = Math.min(needed + chrome, MaxSectionsHeight)
+                .applyLayout()
+            }
+        }
+
+        if !.fitsToContent do
+            return
+
+        let availableWidth = Math.max(stack.position.width, 1)
+        let contentHeight  = stack.measure({availableWidth, 0}).preferred.y
+        .fitHeightToContent(contentHeight)
+        if .parentSurface do
+            .surface!.center(.parentSurface!)
     }
 }

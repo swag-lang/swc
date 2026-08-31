@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -2572,9 +2573,8 @@ namespace
     //    possibly concurrently running, compilation job, so reading its node/paged stores from
     //    this thread is unsafe. Marked cross-module functions still inline through
     //    tryInlineCall's explicit cross-Ast path;
-    //  - bound the body size to keep code growth in check.
-    // Body shape is otherwise unrestricted: correct materialization (preserved resolved symbols
-    // + inline-scope isolation) handles arbitrary statements/locals/calls.
+    //  - use the parser's cost/shape verdict to keep code growth in check and reject constructs
+    //    whose lexical context the materializer cannot preserve.
     // An aggregate/by-value-struct type whose inline materialization is not yet reliable
     // (struct-typed constant payloads, the `retval` placeholder of a struct-returning callee,
     // by-value aggregate parameters). Auto-inline restricts itself to scalar/pointer signatures
@@ -2582,7 +2582,7 @@ namespace
     bool isInlineAggregateType(const TypeInfo& ti)
     {
         return ti.isStruct() || ti.isArray() || ti.isAggregateStruct() || ti.isAggregateArray() ||
-               ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice();
+               ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice() || ti.isFunction();
     }
 
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
@@ -2594,6 +2594,13 @@ namespace
         // not consulted at all - the parser already ruled on its shape - so this answer no longer
         // depends on how far the callee's own analysis happens to have progressed.
         if (!fn.isTyped())
+            return false;
+
+        // Automatic inlining optimizes emitted runtime code. In #run/compiler-evaluation frames
+        // it can instead change which synthetic function owns a global write, or make JIT-only
+        // nodes re-enter ordinary inline materialization concurrently. Explicit inline, macro,
+        // and mixin expansion remain available in those contexts.
+        if (!SemaRuntime::isRuntimeArtifactContext(sema))
             return false;
 
         // A typed variadic (`T...`) callee packs its trailing call-site args into a typed slice.
@@ -2617,15 +2624,43 @@ namespace
         if (fn.isFallible())
             return false;
 
-        // Scalar/pointer signature only - see isInlineAggregateType.
-        if (fn.returnTypeRef().isValid() && isInlineAggregateType(sema.ctx().typeMgr().get(fn.returnTypeRef())))
+        const AstFunctionDecl* decl    = nullptr;
+        const Ast*             declAst = nullptr;
+        if (!resolveFunctionDecl(sema, fn, decl, declAst))
             return false;
+        if (declAst != &sema.ast())
+            return false;
+        if (decl->nodeBodyRef.isInvalid())
+            return false;
+        const bool bodyHasCalls = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
+        // The large budget is a last-call-to-static bonus: it only applies where this module owns
+        // every possible caller and can truly eliminate the remaining call edge. Public helpers
+        // may still be called by another module, so they keep only the former small leaf policy.
+        if (fn.isPublic() && (bodyHasCalls || decl->autoInlineCost > K_AUTO_INLINE_MAX_BODY_TOKENS))
+            return false;
+
+        // Scalar/pointer signature only - see isInlineAggregateType.
+        if (fn.returnTypeRef().isValid())
+        {
+            const TypeInfo& returnType = sema.ctx().typeMgr().get(fn.returnTypeRef());
+            if ((bodyHasCalls && returnType.isNullable()) || isInlineAggregateType(returnType))
+                return false;
+        }
         for (const SymbolVariable* param : fn.parameters())
         {
             if (!param)
                 continue;
+            // `me` is the method receiver, not an aggregate value copied into the inline body.
+            // Ordinary inline materialization already binds its address explicitly (including
+            // indexed/rvalue receivers), and parse-time eligibility rejects implicit `.member`
+            // accesses whose contextual receiver could otherwise change after cloning.
+            if (param->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+                continue;
             const TypeInfo& paramType = param->type(sema.ctx());
-            if (isInlineAggregateType(paramType))
+            // Nullable qualification is part of the callee's flow contract. The inline binding
+            // currently adopts the call-site expression type, which can narrow `#null *T` to
+            // `*T` and make a valid null test in the cloned body ill-typed.
+            if ((bodyHasCalls && paramType.isNullable()) || isInlineAggregateType(paramType))
                 return false;
             // A reference parameter to an aggregate (e.g. `const &{x, y}`) is excluded for the same
             // reason its by-value form is: the aggregate is not a scalar/pointer the auto-inline clone
@@ -2639,17 +2674,9 @@ namespace
                 return false;
         }
 
-        const AstFunctionDecl* decl    = nullptr;
-        const Ast*             declAst = nullptr;
-        if (!resolveFunctionDecl(sema, fn, decl, declAst))
-            return false;
-        if (declAst != &sema.ast())
-            return false;
-        if (decl->nodeBodyRef.isInvalid())
-            return false;
-
-        // Body size and the constructs the materializer cannot carry into a caller (a nested
-        // call, a local function, `#offsetof`) were settled by the parser, on an immutable body.
+        // Body cost and unsupported constructs (a local function or `#offsetof`) were settled by
+        // the parser, on an immutable body. The module-wide parser finalization also applies the
+        // single-call-site bonus before any sema job can observe the flag.
         // See AstFunctionFlagsE::AutoInlineBody.
         return decl->hasFlag(AstFunctionFlagsE::AutoInlineBody);
     }
@@ -2671,6 +2698,18 @@ namespace
                 return true;
 
         return false;
+    }
+
+    bool isInsideDefer(const Sema& sema)
+    {
+        for (uint32_t up = 0;; ++up)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
+            if (parentRef.isInvalid())
+                return false;
+            if (sema.node(parentRef).is(AstNodeId::DeferStmt))
+                return true;
+        }
     }
 
 }
@@ -2817,6 +2856,14 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const bool isAutoSelected = isOrdinaryInline &&
                                 !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
                                 sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
+
+    // A defer body is emitted again at each control-flow exit where it applies. Auto-inlining an
+    // ordinary body containing a return would make those emissions share inline nodes whose done
+    // labels belong to different MicroBuilders. Keep deferred calls out of the heuristic until
+    // deferred emission clones or remaps those labels per destination. Explicit inlining remains
+    // an intentional opt-in.
+    if (isAutoSelected && isInsideDefer(sema))
+        return Result::Continue;
 
     // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
     // Regular inline relies on the body's identifiers already carrying their resolved symbols

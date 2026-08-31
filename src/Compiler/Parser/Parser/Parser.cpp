@@ -5,6 +5,297 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    std::string_view autoInlineCallName(const Ast& ast, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid() && ast.hasNode(nodeRef))
+        {
+            const AstNode& node = ast.node(nodeRef);
+            if (const auto* call = node.safeCast<AstCallExpr>())
+            {
+                nodeRef = call->nodeExprRef;
+                continue;
+            }
+            if (node.is(AstNodeId::Identifier))
+                return ast.srcView().tokenString(node.tokRef());
+            if (const auto* member = node.safeCast<AstMemberAccessExpr>())
+            {
+                nodeRef = member->nodeRightRef;
+                continue;
+            }
+            if (const auto* member = node.safeCast<AstAutoMemberAccessExpr>())
+            {
+                nodeRef = member->nodeIdentRef;
+                continue;
+            }
+
+            break;
+        }
+
+        return {};
+    }
+
+    class AutoInlineCallGraph
+    {
+    public:
+        void addFunction(const Ast& ast, const AstFunctionDecl& decl)
+        {
+            if (decl.tokNameRef.isInvalid())
+                return;
+
+            const uint32_t sourceIndex = indexOf(ast.srcView().tokenString(decl.tokNameRef));
+            Ast::visit(ast, decl.nodeBodyRef, [&](AstNodeRef, const AstNode& node) {
+                if (node.is(AstNodeId::FunctionDecl))
+                    return Ast::VisitResult::Skip;
+
+                const auto* call = node.safeCast<AstCallExpr>();
+                if (!call)
+                    return Ast::VisitResult::Continue;
+
+                const std::string_view targetName = autoInlineCallName(ast, call->nodeExprRef);
+                if (!targetName.empty())
+                {
+                    const uint32_t targetIndex = indexOf(targetName);
+                    if (std::ranges::find(edges_[sourceIndex], targetIndex) == edges_[sourceIndex].end())
+                        edges_[sourceIndex].push_back(targetIndex);
+                }
+                return Ast::VisitResult::Continue;
+            });
+        }
+
+        void findCycles()
+        {
+            indices_.assign(edges_.size(), UINT32_MAX);
+            lowLinks_.resize(edges_.size());
+            onStack_.assign(edges_.size(), false);
+            cyclic_.assign(edges_.size(), false);
+            for (uint32_t i = 0; i < edges_.size(); ++i)
+            {
+                if (indices_[i] == UINT32_MAX)
+                    connect(i);
+            }
+        }
+
+        bool isCyclic(const std::string_view name) const
+        {
+            const auto it = nameIndices_.find(name);
+            return it != nameIndices_.end() && cyclic_[it->second];
+        }
+
+        bool callsAny(const std::string_view name, const std::unordered_set<std::string_view>& targets) const
+        {
+            const auto sourceIt = nameIndices_.find(name);
+            if (sourceIt == nameIndices_.end())
+                return false;
+
+            for (const std::string_view target : targets)
+            {
+                const auto targetIt = nameIndices_.find(target);
+                if (targetIt != nameIndices_.end() &&
+                    std::ranges::find(edges_[sourceIt->second], targetIt->second) != edges_[sourceIt->second].end())
+                    return true;
+            }
+            return false;
+        }
+
+    private:
+        uint32_t indexOf(const std::string_view name)
+        {
+            const auto [it, inserted] = nameIndices_.try_emplace(name, static_cast<uint32_t>(edges_.size()));
+            if (inserted)
+                edges_.emplace_back();
+            return it->second;
+        }
+
+        void connect(const uint32_t nodeIndex)
+        {
+            indices_[nodeIndex]  = nextIndex_;
+            lowLinks_[nodeIndex] = nextIndex_;
+            nextIndex_++;
+            stack_.push_back(nodeIndex);
+            onStack_[nodeIndex] = true;
+
+            for (const uint32_t targetIndex : edges_[nodeIndex])
+            {
+                if (indices_[targetIndex] == UINT32_MAX)
+                {
+                    connect(targetIndex);
+                    lowLinks_[nodeIndex] = std::min(lowLinks_[nodeIndex], lowLinks_[targetIndex]);
+                }
+                else if (onStack_[targetIndex])
+                    lowLinks_[nodeIndex] = std::min(lowLinks_[nodeIndex], indices_[targetIndex]);
+            }
+
+            if (lowLinks_[nodeIndex] != indices_[nodeIndex])
+                return;
+
+            SmallVector<uint32_t> component;
+            for (;;)
+            {
+                const uint32_t memberIndex = stack_.back();
+                stack_.pop_back();
+                onStack_[memberIndex] = false;
+                component.push_back(memberIndex);
+                if (memberIndex == nodeIndex)
+                    break;
+            }
+
+            const bool selfCycle = component.size() == 1 && std::ranges::find(edges_[nodeIndex], nodeIndex) != edges_[nodeIndex].end();
+            if (component.size() > 1 || selfCycle)
+            {
+                for (const uint32_t memberIndex : component)
+                    cyclic_[memberIndex] = true;
+            }
+        }
+
+        std::unordered_map<std::string_view, uint32_t> nameIndices_;
+        std::vector<SmallVector<uint32_t>>             edges_;
+        std::vector<uint32_t>                          indices_;
+        std::vector<uint32_t>                          lowLinks_;
+        std::vector<bool>                              onStack_;
+        std::vector<bool>                              cyclic_;
+        SmallVector<uint32_t>                          stack_;
+        uint32_t                                       nextIndex_ = 0;
+    };
+
+    // Generated snippets arrive after the module-wide parse barrier, while sema may already be
+    // reading the owner Ast. Preserve the former leaf-only decision within the fresh root instead
+    // of consulting or mutating the concurrently analysed module graph.
+    void finalizeGeneratedAutoInlineCandidates(Ast& ast, const AstNodeRef rootRef)
+    {
+        Ast::visit(ast, rootRef, [&](AstNodeRef nodeRef, const AstNode& node) {
+            const auto* decl = node.safeCast<AstFunctionDecl>();
+            if (!decl || decl->autoInlineCost > K_AUTO_INLINE_MAX_BODY_TOKENS)
+                return Ast::VisitResult::Continue;
+
+            if (!decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls))
+                ast.node<AstNodeId::FunctionDecl>(nodeRef)->addFlag(AstFunctionFlagsE::AutoInlineBody);
+            return Ast::VisitResult::Continue;
+        });
+    }
+
+    void collectMetaFunctionNames(const Ast& ast, std::unordered_set<std::string_view>& outNames)
+    {
+        Ast::visit(ast, ast.root(), [&](AstNodeRef, const AstNode& node) {
+            const auto* attributes = node.safeCast<AstAttributeList>();
+            if (!attributes || attributes->nodeBodyRef.isInvalid() || !ast.hasNode(attributes->nodeBodyRef))
+                return Ast::VisitResult::Continue;
+
+            const auto* decl = ast.node(attributes->nodeBodyRef).safeCast<AstFunctionDecl>();
+            if (!decl || decl->tokNameRef.isInvalid())
+                return Ast::VisitResult::Continue;
+
+            const size_t count = ast.spanSize(attributes->spanChildrenRef);
+            for (size_t i = 0; i < count; ++i)
+            {
+                const AstNodeRef attributeRef = ast.nthNode(attributes->spanChildrenRef, i);
+                if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
+                    continue;
+                const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
+                if (!attribute)
+                    continue;
+
+                const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef);
+                if (attributeName == "Macro" || attributeName == "Mixin")
+                {
+                    outNames.insert(ast.srcView().tokenString(decl->tokNameRef));
+                    break;
+                }
+            }
+            return Ast::VisitResult::Continue;
+        });
+    }
+}
+
+void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts)
+{
+    std::unordered_set<std::string_view> metaFunctionNames;
+    for (const Ast* ast : moduleAsts)
+    {
+        if (ast && ast->root().isValid())
+            collectMetaFunctionNames(*ast, metaFunctionNames);
+    }
+
+    std::unordered_map<std::string_view, uint32_t>                         callCounts;
+    std::unordered_map<std::string_view, uint32_t>                         useCounts;
+    std::unordered_map<const Ast*, AutoInlineCallGraph>                    callGraphs;
+    std::unordered_map<const Ast*, std::unordered_set<std::string_view>> unsupportedFunctionNames;
+    for (const Ast* ast : moduleAsts)
+    {
+        if (!ast || ast->root().isInvalid())
+            continue;
+
+        Ast::visit(*ast, ast->root(), [&](AstNodeRef, const AstNode& node) {
+            if (const auto* decl = node.safeCast<AstFunctionDecl>())
+            {
+                callGraphs[ast].addFunction(*ast, *decl);
+                if (decl->autoInlineCost == UINT32_MAX && decl->tokNameRef.isValid())
+                    unsupportedFunctionNames[ast].insert(ast->srcView().tokenString(decl->tokNameRef));
+            }
+
+            if (node.is(AstNodeId::Identifier))
+                useCounts[ast->srcView().tokenString(node.tokRef())]++;
+
+            const auto* call = node.safeCast<AstCallExpr>();
+            if (!call)
+                return Ast::VisitResult::Continue;
+
+            const std::string_view name = autoInlineCallName(*ast, call->nodeExprRef);
+            if (!name.empty())
+                callCounts[name]++;
+            return Ast::VisitResult::Continue;
+        });
+    }
+
+    // Auto-inlining waits for the callee's resolved body before cloning it. A cycle of candidates
+    // would therefore turn a legal recursive call graph into a sema wait cycle. Detect it from the
+    // immutable parsed graph and leave every member out of line. Cross-Ast calls cannot auto-inline,
+    // so each Ast has its own graph; keeping unrelated names apart also avoids false cycles.
+    for (auto& [_, callGraph] : callGraphs)
+        callGraph.findCycles();
+
+    for (Ast* ast : moduleAsts)
+    {
+        if (!ast || ast->root().isInvalid())
+            continue;
+
+        Ast::visit(*ast, ast->root(), [&](AstNodeRef nodeRef, const AstNode& node) {
+            const auto* decl = node.safeCast<AstFunctionDecl>();
+            if (!decl || decl->autoInlineCost > K_AUTO_INLINE_LAST_CALL_COST || decl->tokNameRef.isInvalid())
+                return Ast::VisitResult::Continue;
+
+            const std::string_view name        = ast->srcView().tokenString(decl->tokNameRef);
+            auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
+            const bool             bodyHasCall = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
+            const auto callGraphIt = callGraphs.find(ast);
+            if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsAny(name, metaFunctionNames))
+                return Ast::VisitResult::Continue;
+            const auto unsupportedIt = unsupportedFunctionNames.find(ast);
+            // Re-sema of an inlined wrapper can itself expand an explicitly-inline callee. If that
+            // callee owns a closure, local function, error-management scope, or another construct
+            // the parser already rejected, moving the wrapper merely hides the same unsupported
+            // materialization one call deeper.
+            if (bodyHasCall && callGraphIt != callGraphs.end() && unsupportedIt != unsupportedFunctionNames.end() &&
+                callGraphIt->second.callsAny(name, unsupportedIt->second))
+                return Ast::VisitResult::Continue;
+            if (callGraphIt != callGraphs.end() && callGraphIt->second.isCyclic(name) && bodyHasCall)
+            {
+                mutableDecl->flags().remove(AstFunctionFlagsE::AutoInlineBody);
+                return Ast::VisitResult::Continue;
+            }
+
+            const auto it = callCounts.find(name);
+            const auto useIt = useCounts.find(name);
+            const bool hasLastCallBonus = it != callCounts.end() && it->second == 1 &&
+                                          useIt != useCounts.end() && useIt->second == 1;
+            if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hasLastCallBonus)
+                mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
+            return Ast::VisitResult::Continue;
+        });
+    }
+}
+
 AstNodeRef Parser::parseGeneratedValue(const ParserGeneratedMode mode)
 {
     switch (mode)
@@ -113,6 +404,7 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
 
     SourceView*      previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
     const AstNodeRef result          = parseGeneratedContent(mode);
+    finalizeGeneratedAutoInlineCandidates(*ast_, result);
     Ast::setThreadSourceViewOverride(previousSrcView);
 
     return result;

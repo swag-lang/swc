@@ -5,52 +5,80 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Constructs the auto-inline materializer cannot carry into a caller. A nested call would have
-    // to be re-resolved in a scope that may not see it; a local function re-binds its outer-scope
-    // access.
-    //
-    // `#offsetof(local)` is the third: it yields an offset within the function's own frame, and
-    // inlining moves the callee's locals behind the caller's, shifting every one of them. Struct
+    struct AutoInlineBodyShape
+    {
+        uint32_t numCalls = 0;
+        bool     blocked  = false;
+    };
+
+    // A local function or closure re-binds its outer-scope access and owns a distinct code symbol.
+    // `#offsetof(local)` yields an offset within
+    // the function's own frame, and inlining moves the callee's locals behind the caller's,
+    // shifting every one of them. An implicit `.member` would likewise be rebound against the
+    // caller's contextual receiver. Struct
     // `#offsetof` would survive, but telling the two operands apart needs full resolution, and a
     // body using `#offsetof` at all is rare enough that refusing all of them costs nothing.
-    bool nodeBlocksAutoInline(const Ast& ast, AstNodeRef nodeRef, const Token* firstToken)
+    void measureAutoInlineBody(AutoInlineBodyShape& result, const Ast& ast, AstNodeRef nodeRef, const Token* firstToken)
     {
-        if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
-            return false;
+        if (result.blocked || nodeRef.isInvalid() || !ast.hasNode(nodeRef))
+            return;
 
         const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::FunctionDecl))
-            return true;
+        if (node.is(AstNodeId::AutoMemberAccessExpr))
+        {
+            result.blocked = true;
+            return;
+        }
+        // `try`/`catch`/`expect` record fallibility on their lexical owner while their managed
+        // child is analysed. Moving the whole construct into a caller can make that owner finish
+        // before the cloned fallible call publishes its state, so leave error-management scopes
+        // to explicit inlining until their payload is remapped with the clone.
+        if (node.is(AstNodeId::ErrorManagementExpr) || node.is(AstNodeId::ErrorManagementStmt))
+        {
+            result.blocked = true;
+            return;
+        }
+        if (node.is(AstNodeId::CallExpr))
+            result.numCalls++;
+        else if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+        {
+            result.blocked = true;
+            return;
+        }
         if (node.is(AstNodeId::CompilerCallOne) && firstToken[node.tokRef().get()].id == TokenId::CompilerOffsetOf)
-            return true;
+        {
+            result.blocked = true;
+            return;
+        }
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
         for (const AstNodeRef childRef : children)
-        {
-            if (nodeBlocksAutoInline(ast, childRef, firstToken))
-                return true;
-        }
-
-        return false;
+            measureAutoInlineBody(result, ast, childRef, firstToken);
     }
 }
 
-// Whether this body's shape lets the auto-inline heuristic volunteer the function. Answered here,
-// while the body is freshly parsed and immutable, because sema rewrites body nodes in place: the
-// same walk run during analysis reads nodes whose id and payload disagree.
-bool Parser::bodyShapeAllowsAutoInline(AstNodeRef bodyRef, TokenRef bodyStartRef) const
+// Measure the body's stable parse-time cost. Sema rewrites body nodes in place, so the same walk
+// run during analysis can read nodes whose id and payload disagree.
+uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, AstNodeRef bodyRef, TokenRef bodyStartRef) const
 {
+    outHasCalls = false;
     if (bodyRef.isInvalid() || bodyStartRef.isInvalid())
-        return false;
+        return UINT32_MAX;
 
     const TokenRef bodyEndRef = ref();
     if (bodyEndRef.isInvalid() || bodyEndRef.get() < bodyStartRef.get())
-        return false;
-    if (bodyEndRef.get() - bodyStartRef.get() > K_AUTO_INLINE_MAX_BODY_TOKENS)
-        return false;
+        return UINT32_MAX;
 
-    return !nodeBlocksAutoInline(*ast_, bodyRef, firstToken_);
+    AutoInlineBodyShape shape;
+    measureAutoInlineBody(shape, *ast_, bodyRef, firstToken_);
+    outHasCalls = shape.numCalls != 0;
+    if (shape.blocked)
+        return UINT32_MAX;
+
+    const uint64_t cost = static_cast<uint64_t>(bodyEndRef.get() - bodyStartRef.get()) +
+                          static_cast<uint64_t>(shape.numCalls) * K_AUTO_INLINE_CALL_PENALTY;
+    return cost > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(cost);
 }
 
 AstNodeRef Parser::parseClosureArg()
@@ -339,8 +367,10 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
         nodePtr->nodeBodyRef = AstNodeRef::invalid();
     }
 
-    if (bodyShapeAllowsAutoInline(nodePtr->nodeBodyRef, bodyStartRef))
-        nodePtr->addFlag(AstFunctionFlagsE::AutoInlineBody);
+    bool autoInlineHasCalls = false;
+    nodePtr->autoInlineCost = computeAutoInlineBodyCost(autoInlineHasCalls, nodePtr->nodeBodyRef, bodyStartRef);
+    if (autoInlineHasCalls)
+        nodePtr->addFlag(AstFunctionFlagsE::AutoInlineHasCalls);
 
     fwdSeenParam_  = savedFwdSeen;
     fwdDeclActive_ = savedFwdActive;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -107,6 +108,12 @@ namespace Command
                 continue;
             files.push_back(f);
         }
+
+        SmallVector<Ast*> moduleAsts;
+        moduleAsts.reserve(files.size());
+        for (SourceFile* f : files)
+            moduleAsts.push_back(&f->ast());
+        Parser::finalizeAutoInlineCandidates(moduleAsts.span());
 
         if (compiler.setupSema(ctx) == Result::Error)
             return;

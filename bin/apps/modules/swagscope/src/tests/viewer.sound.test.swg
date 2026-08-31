@@ -205,6 +205,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     Swag.assert(view.elapsed == 0)
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)

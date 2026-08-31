@@ -288,6 +288,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
 // The host keeps a viewer-specific pattern intact across scanner chunks, publishes every exact
 // byte range, and gives invalid input an explanation without opening a file scan.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-hex-search-", ".bin")
@@ -369,6 +370,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
 // The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
 // remains a navigation target rather than detached report text.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = writePreviewFile()
@@ -929,6 +931,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
 // Photographed on the palette the application ships on: the header, faint zero bytes, the caret in
 // both columns, and a selection.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = writePreviewFile()

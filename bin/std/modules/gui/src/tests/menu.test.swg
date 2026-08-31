@@ -75,18 +75,21 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 }
 
 // Menu marker color and submenu restraint are explicit visual contracts in the dark palette.
+#[Swag.TestTag("golden")]
 #test
 {
     assertMenuMarkerGolden(.Dark, "menu.popup.markers.dark")
 }
 
 // Menu marker color and submenu restraint are explicit visual contracts in the light palette.
+#[Swag.TestTag("golden")]
 #test
 {
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
 }
 
 // Menu marker color and submenu restraint are explicit visual contracts in the Swag palette.
+#[Swag.TestTag("golden")]
 #test
 {
     assertMenuMarkerGolden(.SwagDark, "menu.popup.markers.swag-dark")
@@ -386,6 +389,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 }
 
 // An icon-button menu carries the button itself into the popup outline, with no detached notch.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -559,6 +563,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
 // A left-opening submenu marker replaces the unused glyph on its row, even when another row
 // makes the popup keep a shared glyph column.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -595,6 +600,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
 // A left-opening submenu without any visible item glyph collapses the unused glyph column, so
 // its wording follows the leading chevron at the normal icon-to-text distance.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -721,6 +727,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 }
 
 // A taller menu bar centers its visual/hit item band and uses that band as popup anchor.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

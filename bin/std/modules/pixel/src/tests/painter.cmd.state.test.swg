@@ -7,6 +7,7 @@ using Swag, Core
 
 // The commands a bare begin()/end() pair emits. Every other golden in this folder starts with
 // this prelude, so a change here is expected to move a lot of goldens at once.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -15,6 +16,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "state.empty")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -24,6 +26,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "state.clear")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -38,6 +41,7 @@ using Swag, Core
 
 // A push/pop pair must restore the exact previous transform, so the last Transform command has
 // to match the first one.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -51,6 +55,7 @@ using Swag, Core
 
 // A translation of zero must not emit anything: the painter filters it out, and losing that
 // filter would flood every widget drawing with redundant Transform commands.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -60,6 +65,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "state.transform.identity.noop")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -72,6 +78,7 @@ using Swag, Core
 }
 
 // Nested clips intersect; popping restores the enclosing rectangle.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -87,6 +94,7 @@ using Swag, Core
 }
 
 // Setting the same clipping rectangle twice must emit a single command.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -97,6 +105,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "state.clip.redundant")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -110,6 +119,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "state.clip.region")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -122,6 +132,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "state.blending")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -134,6 +145,7 @@ using Swag, Core
 }
 
 // pushState/popState restores transform, blending and color mask together.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

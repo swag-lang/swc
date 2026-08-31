@@ -7,6 +7,7 @@ using Swag, Core
 
 // An axis-aligned rectangle under a pure translation takes the fast path: two triangles, no
 // antialiasing fringe. Losing that path shows up here as a larger vertex count and 'cov=aa'.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -18,6 +19,7 @@ using Swag, Core
 
 // The same rectangle under a rotation cannot be pixel snapped, so it goes through path
 // tessellation and gains an antialiasing fringe.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -29,6 +31,7 @@ using Swag, Core
 }
 
 // Non-integer coordinates are rounded before emission.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -39,6 +42,7 @@ using Swag, Core
 }
 
 // A fully transparent brush must emit nothing at all.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -49,6 +53,7 @@ using Swag, Core
 }
 
 // A degenerate rectangle must emit nothing at all.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -61,6 +66,7 @@ using Swag, Core
 // Batching: consecutive solid fills share a single DrawTriangles command. This is the property
 // that keeps widget backgrounds cheap, and the vertex count in the golden is what detects a
 // regression that splits the batch.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -73,6 +79,7 @@ using Swag, Core
 }
 
 // A clipping change between two fills must break the batch.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -84,6 +91,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "rect.fill.batchbreak")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -94,6 +102,7 @@ using Swag, Core
 }
 
 // A thick border drawn inside the rectangle shifts the stroke path by half the pen size.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -106,6 +115,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "rect.draw.inside")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -115,6 +125,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "rect.fillround")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -126,6 +137,7 @@ using Swag, Core
 
 // Draft quality flattens curves with fewer segments than Normal, so the two goldens must differ
 // in vertex count.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -136,6 +148,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "rect.fillround.draft")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

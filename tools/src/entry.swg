@@ -57,8 +57,8 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
         let testCommand = options.command == "test" or (name == "reference" and options.command.isEmpty())
         if !moduleTool or !testCommand
         {
-            Console.println("error: '--test-file' is available only with a module tool's 'test' command")
-            Console.println("Use '--file-filter' for a standalone compiler suite.")
+            Console.println("error: test filters are available only with a module tool's 'test' command")
+            Console.println("Use '--file-filter' for standalone compiler-suite inputs.")
             return 1
         }
     }
@@ -156,6 +156,10 @@ private func acceptedCommands(name: string)->Array'(string)
     case "scripts":
         result.add("run")
         result.add("smoke")
+
+    case "goldens":
+        result.add("test")
+        result.add("accept")
     }
 
     return result

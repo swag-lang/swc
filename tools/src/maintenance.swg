@@ -19,14 +19,163 @@ public func runFormat(context: *Context, options: *Options)->s32 fail
     return try context.runCompiler(arguments)
 }
 
-// Promotes the snapshots a failing test left behind into the goldens they diverged from.
+// Tests every tagged golden, or promotes the snapshots a failing test left behind into the
+// goldens they diverged from.
 //
 // A golden mismatch writes `<name>.actual.txt` or `<name>.actual.png` next to its reference and
 // fails. Once reviewed, this moves every actual over its golden. Recording is deliberately a
 // separate, explicit step: it accepts whatever the code currently produces.
-public func runGoldens(context: *Context, _options: *Options)->s32 fail
+public func runGoldens(context: *Context, options: *Options)->s32 fail
+{
+    if options.command == "test" do
+        return try runGoldenTests(context, options)
+    return try acceptGoldens(context)
+}
+
+// Runs every '#test' tagged as a text or image golden.
+//
+// Modules run separately and the campaign continues after a failing one, leaving every
+// divergent `.actual` available for one review. The tag is explicit test metadata; assertion
+// helpers and implementation details therefore cannot hide a golden from this pass.
+private func runGoldenTests(context: *Context, options: *Options)->s32 fail
+{
+    let before = try goldenSnapshots(context)
+
+    var ran    = false
+    var failed = false
+    for cfg in options.configurations()
+    {
+        var sub = forConfiguration(options, cfg.toString())
+        sub.command = String.from("test")
+        sub.module.clear()
+        sub.test.values.clear()
+        sub.test.add(["--test-tag", "golden"])
+
+        for workspace in ["std", "examples", "apps"]
+        {
+            for module in try goldenModules(context, workspace)
+            {
+                ran        = true
+                sub.module = String.from(module.toString())
+                Console.println()
+                Console.println("golden tests: ", workspace, "/", module.toString(), " (", cfg.toString(), ")")
+
+                var code = 0's32
+                switch workspace
+                {
+                case "std":
+                    code = try runStd(context, &sub)
+                case "examples":
+                    code = try runExamples(context, &sub)
+                case "apps":
+                    code = try runApps(context, &sub)
+                }
+                failed = failed or code != 0
+            }
+        }
+
+        if try directoryHasGoldens(context.workspacePath("reference").toString())
+        {
+            ran = true
+            sub.module.clear()
+            Console.println()
+            Console.println("golden tests: reference (", cfg.toString(), ")")
+            let code = try runReference(context, &sub)
+            failed   = failed or code != 0
+        }
+    }
+
+    let actuals = actualSnapshots(context)
+    if actuals.count
+    {
+        Console.println()
+        Console.println("golden differences:")
+        for actual in actuals do
+            Console.println("  ", actual.toString())
+        failed = true
+    }
+
+    let after = try goldenSnapshots(context)
+    var created = 0'u64
+    for snapshot in after
+    {
+        if before.contains(snapshot.toString()) do
+            continue
+        if created == 0
+        {
+            Console.println()
+            Console.println("new goldens created during the test:")
+        }
+        Console.println("  ", snapshot.toString())
+        created += 1
+    }
+
+    if !ran
+    {
+        Console.println("no golden directory found")
+        return 1
+    }
+
+    if failed or created != 0 do
+        return 1
+
+    Console.println()
+    Console.println("all golden tests passed")
+    return 0
+}
+
+// Returns the independently runnable modules that own a canonical `goldens` directory.
+private func goldenModules(context: *Context, workspace: string)->Array'String fail
+{
+    var result: retval
+    for module in context.workspaceModules(workspace)
+    {
+        let moduleDir = Path.combine(context.workspacePath(workspace).toString(), "modules", module.toString())
+        if try directoryHasGoldens(moduleDir.toString()) do
+            result.add(String.from(module.toString()))
+    }
+
+    return result
+}
+
+// Reports whether one independently runnable root owns a canonical `goldens` directory.
+private func directoryHasGoldens(root: string)->bool fail
+{
+    let directories = try Directory.enumerateDirectories(root, recurse: true)
+    for directory in directories where Path.fileName(directory.fullname.toString()) == "goldens" do
+        return true
+
+    return false
+}
+
+// Promotes every pending actual snapshot after it has been reviewed.
+private func acceptGoldens(context: *Context)->s32 fail
 {
     var accepted = 0'u64
+    for full in actualSnapshots(context)
+    {
+        let suffix    = full.endsWith(".actual.txt") ? ".actual.txt" : ".actual.png"
+        let extension = suffix == ".actual.txt" ? ".txt" : ".png"
+
+        var golden = String.from(full.toString()[0 until full.count - suffix.count])
+        golden += extension
+
+        try File.move(golden.toString(), full.toString())
+        Console.println("accepted ", Path.fileName(full.toString()) orelse "")
+        accepted += 1
+    }
+
+    if accepted == 0 do
+        Console.println("no pending snapshot to accept")
+    else do
+        Console.println(accepted, " golden(s) accepted - review them with git diff before committing")
+    return 0
+}
+
+// Returns every text or image snapshot left by a failed golden comparison.
+private func actualSnapshots(context: *Context)->Array'String
+{
+    var result: retval
     for suffix in [".actual.txt", ".actual.png"]
     {
         let extension = suffix == ".actual.txt" ? ".txt" : ".png"
@@ -37,23 +186,37 @@ public func runGoldens(context: *Context, _options: *Options)->s32 fail
         for entry in entries
         {
             let full = entry.fullname.toString()
-            if !Utf8.endsWith(cast(const [..] u8) full, suffix) do
-                continue
-
-            var golden = String.from(full[0 until full.count - suffix.count])
-            golden += extension
-
-            try File.move(golden.toString(), full)
-            Console.println("accepted ", Path.fileName(full) orelse "")
-            accepted += 1
+            if Utf8.endsWith(cast(const [..] u8) full, suffix) do
+                result.add(entry.fullname)
         }
     }
 
-    if accepted == 0 do
-        Console.println("no pending snapshot to accept")
-    else do
-        Console.println(accepted, " golden(s) accepted - review them with git diff before committing")
-    return 0
+    return result
+}
+
+// Returns every recorded text or image snapshot below a canonical `goldens` directory.
+private func goldenSnapshots(context: *Context)->Array'String fail
+{
+    var result: retval
+    let directories = try Directory.enumerateDirectories(context.binDir.toString(), recurse: true)
+    for directory in directories
+    {
+        if Path.fileName(directory.fullname.toString()) != "goldens" do
+            continue
+
+        for extension in [".txt", ".png"]
+        {
+            let entries = try Directory.enumerateFiles(directory.fullname.toString(), extension, recurse: true)
+            for entry in entries
+            {
+                let full = entry.fullname.toString()
+                if !Utf8.endsWith(cast(const [..] u8) full, ".actual.txt") and !Utf8.endsWith(cast(const [..] u8) full, ".actual.png") do
+                    result.add(entry.fullname)
+            }
+        }
+    }
+
+    return result
 }
 
 // Regenerates the brand assets and the complete website under web/.

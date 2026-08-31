@@ -903,6 +903,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 // `setDark` and `setLight` on their own hosts here and read the images: one host
 // per palette, never one host repainted, because a render target keeps what the last paint left
 // and a translucent fill then composites over the palette before it.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

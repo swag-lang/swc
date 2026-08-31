@@ -62,6 +62,24 @@ needs 'typeinfo' and cannot exist in the bootstrap.
 'PrintAst' and 'PrintMicro' are development aids: they write compiler output and
 should not be used for program logic.
 
+# Testing
+
+| Attribute | Purpose |
+|---|---|
+| 'TestTag(name: string)' | Assign one runtime-selection category to a '#test' function |
+
+Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating
+the option selects a union of tags. A test can have one 'TestTag'; omit it when
+the test does not belong to a named campaign.
+
+```swag
+#[Swag.TestTag("golden")]
+#test
+{
+    // Compare a text or image snapshot here.
+}
+```
+
 # Metaprogramming and Call Semantics
 
 | Attribute | Purpose |

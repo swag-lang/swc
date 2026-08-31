@@ -57,6 +57,7 @@ public:
         AttributeUsage,
         AttrUsage,
         AttrMulti,
+        TestTag,
         ConstExpr,
         PrintMicro,
         PrintAst,

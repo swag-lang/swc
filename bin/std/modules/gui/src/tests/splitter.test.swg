@@ -6,6 +6,7 @@ using Swag, Core
 // Two structural panel panes keep all four rounded sides, including the sides facing their
 // draggable divider. The divider is one pixel wider than the ordinary outer-panel gutter so
 // both antialiased silhouettes remain distinct.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

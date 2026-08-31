@@ -12,6 +12,7 @@ using Swag, Core
 // The painter uses the CPU backend, so no graphics context is involved and resource handles are
 // allocated in a deterministic order. Built-in effects remain explicit painter commands.
 
+#[Swag.TestTag("golden")]
 #test
 {
     var cpu:   RenderCpu
@@ -33,6 +34,7 @@ using Swag, Core
 
 // A supersampled layer records into a larger target and needs a resolve pass back to the logical
 // size; without renderScale the resolve is a no-op.
+#[Swag.TestTag("golden")]
 #test
 {
     var cpu:   RenderCpu
@@ -55,6 +57,7 @@ using Swag, Core
 }
 
 // Compositing a layer binds its content texture and draws one quad.
+#[Swag.TestTag("golden")]
 #test
 {
     var cpu:   RenderCpu
@@ -79,6 +82,7 @@ using Swag, Core
 
 // A shadow adds the separable blur passes and a second composite. This is the only golden that
 // exercises the built-in blur program and its parameters.
+#[Swag.TestTag("golden")]
 #test
 {
     var cpu:   RenderCpu

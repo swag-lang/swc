@@ -815,27 +815,54 @@ void CompilerInstance::registerNativeCompilerFunction(TokenId funcTokenId, Symbo
         notifyAlive();
 }
 
-bool CompilerInstance::matchesTestFileFilter(const SymbolFunction& symbol) const
+std::string_view CompilerInstance::testTag(const SymbolFunction& symbol) const
 {
-    const auto& filters = cmdLine().testFileFilter;
-    if (filters.empty())
-        return true;
-
-    const SourceFile* sourceFile = ownerSourceFile(symbol.srcViewRef());
-    if (!sourceFile)
-        sourceFile = sourceViewFile(symbol);
-    if (!sourceFile)
-        return false;
-
-    const Utf8 sourcePath = Utf8Helper::normalizePathForCompare(sourceFile->path());
-    for (const Utf8& filter : filters)
+    const IdentifierRef testTagId = idMgr().predefined(IdentifierManager::PredefinedName::TestTag);
+    const IdentifierRef swagId    = idMgr().predefined(IdentifierManager::PredefinedName::Swag);
+    for (const AttributeInstance& attribute : symbol.attributes().attributes)
     {
-        const Utf8 normalizedFilter = Utf8Helper::normalizePathForCompare(fs::path(filter.c_str()));
-        if (sourcePath.view().contains(normalizedFilter.view()))
-            return true;
+        if (!attribute.symbol || attribute.symbol->idRef() != testTagId || attribute.params.size() != 1)
+            continue;
+
+        const SymbolMap* owner = attribute.symbol->ownerSymMap();
+        if (!owner || !owner->isNamespace() || owner->idRef() != swagId)
+            continue;
+
+        const ConstantRef valueRef = attribute.params.front().valueCstRef;
+        if (!valueRef.isValid())
+            continue;
+        const ConstantValue& value = cstMgr().get(valueRef);
+        if (value.isString())
+            return value.getString();
     }
 
-    return false;
+    return {};
+}
+
+bool CompilerInstance::matchesTestFilter(const SymbolFunction& symbol) const
+{
+    const auto& filters = cmdLine().testFileFilter;
+    if (!filters.empty())
+    {
+        const SourceFile* sourceFile = ownerSourceFile(symbol.srcViewRef());
+        if (!sourceFile)
+            sourceFile = sourceViewFile(symbol);
+        if (!sourceFile)
+            return false;
+
+        const Utf8 sourcePath = Utf8Helper::normalizePathForCompare(sourceFile->path());
+        const bool matchesFile = std::ranges::any_of(filters, [&sourcePath](const Utf8& filter) {
+            const Utf8 normalizedFilter = Utf8Helper::normalizePathForCompare(fs::path(filter.c_str()));
+            return sourcePath.view().contains(normalizedFilter.view());
+        });
+        if (!matchesFile)
+            return false;
+    }
+
+    const auto& tagFilters = cmdLine().testTagFilter;
+    if (tagFilters.empty())
+        return true;
+    return tagFilters.contains(testTag(symbol));
 }
 
 void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)

@@ -26,6 +26,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::AttributeUsage, .str = "AttributeUsage"},
         {.name = PredefinedName::AttrUsage, .str = "AttrUsage"},
         {.name = PredefinedName::AttrMulti, .str = "AttrMulti"},
+        {.name = PredefinedName::TestTag, .str = "TestTag"},
         {.name = PredefinedName::ConstExpr, .str = "ConstExpr"},
         {.name = PredefinedName::PrintMicro, .str = "PrintMicro"},
         {.name = PredefinedName::PrintAst, .str = "PrintAst"},

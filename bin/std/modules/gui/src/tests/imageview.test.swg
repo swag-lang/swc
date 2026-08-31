@@ -115,6 +115,7 @@ using Swag, Core, Pixel
 
 // Rotation and reflection are paint-time view operations: the source keeps its dimensions and
 // bytes while the asymmetric pattern proves that the composed transform reaches the renderer.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

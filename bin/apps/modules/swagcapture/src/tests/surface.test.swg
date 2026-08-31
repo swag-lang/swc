@@ -116,6 +116,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
 // The complete Swag Capture surface must survive its first layout and paint without a desktop.
 // This is the visual boundary that the smaller interaction fixtures deliberately avoid.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -195,31 +196,37 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
 // The six shipped caption menus pin the actual HiDPI text-anchor junction. Their widths and
 // contents cover the narrow Help popup, the deep Edit/Image lists and Capture's submenu.
+#[Swag.TestTag("golden")]
 #test
 {
     testAssertMainMenuGolden(0, "main.menu.file")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     testAssertMainMenuGolden(1, "main.menu.capture")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     testAssertMainMenuGolden(2, "main.menu.edit")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     testAssertMainMenuGolden(3, "main.menu.image")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     testAssertMainMenuGolden(4, "main.menu.view")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     testAssertMainMenuGolden(5, "main.menu.help")
@@ -227,6 +234,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
 
 // Every text-and-icon command of the library bar keeps a continuous attached outline and the
 // standard 20-pixel command / 16-pixel menu hierarchy.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -241,6 +249,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     testAssertLibraryMenuGolden(&host, main, main.libWnd.viewBtn, "library.menu.view")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -255,6 +264,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     testAssertLibraryMenuGolden(&host, main, main.libWnd.sortBtn, "library.menu.sort")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -269,6 +279,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     testAssertLibraryMenuGolden(&host, main, main.libWnd.filterBtn, "library.menu.filter")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Gui.Testing.HeadlessHost

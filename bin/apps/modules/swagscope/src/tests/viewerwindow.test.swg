@@ -725,6 +725,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 // Pins the file panel: two named sections share the left edge, the row naming the open file is
 // the selected one, and the document keeps the rest of the surface.
+#[Swag.TestTag("golden")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1390,6 +1391,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1448,6 +1450,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 // Progressive content keeps streaming without covering useful output. A viewer asks for the
 // shared wait presentation separately when it has nothing useful to show yet.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1668,6 +1671,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 // Pins the shipped empty surface: one accent line, one compact command row, and no eager
 // format-specific controls before a file has selected a viewer.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1691,6 +1695,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 // Pins the open-document composition in Swag dark and neutral light: global navigation and file
 // identity stay above the document, while the active viewer owns the dedicated band below it.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

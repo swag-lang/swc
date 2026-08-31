@@ -119,6 +119,7 @@ private struct Grammar
     runTimeout: String           // Fail a run or a smoke that outlives that many seconds.
     runArg:     Array'String     // One argument for the launched program, repeatable.
     testFile:   Array'String     // Source-path substrings whose #test functions should run.
+    testTag:    Array'String     // Test categories whose #test functions should run.
 
     #[CommandLine.ArgParams("async")]
     runAsync: bool     // Return after starting an application instead of waiting for it.
@@ -203,6 +204,8 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
         result.workspace.add(["--run-timeout", grammar.runTimeout.toString()])
     for value in grammar.testFile do
         result.test.add(["--test-file", value.toString()])
+    for value in grammar.testTag do
+        result.test.add(["--test-tag", value.toString()])
 
     for token in parsed.unknown do
         result.extra.add([token.toString()])

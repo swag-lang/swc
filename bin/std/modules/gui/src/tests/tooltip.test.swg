@@ -95,6 +95,7 @@ func showTip(owner: *Wnd, text: string)->*Label
 
 // The history label that exposed the clipping bug keeps one physical pixel beyond its measured
 // run at fractional DPI, so the accented final glyph cannot land on the half-open clip edge.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -232,6 +233,7 @@ var g_LinkText:  String
 }
 
 // The shapes a tip can take, rendered.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

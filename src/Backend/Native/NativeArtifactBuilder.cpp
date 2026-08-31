@@ -934,6 +934,12 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             const MicroReg       testPathReg = nextVirtualIntReg(nextVirtualIntRegIndex);
             builder.emitLoadRegPtrReloc(testPathReg, reinterpret_cast<uint64_t>(testPathCst.getString().data()), testPathRef);
 
+            const std::string_view testTag    = builder_->compiler().testTag(*symbol);
+            const ConstantRef      testTagRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, testTag));
+            const ConstantValue&   testTagCst = ctx.cstMgr().get(testTagRef);
+            const MicroReg         testTagReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+            builder.emitLoadRegPtrReloc(testTagReg, reinterpret_cast<uint64_t>(testTagCst.getString().data()), testTagRef);
+
             ABICall::PreparedArg testFnArg;
             testFnArg.srcReg  = testFnReg;
             testFnArg.kind    = ABICall::PreparedArgKind::Direct;
@@ -949,10 +955,16 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             testPathArg.kind    = ABICall::PreparedArgKind::Direct;
             testPathArg.numBits = 64;
 
+            ABICall::PreparedArg testTagArg;
+            testTagArg.srcReg  = testTagReg;
+            testTagArg.kind    = ABICall::PreparedArgKind::Direct;
+            testTagArg.numBits = 64;
+
             SmallVector<ABICall::PreparedArg> runTestArgs;
             runTestArgs.push_back(testFnArg);
             runTestArgs.push_back(testNameArg);
             runTestArgs.push_back(testPathArg);
+            runTestArgs.push_back(testTagArg);
 
             const ABICall::PreparedCall preparedRunTest = ABICall::prepareArgs(builder, runTestFn->callConvKind(), runTestArgs);
             ABICall::callLocal(builder, runTestFn->callConvKind(), runTestFn, preparedRunTest);

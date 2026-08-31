@@ -16,6 +16,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
 // Every blending mode in order, each separating two fills. A mode that stopped being emitted, or
 // that started coalescing with its neighbor, shows up as a missing line.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -71,6 +72,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 }
 
 // Setting the same blending mode twice must collapse into a single command.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -83,6 +85,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
 // The sampler mode travels with the brush, not with the painter state, so it has to reach
 // BindTexture0 for a texture but never for a hatch (which is always sampled per pixel).
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -100,6 +103,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 // A translucent thick stroke enters overlap-safe mode so that self-overlapping segments do not
 // accumulate alpha. Losing the StartNoOverlap / StopNoOverlap pair is a visible regression on
 // every dashed or joined translucent line.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -117,6 +121,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 }
 
 // An opaque, non-antialiased stroke needs no overlap pass at all.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -134,6 +139,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "blend.nooverlap.opaque")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -148,6 +154,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
 // Shader handles and uniform locations are driver-assigned values; the dump remaps them so the
 // golden records the sequence of shader switches, not the addresses of the day.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -168,6 +175,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 }
 
 // Nested render targets must unwind in order, each restoring the state its bind saved.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

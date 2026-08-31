@@ -4,6 +4,7 @@
 using Swag, Core, Pixel
 
 // Pins the shared application glyphs at the two sizes where standard chrome uses them.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -27,6 +28,7 @@ using Swag, Core, Pixel
 }
 
 // Generic document and media actions come from the same atlas in every application.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -53,6 +55,7 @@ using Swag, Core, Pixel
 
 // The standard appearance action occupies the caption slot immediately before native controls
 // and applies both kinds of presentation choice before notifying its owner.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

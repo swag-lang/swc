@@ -380,6 +380,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
 // A compact toolbar menu centers icon, wording, and disclosure as one horizontal group. Its
 // outer air and both inner gaps share one rhythm instead of tightening toward either edge.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

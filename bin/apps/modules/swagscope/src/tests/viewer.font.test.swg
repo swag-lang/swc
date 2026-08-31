@@ -50,6 +50,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.assert(view.document.pageStart >= 0x370 and view.document.history.count != 0)
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

@@ -61,6 +61,7 @@ Builds or tests the standard library.
   <module>           one of bin/std/modules, for instance core or pixel
   -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
+  --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
   --run-arg <value>  pass a run argument to the tested module
 
 Testing always builds the workspace first. Modules without a unit test are skipped.
@@ -76,6 +77,7 @@ Builds, runs, tests, or smokes the examples workspace.
   <module>           one of bin/examples/modules, for instance gui2 or pixel4
   -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
+  --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
   --frames <count>   bound a run or a smoke to that many frames
   --run-timeout <s>  fail a run or a smoke that outlives that many seconds
 
@@ -96,6 +98,7 @@ Builds, runs, tests, or smokes one or every module in the applications workspace
   <application>      a module under bin/apps/modules, for instance swagvault or swagcapture
   -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
+  --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
   --async             start the application and return immediately (run only)
@@ -120,6 +123,7 @@ Builds or tests the executable language reference.
   test               compile and run them (default)
   -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
+  --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
 """)
 
     case "scripts":
@@ -165,12 +169,17 @@ This rewrites tracked sources. It is a maintenance step, never a test.
 
     case "goldens":
         Console.print("""
-Promotes the snapshots a failing test left behind into their goldens.
+Tests every tagged golden, or promotes reviewed snapshots.
 
-  swc tools/goldens.swgs
+  swc tools/goldens.swgs [dm] test [options...]
+  swc tools/goldens.swgs [accept]
 
-A golden mismatch writes '<name>.actual.txt' or '<name>.actual.png' next to its
-reference and fails. Once reviewed, this moves every actual over its golden.
+'test' runs every #test tagged with Swag.TestTag("golden"), continues after a
+failing module, and lists all '.actual' differences. Text and image goldens
+use the same tag. It also fails when a missing golden was created.
+
+'accept', or no command for compatibility, moves every reviewed '.actual' over
+its golden. Testing never promotes or removes a snapshot.
 """)
 
     case "web":

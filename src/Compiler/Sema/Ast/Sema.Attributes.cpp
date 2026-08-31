@@ -613,6 +613,7 @@ namespace
         switch (bodyNode.id())
         {
             case AstNodeId::FunctionDecl:
+            case AstNodeId::CompilerFunc:
                 return Runtime::AttributeUsage::Function;
             case AstNodeId::StructDecl:
             case AstNodeId::UnionDecl:

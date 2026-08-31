@@ -4,6 +4,7 @@ using Swag, Core
 
 // Command-stream goldens for paths, strokes and render targets. See [[Testing.assertGolden]].
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -22,6 +23,7 @@ using Swag, Core
 
 // A convex polygon can skip the general tessellator; the vertex count in the golden is what
 // tells the two paths apart.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -39,6 +41,7 @@ using Swag, Core
 }
 
 // A self-intersecting outline in a list must be normalized before reaching Poly2Tri.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -58,6 +61,7 @@ using Swag, Core
 }
 
 // An outer contour plus an inner one: the inner contour must be punched out, not filled.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -76,6 +80,7 @@ using Swag, Core
 
 // Several holes in this real PDF glyph-like outline meet at exact vertices. Each contour is
 // simple by itself, but Poly2Tri also requires contours to be mutually disjoint.
+#[Swag.TestTag("golden")]
 #test
 {
     func addContour(list: *LinePathList, points: const [..] Math.Vector2)
@@ -102,6 +107,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.fill.touching-holes")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -111,6 +117,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.fill.circle")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -120,6 +127,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.fill.ellipse")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -130,6 +138,7 @@ using Swag, Core
 }
 
 // Join style changes the geometry emitted at every corner, and nothing else.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -147,6 +156,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.stroke.join.miter")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -164,6 +174,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.stroke.join.round")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -181,6 +192,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.stroke.join.bevel")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -198,6 +210,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "path.stroke.caps")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -216,6 +229,7 @@ using Swag, Core
 
 // Binding a render target resets the paint state and pushes it; unbinding restores it. The
 // golden pins that symmetry, which a stack bug would break.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

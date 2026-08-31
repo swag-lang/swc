@@ -2281,7 +2281,11 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string)
     Pixel.Testing.assertImageGolden(&image, name)
 }
 
+#[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Grid, "properties.grid") }
+#[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Condensed, "properties.condensed") }
+#[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.List, "properties.list") }
+#[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Panel, "properties.panel") }

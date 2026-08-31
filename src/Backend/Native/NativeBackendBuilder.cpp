@@ -1227,7 +1227,7 @@ void NativeBackendBuilder::updateNativeTestProgress(ScopedTimedLog& stage, const
 size_t NativeBackendBuilder::selectedNativeTestCount() const
 {
     return std::ranges::count_if(testFunctions, [this](const SymbolFunction* symbol) {
-        return symbol && compiler_->matchesTestFileFilter(*symbol);
+        return symbol && compiler_->matchesTestFilter(*symbol);
     });
 }
 

@@ -34,6 +34,10 @@ namespace Swag
     attr AttrUsage(usage: AttributeUsage)
     attr AttrMulti()
 
+    // Assigns one category to a '#test' function for selection with '--test-tag'.
+    #[AttrUsage(AttributeUsage.Function)]
+    attr TestTag(name: string)
+
     // Can be executed at compile time
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]
     attr ConstExpr()

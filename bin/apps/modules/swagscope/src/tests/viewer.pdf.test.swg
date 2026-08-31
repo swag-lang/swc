@@ -70,6 +70,7 @@ private func createPdfFixture()->String
 }
 
 // Pins the centered page navigation and the zoom value exposed in the information band.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = createPdfFixture()

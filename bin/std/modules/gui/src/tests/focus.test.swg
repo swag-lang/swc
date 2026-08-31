@@ -625,6 +625,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 //
 // The image is the contract: a rule inside the button, one accent, and nothing on the same button
 // when the pointer is what pressed it.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -655,6 +656,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 //
 // The image is the contract: one filled action at a time, and it is the one the ring stands on,
 // so the bar never shows two answers to the same question.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -687,6 +689,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 //
 // The ring points in the accent, so over that fill it has to be drawn in the ink the fill carries
 // or there is nothing left to see. The image is the contract.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -710,6 +713,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 // a capsule under the neutral theme and a compact four-pixel corner under theirs. The image is the
 // contract: a mark shaped for the capsule and carried onto the tile crosses its own control at all
 // four corners.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -735,6 +739,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 // A switched-on toggle is filled with the accent, and the accent is what the ring points in, so
 // the ring has to be drawn in the ink that fill carries. The image is the contract; before it
 // existed the mark simply disappeared on half of the toggles of a surface.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

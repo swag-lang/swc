@@ -61,6 +61,9 @@ inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
 // entry point, so changing this repeatable argument never changes the artifact itself.
 inline constexpr std::string_view SWAG_TEST_FILE_RUN_ARG = "swag.test-file";
 
+// Selects tagged #test functions at execution time without changing the reusable artifact.
+inline constexpr std::string_view SWAG_TEST_TAG_RUN_ARG = "swag.test-tag";
+
 // Asks the runtime to isolate the generated executable from real machine state before any
 // user code runs. Without a value the process picks its own private root; the runtime does
 // the work, so nothing here has to know where that ends up.
@@ -238,6 +241,7 @@ struct CommandLine
     Utf8              docCss;
     std::set<Utf8>    fileFilter;
     std::set<Utf8>    testFileFilter;
+    std::set<Utf8>    testTagFilter;
     std::set<Utf8>    workspaceModuleSelection;
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;
@@ -342,6 +346,8 @@ inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cm
             const Utf8 normalizedFilter = Utf8Helper::normalizePathForCompare(fs::path(filter.c_str()));
             result.emplace_back(std::format("{}={}", SWAG_TEST_FILE_RUN_ARG, normalizedFilter));
         }
+        for (const Utf8& filter : cmdLine.testTagFilter)
+            result.emplace_back(std::format("{}={}", SWAG_TEST_TAG_RUN_ARG, filter));
     }
 
     // A smoke run is the real program, bounded. The frame budget travels with it so no

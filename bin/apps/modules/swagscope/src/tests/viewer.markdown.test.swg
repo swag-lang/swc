@@ -134,6 +134,7 @@ private func markdownWhiteyFixturePath()->String
     Swag.assert(!view.searchMatchRect(&bounds))
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -195,6 +196,7 @@ private func markdownWhiteyFixturePath()->String
 
 // Whitey keeps soft-wrapped list items together, hangs wrapped lines beneath their wording, and
 // draws list and task markers without depending on optional font glyphs.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

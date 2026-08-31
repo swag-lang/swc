@@ -1,6 +1,6 @@
 ---
 name: validate-swag-changes
-description: Select, run, and report the smallest sufficient builds and tests for a Swag repository change. Use whenever planning validation, compiling swc or swc.dm, choosing devmode/release configurations, deciding whether dedicated debug-information tests need --debug, selecting compiler suites or bin module/application tests, focusing #test execution by source file, choosing concrete consumers, reviewing text or image goldens, or deciding whether a broad repository campaign is justified.
+description: Select, run, and report the smallest sufficient builds and tests for a Swag repository change. Use whenever planning validation, compiling swc or swc.dm, choosing devmode/release configurations, deciding whether dedicated debug-information tests need --debug, selecting compiler suites or bin module/application tests, focusing #test execution by source file or tag, choosing concrete consumers, reviewing text or image goldens, or deciding whether a broad repository campaign is justified.
 ---
 
 # Validate Swag Changes
@@ -171,12 +171,21 @@ consumer that activates the changed behavior.
 
 - Any change to rendering, layout, typography, themes, icons, image decoding, or paint commands
   must run the exact test files that own affected text or PNG goldens.
+- Every `#test` that records or compares a text or PNG golden must carry
+  `#[Swag.TestTag("golden")]`. The tag, rather than the source filename or assertion helper, is
+  what makes the test part of the complete golden campaign.
+- Run `swc tools/goldens.swgs dm test` whenever the change can reach more golden owners than can
+  be bounded confidently from the call path. Shared rendering, layout, typography, theme, icon,
+  decoding, compositing, or paint primitives require this complete golden-only pass. It selects
+  every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
+  without promoting them.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside
   the intended part is a regression or a new finding, not noise.
 - Cover each state whose rendering branch changed: palette, DPI, enabled/disabled state, backend,
   or viewport. Do not multiply states that share the same unchanged path.
-- When a shared primitive affects many surfaces, select representative goldens for each distinct
-  downstream rendering path. Do not substitute every GUI application for that reasoning.
+- A focused change with a bounded owner may stop at its exact golden files. Do not replace the
+  complete golden-only pass with representative samples when a shared primitive or uncertain
+  reach can affect additional snapshots.
 - Promote reviewed outputs with `swc tools/goldens.swgs`; never update a golden merely to make a
   test green.
 

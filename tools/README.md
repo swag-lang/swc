@@ -18,8 +18,9 @@ Common options: `-bc <config>` selects `release` or `devmode` (default `devmode`
 `--all-cfg` repeats an aggregate tool in both, `--debug` emits native debug information,
 `--run-arg <value>` passes
 an argument to what gets launched, and repeated `--test-file <substring>` values select a union
-of `#test` source files without removing the implementation sources they exercise. Anything else
-is forwarded to the compiler.
+of `#test` source files without removing the implementation sources they exercise. Repeated
+`--test-tag <value>` values select a union of `#[Swag.TestTag(...)]` categories. Anything else is
+forwarded to the compiler.
 
 ## How a tool is built
 
@@ -46,6 +47,7 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `swc tools\scripts.swgs snake` | Launch one standalone script |
 | `swc tools\std.swgs dm test core` | Test one standard-library module |
 | `swc tools\std.swgs dm test gui --test-file htmlview.test.swg` | Test one file's `#test` functions |
+| `swc tools\std.swgs dm test gui --test-tag golden` | Test one tagged category |
 | `swc tools\unittests.swgs dm sema` | Run one compiler suite |
 
 ## Tests and builds
@@ -78,6 +80,8 @@ A program without `#test` is smoked: testing it would report zero tests and prov
 compiles. Repeat it to select several files. `--file-filter` is different: it filters compiler
 input files and is suitable for standalone compiler suites, not module tests that need the rest
 of their implementation.
+`--test-tag` also filters only execution and leaves the reusable test artifact unchanged. Repeated
+tags form a union; combined file and tag filters form an intersection.
 
 ## Maintenance
 
@@ -85,6 +89,7 @@ of their implementation.
 | --- | --- |
 | `format.swgs` | Format every Swag source workspace in place |
 | `web.swgs` | Regenerate the brand assets and the complete website |
+| `goldens.swgs test` | Run every `golden`-tagged test and report all `.actual` differences |
 | `goldens.swgs` | Promote reviewed `.actual` snapshots to goldens |
 | `bench.swgs` | Run or regenerate the cross-language performance campaign |
 | `vsix.swgs` | Refresh the extension images and build the VSIX package |

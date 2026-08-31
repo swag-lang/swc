@@ -75,17 +75,38 @@ func __isTestFileSelected(path: string)->bool
     return !hasFilter
 }
 
+// Repeated tag filters form a union. An untagged test is selected only when no tag filter exists.
+func __isTestTagSelected(tag: string)->bool
+{
+    let prefix    = "swag.test-tag="
+    var hasFilter = false
+
+    for arg in Swag.args()
+    {
+        if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count) do
+            continue
+
+        hasFilter = true
+        let filter = Swag.makeString(arg.buffer + prefix.count, arg.count - prefix.count)
+        if Swag.stringCmp(tag, filter) do
+            return true
+    }
+
+    return !hasFilter
+}
+
 // Optimizations stay off: recovery re-enters this function with the registers captured before the
 // test ran, so every local must live on the stack rather than in a register the call could reuse.
 #[Swag.Optimize(false)]
-func __runTest(fn: *void, name: const [*] u8, path: const [*] u8)
+func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*] u8)
 {
     if !__isTestRun() do
         return
 
     let testName = Swag.makeString(name, (cast(const cstring) name).count)
     let testPath = Swag.makeString(path, (cast(const cstring) path).count)
-    if !__isTestFileSelected(testPath) do
+    let testTag  = Swag.makeString(tag, (cast(const cstring) tag).count)
+    if !__isTestFileSelected(testPath) or !__isTestTagSelected(testTag) do
         return
 
     Swag.print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")

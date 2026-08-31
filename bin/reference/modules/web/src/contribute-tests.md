@@ -44,6 +44,10 @@ the `#test` functions declared in matching source paths. Repeat the option to se
 files. Do not use `--file-filter` for a module test: it removes non-matching implementation files
 from the compiler input.
 
+Use `#[Swag.TestTag("golden")]` on every `#test` that records or compares a text or image golden.
+`--test-tag golden` selects that category independently of filenames and assertion helpers.
+Repeated tags form a union; combining `--test-file` and `--test-tag` requires both to match.
+
 The default `test` command runs `#test` functions through both the JIT and
 native backend. A layer runner narrows those paths when the layer itself is the
 subject.
@@ -89,6 +93,9 @@ the `release` and `devmode` language configurations.
 - Avoid external services, user-specific paths, timing assumptions, and random
   input without a recorded seed.
 - Keep passing tests silent; use temporary `Swag.print` calls only while debugging.
+- After a change that can affect shared rendering output, run
+  `swc tools\goldens.swgs dm test`; it runs every golden-tagged test and reports all generated
+  `.actual.txt` and `.actual.png` files without accepting them.
 - Review any `*.actual.txt` snapshot before accepting it with
   `swc tools\goldens.swgs`.
 - Retain a regression test after the compiler fix lands.

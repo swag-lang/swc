@@ -2772,6 +2772,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         buildCmdLine.command          = CommandKind::Build;
         buildCmdLine.sourceDrivenTest = false;
         buildCmdLine.testFileFilter.clear();
+        buildCmdLine.testTagFilter.clear();
         for (const WorkspaceModuleBuild& moduleBuild : modules)
         {
             if (!isCommandTarget(moduleBuild))
@@ -2786,6 +2787,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
                 CommandLine testCmdLine = cmdLine();
                 testCmdLine.testFileFilter.clear();
+                testCmdLine.testTagFilter.clear();
                 const fs::path testDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, testCmdLine, backendKind, false);
                 if (removeLegacyWorkspaceTestArtifacts(ctx, testDirectory, true) != Result::Continue)
                     return ExitCode::CompileError;
@@ -2952,9 +2954,9 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     if (joinPendingLink() != Result::Continue)
         return ExitCode::CompileError;
 
-    if (cmdLine().command == CommandKind::Test && !cmdLine().testFileFilter.empty() && Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
+    if (cmdLine().command == CommandKind::Test && (!cmdLine().testFileFilter.empty() || !cmdLine().testTagFilter.empty()) && Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
     {
-        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_file_filter_no_match);
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_filter_no_match);
         diag.report(ctx);
         return ExitCode::CompileError;
     }

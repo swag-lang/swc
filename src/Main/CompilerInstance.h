@@ -229,7 +229,8 @@ public:
     const std::vector<SymbolFunction*>& nativeDropFunctions() const { return nativeDropFunctions_; }
     const std::vector<SymbolFunction*>& nativeMainFunctions() const { return nativeMainFunctions_; }
     const std::vector<SymbolVariable*>& nativeGlobalVariables() const { return nativeGlobalVariables_; }
-    bool                                matchesTestFileFilter(const SymbolFunction& symbol) const;
+    std::string_view                    testTag(const SymbolFunction& symbol) const;
+    bool                                matchesTestFilter(const SymbolFunction& symbol) const;
 
     Result setupSema(TaskContext& ctx);
     bool   tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) const;

@@ -14,6 +14,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
 }
 
 // A decoration is a separate solid quad, so it lands in its own batch after the glyph batch.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -26,6 +27,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     Testing.assertGolden(&painter, "texteffect.underline")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -40,6 +42,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
 
 // Zoom re-rasterizes a bitmap font at the effective pixel size, so the atlas holds
 // zoomed glyphs sampled one texel per pixel instead of stretched smaller ones.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -52,6 +55,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     Testing.assertGolden(&painter, "texteffect.zoom")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -65,6 +69,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
 }
 
 // A tab advances the pen without emitting ink, so the batch keeps two glyphs but widens.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -79,6 +84,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
 
 // Every MSDF effect field must reach SetFontEffect. These goldens are the only place where the
 // painter-to-shader mapping of an outline, a glow or a bevel is pinned.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -94,6 +100,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     Testing.assertGolden(&painter, "texteffect.msdf.outline")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -110,6 +117,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     Testing.assertGolden(&painter, "texteffect.msdf.glow")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -128,6 +136,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
 
 // Two runs sharing one effect must emit SetFontEffect once: the painter caches the last one, and
 // losing that cache means a uniform upload per run.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

@@ -17,6 +17,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
 // A solid brush must NOT emit a BindTexture0: it resets texture0 instead, which is what lets
 // solid fills batch together.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -26,6 +27,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "brush.solid")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -37,6 +39,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "brush.gradient.linear")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -50,6 +53,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
 // Stops are kept sorted by offset whatever the insertion order, so the golden pins both the
 // count and the ordering.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -63,6 +67,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "brush.gradient.stops")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -74,6 +79,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "brush.gradient.radial")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -86,6 +92,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 }
 
 // A hatch brush always samples with Pixel interpolation, whatever the painter state says.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -98,6 +105,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "brush.hatch")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -110,6 +118,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 }
 
 // A sub-rectangle brush computes normalized texture coordinates inset by half a texel.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -121,6 +130,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     Testing.assertGolden(&painter, "brush.texture.subrect")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -135,6 +145,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 }
 
 // Two different textures get two different indices, in first-use order.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

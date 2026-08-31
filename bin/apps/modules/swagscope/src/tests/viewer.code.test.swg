@@ -54,6 +54,7 @@ struct CodeLanguageSample
     Swag.assert(Utf8.contains(result.failureReason.toSlice(), "zero byte"))
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     let source   = swagSampleSource()

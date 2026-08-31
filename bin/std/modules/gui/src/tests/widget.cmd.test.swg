@@ -32,6 +32,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 }
 
 // The empty root window, which every other golden here starts with.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -40,6 +41,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.root.empty")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -51,6 +53,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 
 // A disabled widget must paint differently: the theme picks disabled colors and the paint context
 // carries the state down. An identical golden would mean the state never reached the painter.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -62,6 +65,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 }
 
 // A hidden widget must paint nothing at all.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -72,6 +76,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.pushbutton.hidden")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -83,6 +88,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 
 // Checked and unchecked must not produce the same commands: the check mark is a separate glyph or
 // icon batch.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -92,6 +98,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.checkbutton.unchecked")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -102,6 +109,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.checkbutton.checked")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -113,6 +121,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 
 // The filled part of a progress bar is a second rectangle over the track, so an empty and a
 // half-filled bar differ by one batch.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -122,6 +131,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.progressbar.empty")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -132,6 +142,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.progressbar.half")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -143,6 +154,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 
 // The spinner is drawn, not blitted, so its golden is the one that proves the ring exists at all:
 // the phase is pinned first, because the paint that records it also advances the animation.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -153,6 +165,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     assertPaintGolden(&host, "widget.spinner")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -163,6 +176,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 }
 
 // Siblings paint in z-order, so the golden records the order the tree is walked in.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -176,6 +190,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 
 // A clipping parent must push a clipping rectangle before painting its children, and a child fully
 // outside it must emit nothing.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -190,6 +205,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 
 // The standard page transition records the incoming subtree into an opacity layer and composites
 // it at its presentation offset. Sampling halfway protects that paint-only contract.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

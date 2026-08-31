@@ -621,6 +621,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 }
 
 // The complete fixture renders, and nothing a document hides reaches the drawn text.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1244,6 +1245,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // Pins the generated API page in the browser reference's light palette and wide viewport: the
 // overview cut, typography, section ornaments, note fills, and table alignment all pass through
 // the production HTML view.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1431,6 +1433,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // Preserved white space draws the indentation of a code block line by line — the shape every
 // `.code-block` region of the generated documentation relies on.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1454,6 +1457,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // The tables fixture renders through the production view, so a column-sizing or cell-alignment
 // regression lands in this image before any reader sees it.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1547,6 +1551,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // The flex and grid fixture renders through the production view, pinning wrap, alignment, and
 // track sizing as pixels rather than as a handful of sampled rectangles.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
@@ -1796,6 +1801,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // The classic article arrangement as pixels: a floated figure, the text wrapping beside it and
 // returning to the full measure below, and a cleared footer starting under the float.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

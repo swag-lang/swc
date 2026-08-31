@@ -95,6 +95,7 @@ using Core, Pixel, Gui
     Swag.assert(displayed.count <= TableCellPreviewBytes)
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-table-golden-", ".tsv")

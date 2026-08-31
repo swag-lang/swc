@@ -787,6 +787,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 }
 
 // The tree the view builds is the report, and the search the host runs lands in it.
+#[Swag.TestTag("golden")]
 #test
 {
     let bytes    = buildPeFixture()
@@ -893,6 +894,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 
 // A searchable binary leaves the global action bar to the host and exposes only its compact
 // history and structure commands in the centered viewer bar.
+#[Swag.TestTag("golden")]
 #test
 {
     let bytes    = buildPeFixture()

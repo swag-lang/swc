@@ -15,6 +15,7 @@ private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode
     return cache.createFont(face, size, mode)
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -29,6 +30,7 @@ private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode
 
 // Consecutive glyphs from one atlas must extend a single DrawTriangles batch rather than
 // re-binding per glyph: four characters make one batch of twenty-four vertices.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -42,6 +44,7 @@ private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode
 }
 
 // A space carries no ink and must not emit any geometry of its own.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -56,6 +59,7 @@ private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode
 
 // An MSDF font goes through a different shader program, so it emits StartMsdfFont rather than
 // StartFont and re-issues the texture0 setup.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -69,6 +73,7 @@ private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode
 }
 
 // Switching program between two runs must re-emit the font setup commands.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

@@ -1130,7 +1130,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRun
         if (!sourceFile)
             return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "test has no source file");
 
-        if (compiler.matchesTestFileFilter(*function))
+        if (compiler.matchesTestFilter(*function))
         {
             selectedCount++;
             foundFirst |= sourceFile->path() == firstPath;
@@ -1147,6 +1147,81 @@ SWC_TEST_BEGIN(NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRun
     });
     if (filterArgCount != 2)
         return failNativeArtifactTest("NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime", "runtime file filters are missing from the artifact arguments");
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime)
+{
+    static constexpr std::string_view GOLDEN_SOURCE = R"(#[Swag.TestTag("golden")]
+#test { Swag.assert(true) }
+)";
+    static constexpr std::string_view SLOW_SOURCE = R"(#[Swag.TestTag("slow")]
+#test { Swag.assert(true) }
+)";
+    static constexpr std::string_view PLAIN_SOURCE = R"(#test { Swag.assert(true) }
+)";
+    const fs::path goldenPath = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterGolden");
+    const fs::path slowPath   = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterSlow");
+    const fs::path plainPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterPlain");
+
+    CommandLine cmdLine;
+    cmdLine.command          = CommandKind::Test;
+    cmdLine.buildCfg         = "devmode";
+    cmdLine.backendKind      = Runtime::BuildCfgBackendKind::Executable;
+    cmdLine.name             = "test_tag_filter";
+    cmdLine.sourceDrivenTest = true;
+    cmdLine.files.insert(goldenPath);
+    cmdLine.files.insert(slowPath);
+    cmdLine.files.insert(plainPath);
+    cmdLine.testTagFilter.insert("golden");
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, goldenPath, GOLDEN_SOURCE);
+    Unittest::registerTestSource(compiler, slowPath, SLOW_SOURCE);
+    Unittest::registerTestSource(compiler, plainPath, PLAIN_SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "errors after sema");
+    if (compiler.nativeTestFunctions().size() != 3)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the reusable artifact does not keep all tests");
+    if (artifactModeSuffix(cmdLine) != ".test")
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the tag filter changes the artifact name");
+
+    size_t selectedCount = 0;
+    for (const SymbolFunction* function : compiler.nativeTestFunctions())
+    {
+        if (!compiler.matchesTestFilter(*function))
+            continue;
+        selectedCount++;
+        if (compiler.testTag(*function) != "golden")
+            return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the selected test does not carry the requested tag");
+    }
+
+    if (selectedCount != 1)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "runtime selection does not match the requested tag");
+
+    cmdLine.testTagFilter.insert("slow");
+    selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
+        return function && compiler.matchesTestFilter(*function);
+    });
+    if (selectedCount != 2)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "repeated tag filters do not form a union");
+
+    cmdLine.testFileFilter.insert("TestTagFilterSlow");
+    selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
+        return function && compiler.matchesTestFilter(*function);
+    });
+    if (selectedCount != 1)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "file and tag filters do not form an intersection");
+
+    const std::vector<Utf8> runArgs        = effectiveGeneratedArtifactRunArgs(cmdLine);
+    const size_t            filterArgCount = std::ranges::count_if(runArgs, [](const Utf8& arg) {
+        return arg.view().starts_with("swag.test-tag=");
+    });
+    if (filterArgCount != 2)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "runtime tag filters are missing from the artifact arguments");
 }
 SWC_TEST_END()
 

@@ -36,6 +36,7 @@ func subtitleViewerFixturePath()->String
 }
 
 // The shipped palette renders the timestamped transcript as the primary document.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

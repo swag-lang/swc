@@ -429,6 +429,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 }
 
 // The deterministic CPU backend is the exact, reviewable reference for portable painter output.
+#[Swag.TestTag("golden")]
 #test
 {
     let image = renderCpu(&renderParityScene)
@@ -456,6 +457,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 }
 
 // Text goldens cover bitmap sampling plus the complete built-in MTSDF effects path.
+#[Swag.TestTag("golden")]
 #test
 {
     let image = renderCpu(&renderTextParityScene)
@@ -471,6 +473,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 }
 
 // The CPU backend makes composite layer output deterministic and reviewable.
+#[Swag.TestTag("golden")]
 #test
 {
     let image = renderCpu(&renderLayerParityScene)

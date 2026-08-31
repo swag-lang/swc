@@ -124,6 +124,7 @@ using Swag, Core, Pixel
 
 // Pins the application identity hierarchy: one accent, one raised product block, and quieter
 // provenance above the ordinary dialog action bar.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

@@ -7,6 +7,7 @@ using Swag, Core
 // as soon as the tolerance, the segment-count formula or the quality mapping changes.
 // See [[Testing.assertGolden]].
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -22,6 +23,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.bezier.quadratic")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -37,6 +39,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.bezier.cubic")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -51,6 +54,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.arc.half")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -62,6 +66,7 @@ using Swag, Core
 
 // The three quality levels must produce three different segment counts for the same circle. A
 // change that collapses two of them would go unnoticed without these three goldens side by side.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -72,6 +77,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.circle.draft")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -82,6 +88,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.circle.normal")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -94,6 +101,7 @@ using Swag, Core
 
 // A larger radius needs more segments for the same tolerance, so flattening must be radius
 // dependent and not a fixed segment count.
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -103,6 +111,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.circle.large")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter
@@ -112,6 +121,7 @@ using Swag, Core
     Testing.assertGolden(&painter, "curve.line")
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var painter: Painter

@@ -527,7 +527,7 @@ namespace
                 return false;
 
             std::erase_if(nativeBuilder.testFunctions, [&compiler](const SymbolFunction* function) {
-                return !function || !compiler.matchesTestFileFilter(*function);
+                return !function || !compiler.matchesTestFilter(*function);
             });
 
             allFunctions                            = collectPreparedFunctions(nativeBuilder);
@@ -719,10 +719,10 @@ namespace Command
                 testPassed = finishTestCommand(compiler);
         }
 
-        if (testPassed && !compiler.cmdLine().testFileFilter.empty() && compiler.cmdLine().workspacePath.empty() &&
+        if (testPassed && (!compiler.cmdLine().testFileFilter.empty() || !compiler.cmdLine().testTagFilter.empty()) && compiler.cmdLine().workspacePath.empty() &&
             Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
         {
-            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_file_filter_no_match);
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_filter_no_match);
             diag.report(ctx);
             testPassed = false;
         }

@@ -282,6 +282,9 @@ Photograph the window instead. `Gui.Testing.HeadlessHost` renders a real window 
 desktop, so the picture costs a test rather than a screenshot session — and it keeps working when
 the desktop is unavailable, which is exactly when a screenshot session is not.
 
+Mark the enclosing test with `#[Swag.TestTag("golden")]`. This includes the application snapshot
+in the repository-wide golden campaign independently of its filename or assertion helper.
+
 ```swag
 var host: Testing.HeadlessHost
 let window = testSetupMainWindow(&host)

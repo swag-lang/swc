@@ -35,6 +35,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
 // Pins the still-image tools beside a real vector document: zoom, fit, native size, and rotate
 // read as one icon family while the numeric zoom remains a value rather than an action.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")

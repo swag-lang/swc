@@ -21,6 +21,7 @@ using Swag, Core, Pixel
 }
 
 // The headless host must exercise the complete GUI paint path, not only record commands.
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

@@ -274,6 +274,9 @@ the theme, and the parts they do not use are exactly the ones a change breaks si
 
 After changing `apply`, a palette, or a widget's color choice:
 
+Always run `swc tools/goldens.swgs dm test`. Theme changes cross widget and application boundaries,
+so the complete `golden`-tagged campaign is required in addition to the focused checks below.
+
 1. `swc tools/std.swgs dm test gui --test-file theme.colors.test.swg --test-file theme.sheet.test.swg --test-file themestyle.test.swg`
    — the palette tests pin the shipped Swag values, assert every
    mark reads on every ground of its own palette and cover the sheet layers.
@@ -288,5 +291,6 @@ After changing `apply`, a palette, or a widget's color choice:
 5. Look at the three shipped palettes and the sheet-written example in gui10 before saying the
    change is done.
 
-Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to add only the widget golden files
-and application consumers whose rendering path changed.
+Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) for the remaining focused tests and
+consumer checks implied by the changed rendering path. Review every `.actual` reported by the
+complete golden campaign before accepting it.

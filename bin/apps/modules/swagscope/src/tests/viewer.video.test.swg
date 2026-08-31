@@ -283,6 +283,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.frameIndex == 0 and view.elapsed == 0)
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = expect videoPreviewFile("viewer.video.preview.y4m")
@@ -465,6 +466,7 @@ func videoMatroskaFixturePath()->String
 // A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
 // and positions the replacement voice before releasing the previous one, so transport, volume,
 // and mute state survive the handoff.
+#[Swag.TestTag("golden")]
 #test
 {
     Swag.assert(acquireSoundEngine(.NoSound))

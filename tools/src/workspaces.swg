@@ -18,18 +18,15 @@ public func runStd(context: *Context, options: *Options)->s32 fail
     testArguments.add(["test", "--workspace", context.workspacePath("std").toString(), "--artifact-kind", "executable"])
     testArguments.add(["--build-cfg", options.buildCfg.toString()])
 
-    var hasTests = false
-    for name in context.workspaceModules("std")
+    var hasTests = options.module.isEmpty()
+    if !options.module.isEmpty()
     {
-        if !options.module.isEmpty() and options.module != name[] do
-            continue
-
-        let moduleDir = Path.combine(context.workspacePath("std").toString(), "modules", name.toString())
-        if !hasUnitTests(moduleDir.toString()) do
-            continue
-
-        hasTests = true
-        testArguments.add(["--workspace-module", name.toString()])
+        let moduleDir = Path.combine(context.workspacePath("std").toString(), "modules", options.module.toString())
+        if hasUnitTests(moduleDir.toString())
+        {
+            hasTests = true
+            testArguments.add(["--workspace-module", options.module.toString()])
+        }
     }
 
     if !hasTests do

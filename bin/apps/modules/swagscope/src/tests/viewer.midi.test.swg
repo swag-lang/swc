@@ -23,6 +23,7 @@ func midiTestFixture()->String
     Swag.assert(Math.abs(document.durationSeconds - 2.25) < 0.001)
 }
 
+#[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost

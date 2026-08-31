@@ -74,40 +74,6 @@ namespace
         return 1u << (field - 1);
     }
 
-    EnumFlags<LinkSectionFlagsE> flagsFromCharacteristics(const uint32_t characteristics)
-    {
-        EnumFlags<LinkSectionFlagsE> flags;
-        if (characteristics & IMAGE_SCN_CNT_CODE)
-            flags.add(LinkSectionFlagsE::Code);
-        if (characteristics & IMAGE_SCN_MEM_EXECUTE)
-            flags.add(LinkSectionFlagsE::Execute);
-        if (characteristics & IMAGE_SCN_MEM_READ)
-            flags.add(LinkSectionFlagsE::Read);
-        if (characteristics & IMAGE_SCN_MEM_WRITE)
-            flags.add(LinkSectionFlagsE::Write);
-        if (characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
-            flags.add(LinkSectionFlagsE::Uninit);
-        return flags;
-    }
-
-    bool linkRelocKindFromNativeType(LinkRelocKind& outKind, const uint16_t type)
-    {
-        switch (type)
-        {
-            case IMAGE_REL_AMD64_ADDR64:
-                outKind = LinkRelocKind::Abs64;
-                return true;
-            case IMAGE_REL_AMD64_ADDR32NB:
-                outKind = LinkRelocKind::Rva32;
-                return true;
-            case IMAGE_REL_AMD64_REL32:
-                outKind = LinkRelocKind::Rel32;
-                return true;
-            default:
-                return false;
-        }
-    }
-
     void appendAlignedBytes(ByteArray& outBytes, uint32_t& outOffset, const ByteArray& bytes)
     {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(outBytes.size()), 16);
@@ -365,7 +331,7 @@ namespace
             LinkSection&   linkSection = image_->sections[sectionIndex];
             const uint32_t align       = alignmentFromCharacteristics(section.characteristics);
             linkSection.align          = std::max(linkSection.align, align);
-            linkSection.flags.add(flagsFromCharacteristics(section.characteristics));
+            linkSection.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
 
             uint32_t base = 0;
             if (section.bss)
@@ -394,7 +360,7 @@ namespace
         Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation) const
         {
             LinkRelocKind kind;
-            if (!linkRelocKindFromNativeType(kind, relocation.type))
+            if (!linkRelocKindFromCoffType(kind, relocation.type))
             {
                 Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_reloc);
                 diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(relocation.type));

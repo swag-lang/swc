@@ -5,6 +5,8 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -194,6 +196,31 @@ namespace SemaHelpers
         if (lookupScope && lookupScope->isLocal())
             return lookupScope;
         return sema.curScope().isLocal() ? sema.curScopePtr() : nullptr;
+    }
+
+    // The three ways sema looks through a node's declared type. Each was written as a
+    // file-local copy in five or six operator sources before being collected here; every
+    // one is inline so the emitted code is what those copies produced.
+
+    // Aliases stripped, an enum wrapper kept.
+    inline const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+
+    // Aliases and enum wrappers both stripped, down to the carried payload.
+    inline TypeRef aliasEnumTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        SWC_ASSERT(unwrappedTypeRef.isValid());
+        return unwrappedTypeRef;
+    }
+
+    inline const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
+    {
+        return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
     }
 
     inline bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)

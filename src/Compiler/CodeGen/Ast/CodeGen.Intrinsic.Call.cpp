@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -40,22 +41,6 @@ namespace
         const ConstantRef cstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), typeRef);
         SWC_ASSERT(cstRef.isValid());
         return cstRef;
-    }
-
-    CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
-    {
-        const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
-        SWC_ASSERT(cst.isStruct() || cst.isArray());
-
-        const std::span<const std::byte> bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
-        const uint64_t                   addr  = reinterpret_cast<uint64_t>(bytes.data());
-
-        CodeGenNodePayload payload;
-        payload.typeRef = cst.typeRef();
-        payload.reg     = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(payload.reg, addr, cstRef);
-        payload.setIsAddress();
-        return payload;
     }
 
     enum class BitCountKind
@@ -1267,11 +1252,11 @@ namespace
         preparedArgs.reserve(3);
 
         const ConstantRef nullMessageRef = makeZeroStructConstant(codeGen, codeGen.typeMgr().typeString());
-        const auto        nullMessage    = makeAddressPayloadFromConstant(codeGen, nullMessageRef);
+        const auto        nullMessage    = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, nullMessageRef);
 
         ConstantRef sourceLocRef = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocRef, node));
-        const auto sourceLoc = makeAddressPayloadFromConstant(codeGen, sourceLocRef);
+        const auto sourceLoc = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, sourceLocRef);
 
         ABICall::PreparedArg messageArg;
         messageArg.srcReg = nullMessage.reg;
@@ -1907,7 +1892,7 @@ namespace
         const TypeRef      contextTypeRef     = codeGen.typeMgr().structContext();
         const TypeInfo&    contextType        = codeGen.typeMgr().get(contextTypeRef);
         const ConstantRef  initContextCstRef  = makeZeroStructConstant(codeGen, contextTypeRef);
-        CodeGenNodePayload initContextPayload = makeAddressPayloadFromConstant(codeGen, initContextCstRef);
+        CodeGenNodePayload initContextPayload = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, initContextCstRef);
         initContextPayload.setIsValue();
 
         const MicroReg contextSizeReg = codeGen.nextVirtualIntRegister();

@@ -18,26 +18,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
-    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     Result checkIntegerModifiers(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView)
     {
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
             return Result::Continue;
 
-        if (aliasType(sema, nodeLeftView).isIntLike())
+        if (SemaHelpers::aliasType(sema, nodeLeftView).isIntLike())
             return Result::Continue;
 
         const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
@@ -52,10 +38,10 @@ namespace
     {
         if (!nodeLeftView.type() || !nodeRightView.type())
             return false;
-        if (!aliasType(sema, nodeLeftView).isIntLike() || !aliasType(sema, nodeRightView).isIntLike())
+        if (!SemaHelpers::aliasType(sema, nodeLeftView).isIntLike() || !SemaHelpers::aliasType(sema, nodeRightView).isIntLike())
             return false;
         if (op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater)
-            return !aliasType(sema, nodeRightView).isIntLikeUnsigned();
+            return !SemaHelpers::aliasType(sema, nodeRightView).isIntLikeUnsigned();
         return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
 
@@ -102,7 +88,7 @@ namespace
     {
         if (op != TokenId::SymPipe && op != TokenId::SymAmpersand && op != TokenId::SymCircumflex)
             return false;
-        if (!aliasType(sema, nodeLeftView).isEnumFlags() || !aliasType(sema, nodeRightView).isEnumFlags())
+        if (!SemaHelpers::aliasType(sema, nodeLeftView).isEnumFlags() || !SemaHelpers::aliasType(sema, nodeRightView).isEnumFlags())
             return false;
         return nodeLeftView.typeRef() == nodeRightView.typeRef();
     }
@@ -139,8 +125,8 @@ namespace
         ConstantRef        leftCstRef  = nodeLeftView.cstRef();
         ConstantRef        rightCstRef = nodeRightView.cstRef();
         const bool         keepEnumRes = keepEnumFlagsResult(sema, nodeLeftView, nodeRightView, op);
-        const TypeInfo&    leftType    = aliasType(sema, nodeLeftView);
-        const TypeInfo&    rightType   = aliasType(sema, nodeRightView);
+        const TypeInfo&    leftType    = SemaHelpers::aliasType(sema, nodeLeftView);
+        const TypeInfo&    rightType   = SemaHelpers::aliasType(sema, nodeRightView);
 
         if (keepEnumRes)
         {
@@ -360,8 +346,8 @@ namespace
     {
         if (op == TokenId::SymPipe || op == TokenId::SymAmpersand || op == TokenId::SymCircumflex)
         {
-            const TypeInfo& leftType       = aliasType(sema, nodeLeftView);
-            const TypeInfo& rightType      = aliasType(sema, nodeRightView);
+            const TypeInfo& leftType       = SemaHelpers::aliasType(sema, nodeLeftView);
+            const TypeInfo& rightType      = SemaHelpers::aliasType(sema, nodeRightView);
             const bool      leftEnumFlags  = leftType.isEnumFlags();
             const bool      rightEnumFlags = rightType.isEnumFlags();
 
@@ -403,10 +389,10 @@ namespace
             }
         }
 
-        const TypeInfo& leftType                 = aliasEnumType(sema, nodeLeftView);
-        const TypeInfo& rightType                = aliasEnumType(sema, nodeRightView);
-        const TypeInfo& leftAliasType            = aliasType(sema, nodeLeftView);
-        const TypeInfo& rightAliasType           = aliasType(sema, nodeRightView);
+        const TypeInfo& leftType                 = SemaHelpers::aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType                = SemaHelpers::aliasEnumType(sema, nodeRightView);
+        const TypeInfo& leftAliasType            = SemaHelpers::aliasType(sema, nodeLeftView);
+        const TypeInfo& rightAliasType           = SemaHelpers::aliasType(sema, nodeRightView);
         TypeRef         resultTypeRef            = nodeLeftView.typeRef();
         bool            handledPointerArithmetic = false;
         switch (op)

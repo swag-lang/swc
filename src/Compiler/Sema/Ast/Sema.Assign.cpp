@@ -75,20 +75,13 @@ namespace
         return Result::Continue;
     }
 
-    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     Result checkIntegerModifiers(Sema& sema, const AstAssignStmt& node, const SemaNodeView& nodeLeftView)
     {
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
             return Result::Continue;
 
         const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
-        if (aliasType(sema, targetLeftView).isIntLike())
+        if (SemaHelpers::aliasType(sema, targetLeftView).isIntLike())
             return Result::Continue;
 
         const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
@@ -107,11 +100,11 @@ namespace
         const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
         if (!targetLeftView.type() || !nodeRightView.type())
             return false;
-        if (!aliasType(sema, targetLeftView).isIntLike() || !aliasType(sema, nodeRightView).isIntLike())
+        if (!SemaHelpers::aliasType(sema, targetLeftView).isIntLike() || !SemaHelpers::aliasType(sema, nodeRightView).isIntLike())
             return false;
         const TokenId binaryOp = Token::canonicalBinary(op);
         if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
-            return !aliasType(sema, nodeRightView).isIntLikeUnsigned();
+            return !SemaHelpers::aliasType(sema, nodeRightView).isIntLikeUnsigned();
         return SemaHelpers::binaryOpNeedsOverflowSafety(binaryOp, node.modifierFlags);
     }
 
@@ -149,31 +142,24 @@ namespace
         return Result::Continue;
     }
 
-    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     TypeRef compoundPointerArithmeticResultTypeRef(Sema& sema, TokenId binOp, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
         if (!leftView.type() || !rightView.type())
             return TypeRef::invalid();
 
-        const TypeInfo& leftType  = aliasEnumType(sema, leftView);
-        const TypeInfo& rightType = aliasEnumType(sema, rightView);
+        const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, leftView);
+        const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, rightView);
         switch (binOp)
         {
             case TokenId::SymPlus:
-                if (leftType.isBlockPointer() && aliasType(sema, rightView).isIntLike())
+                if (leftType.isBlockPointer() && SemaHelpers::aliasType(sema, rightView).isIntLike())
                     return leftView.typeRef();
-                if (aliasType(sema, leftView).isIntLike() && rightType.isBlockPointer())
+                if (SemaHelpers::aliasType(sema, leftView).isIntLike() && rightType.isBlockPointer())
                     return rightView.typeRef();
                 break;
 
             case TokenId::SymMinus:
-                if (leftType.isBlockPointer() && aliasType(sema, rightView).isIntLike())
+                if (leftType.isBlockPointer() && SemaHelpers::aliasType(sema, rightView).isIntLike())
                     return leftView.typeRef();
                 if (leftType.isBlockPointer() && rightType.isBlockPointer())
                     return sema.typeMgr().typeS64();
@@ -195,7 +181,7 @@ namespace
         if (pointerResultTypeRef.isValid())
         {
             SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, pointerResultTypeRef, errorNodeRef, noteId));
-            if (aliasEnumType(sema, targetLeftView).isBlockPointer() && aliasType(sema, rightView).isIntLike() && rightView.type()->isScalarNumeric())
+            if (SemaHelpers::aliasEnumType(sema, targetLeftView).isBlockPointer() && SemaHelpers::aliasType(sema, rightView).isIntLike() && rightView.type()->isScalarNumeric())
             {
                 CastRequest castRequest(CastKind::Assignment);
                 castRequest.errorNodeRef = errorNodeRef.isValid() ? errorNodeRef : leftRef;

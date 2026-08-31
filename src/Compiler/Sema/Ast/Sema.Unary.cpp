@@ -18,20 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
-    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     // The type a dereference operates on. A reference bound to a POINTER slot — '&#null *T',
     // what a container's 'opIndex' hands back — dereferences like the pointer it names, so the
     // reference layers are looked through and the nullability of the slot is the nullability
@@ -79,7 +65,7 @@ namespace
             return Result::Continue;
         }
 
-        const TypeInfo& type = aliasType(sema, view);
+        const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isInt())
         {
             ApsInt                 foldedValue;
@@ -137,7 +123,7 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
-        const TypeInfo& valueType     = aliasType(sema, view);
+        const TypeInfo& valueType     = SemaHelpers::aliasType(sema, view);
         const TypeInfo* storageType   = &valueType;
         ConstantRef     storageCstRef = view.cstRef();
 
@@ -198,7 +184,7 @@ namespace
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
-        const TypeInfo& type = aliasType(sema, view);
+        const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isFloat() || type.isIntSigned() || type.isIntUnsized())
             return Result::Continue;
 
@@ -229,7 +215,7 @@ namespace
     Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
-        const TypeInfo& type = aliasType(sema, view);
+        const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isFloat() || type.isIntLike() || type.isSimd())
             return Result::Continue;
 
@@ -245,7 +231,7 @@ namespace
 
     Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
-        const TypeInfo& type = aliasType(sema, view);
+        const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isIntLike() || type.isEnum())
             return Result::Continue;
         if (type.isSimd() && sema.typeMgr().get(type.payloadSimdLaneTypeRef()).isInt())
@@ -455,7 +441,7 @@ namespace
 
     Result checkMoveRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
-        const TypeInfo& type = aliasEnumType(sema, view);
+        const TypeInfo& type = SemaHelpers::aliasEnumType(sema, view);
         if (type.isReference())
             return Result::Continue;
 
@@ -469,7 +455,7 @@ namespace
 
     Result semaMoveRef(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& type  = aliasEnumType(sema, view);
+        const TypeInfo& type  = SemaHelpers::aliasEnumType(sema, view);
         TypeInfoFlags   flags = TypeInfoFlagsE::Zero;
         TypeRef         pointeeTypeRef;
 
@@ -509,7 +495,7 @@ namespace
     {
         if (op == TokenId::SymTilde)
         {
-            const TypeInfo& type = aliasType(sema, view);
+            const TypeInfo& type = SemaHelpers::aliasType(sema, view);
             if (type.isEnum())
             {
                 if (!type.isEnumFlags())
@@ -595,7 +581,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     // Constant folding ('#move' never folds: it needs the operand's storage address, and a
     // packed vector never folds either — the binary operators leave a simd operand to the
     // backend the same way, so the lanes are computed by the hardware in every path)
-    if (view.cstRef().isValid() && opId != TokenId::ModifierMove && opId != TokenId::ModifierFwd && !aliasType(sema, view).isSimd())
+    if (view.cstRef().isValid() && opId != TokenId::ModifierMove && opId != TokenId::ModifierFwd && !SemaHelpers::aliasType(sema, view).isSimd())
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, opId, *this, view));
@@ -634,7 +620,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             SWC_INTERNAL_ERROR();
     }
 
-    if (tok.id == TokenId::SymMinus && aliasType(sema, view).isIntSigned())
+    if (tok.id == TokenId::SymMinus && SemaHelpers::aliasType(sema, view).isIntSigned())
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     return Result::Continue;
 }

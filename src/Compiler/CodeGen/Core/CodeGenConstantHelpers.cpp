@@ -429,4 +429,20 @@ Result CodeGenConstantHelpers::loadTypeInfoConstantReg(MicroReg& outReg, CodeGen
     return Result::Continue;
 }
 
+CodeGenNodePayload CodeGenConstantHelpers::makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
+{
+    const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
+    SWC_ASSERT(cst.isStruct() || cst.isArray());
+
+    const std::span<const std::byte> bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
+    const uint64_t                   addr  = reinterpret_cast<uint64_t>(bytes.data());
+
+    CodeGenNodePayload payload;
+    payload.typeRef = cst.typeRef();
+    payload.reg     = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegPtrReloc(payload.reg, addr, cstRef);
+    payload.setIsAddress();
+    return payload;
+}
+
 SWC_END_NAMESPACE();

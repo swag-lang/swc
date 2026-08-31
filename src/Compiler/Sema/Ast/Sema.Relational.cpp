@@ -183,19 +183,6 @@ namespace
         return result;
     }
 
-    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        return sema.typeMgr().get(typeRef);
-    }
-
-    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     bool hasAliasOperand(const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         return (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
@@ -302,8 +289,8 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&    compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo&    compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo&    compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo&    compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
 
         if (compareLeftType.isTypeValue() && compareRightType.isTypeValue())
         {
@@ -416,8 +403,8 @@ namespace
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
 
-        const TypeInfo& compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo& compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
             uint64_t   leftAddress     = 0;
@@ -492,8 +479,8 @@ namespace
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
 
-        const TypeInfo& compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo& compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
             uint64_t   leftAddress     = 0;
@@ -564,11 +551,11 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&    compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo&    compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo&    compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo&    compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
-        if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
+        if (SemaHelpers::aliasType(sema, compareLeftView).isScalarNumeric() && SemaHelpers::aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
         if (isStringCompareOperands(sema, compareLeftView, compareRightView))
             return Result::Continue;
@@ -598,9 +585,9 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&    compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo&    compareRightType = aliasEnumType(sema, compareRightView);
-        if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
+        const TypeInfo&    compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
+        const TypeInfo&    compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
+        if (SemaHelpers::aliasType(sema, compareLeftView).isScalarNumeric() && SemaHelpers::aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;
@@ -640,14 +627,14 @@ namespace
             // dereference, so the nullability of the source must be preserved rather
             // than rejected by the non-null default.
             TypeRef typeInfoTargetRef = sema.typeMgr().typeTypeInfo();
-            if (aliasEnumType(sema, self).isNullable())
+            if (SemaHelpers::aliasEnumType(sema, self).isNullable())
             {
                 TypeInfo nullableTypeInfo = sema.typeMgr().get(typeInfoTargetRef);
                 nullableTypeInfo.addFlag(TypeInfoFlagsE::Nullable);
                 typeInfoTargetRef = sema.typeMgr().addType(nullableTypeInfo);
             }
 
-            const TypeInfo& otherType                     = aliasEnumType(sema, other);
+            const TypeInfo& otherType                     = SemaHelpers::aliasEnumType(sema, other);
             const bool      otherIsRuntimeTypeInfoPointer = sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), other.typeRef());
             const bool      otherIsTypeLike               = otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny() || otherIsRuntimeTypeInfoPointer || other.type()->isTypeValue();
             if (self.type()->isTypeValue() && otherIsTypeLike)
@@ -677,7 +664,7 @@ namespace
             if (!selfType.isReference())
                 return Result::Continue;
 
-            const TypeInfo& otherType = aliasEnumType(sema, other);
+            const TypeInfo& otherType = SemaHelpers::aliasEnumType(sema, other);
             if (otherType.isAnyPointer())
                 return Result::Continue;
 
@@ -704,8 +691,8 @@ namespace
             if (!literalView.type() || !typedView.type())
                 return Result::Continue;
 
-            const TypeInfo& literalType = aliasEnumType(sema, literalView);
-            const TypeInfo& typedType   = aliasEnumType(sema, typedView);
+            const TypeInfo& literalType = SemaHelpers::aliasEnumType(sema, literalView);
+            const TypeInfo& typedType   = SemaHelpers::aliasEnumType(sema, typedView);
             const bool      arrayMatch  = literalType.isAggregateArray() && (typedType.isArray() || typedType.isSlice());
             const bool      structMatch = literalType.isAggregateStruct() && typedType.isStruct();
             if (!arrayMatch && !structMatch)
@@ -728,8 +715,8 @@ namespace
             if (!leftView.type() || !rightView.type() || leftView.typeRef() == rightView.typeRef())
                 return Result::Continue;
 
-            const TypeInfo& leftType  = aliasEnumType(sema, leftView);
-            const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, leftView);
+            const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, rightView);
             if (!isAggregateEqualityOperand(leftType) || !isAggregateEqualityOperand(rightType))
                 return Result::Continue;
 
@@ -857,8 +844,8 @@ namespace
 
         if (orderedCompare && nodeLeftView.typeRef() == nodeRightView.typeRef())
         {
-            const TypeInfo& leftType  = aliasType(sema, nodeLeftView);
-            const TypeInfo& rightType = aliasType(sema, nodeRightView);
+            const TypeInfo& leftType  = SemaHelpers::aliasType(sema, nodeLeftView);
+            const TypeInfo& rightType = SemaHelpers::aliasType(sema, nodeRightView);
             if (leftType.isEnum() && rightType.isEnum())
             {
                 Cast::convertEnumToUnderlying(sema, nodeLeftView);
@@ -890,8 +877,8 @@ namespace
     {
         // Element-wise simd compares need the same vector type on both sides,
         // and the three-way compare has no lane form.
-        const TypeInfo& leftType  = aliasType(sema, nodeLeftView);
-        const TypeInfo& rightType = aliasType(sema, nodeRightView);
+        const TypeInfo& leftType  = SemaHelpers::aliasType(sema, nodeLeftView);
+        const TypeInfo& rightType = SemaHelpers::aliasType(sema, nodeRightView);
         if (leftType.isSimd() || rightType.isSimd())
         {
             const bool sameShape = leftType.isSimd() && rightType.isSimd() &&
@@ -958,7 +945,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     // geometry: unsigned lanes, all-ones where the compare holds. Masks never
     // fold at compile time.
     {
-        const TypeInfo& leftCmpType = aliasType(sema, nodeLeftView);
+        const TypeInfo& leftCmpType = SemaHelpers::aliasType(sema, nodeLeftView);
         if (leftCmpType.isSimd())
         {
             const TypeInfo& laneType = sema.typeMgr().get(leftCmpType.payloadSimdLaneTypeRef());

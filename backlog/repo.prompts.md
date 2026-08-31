@@ -928,10 +928,21 @@ The campaign covers these mechanical improvements:
     separate them into cohesive leaf contracts. Use dependency counts or the existing build
     dependency graph as structural evidence, not elapsed-time or memory benchmarks. Do not add a
     pointer, allocation, virtual dispatch, PIMPL, type erasure, or runtime indirection merely to
-    reduce include fanout.
-  - Code reduction: remove exact duplication, redundant wrappers, repeated declarations,
-    unreachable duplication after an unconditional exit, and equivalent boilerplate when an
-    existing repository abstraction already expresses precisely the same operation.
+    reduce include fanout. Fanout is the weakest goal here: when cutting it would force a
+    duplicate to survive, delete the duplicate and accept the wider include.
+  - Code reduction: the campaign's first priority, ahead of fanout and ahead of diff size. Remove
+    exact duplication, near-identical copies that differ only in spelling, a local binding, an
+    assertion or a diagnostic id, redundant wrappers, repeated declarations, unreachable
+    duplication after an unconditional exit, and equivalent boilerplate. A file-local helper
+    written a second time in another file is already the defect: collapse the whole family the
+    moment a twin turns up, and never leave a copy standing because one of its users would then
+    have to include more, qualify a call, or gain a header. Finding the shared version a home is
+    part of the work, not a reason to stop — put it on the type it interrogates, in the domain
+    namespace that owns the area, or in a new cohesive leaf header, whichever reads best. When the
+    copies are not textually identical, unify them on the strictest behavior any copy has: an
+    assertion present in one and absent from another is kept. That is a deliberate behavioral
+    change, so validate it and say so in the report; if the assertion then fires, it has found a
+    real defect and you reduce and report that separately.
   - Simplification: simplify control flow, expressions, local initialization, and helper structure
     only when evaluation order, conversions, overflow behavior, lifetime, ownership, allocation,
     synchronization, and generated code remain unchanged.
@@ -955,11 +966,16 @@ floating-point semantics, generated machine code intentionally selected by the i
 hot-path work. Do not fix a behavioral defect as part of this campaign: reduce and report it for a
 separate change with its own regression test.
 
-Do not introduce a new abstraction merely because it shortens one call site. A reduction is valid
-only when the result is at least as direct, readable, and cheap as the original. Do not apply
-unreviewed bulk fix-its, blanket formatting, speculative modernizations, global search-and-replace
-without symbol verification, warning suppressions, or cosmetic churn. When equivalence is not
-obvious in the diff, the edit is out of scope.
+Introducing a shared helper, a new member on the owning type, or a new leaf header in order to
+delete a duplicate is expected work, not an abstraction to be avoided; only invent one that no call
+site needs. A reduction must stay as direct to read and as fast to run as the original — share
+through an inline or header-side definition wherever the copies were being inlined, so the emitted
+code does not move — but a longer include closure, a qualified call site, a call-site sweep, or one
+more file is an acceptable price for deleting a copy.
+
+Do not apply unreviewed bulk fix-its, blanket formatting, speculative modernizations, global
+search-and-replace without symbol verification, warning suppressions, or cosmetic churn. When
+equivalence is not obvious in the diff, the edit is out of scope.
 
 DISCOVERY
 
@@ -969,10 +985,12 @@ wrappers, stale comments, unclear private names, redundant branches, and project
 analysis and compiler warnings may supply leads, but no tool diagnostic is authority and no
 tool-specific report is the campaign's completion gate.
 
-Prioritize changes with broad maintenance value and a small, mechanically provable diff. Group the
-inventory into coherent batches such as one header family, one internal rename, or one exact
-duplication pattern. Skip findings that would mix unrelated subsystems or require a compatibility
-decision.
+Prioritize changes with broad maintenance value. Prefer a small, mechanically provable diff, but
+never drop a duplication because collapsing it touches many call sites: a qualification sweep is
+mechanical and belongs in the campaign. Group the inventory into coherent batches such as one
+header family, one internal rename, or one duplication pattern. A duplication spanning two
+subsystems is still collapsed, at the boundary they already share; only a genuine compatibility
+decision is grounds to skip.
 
 THE LOOP
 
@@ -1017,8 +1035,13 @@ and restore files whose only change is line endings.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
-  - Every retained edit is demonstrably behavior-preserving and belongs to one of the mechanical
-    categories above.
+  - Every retained edit belongs to one of the categories above and is demonstrably
+    behavior-preserving, except where a deliberate unification onto the strictest copy is reported
+    as such.
+  - No family of duplicated definitions is knowingly left standing. Each one is collapsed, or
+    reported with the specific contract, layout, or behavioral difference that blocks it. An
+    include cost, a call-site sweep, a namespace qualification, or the need to choose a home are
+    not such reasons.
   - Headers are self-sufficient, direct users own their includes, and each new leaf header has one
     cohesive purpose.
   - No incomplete rename, stale reference, obsolete project entry, new suppression, generated file,
@@ -1028,7 +1051,9 @@ THE CAMPAIGN MAY END ONLY WHEN
     intended code-health changes.
 
 Do not claim completion for findings deliberately left outside the safety boundary. They are not
-failures of this campaign; list them separately without implementing them.
+failures of this campaign; list them separately without implementing them. Duplication is not one
+of them: a surviving copy is a failure of this campaign unless a contract, a layout, or a
+behavioral difference genuinely blocks it, and the report must name which.
 
 REPORT
 

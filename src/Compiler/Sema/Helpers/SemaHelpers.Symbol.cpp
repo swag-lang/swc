@@ -32,18 +32,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
 
-    TypeRef aliasEnumTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        SWC_ASSERT(unwrappedTypeRef.isValid());
-        return unwrappedTypeRef;
-    }
-
-    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
-    {
-        return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
-    }
-
     // A binding to a nullable slot ('&#null *T', what an 'opIndex' hands back) is exactly
     // as nullable as the slot it names. References are transparent, so the layer must be
     // looked through before deciding whether a use site still needs a proof.
@@ -60,7 +48,7 @@ namespace
         if (!operandView.type())
             return Result::Continue;
 
-        const TypeInfo& operandType = aliasEnumType(sema, operandView);
+        const TypeInfo& operandType = SemaHelpers::aliasEnumType(sema, operandView);
         if (!operandType.isAnyPointer())
             return Result::Continue;
 
@@ -82,8 +70,8 @@ namespace
 
     bool blockPointerPayloadsMatch(Sema& sema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView)
     {
-        const TypeInfo& leftType  = aliasEnumType(sema, leftOperandView);
-        const TypeInfo& rightType = aliasEnumType(sema, rightOperandView);
+        const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, leftOperandView);
+        const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, rightOperandView);
 
         TypeRef leftPayloadTypeRef  = leftType.payloadTypeRef();
         TypeRef rightPayloadTypeRef = rightType.payloadTypeRef();
@@ -101,13 +89,6 @@ namespace
         return leftPayloadTypeRef == rightPayloadTypeRef;
     }
 
-    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -123,7 +104,7 @@ namespace
 
     bool isPointerOrReferenceAliasAware(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& typeInfo = aliasEnumType(sema, view);
+        const TypeInfo& typeInfo = SemaHelpers::aliasEnumType(sema, view);
         return typeInfo.isAnyPointer() || typeInfo.isReference();
     }
 

@@ -44,40 +44,6 @@ namespace
         return 1u << (field - 1);
     }
 
-    EnumFlags<LinkSectionFlagsE> flagsFromCharacteristics(uint32_t characteristics)
-    {
-        EnumFlags<LinkSectionFlagsE> flags;
-        if (characteristics & IMAGE_SCN_CNT_CODE)
-            flags.add(LinkSectionFlagsE::Code);
-        if (characteristics & IMAGE_SCN_MEM_EXECUTE)
-            flags.add(LinkSectionFlagsE::Execute);
-        if (characteristics & IMAGE_SCN_MEM_READ)
-            flags.add(LinkSectionFlagsE::Read);
-        if (characteristics & IMAGE_SCN_MEM_WRITE)
-            flags.add(LinkSectionFlagsE::Write);
-        if (characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
-            flags.add(LinkSectionFlagsE::Uninit);
-        return flags;
-    }
-
-    bool linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type)
-    {
-        switch (type)
-        {
-            case IMAGE_REL_AMD64_ADDR64:
-                outKind = LinkRelocKind::Abs64;
-                return true;
-            case IMAGE_REL_AMD64_ADDR32NB:
-                outKind = LinkRelocKind::Rva32;
-                return true;
-            case IMAGE_REL_AMD64_REL32:
-                outKind = LinkRelocKind::Rel32;
-                return true;
-            default:
-                return false;
-        }
-    }
-
     Utf8 symbolName(const IMAGE_SYMBOL& record, std::span<const std::byte> bytes, size_t stringTableOffset)
     {
         if (record.N.Name.Short != 0)
@@ -89,6 +55,40 @@ namespace
             return Utf8{std::string_view{shortName, len}};
         }
         return readStringTableName(bytes, stringTableOffset, record.N.Name.Long);
+    }
+}
+
+EnumFlags<LinkSectionFlagsE> linkSectionFlagsFromCoffCharacteristics(uint32_t characteristics)
+{
+    EnumFlags<LinkSectionFlagsE> flags;
+    if (characteristics & IMAGE_SCN_CNT_CODE)
+        flags.add(LinkSectionFlagsE::Code);
+    if (characteristics & IMAGE_SCN_MEM_EXECUTE)
+        flags.add(LinkSectionFlagsE::Execute);
+    if (characteristics & IMAGE_SCN_MEM_READ)
+        flags.add(LinkSectionFlagsE::Read);
+    if (characteristics & IMAGE_SCN_MEM_WRITE)
+        flags.add(LinkSectionFlagsE::Write);
+    if (characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+        flags.add(LinkSectionFlagsE::Uninit);
+    return flags;
+}
+
+bool linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type)
+{
+    switch (type)
+    {
+        case IMAGE_REL_AMD64_ADDR64:
+            outKind = LinkRelocKind::Abs64;
+            return true;
+        case IMAGE_REL_AMD64_ADDR32NB:
+            outKind = LinkRelocKind::Rva32;
+            return true;
+        case IMAGE_REL_AMD64_REL32:
+            outKind = LinkRelocKind::Rel32;
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -282,7 +282,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
             LinkSection&   merged = outImage.sections[mergedIdx];
             const uint32_t align  = alignmentFromCharacteristics(section.characteristics);
             merged.align          = std::max(merged.align, align);
-            merged.flags.add(flagsFromCharacteristics(section.characteristics));
+            merged.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
 
             uint32_t base = 0;
             if (section.isBss)

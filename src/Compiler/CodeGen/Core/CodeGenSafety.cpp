@@ -37,22 +37,6 @@ namespace
         return nodePayload && nodePayload->hasRuntimeSafety(what);
     }
 
-    CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)
-    {
-        const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
-        SWC_ASSERT(cst.isStruct() || cst.isArray());
-
-        const std::span<const std::byte> bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
-        const uint64_t                   addr  = reinterpret_cast<uint64_t>(bytes.data());
-
-        CodeGenNodePayload payload;
-        payload.typeRef = cst.typeRef();
-        payload.reg     = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(payload.reg, addr, cstRef);
-        payload.setIsAddress();
-        return payload;
-    }
-
     SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen, const CodeGenLoweringPayload* nodePayload = nullptr)
     {
         if (nodePayload && nodePayload->runtimeFunctionSymbol != nullptr)
@@ -81,13 +65,13 @@ namespace
 
         const ConstantRef messageCstRef = CodeGenConstantHelpers::materializeRuntimeStringConstant(codeGen, codeGen.typeMgr().typeString(), message);
         SWC_ASSERT(messageCstRef.isValid());
-        const auto messageArg = makeAddressPayloadFromConstant(codeGen, messageCstRef);
+        const auto messageArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, messageCstRef);
         CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[0]->typeRef(), messageArg.reg);
 
         ConstantRef sourceLocCstRef = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, node));
         SWC_ASSERT(sourceLocCstRef.isValid());
-        const auto sourceLocArg = makeAddressPayloadFromConstant(codeGen, sourceLocCstRef);
+        const auto sourceLocArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, sourceLocCstRef);
         CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[1]->typeRef(), sourceLocArg.reg);
 
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);

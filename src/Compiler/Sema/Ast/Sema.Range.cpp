@@ -5,22 +5,16 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
-    {
-        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
-    }
-
     Result validateRangeBoundType(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& view)
     {
-        const TypeInfo& type = aliasType(sema, view);
+        const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isScalarNumeric())
             return Result::Continue;
         if (type.isEnum())
@@ -38,7 +32,7 @@ namespace
 
     bool isEnumRangeBound(Sema& sema, const SemaNodeView& view)
     {
-        return view.typeRef().isValid() && aliasType(sema, view).isEnum();
+        return view.typeRef().isValid() && SemaHelpers::aliasType(sema, view).isEnum();
     }
 
     Result validateEnumRangeBounds(Sema& sema, const SemaNodeView& nodeDownView, const SemaNodeView& nodeUpView, AstNodeRef nodeExprDownRef, AstNodeRef nodeExprUpRef)
@@ -53,7 +47,7 @@ namespace
         if (nodeUpView.typeRef().isValid() && !upIsEnum)
             return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef());
 
-        if (downIsEnum && upIsEnum && &aliasType(sema, nodeDownView).payloadSymEnum() != &aliasType(sema, nodeUpView).payloadSymEnum())
+        if (downIsEnum && upIsEnum && &SemaHelpers::aliasType(sema, nodeDownView).payloadSymEnum() != &SemaHelpers::aliasType(sema, nodeUpView).payloadSymEnum())
             return SemaError::raiseCannotCast(sema, nodeExprUpRef, nodeUpView.typeRef(), nodeDownView.typeRef());
 
         return Result::Continue;

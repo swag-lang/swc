@@ -47,6 +47,12 @@ struct CoffObject
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& bytes);
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, std::span<const std::byte> bytes);
 
+// The COFF field decoders the two readers share: both the object reader and the PE linker
+// walk section headers and relocation records, and read the same IMAGE_SCN_* and
+// IMAGE_REL_* values out of them.
+EnumFlags<LinkSectionFlagsE> linkSectionFlagsFromCoffCharacteristics(uint32_t characteristics);
+bool                         linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type);
+
 // Merges the given COFF objects into a single LinkImage: sections of the same name are concatenated
 // (honouring alignment and rebasing symbols/relocations), defined symbols are collected globally, and
 // CodeView debug sections (.debug$*) are dropped. Appends to outImage; the caller still fills in

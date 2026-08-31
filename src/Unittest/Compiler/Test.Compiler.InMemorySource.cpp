@@ -222,12 +222,12 @@ func useCandidates()
     // If call-graph names from separate Asts are merged, the first source's
     // singleCall -> leaf and useCandidates -> singleCall edges combine with this edge into a
     // false cycle. Cross-Ast calls never auto-inline, so their recursion graphs stay separate.
-    static constexpr std::string_view OTHER_SOURCE = R"(#global private
+    static constexpr std::string_view OTHER_SOURCE    = R"(#global private
 
 func leaf() => useCandidates()
 )";
-    const fs::path sourcePath      = Unittest::makeTestSourcePath("Compiler", "AutoInlineCostPricesCallsAndRewardsOneModuleCallSite");
-    const fs::path otherSourcePath = Unittest::makeTestSourcePath("Compiler", "AutoInlineCostKeepsAstCallGraphsSeparate");
+    const fs::path                    sourcePath      = Unittest::makeTestSourcePath("Compiler", "AutoInlineCostPricesCallsAndRewardsOneModuleCallSite");
+    const fs::path                    otherSourcePath = Unittest::makeTestSourcePath("Compiler", "AutoInlineCostKeepsAstCallGraphsSeparate");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Syntax;

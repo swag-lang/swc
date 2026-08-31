@@ -1154,14 +1154,14 @@ SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunT
     static constexpr std::string_view GOLDEN_SOURCE = R"(#[Swag.TestTag("golden")]
 #test { Swag.assert(true) }
 )";
-    static constexpr std::string_view SLOW_SOURCE = R"(#[Swag.TestTag("slow")]
+    static constexpr std::string_view SLOW_SOURCE   = R"(#[Swag.TestTag("slow")]
 #test { Swag.assert(true) }
 )";
-    static constexpr std::string_view PLAIN_SOURCE = R"(#test { Swag.assert(true) }
+    static constexpr std::string_view PLAIN_SOURCE  = R"(#test { Swag.assert(true) }
 )";
-    const fs::path goldenPath = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterGolden");
-    const fs::path slowPath   = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterSlow");
-    const fs::path plainPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterPlain");
+    const fs::path                    goldenPath    = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterGolden");
+    const fs::path                    slowPath      = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterSlow");
+    const fs::path                    plainPath     = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterPlain");
 
     CommandLine cmdLine;
     cmdLine.command          = CommandKind::Test;

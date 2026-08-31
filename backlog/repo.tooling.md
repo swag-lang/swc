@@ -5,14 +5,6 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### repo.tooling.001 — Compiler builds and tool-driven runs are CPU-capped for the development machine
-
-- Area: tooling
-- Found while: keeping the machine responsive while builds and test campaigns run alongside other work
-- Observation: `swc.vcxproj` caps `/MP` through `SwcCompileJobs` (logical processors minus 4, overridable with the `SWC_COMPILE_JOBS` environment variable or `-p:SwcCompileJobs=N`), and the tools inject a default `--num-cores` with the same policy into every compiler they start (`withCoreBound` in `tools/src/context.swg`, an explicit `--num-cores` or `-j` still wins). Both caps are a temporary comfort measure for the current development period, where one machine runs the IDE, several AI agents, and their campaigns at once; the reserve of 4 logical cores is arbitrary rather than measured.
-- Evidence: 22-logical-processor machine saturated by an unbounded `/MP` compile plus unbounded `swc` job managers; caps added 2026-08-13.
-- Next step: when the machine stops hosting several concurrent agents, or when the tools run on a dedicated CI machine, re-evaluate both caps — remove them so builds and campaigns take the whole machine again, or keep them behind an explicit opt-in.
-
 ### repo.tooling.002 — A differential harness must line pictures up by time, not by rank
 
 - Area: tooling

@@ -22,6 +22,14 @@ of `#test` source files without removing the implementation sources they exercis
 `--test-tag <value>` values select a union of `#[Swag.TestTag(...)]` categories. Anything else is
 forwarded to the compiler.
 
+## Build the compiler manually
+
+`release.bat` and `devmode.bat` are the full-machine entry points for an interactive build. Both
+give MSBuild and the C++ compiler all logical processors. The Release entry point additionally
+enables whole-program optimization, full link-time code generation, reference elimination, and
+identical COMDAT folding. Direct MSBuild builds keep the repository's bounded defaults for IDE,
+agent, and iterative work.
+
 ## How a tool is built
 
 A tool is an ordinary Swag script. It states the sources it is made of, and calls into the
@@ -101,5 +109,5 @@ Typing a tool's bare name in `cmd` still does not work: that resolution reads th
 association, which only an elevated `assoc`/`ftype` writes, so a shell invocation names the
 compiler.
 
-The one batch file left in the repository is `src/Support/Memory/mimalloc/bin/bundle.bat`: it
+The only other batch file in the repository is `src/Support/Memory/mimalloc/bin/bundle.bat`; it
 belongs to the vendored mimalloc distribution and retains its upstream layout.

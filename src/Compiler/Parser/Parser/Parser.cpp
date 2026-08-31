@@ -217,9 +217,9 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             collectMetaFunctionNames(*ast, metaFunctionNames);
     }
 
-    std::unordered_map<std::string_view, uint32_t>                         callCounts;
-    std::unordered_map<std::string_view, uint32_t>                         useCounts;
-    std::unordered_map<const Ast*, AutoInlineCallGraph>                    callGraphs;
+    std::unordered_map<std::string_view, uint32_t>                       callCounts;
+    std::unordered_map<std::string_view, uint32_t>                       useCounts;
+    std::unordered_map<const Ast*, AutoInlineCallGraph>                  callGraphs;
     std::unordered_map<const Ast*, std::unordered_set<std::string_view>> unsupportedFunctionNames;
     for (const Ast* ast : moduleAsts)
     {
@@ -268,7 +268,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             const std::string_view name        = ast->srcView().tokenString(decl->tokNameRef);
             auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
             const bool             bodyHasCall = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
-            const auto callGraphIt = callGraphs.find(ast);
+            const auto             callGraphIt = callGraphs.find(ast);
             if (bodyHasCall && callGraphIt != callGraphs.end() && callGraphIt->second.callsAny(name, metaFunctionNames))
                 return Ast::VisitResult::Continue;
             const auto unsupportedIt = unsupportedFunctionNames.find(ast);
@@ -285,8 +285,8 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 return Ast::VisitResult::Continue;
             }
 
-            const auto it = callCounts.find(name);
-            const auto useIt = useCounts.find(name);
+            const auto it               = callCounts.find(name);
+            const auto useIt            = useCounts.find(name);
             const bool hasLastCallBonus = it != callCounts.end() && it->second == 1 &&
                                           useIt != useCounts.end() && useIt->second == 1;
             if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hasLastCallBonus)

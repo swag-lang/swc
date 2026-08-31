@@ -17,7 +17,7 @@ func pdfViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const PdfCommandWidth = 124.0
+private const PdfCommandWidth = 156.0
 private const PdfInfoWidth    = 96.0
 
 struct PdfViewerContent
@@ -243,11 +243,11 @@ private impl PdfViewer
             }
         }
 
-        with result.pageLabel = IconButton.create(result.commands, {}, {0, 0, 0, 36}, "scope.pdf.page", .CenterContent)
+        with result.pageLabel = IconButton.create(result.commands, {}, {0, 0, 84, 36}, "scope.pdf.page", .CenterContent)
         {
-            .dockStyle       = .Left
-            .margin.x        = 8
-            .preferredSize.x = 0
+            .dockStyle = .Left
+            .margin.x  = 8
+            .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
             .toolTip    = pdfStrings().ui_GoToPage

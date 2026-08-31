@@ -436,6 +436,8 @@ impl ComboBox
         // field a sane size until the first layout pass measures it, and stays its floor.
         if position.width == 0 do
             result.preferredSize.x = 0
+        else do
+            result.minSize.x = pos.width
         if result.mode == .Editable
         {
             // The field is the control's own writing surface, not a second stop beside it.

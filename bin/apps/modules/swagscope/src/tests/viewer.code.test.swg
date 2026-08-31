@@ -69,6 +69,9 @@ struct CodeLanguageSample
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
     let view = CodeViewer.create(&host.root, fileName)
+    view.setZoom(150)
+    Swag.assert(view.zoomPercent == 150)
+    view.setZoom(100)
     view.resize(640, 360)
     view.applyLayout()
     view.editor.lexAll()

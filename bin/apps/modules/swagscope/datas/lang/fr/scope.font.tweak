@@ -4,6 +4,12 @@ ui_DefaultSample      Portez ce vieux whisky
 ui_SamplePlaceholder  Saisissez un texte d'essai
 ui_PreviousPage       Page de caractères précédente
 ui_NextPage           Page de caractères suivante
+ui_CharacterRange     Plage de caractères
+ui_BasicLatin         Latin de base
+ui_Latin1             Supplément Latin-1
+ui_Greek              Grec et copte
+ui_Cyrillic           Cyrillique
+ui_Symbols            Ponctuation et symboles
 ui_Specimen           SPÉCIMEN
 ui_CharacterMap       TABLE DES CARACTÈRES
 ui_NoCharacters       Aucun caractère associé

@@ -763,7 +763,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(640, 420)
     defer host.shutdown()
     var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
-    Swag.assert(result.view != null and result.actions == null and result.commands == null and result.collectMatches != null and result.isLoading != null)
+    Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
     Swag.assert(!view.failureReason.isEmpty())
@@ -891,8 +891,8 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     Swag.assert(view.list.selectedLine() == null)
 }
 
-// A searchable binary leaves shared chrome to the host and does not reserve either an action
-// group or a second command band around the document.
+// A searchable binary leaves the global action bar to the host and exposes only its compact
+// history and structure commands in the centered viewer bar.
 #test
 {
     let bytes    = buildPeFixture()
@@ -911,8 +911,8 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 
     Swag.assert(window.currentActions == null)
     Swag.assert(window.searchGroup.isLocallyVisible())
-    Swag.assert(window.currentCommands == null and window.viewerBar.isLocallyVisible())
-    Swag.assert(window.viewerBar.position.height == window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.currentCommands != null and window.viewerBar.isLocallyVisible())
+    Swag.assert(window.viewerBar.position.height == ViewerBarHeight)
 
     host.settleAnimations(window.commandBar, 4)
     var image = host.render(window.commandBar)

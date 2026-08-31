@@ -34,20 +34,27 @@ func midiTestFixture()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Top
+    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
+    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    infoBar.dockStyle       = .Top
+    infoBar.backgroundStyle = .InformationBar
+    infoBar.padding         = {16, 4, 16, 4}
 
     let fileName = midiTestFixture()
-    var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar)
+    var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null)
+    commandBar.centerGroup = result.commands
+    infoBar.centerGroup    = result.info
 
     let viewer = cast(*MidiViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle          = .Center
-    viewer.commands.dockStyle = .Right
+    viewer.commands.dockStyle = .None
+    result.info!.dockStyle    = .None
     Swag.assert(viewer.trackCombo.items.count == 2)
     viewer.trackCombo.setSelectedIndex(1)
     Swag.assert(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
@@ -69,8 +76,7 @@ func midiTestFixture()->String
     var french = host.render(&host.root)
     discard french
     Swag.assert(viewer.trackCombo.selectedItem()!.name.raw == "Toutes les pistes")
-    Swag.assert(viewer.zoomOutButton.toolTip == "Réduire le zoom")
-    Swag.assert(viewer.fitButton.toolTip == "Ajuster la partition complète")
+    Swag.assert(viewer.zoomLabel.toolTip == "Options de zoom")
     Testing.assertContentFits(viewer.commands)
 }
 

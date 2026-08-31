@@ -8,6 +8,7 @@ using Core, Gui
 // standard spelling, so the summary below is the only sentence this viewer writes.
 struct CodeStrings
 {
+    ui_ZoomMenu: string = "Code zoom options"     // Tooltip of the zoom value menu.
     // Summary the host shows beside the file size. `%` takes the name of the language.
     ui_Details: string = "% · UTF-8 · streamed"
 }

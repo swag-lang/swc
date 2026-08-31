@@ -12,6 +12,7 @@ struct TextStrings
     ui_WrapOn:   string = "Line wrapping on (Ctrl+W)"                                                              // Tooltip while long lines are folded.
     ui_WrapOff:  string = "Line wrapping off (Ctrl+W)"                                                             // Tooltip while long lines run off the edge.
     ui_Encoding: string = "Character encoding"                                                                     // Tooltip of the encoding selector.
+    ui_ZoomMenu: string = "Text zoom options"                                                                      // Tooltip of the zoom value menu.
     ui_NotText:  string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
     ui_Details:  string = "% · streamed"                                                                           // Summary the host shows beside the file size, starting with the encoding.
 }

@@ -10,6 +10,7 @@ struct MidiStrings
     ui_ZoomOut:       string = "Zoom out"
     ui_ZoomIn:        string = "Zoom in"
     ui_Fit:           string = "Fit complete score"
+    ui_ZoomMenu:      string = "Zoom options"
     ui_PianoRoll:     string = "PIANO ROLL"
     ui_NoNotes:       string = "No note events"
     ui_Summary:       string = "% tracks · % notes · % · % BPM · % · %"

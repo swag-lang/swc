@@ -24,10 +24,10 @@ func imageViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const ImageActionWidth = 326.0
-private const GifActionWidth   = 570.0
-private const ImageInfoWidth   = 156.0
-private const SvgRasterLimit   = 2048.0
+private const ImageCommandWidth = 104.0
+private const GifCommandWidth   = 352.0
+private const ImageInfoWidth    = 156.0
+private const SvgRasterLimit    = 2048.0
 
 struct ImageViewerContent
 {
@@ -87,7 +87,7 @@ internal struct ImageViewer
         previousButton:  *IconButton
         nextButton:      *IconButton
         imageView:       *ImageView
-        zoomLabel:       *Label
+        zoomLabel:       *IconButton
         transformButton: *IconButton
         playButton:      *IconButton
         timeline:        *Slider
@@ -135,7 +135,8 @@ internal impl ImageViewer
 
     mtd showPlayback()
     {
-        .actions.resize(GifActionWidth, 36)
+        .actions.preferredSize.x = GifCommandWidth
+        .actions.resize(GifCommandWidth, 36)
         .playButton.show()
         .timeline.show()
         .frameLabel.show()
@@ -200,6 +201,25 @@ internal impl ImageViewer
         case "scope.image.mirrorHorizontal": .mirrorHorizontally()
         case "scope.image.mirrorVertical":   .mirrorVertically()
         case "scope.image.reset":            .resetTransform()
+        }
+    }
+
+    mtd showZoomMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem("25%", "scope.image.zoom25")
+        menu.addItem("50%", "scope.image.zoom50")
+        menu.addItem("100%", "scope.image.zoom100", rightName: "Ctrl+0")
+        menu.addItem("200%", "scope.image.zoom200")
+        menu.addSeparator()
+        menu.addItem(imageStrings().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
+        {
+        case "scope.image.zoom25":  .imageView.setZoom(0.25)
+        case "scope.image.zoom50":  .imageView.setZoom(0.5)
+        case "scope.image.zoom100": .imageView.actualSize()
+        case "scope.image.zoom200": .imageView.setZoom(2)
+        case "scope.image.zoomFit": .imageView.zoomToFit()
         }
     }
 }
@@ -333,7 +353,7 @@ private impl ImageViewer
         result.reportChromeChanged  = services.reportChromeChanged
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.actions = host.createActionGroup(ImageActionWidth)
+        result.actions = host.createCommandGroup(ImageCommandWidth)
         result.info    = host.createInfoGroup(ImageInfoWidth)
 
         with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
@@ -360,56 +380,10 @@ private impl ImageViewer
             }
         }
 
-        with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 16
-            .toolTip    = imageStrings().ui_TipZoomOut
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.imageView.zoomOut()
-            }
-        }
-
-        with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .toolTip    = imageStrings().ui_TipZoomIn
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.imageView.zoomIn()
-            }
-        }
-
-        with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 16
-            .toolTip    = imageStrings().ui_TipFit
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.imageView.zoomToFit()
-            }
-        }
-
-        with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .toolTip    = imageStrings().ui_TipActual
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.imageView.actualSize()
-            }
-        }
-
         with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Left
-            .margin.x  = 16
+            .margin.x  = 8
             .toolTip   = imageStrings().ui_TipTransform
             .setArrowPosition(.RightDownward)
             .sigPressed += func|view = result|(button)
@@ -451,10 +425,19 @@ private impl ImageViewer
             .hide()
         }
 
-        with result.zoomLabel = Label.create(result.info, "100%", {0, 0, ImageInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ImageInfoWidth, 32}, "scope.image.zoom", .CenterContent)
         {
             .dockStyle = .Center
-            .setTextAlignment(.Right, .Center)
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .toolTip    = imageStrings().ui_ZoomMenu
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
         }
 
         result.imageView                = ImageView.create(result)

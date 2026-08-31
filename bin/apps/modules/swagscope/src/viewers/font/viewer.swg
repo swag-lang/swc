@@ -64,7 +64,7 @@ internal struct FontViewer
         sampleEdit:     *EditBox
         previousButton: *IconButton
         nextButton:     *IconButton
-        pageLabel:      *Label
+        pageLabel:      *IconButton
         document:       *FontDocumentView
     }
 
@@ -100,6 +100,26 @@ private impl FontViewer
         .nextButton.toolTip     = fontStrings().ui_NextPage
         if !.loadTimer do
             .document.invalidate()
+    }
+
+    mtd showRangeMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(fontStrings().ui_BasicLatin, "scope.font.range.basic")
+        menu.addItem(fontStrings().ui_Latin1, "scope.font.range.latin1")
+        menu.addItem(fontStrings().ui_Greek, "scope.font.range.greek")
+        menu.addItem(fontStrings().ui_Cyrillic, "scope.font.range.cyrillic")
+        menu.addItem(fontStrings().ui_Symbols, "scope.font.range.symbols")
+        switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""
+        {
+        case "scope.font.range.basic":    .document.goToCharacterPage(0x20)
+        case "scope.font.range.latin1":   .document.goToCharacterPage(0xA0)
+        case "scope.font.range.greek":    .document.goToCharacterPage(0x370)
+        case "scope.font.range.cyrillic": .document.goToCharacterPage(0x400)
+        case "scope.font.range.symbols":  .document.goToCharacterPage(0x2000)
+        }
+
+        .refreshPageCommands()
     }
 }
 
@@ -212,12 +232,19 @@ internal impl FontViewer
             }
         }
 
-        with result.pageLabel = Label.create(result.commands, "", {0, 0, 108, 36}, null, .SecondaryText)
+        with result.pageLabel = IconButton.create(result.commands, {}, {0, 0, 108, 36}, "scope.font.range", .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-            .setTextAlignment(.Right, .Center)
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(result.theme().res.fontDefaultFs)
+            .toolTip    = fontStrings().ui_CharacterRange
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showRangeMenu()
+            }
         }
 
         result.applyLayout()

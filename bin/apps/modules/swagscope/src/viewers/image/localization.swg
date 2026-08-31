@@ -14,6 +14,7 @@ struct ImageStrings
     ui_TipZoomIn:              string = "Zoom in"                      // Tooltip of the zoom-in button.
     ui_TipFit:                 string = "Fit image"                    // Tooltip of the fit-to-window button.
     ui_TipActual:              string = "Actual size"                  // Tooltip of the actual-size button.
+    ui_ZoomMenu:               string = "Zoom options"                 // Tooltip of the zoom value menu.
     ui_TipTransform:           string = "Image orientation"            // Tooltip of the orientation menu button.
     ui_TipPlay:                string = "Play or pause"                // Tooltip of the animation transport button.
     ui_RotateClockwise:        string = "Rotate clockwise"             // Clockwise menu action.

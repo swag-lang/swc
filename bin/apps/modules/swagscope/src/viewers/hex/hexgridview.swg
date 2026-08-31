@@ -340,9 +340,10 @@ struct HexGridView
     selectionPoint: Math.Point       // Last local pointer position of an active drag.
     selectionTimer: #null *Timer     // Repeats autoscroll while the pointer stays outside the viewport.
 
-    charWidth: f32
-    rowHeight: f32
-    fontSize:  u32
+    charWidth:      f32
+    rowHeight:      f32
+    fontSize:       u32
+    sigZoomChanged: SigArray'func||(*HexGridView)
 
     // Row text is rebuilt in place every frame. Bytes that carry a value and bytes that do not are
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of
@@ -429,6 +430,7 @@ impl HexGridView
         .fontSize = next
         .style.setFont(.theme().createDefaultFontFS(next), .Regular)
         .refreshLayout()
+        .sigZoomChanged.call(me)
     }
 
     mtd adjustFontSize(delta: s32)

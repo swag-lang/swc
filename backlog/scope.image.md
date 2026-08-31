@@ -53,11 +53,12 @@ missing pixel formats and render primitives remain in [pixel.image.md](pixel.ima
 
 ### scope.image.005 — Zoom lacks navigator, numeric entry, interpolation choice, and comparison scale
 
-- Evidence: commands step zoom, fit, and actual size, with a percentage label. There is no direct
-  percentage entry, fit-width/height, overview navigator, pixel-grid threshold, nearest-versus-
-  smooth sampling control, or lockable scale across sibling images.
-- Next: turn the zoom label into an addressable control and add a small optional navigator plus
-  sampling mode.
+- Evidence: the information band now exposes a clickable percentage with common presets, actual
+  size, and fit. There is no arbitrary numeric entry, fit-width/height, overview navigator,
+  pixel-grid threshold, nearest-versus-smooth sampling control, or lockable scale across sibling
+  images.
+- Next: add arbitrary numeric entry, a small optional navigator, and sampling mode to the existing
+  zoom control.
 - Complete when: numeric zoom, Fit All/Width/Height, pixel grid, and sampling policy are explicit;
   the navigator shows and moves the viewport; and next/previous can preserve zoom and image-center
   coordinates when requested.

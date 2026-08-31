@@ -22,7 +22,8 @@ func soundViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const SoundSeekSeconds = 10.0
+private const SoundSeekSeconds  = 10.0
+private const SoundCommandWidth = 820.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
 // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
@@ -786,7 +787,7 @@ internal impl SoundViewer
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.commands = host.createCommandGroup(0)
+        result.commands = host.createCommandGroup(SoundCommandWidth)
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left

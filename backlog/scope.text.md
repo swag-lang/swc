@@ -7,10 +7,11 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
 
 ## Shared text reading
 
-### scope.text.001 — No zoom or text-size control
+### scope.text.001 — Text zoom is not persisted and has no Ctrl+wheel gesture
 
-- Intent: the `Image` viewer zooms; no text-bearing view does. Ctrl+wheel and Ctrl+plus/minus do
-  nothing in text, code, Markdown or HTML, so a dense source file is stuck at one size.
+- Evidence: basic text, code, Markdown, and HTML now expose the same percentage menu and
+  Ctrl+plus/minus/reset gestures. The value is per-view only, is not persisted, and Ctrl+wheel is
+  not connected to it.
 - Complete when: a shared zoom command changes text size in every basic and format-specific text view, is
   persisted, and leaves the streaming window arithmetic correct.
 

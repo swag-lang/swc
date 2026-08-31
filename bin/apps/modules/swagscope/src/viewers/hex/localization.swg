@@ -23,6 +23,7 @@ struct HexStrings
     ui_EndianBig:              string = "Big endian"                                                                                          // Big-endian byte-order choice.
     ui_TipEndian:              string = "Byte order of multi-byte values"                                                                     // Tooltip of the byte-order selector.
     ui_TipCommands:            string = "Copy, navigation, and row layout"                                                                    // Tooltip of the additional-command menu.
+    ui_ZoomMenu:               string = "Byte view zoom options"                                                                              // Tooltip of the zoom value menu.
     ui_Details:                string = "hex and text · streamed"                                                                             // Summary the host shows beside the file size.
     ui_TextColumn:             string = "text"                                                                                                // Header of the decoded-text column.
     ui_Empty:                  string = "This file is empty."                                                                                 // Message painted when the file has no bytes.

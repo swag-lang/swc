@@ -115,10 +115,83 @@ internal func markdownViewerColors(themeIndex: u32)->string
     }
 }
 
-internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32)
+internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32)
 {
+    var style = markdownViewerStyle(themeIndex, widthIndex)
+    let scale = cast(f32) zoomPercent / 100
+    style.bodyFontSize     = cast(u32) Math.max(Math.round(cast(f32) style.bodyFontSize * scale), 1)
+    style.codeFontSize     = cast(u32) Math.max(Math.round(cast(f32) style.codeFontSize * scale), 1)
+    style.mathFontSize     = cast(u32) Math.max(Math.round(cast(f32) style.mathFontSize * scale), 1)
+    style.heading1FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading1FontSize * scale), 1)
+    style.heading2FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading2FontSize * scale), 1)
+    style.heading3FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading3FontSize * scale), 1)
+    style.heading4FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading4FontSize * scale), 1)
+    style.heading5FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading5FontSize * scale), 1)
+    style.heading6FontSize = cast(u32) Math.max(Math.round(cast(f32) style.heading6FontSize * scale), 1)
     view.setDocumentThemeColors(markdownViewerColors(themeIndex))
-    view.setDocumentStyle(markdownViewerStyle(themeIndex, widthIndex))
+    view.setDocumentStyle(style)
+}
+
+internal struct MarkdownZoomButton
+{
+    using button: IconButton
+
+    #[Swag.Late]
+    {
+        view:       *Markdown.View
+        themeCombo: *ComboBox
+        widthCombo: *ComboBox
+    }
+
+    zoomPercent: u32 = 100
+}
+
+private impl MarkdownZoomButton
+{
+    mtd applyZoom(percent: u32)
+    {
+        .zoomPercent = percent
+        .setText(Format.toString("% %", percent, "%"))
+        applyMarkdownViewerStyle(.view, .themeCombo.selectedIndex, .widthCombo.selectedIndex, percent)
+    }
+
+    mtd showZoomMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem("75%", "scope.markdown.zoom75")
+        menu.addItem("100%", "scope.markdown.zoom100", rightName: "Ctrl+0")
+        menu.addItem("125%", "scope.markdown.zoom125")
+        menu.addItem("150%", "scope.markdown.zoom150")
+        menu.addItem("200%", "scope.markdown.zoom200")
+        switch menu.doModal(me, autoDestroy: true) orelse ""
+        {
+        case "scope.markdown.zoom75":  .applyZoom(75)
+        case "scope.markdown.zoom100": .applyZoom(100)
+        case "scope.markdown.zoom125": .applyZoom(125)
+        case "scope.markdown.zoom150": .applyZoom(150)
+        case "scope.markdown.zoom200": .applyZoom(200)
+        }
+    }
+
+    func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*MarkdownZoomButton
+    {
+        let result = Wnd.create'MarkdownZoomButton(parent, null, {0, 0, 96, 32}, "scope.markdown.zoom")
+        result.view       = view
+        result.themeCombo = themeCombo
+        result.widthCombo = widthCombo
+        result.dockStyle  = .Center
+        result.updateFlags(.CenterContent)
+        result.setText("100%")
+        result.setArrowPosition(.RightDownward)
+        result.setForm(.Rectangle)
+        result.style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+        result.toolTip    = markdownStrings().ui_ZoomMenu
+        result.sigPressed += func(button)
+        {
+            (cast(*MarkdownZoomButton) button).showZoomMenu()
+        }
+        return result
+    }
 }
 
 // Creates the integrated Markdown view.
@@ -154,6 +227,8 @@ func createMarkdownViewer(host: Viewer.Host)
     themeCombo.addItem("Whitey")
     themeCombo.setSelectedIndex(0, notify: false)
 
+    let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(96), view, themeCombo, widthCombo)
+
     let services = host.services()
     if services.reportFailure
     {
@@ -173,15 +248,15 @@ func createMarkdownViewer(host: Viewer.Host)
     },
         clear: func(wnd) { (cast(*Markdown.View) wnd).clearSearchHighlight() }})
     host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }})
-    themeCombo.sigChanged += func|view, widthCombo|(combo, index)
+    themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
     {
         discard combo
-        applyMarkdownViewerStyle(view, index, widthCombo.selectedIndex)
+        applyMarkdownViewerStyle(view, index, widthCombo.selectedIndex, zoomButton.zoomPercent)
     }
-    widthCombo.sigChanged += func|view, themeCombo|(combo, index)
+    widthCombo.sigChanged += func|view, themeCombo, zoomButton|(combo, index)
     {
         discard combo
-        applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index)
+        applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent)
     }
     view.sigLinkActivated += func(markdown, url)
     {

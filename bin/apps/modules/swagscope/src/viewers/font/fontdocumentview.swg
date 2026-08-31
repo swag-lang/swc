@@ -386,6 +386,14 @@ internal impl FontDocumentView
         .revealCharacterMap()
     }
 
+    mtd goToCharacterPage(start: u32)
+    {
+        if start != .pageStart do
+            .history.add(.pageStart)
+        .loadPage(start)
+        .revealCharacterMap()
+    }
+
     // Brings the character-map caption to the top of the viewport, which is where a reader who just
     // turned a page is looking.
     mtd revealCharacterMap()

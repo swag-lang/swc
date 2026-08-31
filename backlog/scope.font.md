@@ -19,9 +19,11 @@ remains in [font.truetype.md](font.truetype.md).
 
 ### scope.font.002 — The character map cannot search or jump to a glyph
 
-- Evidence: navigation pages 192 mapped Unicode scalars with previous/next. There is no Go To by
-  Unicode, character, glyph name, glyph ID, range/block/script, or text search.
-- Next: build a bounded searchable cmap/glyph index and turn the range label into a Go To control.
+- Evidence: navigation pages 192 mapped Unicode scalars with previous/next, and the clickable range
+  readout jumps to several common Unicode blocks. There is no arbitrary Go To by Unicode,
+  character, glyph name, glyph ID, block/script name, or text search.
+- Next: build a bounded searchable cmap/glyph index and extend the range control with arbitrary Go
+  To input.
 - Complete when: `U+`, literal character, decimal/hex glyph ID, glyph name, Unicode block, and script
   queries reveal a cell; unmapped versus absent results are distinguished; and back/forward works.
 

@@ -13,6 +13,7 @@ ui_FormatSigned  Signé
 ui_FormatFloat   Flottant
 ui_TipEndian     Ordre des octets des valeurs multi-octets
 ui_TipCommands   Copie, navigation et disposition des lignes
+ui_ZoomMenu      Options de zoom des octets
 ui_Details       hexa et texte · en flux
 ui_TextColumn    texte
 ui_Empty         Ce fichier est vide.

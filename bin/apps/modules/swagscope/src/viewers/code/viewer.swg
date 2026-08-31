@@ -38,6 +38,9 @@ internal struct CodeViewer
     #[Swag.Late]
     editor: *RichEditCtrl
 
+    info:              #null *Wnd
+    zoomLabel:         #null *IconButton
+    zoomPercent:       u32 = 100
     swagLexer:         RichEditLexerSwag
     codeLexer:         GenericCodeLexer
     languageName:      String
@@ -204,12 +207,44 @@ internal impl CodeViewer
         return false
     }
 
-    func create(contentParent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null)->*CodeViewer
+    mtd setZoom(percent: u32)
+    {
+        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        let base = .themeMetrics().defaultFixedFontSize
+        let size = cast(u32) Math.max(Math.round(cast(f32) base * cast(f32) .zoomPercent / 100), 1)
+        .editor.style.setFont(.theme().createDefaultFontFS(size), .Regular)
+        .editor.setFlags(.editor.flags)
+        .zoomLabel?.setText(Format.toString("% %", .zoomPercent, "%"))
+        .updateEstimatedHeight()
+    }
+
+    mtd showZoomMenu()
+    {
+        if !.zoomLabel do
+            return
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem("75%", "scope.code.zoom75")
+        menu.addItem("100%", "scope.code.zoom100", rightName: "Ctrl+0")
+        menu.addItem("125%", "scope.code.zoom125")
+        menu.addItem("150%", "scope.code.zoom150")
+        menu.addItem("200%", "scope.code.zoom200")
+        switch menu.doModal(.zoomLabel!, autoDestroy: true) orelse ""
+        {
+        case "scope.code.zoom75":  .setZoom(75)
+        case "scope.code.zoom100": .setZoom(100)
+        case "scope.code.zoom125": .setZoom(125)
+        case "scope.code.zoom150": .setZoom(150)
+        case "scope.code.zoom200": .setZoom(200)
+        }
+    }
+
+    func create(contentParent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null, info: #null *Wnd = null)->*CodeViewer
     {
         let result = Wnd.create'CodeViewer(contentParent, "scope.code")
         result.backgroundStyle = .View
         result.fileName        = fileName
         result.reportFailure   = reportFailure
+        result.info            = info
 
         result.editor             = RichEditCtrl.create(result)
         result.editor.dockStyle   = .Center
@@ -217,6 +252,24 @@ internal impl CodeViewer
         result.editor.marginRight = 12
         result.editor.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
         result.editor.setFlags(.ReadOnly)
+        if info
+        {
+            with result.zoomLabel = IconButton.create(info!, {}, {0, 0, 96, 32}, "scope.code.zoom", .CenterContent)
+            {
+                .dockStyle = .Center
+                .setText("100%")
+                .setArrowPosition(.RightDownward)
+                .setForm(.Rectangle)
+                .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+                .toolTip    = codeStrings().ui_ZoomMenu
+                .sigPressed += func|view = result|(button)
+                {
+                    discard button
+                    view.showZoomMenu()
+                }
+            }
+        }
+
         let extension = Path.lowercaseExtension(fileName)
         if extension == ".swg" or extension == ".swgs"
         {
@@ -253,6 +306,18 @@ internal impl CodeViewer
             discard wnd
             switch evt
             {
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+                view.setZoom(view.zoomPercent + 25)
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+                view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+                view.setZoom(100)
+                return true
+
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
                 discard view.revealOffset(view.fileSize > CodeResidentWindowSize ? view.fileSize - CodeResidentWindowSize : 0, "")
@@ -305,6 +370,7 @@ internal impl CodeViewer
         }
 
         result.applyLayout()
+        result.setZoom(100)
         result.scheduleMore()
         result.setInitialFocus(result.editor)
         return result
@@ -346,7 +412,7 @@ internal impl IWnd for CodeViewer
 // Creates the integrated syntax-colored source view.
 func createCodeViewer(host: Viewer.Host)
 {
-    let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure)
+    let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(96))
     if !view.failureReason.isEmpty()
     {
         host.reject(view.failureReason.toString())

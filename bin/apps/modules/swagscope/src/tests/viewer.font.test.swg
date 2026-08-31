@@ -46,6 +46,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.assert(view.document.pageStart > firstStart)
     view.document.previousPage()
     Swag.assert(view.document.pageStart == firstStart)
+    view.document.goToCharacterPage(0x370)
+    Swag.assert(view.document.pageStart >= 0x370 and view.document.history.count != 0)
 }
 
 #test
@@ -58,18 +60,19 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Top
+    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: commandBar)
     Swag.assert(result.view != null)
+    commandBar.centerGroup = result.commands
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
-    view.commands.dockStyle = .Right
+    view.commands.dockStyle = .None
 
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

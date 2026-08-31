@@ -77,8 +77,9 @@ struct ViewerFolderHistory
 // and viewer selector docked at its edges.
 struct ViewerActionBar
 {
-    using wnd:   Wnd
-    centerGroup: #null *Wnd
+    using wnd:       Wnd
+    centerGroup:     #null *Wnd
+    fillCenterGroup: bool
 }
 
 impl IWnd for ViewerActionBar
@@ -105,9 +106,11 @@ impl ViewerActionBar
     {
         if !.centerGroup do
             return
-        let client = .paddedClientRect()
-        let group  = .centerGroup!
-        group.setPosition({client.horzCenter() - group.position.width * 0.5, client.vertCenter() - group.position.height * 0.5, group.position.width, group.position.height}, computeLayout: false)
+        let client         = .paddedClientRect()
+        let group          = .centerGroup!
+        let preferredWidth = group.preferredSize.x
+        let width          = preferredWidth > 0 ? Math.min(preferredWidth, client.width) : (.fillCenterGroup ? client.width : group.position.width)
+        group.setPosition({client.horzCenter() - width * 0.5, client.vertCenter() - group.position.height * 0.5, width, group.position.height}, computeLayout: false)
         group.applyLayout()
     }
 }
@@ -563,7 +566,7 @@ struct ViewerWindow
         documentPanel:       *Wnd
         loadingOverlay:      *ViewerLoadingOverlay
         searchOverlay:       *ViewerSearchOverlay
-        viewerBar:           *Wnd
+        viewerBar:           *ViewerActionBar
         emptyView:           *StackLayoutCtrl
         emptyIconLabel:      *Label
         emptyLabel:          *Label
@@ -680,6 +683,7 @@ func reportViewerChromeChanged(view: *Wnd)
     if window.currentView != view do
         return
     window.commandBar.centerContent()
+    window.viewerBar.centerContent()
     window.layoutFileInfo()
     window.applyLayout()
 }
@@ -977,11 +981,13 @@ impl ViewerWindow
     // remains immersive and reveals the complete command bar only when the viewer owns one.
     private mtd updateViewerBar()
     {
+        .viewerBar.centerGroup     = .currentCommands
         .viewerBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
         if .fullScreen do
             .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
         else do
             .viewerBar.show()
+        .viewerBar.centerContent()
     }
 
     // Enters or leaves a borderless monitor-sized presentation without losing the reader's
@@ -1333,11 +1339,12 @@ impl ViewerWindow
         result.infoContentGroup.fileGroup    = result.infoFileGroup
         result.infoContentGroup.generalLabel = result.infoStatsLabel
 
-        with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
+        with result.viewerBar = Wnd.create'ViewerActionBar(result, {0, 0, 0, ViewerBarHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
             .padding         = {12, 6, 12, 6}
+            .fillCenterGroup = true
         }
 
         // The toolbar-colored lane is the static seam shared with the application chrome. The
@@ -1961,7 +1968,7 @@ impl ViewerWindow
         .setCurrentSidePanel(instance.sidePanelHost, instance.sidePanelButton)
         .currentView!.dockStyle = .Center
         if .currentCommands do
-            .currentCommands!.dockStyle = .Center
+            .currentCommands!.dockStyle = .None
         .currentView!.show()
         .currentInfo?.show()
         .currentCommands?.show()
@@ -2288,7 +2295,7 @@ impl ViewerWindow
         if next.commands
         {
             if !stage do
-                next.commands!.dockStyle = .Center
+                next.commands!.dockStyle = .None
         }
 
         if !stage do

@@ -17,7 +17,8 @@ func midiViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const MidiCommandWidth = 432.0
+private const MidiCommandWidth = 224.0
+private const MidiInfoWidth    = 96.0
 
 internal struct MidiViewer
 {
@@ -25,13 +26,11 @@ internal struct MidiViewer
 
     #[Swag.Late]
     {
-        commands:      *Wnd
-        trackCombo:    *ComboBox
-        zoomOutButton: *IconButton
-        zoomInButton:  *IconButton
-        fitButton:     *IconButton
-        zoomLabel:     *Label
-        roll:          *MidiRollView
+        commands:   *Wnd
+        info:       *Wnd
+        trackCombo: *ComboBox
+        zoomLabel:  *IconButton
+        roll:       *MidiRollView
     }
 
     details:              String
@@ -68,10 +67,8 @@ private impl MidiViewer
     {
         if !.loadTimer do
             .fillTracks()
-        .trackCombo.toolTip    = midiStrings().ui_AllTracks
-        .zoomOutButton.toolTip = midiStrings().ui_ZoomOut
-        .zoomInButton.toolTip  = midiStrings().ui_ZoomIn
-        .fitButton.toolTip     = midiStrings().ui_Fit
+        .trackCombo.toolTip = midiStrings().ui_AllTracks
+        .zoomLabel.toolTip  = midiStrings().ui_ZoomMenu
         if !.loadTimer do
             .roll.invalidate()
     }
@@ -93,6 +90,25 @@ private impl MidiViewer
         .setInitialFocus(.roll)
         if .reportDetails do
             .reportDetails!(me, .details.toString())
+    }
+
+    mtd showZoomMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem("25%", "scope.midi.zoom25")
+        menu.addItem("50%", "scope.midi.zoom50")
+        menu.addItem("100%", "scope.midi.zoom100")
+        menu.addItem("200%", "scope.midi.zoom200")
+        menu.addSeparator()
+        menu.addItem(midiStrings().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
+        {
+        case "scope.midi.zoom25":  .roll.applyZoom(0.25)
+        case "scope.midi.zoom50":  .roll.applyZoom(0.5)
+        case "scope.midi.zoom100": .roll.applyZoom(1)
+        case "scope.midi.zoom200": .roll.applyZoom(2)
+        case "scope.midi.zoomFit": .roll.zoomToFit()
+        }
     }
 
     mtd retire()->bool
@@ -149,7 +165,7 @@ private impl IWnd for MidiViewer
 
 internal impl MidiViewer
 {
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*MidiViewer
+    func create(contentParent, commands, info: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*MidiViewer
     {
         let result = Wnd.create'MidiViewer(contentParent, "scope.midi")
         result.backgroundStyle      = .View
@@ -158,6 +174,7 @@ internal impl MidiViewer
         result.reportLoadingChanged = reportLoadingChanged
 
         result.commands = commands
+        result.info     = info
         with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
         {
             .dockStyle  = .Left
@@ -169,49 +186,19 @@ internal impl MidiViewer
             }
         }
 
-        with result.zoomOutButton = IconButton.create(result.commands, result.theme().icon(.ZoomOut, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, MidiInfoWidth, 32}, "scope.midi.zoom", .CenterContent)
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = midiStrings().ui_ZoomOut
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.roll.zoomOut()
-                view.refreshZoom()
-            }
-        }
-
-        with result.zoomInButton = IconButton.create(result.commands, result.theme().icon(.ZoomIn, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .toolTip    = midiStrings().ui_ZoomIn
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.roll.zoomIn()
-                view.refreshZoom()
-            }
-        }
-
-        with result.fitButton = IconButton.create(result.commands, result.theme().icon(.FitView, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = midiStrings().ui_Fit
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.roll.zoomToFit()
-                view.refreshZoom()
-            }
-        }
-
-        with result.zoomLabel = Label.create(result.commands, "", {0, 0, 76, 36}, null, .SecondaryText)
-        {
-            .dockStyle = .Left
-            .setTextAlignment(.Right, .Center)
+            .dockStyle = .Center
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .toolTip    = midiStrings().ui_ZoomMenu
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
         }
 
         result.applyLayout()
@@ -224,7 +211,7 @@ internal impl MidiViewer
 func createMidiViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.createInfoGroup(MidiInfoWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
     host.setLifecycle({
         isLoading: func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null },

@@ -184,18 +184,10 @@ using Swag
 
 private var g_HashCrcToType:  HashTable'(u32, typeinfo)
 private var g_HashNameToType: HashTable'(string, typeinfo)
+private var g_HashKeyToType:  HashTable'(string, #null typeinfo)
 private var g_HashLock:       Sync.RWLock
 
-private func typeValueCrc(val: Swag.TypeValue)->u32
-{
-    if val.crc do
-        return val.crc
-    if val.name == null do
-        return 0
-    return Hash.Crc32.compute(val.name)
-}
-
-private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
+private func addCrcTypeIdentity(crc: u32, type: #null typeinfo)
 {
     if !crc or !type do
         return
@@ -212,10 +204,45 @@ private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
     g_HashCrcToType.add(crc, type)
 }
 
+private func registerStableTypeKeyNoLock(type: typeinfo)
+{
+    if type.kind != .Struct do
+        return
+
+    let key = attributeValue(type, Serialization.TypeKey, "name")
+    if key == null do
+        return
+
+    let stableKey = cast(string) key!
+    let existing  = g_HashKeyToType.tryFind(stableKey)
+    if !existing
+    {
+        g_HashKeyToType.add(stableKey, type)
+        return
+    }
+
+    // Reflection can expose the same logical type through distinct module-local
+    // descriptors. Prefer the descriptor registered most recently so an interface's
+    // runtime itable and the serialization registry agree by pointer identity.
+    if existing.value and existing.value!.fullname == type.fullname
+    {
+        g_HashKeyToType.add(stableKey, type)
+        return
+    }
+
+    // Null is sticky: it records that two distinct logical types declared this key.
+    g_HashKeyToType.add(stableKey, null)
+}
+
 private func registerTypeNoLock(type: #null typeinfo)->bool
 {
     if !type do
         return false
+
+    // Do this before the graph's visited check. A type can first be reached through an
+    // imported descriptor without attributes, then explicitly registered through its
+    // defining module where TypeKey is available.
+    registerStableTypeKeyNoLock(type)
 
     if type.crc and g_HashCrcToType.contains(type.crc) do
         return false
@@ -236,22 +263,9 @@ private func registerTypeNoLock(type: #null typeinfo)->bool
         g_HashNameToType.add(type.name, type)
 
     if type.fullname != null and type.fullname != "" do
-        addCrcToTypeAlias(Hash.Crc32.compute(type.fullname), type)
+        addCrcTypeIdentity(Hash.Crc32.compute(type.fullname), type)
     if type.name != null and type.name != "" do
-        addCrcToTypeAlias(Hash.Crc32.compute(type.name), type)
-
-    // A struct can declare the names it had in older streams; registering their crcs
-    // makes a stream written under an old name resolve to the renamed type.
-    if type.kind == .Struct
-    {
-        let aliases = attributes(type, Serialization.Alias)
-        for al in aliases
-        {
-            let value = attributeValue(al, "name")
-            if value != null do
-                addCrcToTypeAlias(Hash.Crc32.compute(cast(string) value!), type)
-        }
-    }
+        addCrcTypeIdentity(Hash.Crc32.compute(type.name), type)
 
     return true
 }
@@ -300,59 +314,6 @@ func registerType(type: typeinfo)
     registerTypeGraphNoLock(type)
 }
 
-// Registers an additional CRC alias for a type.
-func registerTypeAlias(crc: u32, type: typeinfo)
-{
-    Sync.scopedLock(&g_HashLock)
-    addCrcToTypeAlias(crc, type)
-}
-
-// Infers an interface implementation from the CRCs of its serialized fields.
-// Returns null when no unique best match exists.
-func inferInterfaceImplementation(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
-{
-    var bestType:  #null typeinfo
-    var bestScore: u64
-    var ambiguous: bool
-
-    Sync.sharedLock(&g_HashLock)
-    for ignoredCrc, t in g_HashCrcToType
-    {
-        if !hasInterface(t, itf) do
-            continue
-
-        let typeStruct = cast(const *TypeInfoStruct) t!
-        var score      = 0'u64
-        for streamCrc in fieldCrcs
-        {
-            for &field in typeStruct.fields
-            {
-                if typeValueCrc(field) == streamCrc
-                {
-                    score += 1
-                    break
-                }
-            }
-        }
-
-        if score == 0 do
-            continue
-
-        if score > bestScore
-        {
-            bestType  = t
-            bestScore = score
-            ambiguous = false
-        }
-        elif score == bestScore and t != bestType do
-            ambiguous = true
-    }
-
-    if ambiguous do
-        return null
-    return bestType
-}
-
 // #premain can be called more than once if we compile/run more than one
 // module using Core at the same time. So lock !
 #premain
@@ -396,6 +357,18 @@ func typeFromName(name: string)->#null typeinfo
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashNameToType.tryFind(name)
+    if !e do
+        return null
+    return e.value
+}
+
+// Returns the registered struct associated with a stable serialization key.
+//
+// Returns null when the key is unknown or declared by more than one struct.
+internal func typeFromKey(key: string)->#null typeinfo
+{
+    Sync.sharedLock(&g_HashLock)
+    let e = g_HashKeyToType.tryFind(key)
     if !e do
         return null
     return e.value

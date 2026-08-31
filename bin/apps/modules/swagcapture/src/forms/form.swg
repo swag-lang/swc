@@ -53,7 +53,7 @@ interface IForm
 // The property panel is generated from the fields carrying a Properties.Name attribute
 // (see PropWnd): the attribute set declares the editor (slider, checkbox, min/max box)
 // and the panel builds itself by reflection, undo included. Field order below is the
-// display order of the generated panel; serialization matches fields by name, so it is
+// display order of the generated panel; serialization matches fields by canonical key, so it is
 // free to follow the UI. A Category paints as a thin separator above its field.
 #[Swag.Using(Properties)]
 struct BaseForm

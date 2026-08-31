@@ -16,6 +16,18 @@ struct TagBinPair
     y: s32
 }
 
+#[Serialization.Schema("core.test.schema-a")]
+struct TagBinSchemaA
+{
+    value: s32
+}
+
+#[Serialization.Schema("core.test.schema-b")]
+struct TagBinSchemaB
+{
+    value: s32
+}
+
 struct TagBinFieldWisePoint
 {
     x: s16
@@ -61,7 +73,7 @@ struct TagBinCurrentPayload
 {
     single: s32
 
-    #[Serialization.Alias("legacyName")]
+    #[Serialization.Key("legacyName")]
     renamed: s32
 
     value:   s32
@@ -86,7 +98,6 @@ struct TagBinLegacyNested
     right: s16
 }
 
-#[Serialization.Alias("TagBinLegacyNested")]
 struct TagBinCurrentNested
 {
     left:  s32
@@ -157,11 +168,13 @@ struct TagBinLongText
     name: String
 }
 
-#[Serialization.Version(7)]
-struct TagBinV1VersionedPair
+struct TagBinReadableKeyCollision
 {
-    x: s32
-    y: s32
+    #[Serialization.Key("7MhoTAnbgQsL")]
+    first: s32
+
+    #[Serialization.Key("6WMZ2VaaUabd")]
+    second: s32
 }
 
 public interface ITagBinScore
@@ -170,6 +183,7 @@ public interface ITagBinScore
     mtd labelText()->string
 }
 
+#[Serialization.TypeKey("core.test.tagbin-score")]
 public struct TagBinInterfaceProbe
 {
     public
@@ -334,27 +348,28 @@ func(T) encodeTagBin(value: T)->String
     return buffer.toString()
 }
 
-// Where a field of the root struct sits inside a version 2 stream, plus the location
+// Where a field of the root struct sits inside a version 1 stream, plus the location
 // of its shape metadata.
-struct TagBinV2Field
+struct TagBinV1Field
 {
     seek:          u64     // Absolute file position of the field payload.
     shapeFlags:    u8      // Shape flags of the field.
     shapeTypeSeek: u64     // Absolute file position of the crcType word of its shape entry.
 }
 
-// Walks the version 2 header, the root section header, its fat and the shape
+// Walks the version 1 header, the root section header, its fat and the shape
 // directory to locate one field of the root struct.
-func findTagBinV2Field(bytes: const [..] u8, fieldName: string)->TagBinV2Field
+func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
 {
-    const BodyStart = 20'u64
-
     var result: retval
     var stream = ByteStream.openRead(bytes)
     Swag.assert((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Root)
-    Swag.assert((expect stream.readNative'u32()) == cast(u32) Serialization.Write.TagBinVersion2)
+    Swag.assert((expect stream.readNative'u32()) == cast(u32) Serialization.Write.TagBinVersion1)
+    let schemaLength = expect stream.readVarint()
+    Swag.assert(schemaLength == 0)
     Swag.assert((expect stream.readNative'u32()) == 0)
     let shapeDirOffset = expect stream.readNative'u64()
+    let bodyStart      = stream.position()
 
     // Root struct section header.
     Swag.assert((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Version)
@@ -363,33 +378,36 @@ func findTagBinV2Field(bytes: const [..] u8, fieldName: string)->TagBinV2Field
     let shapeId = expect stream.readNative'u32()
     Swag.assert(shapeId != Serialization.Write.TagBinAdHocShape)
     let fatOffset    = expect stream.readNative'u64()
-    let payloadStart = stream.position() - BodyStart
+    let payloadStart = stream.position() - bodyStart
 
     // Walk the shape directory up to the field entry.
-    stream.setPosition(BodyStart + shapeDirOffset)
+    stream.setPosition(bodyStart + shapeDirOffset)
     Swag.assert((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.ShapeDir)
     let shapeCount = expect stream.readVarint()
     Swag.assert(shapeId < shapeCount)
 
-    let fieldCrc = Hash.Crc32.compute(fieldName)
     for s in shapeCount
     {
         let fieldCount = expect stream.readVarint()
         for i in fieldCount
         {
-            let crcName  = expect stream.readNative'u32()
+            let keyLength = expect stream.readVarint()
+            var key: String
+            key.reserve(keyLength)
+            expect stream.readBytes(key.buffer, keyLength)
+            key.length = keyLength
             let typeSeek = stream.position()
             discard expect stream.readNative'u32()
             let flags = expect stream.readNative'u8()
-            if s == shapeId and crcName == fieldCrc
+            if s == shapeId and key == fieldName
             {
                 result.shapeFlags    = flags
                 result.shapeTypeSeek = typeSeek
 
                 // The matching fat entry holds the payload offset of the field.
-                stream.setPosition(BodyStart + fatOffset + i * #sizeof(u32))
+                stream.setPosition(bodyStart + fatOffset + i * #sizeof(u32))
                 let rel = expect stream.readNative'u32()
-                result.seek = BodyStart + payloadStart + rel
+                result.seek = bodyStart + payloadStart + rel
                 return result
             }
         }
@@ -404,23 +422,28 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
     var result: retval
     result.add(bytes.toSlice())
 
-    let field  = findTagBinV2Field(result.toSlice(), fieldName)
+    let field  = findTagBinV1Field(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(field.shapeTypeSeek)
     writer.writeNative(typeCrc)
     return result
 }
 
-// An interface payload is a raw section: its byte length, then the object type crc.
-func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+// An interface payload is a raw section: its byte length, then the readable object key.
+func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: string)->Array'u8
 {
     var result: retval
     result.add(bytes.toSlice())
 
-    let field  = findTagBinV2Field(result.toSlice(), fieldName)
+    let field  = findTagBinV1Field(result.toSlice(), fieldName)
+    var reader = ByteStream.openRead(result.toSlice())
+    reader.setPosition(field.seek + #sizeof(u64))
+    let keyLength = expect reader.readVarint()
+    Swag.assert(keyLength == replacement.count)
+
     var writer = ByteStream.openWrite(&result)
-    writer.setPosition(field.seek + #sizeof(u64))
-    writer.writeNative(typeCrc)
+    writer.setPosition(reader.position())
+    writer.writeBytes(Swag.makeSlice(replacement.buffer, replacement.count))
     return result
 }
 
@@ -430,7 +453,7 @@ func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u
     var result: retval
     result.add(bytes.toSlice())
 
-    let field  = findTagBinV2Field(result.toSlice(), fieldName)
+    let field  = findTagBinV1Field(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(field.seek + #sizeof(u32))
     writer.writeNative(newLen)
@@ -568,6 +591,20 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     Swag.assert(decoder.serializer.diag.corruptPayloads == 0)
 
     Memory.delete(decoded)
+}
+
+// The root schema is readable in the header and prevents decoding a document through
+// an unrelated type that happens to have the same shape.
+#test
+{
+    let bytes = encodeTagBin(TagBinSchemaA{value: 42})
+    Swag.assert(bytes.contains("core.test.schema-a"))
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinSchemaB(bytes.toSlice()) as err
+    Swag.assert(decoded == null)
+    Swag.assert(err != null)
+    Swag.assert(Utf8.contains(Errors.message(err), "document schema"))
 }
 
 // A scalar whose stream type crc resolves to nothing has no self-validating framing,
@@ -713,17 +750,13 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
         other: 12}
 
     let bytes   = encodeTagBin(payload)
-    let patched = corruptTagBinInterfaceObjectType(bytes, "score", 0xDEADBEEF)
+    let patched = corruptTagBinInterfaceObjectKey(bytes, "score", "core.test.unknown-type")
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinInterfacePayload(patched.toSlice())!
-    Swag.assert(decoded.other == 12)
-    let score = decoded.score!
-    Swag.assert(score.score() == 46)
-    Swag.assert(score.labelText() == "inferred")
-
-    releaseTagBinInterface(&decoded.score)
-    Memory.delete(decoded)
+    let decoded = catch decoder.readAll'TagBinInterfacePayload(patched.toSlice()) as err
+    Swag.assert(decoded == null)
+    Swag.assert(err != null)
+    Swag.assert(Utf8.contains(Errors.message(err), "cannot resolve interface object key"))
 }
 
 #test
@@ -868,7 +901,8 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 
     var stream = ByteStream.openRead(bytes.toSlice())
     discard expect stream.readNative'u32()
-    Swag.assert((expect stream.readNative'u32()) == cast(u32) Serialization.Write.TagBinVersion2)
+    Swag.assert((expect stream.readNative'u32()) == cast(u32) Serialization.Write.TagBinVersion1)
+    Swag.assert((expect stream.readVarint()) == 0)
     Swag.assert((expect stream.readNative'u32()) == 1)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
@@ -881,129 +915,8 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     Memory.delete(decoded)
 }
 
-struct TagBinLegacyPair
-{
-    x: s32
-    y: s32
-}
-
-// Builds a stream in the layout that shipped before the version word and the per-value flags
-// byte existed: the root signature is followed straight away by the section, and an element is
-// just its two CRCs and its payload. The type CRC is deliberately one no current type hashes
-// to, which is also what those streams carry.
-func buildLegacyTagBinStream(xValue, yValue: s32)->Array'u8
-{
-    const LegacyTypeCrc = 0x954A3BAB'u32
-
-    var result: retval
-    var writer = ByteStream.openWrite(&result)
-
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Root)
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Version)
-    writer.writeNative(0'u32)
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Fat)
-
-    let fatSeekField = writer.position()
-    writer.writeNative(0'u64)
-    writer.writeNative(2'u64)
-
-    let xSeek = writer.position()
-    writer.writeNative(Hash.Crc32.compute("x"))
-    writer.writeNative(LegacyTypeCrc)
-    writer.writeNative(xValue)
-
-    let ySeek = writer.position()
-    writer.writeNative(Hash.Crc32.compute("y"))
-    writer.writeNative(LegacyTypeCrc)
-    writer.writeNative(yValue)
-
-    let fatSeek = writer.position()
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Fat)
-    writer.writeNative(Hash.Crc32.compute("x"))
-    writer.writeNative(xSeek)
-    writer.writeNative(Hash.Crc32.compute("y"))
-    writer.writeNative(ySeek)
-
-    writer.setPosition(fatSeekField)
-    writer.writeNative(fatSeek)
-    return result
-}
-
-// A stream written before the format grew its version word still reads. Those streams also
-// predate the per-value flags byte, so the two have to be recognized together: consuming a
-// version word that is not there shifts the whole stream by four bytes, and reading a flags
-// byte that is not there shifts every element by one.
-#test
-{
-    let bytes = buildLegacyTagBinStream(1130, 1138)
-
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinLegacyPair(bytes.toSlice())!
-    defer Memory.delete(decoded)
-
-    Swag.assert(decoded.x == 1130)
-    Swag.assert(decoded.y == 1138)
-}
-
-// Builds a version 1 stream: the version mark follows the root signature, elements carry
-// their two CRCs and a value-flags byte, and the fat stores absolute positions. The
-// writer no longer produces this layout, so reading it is pinned here by hand.
-func buildV1TagBinStream(xValue, yValue: s32, version: u32, swapOrder: bool)->Array'u8
-{
-    const LegacyTypeCrc = 0x954A3BAB'u32
-
-    var result: retval
-    var writer = ByteStream.openWrite(&result)
-
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Root)
-    writer.writeNative(cast(u32) Serialization.Write.TagBinVersion1)
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Version)
-    writer.writeNative(version)
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Fat)
-
-    let fatSeekField = writer.position()
-    writer.writeNative(0'u64)
-    writer.writeNative(2'u64)
-
-    var firstName  = "x"
-    var secondName = "y"
-    var firstVal   = xValue
-    var secondVal  = yValue
-    if swapOrder
-    {
-        firstName  = "y"
-        secondName = "x"
-        firstVal   = yValue
-        secondVal  = xValue
-    }
-
-    let firstSeek = writer.position()
-    writer.writeNative(Hash.Crc32.compute(firstName))
-    writer.writeNative(LegacyTypeCrc)
-    writer.writeNative(1'u8)
-    writer.writeNative(firstVal)
-
-    let secondSeek = writer.position()
-    writer.writeNative(Hash.Crc32.compute(secondName))
-    writer.writeNative(LegacyTypeCrc)
-    writer.writeNative(1'u8)
-    writer.writeNative(secondVal)
-
-    let fatSeek = writer.position()
-    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Fat)
-    writer.writeNative(Hash.Crc32.compute(firstName))
-    writer.writeNative(firstSeek)
-    writer.writeNative(Hash.Crc32.compute(secondName))
-    writer.writeNative(secondSeek)
-
-    writer.setPosition(fatSeekField)
-    writer.writeNative(fatSeek)
-    return result
-}
-
-// The value-flags byte of a version 1 stream is on-disk format, not an internal detail:
-// every stream ever produced carries 1 for a plain value and 3 for a compressed one, so
-// the cases are pinned. The same applies to the shape flags of a version 2 stream.
+// The value and shape flags of a version 1 stream are on-disk format, so their
+// sizes and values are pinned.
 #test
 {
     Swag.assert(#sizeof(Serialization.Write.TagBinValueFlags) == 1)
@@ -1015,42 +928,51 @@ func buildV1TagBinStream(xValue, yValue: s32, version: u32, swapOrder: bool)->Ar
 
     let payload = makeTagBinPayload()
     let bytes   = encodeTagBin(payload)
-    Swag.assert(findTagBinV2Field(bytes.toSlice(), "id").shapeFlags == 0)
-    Swag.assert(findTagBinV2Field(bytes.toSlice(), "blob").shapeFlags == 1)
+    Swag.assert(findTagBinV1Field(bytes.toSlice(), "id").shapeFlags == 0)
+    Swag.assert(findTagBinV1Field(bytes.toSlice(), "blob").shapeFlags == 1)
 }
 
-// A version 1 stream reads through the fat exactly as it always did.
+// Earlier experimental markers are rejected instead of being guessed from their layout.
 #test
 {
-    let bytes = buildV1TagBinStream(-52, 977, 0, false)
+    let bytes = encodeTagBin(makeTagBinPayload())
+    var patched: Array'u8
+    patched.add(bytes.toSlice())
+
+    var writer = ByteStream.openWrite(&patched)
+    writer.setPosition(#sizeof(u32))
+    writer.writeNative(0xFAFAFAFA'u32)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinLegacyPair(bytes.toSlice())!
-    defer Memory.delete(decoded)
-
-    Swag.assert(decoded.x == -52)
-    Swag.assert(decoded.y == 977)
+    let decoded = catch decoder.readAll'TagBinPayload(patched.toSlice()) as err
+    Swag.assert(decoded == null)
+    Swag.assert(err != null)
+    Swag.assert(Utf8.contains(Errors.message(err), "unsupported TagBin format version"))
 }
 
-// Equal versions select the positional fast path of a version 1 stream. When the field
-// order does not actually match, the fat is still in the stream: the decode falls back
-// to it instead of failing the struct.
+// Field keys are compared as text. These two deliberately share one CRC32, so a
+// hash-only format would silently conflate them.
 #test
 {
-    let bytes = buildV1TagBinStream(41, -18, 7, true)
+    const FirstKey  = "7MhoTAnbgQsL"
+    const SecondKey = "6WMZ2VaaUabd"
+    Swag.assert(Hash.Crc32.compute(FirstKey) == Hash.Crc32.compute(SecondKey))
+
+    let bytes = encodeTagBin(TagBinReadableKeyCollision{first: 1130, second: 1138})
+    Swag.assert(bytes.contains(FirstKey))
+    Swag.assert(bytes.contains(SecondKey))
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinV1VersionedPair(bytes.toSlice())!
+    let decoded = expect decoder.readAll'TagBinReadableKeyCollision(bytes.toSlice())!
     defer Memory.delete(decoded)
 
-    Swag.assert(decoded.x == 41)
-    Swag.assert(decoded.y == -18)
-    Swag.assert(decoder.serializer.diag.recoveredFields >= 1)
+    Swag.assert(decoded.first == 1130)
+    Swag.assert(decoded.second == 1138)
 }
 
 func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncompressed: u64, compressed: u64 }
 {
-    let field  = findTagBinV2Field(bytes, fieldName)
+    let field  = findTagBinV1Field(bytes, fieldName)
     var stream = ByteStream.openRead(bytes)
     stream.setPosition(field.seek)
 
@@ -1065,7 +987,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     var result: retval
     result.add(bytes.toSlice())
 
-    let field  = findTagBinV2Field(result.toSlice(), fieldName)
+    let field  = findTagBinV1Field(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(field.seek)
     writer.writeNative(uncompressed)
@@ -1159,7 +1081,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var patched: Array'u8
     patched.add(bytes.toSlice())
-    let field  = findTagBinV2Field(patched.toSlice(), "counts")
+    let field  = findTagBinV1Field(patched.toSlice(), "counts")
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(field.seek + #sizeof(u32))
     writer.writeNative(0x7F'u8)
@@ -1181,7 +1103,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var patched: Array'u8
     patched.add(bytes.toSlice())
-    let field  = findTagBinV2Field(patched.toSlice(), "name")
+    let field  = findTagBinV1Field(patched.toSlice(), "name")
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(field.seek)
     writer.writeNative(0xFF'u8)

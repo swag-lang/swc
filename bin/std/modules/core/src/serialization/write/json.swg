@@ -195,7 +195,7 @@ impl Json
     // Begins a named JSON element (a key-value pair).
     mtd beginElement(val: TypeValue)
     {
-        .writeString(val.name)
+        .writeString(wireFieldKey(val))
         .output.addNative(':'u8)
         if .options.saveBlanks do
             .output.addBytes(" ")

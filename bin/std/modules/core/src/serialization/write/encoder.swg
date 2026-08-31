@@ -92,7 +92,7 @@ File.writeAllBytes(file, buf)
 Can be serialized:
 - All simple types: `bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64`
 - A type value 'typeinfo', which will be saved as a CRC.
-- An interface. Will be stored as a type and a typed value.
+- An interface. TagBin stores the concrete struct's stable 'Serialization.TypeKey' and value.
 - A struct.
 - A `Core.String`.
 - A `Core.Array` of valid values.
@@ -121,6 +121,17 @@ impl Encoder
         .serializer.beginRoot()
     }
 
+    // Starts serialization with a reflected root type.
+    //
+    // TagBin derives its document schema from [[Core.Serialization.Schema]] on `rootType`.
+    // Textual encoders ignore the additional type information.
+    mtd start(result: *ConcatBuffer, rootType: typeinfo) fail
+    {
+        #static if T == Write.TagBin do
+            .serializer.setRootType(rootType)
+        .start(result)
+    }
+
     // End serialization
     mtd end() fail
     {
@@ -146,6 +157,21 @@ impl Encoder
             fail SerializationError{"missing data type"}
         var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
         type = Reflection.enumUnderlyingType(type)
+
+        // Validate dynamic identity before opening any TagBin section. A failure here is
+        // an ordinary serialization error; unwinding a half-open section would otherwise
+        // ask the binary writer to finalize framing that was never completed.
+        #static if T == Write.TagBin
+        {
+            if Reflection.isInterface(type)
+            {
+                let itf = cast(const *Swag.Interface) data
+                if !itf.itable and type.flags & .Nullable == 0 do
+                    fail SerializationError{"non-null interface value is missing"}
+                let objType = itf.itable ? cast(#null const *Swag.TypeInfoStruct) itf.itable![] : null
+                discard .serializer.interfaceTypeKey(objType)
+            }
+        }
 
         .serializer.beginValue()
         defer #nofail .serializer.endValue()
@@ -189,8 +215,22 @@ impl Encoder
             var objType, itfType: #null typeinfo
             if itf.itable
             {
-                objType = itf.itable![as typeinfo]
+                objType = cast(#null const *Swag.TypeInfoStruct) itf.itable![]
                 itfType = type
+            }
+
+            #static if T == Write.TagBin
+            {
+                .serializer.writeInterfaceType(objType)
+                if objType
+                {
+                    if !itf.obj do
+                        fail SerializationError{"interface object is missing"}
+                    var objValue: TypeValue
+                    objValue.pointedType = objType
+                    .writeTypeValue(objValue, itf.obj)
+                }
+                return
             }
 
             var typeVal: TypeValue
@@ -307,7 +347,7 @@ impl Encoder
     mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
         Debug.assert(Reflection.isStruct(Swag.kindOf(value)))
-        start(me, result)
+        .start(result, Swag.kindOf(value))
         .writeValue(value.buffer, Swag.kindOf(value))
         end(me)
     }

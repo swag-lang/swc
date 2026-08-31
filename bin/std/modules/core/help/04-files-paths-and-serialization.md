@@ -81,6 +81,26 @@ missing, and unknown properties for forward-compatible interchange. The read sid
 reports malformed input through `fail`; the write side serializes values according
 to their reflected fields and serialization attributes.
 
+TagBin stores one readable document schema in the root header and one readable key
+for every reflected field. Declare [[Core.Serialization.Schema]] on persisted root
+types and keep that value stable across type or module renames. Declare
+[[Core.Serialization.Key]] before renaming a persisted field; the source identifier
+can then change while its single wire identity remains unchanged. Concrete structs
+stored through an interface always need a [[Core.Serialization.TypeKey]], because
+their source type name is never used as a fallback identity.
+
+```swag
+#[Serialization.Schema("example.settings")]
+struct Settings
+{
+    #[Serialization.Key("theme")]
+    selectedTheme: String
+}
+```
+
+Keys are canonical rather than aliases: a field or struct type accepts one identity,
+and stored documents should be rewritten deliberately when that identity changes.
+
 Treat external input as untrusted. Keep parsing errors at the boundary, add the
 filename or protocol context there, and only pass validated values into the rest
 of the program.

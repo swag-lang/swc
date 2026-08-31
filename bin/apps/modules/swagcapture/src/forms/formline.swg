@@ -1,4 +1,5 @@
 #[Swag.Using(Properties)]
+#[Serialization.TypeKey("swag.capture.form.line")]
 struct FormLine
 {
     using base: BaseForm

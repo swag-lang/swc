@@ -15,6 +15,7 @@ enum FormImagePlacement
 }
 
 #[Swag.Using(Properties)]
+#[Serialization.TypeKey("swag.capture.form.image")]
 struct FormImage
 {
     using base: BaseForm

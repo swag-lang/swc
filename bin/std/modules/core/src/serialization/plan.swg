@@ -3,17 +3,16 @@
 using Swag, Core.Errors
 
 // One serializable field of a struct, with everything the serializers would otherwise
-// recompute per instance: the wire key, the wire identity of the type, the compression
-// policy and the accepted legacy names.
+// recompute per instance: the wire key, the wire identity of the type and the compression
+// policy.
 public struct PlanField
 {
     public
     {
         value:      Swag.TypeValue     // The reflected field this entry describes.
-        crcName:    u32                // Crc of the field name; this is the wire key of the field.
-        wireCrc:    u32                // Wire identity of the field type (see [[Core.Serialization.wireTypeCrc]]).
+        key:        String             // Stable, human-readable wire key of the field.
+        wireCrc:    u32                // Static wire identity of the field type.
         compressed: bool               // Whether the field payload is deflate compressed.
-        aliases:    Array'u32          // Crcs of the accepted legacy names of the field.
     }
 }
 
@@ -34,27 +33,27 @@ public struct Plan
         podFinal:   bool                                 // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
         hasCustom:  bool                                 // Whether the type implements 'ISerialize' and drives its own fields.
         fields:     Array'PlanField                      // The serializable fields, in declaration order.
-        crcToIndex: HashTable'(u32, u64)                 // Maps a field name crc to its index in 'fields'.
+        keyToIndex: HashTable'(string, u64)              // Maps a field key to its index in 'fields'.
     }
 }
 
 public impl Plan
 {
-    // Returns the plan field matching a name crc, or null.
-    mtd const fieldByCrc(crc: u32)->#null const *PlanField
+    // Returns the plan field matching a wire key, or null.
+    mtd const fieldByKey(key: string)->#null const *PlanField
     {
-        let e = .crcToIndex.tryFind(crc)
+        let e = .keyToIndex.tryFind(key)
         if !e do
             return null
         return .fields.buffer! + e.value
     }
 }
 
-// Plans are built once and shared, so they are stored behind a lock, keyed by the
-// canonical type crc, which is identical for the same logical type seen from two modules.
+// Plans are built once per reflected type and shared behind a lock. Pointer identity keeps
+// two unrelated types from sharing a plan when their runtime CRCs collide.
 private
 {
-    var g_Plans:    HashTable'(u32, *Plan)
+    var g_Plans:    HashTable'(u64, *Plan)
     var g_PlanPool: ArrayPtr'Plan
     var g_PlanLock: Sync.RWLock
 }
@@ -82,31 +81,31 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
 
         var pf: PlanField
         pf.value      = field
-        pf.crcName    = getTypeValueCrc(field)
+        pf.key        = wireFieldKey(field)
+        if pf.key == "" do
+            fail SerializationError{"serialized field needs a non-empty key", field: field}
         pf.wireCrc    = wireTypeCrc(field.pointedType)
         pf.compressed = Reflection.hasAttribute(field, Compress) or Reflection.hasAttribute(field.pointedType, Compress)
 
-        let aliases = Reflection.attributes(field, Serialization.Alias)
-        for al in aliases
+        for &existing in plan.fields
         {
-            let value = Reflection.attributeValue(al, "name")
-            Debug.assert(value != null)
-            pf.aliases.add(Hash.Crc32.compute(cast(string) value!))
+            if existing.key == pf.key do
+                fail SerializationError{Errors.mkString(Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]", structType.fullname, existing.value.name, field.name, pf.key)), field: field}
         }
 
-        // Two fields hashing to the same wire key would overwrite each other in the
-        // stream index, so the type cannot be serialized at all.
-        if plan.crcToIndex.contains(pf.crcName) do
-            fail SerializationError{"duplicate serialized field name crc"}
-        plan.crcToIndex.add(pf.crcName, plan.fields.count)
-        plan.fields.add(pf)
+        plan.fields.add(#move pf)
     }
+
+    // Populate borrowed lookup views only after the field array has reached its final
+    // allocation. Growing an array of owned strings can relocate their buffers.
+    for &pf, fieldIndex in plan.fields do
+        plan.keyToIndex.add(pf.key.toString(), fieldIndex)
 }
 
 // Returns the shared serialization plan of a struct type, building it on first use.
 public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
 {
-    let key = getTypeInfoCrc(structType)
+    let key = cast(u64) structType
 
     // Fast path: the plan already exists.
     {

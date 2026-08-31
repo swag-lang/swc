@@ -102,11 +102,6 @@ struct(T) Decoder
 
 impl Decoder
 {
-    mtd inferStructTypeForInterface(itfType: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
-    {
-        return Reflection.inferInterfaceImplementation(itfType, fieldCrcs)
-    }
-
     mtd readTypeValue(typedVal: TypeValue, data: #null [*] void) fail
     {
         if !typedVal.pointedType do
@@ -171,23 +166,10 @@ impl Decoder
 
             #static if T == Read.TagBin
             {
-                let objCrc = .serializer.readNative'u32()
-                if objCrc == 0 do
-                    return
-                objType = Reflection.typeFromCrc(objCrc)
-
-                let itfCrc = .serializer.readNative'u32()
-                itfType = Reflection.typeFromCrc(itfCrc) orelse type
-
-                if !objType
-                {
-                    var fieldCrcs: Array'u32
-                    if .serializer.peekStructFieldCrcs(&fieldCrcs) do
-                        objType = .inferStructTypeForInterface(type, fieldCrcs.toSlice())
-                }
-
-                if !objType do
-                    fail SerializationError{"unknown interface object type"}
+                objType = .serializer.readInterfaceType()
+                itfType = type
+                if objType and !Reflection.hasInterface(objType, type) do
+                    fail SerializationError{"interface object type does not implement the requested interface"}
             }
             else
             {
@@ -333,6 +315,17 @@ impl Decoder
         .serializer.beginRoot()
     }
 
+    // Starts deserialization with a reflected root type.
+    //
+    // TagBin validates its document schema against [[Core.Serialization.Schema]] on
+    // `rootType`. Textual decoders ignore the additional type information.
+    mtd start(input: const [..] u8, rootType: typeinfo) fail
+    {
+        #static if T == Read.TagBin do
+            .serializer.setExpectedRootType(rootType)
+        .start(input)
+    }
+
     // Finish reading
     mtd end() fail
     {
@@ -353,7 +346,7 @@ impl Decoder
     {
         Debug.assert(Reflection.isStruct(TR))
 
-        .start(input)
+        .start(input, TR)
 
         let val = Memory.new'TR()
         defer #fail Memory.delete(val)

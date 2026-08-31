@@ -13,43 +13,47 @@ using Swag, Core, Core.Serialization
 // var image = Image.create(64, 64, .RGBA8)
 // image.fill(Color.fromRgb(18, 24, 32))
 // ```
+#[Core.Serialization.Schema("pixel.image")]
 struct Image
 {
     public
     {
+        #[Core.Serialization.Key("pixels")]
         pixels: Array'u8     // Owned, row-major pixel bytes.
 
-        #[Core.Serialization.Alias("metaDatas")]
+        #[Core.Serialization.Key("metadata")]
         metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
 
         // Geometry and encoding of the pixel buffer. They are established together by 'create' and
         // the decoders, and every one of them is derived from the others: writing one on its own
         // would describe a buffer that does not exist.
         //
-        // The aliases are the names these fields carried before they were spelled out. A serialized
-        // field is keyed by the CRC of its name, so a rename without an alias silently drops the
-        // value: an image written by an older build would read back with no stride and no format,
-        // and decode to noise.
+        // Explicit serialization keys keep these persisted names independent from future source
+        // renames.
         readonly
         {
-            #[Core.Serialization.Alias("size")]
+            #[Core.Serialization.Key("byteCount")]
             byteCount: u64     // Total pixel-buffer size, in bytes.
 
-            width:  s32     // Image width, in pixels.
+            #[Core.Serialization.Key("width")]
+            width: s32     // Image width, in pixels.
+
+            #[Core.Serialization.Key("height")]
             height: s32     // Image height, in pixels.
 
-            #[Core.Serialization.Alias("width8")]
+            #[Core.Serialization.Key("rowStride")]
             rowStride: s32     // Byte stride of one tightly packed row.
 
-            #[Core.Serialization.Alias("pf")]
+            #[Core.Serialization.Key("pixelFormat")]
             pixelFormat: PixelFormat     // Encoding of each pixel.
 
+            #[Core.Serialization.Key("alphaMode")]
             alphaMode: AlphaMode     // Relationship between stored RGB and alpha samples.
 
-            #[Core.Serialization.Alias("bpp")]
+            #[Core.Serialization.Key("bitsPerPixel")]
             bitsPerPixel: u8     // Number of bits per pixel.
 
-            #[Core.Serialization.Alias("bpp8")]
+            #[Core.Serialization.Key("bytesPerPixel")]
             bytesPerPixel: u8     // Number of bytes per pixel.
         }
     }

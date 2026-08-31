@@ -15,13 +15,13 @@ private const DeflateMaxExpansion = 1032'u64
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
 /*
-Binary serializer with forward/backward compatibility.
-Changes that are supported from V to V+1 are :
+Binary serializer with schema and key based compatibility.
+Changes that are supported from V to V+1 are:
 
 - Add a new field. The new field will stay at the default value.
 - Remove a field. It will just be ignored.
 - Reorder of fields, as long as their name/type are the same.
-- Rename a field with 'Serialization.Alias'.
+- Rename a field that declares a stable 'Serialization.Key'.
 
 Supported type changes are :
 
@@ -30,17 +30,18 @@ Supported type changes are :
 - Change the size of a static array.
 - Conversion from a static array to a dynamic `Core.Array`, and vice versa.
 - Conversion from a single value to a static array or `Core.Array`, and vice versa.
-- Rename a struct with 'Serialization.Alias'.
-- Convert an existing complexe type to 'Serialization.Final'
+- Rename a concrete interface implementation that declares a stable 'Serialization.TypeKey'.
+- Convert an existing complex type to 'Serialization.Final'.
 
 Supported attributes are :
 
-- 'Serialisation.Version'. The struct version, exposed while reading through [[Core.Serialization.Read.TagBin.version]].
-- 'Serialization.Alias'. To rename a field or a struct type. Multiple aliases are supported.
+- 'Serialization.Version'. The struct version, exposed while reading through [[Core.Serialization.Read.TagBin.version]].
+- 'Serialization.Schema'. To identify and validate a root document independently from its type name.
+- 'Serialization.Key'. To give one stable identity to a field.
+- 'Serialization.TypeKey'. To give one stable identity to a serialized struct type.
 - 'Serialization.Final'. The struct will be loaded/saved without versioning (faster and lower serialization size)
 
-The reader accepts the three stream generations described in
-[[Core.Serialization.Write.TagBin]]; the writer always produces the current one.
+The persisted format is version 1. Earlier experimental layouts are not accepted.
 */
 struct TagBin
 {
@@ -49,13 +50,17 @@ struct TagBin
         ignoreElements: Array'String          // Element names skipped while decoding.
         options:        TagBinOptions         // Compatibility behavior.
         diag:           TagBinDiagnostics     // What the decode had to tolerate. Inspect after reading.
+
+        // Optionally identifies the document expected by the low-level streaming API.
+        //
+        // An empty value accepts any schema so generic inspectors can open a TagBin stream.
+        // `readAll` always uses the root type's [[Core.Serialization.Schema]] instead.
+        schema: String
     }
 
-    wire:              u32                                  // Stream generation: 0, 1 or 2.
-    hasValueFlags:     bool                                 // Whether each element carries a value-flags byte (version 1).
-    stream:            ByteStream                           // Input cursor, over the body for a version 2 stream.
+    stream:            ByteStream                           // Input cursor over the version 1 body.
     bodyBuffer:        Buffer                               // Owns the decompressed body of a compressed stream.
-    shapes:            Array'TagBinShape                    // Shape directory of a version 2 stream.
+    shapes:            Array'TagBinShape                    // Shape directory of a version 1 stream.
     freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
     sections:          ArrayPtr'TagBinSection               // Active section stack.
     convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
@@ -64,6 +69,7 @@ struct TagBin
     outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
     elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
     tmpPool:           ArrayPtr'Buffer
+    expectedRootType:  #null typeinfo                       // Root type supplied by [[Core.Serialization.Decoder.readAll]].
 }
 
 // Counters describing what a decode had to tolerate.
@@ -100,13 +106,13 @@ struct TagBinShapeField
 {
     public
     {
-        crcName: u32                        // Crc of the field name.
+        key:     String                     // Stable, human-readable field key.
         crcType: u32                        // Wire identity of the field type.
         flags:   Write.TagBinShapeFlags     // Per-field flags.
     }
 }
 
-// The field list of one struct type, stored once per version 2 stream.
+// The field list of one struct type, stored once per version 1 stream.
 struct TagBinShape
 {
     public fields: Array'TagBinShapeField     // The fields, in written order.
@@ -117,19 +123,18 @@ struct TagBinSection
 {
     public
     {
-        mapSeek:       HashTable'(u32, TagBinFieldRef)     // Field index of the section, keyed by name crc.
+        mapSeek:       HashTable'(String, TagBinFieldRef)  // Field index of the section, keyed by readable identity.
         afterFatSeek:  u64                                 // Stream position right after the section and its fat.
         fatSeek:       u64                                 // Stream position of the fat table.
         fatCount:      u64                                 // Number of fat entries.
-        payloadStart:  u64                                 // Stream position of the first payload byte (version 2).
+        payloadStart:  u64                                 // Stream position of the first payload byte.
         consumedCount: u64                                 // How many indexed fields the decode requested.
-        posIndex:      u64                                 // Next field index in positional mode (version 2).
+        posIndex:      u64                                 // Next field index in positional mode.
         version:       u32                                 // Version number of this section
         kind:          SectionKind                         // Type of section (ordered, unordered, or raw)
-        skipFat:       bool                                // Version 1: positional read, the fat was not loaded.
-        positional:    bool                                // Version 2: shape matches the plan, fields read in order.
+        positional:    bool                                // Shape matches the plan, so fields are read in order.
         mapLoaded:     bool                                // Whether 'mapSeek' is populated.
-        shape:         #null const *TagBinShape            // Version 2: the shape describing the stream fields.
+        shape:         #null const *TagBinShape            // Shape describing the stream fields.
         plan:          #null const *Plan                   // The reader plan of the struct, when known.
     }
 }
@@ -163,7 +168,6 @@ private impl TagBin
         sec.version       = 0
         sec.consumedCount = 0
         sec.posIndex      = 0
-        sec.skipFat       = false
         sec.positional    = false
         sec.mapLoaded     = false
         sec.shape         = null
@@ -201,6 +205,19 @@ private impl TagBin
     mtd remaining()->u64
     {
         return .stream.length() - .stream.seek
+    }
+
+    // Reads a varint-sized UTF-8 string from the current stream.
+    mtd readWireString()->String fail
+    {
+        var result: retval
+        let count = .stream.readVarint()
+        if count > .remaining() do
+            fail SerializationError{"string runs past the end of the stream"}
+        result.reserve(count)
+        .stream.readBytes(result.buffer, count)
+        result.length = count
+        return result
     }
 
     // Check if type conversion is possible between 'fromType' and 'toType'.
@@ -331,29 +348,16 @@ private impl TagBin
                 }
             }
 
-            // Struct to struct...
-            elif fromStruct and !Reflection.isDynamicArray(fromStruct)
-            {
-                // Alias
-                let aliases = Reflection.attributes(dstType, Serialization.Alias)
-                for al in aliases
-                {
-                    let value = Reflection.attributeValue(al, "name")
-                    if cast(#null string) value == srcType.name
-                    {
-                        return true
-                    }
-                }
-            }
+            // A statically requested structured payload is self-framed. Its source type
+            // name is not part of the compatibility contract.
+            elif fromStruct and !Reflection.isDynamicArray(fromStruct) do
+                return true
         }
 
         return false
     }
 
-    // Loads the fat of a section into its field index.
-    //
-    // Works for a version 0/1 fat and for the ad-hoc fat of a version 2 stream, which
-    // share the same layout: a fat signature followed by crc/offset pairs.
+    // Loads the readable key and offset pairs of an ad-hoc section into its field index.
     mtd loadSectionFat(sec: *TagBinSection) fail
     {
         let savedSeek = .stream.position()
@@ -366,70 +370,26 @@ private impl TagBin
         var fatCount = sec.fatCount
         while fatCount
         {
-            let crc  = .stream.readNative'u32()
+            var key = .readWireString()
             let seek = .stream.readNative'u64()
-            sec.mapSeek.add(crc, {seek, NoShapeIndex, false})
+            if sec.mapSeek.contains(key) do
+                fail SerializationError{"serialized field key is duplicated"}
+            sec.mapSeek.add(#move key, {seek: seek, shapeIndex: NoShapeIndex})
             fatCount -= 1
         }
 
         sec.mapLoaded = true
+        sec.afterFatSeek = .stream.position()
         .stream.setPosition(savedSeek)
     }
 
-    // Opens a section of a version 0 or version 1 stream.
-    //
-    // Every validation happens before the section is pushed: a failure after the push
-    // would leave an orphan section for the enclosing 'endSection' to pop.
-    mtd beginSection1(kind: SectionKind, skipFat: bool) fail
-    {
-        if kind != .Unordered
-        {
-            let sec = .newSection()
-            sec.kind    = kind
-            sec.skipFat = skipFat
-            return
-        }
-
-        // Read fat position and count
-        let sig = .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Fat do
-            fail SerializationError{"invalid fat signature"}
-        let fatSeek  = .stream.readNative'u64()
-        let fatCount = .stream.readNative'u64()
-
-        // The fat sits after the payload: signature, then a crc/offset pair per field.
-        let afterFatSeek = fatSeek + #sizeof(u32) + fatCount * (#sizeof(u32) + #sizeof(u64))
-        if afterFatSeek > .stream.length() do
-            fail SerializationError{"fat table runs past the end of the stream"}
-
-        let sec = .newSection()
-        sec.kind         = kind
-        sec.skipFat      = skipFat
-        sec.fatSeek      = fatSeek
-        sec.fatCount     = fatCount
-        sec.afterFatSeek = afterFatSeek
-
-        if !skipFat
-        {
-            catch .loadSectionFat(sec) as err
-            if err != null
-            {
-                // The section is already live, so hand it back before reporting.
-                .releaseSection()
-                fail err
-            }
-
-            .stream.setPosition(sec.afterFatSeek)
-        }
-    }
-
-    // Opens a section of a version 2 stream.
+    // Opens a section of a version 1 stream.
     //
     // 'plan' names the reader's own layout of the struct when known; it selects the
     // positional fast path when the stream shape is identical to it. Every validation
     // happens before the section is pushed: a failure after the push would leave an
     // orphan section for the enclosing 'endSection' to pop.
-    mtd beginSection2(kind: SectionKind, plan: #null const *Plan) fail
+    mtd openSection(kind: SectionKind, plan: #null const *Plan) fail
     {
         if kind == .Raw
         {
@@ -465,8 +425,7 @@ private impl TagBin
             let fatSeek  = .stream.readNative'u64()
             let fatCount = .stream.readNative'u64()
 
-            let afterFatSeek = fatSeek + #sizeof(u32) + fatCount * (#sizeof(u32) + #sizeof(u64))
-            if afterFatSeek > .stream.length() do
+            if fatSeek > .stream.length() do
                 fail SerializationError{"fat table runs past the end of the stream"}
 
             let sec = .newSection()
@@ -474,7 +433,7 @@ private impl TagBin
             sec.plan         = plan
             sec.fatSeek      = fatSeek
             sec.fatCount     = fatCount
-            sec.afterFatSeek = afterFatSeek
+            sec.afterFatSeek = 0
 
             catch .loadSectionFat(sec) as err
             if err != null
@@ -529,7 +488,10 @@ private impl TagBin
         for i in shape.fields.count
         {
             let off = cast(u64) .stream.readNative'u32()
-            sec.mapSeek.add(shape.fields[i].crcName, {sec.payloadStart + off, cast(u32) i, false})
+            let sf = shape.fields[i]
+            if sec.mapSeek.contains(sf.key) do
+                fail SerializationError{"serialized field key is duplicated"}
+            sec.mapSeek.add(sf.key, {sec.payloadStart + off, cast(u32) i})
         }
 
         sec.mapLoaded = true
@@ -543,7 +505,7 @@ private impl TagBin
             return false
         for i in shape.fields.count
         {
-            if shape.fields[i].crcName != plan.fields[i].crcName do
+            if shape.fields[i].key != plan.fields[i].key do
                 return false
             if shape.fields[i].crcType != plan.fields[i].wireCrc do
                 return false
@@ -613,7 +575,7 @@ private impl TagBin
     // conversion when they differ. Returns false when the element must be skipped.
     mtd checkElementType(streamCrc: u32, val: TypeValue) fail
     {
-        let wantedCrc = .wire >= 2 ? wireTypeCrc(val.pointedType) : getTypeInfoCrc(val.pointedType)
+        let wantedCrc = wireTypeCrc(val.pointedType)
         if streamCrc == wantedCrc do
             return
 
@@ -621,23 +583,20 @@ private impl TagBin
         let streamType = Reflection.typeFromCrc(streamCrc)
         if !streamType
         {
-            .diag.unknownTypes += 1
-
-            // A version 0/1 stream can carry type crcs from a previous hash scheme, so
-            // an unknown crc is read with the requested type and the payload readers
-            // validate the bytes. A version 2 stream carries current crcs only; a scalar
-            // has no self-validating framing, so reading it as another width would
-            // silently produce garbage.
-            if .wire >= 2
+            // A scalar has no self-validating framing, so reading an unknown type as
+            // another width would silently produce garbage.
+            var requested = val.pointedType orelse #typeof(u8)
+            requested = Reflection.resolveAliases(requested)
+            if Reflection.isEnum(requested) do
+                requested = Reflection.enumUnderlyingType(requested)
+            if Reflection.isSimpleNative(requested)
             {
-                var requested = val.pointedType orelse #typeof(u8)
-                requested = Reflection.resolveAliases(requested)
-                if Reflection.isEnum(requested) do
-                    requested = Reflection.enumUnderlyingType(requested)
-                if Reflection.isSimpleNative(requested) do
-                    fail SerializationError{"unknown value type in the stream", field: val}
+                .diag.unknownTypes += 1
+                fail SerializationError{"unknown value type in the stream", field: val}
             }
 
+            // Structured payloads are framed and decoded through the statically
+            // requested shape. Their runtime type name is not part of the contract.
             return
         }
 
@@ -654,59 +613,22 @@ private impl TagBin
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignature.Sequence do
                 fail SerializationError{"stream is corrupted", field: val}
-            if .wire >= 2 do
-                discard .stream.readVarint()
-            else do
-                discard .stream.readNative'u64()
+            discard .stream.readVarint()
 
             let arraySig = .stream.readNative'u32()
             if arraySig != Write.TagBinSignature.Raw and arraySig != Write.TagBinSignature.UnRaw do
                 fail SerializationError{"stream is corrupted", field: val}
-            if .wire >= 2 and arraySig == Write.TagBinSignature.Raw do
+            if arraySig == Write.TagBinSignature.Raw do
                 discard .stream.readVarint()
         }
     }
 
-    // Looks a field up in the section index by its name, then by its declared aliases.
-    // Marks the entry consumed and returns its position, or 'found' false.
+    // Looks a field up by its canonical key. Marks the entry consumed and returns its
+    // position, or 'found' false.
     mtd findFieldRef(sec: *TagBinSection, val: TypeValue)->{ found: bool, seek: u64, shapeIndex: u32 }
     {
-        let reqCrc = getTypeValueCrc(val)
-        var ent    = sec.mapSeek.tryFind(reqCrc)
-
-        if !ent
-        {
-            // The plan caches the alias crcs of its own fields; a dynamic field falls
-            // back to its attributes.
-            var scanAttributes = true
-            if sec.plan
-            {
-                let pf = sec.plan.fieldByCrc(reqCrc)
-                if pf
-                {
-                    scanAttributes = false
-                    for aliasCrc in pf.aliases
-                    {
-                        ent = sec.mapSeek.tryFind(aliasCrc)
-                        if ent do
-                            break
-                    }
-                }
-            }
-
-            if !ent and scanAttributes
-            {
-                let aliases = Reflection.attributes(val, Serialization.Alias)
-                for al in aliases
-                {
-                    let value = Reflection.attributeValue(al, "name")
-                    Debug.assert(value != null)
-                    ent = sec.mapSeek.tryFind(Hash.Crc32.compute(cast(string) value!))
-                    if ent do
-                        break
-                }
-            }
-        }
+        let reqKey = wireFieldKey(val)
+        var ent    = sec.mapSeek.tryFind(reqKey)
 
         if !ent do
             return {false, 0, 0}
@@ -720,10 +642,19 @@ private impl TagBin
         return {true, ent.value.seek, ent.value.shapeIndex}
     }
 
-    // Reads the version 2 header, re-bases the stream on the body, and loads the shape
-    // directory.
-    mtd readRootV2() fail
+    // Reads the stream header, re-bases the stream on the body, and loads the shape directory.
+    mtd readShapedRoot() fail
     {
+        let streamSchema = .readWireString()
+        if .expectedRootType
+        {
+            let wantedSchema = wireSchema(.expectedRootType)
+            if streamSchema != wantedSchema do
+                fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]", streamSchema, wantedSchema))}
+        }
+        elif !.schema.isEmpty() and streamSchema != .schema do
+            fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the reader needs [[%]]", streamSchema, .schema))}
+
         let flags          = .stream.readNative'Write.TagBinHeaderFlags()
         let shapeDirOffset = .stream.readNative'u64()
 
@@ -780,7 +711,7 @@ private impl TagBin
             while fieldCount
             {
                 var sf: TagBinShapeField
-                sf.crcName = .stream.readNative'u32()
+                sf.key     = .readWireString()
                 sf.crcType = .stream.readNative'u32()
                 sf.flags   = .stream.readNative'Write.TagBinShapeFlags()
                 shape.fields.add(sf)
@@ -796,57 +727,25 @@ private impl TagBin
 
 impl TagBin
 {
-    // Peeks the field name crcs of the struct at the current stream position.
-    //
-    // Used to infer the concrete type of a serialized interface when its stored type
-    // crc resolves to nothing.
-    mtd peekStructFieldCrcs(fieldCrcs: *Array'u32)->bool fail
+    // Supplies the root type used to validate the document schema.
+    #[Swag.NoDoc]
+    mtd setExpectedRootType(type: typeinfo)
     {
-        let savedSeek = .stream.position()
-        defer .stream.setPosition(savedSeek)
+        .expectedRootType = type
+    }
 
-        var sig = .stream.readNative'u32()
-        if sig == Write.TagBinSignature.UnRaw do
-            sig = .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Version do
-            return false
+    // Reads and resolves the stable key of a concrete interface object.
+    #[Swag.NoDoc]
+    mtd readInterfaceType()->#null typeinfo fail
+    {
+        let key = .readWireString()
+        if key == "" do
+            return null
 
-        discard .stream.readNative'u32()
-        sig = .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Fat do
-            return false
-
-        if .wire >= 2
-        {
-            let shapeId = .stream.readNative'u32()
-            if shapeId != Write.TagBinAdHocShape
-            {
-                if shapeId >= .shapes.count do
-                    return false
-                for &sf in .shapes[shapeId].fields do
-                    fieldCrcs.add(sf.crcName)
-                return true
-            }
-        }
-
-        let fatSeek  = .stream.readNative'u64()
-        var fatCount = .stream.readNative'u64()
-
-        if fatSeek >= .stream.length() do
-            return false
-        .stream.setPosition(fatSeek)
-        sig = .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Fat do
-            return false
-
-        while fatCount
-        {
-            fieldCrcs.add(.stream.readNative'u32())
-            discard .stream.readNative'u64()
-            fatCount -= 1
-        }
-
-        return true
+        let type = Reflection.typeFromKey(key)
+        if !type do
+            fail SerializationError{Errors.mkString(Format.toString("cannot resolve interface object key [[%]]", key))}
+        return type
     }
 
     // Initialize the deserializer with the given input byte array.
@@ -854,7 +753,6 @@ impl TagBin
     mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
-        .wire   = 0
         .shapes.clear()
         .bodyBuffer.clear()
         .sections.clear()
@@ -865,10 +763,7 @@ impl TagBin
 
     // Begin reading the root container of the serialized data.
     //
-    // Validates the root signature, then establishes which stream generation follows:
-    // the version mark cannot be mistaken for what an older stream puts at the same
-    // position, because that position then holds a 'TagBinSignature' and the constants
-    // are disjoint.
+    // Validates the root signature and the only supported format marker.
     mtd beginRoot() fail
     {
         let sig = .stream.readNative'u32()
@@ -876,38 +771,20 @@ impl TagBin
             fail SerializationError{"invalid root signature"}
 
         let mark = .stream.readNative'u32()
-        if mark == Write.TagBinVersion2
-        {
-            .wire = 2
-            .readRootV2()
-            return
-        }
-
-        if mark == Write.TagBinVersion1
-        {
-            .wire          = 1
-            .hasValueFlags = true
-            return
-        }
-
-        .stream.setPosition(.stream.position() - #sizeof(u32))
-        .wire          = 0
-        .hasValueFlags = false
+        if mark != Write.TagBinVersion1 do
+            fail SerializationError{"unsupported TagBin format version"}
+        .readShapedRoot()
     }
 
     // Finish reading the root container.
     // Currently no cleanup is required, but this maintains the symmetric begin/end API.
-    mtd endRoot() fail {}
+    mtd endRoot() fail
+    {
+        .expectedRootType = null
+    }
 
     // Begin reading a new section with the specified 'kind'.
-    // Optionally skips reading the fat table if 'skipFat' is true for performance optimization.
-    mtd beginSection(kind: SectionKind, skipFat = false) fail
-    {
-        if .wire >= 2 do
-            .beginSection2(kind, null)
-        else do
-            .beginSection1(kind, skipFat)
-    }
+    mtd beginSection(kind: SectionKind, _skipFat = false) fail => .openSection(kind, null)
 
     // Finish reading the current section.
     // Updates the stream position and releases the section back to the pool.
@@ -917,12 +794,12 @@ impl TagBin
 
         if sec.kind == .Raw
         {
-            // A version 2 raw section knows its byte length: a decode that consumed a
+            // A raw section knows its byte length: a decode that consumed a
             // different amount read a layout that is not the one written. This runs
             // inside no-fail cleanup paths, so the mismatch is recorded and the stream
             // repositioned; [[Core.Serialization.Decoder.end]] turns it into an error
             // for a strict decode.
-            if .wire >= 2 and .stream.position() != sec.afterFatSeek
+            if .stream.position() != sec.afterFatSeek
             {
                 .diag.corruptPayloads += 1
                 .stream.setPosition(sec.afterFatSeek)
@@ -955,10 +832,7 @@ impl TagBin
             if !Reflection.hasAttribute(structType, Serialization.Final) do
                 fail SerializationError{"cannot convert a type from final to non final"}
 
-            if .wire >= 2 do
-                .beginSection2(.Raw, null)
-            else do
-                .beginSection1(.Raw, false)
+            .openSection(.Raw, null)
             return false
         }
 
@@ -976,24 +850,15 @@ impl TagBin
             plan = planFor(cast(const *Swag.TypeInfoStruct) structType!)
 
         // Deal with version
-        var skipFat = false
         if plan and plan.hasVersion
         {
             // The stream version is more recent than the code that tries to read it.
             // Specific error, except if we want to try forward compatibility
             if !.options.tryForward and plan.version < streamVersion do
                 fail InvalidVersion{wantedVersion: plan.version, foundVersion: streamVersion}
-
-            // If this is the exact same version, then no need to read the fat, because everything
-            // is supposed to be in the correct order
-            if plan.version == streamVersion do
-                skipFat = true
         }
 
-        if .wire >= 2 do
-            .beginSection2(.Unordered, plan)
-        else do
-            .beginSection1(.Unordered, skipFat)
+        .openSection(.Unordered, plan)
 
         .sections.back()!.version = streamVersion
         return false
@@ -1028,14 +893,14 @@ impl TagBin
             return true
         }
 
-        // Version 2 shaped positional path: the shape is the plan, so the field is the
+        // Shaped positional path: the shape is the plan, so the field is the
         // next one in the stream and carries no inline metadata.
         if sec.positional
         {
             let shape = sec.shape!
             Debug.assert(sec.posIndex < shape.fields.count)
             let sf = shape.fields.buffer! + sec.posIndex
-            Debug.assert(sf.crcName == getTypeValueCrc(val))
+            Debug.assert(sf.key == wireFieldKey(val))
             sec.posIndex += 1
 
             catch .enterElementPayload(sf.flags.has(.Compressed), val) as err
@@ -1051,7 +916,7 @@ impl TagBin
             fail err
         }
 
-        // Version 2 shaped indexed path.
+        // Shaped indexed path.
         if sec.shape
         {
             let ent = .findFieldRef(sec, val)
@@ -1075,9 +940,8 @@ impl TagBin
             return true
         }
 
-        // Version 0/1 sections and version 2 ad-hoc sections: elements carry their name
-        // and type inline.
-        let reqCrcName = getTypeValueCrc(val)
+        // Ad-hoc sections carry their readable key and type inline.
+        let reqKey = wireFieldKey(val)
         if sec.mapLoaded
         {
             let ent = .findFieldRef(sec, val)
@@ -1098,59 +962,14 @@ impl TagBin
         }
 
         // Read the name signature.
-        var crcName = .stream.readNative'u32()
-
-        // In positional mode a mismatch does not mean the stream is unreadable: the fat
-        // was written anyway, so load it and look the field up by name instead of
-        // failing the whole struct.
-        if crcName != reqCrcName and sec.skipFat
-        {
-            .loadSectionFat(sec)
-            sec.skipFat           = false
-            .diag.recoveredFields += 1
-
-            let ent = .findFieldRef(sec, val)
-            if !ent.found
-            {
-                .elemStack.add({false, null})
-                return false
-            }
-
-            if ent.seek >= .stream.length() do
-                fail SerializationError{"field offset runs past the end of the stream", field: val}
-
-            .stream.setPosition(ent.seek)
-            crcName = .stream.readNative'u32()
-        }
-
-        // The looked-up field can still answer to an alias rather than its own name.
-        if crcName != reqCrcName
-        {
-            var matchesAlias = false
-            let aliases      = Reflection.attributes(val, Serialization.Alias)
-            for al in aliases
-            {
-                let value = Reflection.attributeValue(al, "name")
-                Debug.assert(value != null)
-                if crcName == Hash.Crc32.compute(cast(string) value!)
-                {
-                    matchesAlias = true
-                    break
-                }
-            }
-
-            if !matchesAlias do
-                fail SerializationError{"bad field name", field: val}
-        }
+        let fieldKey = .readWireString()
+        if fieldKey != reqKey do
+            fail SerializationError{"serialized field key does not match the requested field", field: val}
 
         // Read the type signature.
         let crcType = .stream.readNative'u32()
 
-        // Read value flags. A version 0 stream has none of them, and nothing in it is
-        // compressed.
-        var flags = Write.TagBinValueFlags.None
-        if .hasValueFlags or .wire >= 2 do
-            flags = .stream.readNative'Write.TagBinValueFlags()
+        let flags = .stream.readNative'Write.TagBinValueFlags()
 
         .enterElementPayload(flags.has(.Compressed), val)
 
@@ -1208,10 +1027,7 @@ impl TagBin
                 fail SerializationError{"stream is corrupted"}
 
             // 0 for a dynamic array, > 0 for a static array
-            if .wire >= 2 do
-                countElem[] = .stream.readVarint()
-            else do
-                countElem[] = .stream.readNative'u64()
+            countElem[] = .stream.readVarint()
 
             // Every element takes at least one byte, so a count beyond the remaining
             // bytes is corrupt. Checking here keeps a hostile count from driving the
@@ -1233,7 +1049,7 @@ impl TagBin
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw do
                 fail SerializationError{"stream is corrupted"}
-            if .wire >= 2 and sig == Write.TagBinSignature.Raw do
+            if sig == Write.TagBinSignature.Raw do
                 discard .stream.readVarint()
 
             return false
@@ -1272,14 +1088,11 @@ impl TagBin
                 if elemSize != 0 and countElem[] > .remaining() / elemSize do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
-                // A version 2 stream also records the written byte length: a different
+                // The stream also records the written byte length: a different
                 // one means the raw element layout changed since the write.
-                if .wire >= 2
-                {
-                    let byteLen = .stream.readVarint()
-                    if byteLen != byteCount do
-                        fail SerializationError{"raw element layout changed"}
-                }
+                let byteLen = .stream.readVarint()
+                if byteLen != byteCount do
+                    fail SerializationError{"raw element layout changed"}
 
                 let bufArr = cast(*Array'u8) data!
                 bufArr.count = countElem[]
@@ -1310,12 +1123,9 @@ impl TagBin
                 if te.sizeof != 0 and streamCount > .remaining() / te.sizeof do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
-                if .wire >= 2
-                {
-                    let byteLen = .stream.readVarint()
-                    if byteLen != streamCount * te.sizeof do
-                        fail SerializationError{"raw element layout changed"}
-                }
+                let byteLen = .stream.readVarint()
+                if byteLen != streamCount * te.sizeof do
+                    fail SerializationError{"raw element layout changed"}
 
                 .stream.readBytes(data, countElem[] * te.sizeof)
 
@@ -1372,11 +1182,7 @@ impl TagBin
         #static if NT == Core.String
         {
             var result: retval
-            var count:  u64
-            if .wire >= 2 do
-                count = .stream.readVarint()
-            else do
-                count = cast(u64) .stream.readNative'u32()
+            let count = .stream.readVarint()
 
             // Validate before reserving, so a corrupt length cannot request an
             // arbitrary allocation. The error type stays fully qualified: this generic

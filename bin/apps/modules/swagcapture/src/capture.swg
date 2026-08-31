@@ -66,6 +66,7 @@ enum CaptureSourceKind
 
 // Small profile header read by the library without touching the editable document or pixels.
 #[Serialization.Version(1)]
+#[Serialization.Schema("swag.capture.library-metadata")]
 struct CaptureLibraryMetadata
 {
     width, height:     s32
@@ -116,6 +117,7 @@ impl CaptureLibraryMetadata
 
 // Editable capture state stored independently from the large background images.
 #[Serialization.Version(1)]
+#[Serialization.Schema("swag.capture.document")]
 struct CaptureFileModel
 {
     width, height:       s32
@@ -272,6 +274,7 @@ struct CaptureClipboardForm
     callout: FormCallout
 }
 
+#[Serialization.Schema("swag.capture.clipboard-forms")]
 struct CaptureClipboardForms
 {
     forms: Array'CaptureClipboardForm
@@ -818,7 +821,7 @@ impl Capture
             capture = fromFileModel(model)
 
             let diag = decoder.serializer.diag
-            capture.loadIssues = diag.fieldErrors + diag.unknownTypes + diag.corruptPayloads
+            capture.loadIssues = diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads
 
             let background = reader.findRole(backgroundRole())
             if background
@@ -828,6 +831,8 @@ impl Capture
                 let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
                 capture.backImg = #move image[]
                 Memory.delete(image)
+                let imageDiag = imageDecoder.serializer.diag
+                capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
             }
 
             let original = reader.findRole(originalRole())
@@ -838,6 +843,8 @@ impl Capture
                 let image      = imageDecoder.readAll'Image(imageBytes.toSlice())!
                 capture.backImgOriginal = #move image[]
                 Memory.delete(image)
+                let imageDiag = imageDecoder.serializer.diag
+                capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
             }
         }
 

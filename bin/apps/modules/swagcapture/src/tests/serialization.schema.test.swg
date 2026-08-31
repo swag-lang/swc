@@ -4,7 +4,7 @@
 using Swag, Core
 
 // The serialized shape of every persisted struct, pinned as text. TagBin matches fields
-// by name and stores this exact list per type, so any line changing below is a
+// by canonical key and stores this exact list per type, so any line changing below is a
 // format event for '.scc' files and saved quick styles: it must be deliberate,
 // because removing or renaming a field changes the data the current format stores.
 func testSchemaOf(type: typeinfo)->String fail
@@ -16,7 +16,7 @@ func testSchemaOf(type: typeinfo)->String fail
     {
         if !result.isEmpty() do
             result += ","
-        result += pf.value.name
+        result += pf.key
         result += ":"
         result += pf.value.pointedType!.name
     }

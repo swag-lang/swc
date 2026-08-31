@@ -1209,6 +1209,7 @@ impl Application
 
         var buf:  ConcatBuffer
         var save: Encoder'Write.TagBin
+        save.serializer.schema = "gui.application-state"
         var ser:  Serializer
         ser.startWrite(&save, &buf)
         .serializeState(&ser)
@@ -1257,6 +1258,7 @@ impl Application
             buf = try File.readAllBytes(.statePath)
 
         var load: Decoder'Read.TagBin
+        load.serializer.schema = "gui.application-state"
         var ser:  Serializer
         ser.startRead(&load, buf.toSlice())
         .serializeState(&ser)

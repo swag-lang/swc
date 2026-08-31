@@ -9,6 +9,7 @@ enum FormStepType
 }
 
 #[Swag.Using(Properties)]
+#[Serialization.TypeKey("swag.capture.form.step")]
 struct FormStep
 {
     using base: BaseForm

@@ -32,10 +32,10 @@ struct JsonFloatPayload
     value: f64
 }
 
-struct JsonAliasPayload
+struct JsonKeyPayload
 {
-    #[Serialization.Alias("oldName")]
-    newName: u32
+    #[Serialization.Key("wireName")]
+    sourceName: u32
 }
 
 func makeJsonPayload()->JsonPayload
@@ -103,10 +103,10 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    let source:  String = "{\"oldName\":42}"
+    let source:  String = "{\"wireName\":42}"
     var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded         = expect decoder.readAll'JsonAliasPayload(source.toSlice())!
-    Swag.assert(decoded.newName == 42)
+    let decoded         = expect decoder.readAll'JsonKeyPayload(source.toSlice())!
+    Swag.assert(decoded.sourceName == 42)
     Memory.delete(decoded)
 }
 

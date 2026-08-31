@@ -210,10 +210,12 @@ struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 };
 
 // -----------------------------------------------------------------------------
-// Auto-inline budget: a candidate body wider than this many source tokens is left out of line.
-// Tokens are a cheap, stable proxy for body size. Shared because the parser measures the body and
-// the auto-inline heuristic reads the verdict.
+// Auto-inline cost model. Tokens are a cheap, stable proxy for body size. Leaf helpers use the
+// regular budget without introducing sema dependencies; calls add cost within the much larger
+// single-module-call-site budget, where eliminating the last call does not duplicate the body.
 constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 80;
+constexpr uint32_t K_AUTO_INLINE_CALL_PENALTY     = 10;
+constexpr uint32_t K_AUTO_INLINE_LAST_CALL_COST   = 4096;
 
 enum class AstFunctionFlagsE : AstNode::ParserFlags
 {
@@ -224,15 +226,17 @@ enum class AstFunctionFlagsE : AstNode::ParserFlags
     Const    = 1 << 3,
     Impl     = 1 << 4,
     Short    = 1 << 5,
-    // The body's SHAPE qualifies for auto-inlining: small enough, and free of the constructs the
-    // heuristic cannot move into a caller (a nested call, a local function, `#offsetof`).
+    // The body's COST qualifies for auto-inlining: the token count plus a penalty for each nested
+    // call fits either the regular budget or the single-module-call-site budget. Local functions
+    // and `#offsetof` remain unsupported by the materializer.
     //
     // The parser decides this, and that is the whole point. Sema rewrites body nodes in place, so
     // the same question asked mid-analysis reads nodes whose id and payload disagree, and asking
     // it only of already-analysed callees made the answer depend on which thread got there first.
     // Measured at the time: the same source lost ~1000 inlines per build of the standard library,
     // varying run to run. Right after parsing, the body is complete and nothing else can touch it.
-    AutoInlineBody = 1 << 6,
+    AutoInlineBody     = 1 << 6,
+    AutoInlineHasCalls = 1 << 7,
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>
@@ -269,7 +273,8 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE
 // -----------------------------------------------------------------------------
 struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlagsE>
 {
-    TokenId    intrinsicId = TokenId::Invalid;
+    TokenId    intrinsicId    = TokenId::Invalid;
+    uint32_t   autoInlineCost = UINT32_MAX;
     SpanRef    spanGenericParamsRef;
     AstNodeRef nodeParamsRef;
     AstNodeRef nodeReturnTypeRef;

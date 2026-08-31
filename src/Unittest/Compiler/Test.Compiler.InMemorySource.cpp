@@ -80,6 +80,20 @@ func validate()
 
         return Result::Continue;
     }
+
+    const AstFunctionDecl* findFunctionDecl(const Ast& ast, const std::string_view name)
+    {
+        const AstFunctionDecl* result = nullptr;
+        Ast::visit(ast, ast.root(), [&](AstNodeRef, const AstNode& node) {
+            const auto* decl = node.safeCast<AstFunctionDecl>();
+            if (!decl || decl->tokNameRef.isInvalid() || ast.srcView().tokenString(decl->tokNameRef) != name)
+                return Ast::VisitResult::Continue;
+
+            result = decl;
+            return Ast::VisitResult::Stop;
+        });
+        return result;
+    }
 }
 
 SWC_TEST_BEGIN(Compiler_LegacyStaticControlDirectivesAreNotKeywords)
@@ -90,6 +104,186 @@ SWC_TEST_BEGIN(Compiler_LegacyStaticControlDirectivesAreNotKeywords)
         if (langSpec.keyword(spelling) != TokenId::Identifier)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AutoInlineCostPricesCallsAndRewardsOneModuleCallSite)
+{
+    static constexpr std::string_view SOURCE = R"(#global private
+
+func leaf(value: s32)->s32 => value + 1
+
+func cheapCall(value: s32)->s32 => leaf(value)
+
+func addressTaken(value: s32)->s32 => leaf(value)
+
+func singleCall(value: s32)->s32
+{
+    var result = value
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    return leaf(result)
+}
+
+func repeatedCall(value: s32)->s32
+{
+    var result = value
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    result += leaf(value)
+    return result
+}
+
+func recursiveFirst(value: s32)->s32
+{
+    if value == 0 do
+        return 0
+    return recursiveSecond(value - 1)
+}
+
+func recursiveSecond(value: s32)->s32
+{
+    if value == 0 do
+        return 0
+    return recursiveFirst(value - 1)
+}
+
+func managedFailure() fail
+{
+}
+
+func errorManaged()
+{
+    catch
+    {
+        try managedFailure()
+    }
+}
+
+#[Swag.Mixin]
+func compilerMixin()
+{
+}
+
+func wrapsMixin()
+{
+    compilerMixin()
+}
+
+func closureProvider(value: s32)->func||()->s32
+{
+    return func|value|()->s32 { return value }
+}
+
+func wrapsClosureProvider(value: s32)->s32
+{
+    let cb = closureProvider(value)
+    return cb()
+}
+
+func useCandidates()
+{
+    let cheap = cheapCall(1)
+    let callback = addressTaken
+    let addressed = addressTaken(1)
+    let once = singleCall(1)
+    let first = repeatedCall(1)
+    let second = repeatedCall(2)
+    let recursive = recursiveFirst(2)
+    errorManaged()
+    wrapsMixin()
+    let closureValue = wrapsClosureProvider(7)
+}
+)";
+    // If call-graph names from separate Asts are merged, the first source's
+    // singleCall -> leaf and useCandidates -> singleCall edges combine with this edge into a
+    // false cycle. Cross-Ast calls never auto-inline, so their recursion graphs stay separate.
+    static constexpr std::string_view OTHER_SOURCE = R"(#global private
+
+func leaf() => useCandidates()
+)";
+    const fs::path sourcePath      = Unittest::makeTestSourcePath("Compiler", "AutoInlineCostPricesCallsAndRewardsOneModuleCallSite");
+    const fs::path otherSourcePath = Unittest::makeTestSourcePath("Compiler", "AutoInlineCostKeepsAstCallGraphsSeparate");
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Syntax;
+    cmdLine.name    = "compiler_auto_inline_cost";
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Unittest::registerTestSource(compiler, otherSourcePath, OTHER_SOURCE);
+    TaskContext compilerCtx(compiler);
+
+    SourceFile& sourceFile      = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+    SourceFile& otherSourceFile = compiler.addFile(otherSourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(compilerCtx));
+    SWC_RESULT(otherSourceFile.loadContent(compilerCtx));
+
+    Lexer lexer;
+    lexer.tokenize(compilerCtx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (sourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+    lexer.tokenize(compilerCtx, otherSourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (otherSourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+
+    Parser parser;
+    parser.parse(compilerCtx, sourceFile.ast());
+    parser.parse(compilerCtx, otherSourceFile.ast());
+    std::array<Ast*, 2> moduleAsts = {&sourceFile.ast(), &otherSourceFile.ast()};
+    Parser::finalizeAutoInlineCandidates(moduleAsts);
+
+    const AstFunctionDecl* cheapCall       = findFunctionDecl(sourceFile.ast(), "cheapCall");
+    const AstFunctionDecl* addressTaken    = findFunctionDecl(sourceFile.ast(), "addressTaken");
+    const AstFunctionDecl* singleCall      = findFunctionDecl(sourceFile.ast(), "singleCall");
+    const AstFunctionDecl* repeatedCall    = findFunctionDecl(sourceFile.ast(), "repeatedCall");
+    const AstFunctionDecl* recursiveFirst  = findFunctionDecl(sourceFile.ast(), "recursiveFirst");
+    const AstFunctionDecl* recursiveSecond = findFunctionDecl(sourceFile.ast(), "recursiveSecond");
+    const AstFunctionDecl* errorManaged    = findFunctionDecl(sourceFile.ast(), "errorManaged");
+    const AstFunctionDecl* wrapsMixin      = findFunctionDecl(sourceFile.ast(), "wrapsMixin");
+    const AstFunctionDecl* wrapsClosure    = findFunctionDecl(sourceFile.ast(), "wrapsClosureProvider");
+    if (!cheapCall || !addressTaken || !singleCall || !repeatedCall || !recursiveFirst || !recursiveSecond || !errorManaged || !wrapsMixin || !wrapsClosure)
+        return Result::Error;
+    if (!cheapCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (addressTaken->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (singleCall->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS || !singleCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (repeatedCall->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS || repeatedCall->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (recursiveFirst->hasFlag(AstFunctionFlagsE::AutoInlineBody) || recursiveSecond->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (errorManaged->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (wrapsMixin->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    if (wrapsClosure->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
 }
 SWC_TEST_END()
 

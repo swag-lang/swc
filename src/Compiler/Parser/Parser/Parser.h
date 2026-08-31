@@ -55,8 +55,9 @@ enum class FwdParseMode : uint8_t
 class Parser
 {
 public:
-    void       parse(TaskContext& ctx, Ast& ast);
-    AstNodeRef parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode, TokenRef startTokRef = TokenRef::invalid());
+    void        parse(TaskContext& ctx, Ast& ast);
+    AstNodeRef  parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode, TokenRef startTokRef = TokenRef::invalid());
+    static void finalizeAutoInlineCandidates(std::span<Ast* const> moduleAsts);
 
 private:
     ParserContextFlags contextFlags_                   = ParserContextFlagsE::Zero;
@@ -214,7 +215,7 @@ private:
     AstNodeRef parseForInfinite();
     AstNodeRef parseFunctionDecl(bool isInterfaceDefinition = false);
     AstNodeRef parseFunctionBody();
-    bool       bodyShapeAllowsAutoInline(AstNodeRef bodyRef, TokenRef bodyStartRef) const;
+    uint32_t   computeAutoInlineBodyCost(bool& outHasCalls, AstNodeRef bodyRef, TokenRef bodyStartRef) const;
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();

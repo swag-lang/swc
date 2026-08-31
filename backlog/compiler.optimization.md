@@ -689,23 +689,6 @@ cmov-to-branch back-conversion, and profile-gated passes.
   the video corpus do not regress.
 - Related: compiler.optimization.014, compiler.optimization.015.
 
-### compiler.optimization.021 — Inlining is a cost model, not a disqualification list
-
-- Intent: the parse-time auto-inline verdict prices a call in the body as a penalty instead of a
-  disqualifier, and a non-generic same-module function with exactly one call site inlines
-  near-unconditionally (LLVM's `CallPenalty` and `LastCallToStaticBonus`) - the measured
-  ceiling of everything above, since un-inlined helpers blind LICM, residency, value numbering
-  and the alias oracle to the real loop nest, and force-inlining the deblock segment helper alone
-  moved the kernel from 1.71x to 1.39x against clang.
-- Next: last of the series - price the call as a penalty in the parse-time verdict and give a
-  single-call-site, same-module, non-generic function the LastCallToStaticBonus.
-- Complete when: the deblock segment helper auto-inlines without its `#[Swag.Inline]`, the
-  cross-AST and generic cases stay excluded (the mechanism deliberately disabled after the
-  aoc2019 miscompile), compile time and code size stay within the campaign's budgets, and the
-  full validation campaign passes. Sema ordering races (the parse-time verdict, the
-  CalleeReturn=CALLER gate) make this the last entry to attempt.
-- Related: compiler.optimization.014 through compiler.optimization.020 all gain from it; the inlining half of compiler.optimization.011.
-
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
 - Area: compiler/sema

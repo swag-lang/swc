@@ -130,12 +130,13 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
 - Related: gui.pdf.002, gui.pdf.016
 
-### scope.document.012 — PDF page navigation has no thumbnails or direct page entry
+### scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
 
-- Evidence: the command bar provides previous/next and a page label. There is no thumbnail strip,
-  editable page number, page-label lookup, or overview suitable for a long document.
-- Next: render cancellable low-resolution thumbnails through a bounded cache and make the page
-  readout an address control.
+- Evidence: the centered command bar provides previous/next and a clickable `current / total`
+  readout with validated numeric page entry. There is no thumbnail strip, page-label lookup, or
+  overview suitable for a long document.
+- Next: render cancellable low-resolution thumbnails through a bounded cache and extend the page
+  address control with PDF page labels.
 - Complete when: thumbnails prioritize the visible neighborhood, direct numeric and page-label
   jumps validate input, the current page is selected, and thousand-page documents stay responsive.
 - Related: gui.pdf.018

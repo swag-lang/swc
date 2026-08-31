@@ -2,10 +2,10 @@
 
 Swag Scope is the universal read-only viewer shipped with Swag. One executable owns navigation,
 drag and drop, the shared search and information bands, the basic text surface, and every
-format-specific viewer. Global navigation and file information stay above the document. A viewer
-can place compact actions in the shared action bar, either centered or beside shared search, values
-at the trailing edge of the information band, and wider controls in a dedicated lower tool band
-that appears only when it is needed.
+format-specific viewer. Global navigation, search, and file information stay above the document.
+Dynamic values such as zoom sit at the trailing edge of the information band and open the actions
+that change them; every viewer-specific command group is centered in one lower band that appears
+only when it is needed.
 
 ## Integrated viewer registry
 
@@ -44,7 +44,8 @@ alternative instead of guessing an encoding.
   other extensions and common exact file names declared by the registry. An otherwise unregistered
   script with a shebang is recognized from its first line. Swag vocabulary follows the compiler's
   current keywords, intrinsics, directives, and modifiers. HTML keeps its rendered viewer first
-  and offers Code as the source alternative.
+  and offers Code as the source alternative. Its information-band zoom uses the same percentage
+  menu and keyboard gestures as the other text readers.
 - `Markdown` adapts the reusable GUI `Markdown.View`. It supports headings, prose, GFM alerts,
   nested lists and tasks, fenced code, aligned tables, metadata, footnotes, references, a table of
   contents, inline formatting, and native mathematical layout. Reader themes and reading widths
@@ -52,18 +53,20 @@ alternative instead of guessing an encoding.
   column. Text selects across blocks with the pointer or Ctrl+A and copies with Ctrl+C, as plain
   text: inline formatting resolves to the words it decorated, a table to tabs and lines, and a
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
-  script.
+  script. Reading width and appearance stay in the centered lower band; zoom is a clickable
+  information-band percentage.
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
-  script, style, template, and embedded-document content never executes.
+  script, style, template, and embedded-document content never executes. Default document text
+  size follows the common zoom control.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. Source files
   are capped at 32 MiB; larger tables retain the bounded streamed basic-text alternative.
 - `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
-  parser. Its centered action group provides zoom, pan, fit, actual size, rotation in either
-  direction, horizontal and vertical reflection, reset, and GIF playback. The information band
-  reports zoom and temporary orientation, so still images need no lower tool band.
+  parser. Its centered lower group provides sibling navigation, orientation commands, and GIF
+  playback. The clickable information-band percentage provides zoom presets, fit, and actual
+  size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
   mute, volume, and matching keyboard controls. It indexes packets without decoding the file up
@@ -80,17 +83,19 @@ alternative instead of guessing an encoding.
   basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.
-  Its paged character map walks mapped Unicode scalars without materializing the whole map.
+  Its paged character map walks mapped Unicode scalars without materializing the whole map; the
+  current range opens shortcuts to common Unicode blocks.
 - `MIDI` parses Standard MIDI Files into a dedicated piano roll. It shows musical duration,
   tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
-  view, and provides horizontal zoom without synthesizing or executing file content.
+  view, and provides horizontal zoom through the common information-band control without
+  synthesizing or executing file content.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
   RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
   still receive signature, size, and entropy analysis. Shared search indexes every decoded report
-  column and reveals folded matches by outlining only the matching text. Its viewer-glyph menu sits
-  in the shared action bar beside search; it copies rows or the report, expands or folds the tree,
-  jumps to a file offset, and walks visited rows backward or forward.
+  column and reveals folded matches by outlining only the matching text. A compact centered lower
+  group walks visited rows backward or forward and opens the structure-command menu for copying,
+  expansion, collapse, and file-offset navigation.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
   aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
   representation, explicit Little/Big byte order, and fixed-width font zoom. Its information-band

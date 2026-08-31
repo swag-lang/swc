@@ -5,14 +5,17 @@ using Core, Gui
 // Visible strings of the PDF viewer.
 struct PdfStrings
 {
-    ui_Previous: string = "Previous page"     // Tooltip of the previous-page button.
-    ui_Next:     string = "Next page"         // Tooltip of the next-page button.
-    ui_ZoomOut:  string = "Zoom out"          // Tooltip of the zoom-out button.
-    ui_ZoomIn:   string = "Zoom in"           // Tooltip of the zoom-in button.
-    ui_Fit:      string = "Fit page"          // Tooltip of the fit-to-window button.
-    ui_Actual:   string = "Actual size"       // Tooltip of the actual-size button.
-    ui_Page:     string = "page"              // One document page.
-    ui_Pages:    string = "pages"             // Several document pages.
+    ui_Previous:  string = "Previous page"                // Tooltip of the previous-page button.
+    ui_Next:      string = "Next page"                    // Tooltip of the next-page button.
+    ui_ZoomOut:   string = "Zoom out"                     // Tooltip of the zoom-out button.
+    ui_ZoomIn:    string = "Zoom in"                      // Tooltip of the zoom-in button.
+    ui_Fit:       string = "Fit page"                     // Tooltip of the fit-to-window button.
+    ui_Actual:    string = "Actual size"                  // Tooltip of the actual-size button.
+    ui_ZoomMenu:  string = "Zoom options"                 // Tooltip of the zoom value menu.
+    ui_GoToPage:  string = "Go to page"                   // Title and tooltip of direct page navigation.
+    ui_PageRange: string = "Page number from 1 to %."     // Direct page navigation prompt.
+    ui_Page:      string = "page"                         // One document page.
+    ui_Pages:     string = "pages"                        // Several document pages.
 }
 
 private const FrenchStringsName = "lang/fr/scope.pdf.tweak"

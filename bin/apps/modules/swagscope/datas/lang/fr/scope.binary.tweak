@@ -1,6 +1,7 @@
 # French strings of the Swag Scope binary format viewer. A key omitted here keeps its English value.
 # Structure and field names are never translated: they are the identifiers the format itself uses.
 
+ui_MenuCommands   Commandes de structure
 ui_ColField       Champ
 ui_ColValue       Valeur
 ui_ColOffset      Décalage

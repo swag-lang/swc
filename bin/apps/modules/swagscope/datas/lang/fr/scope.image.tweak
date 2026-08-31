@@ -6,6 +6,7 @@ ui_TipZoomOut  Dézoomer
 ui_TipZoomIn   Zoomer
 ui_TipFit      Ajuster l'image à la fenêtre
 ui_TipActual   Taille réelle
+ui_ZoomMenu    Options de zoom
 ui_TipTransform Orientation de l'image
 ui_TipPlay     Lire ou mettre en pause
 

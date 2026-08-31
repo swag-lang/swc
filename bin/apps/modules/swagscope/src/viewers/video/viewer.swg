@@ -24,6 +24,7 @@ func videoViewerPlugin()->Viewer.Plugin
 }
 
 private const VideoSeekSeconds                        = 10.0
+private const VideoCommandWidth                       = 1040.0
 private const VideoSeekOverlaySize                    = Math.Point{112, 64}
 private const VideoSeekOverlayOffsetY                 = 56.0
 private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
@@ -499,20 +500,19 @@ internal struct VideoViewer
 
     #[Swag.Late]
     {
-        commands:         *Wnd
-        playButton:       *IconButton
-        stopButton:       *IconButton
-        backwardButton:   *IconButton
-        forwardButton:    *IconButton
-        timeline:         *Slider
-        currentTimeLabel: *Label
-        totalTimeLabel:   *Label
-        audioButton:      *IconButton
-        subtitleButton:   *IconButton
-        muteButton:       *IconButton
-        volumeSlider:     *Slider
-        imageView:        *ImageView
-        subtitleOverlay:  *VideoSubtitleOverlay
+        commands:        *Wnd
+        playButton:      *IconButton
+        stopButton:      *IconButton
+        backwardButton:  *IconButton
+        forwardButton:   *IconButton
+        timeline:        *Slider
+        timeLabel:       *Label
+        audioButton:     *IconButton
+        subtitleButton:  *IconButton
+        muteButton:      *IconButton
+        volumeSlider:    *Slider
+        imageView:       *ImageView
+        subtitleOverlay: *VideoSubtitleOverlay
     }
 
     seekOverlay: #null *VideoSeekOverlay
@@ -840,8 +840,7 @@ internal impl VideoViewer
             }
         }
 
-        .currentTimeLabel.setText(Viewer.timeText(seconds))
-        .totalTimeLabel.setText(Viewer.durationText(duration))
+        .timeLabel.setText(Viewer.timeRangeText(seconds, duration))
     }
 
     mtd seekSeconds(seconds: f64)
@@ -1816,7 +1815,7 @@ private impl VideoViewer
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.commands = host.createCommandGroup(0)
+        result.commands = host.createCommandGroup(VideoCommandWidth)
 
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
@@ -1866,7 +1865,7 @@ private impl VideoViewer
             }
         }
 
-        with result.currentTimeLabel = Label.create(result.commands, "", {0, 0, 56, 36}, null, .SecondaryText)
+        with result.timeLabel = Label.create(result.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
             .margin    = {8, 0, 8, 0}
@@ -1925,13 +1924,6 @@ private impl VideoViewer
             {
                 view.setMuted(button.isChecked)
             }
-        }
-
-        with result.totalTimeLabel = Label.create(result.commands, "", {0, 0, 56, 36}, null, .SecondaryText)
-        {
-            .dockStyle = .Right
-            .margin    = {8, 0, 8, 0}
-            .setTextAlignment(.Left, .Center)
         }
 
         with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})

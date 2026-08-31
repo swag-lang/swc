@@ -81,14 +81,21 @@ impl IWnd for ViewerInfoGroup
 {
     mtd impl measureContent(available: Math.Point)->Math.Point
     {
-        var result: retval
+        var result:     retval
+        var horizontal: f32
+        var center:     f32
         for child in .children where child.isLocallyVisible()
         {
-            let size = child.itf.measureContent(available)
-            result.x = Math.max(result.x, size.x + child.margin.x + child.margin.z)
+            let size  = child.itf.measureContent(available)
+            let width = size.x + child.margin.x + child.margin.z
+            if child.dockStyle == .Left or child.dockStyle == .Right do
+                horizontal += width
+            else do
+                center = Math.max(center, width)
             result.y = Math.max(result.y, size.y + child.margin.y + child.margin.w)
         }
 
+        result.x = horizontal + center
         return result
     }
 }
@@ -99,6 +106,7 @@ private impl ViewerPluginHost
     {
         let result = Wnd.create'Wnd(parent, {0, 0, width, 36})
         result.backgroundStyle = .Transparent
+        result.preferredSize.x = width
         return result
     }
 

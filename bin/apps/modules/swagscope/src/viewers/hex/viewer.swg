@@ -19,10 +19,12 @@ func hexViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const HexCommandWidth = 516.0
-private const HexComboWidth   = 150.0
-private const HexEndianWidth  = 150.0
-private const HexInfoWidth    = 420.0
+private const HexCommandWidth   = 516.0
+private const HexComboWidth     = 150.0
+private const HexEndianWidth    = 150.0
+private const HexInspectorWidth = 420.0
+private const HexZoomWidth      = 96.0
+private const HexInfoWidth      = HexInspectorWidth + HexZoomWidth
 
 // Writes an unsigned scalar in the binary spelling used by the inspector.
 private func formatHexBinaryScalar(value, bits: u64)->String
@@ -90,6 +92,7 @@ internal struct HexViewer
 
     info:                 #null *Wnd
     inspectorLabel:       #null *Label
+    zoomLabel:            #null *IconButton
     searchPattern:        HexSearchPattern
     analysis:             HexAnalysisOperation
     analysisTimer:        #null *Timer
@@ -317,6 +320,34 @@ internal impl HexViewer
         return String.from(Swag.makeString(bytes.buffer!, bytes.count))
     }
 
+    private mtd refreshZoom()
+    {
+        let base    = .themeMetrics().defaultFixedFontSize
+        let percent = cast(u32) Math.round(cast(f32) .grid.fontSize * 100 / cast(f32) base)
+        .zoomLabel?.setText(Format.toString("% %", percent, "%"))
+    }
+
+    private mtd showZoomMenu()
+    {
+        if !.zoomLabel do
+            return
+        let base = .themeMetrics().defaultFixedFontSize
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem("75%", "scope.hex.zoom75")
+        menu.addItem("100%", "scope.hex.zoom100", rightName: "Ctrl+0")
+        menu.addItem("125%", "scope.hex.zoom125")
+        menu.addItem("150%", "scope.hex.zoom150")
+        menu.addItem("200%", "scope.hex.zoom200")
+        switch menu.doModal(.zoomLabel!, autoDestroy: true) orelse ""
+        {
+        case "scope.hex.zoom75":  .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 0.75), 1))
+        case "scope.hex.zoom100": .grid.resetFontSize()
+        case "scope.hex.zoom125": .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 1.25), 1))
+        case "scope.hex.zoom150": .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 1.5), 1))
+        case "scope.hex.zoom200": .grid.setFontSize(base * 2)
+        }
+    }
+
     private mtd inspectorScalar(bytes: const [..] u8, size: u64)->u64
     {
         var result: retval
@@ -472,7 +503,22 @@ internal impl HexViewer
         }
 
         result.info = host.createInfoGroup(HexInfoWidth)
-        with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
+        with result.zoomLabel = IconButton.create(result.info!, {}, {0, 0, HexZoomWidth, 32}, "scope.hex.zoom", .CenterContent)
+        {
+            .dockStyle = .Right
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .toolTip    = hexStrings().ui_ZoomMenu
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
+        }
+
+        with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -571,6 +617,11 @@ internal impl HexViewer
             discard grid
             view.refreshInspector()
         }
+        result.grid.sigZoomChanged += func|view = result|(grid)
+        {
+            discard grid
+            view.refreshZoom()
+        }
         if services.reportFailure
         {
             let report = services.reportFailure!
@@ -581,6 +632,7 @@ internal impl HexViewer
         result.applyLayout()
         result.grid.refreshLayout()
         result.refreshInspector()
+        result.refreshZoom()
         result.setInitialFocus(result.grid)
         result.load.start(host.fileName(), &loadHexDocument)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)

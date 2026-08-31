@@ -14,6 +14,7 @@ struct MarkdownStrings
     ui_Wide:     string = "Wide"                            // Widest fixed reading measure.
     ui_Fluid:    string = "Fluid"                           // Reading measure following the window.
     ui_TipTheme: string = "Markdown appearance"             // Tooltip of the appearance selector.
+    ui_ZoomMenu: string = "Markdown zoom options"           // Tooltip of the zoom value menu.
     ui_ThemeApp: string = "Application"                     // Appearance following the application palette.
     ui_Details:  string = "Markdown · UTF-8 · streamed"     // Summary the host shows beside the file size.
 }

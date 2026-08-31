@@ -55,7 +55,11 @@ internal struct BinaryViewer
 
     #[Swag.Late]
     {
-        list: *ListCtrl
+        commands:      *Wnd
+        backButton:    *IconButton
+        forwardButton: *IconButton
+        moreButton:    *IconButton
+        list:          *ListCtrl
     }
 
     previewBand:             #null *StackLayoutCtrl
@@ -344,6 +348,13 @@ internal impl BinaryViewer
             .history.resize(.historyIndex + 1)
         .history.add(index)
         .historyIndex = .history.count - 1
+        .refreshHistoryCommands()
+    }
+
+    private mtd refreshHistoryCommands()
+    {
+        .backButton.enable(.historyIndex != Swag.U64.Max and .historyIndex != 0)
+        .forwardButton.enable(.historyIndex != Swag.U64.Max and .historyIndex + 1 < .history.count)
     }
 
     mtd navigateHistory(direction: s32)->bool
@@ -359,6 +370,7 @@ internal impl BinaryViewer
         if !.selectReportRow(.history[cast(u64) next], recordHistory: false) do
             return false
         .historyIndex = cast(u64) next
+        .refreshHistoryCommands()
         return true
     }
 
@@ -967,6 +979,43 @@ internal impl BinaryViewer
         result.reportDetails        = services.reportDetails
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
+        result.commands             = host.createCommandGroup(112)
+
+        with result.backButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        {
+            .dockStyle = .Left
+            .toolTip   = s.ui_MenuBack
+            .enable(false)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                discard view.navigateHistory(-1)
+            }
+        }
+
+        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        {
+            .dockStyle = .Left
+            .toolTip   = s.ui_MenuForward
+            .enable(false)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                discard view.navigateHistory(1)
+            }
+        }
+
+        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = s.ui_MenuCommands
+            .sigPressed += func|view = result|(button)
+            {
+                let menu = view.createCommandMenu()
+                discard menu.doModal(cast(*IconButton) button, autoDestroy: true)
+            }
+        }
 
         // The whole report is read in the fixed-width font: every second lane is a number, and a
         // column of hexadecimal that does not line up is a column that has to be read twice.

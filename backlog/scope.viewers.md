@@ -154,9 +154,10 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 
 ### scope.viewers.008 — Viewer commands have no common discoverability or remapping surface
 
-- Evidence: commands are split between icon-only bars, context menus, implicit mouse gestures, and
-  hard-coded key handlers. There is no command palette, shortcut reference, conflict check, or
-  consistent disabled-state explanation.
+- Evidence: viewer commands now occupy one centered lower band, while dynamic zoom/page/range
+  values use consistent clickable controls in the information band. Some operations remain split
+  between compact menus, context menus, and hard-coded key handlers; there is no command palette,
+  shortcut reference, conflict check, or consistent disabled-state explanation.
 - Next: register viewer actions as named commands with default gestures, applicability, and a
   discoverable description before adding a palette and shortcut sheet.
 - Complete when: every non-pointer-only action can be found and invoked by name, shortcuts can be

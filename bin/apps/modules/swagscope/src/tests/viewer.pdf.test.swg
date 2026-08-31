@@ -63,10 +63,12 @@ private func createPdfFixture()->String
     expect pdf.showPage(1)
     Swag.assert(pdf.pageIndex == 1)
     Swag.assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
+    Swag.assert(view.goToTypedPage("1") and pdf.pageIndex == 0)
+    Swag.assert(!view.goToTypedPage("0") and !view.goToTypedPage("3") and !view.goToTypedPage("page"))
     Testing.assertContentFits(view)
 }
 
-// Pins page navigation and magnification as one compact icon family around the page readout.
+// Pins the centered page navigation and the zoom value exposed in the information band.
 #test
 {
     let fileName = createPdfFixture()
@@ -78,18 +80,25 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
     commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
+    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    infoBar.dockStyle       = .Top
+    infoBar.backgroundStyle = .InformationBar
+    infoBar.padding         = {16, 4, 16, 4}
 
-    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null)
+    commandBar.centerGroup = result.commands
+    infoBar.centerGroup    = result.info
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
-    view.commands.dockStyle = .Center
+    view.commands.dockStyle = .None
+    result.info!.dockStyle  = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)

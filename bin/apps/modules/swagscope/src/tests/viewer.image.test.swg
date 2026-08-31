@@ -45,17 +45,19 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let actionBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
-    actionBar.dockStyle       = .Top
+    let actionBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    actionBar.dockStyle       = .Bottom
     actionBar.backgroundStyle = .Window
     actionBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 40})
+    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
     infoBar.dockStyle       = .Bottom
     infoBar.backgroundStyle = .InformationBar
     infoBar.padding         = {16, 4, 16, 4}
 
-    var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: actionBar, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
-    Swag.assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
+    var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: actionBar, actionParent: &host.root, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
+    Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
+    actionBar.centerGroup = result.commands
+    infoBar.centerGroup   = result.info
 
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -83,8 +85,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     view.resetTransform()
     Swag.assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
     view.dockStyle         = .Center
-    view.actions.dockStyle = .Center
-    view.info.dockStyle    = .Center
+    view.actions.dockStyle = .None
+    view.info.dockStyle    = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
@@ -105,14 +107,14 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     defer host.shutdown()
 
     var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
-    Swag.assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
+    Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(!view.failureReason.isEmpty())
 }
 
-// The application hosts image actions in its centred action slot and the zoom in its information
-// row. Without lower commands, the viewer band keeps only the structural integration gutter.
+// The application hosts image navigation in its centered viewer bar and zoom in the information
+// row, leaving the global action bar to search and application-level actions.
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -126,13 +128,13 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     window.openFile(fileName)
     completeImageViewerWindow(&host, window)
 
-    Swag.assert(window.currentActions != null and window.currentActions!.parent == window.commandBar)
+    Swag.assert(window.currentActions == null)
     Swag.assert(window.currentInfo != null and window.currentInfo!.parent == window.infoContentGroup)
     Swag.assert(window.infoContentGroup.position.x + window.currentInfo!.position.right() == window.infoBar.paddedClientRect().right())
     Swag.assert(window.currentInfo!.themeColors().label_TextLight == window.themeColors().label_TextFaint)
     Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo!.position.x) < 0.01)
-    Swag.assert(window.currentCommands == null and window.viewerBar.isLocallyVisible())
-    Swag.assert(window.viewerBar.position.height == window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.currentCommands != null and window.currentCommands!.parent == window.viewerBar)
+    Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerBarHeight)
     Swag.assert(!window.searchGroup.isLocallyVisible())
-    Swag.assert(Math.abs(window.currentActions!.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
+    Swag.assert(Math.abs(window.currentCommands!.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
 }

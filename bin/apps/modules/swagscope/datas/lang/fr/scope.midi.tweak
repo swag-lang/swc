@@ -6,6 +6,7 @@ ui_TrackChoice   % — % notes
 ui_ZoomOut       Réduire le zoom
 ui_ZoomIn        Agrandir le zoom
 ui_Fit           Ajuster la partition complète
+ui_ZoomMenu      Options de zoom
 ui_PianoRoll     PIANO-ROLL
 ui_NoNotes       Aucun événement de note
 ui_Summary       % pistes · % notes · % · % BPM · % · %

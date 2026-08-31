@@ -43,7 +43,10 @@ private func markdownWhiteyFixturePath()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    var result = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
+    let infoBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 40})
+    infoBar.dockStyle = .Bottom
+
+    var result = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: infoBar)
     let wnd    = result.view
     Swag.assert(wnd != null)
     Swag.assert(result.commands != null)

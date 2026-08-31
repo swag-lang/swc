@@ -14,9 +14,12 @@ using Core, Gui
 
     var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null)
-    Swag.assert(result.commands == null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
+    Swag.assert(result.commands == null and result.info != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     Swag.assert(result.isLoading!(result.view!))
     Swag.assert(Utf8.contains(result.details.toString(), "HTML"))
+    let view = cast(*HtmlViewer) result.view!
+    view.setZoom(150)
+    Swag.assert(view.zoomPercent == 150 and view.view.documentStyle.bodyFontSize == 24)
 
     var attempts: u32
     while result.isLoading!(result.view!) and attempts < 100

@@ -108,9 +108,11 @@ struct TextView
     #[Swag.Late]
     {
         commands:      *Wnd
+        info:          *Wnd
         editor:        *RichEditCtrl
         wrapButton:    *IconButton
         encodingCombo: *ComboBox
+        zoomLabel:     *IconButton
     }
 
     stream:            File.FileStream
@@ -128,7 +130,8 @@ struct TextView
     repositioning:     bool
     encoding:          Text.Encoding
     contentStart:      u64
-    wrapping = true
+    wrapping               = true
+    zoomPercent:       u32 = 100
     reportDetails:     #null Viewer.ReportDetails
 }
 
@@ -410,6 +413,35 @@ impl TextView
         .wrapping = !.wrapping
         .updateWrap()
     }
+
+    mtd setZoom(percent: u32)
+    {
+        .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
+        let base = .themeMetrics().defaultFixedFontSize
+        let size = cast(u32) Math.max(Math.round(cast(f32) base * cast(f32) .zoomPercent / 100), 1)
+        .editor.style.setFont(.theme().createDefaultFontFS(size), .Regular)
+        .editor.setFlags(.editor.flags)
+        .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
+        .updateEstimatedHeight()
+    }
+
+    mtd showZoomMenu()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem("75%", "scope.text.zoom75")
+        menu.addItem("100%", "scope.text.zoom100", rightName: "Ctrl+0")
+        menu.addItem("125%", "scope.text.zoom125")
+        menu.addItem("150%", "scope.text.zoom150")
+        menu.addItem("200%", "scope.text.zoom200")
+        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
+        {
+        case "scope.text.zoom75":  .setZoom(75)
+        case "scope.text.zoom100": .setZoom(100)
+        case "scope.text.zoom125": .setZoom(125)
+        case "scope.text.zoom150": .setZoom(150)
+        case "scope.text.zoom200": .setZoom(200)
+        }
+    }
 }
 
 impl IWnd for TextView
@@ -445,10 +477,20 @@ impl IWnd for TextView
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .Pressed and evt.key == .W and evt.modifiers.has(.Control) do
-            .toggleWrap()
-        else do
+        if evt.kind != .Pressed
+        {
             evt.accepted = false
+            return
+        }
+
+        switch evt.key
+        {
+        case .W where evt.modifiers.has(.Control):                   .toggleWrap()
+        case .Add, .OemPlus where evt.modifiers.has(.Control):       .setZoom(.zoomPercent + 25)
+        case .Subtract, .OemMinus where evt.modifiers.has(.Control): .setZoom(.zoomPercent > 50 ? .zoomPercent - 25 : 50)
+        case .D0 where evt.modifiers.has(.Control):                  .setZoom(100)
+        default: evt.accepted = false
+        }
     }
 }
 
@@ -469,6 +511,7 @@ impl TextView
         result.contentStart = probed.contentStart
 
         result.commands = host.createCommandGroup(200)
+        result.info     = host.createInfoGroup(96)
 
         with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
@@ -497,6 +540,21 @@ impl TextView
             {
                 discard combo
                 view.applyEncoding(TextEncodings[index])
+            }
+        }
+
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, 96, 32}, "scope.text.zoom", .CenterContent)
+        {
+            .dockStyle = .Center
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .toolTip    = textStrings().ui_ZoomMenu
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showZoomMenu()
             }
         }
 
@@ -530,6 +588,18 @@ impl TextView
             discard wnd
             switch evt
             {
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+                view.setZoom(view.zoomPercent + 25)
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+                view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+                view.setZoom(100)
+                return true
+
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .Control:
                 view.toggleWrap()
                 return true
@@ -593,6 +663,7 @@ impl TextView
         }
 
         result.updateWrap()
+        result.setZoom(100)
         result.applyLayout()
         result.scheduleMore()
         result.setInitialFocus(result.editor)

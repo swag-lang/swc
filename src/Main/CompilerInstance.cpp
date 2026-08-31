@@ -850,7 +850,7 @@ bool CompilerInstance::matchesTestFilter(const SymbolFunction& symbol) const
         if (!sourceFile)
             return false;
 
-        const Utf8 sourcePath = Utf8Helper::normalizePathForCompare(sourceFile->path());
+        const Utf8 sourcePath  = Utf8Helper::normalizePathForCompare(sourceFile->path());
         const bool matchesFile = std::ranges::any_of(filters, [&sourcePath](const Utf8& filter) {
             const Utf8 normalizedFilter = Utf8Helper::normalizePathForCompare(fs::path(filter.c_str()));
             return sourcePath.view().contains(normalizedFilter.view());

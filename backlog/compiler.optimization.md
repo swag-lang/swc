@@ -719,8 +719,6 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: a read-only by-value aggregate parameter costs no copy after inlining, a written
   one still copies, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-- Related: compiler.optimization.021.
-
 ### compiler.optimization.023 — Eviction-policy changes have no purchase while loop residency covers the hot loops
 
 - Area: compiler/backend

@@ -233,17 +233,6 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
 
-### compiler.core.017 — Compiler linker optimizations are disabled for iteration speed
-
-**Intent.** Restore whole-program optimization in the Release and DevMode configurations of `swc.vcxproj` once link time is acceptable again or when producing a shipping binary: `/GL` with full LTCG in Release, incremental LTCG in DevMode, and `/OPT:REF` plus `/OPT:ICF` in both. They were switched off because LTCG made links far too long for day-to-day iteration; DevMode uses conventional incremental linking in the meantime.
-
-**Complete when.**
-
-- `WholeProgramOptimization` is back to `true` in Release and DevMode.
-- The Release `Link` block uses `UseLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again.
-- The DevMode `Link` block uses `UseFastLinkTimeCodeGeneration`, `OptimizeReferences`, and `EnableCOMDATFolding` again, with conventional incremental linking disabled.
-- The resulting DevMode and Release builds pass their compiler validation workflows.
-
 ### compiler.core.018 — `swc.exe` is still built for the pre-baseline instruction set
 
 **Intent.** `swc.vcxproj` sets no `EnableEnhancedInstructionSet`, so MSVC compiles the compiler itself at the x64 default (SSE2) even though everything it emits, and everything its JIT executes, is now `x86-64-v3`. Raising the compiler's own build to `/arch:AVX2` lets MSVC use the same baseline for `swc`, which is a plain speedup of the compiler.

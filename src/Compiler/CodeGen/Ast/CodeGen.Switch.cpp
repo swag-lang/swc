@@ -718,7 +718,9 @@ namespace
         for (const SwitchStringCase& stringCase : cases)
             sorted.push_back(stringCase);
 
-        const auto chunkKey = [&splitChunk](const SwitchStringCase& stringCase) { return stringChunkValue(stringCase.text, splitChunk); };
+        const auto chunkKey = [&splitChunk](const SwitchStringCase& stringCase) {
+            return stringChunkValue(stringCase.text, splitChunk);
+        };
         std::stable_sort(sorted.begin(), sorted.end(), [&chunkKey](const SwitchStringCase& left, const SwitchStringCase& right) { return chunkKey(left) < chunkKey(right); });
 
         // One target per value the chunk takes; the cases that share a value go on to the next chunk.

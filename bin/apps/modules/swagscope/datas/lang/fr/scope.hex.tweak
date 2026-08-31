@@ -12,16 +12,14 @@ ui_FormatUns     Non signé
 ui_FormatSigned  Signé
 ui_FormatFloat   Flottant
 ui_TipEndian     Ordre des octets des valeurs multi-octets
-ui_TipCommands   Copie, navigation et disposition des lignes
 ui_ZoomMenu      Options de zoom des octets
-ui_Details       hexa et texte · en flux
 ui_TextColumn    texte
 ui_Empty         Ce fichier est vide.
 ui_GoTo          Aller au décalage
 ui_GoToMessage   Décalage hexadécimal ou décimal préfixé par 0d, pourcentage, caret, filesize, ou décalage signé depuis le curseur.
 ui_SelectAll     Tout sélectionner
 ui_RowWidth      Octets par ligne
-ui_RowAuto       Ajuster à la fenêtre
+ui_RowAuto       Auto
 ui_SearchPlaceholder  Hexa, text: ou value:
 ui_SearchHelp         Utilisez des octets hexadécimaux et des jokers ? ; préfixez l’UTF-8 exact par text: ou la valeur active par value:.
 ui_SearchPatternError Utilisez des paires hexadécimales avec les jokers ??, ?A ou A?.

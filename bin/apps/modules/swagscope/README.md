@@ -102,9 +102,10 @@ alternative instead of guessing an encoding.
   inspector reports the exact caret offset and file percentage, selection length, active value,
   and the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
   printable readings. Go To accepts hexadecimal, `0d` decimal, percentage, `caret`, `filesize`, and
-  signed caret-relative positions. A visible commands button exposes copy, navigation, and row
-  layout without requiring a right click. Search accepts byte and nibble wildcards (`4D 5A ??`, `?A`,
-  `A?`), exact UTF-8 through `text:`, and the active scalar and byte order through `value:`. Every
+  signed caret-relative positions. Bytes per row is a global rendering selector beside scalar width,
+  representation, and byte order; copy and navigation stay in the document context menu. Search
+  accepts byte and nibble wildcards (`4D 5A ??`, `?A`, `A?`), exact UTF-8 through `text:`, and the
+  active scalar and byte order through `value:`. Every
   visible result is marked while the shared animated marker identifies the current occurrence.
   A cancellable, streaming analysis of the selection or whole file adds a 256-value byte map,
   exact counts, entropy, zero and printable ratios, and bounded inferred ASCII and UTF-16 strings;

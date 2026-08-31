@@ -676,8 +676,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(grid.doc.window.count <= HexWindowSize)
 }
 
-// The context menu reaches the same commands the keyboard does, and the go-to box opens and closes
-// from inside the viewer without leaving a modal behind.
+// The context menu reaches the same commands the keyboard does, the global row-width selector is
+// independent from it, and the go-to box closes without leaving a modal behind.
 #test
 {
     let fileName = writeStreamedFile(4096)
@@ -691,14 +691,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(ActionHex.SelectAll)
-    view.moreButton.sigPressed.call(cast(*Button) view.moreButton)
+    grid.showContextMenu({120, 120})
     host.pump()
     Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
-    host.openPopupSubMenuWhenShown("Bytes per row")
-    host.thenClickPopupMenuItem(ActionHex.Row32)
-    grid.showContextMenu({120, 120})
-    host.pump()
+    view.rowCombo.setSelectedIndex(3)
     Swag.assert(grid.bytesPerRow == 32 and !grid.autoFitRow)
 
     grid.moveCaret(0x123, false)
@@ -869,7 +866,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(hexStrings().ui_Empty == "Ce fichier est vide.")
     Swag.assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
     Swag.assert(view.widthCombo.toolTip == "Largeur des valeurs")
-    Swag.assert(view.details == "hexa et texte · en flux")
+    Swag.assert(view.rowCombo.selectedItem()!.name.raw == "Auto" and view.rowCombo.toolTip == "Octets par ligne")
     Swag.assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
@@ -901,7 +898,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(grid.doc.window.count <= HexWindowSize)
 }
 
-// The typed command group stays bounded and keeps byte order beside the representation controls.
+// The compact typed command group keeps every rendering option visible without a duplicated menu.
 #test
 {
     let fileName = writeSampleFile()
@@ -912,10 +909,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    Swag.assert(view.commands.position.width <= 560)
+    Swag.assert(view.commands.position.width == 436)
     Swag.assert(view.byteOrderCombo.parent == view.commands and view.byteOrderCombo.selectedIndex == 0)
-    Swag.assert(view.moreButton.parent == view.commands)
-    Swag.assert(view.details == "hex and text · streamed")
+    Swag.assert(view.rowCombo.parent == view.commands and view.rowCombo.selectedIndex == 0)
+    Swag.assert(view.byteOrderCombo.position.right() <= view.rowCombo.position.x)
+    Swag.assert(view.rowCombo.position.right() <= view.commands.clientRect().right())
     Testing.assertContentFits(view)
 
     // At the band a window of the host's minimum size leaves, the bytes still hold the clear

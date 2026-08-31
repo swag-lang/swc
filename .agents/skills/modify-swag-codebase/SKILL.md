@@ -55,9 +55,10 @@ Every compiler invocation launched by an AI agent for compilation or testing mus
 worker pool at six with `--num-cores 6`. This is separate from `/MP6`, which limits the C++
 compiler only while building `swc` itself.
 
-Never invoke `tools/max.bat`. It is an owner-only interactive entry point that deliberately
-uses every logical processor and performs a full LTCG Release link. Agent builds and validations
-must retain the bounded MSBuild and `/MP6` path even when a Release compiler is required.
+Never invoke `tools/release.bat`. It is an owner-only interactive entry point that deliberately
+uses every logical processor. Release always performs a full LTCG link, so an agent may build it
+only when the validation rules require it, after admitting its higher memory demand, and through
+direct MSBuild with both its process count and `/MP` compilation capped at six.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
   `bin\swc.dm.exe`.

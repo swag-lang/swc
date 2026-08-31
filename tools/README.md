@@ -24,14 +24,13 @@ forwarded to the compiler.
 
 ## Build the compiler manually
 
-`max.bat` is the owner-only interactive entry point for producing the most optimized
-`swc.exe`. It gives the C++ compiler all logical processors and enables whole-program optimization,
-aggressive inlining, global-data optimization, full link-time code generation, reference
-elimination, and identical COMDAT folding. It is deliberately excluded from agent and routine
-validation workflows because its compile and link steps can saturate the machine for a long time.
-`release.bat`, `devmode.bat`, direct MSBuild builds, and agent work keep the repository's bounded
-defaults. Release and max builds use separate intermediate trees; switching between them
-invalidates and regenerates `swc.exe` even when no source changed.
+`release.bat` is the owner-only full-machine entry point for producing `swc.exe`. Release always
+enables whole-program optimization, aggressive inlining, global-data optimization, full link-time
+code generation, reference elimination, identical COMDAT folding, and AVX2 code generation. An
+early CPU guard remains at the x64 baseline and runs before CRT, mimalloc, and C++ initialization.
+Agents and routine validation use DevMode whenever its stronger checks cover the changed path. A
+rare required Release validation invokes MSBuild directly with the repository's CPU bound instead
+of using `release.bat`.
 
 ## How a tool is built
 

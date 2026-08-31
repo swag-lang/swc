@@ -25,8 +25,7 @@
         <ConfigurationType>Application</ConfigurationType>
         <UseDebugLibraries>false</UseDebugLibraries>
         <PlatformToolset>v145</PlatformToolset>
-        <WholeProgramOptimization>false</WholeProgramOptimization>
-        <WholeProgramOptimization Condition="'$(SwcFullOptimization)' == 'true'">true</WholeProgramOptimization>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
         <CharacterSet>Unicode</CharacterSet>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="Configuration">
@@ -85,16 +84,15 @@
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
             <ProcessorNumber>$(SwcCompileJobs)</ProcessorNumber>
+            <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+            <AdditionalOptions>/Ob3 /Gw %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <SubSystem>Console</SubSystem>
-            <EnableCOMDATFolding>false</EnableCOMDATFolding>
-            <EnableCOMDATFolding Condition="'$(SwcFullOptimization)' == 'true'">true</EnableCOMDATFolding>
-            <OptimizeReferences>false</OptimizeReferences>
-            <OptimizeReferences Condition="'$(SwcFullOptimization)' == 'true'">true</OptimizeReferences>
+            <EnableCOMDATFolding>true</EnableCOMDATFolding>
+            <OptimizeReferences>true</OptimizeReferences>
             <GenerateDebugInformation>false</GenerateDebugInformation>
-            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-            <LinkTimeCodeGeneration Condition="'$(SwcFullOptimization)' == 'true'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
             <StackReserveSize>8388608</StackReserveSize>
         </Link>
         <Manifest>
@@ -369,6 +367,11 @@
         <ClCompile Include="src\Format\FormatStyle.cpp"/>
         <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
+        <ClCompile Include="src\Main\HostCpuGuard.cpp">
+            <PrecompiledHeader>NotUsing</PrecompiledHeader>
+            <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+            <WholeProgramOptimization>false</WholeProgramOptimization>
+        </ClCompile>
         <ClCompile Include="src\Main\Command\Command.New.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Clean.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Format.cpp"/>

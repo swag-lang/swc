@@ -16,8 +16,11 @@ if not defined MSBUILD (
     exit /b 1
 )
 
+set "SWC_MANUAL_JOBS=%NUMBER_OF_PROCESSORS%"
+if not defined SWC_MANUAL_JOBS set "SWC_MANUAL_JOBS=1"
+
 pushd "%~dp0.."
-"%MSBUILD%" swc.sln /m /p:Configuration=Release /p:Platform=x64
+"%MSBUILD%" swc.sln /m /p:Configuration=Release /p:Platform=x64 /p:SwcCompileJobs=%SWC_MANUAL_JOBS%
 set "BUILD_EXIT=%ERRORLEVEL%"
 popd
 

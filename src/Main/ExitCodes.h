@@ -1,5 +1,6 @@
 #pragma once
-SWC_BEGIN_NAMESPACE();
+namespace swc
+{
 
 enum class ExitCode
 {
@@ -11,4 +12,4 @@ enum class ExitCode
     CompileError      = 5,
 };
 
-SWC_END_NAMESPACE();
+}

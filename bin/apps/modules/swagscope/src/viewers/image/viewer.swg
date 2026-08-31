@@ -24,10 +24,18 @@ func imageViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const ImageCommandWidth = 104.0
-private const GifCommandWidth   = 352.0
-private const ImageInfoWidth    = 156.0
-private const SvgRasterLimit    = 2048.0
+private const ImageInfoWidth = 156.0
+private const SvgRasterLimit = 2048.0
+
+private func imageCommandWidth(metrics: const *ThemeMetrics)->f32
+{
+    return 2 * themeActionButtonSize(metrics) + themeDropDownButtonWidth(metrics) + 8
+}
+
+private func gifCommandWidth(metrics: const *ThemeMetrics)->f32
+{
+    return imageCommandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
+}
 
 struct ImageViewerContent
 {
@@ -135,8 +143,9 @@ internal impl ImageViewer
 
     mtd showPlayback()
     {
-        .actions.preferredSize.x = GifCommandWidth
-        .actions.resize(GifCommandWidth, 36)
+        let width = gifCommandWidth(.themeMetrics())
+        .actions.preferredSize.x = width
+        .actions.resize(width, themeActionButtonSize(.themeMetrics()))
         .playButton.show()
         .timeline.show()
         .frameLabel.show()
@@ -353,7 +362,7 @@ private impl ImageViewer
         result.reportChromeChanged  = services.reportChromeChanged
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.actions = host.createCommandGroup(ImageCommandWidth)
+        result.actions = host.createCommandGroup(imageCommandWidth(result.themeMetrics()))
         result.info    = host.createInfoGroup(ImageInfoWidth)
 
         with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
@@ -385,7 +394,7 @@ private impl ImageViewer
             .dockStyle = .Left
             .margin.x  = 8
             .toolTip   = imageStrings().ui_TipTransform
-            .setArrowPosition(.RightDownward)
+            .setArrowPosition(.RightUpward)
             .sigPressed += func|view = result|(button)
             {
                 discard button

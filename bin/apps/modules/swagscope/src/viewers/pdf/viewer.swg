@@ -19,7 +19,28 @@ func pdfViewerPlugin()->Viewer.Plugin
 
 private const PdfPageWidth = 76.0
 private const PdfZoomWidth = 96.0
-private const PdfInfoWidth = 2 * 32.0 + PdfPageWidth + PdfZoomWidth + 24.0
+
+private func pdfInfoWidth(metrics: const *ThemeMetrics)->f32
+{
+    return 2 * themeActionButtonSize(metrics) + PdfPageWidth + PdfZoomWidth + 16
+}
+
+// Keeps the page controls and zoom selector in one fixed-width run. Their authored cells are
+// wider than their current text and icons, so measuring each child by its contents would let the
+// host shrink the group until the left- and right-docked controls overlap.
+private struct PdfInfoControls
+{
+    using wnd: Wnd
+}
+
+private impl IWnd for PdfInfoControls
+{
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+        return .preferredSize
+    }
+}
 
 struct PdfViewerContent
 {
@@ -220,11 +241,14 @@ private impl PdfViewer
 
         result.info = info
 
-        with result.previousButton = IconButton.create(result.info, result.theme().icon(.ChevronLeft, themeRowIconSize(result.themeMetrics())), {0, 0, 32, 32})
+        let actionSize = themeActionButtonSize(result.themeMetrics())
+        let iconSize   = themeActionIconSize(result.themeMetrics())
+        with result.previousButton = IconButton.create(result.info, result.theme().icon(.ChevronLeft, iconSize), {0, 0, actionSize, actionSize})
         {
-            .dockStyle  = .Left
-            .toolTip    = pdfStrings().ui_Previous
-            .sigPressed += func|view = result|(button)
+            .dockStyle       = .Left
+            .preferredSize.x = actionSize
+            .toolTip         = pdfStrings().ui_Previous
+            .sigPressed      += func|view = result|(button)
             {
                 discard button
                 view.pdfView.previousPage()
@@ -233,8 +257,9 @@ private impl PdfViewer
 
         with result.pageLabel = IconButton.create(result.info, {}, {0, 0, PdfPageWidth, 32}, "scope.pdf.page", .CenterContent)
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
+            .dockStyle       = .Left
+            .preferredSize.x = PdfPageWidth
+            .margin.x        = 8
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
             .toolTip    = pdfStrings().ui_GoToPage
@@ -245,11 +270,12 @@ private impl PdfViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.info, result.theme().icon(.ChevronRight, themeRowIconSize(result.themeMetrics())), {0, 0, 32, 32})
+        with result.nextButton = IconButton.create(result.info, result.theme().icon(.ChevronRight, iconSize), {0, 0, actionSize, actionSize})
         {
-            .dockStyle  = .Left
-            .toolTip    = pdfStrings().ui_Next
-            .sigPressed += func|view = result|(button)
+            .dockStyle       = .Left
+            .preferredSize.x = actionSize
+            .toolTip         = pdfStrings().ui_Next
+            .sigPressed      += func|view = result|(button)
             {
                 discard button
                 view.pdfView.nextPage()
@@ -258,8 +284,9 @@ private impl PdfViewer
 
         with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, PdfZoomWidth, 32}, "scope.pdf.zoom", .CenterContent)
         {
-            .dockStyle = .Right
-            .margin.x  = 8
+            .dockStyle       = .Right
+            .preferredSize.x = PdfZoomWidth
+            .margin.x        = 8
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
@@ -306,8 +333,14 @@ private impl PdfViewer
 // Creates the integrated PDF view.
 func createPdfViewer(host: Viewer.Host)
 {
-    let services = host.services()
-    let view     = PdfViewer.create(host.contentParent(), host.createInfoGroup(PdfInfoWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let services  = host.services()
+    let infoWidth = pdfInfoWidth(host.contentParent().themeMetrics())
+    let infoGroup = host.createInfoGroup(infoWidth)
+    let info      = Wnd.create'PdfInfoControls(infoGroup, {0, 0, infoWidth, 36})
+    info.dockStyle       = .Left
+    info.backgroundStyle = .Transparent
+    info.preferredSize.x = infoWidth
+    let view = PdfViewer.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
 
     // PDF text lives compressed inside the file, so the viewer indexes every page and hands the

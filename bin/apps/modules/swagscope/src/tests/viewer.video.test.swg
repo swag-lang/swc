@@ -542,7 +542,8 @@ func videoMatroskaFixturePath()->String
     view.commands.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
-    Swag.assert(view.audioButton.position.width == 36)
+    Swag.assert(view.audioButton.position.width == themeDropDownButtonWidth(view.themeMetrics()))
+    Swag.assert(view.audioButton.arrowPosition == .RightUpward and view.subtitleButton.arrowPosition == .RightUpward)
     Swag.assert(view.timeLabel.position.right() <= view.timeline.position.x)
     Swag.assert(view.timeline.position.right() <= view.muteButton.position.x)
     Swag.assert(view.timeLabel.textHorizontalAlignment == .Right)

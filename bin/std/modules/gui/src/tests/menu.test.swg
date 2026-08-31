@@ -429,6 +429,45 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
+// A button below its menu carries the same integrated outline, reflected around the shared edge.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 240)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let button = IconButton.create(&host.root, host.theme.icon(.Redo, 20), {24, 198, 52, 36}, flags: .CenterContent)
+    button.setArrowPosition(.RightUpward)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Rotate counter-clockwise", Menu_Open, host.theme.icon(.Undo, 16))
+    popup.addItem("Rotate clockwise", Menu_New, host.theme.icon(.Redo, 16))
+    popup.addSeparator()
+    popup.addItem("Reset transform", Menu_Quit, host.theme.icon(.Update, 16))
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        let anchor = button.surfaceRect()
+        Swag.assert(popup.popupAnchorButton == button and popup.popupButtonOpensUp)
+        Swag.assert(popup.position.y + popup.getPopupBodyRect().bottom() == anchor.y)
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor-up")
+        Swag.assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal(button, autoDestroy: true)
+    Swag.assert(checked)
+    host.pump()
+}
+
 // An anchored menu that is taller than the room above its button keeps its shadow and content
 // inside the top edge instead of leaving the menu body glued beyond the window.
 #test

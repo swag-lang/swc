@@ -236,7 +236,7 @@ internal impl FontViewer
         {
             .dockStyle = .Left
             .margin.x  = 8
-            .setArrowPosition(.RightDownward)
+            .setArrowPosition(.RightUpward)
             .setForm(.Rectangle)
             .style.setFont(result.theme().res.fontDefaultFs)
             .toolTip    = fontStrings().ui_CharacterRange

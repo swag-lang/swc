@@ -89,6 +89,7 @@ public struct MenuCtrl
     popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
     popupAnchorButton:       #null *IconButton      // Icon button repainted as the tab of an attached popup.
+    popupButtonOpensUp:      bool                   // Whether an attached icon-button menu opens above its tab.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
 }
@@ -516,7 +517,8 @@ impl MenuCtrl
     {
         .popupBarItemIdx = Swag.U32.Max
         .popupBarItemSurfaceRect.clear()
-        .popupAnchorButton = null
+        .popupAnchorButton  = null
+        .popupButtonOpensUp = false
     }
 
     private mtd setPopupBarAnchor(itemIdx: u32, itemSurfaceRect: Math.Rectangle)
@@ -529,6 +531,7 @@ impl MenuCtrl
     {
         .popupAnchorButton       = button
         .popupBarItemSurfaceRect = button.surfaceRect()
+        .popupButtonOpensUp      = button.arrowPosition == .RightUpward
     }
 
     private mtd getPopupBarAnchorHeight()->f32
@@ -577,8 +580,9 @@ impl MenuCtrl
         let anchorHeight   = .getPopupBarAnchorHeight()
         if anchorHeight
         {
-            result.y      += anchorHeight
             result.height -= anchorHeight
+            if !.popupButtonOpensUp do
+                result.y += anchorHeight
         }
 
         if !.paintByFrame do
@@ -604,27 +608,43 @@ impl MenuCtrl
         // repaints the stretch of the popup's own outline the two shapes share, so the bar item
         // and the popup read as one form rather than as a box sitting on a lid.
         var anchorBk = anchorRect
-        anchorBk.setBottom(bodyRect.y + metrics.menuPopup_BarItemOverlap)
-        theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
+        if .popupButtonOpensUp
+        {
+            let bottom = anchorBk.bottom()
+            anchorBk.y      = bodyRect.bottom() - metrics.menuPopup_BarItemOverlap
+            anchorBk.height = bottom - anchorBk.y
+        }
+        else do
+            anchorBk.setBottom(bodyRect.y + metrics.menuPopup_BarItemOverlap)
+        .drawPopupBarAnchorRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
 
         // The outline stops on that line instead of following the fill down. Carried the whole
         // way it ended a dozen pixels inside the body, and the two sides of the anchor read as
         // stubs hanging off the shape they were meant to continue.
         var anchorBorder = anchorBk
-        anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
-        theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+        if .popupButtonOpensUp
+        {
+            let bottom = anchorBorder.bottom()
+            anchorBorder.y      = bodyRect.bottom() - metrics.wnd_BorderSize
+            anchorBorder.height = bottom - anchorBorder.y
+        }
+        else do
+            anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
+        .drawPopupBarAnchorRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
         // The body's rounded corner does not reach its vertical edge until one radius below the
         // top. When the anchor shares that outer edge, continue its hairline through the overlap;
         // otherwise the two independently rounded tiles leave a visible break at the junction.
         if Math.abs(anchorRect.x - bodyRect.x) < metrics.wnd_BorderSize
         {
-            painter.fillRect({bodyRect.x, bodyRect.y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
+            let y = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y
+            painter.fillRect({bodyRect.x, y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
         }
 
         if Math.abs(anchorRect.right() - bodyRect.right()) < metrics.wnd_BorderSize
         {
-            painter.fillRect({bodyRect.right() - metrics.wnd_BorderSize, bodyRect.y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
+            let y = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y
+            painter.fillRect({bodyRect.right() - metrics.wnd_BorderSize, y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
         }
 
         if .popupAnchorButton
@@ -654,6 +674,25 @@ impl MenuCtrl
         }
 
         painter.drawRichString(labelPos, &i.name, format)
+    }
+
+    // The atlas carries the downward-opening tab. Reflecting it around its own center preserves
+    // the same corners and hairline when the button sits below the popup body.
+    private mtd drawPopupBarAnchorRect(painter: *Painter, rect: Math.Rectangle, subRect: *ThemeImageRect, color: Color, interpol = InterpolationMode.Linear)
+    {
+        let theme = .theme()
+        if !.popupButtonOpensUp
+        {
+            theme.drawSubRect(painter, rect, subRect, color, interpol: interpol)
+            return
+        }
+
+        let base = painter.transform()
+        var flip = Math.Transform2.createScale(1, -1, rect.horzCenter(), rect.vertCenter())
+        flip.multiply(base)
+        painter.setTransform(flip)
+        theme.drawSubRect(painter, rect, subRect, color, interpol: interpol)
+        painter.setTransform(base)
     }
 
     mtd setEndModal(result: #null WndId)
@@ -1018,6 +1057,8 @@ impl MenuCtrl
         // Add padding
         .position.width  += .padding.x + .padding.z
         .position.height += .padding.w
+        if .popupButtonOpensUp do
+            .position.height += .getPopupBarAnchorHeight()
     }
 }
 
@@ -1250,11 +1291,12 @@ public impl MenuCtrl
         .dirtyLayout = true
     }
 
-    // Runs a popup menu joined to a [[Gui.IconButton]] and returns its selected command, or null
-    // when dismissed.
+    // Runs a popup menu joined to a [[Gui.IconButton]] and returns its selected command, or null when dismissed.
     //
     // The button is repainted as the popup's opening tab instead of pointing at a detached box
-    // with a notch. When `autoDestroy` is true, the menu destroys itself after the modal loop.
+    // with a notch. A [[Gui.IconButtonArrowPosition.RightUpward]] marker opens the menu above the
+    // button; every other marker opens it below. When `autoDestroy` is true, the menu destroys
+    // itself after the modal loop.
     mtd doModal(button: *IconButton, autoDestroy: bool = false)->#null WndId
     {
         return .doModalImpl({}, .TopLeft, autoDestroy, button)
@@ -1306,7 +1348,8 @@ public impl MenuCtrl
         {
             let anchor = .popupBarItemSurfaceRect
             let sdw    = .themeMetrics().menuPopup_ShadowSize
-            pt = .parent!.surfaceToLocal({anchor.x - sdw, anchor.y - sdw})
+            let y      = .popupButtonOpensUp ? anchor.y - (.position.height - anchor.height - sdw) : anchor.y - sdw
+            pt = .parent!.surfaceToLocal({anchor.x - sdw, y})
             .setPosition({pt.x, pt.y, .position.width, .position.height})
         }
 

@@ -39,6 +39,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    Swag.assert(view.pageLabel.arrowPosition == .RightUpward)
     Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
     Swag.assert(view.document.hasCharacter('A'))
     let firstStart = view.document.pageStart

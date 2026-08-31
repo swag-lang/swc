@@ -1870,10 +1870,11 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .toolTip   = videoStrings().ui_TipAudio
+            .setArrowPosition(.RightUpward)
             .enable(false)
             .sigPressed += func|view = result|(button)
             {
@@ -1882,12 +1883,13 @@ private impl VideoViewer
             }
         }
 
-        with result.subtitleButton = IconButton.create(result.commands, {}, {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
+        with result.subtitleButton = IconButton.create(result.commands, {}, {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.x  = 8
             .toolTip   = videoStrings().ui_TipSubtitles
             .setText("CC")
+            .setArrowPosition(.RightUpward)
             .style.setFont(result.theme().createDefaultFont(10, .Bold), .Regular)
             .enable(false)
             .sigPressed += func|view = result|(button)

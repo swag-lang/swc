@@ -92,18 +92,65 @@ private func createPdfFixture()->String
 
     var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands == null and result.info != null)
-    infoBar.centerGroup    = result.info
+    infoBar.centerGroup = result.info
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    view.dockStyle          = .Center
-    result.info!.dockStyle  = .None
+    view.dockStyle         = .Center
+    result.info!.dockStyle = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
 
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.pdf.document")
+}
+
+// Pins the PDF controls inside the application's real information-row layout. The row measures
+// viewer contributions before positioning them, so every fixed page and zoom cell must report the
+// width its docking pass will consume.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = createPdfFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(ViewerMinWidth, ViewerInfoHeight)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+    host.root.backgroundStyle = .InformationBar
+    host.root.padding         = {8, 2, 8, 2}
+
+    let document = Wnd.create'Wnd(&host.root)
+    document.hide()
+    let layout = Wnd.create'ViewerInfoLayout(&host.root)
+    layout.dockStyle       = .Center
+    layout.backgroundStyle = .Transparent
+
+    let actionSize = themeActionButtonSize(layout.themeMetrics())
+    layout.filesButton = IconButton.create(layout, layout.theme().icon(.History, themeActionIconSize(layout.themeMetrics())), {0, 0, actionSize, actionSize})
+    layout.filesButton.hide()
+    layout.fileGroup = StackLayoutCtrl.create(layout, .Left, {0, 0, 0, 36})
+    let name = Label.create(layout.fileGroup, "viewer.pdf", {0, 0, 0, 36})
+    name.preferredSize.x = Math.ceil(name.itf.measureContent({}).x)
+    layout.generalLabel  = Label.create(layout, "PDF", {0, 0, 0, 36}, null, .SecondaryText)
+
+    var result = openTestViewer(pdfViewerPlugin(), document, fileName.toString(), commandParent: document, infoParent: layout)
+    Swag.assert(result.view != null and result.info != null)
+    let view = cast(*PdfViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    host.root.applyLayout()
+    layout.computeLayout()
+
+    Swag.assert(result.info!.position.width == 2 * themeActionButtonSize(view.themeMetrics()) + 76 + 96 + 16)
+    Swag.assert(view.previousButton.position.right() <= view.pageLabel.position.x)
+    Swag.assert(view.pageLabel.position.right() <= view.nextButton.position.x)
+    Swag.assert(view.nextButton.position.right() <= view.zoomLabel.position.x)
+
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "viewer.pdf.info-bar")
 }
 
 #test

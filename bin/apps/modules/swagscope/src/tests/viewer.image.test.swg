@@ -66,7 +66,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     view.userData = &navigation
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
     Swag.assert(view.previousButton.icon.isValid() and view.nextButton.icon.isValid())
-    Swag.assert(view.transformButton.arrowPosition == .RightDownward)
+    Swag.assert(view.transformButton.arrowPosition == .RightUpward)
+    Swag.assert(view.actions.preferredSize.x == 2 * themeActionButtonSize(view.themeMetrics()) + themeDropDownButtonWidth(view.themeMetrics()) + 8)
+    Swag.assert(view.transformButton.position.right() <= view.actions.clientRect().right())
     let transformMenu = view.createTransformMenu()
     defer transformMenu.destroy()
     Swag.assert(transformMenu.itemAt(0).name.raw == imageStrings().ui_RotateCounterClockwise)

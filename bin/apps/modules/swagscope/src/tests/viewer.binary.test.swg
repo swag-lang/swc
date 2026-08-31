@@ -892,6 +892,41 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     Swag.assert(view.list.selectedLine() == null)
 }
 
+// Filtering reuses the report search semantics, retains the ancestry of nested matches, and does
+// not remove the ordinary occurrence index from the rows that remain visible.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_filter", bytes.toSlice())
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(1100, 640)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    view.applyFilter("file offset of the PE signature", {})
+    while view.filterTimer do
+        host.pump()
+
+    var matched = Swag.U64.Max
+    for row, index in view.doc.report.rows where row.label == "e_lfanew" do
+        matched = index
+    Swag.assert(matched != Swag.U64.Max and view.rowLines[matched] != null)
+    Swag.assert(view.rowLines[matched]!.parent != null)
+    Swag.assert(view.list.lineCount() < view.doc.report.rows.count)
+
+    var matches: Array'Viewer.SearchMatch
+    view.collectMatches("e_lfanew", {}, &matches)
+    Swag.assert(matches.count == 1 and matches[0].major == matched)
+
+    view.applyFilter("", {})
+    while view.filterTimer do
+        host.pump()
+    for line in view.rowLines do
+        Swag.assert(line != null)
+}
+
 // A searchable binary leaves the global action bar to the host and exposes only its compact
 // history and structure commands in the centered viewer bar.
 #[Swag.TestTag("golden")]
@@ -920,6 +955,20 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     var image = host.render(window.commandBar)
     image.crop(window.commandBar.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.binary.action-bar")
+
+    image = host.render(window.viewerBar)
+    image.crop(window.viewerBar.surfaceRect())
+    Pixel.Testing.assertImageGolden(&image, "viewer.binary.viewer-bar")
+
+    window.searchFilterMode = true
+    window.updateSearchAvailability()
+    window.searchBox.setText("header")
+    while (cast(*BinaryViewer) window.currentView!).filterTimer do
+        host.pump()
+    host.settleAnimations(window.commandBar, 4)
+    image = host.render(window.commandBar)
+    image.crop(window.commandBar.surfaceRect())
+    Pixel.Testing.assertImageGolden(&image, "viewer.binary.filter-bar")
 }
 
 // The report, its headings, and its controls all follow a live language change.

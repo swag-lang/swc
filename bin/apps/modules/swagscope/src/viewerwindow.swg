@@ -14,7 +14,6 @@ const ViewerInfoFileSpacing                   = 8.0
 const ViewerInfoSideButtonSpacing             = 8.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
-const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerSize                = 56.0
 const ViewerLoadingSpinnerMinRadius           = 15.0
@@ -40,9 +39,6 @@ internal func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f
     result.start  = phase * 540 - 90 - result.sweep * 0.5
     return result
 }
-
-const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 276.0
@@ -543,7 +539,6 @@ struct ViewerWindow
         openButton:          *IconButton
         openDefaultButton:   *IconButton
         filesButton:         *IconButton
-        fullScreenButton:    *IconButton
         searchGroup:         *StackLayoutCtrl
         searchNavigation:    *StackLayoutCtrl
         searchBox:           *EditBox
@@ -622,6 +617,7 @@ struct ViewerWindow
     searchMatchCaseOption:   bool
     searchWholeWordOption:   bool
     searchRegexOption:       bool
+    searchFilterMode:        bool
     pendingFile:             String
     pendingEmpty:            String
     pendingRemember:         bool = true
@@ -650,12 +646,6 @@ struct ViewerWindow
     fileDlgState:              FileDlgState
     themeIndex:                u32
     language:                  String
-    fullScreen:                bool
-    fullScreenWasMaximized:    bool
-    fullScreenRestorePosition: Math.Rectangle
-    fullScreenRestoreFlags:    SurfaceFlags
-    fullScreenTopVisible:      bool
-    fullScreenBottomVisible:   bool
     smokeDirectory:            String
     smokeSpecIndex:            u64
     smokeWaitSteps:            u32
@@ -706,15 +696,12 @@ impl IWnd for ViewerWindow
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .Move or evt.kind == .Enter do
-            .updateFullScreenChrome(evt.surfacePos)
         evt.accepted = false
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        .layoutFullScreenChrome()
     }
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)
@@ -745,11 +732,7 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if evt.key == .F11 and evt.modifiers == .None do
-            .setFullScreen(!.fullScreen)
-        elif evt.key == .Escape and evt.modifiers == .None and .fullScreen do
-            .setFullScreen(false)
-        elif evt.key == .O and evt.modifiers.has(.Control) do
+        if evt.key == .O and evt.modifiers.has(.Control) do
             .chooseFile()
         elif evt.key == .F and evt.modifiers.has(.Control) do
             .showSearch()
@@ -819,8 +802,6 @@ impl IWnd for ViewerWindow
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        if .fullScreen do
-            .setFullScreen(false)
         catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
@@ -869,6 +850,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &g_VideoSubtitleSettings)
+        catch evt.serializer.serialize("ViewerWindow.markdown", &g_MarkdownViewerSettings)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
@@ -882,6 +864,8 @@ impl IWnd for ViewerWindow
             .folderHistoryButton.enable(!.folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
             g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
+            g_MarkdownViewerSettings.themeIndex = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
+            g_MarkdownViewerSettings.widthIndex = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
         }
     }
 
@@ -947,9 +931,9 @@ impl ViewerWindow
     mtd refreshArtwork()
     {
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
-        .searchOptionsButton.setIcon(.theme().icon(.Options, themeActionIconSize(.themeMetrics())))
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
+        .refreshSearchPresentation()
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
     }
@@ -968,133 +952,18 @@ impl ViewerWindow
         .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
     }
 
-    // A monitor-sized full-screen placement is transient and must never replace the saved
-    // window placement. Closing first restores the regular placement, then persists it.
     private mtd saveState() fail
     {
-        if .fullScreen do
-            return
         try g_App.saveState()
     }
 
-    // Keeps a four-pixel structural edge when the selected viewer has no command bar. Full screen
-    // remains immersive and reveals the complete command bar only when the viewer owns one.
+    // Keeps a four-pixel structural edge when the selected viewer has no command bar.
     private mtd updateViewerBar()
     {
         .viewerBar.centerGroup     = .currentCommands
         .viewerBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
-        if .fullScreen do
-            .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
-        else do
-            .viewerBar.show()
+        .viewerBar.show()
         .viewerBar.centerContent()
-    }
-
-    // Enters or leaves a borderless monitor-sized presentation without losing the reader's
-    // previous window placement or maximized state.
-    mtd setFullScreen(enabled: bool)
-    {
-        if .fullScreen == enabled do
-            return
-
-        let srfn = .surface!
-        if enabled
-        {
-            .fullScreenRestorePosition = srfn.isMaximized ? srfn.restoredPosition : srfn.position
-            .fullScreenRestoreFlags    = srfn.flags
-            .fullScreenWasMaximized    = srfn.isMaximized
-            if srfn.isMaximized do
-                srfn.showNormal()
-
-            .fullScreen = true
-            srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
-            .accentRail.hide()
-            .commandBar.dockStyle  = .None
-            .infoBarHost.dockStyle = .None
-            .viewerBar.dockStyle   = .None
-            .commandBar.hide()
-            .infoBarHost.hide()
-            .viewerBar.hide()
-            .filePanelHost.hide()
-            .filesButton.hide()
-            .currentSidePanelHost?.hide()
-            .currentSidePanelButton?.hide()
-            .infoContentGroup.sideButton = null
-            .fullScreenTopVisible        = false
-            .fullScreenBottomVisible     = false
-            .applyLayout()
-            srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
-        }
-        else
-        {
-            .fullScreen = false
-            srfn.updateFlags(add: .fullScreenRestoreFlags & (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags), remove: (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags) & ~.fullScreenRestoreFlags)
-            .accentRail.show()
-            .commandBar.dockStyle  = .Top
-            .infoBarHost.dockStyle = .Top
-            .viewerBar.dockStyle   = .Bottom
-            .commandBar.show()
-            .infoBarHost.show()
-            .updateViewerBar()
-            .filePanelHost.show(.panelVisible)
-            .filesButton.show()
-            .currentSidePanelButton?.show()
-            .currentSidePanelHost?.show(.currentSidePanelButton?.isChecked orelse false)
-            .infoContentGroup.sideButton = .currentSidePanelButton
-            .fullScreenTopVisible        = false
-            .fullScreenBottomVisible     = false
-            .applyLayout()
-            srfn.setPosition(.fullScreenRestorePosition)
-            if .fullScreenWasMaximized do
-                srfn.showMaximized()
-        }
-
-        srfn.invalidate()
-        .fullScreenButton.setChecked(.fullScreen)
-        .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, themeActionIconSize(.themeMetrics())))
-        .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
-    }
-
-    // Reveals full-screen chrome only while the pointer is at the corresponding screen edge.
-    mtd updateFullScreenChrome(position: Math.Point)
-    {
-        if !.fullScreen do
-            return
-        let height = .clientRect().height
-        let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerActionBarHeight + .infoBarHost.position.height)
-        let bottom = position.y >= height - ViewerFullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - ViewerBarHeight)
-        if top == .fullScreenTopVisible and bottom == .fullScreenBottomVisible do
-            return
-        .fullScreenTopVisible    = top
-        .fullScreenBottomVisible = bottom
-        .layoutFullScreenChrome()
-    }
-
-    // Positions the transient bars over the content without changing its full-screen rectangle.
-    mtd layoutFullScreenChrome()
-    {
-        if !.fullScreen do
-            return
-        let rect = .clientRect()
-        .commandBar.show(.fullScreenTopVisible)
-        .infoBarHost.show(.fullScreenTopVisible)
-        .updateViewerBar()
-        if .fullScreenTopVisible
-        {
-            .commandBar.setPosition({rect.x, rect.y, rect.width, ViewerActionBarHeight}, computeLayout: false)
-            .infoBarHost.setPosition({rect.x, rect.y + ViewerActionBarHeight, rect.width, .infoBarHost.position.height}, computeLayout: false)
-            .commandBar.applyLayout()
-            .infoBarHost.applyLayout()
-            .commandBar.bringToFront()
-            .infoBarHost.bringToFront()
-        }
-
-        if .fullScreenBottomVisible and .currentCommands
-        {
-            .viewerBar.setPosition({rect.x, rect.bottom() - ViewerBarHeight, rect.width, ViewerBarHeight}, computeLayout: false)
-            .viewerBar.applyLayout()
-            .viewerBar.bringToFront()
-        }
     }
 
     func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
@@ -1154,17 +1023,6 @@ impl ViewerWindow
             {
                 discard button
                 window.openCurrentFileDefault()
-            }
-        }
-
-        with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
-        {
-            .dockStyle = .Right
-            .toolTip   = appStrings().ui_FullScreen
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
-            {
-                window.setFullScreen(button.isChecked)
             }
         }
 
@@ -1544,9 +1402,8 @@ impl ViewerWindow
             discard wnd
             switch evt
             {
-            case KeyEvent as key where window.routePlaybackKey(key):                    return true
-            case KeyEvent as key where window.routeSearchNavigationKey(key):            return true
-            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
+            case KeyEvent as key where window.routePlaybackKey(key):         return true
+            case KeyEvent as key where window.routeSearchNavigationKey(key): return true
             }
 
             return false
@@ -1610,6 +1467,18 @@ impl ViewerWindow
     // Opens `fileName` after the surface has had a chance to paint its first frame.
     mtd queueFile(fileName: string, remember = true)
     {
+        // A query belongs to the document it was started against. Stop its file stream as soon as
+        // another document is requested instead of letting it scan the old file while the new one
+        // is being classified.
+        .stopSearch()
+        .searchBox.setText("", notify: false)
+        .searchQuery.clear()
+        .searchMatches.clear()
+        .searchIndex    = Swag.U64.Max
+        .searchMatch    = Swag.U64.Max
+        .searchComplete = false
+        .refreshSearchReadout()
+
         .pendingFile = fileName
         .pendingEmpty.clear()
         .pendingRemember = remember
@@ -1866,7 +1735,7 @@ impl ViewerWindow
         .infoSizeLabel.toolTip = ""
         .layoutFileInfo()
         .infoIconLabel.setIcon({})
-        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
+        .infoBarHost.show()
         .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .updateSearchAvailability()
@@ -1939,7 +1808,7 @@ impl ViewerWindow
         .currentSidePanelButton      = button
         .infoContentGroup.sideButton = button
 
-        if button and !.fullScreen
+        if button
         {
             button.show()
             panel?.show(button.isChecked)
@@ -2044,6 +1913,7 @@ impl ViewerWindow
             instance.searchBounds        = null
             instance.clearSearch         = null
             instance.collectMatches      = null
+            instance.filterSearch        = null
             instance.describeSearch      = null
             instance.prepareSearch       = null
             instance.collectFileMatches  = null
@@ -2111,6 +1981,7 @@ impl ViewerWindow
         instance.searchBounds        = null
         instance.clearSearch         = null
         instance.collectMatches      = null
+        instance.filterSearch        = null
         instance.describeSearch      = null
         instance.prepareSearch       = null
         instance.collectFileMatches  = null
@@ -2157,7 +2028,6 @@ impl ViewerWindow
             .loadingOverlay.cover(.currentView!.position)
             .loadingOverlay.show()
             .loadingOverlay.bringToFront()
-            .layoutFullScreenChrome()
         }
         else do
             .loadingOverlay.hide()
@@ -2255,6 +2125,7 @@ impl ViewerWindow
             next.searchBounds        = null
             next.clearSearch         = null
             next.collectMatches      = null
+            next.filterSearch        = null
             next.describeSearch      = null
             next.prepareSearch       = null
             next.collectFileMatches  = null
@@ -2365,18 +2236,35 @@ impl ViewerWindow
 
     private mtd showSearchOptionsMenu()
     {
+        const SearchModeId = "scope.search.mode.search"
+        const FilterModeId = "scope.search.mode.filter"
         const MatchCaseId = "scope.search.matchCase"
         const WholeWordId = "scope.search.wholeWord"
         const RegExpId    = "scope.search.regularExpression"
 
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
+        let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
+        if canFilter
+        {
+            menu.addItem(texts.ui_SearchMode, SearchModeId, checked: !.searchFilterMode)
+            menu.addItem(texts.ui_FilterMode, FilterModeId, checked: .searchFilterMode)
+            menu.addSeparator()
+        }
         menu.addItem(texts.ui_SearchMatchCase, MatchCaseId, checked: .searchMatchCaseOption)
         menu.addItem(texts.ui_SearchWholeWord, WholeWordId, checked: .searchWholeWordOption)
         menu.addItem(texts.ui_SearchRegularExpression, RegExpId, checked: .searchRegexOption)
 
         switch menu.doModal(.searchOptionsButton, autoDestroy: true) orelse ""
         {
+        case SearchModeId:
+            if !.searchFilterMode do
+                return
+            .searchFilterMode = false
+        case FilterModeId:
+            if .searchFilterMode do
+                return
+            .searchFilterMode = true
         case MatchCaseId: .searchMatchCaseOption = !.searchMatchCaseOption
         case WholeWordId: .searchWholeWordOption = !.searchWholeWordOption
         case RegExpId:    .searchRegexOption = !.searchRegexOption
@@ -2386,6 +2274,7 @@ impl ViewerWindow
         // A query that was literal may be incomplete regexp syntax, and vice versa. Re-run the
         // field validator before deciding whether there is work to schedule.
         .searchBox.setValidator(.searchBox.validator)
+        .refreshSearchPresentation()
         .restartSearch()
         catch .saveState()
     }
@@ -2418,15 +2307,38 @@ impl ViewerWindow
                 instance.describeSearch!(instance.view!, &presentation)
         }
 
-        .searchToolTip = #move presentation.toolTip
-        .searchBox.setPlaceholder(presentation.placeholder.toString())
+        if !presentation.canFilter do
+            .searchFilterMode = false
+
+        if .searchFilterMode
+        {
+            .searchToolTip = #move presentation.filterToolTip
+            .searchBox.setPlaceholder(presentation.filterPlaceholder.toString())
+        }
+        else
+        {
+            .searchToolTip = #move presentation.toolTip
+            .searchBox.setPlaceholder(presentation.placeholder.toString())
+        }
         .searchBox.toolTip = .searchToolTip
-        .searchOptionsButton.show(presentation.useTextOptions)
+        .searchOptionsButton.show(presentation.useTextOptions or presentation.canFilter)
+        if presentation.canFilter
+        {
+            .searchOptionsButton.setIcon(.theme().icon(.searchFilterMode ? .Filter : .Search, themeActionIconSize(.themeMetrics())))
+            .searchBox.setIcon({})
+        }
+        else
+        {
+            .searchOptionsButton.setIcon(.theme().icon(.Options, themeActionIconSize(.themeMetrics())))
+            .searchBox.setIcon(.theme().icon(.Search, themeActionIconSize(.themeMetrics())))
+        }
+        .searchOptionsButton.toolTip = presentation.canFilter ? (.searchFilterMode ? appStrings().ui_FilterMode : appStrings().ui_SearchMode) : appStrings().ui_SearchOptions
 
         // With no options button, let the enlarged field meet navigation directly. Keeping the
         // usual inter-group gap as well would leave an empty button-sized visual group.
-        .searchGroup.spacing = presentation.useTextOptions ? ViewerSearchGroupSpacing : 0
-        .searchBox.resize(presentation.useTextOptions ? ViewerSearchFieldWidth : ViewerSearchNoOptionsFieldWidth, 36)
+        let hasMenu = presentation.useTextOptions or presentation.canFilter
+        .searchGroup.spacing = hasMenu ? ViewerSearchGroupSpacing : 0
+        .searchBox.resize(hasMenu ? ViewerSearchFieldWidth : ViewerSearchNoOptionsFieldWidth, 36)
         .searchBox.setValidator(.searchBox.validator)
         .searchGroup.computeLayout()
         .commandBar.centerContent()
@@ -2445,10 +2357,42 @@ impl ViewerWindow
         .searchError.clear()
         .refreshSearchReadout()
 
-        if !.searchBox.isEnabled() or .searchQuery.isEmpty() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if !.searchBox.isEnabled() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
 
         let instance = &.instances[.activeChoiceIndex]
+        if .searchFilterMode and instance.filterSearch and instance.view
+        {
+            var options = .searchOptions()
+            var expression: Parser.RegExp
+            if options.regularExpression
+            {
+                catch expression.compile(.searchQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+                if expressionError != null
+                {
+                    .searchComplete = true
+                    .refreshSearchReadout()
+                    return
+                }
+
+                options.expression = &expression
+            }
+
+            instance.filterSearch!(instance.view!, .searchQuery.toString(), options)
+            .searchComplete = true
+            .refreshSearchReadout()
+            return
+        }
+
+        // Leaving filter mode restores the complete report before the same field starts finding
+        // occurrences in it. An empty filter is also delivered above, so clearing the field is an
+        // immediate return to the unfiltered tree.
+        if instance.filterSearch and instance.view do
+            instance.filterSearch!(instance.view!, "", .searchOptions())
+
+        if .searchQuery.isEmpty() do
+            return
+
         if !.searchBox.isValid() and !(instance.prepareSearch and instance.view)
         {
             .searchComplete = true
@@ -2521,6 +2465,16 @@ impl ViewerWindow
 
     private mtd refreshSearchReadout()
     {
+        if .searchFilterMode
+        {
+            .searchCountLabel.setText("")
+            .searchCountLabel.toolTip = ""
+            .searchPrevious.enable(false)
+            .searchNext.enable(false)
+            .searchBox.toolTip = .searchToolTip
+            return
+        }
+
         if .searchQuery.isEmpty()
         {
             .searchCountLabel.setText("")
@@ -2869,7 +2823,7 @@ impl ViewerWindow
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .layoutFileInfo()
-        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
+        .infoBarHost.show()
     }
 
     // Measures the identity row again after asynchronous metadata changes. Text widths are
@@ -3013,7 +2967,6 @@ impl ViewerWindow
         .openButton.toolTip          = texts.ui_Open
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
         .filesButton.toolTip         = texts.ui_Files
-        .fullScreenButton.toolTip    = .fullScreen ? texts.ui_ExitFullScreen : texts.ui_FullScreen
         .kindButton.toolTip          = texts.ui_SameKind
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .recentClearButton.toolTip   = texts.ui_ClearHistory
@@ -3049,7 +3002,7 @@ impl ViewerWindow
     {
         .panelVisible = visible
         .filesButton.setChecked(visible)
-        if visible and !.fullScreen
+        if visible
         {
             .refreshFileLists()
             .filePanelHost.show()

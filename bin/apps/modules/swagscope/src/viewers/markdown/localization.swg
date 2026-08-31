@@ -16,7 +16,7 @@ struct MarkdownStrings
     ui_TipTheme: string = "Markdown appearance"             // Tooltip of the appearance selector.
     ui_ZoomMenu: string = "Markdown zoom options"           // Tooltip of the zoom value menu.
     ui_ThemeApp: string = "Application"                     // Appearance following the application palette.
-    ui_Details:  string = "Markdown · UTF-8 · streamed"     // Summary the host shows beside the file size.
+    ui_Details:  string = "Markdown · UTF-8"                // Summary the host shows beside the file size.
 }
 
 private const FrenchStringsName = "lang/fr/scope.markdown.tweak"

@@ -11,7 +11,8 @@ using Core, Gui
 // are proper names, not sentences.
 struct BinaryStrings
 {
-    ui_MenuCommands: string = "Structure commands"                                                     // Tooltip of the compact command menu.
+    ui_Filter:       string = "Filter report"                                                          // Placeholder of the structure filter.
+    ui_FilterTip:    string = "Show matching rows and the parent structures that contain them"         // Tooltip explaining hierarchical filtering.
     ui_ColField:     string = "Field"                                                                  // Header of the structure column.
     ui_ColValue:     string = "Value"                                                                  // Header of the decoded value column.
     ui_ColOffset:    string = "Offset"                                                                 // Header of the file offset column.

@@ -2,6 +2,14 @@
 
 using Core, Gui
 
+internal struct MarkdownViewerSettings
+{
+    themeIndex: u32
+    widthIndex: u32 = 1
+}
+
+internal var g_MarkdownViewerSettings: MarkdownViewerSettings
+
 // Describes the Markdown viewer to the host.
 func markdownViewerPlugin()->Viewer.Plugin
 {
@@ -213,7 +221,7 @@ func createMarkdownViewer(host: Viewer.Host)
     widthCombo.addItem(markdownStrings().ui_Medium)
     widthCombo.addItem(markdownStrings().ui_Wide)
     widthCombo.addItem(markdownStrings().ui_Fluid)
-    widthCombo.setSelectedIndex(1, notify: false)
+    widthCombo.setSelectedIndex(g_MarkdownViewerSettings.widthIndex, notify: false)
 
     let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
     themeCombo.dockStyle = .Right
@@ -225,7 +233,7 @@ func createMarkdownViewer(host: Viewer.Host)
     themeCombo.addItem("Night")
     themeCombo.addItem("Pixyll")
     themeCombo.addItem("Whitey")
-    themeCombo.setSelectedIndex(0, notify: false)
+    themeCombo.setSelectedIndex(g_MarkdownViewerSettings.themeIndex, notify: false)
 
     let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(96), view, themeCombo, widthCombo)
 
@@ -236,7 +244,7 @@ func createMarkdownViewer(host: Viewer.Host)
         view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd) markdown, reason) }
     }
 
-    applyMarkdownViewerStyle(view, 0, 1)
+    applyMarkdownViewerStyle(view, g_MarkdownViewerSettings.themeIndex, g_MarkdownViewerSettings.widthIndex)
     host.attachView(view)
     host.setDetails(markdownStrings().ui_Details)
     host.setSearch({
@@ -251,12 +259,16 @@ func createMarkdownViewer(host: Viewer.Host)
     themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
     {
         discard combo
+        g_MarkdownViewerSettings.themeIndex = index
         applyMarkdownViewerStyle(view, index, widthCombo.selectedIndex, zoomButton.zoomPercent)
+        catch g_App.saveState()
     }
     widthCombo.sigChanged += func|view, themeCombo, zoomButton|(combo, index)
     {
         discard combo
+        g_MarkdownViewerSettings.widthIndex = index
         applyMarkdownViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent)
+        catch g_App.saveState()
     }
     view.sigLinkActivated += func(markdown, url)
     {

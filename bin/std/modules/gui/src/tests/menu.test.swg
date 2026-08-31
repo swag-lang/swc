@@ -459,6 +459,44 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
+// A button against the right edge keeps its integrated popup against that same edge. The shadow
+// may extend outside the client area, but the visible body must not be clamped inward and detached
+// from its trigger.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 240)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let button = IconButton.create(&host.root, host.theme.icon(.Filter, 20), {312, 6, 48, 36}, flags: .CenterContent)
+    button.setArrowPosition(.RightDownward)
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Search", Menu_Open, checked: true)
+    popup.addItem("Filter", Menu_New)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        let shadow = popup.themeMetrics().menuPopup_ShadowSize
+        Swag.assert(popup.popupAnchorButton == button)
+        Swag.assert(popup.position.right() >= host.root.clientRect().right() - shadow)
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor-right")
+        Swag.assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal(button, autoDestroy: true)
+    Swag.assert(checked)
+    host.pump()
+}
+
 // A submenu at the right edge chooses the available left side as a complete rectangle.
 #test
 {

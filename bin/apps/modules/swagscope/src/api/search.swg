@@ -42,6 +42,9 @@ alias ClearSearch = func(*Wnd)
 // Collects every logical-text match owned by a viewer.
 alias CollectSearchMatches = func(*Wnd, string, SearchOptions, *Array'SearchMatch)
 
+// Applies the shared query as a live visibility filter owned by the viewer.
+alias ApplySearchFilter = func(*Wnd, string, SearchOptions)
+
 // Describes viewer-specific wording and option visibility for the shared search field.
 struct SearchPresentation
 {
@@ -49,7 +52,10 @@ struct SearchPresentation
     {
         placeholder:    String          // Short query hint shown while the search field is empty.
         toolTip:        String          // Longer syntax help owned by the presentation value.
+        filterPlaceholder: String       // Short hint used when this viewer is in filter mode.
+        filterToolTip:  String          // Longer filter help owned by the presentation value.
         useTextOptions: bool = true     // Whether case, whole-word, and regular-expression options apply.
+        canFilter:      bool            // Whether the shared field can switch from finding to filtering.
     }
 }
 
@@ -87,6 +93,7 @@ struct SearchApi
         matchBounds:        #null SearchMatchBounds        // Reports the revealed match geometry.
         clear:              #null ClearSearch              // Removes the current match presentation.
         collectMatches:     #null CollectSearchMatches     // Replaces host file scanning with viewer search.
+        filter:             #null ApplySearchFilter        // Reuses the shared query as a viewer-owned visibility filter.
         describe:           #null DescribeSearch           // Supplies localized query presentation.
         prepare:            #null PrepareSearch            // Validates a streamed-file query before scanning.
         collectFileMatches: #null CollectFileMatches       // Scans one host-owned streamed source window.

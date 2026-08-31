@@ -9,5 +9,3 @@ ui_Actual    Taille réelle
 ui_ZoomMenu  Options de zoom
 ui_GoToPage  Aller à la page
 ui_PageRange Numéro de page entre 1 et %.
-ui_Page      page
-ui_Pages     pages

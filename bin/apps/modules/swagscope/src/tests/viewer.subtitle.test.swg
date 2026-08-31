@@ -16,13 +16,14 @@ func subtitleViewerFixturePath()->String
     defer host.shutdown()
 
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands == null)
+    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: &host.root)
+    Swag.assert(result.view != null and result.commands == null and result.info != null)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    Swag.assert(result.details.indexOf("SubRip") != Swag.U64.Max and result.details.indexOf("2 cues") != Swag.U64.Max)
+    Swag.assert(result.details == "SubRip")
 
     let view = cast(*SubtitleViewer) result.view!
     Swag.assert(view.track!.cueCount() == 2)
+    Swag.assert(view.cueButton.text() == "2 cues" and (view.durationButton.text()).count)
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
     Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 
@@ -33,6 +34,7 @@ func subtitleViewerFixturePath()->String
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
+    Swag.assert(view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines.")
 }
 
 // The shipped palette renders the timestamped transcript as the primary document.
@@ -47,9 +49,15 @@ func subtitleViewerFixturePath()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
+    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    infoBar.dockStyle       = .Top
+    infoBar.backgroundStyle = .InformationBar
+    infoBar.padding         = {16, 4, 16, 4}
     let fileName = subtitleViewerFixturePath()
-    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
+    var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: infoBar)
     Swag.assert(result.view != null)
+    infoBar.centerGroup       = result.info
+    result.info!.dockStyle    = .None
     result.view!.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

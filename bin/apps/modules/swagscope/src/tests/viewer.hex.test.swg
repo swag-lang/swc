@@ -693,14 +693,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(ActionHex.SelectAll)
-    view.moreButton.sigPressed.call(cast(*Button) view.moreButton)
+    grid.showContextMenu({120, 120})
     host.pump()
     Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
-    host.openPopupSubMenuWhenShown("Bytes per row")
-    host.thenClickPopupMenuItem(ActionHex.Row32)
-    grid.showContextMenu({120, 120})
-    host.pump()
+    view.rowWidthCombo.setSelectedIndex(3)
     Swag.assert(grid.bytesPerRow == 32 and !grid.autoFitRow)
 
     grid.moveCaret(0x123, false)
@@ -871,7 +868,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(hexStrings().ui_Empty == "Ce fichier est vide.")
     Swag.assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
     Swag.assert(view.widthCombo.toolTip == "Largeur des valeurs")
-    Swag.assert(view.details == "hexa et texte · en flux")
+    Swag.assert(view.details.isEmpty())
     Swag.assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.assert(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
@@ -904,6 +901,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 }
 
 // The typed command group stays bounded and keeps byte order beside the representation controls.
+#[Swag.TestTag("golden")]
 #test
 {
     let fileName = writeSampleFile()
@@ -914,10 +912,10 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    Swag.assert(view.commands.position.width <= 560)
+    Swag.assert(view.commands.position.width <= 640)
     Swag.assert(view.byteOrderCombo.parent == view.commands and view.byteOrderCombo.selectedIndex == 0)
-    Swag.assert(view.moreButton.parent == view.commands)
-    Swag.assert(view.details == "hex and text · streamed")
+    Swag.assert(view.rowWidthCombo.parent == view.commands and view.rowWidthCombo.selectedIndex == 0)
+    Swag.assert(view.details.isEmpty())
     Testing.assertContentFits(view)
 
     // At the band a window of the host's minimum size leaves, the bytes still hold the clear
@@ -928,6 +926,10 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(view.grid.clientRect().width > 640 * 0.6)
     Swag.assert(view.grid.bytesPerRow >= HexMinBytesPerRow)
     Swag.assert(view.grid.contentWidth() <= view.grid.clientRect().width)
+    host.settleAnimations(view.commands, 4)
+    var image = host.render(view.commands)
+    image.crop(view.commands.surfaceRect())
+    Pixel.Testing.assertImageGolden(&image, "viewer.hex.command-bar")
     discard host.render(view)
 }
 

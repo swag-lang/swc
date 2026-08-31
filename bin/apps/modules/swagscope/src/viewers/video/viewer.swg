@@ -950,8 +950,7 @@ internal impl VideoViewer
             menu.addItem(videoAudioTrackText(index, sound), commands[index].toString(), checked: index == .audioTrackIndex)
         }
 
-        let rect   = .audioButton.surfaceRect()
-        let chosen = menu.doModal({rect.horzCenter(), rect.y}, .AnchorBottomCenter, autoDestroy: true)
+        let chosen = menu.doModal(.audioButton, autoDestroy: true)
         if !chosen do
             return
 
@@ -1106,8 +1105,7 @@ internal impl VideoViewer
         delayMenu.addItem("+1.0 s", "scope.video.subtitle.delay.plus1")
         menu.addPopup(strings.ui_SubtitleDelay, delayMenu)
 
-        let rect   = .subtitleButton.surfaceRect()
-        let chosen = menu.doModal({rect.horzCenter(), rect.y}, .AnchorBottomCenter, autoDestroy: true)
+        let chosen = menu.doModal(.subtitleButton, autoDestroy: true)
         if !chosen do
             return
         if chosen! == "scope.video.subtitle.off"

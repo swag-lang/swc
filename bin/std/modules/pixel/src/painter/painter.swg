@@ -852,6 +852,24 @@ impl Painter
         .pushFringeQuad(p - off, p + off, q - off, q + off, v0.color)
     }
 
+    // Emits the same fringe for a silhouette edge whose outward side the caller already knows.
+    //
+    // `addEdgeAA` derives that side by reading the triangle back out of the vertex buffer and
+    // comparing the edge against its centroid. A stroke does not need to be told: the quad it
+    // just emitted has the pen normal for its two long edges, one on each side. Skipping the
+    // derivation removes three vertex loads out of a buffer that is tens of megabytes on a
+    // document of strokes, and it is that walk, rather than the arithmetic, that the recording
+    // was spending its time on.
+    //
+    // `outward` is the unit direction the fringe extrudes toward, and must be perpendicular to
+    // the edge for the band to sit square on it.
+    #[Swag.Safety(.All, false)]
+    private mtd addEdgeAAOutward(p, q, outward: Vector2, color: u32)
+    {
+        let off = outward * .aaHalfPathSpace(outward)
+        .pushFringeQuad(p - off, p + off, q - off, q + off, color)
+    }
+
     #[Swag.Inline]
     private mtd addEdgeAA(tri: u64, start, end: Vector2)
     {

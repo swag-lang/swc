@@ -469,8 +469,13 @@ impl Painter
         // document is mostly this geometry, and the copy cost every one of them.
         if .curState.paintParams & .Antialiased
         {
-            .addEdgeAA(cxt.prim1, v0, v1)
-            .addEdgeAA(cxt.prim1, v3, v2)
+            // The two long edges are the pen normal's two sides, so the outward direction is
+            // known here and neither band has to be derived from the quad's centroid.
+            var outward = cxt.normal
+            outward.normalizeOrZero()
+            let color = cxt.pen.brush.color.argb
+            .addEdgeAAOutward(v0, v1, -outward, color)
+            .addEdgeAAOutward(v3, v2, outward, color)
 
             // If we are starting a line, and the line does not have a cap before, then
             // we must AA the corresponding edge

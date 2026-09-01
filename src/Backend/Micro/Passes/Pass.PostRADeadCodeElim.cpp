@@ -149,8 +149,8 @@ Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
     // Iterative backward dataflow.
     //   liveIn[i]  = (liveOut[i] \ defs[i]) | uses[i]
     //   liveOut[i] = union of liveIn[s] for s in successors[i]
-    // Seed: at instructions with no successors (Ret, JumpReg handled earlier),
-    // liveOut is the ABI exit set.
+    // Seed: at instructions with no successors (Ret and unresolved computed
+    // control flow handled earlier), liveOut is the ABI exit set.
     std::vector<RegSet> liveIn(instCount);
     std::vector<RegSet> liveOut(instCount);
     for (uint32_t i = 0; i < instCount; ++i)

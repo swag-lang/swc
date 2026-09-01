@@ -65,6 +65,15 @@ uint64_t MicroControlFlowGraph::computeHash(const MicroStorage& storage, const M
             case MicroInstrOpcode::JumpReg:
             {
                 mixControlFlowHash(hash, 3);
+                const MicroInstrOperand* ops = inst.ops(operands);
+                if (!ops || inst.numOperands < 2)
+                {
+                    mixControlFlowHash(hash, K_CFG_HASH_INVALID_OPS);
+                    break;
+                }
+
+                for (uint8_t operandIndex = 1; operandIndex < inst.numOperands; ++operandIndex)
+                    mixControlFlowHash(hash, ops[operandIndex].valueU64);
                 break;
             }
             case MicroInstrOpcode::Ret:
@@ -103,7 +112,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
         instructionRefs_.push_back(it.current);
         const MicroInstr& inst = *it;
-        if (inst.op == MicroInstrOpcode::JumpReg || inst.op == MicroInstrOpcode::JumpCondImm)
+        if ((inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2) || inst.op == MicroInstrOpcode::JumpCondImm)
             hasUnsupportedControlFlowForCfgLiveness_ = true;
 
         if (inst.op == MicroInstrOpcode::Label)
@@ -165,7 +174,36 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             continue;
         }
 
-        if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::JumpReg)
+        if (inst->op == MicroInstrOpcode::JumpReg)
+        {
+            const MicroInstrOperand* jumpOps = inst->ops(operands);
+            if (!jumpOps || inst->numOperands < 2)
+                continue;
+
+            for (uint8_t operandIndex = 1; operandIndex < inst->numOperands; ++operandIndex)
+            {
+                if (jumpOps[operandIndex].valueU64 > std::numeric_limits<uint32_t>::max())
+                {
+                    supportsDeadCodeLiveness_ = false;
+                    continue;
+                }
+
+                const uint32_t targetLabelIndex = static_cast<uint32_t>(jumpOps[operandIndex].valueU64);
+                if (targetLabelIndex >= labelToInstructionIndex.size() || labelToInstructionIndex[targetLabelIndex] == K_INVALID_INSTRUCTION_INDEX)
+                {
+                    supportsDeadCodeLiveness_ = false;
+                    continue;
+                }
+
+                const uint32_t targetInstructionIndex = labelToInstructionIndex[targetLabelIndex];
+                if (std::ranges::find(successors, targetInstructionIndex) == successors.end())
+                    successors.push_back(targetInstructionIndex);
+            }
+
+            continue;
+        }
+
+        if (inst->op == MicroInstrOpcode::Ret)
             continue;
 
         if (MicroInstrInfo::isTerminatorInstruction(*inst))

@@ -688,3 +688,32 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// Materializes the address of an instruction-stream label with a relative
+// displacement. Layout [dst, label].
+SWC_MICRO_INSTR_DEF(
+    LoadLabelAddress,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
+// Relative 32-bit offsets from this instruction's code position to the named
+// labels. The preceding control-flow instruction must make these bytes
+// unreachable as instructions. Layout [label0, ...].
+SWC_MICRO_INSTR_DEF(
+    JumpTableData,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

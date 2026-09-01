@@ -94,3 +94,53 @@ const TN: typeinfo = NullString
     }
     Swag.assert(hit == 1)
 }
+
+#test
+{
+    func switchManyTypes(v: typeinfo)->s32
+    {
+        switch v
+        {
+        case s8:     return 1
+        case s16:    return 2
+        case s32:    return 3
+        case s64:    return 4
+        case u8:     return 5
+        case u16:    return 6
+        case u32:    return 7
+        case u64:    return 8
+        case f32:    return 9
+        case f64:    return 10
+        case bool:   return 11
+        case string: return 12
+        default:     return 99
+        }
+    }
+
+    var first:    typeinfo = s8
+    var middle:   typeinfo = u16
+    var last:     typeinfo = string
+    var fallback: typeinfo = *s32
+    Swag.assert(switchManyTypes(first) == 1)
+    Swag.assert(switchManyTypes(middle) == 6)
+    Swag.assert(switchManyTypes(last) == 12)
+    Swag.assert(switchManyTypes(fallback) == 99)
+}
+
+#test
+{
+    func switchNullableTypeInfoValue(v: #null typeinfo)->s32
+    {
+        switch v
+        {
+        case s32:  return 1
+        case null: return 2
+        default:   return 3
+        }
+    }
+
+    var present: #null typeinfo = s32
+    var absent:  #null typeinfo = null
+    Swag.assert(switchNullableTypeInfoValue(present) == 1)
+    Swag.assert(switchNullableTypeInfoValue(absent) == 2)
+}

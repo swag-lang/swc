@@ -842,11 +842,26 @@ namespace
         {
             const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::JumpReg)
-                return false;
+            {
+                const MicroInstrOperand* ops = inst.ops(operands);
+                if (!ops || inst.numOperands < 2)
+                    return false;
+                for (uint8_t operandIndex = 1; operandIndex < inst.numOperands; ++operandIndex)
+                    referencedLabels.insert(ops[operandIndex].valueU64);
+                continue;
+            }
             if (inst.op == MicroInstrOpcode::Label)
             {
                 if (!relocInstrRefs.contains(it.current.get()))
                     labelRefs.push_back(it.current);
+                continue;
+            }
+            if (inst.op == MicroInstrOpcode::LoadLabelAddress)
+            {
+                const MicroInstrOperand* ops = inst.ops(operands);
+                if (!ops || inst.numOperands < 2)
+                    return false;
+                referencedLabels.insert(ops[1].valueU64);
                 continue;
             }
             if (inst.op != MicroInstrOpcode::JumpCond && inst.op != MicroInstrOpcode::JumpCondImm)
@@ -1660,7 +1675,7 @@ namespace
         return changed;
     }
 
-    bool eraseCfgUnreachable(MicroBuilder& builder, MicroStorage& storage)
+    bool eraseCfgUnreachable(MicroBuilder& builder, MicroStorage& storage, const MicroOperandStorage& operands)
     {
         const MicroControlFlowGraph& cfg = builder.controlFlowGraph();
         if (!cfg.instructionCount() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
@@ -1670,6 +1685,33 @@ namespace
         std::vector<uint32_t> stack;
         stack.push_back(0);
         reachable[0] = 1;
+
+        std::unordered_map<uint64_t, uint32_t> labelInstructionIndices;
+        SmallVector<uint64_t>                   addressTakenLabels;
+        const auto                              instructionRefs = cfg.instructionRefs();
+        for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
+        {
+            const MicroInstr* inst = storage.ptr(instructionRefs[instructionIndex]);
+            if (!inst)
+                continue;
+
+            const MicroInstrOperand* ops = inst->ops(operands);
+            if (!ops)
+                continue;
+            if (inst->op == MicroInstrOpcode::Label && inst->numOperands >= 1)
+                labelInstructionIndices[ops[0].valueU64] = instructionIndex;
+            else if (inst->op == MicroInstrOpcode::LoadLabelAddress && inst->numOperands >= 2)
+                addressTakenLabels.push_back(ops[1].valueU64);
+        }
+
+        for (const uint64_t labelId : addressTakenLabels)
+        {
+            const auto it = labelInstructionIndices.find(labelId);
+            if (it == labelInstructionIndices.end() || reachable[it->second])
+                continue;
+            reachable[it->second] = 1;
+            stack.push_back(it->second);
+        }
 
         while (!stack.empty())
         {
@@ -1687,7 +1729,6 @@ namespace
         }
 
         bool       changed         = false;
-        const auto instructionRefs = cfg.instructionRefs();
         for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
         {
             if (reachable[instructionIndex])
@@ -1746,7 +1787,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
         if (context.builder)
         {
-            const bool erasedUnreachable = eraseCfgUnreachable(*context.builder, storage);
+            const bool erasedUnreachable = eraseCfgUnreachable(*context.builder, storage, operands);
             if (erasedUnreachable)
             {
                 context.builder->invalidateControlFlowGraph();

@@ -1785,6 +1785,7 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
         emitRex(store_, MicroOpBits::B64, reg, memReg);
         emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
+        store_.pushU32(0);
     }
     else if (memOffset == 0)
     {

@@ -73,6 +73,55 @@ const SwitchPointerValues = [11, 22, 33]
 
 #test
 {
+    func switchDense(v: s8)->s32
+    {
+        switch v
+        {
+        case -16: return -16
+        case -15: return -15
+        case -14: return -14
+        case -13: return -13
+        case -12: return -12
+        case -11: return -11
+        case -10: return -10
+        case -9:  return -9
+        case -8:  return -8
+        case -7:  return -7
+        case -6:  return -6
+        case -5:  return -5
+        case -4:  return -4
+        case -3:  return -3
+        case -2:  return -2
+        case -1:  return -1
+        case 0:   return 0
+        case 1:   return 1
+        case 2:   return 2
+        case 3:   return 3
+        case 4:   return 4
+        case 5:   return 5
+        case 6:   return 6
+        case 7:   return 7
+        case 8:   return 8
+        case 9:   return 9
+        case 10:  return 10
+        case 11:  return 11
+        case 12:  return 12
+        case 13:  return 13
+        case 14:  return 14
+        case 15:  return 15
+        default:  return 99
+        }
+    }
+
+    #assert(#run switchDense(-17) == 99)
+    #assert(#run switchDense(-16) == -16)
+    #assert(#run switchDense(0) == 0)
+    #assert(#run switchDense(15) == 15)
+    #assert(#run switchDense(16) == 99)
+}
+
+#test
+{
     func switchFloat(v: f64)->s32
     {
         switch v
@@ -150,29 +199,55 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-        case s32:
-            return 1
-        case f64:
-            return 2
-        case bool:
-            return 3
-        default:
-            return 4
+        case s8:     return 1
+        case s16:    return 2
+        case s32:    return 3
+        case s64:    return 4
+        case u8:     return 5
+        case u16:    return 6
+        case u32:    return 7
+        case u64:    return 8
+        case f32:    return 9
+        case f64:    return 10
+        case bool:   return 11
+        case string: return 12
+        default:     return 99
         }
     }
 
-    const T0: typeinfo = s32
-    const T1: typeinfo = f64
-    const T2: typeinfo = bool
-    const T3: typeinfo = string
+    const T0: typeinfo = s8
+    const T1: typeinfo = s32
+    const T2: typeinfo = u64
+    const T3: typeinfo = bool
+    const T4: typeinfo = *s32
     const V0           = #run switchTypeInfo(T0)
     const V1           = #run switchTypeInfo(T1)
     const V2           = #run switchTypeInfo(T2)
     const V3           = #run switchTypeInfo(T3)
+    const V4           = #run switchTypeInfo(T4)
     #assert(V0 == 1)
-    #assert(V1 == 2)
-    #assert(V2 == 3)
-    #assert(V3 == 4)
+    #assert(V1 == 3)
+    #assert(V2 == 8)
+    #assert(V3 == 11)
+    #assert(V4 == 99)
+}
+
+#test
+{
+    func switchNullableTypeInfoValue(v: #null typeinfo)->s32
+    {
+        switch v
+        {
+        case s32:  return 1
+        case null: return 2
+        default:   return 3
+        }
+    }
+
+    const T0: #null typeinfo = s32
+    const T1: #null typeinfo = null
+    #assert(#run switchNullableTypeInfoValue(T0) == 1)
+    #assert(#run switchNullableTypeInfoValue(T1) == 2)
 }
 
 // A nullable form is the same type as the plain one, so 'case' selects it just like '=='

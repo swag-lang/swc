@@ -196,6 +196,7 @@ namespace
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::JumpReg:
+            case MicroInstrOpcode::JumpTableData:
                 return 1;
 
             case MicroInstrOpcode::CallIndirect:
@@ -203,6 +204,7 @@ namespace
             case MicroInstrOpcode::ClearReg:
             case MicroInstrOpcode::SanityInvalidate:
             case MicroInstrOpcode::SanityUndefined:
+            case MicroInstrOpcode::LoadLabelAddress:
                 return 2;
 
             case MicroInstrOpcode::JumpCond:
@@ -328,6 +330,27 @@ namespace
                     return reportError(context, phase, std::format("jump-immediate instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
                 if (!isValidOpBits(ops[1].opBits))
                     return reportError(context, phase, std::format("jump-immediate instruction #{} uses unsupported op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
+                break;
+
+            case MicroInstrOpcode::JumpReg:
+                for (uint8_t operandIndex = 1; operandIndex < inst.numOperands; ++operandIndex)
+                {
+                    if (ops[operandIndex].valueU64 > std::numeric_limits<uint32_t>::max())
+                        return reportError(context, phase, std::format("computed jump instruction #{} targets out-of-range label {}", instructionIndex, ops[operandIndex].valueU64));
+                }
+                break;
+
+            case MicroInstrOpcode::LoadLabelAddress:
+                if (ops[1].valueU64 > std::numeric_limits<uint32_t>::max())
+                    return reportError(context, phase, std::format("label-address instruction #{} targets out-of-range label {}", instructionIndex, ops[1].valueU64));
+                break;
+
+            case MicroInstrOpcode::JumpTableData:
+                for (uint8_t operandIndex = 0; operandIndex < inst.numOperands; ++operandIndex)
+                {
+                    if (ops[operandIndex].valueU64 > std::numeric_limits<uint32_t>::max())
+                        return reportError(context, phase, std::format("jump-table instruction #{} targets out-of-range label {}", instructionIndex, ops[operandIndex].valueU64));
+                }
                 break;
 
             case MicroInstrOpcode::CallLocal:

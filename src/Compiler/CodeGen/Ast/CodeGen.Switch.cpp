@@ -528,11 +528,14 @@ namespace
     struct SwitchDispatchSearch
     {
         static constexpr size_t K_MAX_CHAIN_ENTRIES = 8;
+        static constexpr size_t K_MIN_JUMP_TABLE_ENTRIES = 32;
+        static constexpr size_t K_MAX_JUMP_TABLE_ENTRIES = 240;
 
         CodeGen*      codeGen         = nullptr;
         MicroReg      valueReg        = MicroReg::invalid();
         MicroOpBits   opBits          = MicroOpBits::B64;
         bool          useUnsignedCond = false;
+        bool          allowJumpTable  = false;
         MicroLabelRef defaultLabel    = MicroLabelRef::invalid();
 
         void emitCompare(uint64_t key) const
@@ -584,8 +587,72 @@ namespace
             emitJump(MicroCond::Unconditional, defaultLabel);
         }
 
+        bool tryEmitJumpTable(std::span<const SwitchDispatchEntry> entries) const
+        {
+            if (!allowJumpTable || entries.size() < K_MIN_JUMP_TABLE_ENTRIES)
+                return false;
+
+            const uint64_t tableSize = entries.back().highKey - entries.front().lowKey + 1;
+            if (!tableSize || tableSize > K_MAX_JUMP_TABLE_ENTRIES)
+                return false;
+
+            uint64_t coveredValues = 0;
+            for (const SwitchDispatchEntry& entry : entries)
+                coveredValues += entry.highKey - entry.lowKey + 1;
+            if (coveredValues * 2 < tableSize)
+                return false;
+
+            SmallVector<MicroLabelRef> tableTargets;
+            tableTargets.resize(static_cast<size_t>(tableSize), defaultLabel);
+            const uint64_t tableLowKey = entries.front().lowKey;
+            for (const SwitchDispatchEntry& entry : entries)
+            {
+                const uint64_t intervalSize = entry.highKey - entry.lowKey + 1;
+                const uint64_t tableOffset  = entry.lowKey - tableLowKey;
+                for (uint64_t index = 0; index < intervalSize; ++index)
+                    tableTargets[static_cast<size_t>(tableOffset + index)] = entry.label;
+            }
+
+            SmallVector<MicroLabelRef> successorLabels;
+            successorLabels.reserve(tableTargets.size());
+            for (const MicroLabelRef label : tableTargets)
+            {
+                if (std::ranges::find(successorLabels, label) == successorLabels.end())
+                    successorLabels.push_back(label);
+            }
+
+            MicroBuilder& builder  = codeGen->builder();
+            const MicroReg indexReg = codeGen->nextVirtualIntRegister();
+            if (opBits == MicroOpBits::B64)
+                builder.emitLoadRegReg(indexReg, valueReg, MicroOpBits::B64);
+            else if (useUnsignedCond)
+                builder.emitLoadZeroExtendRegReg(indexReg, valueReg, MicroOpBits::B64, opBits);
+            else
+                builder.emitLoadSignedExtendRegReg(indexReg, valueReg, MicroOpBits::B64, opBits);
+
+            if (tableLowKey)
+                builder.emitOpBinaryRegImm(indexReg, ApInt(tableLowKey, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitCmpRegImm(indexReg, ApInt(tableSize - 1, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Above, MicroOpBits::B32, defaultLabel);
+
+            const MicroLabelRef tableLabel = builder.createLabel();
+            const MicroReg      tableReg   = codeGen->nextVirtualIntRegister();
+            const MicroReg      targetReg  = codeGen->nextVirtualIntRegister();
+            builder.emitLoadLabelAddress(tableReg, tableLabel);
+            builder.emitLoadAmcRegMem(targetReg, MicroOpBits::B32, tableReg, indexReg, sizeof(uint32_t), 0, MicroOpBits::B64);
+            builder.emitLoadSignedExtendRegReg(targetReg, targetReg, MicroOpBits::B64, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(targetReg, tableReg, MicroOp::Add, MicroOpBits::B64);
+            builder.emitJumpReg(targetReg, successorLabels.span());
+            builder.placeLabel(tableLabel);
+            builder.emitJumpTableData(tableTargets.span());
+            return true;
+        }
+
         void emit(std::span<const SwitchDispatchEntry> entries) const
         {
+            if (tryEmitJumpTable(entries))
+                return;
+
             if (entries.size() == 1)
             {
                 emitLeaf(entries.front());
@@ -943,6 +1010,69 @@ namespace
         return true;
     }
 
+    bool collectTypeSwitchEntries(SmallVector<SwitchDispatchEntry>& entries, MicroLabelRef& nullLabel, CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, std::span<const AstNodeRef> caseRefs)
+    {
+        for (const AstNodeRef caseRef : caseRefs)
+        {
+            const auto&         caseNode     = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
+            const MicroLabelRef bodyLabel    = switchCaseBodyLabel(switchState, caseRef);
+            const auto          caseExprRefs = collectSwitchCaseExprRefs(codeGen, caseNode);
+            for (const AstNodeRef caseExprRef : caseExprRefs)
+            {
+                const SemaNodeView caseView = codeGen.viewConstant(caseExprRef);
+                if (caseView.cstRef().isInvalid())
+                    return false;
+
+                const ConstantValue& constantValue = codeGen.cstMgr().get(caseView.cstRef());
+                if (constantValue.isNull() || (constantValue.isValuePointer() && !constantValue.getValuePointer()))
+                {
+                    if (nullLabel.isValid())
+                        return false;
+                    nullLabel = bodyLabel;
+                    continue;
+                }
+
+                if (!constantValue.isValuePointer())
+                    return false;
+
+                const auto* descriptor = reinterpret_cast<const Runtime::TypeInfo*>(constantValue.getValuePointer());
+                entries.push_back({.lowKey = descriptor->crc, .highKey = descriptor->crc, .label = bodyLabel});
+            }
+        }
+
+        std::sort(entries.begin(), entries.end(), [](const SwitchDispatchEntry& left, const SwitchDispatchEntry& right) { return left.lowKey < right.lowKey; });
+        for (size_t index = 1; index < entries.size(); ++index)
+        {
+            if (entries[index - 1].lowKey == entries[index].lowKey)
+                return false;
+        }
+
+        return !entries.empty() || nullLabel.isValid();
+    }
+
+    bool emitTypeSwitchDispatch(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, std::span<const AstNodeRef> caseRefs, MicroLabelRef defaultLabel)
+    {
+        SmallVector<SwitchDispatchEntry> entries;
+        MicroLabelRef                    nullLabel = MicroLabelRef::invalid();
+        if (!collectTypeSwitchEntries(entries, nullLabel, codeGen, switchState, caseRefs))
+            return false;
+
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitCmpRegImm(switchState.switchValueReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, nullLabel.isValid() ? nullLabel : defaultLabel);
+        if (entries.empty())
+        {
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, defaultLabel);
+            return true;
+        }
+
+        const MicroReg hashReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(hashReg, switchState.switchValueReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+        const SwitchDispatchSearch search{.codeGen = &codeGen, .valueReg = hashReg, .opBits = MicroOpBits::B32, .useUnsignedCond = true, .defaultLabel = defaultLabel};
+        search.emit(entries.span());
+        return true;
+    }
+
     // Replaces testing every case in turn with one search over the values the cases name, emitted
     // right after the switch value is computed and jumping straight to the body that matches.
     //
@@ -952,12 +1082,12 @@ namespace
     // there is one.
     bool emitSwitchDispatch(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const AstSwitchStmt& switchNode)
     {
-        if (!switchState.hasExpression || switchState.dynamicStructSwitch || switchState.useTypeInfoCompare)
+        if (!switchState.hasExpression || switchState.dynamicStructSwitch)
             return false;
 
         const TypeInfo& compareType = codeGen.typeMgr().get(switchState.compareTypeRef);
         const bool      intSwitch   = compareType.isNumericIntLike() && getBitsMask(switchState.compareOpBits) != 0;
-        if (!intSwitch && !switchState.useStringCompare)
+        if (!intSwitch && !switchState.useStringCompare && !switchState.useTypeInfoCompare)
             return false;
         if (switchState.useStringCompare && !switchState.switchValuePayload.isAddress())
             return false;
@@ -990,6 +1120,9 @@ namespace
         if (caseRefs.empty())
             return false;
 
+        if (switchState.useTypeInfoCompare)
+            return emitTypeSwitchDispatch(codeGen, switchState, caseRefs.span(), defaultLabel);
+
         if (intSwitch)
         {
             SmallVector<SwitchDispatchEntry> entries;
@@ -997,10 +1130,11 @@ namespace
                 return false;
 
             const SwitchDispatchSearch search{.codeGen         = &codeGen,
-                                              .valueReg        = switchState.switchValueReg,
-                                              .opBits          = switchState.compareOpBits,
-                                              .useUnsignedCond = switchState.useUnsignedCond,
-                                              .defaultLabel    = defaultLabel};
+                                               .valueReg        = switchState.switchValueReg,
+                                               .opBits          = switchState.compareOpBits,
+                                               .useUnsignedCond = switchState.useUnsignedCond,
+                                               .allowJumpTable  = true,
+                                               .defaultLabel    = defaultLabel};
             search.emit(entries.span());
             return true;
         }

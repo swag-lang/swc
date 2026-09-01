@@ -829,6 +829,10 @@ namespace
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegPtrReloc:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Constant, relocValue));
+            case MicroInstrOpcode::LoadLabelAddress:
+                return std::format("{} = &L{}", regName(ops[0].reg, regPrintMode, encoder), ops[1].valueU64);
+            case MicroInstrOpcode::JumpTableData:
+                return std::format("{} {} entries", tagInstructionToken("jump_table"), inst.numOperands);
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadVecRegMem:
@@ -1734,8 +1738,31 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                break;
+
             case MicroInstrOpcode::JumpReg:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                for (uint8_t operandIndex = 1; operandIndex < inst.numOperands; ++operandIndex)
+                {
+                    appendSep(out);
+                    appendColored(out, ctx, SyntaxColor::Function, std::format("L{}", ops[operandIndex].valueU64));
+                }
+                break;
+
+            case MicroInstrOpcode::LoadLabelAddress:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendColored(out, ctx, SyntaxColor::Function, std::format("L{}", ops[1].valueU64));
+                break;
+
+            case MicroInstrOpcode::JumpTableData:
+                for (uint8_t operandIndex = 0; operandIndex < inst.numOperands; ++operandIndex)
+                {
+                    if (operandIndex)
+                        appendSep(out);
+                    appendColored(out, ctx, SyntaxColor::Function, std::format("L{}", ops[operandIndex].valueU64));
+                }
                 break;
 
             case MicroInstrOpcode::SanityInvalidate:

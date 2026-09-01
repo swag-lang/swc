@@ -1562,11 +1562,11 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
     // A whole-range reservation is only sound when the liveness underneath it is
     // exact, and the fixpoint is only exact when the CFG knows every edge. A
-    // computed jump (JumpReg / JumpCondImm) or an unresolvable target leaves
-    // successors incomplete, so live ranges come out too short and a hull would
-    // free its register while the value is still needed. The local allocator
-    // tolerates that imprecision — every boundary flush re-homes values in
-    // memory — so only this mechanism has to stand down.
+    // A computed jump without an explicit target set, JumpCondImm, or an
+    // unresolvable target leaves successors incomplete, so live ranges come out
+    // too short and a hull would free its register while the value is still
+    // needed. The local allocator tolerates that imprecision — every boundary
+    // flush re-homes values in memory — so only this mechanism has to stand down.
     SWC_ASSERT(controlFlowGraph_ != nullptr);
     if (controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() || !controlFlowGraph_->supportsDeadCodeLiveness())
         return;

@@ -110,7 +110,9 @@ public:
     void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
-    void emitJumpReg(MicroReg reg);
+    void emitJumpReg(MicroReg reg, std::span<const MicroLabelRef> targetLabels = {});
+    void emitLoadLabelAddress(MicroReg reg, MicroLabelRef labelRef);
+    void emitJumpTableData(std::span<const MicroLabelRef> targetLabels);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits);

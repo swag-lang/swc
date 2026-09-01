@@ -166,7 +166,7 @@ namespace
         ENCODE_CASE("load_zext_reg_reg_b16", "4D 0F B7 CA", b.emitLoadZeroExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_reg_b32", "45 89 CA", b.emitLoadZeroExtendRegReg(R10, R9, MicroOpBits::B64, MicroOpBits::B32););
 
-        ENCODE_CASE("lea_reg_mem_rip", "4C 8D 15", b.emitLoadAddressRegMem(R10, MicroReg::instructionPointer(), 0, MicroOpBits::B64););
+        ENCODE_CASE("lea_reg_mem_rip", "4C 8D 15 00 00 00 00", b.emitLoadAddressRegMem(R10, MicroReg::instructionPointer(), 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r11_r12_0", "4D 89 E3", b.emitLoadAddressRegMem(R11, R12, 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_r10_rsp_0_b64", "49 89 E2", b.emitLoadAddressRegMem(R10, RSP, 0, MicroOpBits::B64););
         ENCODE_CASE("lea_reg_mem_rcx_rsp_8_b64", "48 8D 4C 24 08", b.emitLoadAddressRegMem(RCX, RSP, 0x8, MicroOpBits::B64););

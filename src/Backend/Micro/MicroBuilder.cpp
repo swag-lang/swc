@@ -432,11 +432,32 @@ void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroL
     ops[2].valueU64         = labelRef.get();
 }
 
-void MicroBuilder::emitJumpReg(MicroReg reg)
+void MicroBuilder::emitJumpReg(MicroReg reg, std::span<const MicroLabelRef> targetLabels)
 {
-    const auto&        inst = addInstruction(MicroInstrOpcode::JumpReg, 1);
+    SWC_ASSERT(targetLabels.size() < std::numeric_limits<uint8_t>::max());
+    const auto&        inst = addInstruction(MicroInstrOpcode::JumpReg, static_cast<uint8_t>(targetLabels.size() + 1));
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
+    for (size_t index = 0; index < targetLabels.size(); ++index)
+        ops[index + 1].valueU64 = targetLabels[index].get();
+}
+
+void MicroBuilder::emitLoadLabelAddress(MicroReg reg, MicroLabelRef labelRef)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::LoadLabelAddress, 2);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].valueU64         = labelRef.get();
+}
+
+void MicroBuilder::emitJumpTableData(std::span<const MicroLabelRef> targetLabels)
+{
+    SWC_ASSERT(!targetLabels.empty());
+    SWC_ASSERT(targetLabels.size() <= std::numeric_limits<uint8_t>::max());
+    const auto&        inst = addInstruction(MicroInstrOpcode::JumpTableData, static_cast<uint8_t>(targetLabels.size()));
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    for (size_t index = 0; index < targetLabels.size(); ++index)
+        ops[index].valueU64 = targetLabels[index].get();
 }
 
 void MicroBuilder::emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)

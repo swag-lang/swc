@@ -154,9 +154,47 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             // Call target is already materialized in ops[0] by earlier lowering stages.
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv);
             break;
+        case MicroInstrOpcode::LoadLabelAddress:
+        {
+            const uint32_t loadStart = encoder.size();
+            encoder.encodeLoadAddressRegMem(ops[0].reg, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+            SWC_ASSERT(encoder.size() >= loadStart + sizeof(uint32_t));
+
+            MicroJump jump;
+            jump.patchOffsetAddr = encoder.store_.seekPtr() - sizeof(uint32_t);
+            jump.offsetStart     = encoder.currentOffset();
+            jump.opBits          = MicroOpBits::B32;
+            jump.valid           = true;
+
+            PendingLabelJump pendingJump;
+            pendingJump.jump     = jump;
+            pendingJump.labelRef = MicroLabelRef(static_cast<uint32_t>(ops[1].valueU64));
+            pendingLabelJumps_.push_back(pendingJump);
+            break;
+        }
         case MicroInstrOpcode::JumpReg:
             encoder.encodeJumpReg(ops[0].reg);
             break;
+        case MicroInstrOpcode::JumpTableData:
+        {
+            const uint64_t tableOffset = encoder.currentOffset();
+            for (uint8_t operandIndex = 0; operandIndex < inst.numOperands; ++operandIndex)
+            {
+                uint8_t* tableEntryEnd = encoder.store_.pushU32(0);
+
+                MicroJump jump;
+                jump.patchOffsetAddr = tableEntryEnd - sizeof(uint32_t);
+                jump.offsetStart     = tableOffset;
+                jump.opBits          = MicroOpBits::B32;
+                jump.valid           = true;
+
+                PendingLabelJump pendingJump;
+                pendingJump.jump     = jump;
+                pendingJump.labelRef = MicroLabelRef(static_cast<uint32_t>(ops[operandIndex].valueU64));
+                pendingLabelJumps_.push_back(pendingJump);
+            }
+            break;
+        }
         case MicroInstrOpcode::LoadRegReg:
             encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
@@ -295,8 +333,11 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             SWC_UNREACHABLE();
     }
 
-    encoder.onInstructionEncoded(inst, ops, instructionCodeStartOffset, encoder.size());
-    encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.debugSourceInfo);
+    if (inst.op != MicroInstrOpcode::JumpTableData)
+    {
+        encoder.onInstructionEncoded(inst, ops, instructionCodeStartOffset, encoder.size());
+        encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.debugSourceInfo);
+    }
 }
 
 Result MicroEmitPass::run(MicroPassContext& context)

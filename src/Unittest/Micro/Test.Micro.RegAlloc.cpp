@@ -286,6 +286,32 @@ namespace
         b.emitRet();
     }
 
+    void buildKnownComputedJump(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv&     conv       = CallConv::get(callConvKind);
+        constexpr MicroReg targetReg   = MicroReg::virtualIntReg(7200);
+        constexpr MicroReg liveReg     = MicroReg::virtualIntReg(7201);
+        const MicroLabelRef firstLabel = b.createLabel();
+        const MicroLabelRef nextLabel  = b.createLabel();
+        const MicroLabelRef doneLabel  = b.createLabel();
+        const std::array    targets     = {firstLabel, nextLabel};
+
+        b.emitLoadLabelAddress(targetReg, firstLabel);
+        b.emitLoadRegImm(liveReg, ApInt(10, 64), MicroOpBits::B64);
+        b.emitJumpReg(targetReg, targets);
+
+        b.placeLabel(firstLabel);
+        b.emitOpBinaryRegImm(liveReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        b.placeLabel(nextLabel);
+        b.emitOpBinaryRegImm(liveReg, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+
+        b.placeLabel(doneLabel);
+        b.emitLoadRegReg(conv.intReturn, liveReg, MicroOpBits::B64);
+        b.emitRet();
+    }
+
     void buildLoadBaseAddressAcrossCall(MicroBuilder& b, CallConvKind callConvKind)
     {
         const CallConv& conv = CallConv::get(callConvKind);
@@ -909,6 +935,12 @@ SWC_TEST_BEGIN(RegAlloc_Spill_BalancedControlFlow)
         if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_KnownComputedJumpKeepsIntervalAllocation)
+{
+    SWC_RESULT(runCase(ctx, buildKnownComputedJump));
 }
 SWC_TEST_END()
 

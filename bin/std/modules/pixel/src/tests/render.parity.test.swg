@@ -151,6 +151,83 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
 }
 
 // Records the portable painter surface once so both backends execute the exact same operations.
+// Strokes measured from the centre line, over the widths, angles, joins and caps that decide
+// whether one quad can stand in for a quad and two bands.
+private func renderStrokeParityScene(renderer: IRenderer)->Image
+{
+    var target = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(255'u8, 16'u8, 18'u8, 24'u8))
+
+    painter.setBlendingMode(.Alpha)
+    painter.setAntialiased(true)
+    painter.setDistanceStrokes(true)
+
+    // Widths across and below one device pixel, at an angle that lands the contour between two
+    // pixel centres on both axes.
+    var width = 0.35'f32
+    for i in 6
+    {
+        let x = 8.0'f32 + cast(f32) i * 30
+        painter.drawLine(x, 6, x + 22, 40, Color.fromArgb(Argb.White), width)
+        width *= 1.9
+    }
+
+    // Every join and cap style the stroker can put around a measured segment.
+    let joins = [JoinStyle.Bevel, JoinStyle.Round, JoinStyle.Miter, JoinStyle.MiterBevel]
+    for j, i in joins
+    {
+        var path: LinePath
+        let x = 8.0'f32 + cast(f32) i * 46
+        path.start(x, 78)
+        path.lineTo(x + 18, 50)
+        path.lineTo(x + 36, 78)
+
+        var pen = Pen.createSolid(Color.fromArgb(Argb.Gold), 5)
+        pen.joinStyle   = j
+        pen.begCapStyle = .Round
+        pen.endCapStyle = .Square
+        painter.drawPath(&path, pen)
+    }
+
+    // A closed contour, a curve, and a dashed pen, which keeps its own per-segment caps.
+    var curve: LinePath
+    curve.start(10, 96)
+    curve.bezierTo(180, 112, 60, 132, 120, 78)
+    painter.drawPath(&curve, Color.fromArgb(Argb.DodgerBlue), 3)
+
+    var closed: LinePath
+    closed.start(12, 106)
+    closed.lineTo(44, 106)
+    closed.lineTo(28, 124)
+    closed.close()
+    painter.drawPath(&closed, Color.fromArgb(Argb.LimeGreen), 2)
+
+    var dashed = Pen.createSolid(Color.fromArgb(Argb.Crimson), 2)
+    dashed.dashStyle = .Dash
+    painter.drawLine(64, 120, 184, 120, dashed)
+
+    // Under a transform, because the measured span is a path-space quantity and the contour it
+    // places has to land where the banded one did.
+    painter.pushTransform()
+    painter.rotateTransform(18.0'deg, 150, 96)
+    painter.scaleTransform(1.6)
+    painter.drawLine(96, 58, 124, 58, Color.fromArgb(Argb.Violet), 1)
+    painter.popTransform()
+
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+
+    return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
+}
+
 private func renderParityScene(renderer: IRenderer)->Image
 {
     var texture = makeRenderParityTexture(renderer)
@@ -454,6 +531,24 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     let expected = renderCpu(&renderParityScene)
     let image    = expect renderOgl("SWAG_PIXEL_RENDER_PARITY", "Pixel renderer parity", RenderParityWidth, RenderParityHeight, &renderParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
+}
+
+// The deterministic CPU backend is the reviewable reference for measured strokes too.
+#[Swag.TestTag("golden")]
+#test
+{
+    let image = renderCpu(&renderStrokeParityScene)
+    Testing.assertImageGolden(&image, "render.parity.stroke")
+}
+
+// A measured stroke has to reach the same pixels on both backends, because the rule that turns a
+// signed distance into coverage is written twice: once in the OpenGL fragment program and once in
+// the software rasterizer. This is what keeps the two honest before the flag becomes a default.
+#test
+{
+    let expected = renderCpu(&renderStrokeParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_STROKE_PARITY", "Pixel stroke parity", RenderParityWidth, RenderParityHeight, &renderStrokeParityScene)
+    Testing.assertImagesNear(&expected, &image, "render.parity.stroke.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
 }
 
 // Text goldens cover bitmap sampling plus the complete built-in MTSDF effects path.

@@ -13,6 +13,18 @@ enum DefaultShaderId
 
 // Antialiasing fringe half-width, in (untransformed) path-space pixels.
 //
+// Where a measured stroke's coverage lives in the vertex coverage attribute.
+//
+// The attribute normally carries an extruded band's ramp, one inside the contour and zero on the
+// outer edge. A measured stroke needs a *signed* distance instead, because one quad has to
+// describe both of its sides, and the two meanings have to travel in the same batch so a stroke
+// and the joins and caps around it still draw together. They are told apart by range: a band
+// never leaves zero to one, so a measured stroke is written around this bias, and any value above
+// half of it is read as a distance. The contour sits half a unit either side of the bias, which
+// puts the signed distance on the same scale as the ramp it replaces and leaves the screen-space
+// coverage both backends derive from it unchanged.
+const StrokeCoverageBias = 4.0'f32
+
 // The fringe band is centered on the shape contour (AAHalf inside / AAHalf
 // outside), giving a 1px transition with 50% coverage on the true edge.
 const AAHalf = 0.5'f32
@@ -70,6 +82,18 @@ enum PaintParams
 {
     Zero                      // Disable every optional behavior.
     Antialiased               // Generate coverage fringes along vector edges.
+
+    // Antialias a stroke from the fragment's distance to its centre line instead of from a
+    // fringe band extruded along each side.
+    //
+    // A banded segment costs a quad and a band on each of its long edges, eighteen vertices; a
+    // measured segment costs its two triangles. A document of strokes is bound by that emission,
+    // so the saving is close to the ratio. What moves in exchange is the edge itself: the band
+    // pair carries a solid core out to the full half width and softens beyond it, while the
+    // distance places the same contour there and softens across it, which reads a shade finer.
+    // Turn it on for content whose weight is its own, and compare before making it a default.
+    DistanceStrokes
+
     Default = Antialiased     // Use the normal antialiased configuration.
 }
 
@@ -806,6 +830,67 @@ impl Painter
         ptr.cov   = 0
     }
 
+    // Emits one stroke segment as the two triangles of a single quad.
+    //
+    // `p0` and `p1` are the segment's centre line, `extent` reaches from it to the quad's edge —
+    // the half width plus the antialiasing margin — and `edge` is where the contour sits along
+    // that reach, as a fraction of twice the half width. Coverage is written as the signed
+    // distance described by [[Pixel.StrokeCoverageBias]], so the two sides come out of one span.
+    #[Swag.Safety(.All, false)]
+    private mtd pushStrokeSegment(p0, p1, extent: Vector2, edge: f32, color: u32)->u64
+    {
+        let w0 = p0 - extent
+        let w1 = p1 - extent
+        let w2 = p1 + extent
+        let w3 = p0 + extent
+
+        let cmd = .pushTriangleCmd()
+        cmd.drawTriangles.count += 6
+        expandBounds(cmd, w0)
+        expandBounds(cmd, w1)
+        expandBounds(cmd, w2)
+        expandBounds(cmd, w3)
+
+        let covNeg = StrokeCoverageBias - edge
+        let covPos = StrokeCoverageBias + edge
+
+        // The two triangles keep the winding and the corner order the banded quad used, so a
+        // caller that reads them back for a cap edge finds the same corners in the same places.
+        let first = .vertexBuffer.count
+        var ptr   = .vertexBuffer.emplaceAddress(6)
+        ptr.pos   = w0
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = covNeg
+        ptr       += 1
+        ptr.pos   = w1
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = covNeg
+        ptr       += 1
+        ptr.pos   = w3
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = covPos
+        ptr       += 1
+        ptr.pos   = w1
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = covNeg
+        ptr       += 1
+        ptr.pos   = w3
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = covPos
+        ptr       += 1
+        ptr.pos   = w2
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = covPos
+
+        return first
+    }
+
     private mtd aaHalfPathSpace()->f32
     {
         let tr = .curState.transform
@@ -1072,6 +1157,17 @@ impl Painter
             .curState.paintParams |= .Antialiased
         else do
             .curState.paintParams &= ~.Antialiased
+    }
+
+    // Enables or disables measuring a stroke's antialiasing from its centre line.
+    //
+    // See [[Pixel.PaintParams.DistanceStrokes]] for what it costs and what it changes.
+    mtd setDistanceStrokes(on = true)
+    {
+        if on do
+            .curState.paintParams |= .DistanceStrokes
+        else do
+            .curState.paintParams &= ~.DistanceStrokes
     }
 
     // Returns the currently enabled painter behavior flags.

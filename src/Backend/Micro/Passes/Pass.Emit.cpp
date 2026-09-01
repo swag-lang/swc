@@ -19,8 +19,10 @@
 //        - pendingLabelJumps_  : conditional jumps with unresolved targets,
 //                                emitted with a placeholder displacement.
 //      Relocation-bearing instructions bind their final code offset into the
-//      corresponding MicroRelocation. Calls in native artifacts use a direct
-//      relative displacement; pointer loads stay absolute.
+//      corresponding MicroRelocation. Calls and mutable-global addresses use
+//      relative displacements. Other pointer loads stay absolute because the
+//      JIT's independently allocated code and constant arenas need not be
+//      within two gigabytes of one another.
 //
 //   2. Branch patching. Now that every Label has a concrete offset, walk the
 //      pending jump list and patch each placeholder displacement.
@@ -104,10 +106,29 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             break;
         case MicroInstrOpcode::LoadRegPtrReloc:
         {
-            const uint32_t loadCodeStartOffset = encoder.size();
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
             SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
-            bindAbs64RelocationOffset(context, instructionRef, loadCodeStartOffset, encoder.size());
+            const auto relocIt = relocationByInstructionRef_.find(instructionRef);
+            SWC_ASSERT(relocIt != relocationByInstructionRef_.end());
+            if (relocIt == relocationByInstructionRef_.end())
+                break;
+
+            MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
+            const uint32_t   loadStart  = encoder.size();
+            if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress || relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            {
+                // Native images keep globals next to code, and the JIT puts
+                // mutable segments in its proximity arena. LEA [RIP+rel32]
+                // therefore materializes the exact pointer in both paths with
+                // three fewer instruction bytes and no base relocation. It is
+                // one ordinary integer uop, just like MOVABS.
+                relocation.form = MicroRelocation::Form::Relative32;
+                encoder.encodeLoadAddressRegMem(ops[0].reg, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+                bindRel32RelocationOffset(context, instructionRef, loadStart, encoder.size());
+                break;
+            }
+
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
+            bindAbs64RelocationOffset(context, instructionRef, loadStart, encoder.size());
             break;
         }
 

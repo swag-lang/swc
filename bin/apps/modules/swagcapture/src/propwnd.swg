@@ -105,6 +105,21 @@ impl PropWnd
         return capture.getSelectedBaseForm()!
     }
 
+    // Returns the selected form as a `T`, or null when the selection is not one.
+    //
+    // An editor is built for the kind that was selected, but the painters and the handlers it
+    // installs run again long after that: a panel is rebuilt from an event, a frame is not, so by
+    // the time one of them fires the selection may be another kind entirely. Casting whatever
+    // survives to the kind the editor was made for reads one form's bytes as another's, and a
+    // field the two do not share comes back as whatever lay at that offset — which is how a
+    // '#complete switch' over a three-value enum ends up with a value it has no case for.
+    mtd(T) getSelectedForm()->#null *T
+    {
+        if .getSelectedFormType() != T do
+            return null
+        return cast(*T) .getSelectedBaseForm()
+    }
+
     mtd getSelectedFormType()->typeinfo
     {
         let capture = .main.getCapture()
@@ -262,7 +277,9 @@ impl PropWnd
 
         func selectedCap(prop: *PropWnd, begin: bool)->LineCapStyle
         {
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            let curSel = prop.getSelectedForm'FormLine()
+            if !curSel do
+                return LineCapStyle.None
             return begin ? curSel.beginCap : curSel.endCap
         }
 
@@ -385,7 +402,7 @@ impl PropWnd
 
     mtd propBorderColor(stack: *Wnd)
     {
-        let curSel = cast(*FormText) .getSelectedBaseForm()
+        let curSel = .getSelectedBaseForm()
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
@@ -504,7 +521,9 @@ impl PropWnd
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            let curSel = cast(*FormShape) prop.getSelectedBaseForm()
+            let curSel = prop.getSelectedForm'FormShape()
+            if !curSel do
+                return
             drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
         }
 
@@ -521,7 +540,9 @@ impl PropWnd
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            let curSel = cast(*FormStep) prop.getSelectedBaseForm()
+            let curSel = prop.getSelectedForm'FormStep()
+            if !curSel do
+                return
             drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
         }
 
@@ -538,8 +559,10 @@ impl PropWnd
 
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
-            var curSel = cast(*FormLine) prop.getSelectedBaseForm()
-            var rect   = pos
+            let curSel = prop.getSelectedForm'FormLine()
+            if !curSel do
+                return
+            var rect = pos
             rect.inflate(-9, -9)
             var pen = Pen.createSolid(btn.themeColors().btnIcon_Icon, CapSize)
             pen.begCapStyle = curSel.beginCap
@@ -563,8 +586,10 @@ impl PropWnd
         let btn = createStyleButton(stack, appStrings().ui_PropEnd)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
-            var rect   = pos
+            let curSel = prop.getSelectedForm'FormLine()
+            if !curSel do
+                return
+            var rect = pos
             rect.inflate(-9, -9)
             var pen = Pen.createSolid(btn.themeColors().btnIcon_Icon, CapSize)
             pen.begCapStyle = .None
@@ -585,7 +610,7 @@ impl PropWnd
         if curSelType != FormShape and curSelType != FormLine and curSelType != FormArrow and curSelType != FormPolygon do
             return
 
-        let curSel = cast(*FormText) .getSelectedBaseForm()
+        let curSel = .getSelectedBaseForm()
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
@@ -660,8 +685,10 @@ impl PropWnd
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
-            var rect   = pos
+            let curSel = prop.getSelectedForm'FormCallout()
+            if !curSel do
+                return
+            var rect = pos
             rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
             rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
@@ -672,7 +699,9 @@ impl PropWnd
 
         btn.sigPopupRequested += func|prop = me|(btn)
         {
-            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+            let curSel = prop.getSelectedForm'FormCallout()
+            if !curSel do
+                return
             var picker = createColorPicker(btn, curSel.textColor)
             picker.sigColorChanged += func|prop, btn, var first = true|(pk)
             {

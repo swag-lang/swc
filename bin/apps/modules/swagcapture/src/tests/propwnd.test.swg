@@ -336,3 +336,36 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     Swag.assert(thickness.labelWidth == expectedWidth)
     Swag.assert(testFindItem(prop, "Effects") == null)
 }
+
+// A property editor is built for the kind that was selected, and the painters and handlers it
+// installs run again long after that: the panel is rebuilt from an event and a frame is not, so
+// by the time one of them fires the selection may be another kind entirely. They ask for the
+// selection as the kind they were made for, and must be told it is not one rather than handed
+// another form's bytes to read as that kind.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    discard testAddShape(f.capture, 10, 10, 40, 40)
+    let text = testAddText(f.capture, 60, 10, 100, 40)
+    text.text = String.from("Swag")
+
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    prop.applyLayout()
+    Swag.assert(prop.getSelectedForm'FormShape() != null)
+
+    // Move the selection to the text form without telling the panel, which is the window every
+    // repaint between an editor being built and being rebuilt falls into.
+    f.capture.selection.clear()
+    f.capture.selection.add(1)
+
+    Swag.assert(prop.getSelectedForm'FormShape() == null)
+    Swag.assert(prop.getSelectedForm'FormStep() == null)
+    Swag.assert(prop.getSelectedForm'FormLine() == null)
+    Swag.assert(prop.getSelectedForm'FormCallout() == null)
+    Swag.assert(prop.getSelectedForm'FormText() != null)
+}

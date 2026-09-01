@@ -307,6 +307,34 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   region was tried here and **did not reliably help**: on this adapter a partial back-buffer write
   measured slower as often as faster, which is a second reason beyond the undefined swap semantics
   not to pursue it as written.
+- Measured again with the capture zoomed to fit — `EditView` does that on its first paint, so a
+  whole-desktop grab lands at about 0.49 — and forms sized to read at it: shapes of 1200x700 and
+  texts of 2400x420 capture units at the largest font the editor offers. Eight forms give 4.2 ms a
+  frame, twenty give 8.4, and dragging the text rather than the shape does not change it: recording
+  stays at 0.5-0.6 ms throughout, so a text form's retained rendering is not going stale as it
+  moves. Devmode measures the same as release, which rules the guards out too.
 - Next: nothing, on this evidence. Reopen it with a case that reproduces slowness — a zoom level,
   a form kind, a capture, or a machine — and the numbers above are the baseline to beat. The
   `swag.frametrace` split between the copy and the swap is what tells the two apart.
+- What the scenario did find is a defect rather than a cost, now fixed: a property editor's icon
+  painter re-read the selection on every frame and cast it to the kind the editor had been built
+  for. See the note below.
+
+### app.capture.023 — A property painter reading a stale selection is only caught in devmode
+
+- The bug is fixed; what remains is that the headless panel does not reproduce it, so nothing
+  guards the painters themselves.
+- What happened: `PropWnd.propShape` checks the selected kind when it creates its button, but the
+  `iconPainter` it installs runs on every frame and cast whatever was selected *then* to
+  `*FormShape`. Selecting a text form put a `String`'s first bytes where `kind` lives, and
+  `drawShapeGlyph` switches over a three-value enum with `#complete`. Release has the guard off and
+  drew a wrong glyph; devmode panicked. Six other painters and popup handlers had the same shape.
+  All of them now ask `getSelectedForm'T()`, which answers null when the selection is not a `T`.
+- Why there is no test for the painter: a headless fixture that builds the panel, moves the
+  selection to a text form and renders each style button does not fault, with or without the fix —
+  the buttons are laid out and painted and the value read still comes back inside the enum. The
+  running application faults reliably. `propwnd.test.swg` therefore pins the accessor's contract,
+  which is the mechanism, and not the painters that depend on it.
+- Next: find what the headless render does differently — most likely which paint context the icon
+  slot gets — and pin one painter against a deliberately mismatched selection.
+- Complete when: reverting the guard in `propShape` makes a test fail.

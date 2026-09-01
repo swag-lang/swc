@@ -470,12 +470,12 @@ impl Painter
         if .curState.paintParams & .Antialiased
         {
             // The two long edges are the pen normal's two sides, so the outward direction is
-            // known here and neither band has to be derived from the quad's centroid.
-            var outward = cxt.normal
-            outward.normalizeOrZero()
-            let color = cxt.pen.brush.color.argb
-            .addEdgeAAOutward(v0, v1, -outward, color)
-            .addEdgeAAOutward(v3, v2, outward, color)
+            // known here, neither band has to be derived from the quad's centroid, and the two
+            // extrude by the same amount.
+            let fringe = .strokeFringeOffset(cxt.normal)
+            let color  = cxt.pen.brush.color.argb
+            .addEdgeAAOutward(v0, v1, -fringe, color)
+            .addEdgeAAOutward(v3, v2, fringe, color)
 
             // If we are starting a line, and the line does not have a cap before, then
             // we must AA the corresponding edge

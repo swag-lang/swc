@@ -866,8 +866,19 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd addEdgeAAOutward(p, q, outward: Vector2, color: u32)
     {
-        let off = outward * .aaHalfPathSpace(outward)
-        .pushFringeQuad(p - off, p + off, q - off, q + off, color)
+        .pushFringeQuad(p - outward, p + outward, q - outward, q + outward, color)
+    }
+
+    // Returns how far a fringe extrudes along `normal`, which the two sides of a stroke share.
+    //
+    // The width depends on the transformed length of the direction, and negating a direction
+    // negates each of its transformed components exactly, so both sides of a stroke get the same
+    // answer and only one of them has to ask for it.
+    private mtd strokeFringeOffset(normal: Vector2)->Vector2
+    {
+        var unit = normal
+        unit.normalizeOrZero()
+        return unit * .aaHalfPathSpace(unit)
     }
 
     #[Swag.Inline]

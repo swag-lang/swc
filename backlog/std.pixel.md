@@ -276,6 +276,17 @@ output, path measurement and effects, and the modern renderer choice tracked by
   `getFlattenDistance(quality) / curFlattenScale`, which at Normal quality drops points closer
   than 0.2 device pixels and so keeps roughly five contour points per device pixel. Raising that
   step trades outline fidelity for a proportional cut and is a quality decision, not a free one.
+- What has since been taken out of the per-vertex cost, so the remaining number is honest: the
+  fringe no longer reads its triangle back out of the vertex buffer to find which way to extrude
+  (a stroke knows: it is the pen normal's two sides), and the two sides ask once for how far.
+  That halved recording without touching the geometry — 118 ms to 70 on the measurement above —
+  which puts it at about **18 ns per vertex, the rate this entry already predicted**. Recording is
+  therefore at its floor for this vertex count, and the count is the only lever left.
+- Where the frame stands after that and the two OpenGL fixes (2026-09-01, same window and
+  document): 123 ms a frame, of which 83 is recording, 21 submitting and 18 the adapter. Cutting a
+  segment from eighteen vertices to six would take the whole frame to roughly 50, which a probe
+  confirms: decimating five times more coarsely, which reaches a similar vertex count by throwing
+  away fidelity instead, gives 64 ms and drops the adapter's share to 0.5.
 - The fringe is what to attack: `addEdgeAA` emits a whole quad per silhouette edge because the
   shaders read coverage from a vertex attribute. A stroke program given the segment and the half
   width, deriving coverage from the fragment's distance to the centre line, collapses a segment to

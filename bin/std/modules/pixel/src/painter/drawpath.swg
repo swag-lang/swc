@@ -469,13 +469,12 @@ impl Painter
         // document is mostly this geometry, and the copy cost every one of them.
         if .curState.paintParams & .Antialiased
         {
-            // The two long edges are the pen normal's two sides, so the outward direction is
-            // known here, neither band has to be derived from the quad's centroid, and the two
-            // extrude by the same amount.
-            let fringe = .strokeFringeOffset(cxt.normal)
-            let color  = cxt.pen.brush.color.argb
-            .addEdgeAAOutward(v0, v1, -fringe, color)
-            .addEdgeAAOutward(v3, v2, fringe, color)
+            // The quad puts the pen normal on one side of each long edge, so which way each band
+            // extrudes is known here and neither has to be derived from the quad's centroid: the
+            // near edge always extrudes away from it and the far edge always toward it.
+            let color = cxt.pen.brush.color.argb
+            .addEdgeAAFlipped(v0, v1, true, color)
+            .addEdgeAAFlipped(v3, v2, false, color)
 
             // If we are starting a line, and the line does not have a cap before, then
             // we must AA the corresponding edge

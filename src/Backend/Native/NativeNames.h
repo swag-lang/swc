@@ -13,6 +13,7 @@ inline constexpr auto K_BSS_BASE_SYMBOL    = "__swc_bss_base";
 
 Utf8 nativeArtifactScopeName(const CompilerInstance& compiler);
 Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, std::string_view baseName);
+Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, uint32_t shardIndex, uint32_t sourceOffset);
 Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function);
 
 SWC_END_NAMESPACE();

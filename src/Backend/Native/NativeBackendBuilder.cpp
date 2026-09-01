@@ -45,6 +45,11 @@ Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, const std::
     return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
 }
 
+Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, const uint32_t shardIndex, const uint32_t sourceOffset)
+{
+    return std::format("__swc_rdata_{:08x}_{:02x}_{:08x}", Math::hash(nativeArtifactScopeName(compiler).view()), shardIndex, sourceOffset);
+}
+
 Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
 {
     Utf8 key = function.getFullScopedName(ctx);
@@ -664,12 +669,20 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         {
             DataSegmentRef sourceRef;
             SWC_RESULT(resolveConstantSourceRef(sourceRef, ownerName, relocation));
-            uint32_t mappedOffset = 0;
-            if (!tryMapRDataSourceOffset(mappedOffset, sourceRef.shardIndex, sourceRef.offset))
+            const auto* allocation = tryFindRDataSourceAllocation(sourceRef.shardIndex, sourceRef.offset);
+            if (!allocation)
                 return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
 
-            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
-            record.addend     = mappedOffset;
+            if (target.splitRDataReferences)
+            {
+                record.symbolName = nativeScopedRDataAllocationSymbol(compiler(), allocation->shardIndex, allocation->sourceOffset);
+                record.addend     = sourceRef.offset - allocation->sourceOffset;
+            }
+            else
+            {
+                record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
+                record.addend     = allocation->emittedOffset + (sourceRef.offset - allocation->sourceOffset);
+            }
 
             if (relocation.form == MicroRelocation::Form::Relative32)
             {
@@ -678,7 +691,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
                 // "+ 4" lands exactly on the instruction end that RIP holds.
                 SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
                 record.type = IMAGE_REL_AMD64_REL32;
-                writeU32(*target.bytes, patchOffset, mappedOffset);
+                writeU32(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
                 break;
             }
 
@@ -716,25 +729,47 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
     return Result::Continue;
 }
 
-bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
+const NativeRDataAllocationMapEntry* NativeBackendBuilder::tryFindRDataSourceAllocation(const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
 {
-    outOffset = 0;
     if (shardIndex >= ConstantManager::SHARD_COUNT)
-        return false;
+        return nullptr;
 
     const auto& entries = rdataAllocationMap[shardIndex];
     if (entries.empty())
-        return false;
+        return nullptr;
 
     const auto it = std::ranges::upper_bound(entries, sourceOffset, {}, &NativeRDataAllocationMapEntry::sourceOffset);
     if (it == entries.begin())
-        return false;
+        return nullptr;
 
     const auto& entry = *std::prev(it);
     if (sourceOffset < entry.sourceOffset || sourceOffset - entry.sourceOffset >= entry.size)
+        return nullptr;
+
+    return &entry;
+}
+
+const NativeRDataAllocationMapEntry* NativeBackendBuilder::tryFindRDataEmittedAllocation(const uint32_t emittedOffset) const noexcept
+{
+    const auto it = std::ranges::upper_bound(rdataAllocations, emittedOffset, {}, &NativeRDataAllocationMapEntry::emittedOffset);
+    if (it == rdataAllocations.begin())
+        return nullptr;
+
+    const auto& entry = *std::prev(it);
+    if (emittedOffset < entry.emittedOffset || emittedOffset - entry.emittedOffset >= entry.size)
+        return nullptr;
+
+    return &entry;
+}
+
+bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
+{
+    outOffset         = 0;
+    const auto* entry = tryFindRDataSourceAllocation(shardIndex, sourceOffset);
+    if (!entry)
         return false;
 
-    outOffset = entry.emittedOffset + (sourceOffset - entry.sourceOffset);
+    outOffset = entry->emittedOffset + (sourceOffset - entry->sourceOffset);
     return true;
 }
 

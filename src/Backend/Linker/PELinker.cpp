@@ -14,6 +14,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
@@ -101,6 +102,285 @@ namespace
                     outUndefined.insert(reloc.symbolName);
             }
         }
+    }
+
+    struct ReadOnlyDataFoldCandidate
+    {
+        size_t   objectIndex     = 0;
+        uint32_t sectionIndex    = 0;
+        uint32_t characteristics = 0;
+        Utf8     symbolName;
+    };
+
+    struct LinkSymbolAlias
+    {
+        Utf8 name;
+        Utf8 canonicalName;
+    };
+
+    struct FunctionFoldCandidate
+    {
+        size_t   objectIndex  = 0;
+        uint32_t sectionIndex = 0;
+        Utf8     symbolName;
+    };
+
+    struct FunctionFoldGroup
+    {
+        std::vector<size_t> members;
+    };
+
+    bool tryGetFoldableReadOnlyData(uint32_t& outSectionIndex, Utf8& outSymbolName, const CoffObject& object)
+    {
+        outSectionIndex = INVALID_REF;
+        outSymbolName.clear();
+
+        for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
+        {
+            const CoffInputSection& section = object.sections[sectionIndex];
+            if (section.name == ".rdata" && !section.bytes.empty())
+            {
+                if (outSectionIndex != INVALID_REF || !section.relocs.empty())
+                    return false;
+                outSectionIndex = sectionIndex;
+                continue;
+            }
+
+            if (!section.name.view().starts_with(".debug") && (!section.bytes.empty() || section.isBss))
+                return false;
+        }
+
+        if (outSectionIndex == INVALID_REF)
+            return false;
+
+        for (const CoffInputSymbol& symbol : object.definedSymbols)
+        {
+            if (symbol.sectionIndex != outSectionIndex || symbol.value != 0 || !symbol.name.view().starts_with("__swc_rdata_"))
+                continue;
+            if (!outSymbolName.empty())
+                return false;
+            outSymbolName = symbol.name;
+        }
+
+        return !outSymbolName.empty();
+    }
+
+    void addLinkSymbolAliases(LinkImage& image, const std::vector<LinkSymbolAlias>& aliases)
+    {
+        std::unordered_map<Utf8, size_t> symbolIndices;
+        symbolIndices.reserve(image.symbols.size() + aliases.size());
+        for (size_t i = 0; i < image.symbols.size(); ++i)
+            symbolIndices.emplace(image.symbols[i].name, i);
+
+        image.symbols.reserve(image.symbols.size() + aliases.size());
+        for (const LinkSymbolAlias& alias : aliases)
+        {
+            const auto it = symbolIndices.find(alias.canonicalName);
+            SWC_ASSERT(it != symbolIndices.end());
+            if (it == symbolIndices.end())
+                continue;
+            LinkSymbol symbol = image.symbols[it->second];
+            symbol.name       = alias.name;
+            symbolIndices.emplace(symbol.name, image.symbols.size());
+            image.symbols.push_back(std::move(symbol));
+        }
+    }
+
+    bool tryGetFunctionFoldCandidate(FunctionFoldCandidate& outCandidate, const CoffObject& object, const size_t objectIndex)
+    {
+        outCandidate = {};
+
+        uint32_t textSectionIndex = INVALID_REF;
+        for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
+        {
+            if (object.sections[sectionIndex].name != ".text" || object.sections[sectionIndex].bytes.empty())
+                continue;
+            if (textSectionIndex != INVALID_REF)
+                return false;
+            textSectionIndex = sectionIndex;
+        }
+        if (textSectionIndex == INVALID_REF)
+            return false;
+
+        Utf8 functionSymbol;
+        for (const CoffInputSymbol& symbol : object.definedSymbols)
+        {
+            if (symbol.sectionIndex != textSectionIndex || symbol.value != 0)
+                continue;
+            if (!functionSymbol.empty())
+                return false;
+            functionSymbol = symbol.name;
+        }
+        if (functionSymbol.empty())
+            return false;
+
+        outCandidate.objectIndex  = objectIndex;
+        outCandidate.sectionIndex = textSectionIndex;
+        outCandidate.symbolName   = std::move(functionSymbol);
+        return true;
+    }
+
+    Utf8 canonicalRelocationTarget(const Utf8& target, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    {
+        if (target == selfSymbol)
+            return Utf8("$self");
+        const auto it = knownAliases.find(target);
+        return it == knownAliases.end() ? target : it->second;
+    }
+
+    uint32_t functionFoldHash(const FunctionFoldCandidate& candidate, const std::vector<CoffObject>& objects, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    {
+        const CoffInputSection& text = objects[candidate.objectIndex].sections[candidate.sectionIndex];
+        uint32_t                hash = Math::hash(text.bytes.span(), text.characteristics);
+        for (const CoffInputReloc& relocation : text.relocs)
+        {
+            hash = Math::hashCombine(hash, relocation.offset);
+            hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
+            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, candidate.symbolName, knownAliases).view()));
+        }
+        return hash;
+    }
+
+    bool sameFoldableFunction(const FunctionFoldCandidate& lhs, const FunctionFoldCandidate& rhs, const std::vector<CoffObject>& objects, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    {
+        const CoffInputSection& lhsText = objects[lhs.objectIndex].sections[lhs.sectionIndex];
+        const CoffInputSection& rhsText = objects[rhs.objectIndex].sections[rhs.sectionIndex];
+        if (lhsText.characteristics != rhsText.characteristics || lhsText.bytes != rhsText.bytes || lhsText.relocs.size() != rhsText.relocs.size())
+            return false;
+
+        for (size_t i = 0; i < lhsText.relocs.size(); ++i)
+        {
+            const CoffInputReloc& lhsRelocation = lhsText.relocs[i];
+            const CoffInputReloc& rhsRelocation = rhsText.relocs[i];
+            if (lhsRelocation.offset != rhsRelocation.offset || lhsRelocation.type != rhsRelocation.type)
+                return false;
+            if (canonicalRelocationTarget(lhsRelocation.symbolName, lhs.symbolName, knownAliases) != canonicalRelocationTarget(rhsRelocation.symbolName, rhs.symbolName, knownAliases))
+                return false;
+        }
+        return true;
+    }
+
+    bool isDirectCallRelocation(const CoffInputSection& section, const CoffInputReloc& relocation)
+    {
+        return section.name == ".text" && relocation.type == IMAGE_REL_AMD64_REL32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
+    }
+
+    bool isDirectCallRelocation(const LinkSection& section, const LinkReloc& relocation)
+    {
+        return section.flags.has(LinkSectionFlagsE::Code) && relocation.kind == LinkRelocKind::Rel32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
+    }
+
+    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const LinkImage& image, const std::vector<LinkSymbolAlias>& knownSymbolAliases, std::vector<LinkSymbolAlias>& outAliases)
+    {
+        std::vector<FunctionFoldCandidate> candidates;
+        candidates.reserve(objects.size());
+        for (size_t objectIndex = 0; objectIndex < objects.size(); ++objectIndex)
+        {
+            FunctionFoldCandidate candidate;
+            if (tryGetFunctionFoldCandidate(candidate, objects[objectIndex], objectIndex))
+                candidates.push_back(std::move(candidate));
+        }
+        if (candidates.size() < 2)
+            return;
+
+        std::unordered_map<Utf8, size_t> candidateBySymbol;
+        candidateBySymbol.reserve(candidates.size());
+        for (size_t i = 0; i < candidates.size(); ++i)
+            candidateBySymbol.emplace(candidates[i].symbolName, i);
+
+        std::vector<bool> addressObserved(candidates.size());
+        for (const CoffObject& object : objects)
+        {
+            for (const CoffInputSection& section : object.sections)
+            {
+                if (section.name == ".pdata")
+                    continue;
+                for (const CoffInputReloc& relocation : section.relocs)
+                {
+                    const auto it = candidateBySymbol.find(relocation.symbolName);
+                    if (it != candidateBySymbol.end() && !isDirectCallRelocation(section, relocation))
+                        addressObserved[it->second] = true;
+                }
+            }
+        }
+        for (const LinkSection& section : image.sections)
+        {
+            for (const LinkReloc& relocation : section.relocs)
+            {
+                const auto it = candidateBySymbol.find(relocation.symbolName);
+                if (it != candidateBySymbol.end() && !isDirectCallRelocation(section, relocation))
+                    addressObserved[it->second] = true;
+            }
+        }
+        for (const LinkExport& exported : image.exports)
+            if (const auto it = candidateBySymbol.find(exported.symbolName); it != candidateBySymbol.end())
+                addressObserved[it->second] = true;
+        if (const auto it = candidateBySymbol.find(image.entrySymbol); it != candidateBySymbol.end())
+            addressObserved[it->second] = true;
+
+        std::unordered_map<Utf8, Utf8> knownAliases;
+        knownAliases.reserve(knownSymbolAliases.size());
+        for (const LinkSymbolAlias& alias : knownSymbolAliases)
+            knownAliases.emplace(alias.name, alias.canonicalName);
+
+        std::unordered_map<uint32_t, std::vector<FunctionFoldGroup>> groupsByHash;
+        for (size_t i = 0; i < candidates.size(); ++i)
+        {
+            const uint32_t hash       = functionFoldHash(candidates[i], objects, knownAliases);
+            auto&          groups     = groupsByHash[hash];
+            const auto     equivalent = std::ranges::find_if(groups, [&](const FunctionFoldGroup& group) { return sameFoldableFunction(candidates[i], candidates[group.members.front()], objects, knownAliases); });
+            if (equivalent == groups.end())
+            {
+                groups.push_back({.members = {i}});
+                continue;
+            }
+            equivalent->members.push_back(i);
+        }
+
+        for (const auto& [_, groups] : groupsByHash)
+        {
+            for (const FunctionFoldGroup& group : groups)
+            {
+                if (group.members.size() < 2)
+                    continue;
+
+                size_t canonicalIndex = group.members.front();
+                for (const size_t memberIndex : group.members)
+                {
+                    if (addressObserved[memberIndex])
+                    {
+                        canonicalIndex = memberIndex;
+                        break;
+                    }
+                }
+
+                for (const size_t memberIndex : group.members)
+                {
+                    if (memberIndex == canonicalIndex || addressObserved[memberIndex])
+                        continue;
+                    outAliases.push_back({.name = candidates[memberIndex].symbolName, .canonicalName = candidates[canonicalIndex].symbolName});
+                }
+            }
+        }
+
+        if (outAliases.empty())
+            return;
+
+        std::unordered_set<Utf8> foldedSymbols;
+        foldedSymbols.reserve(outAliases.size());
+        for (const LinkSymbolAlias& alias : outAliases)
+            foldedSymbols.insert(alias.name);
+
+        std::vector<CoffObject> retained;
+        retained.reserve(objects.size() - outAliases.size());
+        for (size_t objectIndex = 0; objectIndex < objects.size(); ++objectIndex)
+        {
+            const auto candidate = std::ranges::find(candidates, objectIndex, &FunctionFoldCandidate::objectIndex);
+            if (candidate != candidates.end() && foldedSymbols.contains(candidate->symbolName))
+                continue;
+            retained.push_back(std::move(objects[objectIndex]));
+        }
+        objects = std::move(retained);
     }
 
     void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const std::unordered_set<Utf8>& defined)
@@ -607,9 +887,11 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
     std::unordered_set<Utf8> undefined;
     collectUndefined(undefined, image, defined);
 
-    std::unordered_set<Utf8> imported;
-    std::vector<CoffObject>  pulledObjects;
-    std::vector              worklist(undefined.begin(), undefined.end());
+    std::unordered_set<Utf8>                                             imported;
+    std::vector<CoffObject>                                              pulledObjects;
+    std::unordered_map<uint32_t, std::vector<ReadOnlyDataFoldCandidate>> readOnlyDataByHash;
+    std::vector<LinkSymbolAlias>                                         readOnlyDataAliases;
+    std::vector                                                          worklist(undefined.begin(), undefined.end());
 
     while (!worklist.empty())
     {
@@ -656,14 +938,43 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
                 if (!imported.contains(u))
                     worklist.push_back(u);
 
+            uint32_t rdataSectionIndex = INVALID_REF;
+            Utf8     rdataSymbolName;
+            if (tryGetFoldableReadOnlyData(rdataSectionIndex, rdataSymbolName, pulled))
+            {
+                const CoffInputSection& rdata      = pulled.sections[rdataSectionIndex];
+                const uint32_t          hash       = Math::hash(rdata.bytes.span(), rdata.characteristics);
+                auto&                   candidates = readOnlyDataByHash[hash];
+                const auto              duplicate  = std::ranges::find_if(candidates, [&](const ReadOnlyDataFoldCandidate& candidate) {
+                    const CoffInputSection& canonical = pulledObjects[candidate.objectIndex].sections[candidate.sectionIndex];
+                    return candidate.characteristics == rdata.characteristics && canonical.bytes == rdata.bytes;
+                });
+                if (duplicate != candidates.end())
+                {
+                    readOnlyDataAliases.push_back({.name = std::move(rdataSymbolName), .canonicalName = duplicate->symbolName});
+                    break;
+                }
+
+                candidates.push_back({
+                    .objectIndex     = pulledObjects.size(),
+                    .sectionIndex    = rdataSectionIndex,
+                    .characteristics = rdata.characteristics,
+                    .symbolName      = std::move(rdataSymbolName),
+                });
+            }
+
             pulledObjects.push_back(std::move(pulled));
             break;
         }
     }
 
-    Diagnostic diag;
+    Diagnostic                   diag;
+    std::vector<LinkSymbolAlias> functionAliases;
+    foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliases, functionAliases);
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
+    addLinkSymbolAliases(image, readOnlyDataAliases);
+    addLinkSymbolAliases(image, functionAliases);
 
     return Result::Continue;
 }

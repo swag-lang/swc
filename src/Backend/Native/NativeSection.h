@@ -32,6 +32,7 @@ struct NativeCodeRelocationTarget
     std::vector<NativeSectionRelocation>* relocations            = nullptr;
     uint32_t                              functionOffset         = 0;
     bool                                  allowUnresolvedSymbols = false;
+    bool                                  splitRDataReferences   = false;
 };
 
 SWC_END_NAMESPACE();

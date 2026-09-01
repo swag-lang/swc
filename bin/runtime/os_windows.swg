@@ -17,6 +17,7 @@ namespace __Win32RT
     alias WCHAR                  = u16
     alias BOOL                   = u8
     alias PFLS_CALLBACK_FUNCTION = func(#null *void)
+    alias RtlDecompressBufferFn  = func(USHORT, [*] u8, ULONG, const [*] u8, ULONG, *ULONG)->s32
 
     const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
     const MB_CANCELTRYCONTINUE = 0x00000006
@@ -44,6 +45,7 @@ namespace __Win32RT
         func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT
         func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void
         func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL
+        func GetProcAddress(hModule: HANDLE, lpProcName: const [*] u8)->#null const *void
         func GetCommandLineA()->#null const [*] u8
         func GetCommandLineW()->#null const [*] u16
         func WideCharToMultiByte(codePage, dwFlags: DWORD, lpWideCharStr: const [*] u16, cchWideChar: s32, lpMultiByteStr: #null [*] u8, cbMultiByte: s32, lpDefaultChar: #null const *u8, lpUsedDefaultChar: #null *s32)->s32
@@ -455,4 +457,51 @@ func __hostDebugSection(base: *void)->#null [*] u8
     }
 
     return null
+}
+
+// Expands the linker-owned version-2 debug table on first use. Version 1 remains a
+// direct image view for compatibility with artifacts produced by older compilers.
+func __hostDecodeDebugSection(section: [*] u8)->#null [*] u8
+{
+    if __peU32(section, 0) != 0x4244_5753 do
+        return null
+
+    let version = __peU32(section, 4)
+    if version == 1 do
+        return section
+    if version != 2 do
+        return null
+
+    let decodedSize = __peU32(section, 8)
+    let packedSize  = __peU32(section, 12)
+    if decodedSize < 16 or packedSize == 0 do
+        return null
+
+    let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
+    if !ntdll do
+        return null
+    let decompressAddress = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
+    if !decompressAddress do
+        return null
+    let decompress = cast(__Win32RT.RtlDecompressBufferFn) decompressAddress!
+
+    let decoded = cast(#null [*] u8) __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+    if !decoded do
+        return null
+
+    var finalSize: u32
+    let status = decompress(2, decoded!, decodedSize, &section[16], packedSize, &finalSize)
+    if status < 0 or finalSize != decodedSize
+    {
+        discard __Win32RT.VirtualFree(decoded, 0, __Win32RT.MEM_RELEASE)
+        return null
+    }
+
+    return decoded
+}
+
+func __hostReleaseDecodedDebugSection(section: #null [*] u8)
+{
+    if section do
+        discard __Win32RT.VirtualFree(section, 0, __Win32RT.MEM_RELEASE)
 }

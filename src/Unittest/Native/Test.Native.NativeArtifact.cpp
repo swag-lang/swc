@@ -1089,6 +1089,73 @@ var GAddOne: UnaryFn = &addOne
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions)
+{
+    static constexpr std::string_view SOURCE = R"(#global private
+
+alias ValueFn = func()->u32
+
+struct Holder
+{
+    text: string = ""
+}
+
+#[Swag.NoInline]
+func directlyUsed()->u32 => 11
+
+#[Swag.NoInline]
+func staticallyReferenced()->u32 => 17
+
+var GValueFn: ValueFn = &staticallyReferenced
+var GHolder:  Holder
+
+#main
+{
+    Swag.assert(directlyUsed() == 11)
+    Swag.assert(GValueFn() == 17)
+    Swag.assert(GHolder.text.count == 0)
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "ExecutablePrunesUnreachableGeneratedFunctions");
+
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("executable_prunes_unreachable_generated_functions", Runtime::BuildCfgBackendKind::Executable);
+    cmdLine.directories.clear();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "errors after sema");
+
+    const TaskContext compilerCtx(compiler);
+    const auto isHolderEquality = [&](const SymbolFunction* function) {
+        return function && function->getFullScopedName(compilerCtx).view().ends_with("Holder.opEquals");
+    };
+    if (!std::ranges::any_of(compiler.nativeCodeSegment(), isHolderEquality))
+        return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "generated equality is absent before artifact pruning");
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    if (nativeBuilder.prepare() != Result::Continue)
+        return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "native builder cannot prepare the artifact");
+
+    const auto hasPreparedFunction = [&](const std::string_view name) {
+        return std::ranges::any_of(nativeBuilder.functionInfos, [&](const NativeFunctionInfo& info) {
+            return info.symbol && info.symbol->name(compilerCtx) == name;
+        });
+    };
+
+    if (!hasPreparedFunction("directlyUsed"))
+        return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "direct call target was pruned");
+    if (!hasPreparedFunction("staticallyReferenced"))
+        return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "static function value target was pruned");
+    if (std::ranges::any_of(nativeBuilder.functionInfos, [&](const NativeFunctionInfo& info) { return isHolderEquality(info.symbol); }))
+        return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "unreachable generated equality was retained");
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
 {
     static constexpr std::string_view SOURCE     = R"(struct Buffer

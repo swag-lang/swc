@@ -140,7 +140,7 @@ namespace
             const CoffInputSection& section = object.sections[sectionIndex];
             if (section.name == ".rdata" && !section.bytes.empty())
             {
-                if (outSectionIndex != INVALID_REF || !section.relocs.empty())
+                if (outSectionIndex != INVALID_REF)
                     return false;
                 outSectionIndex = sectionIndex;
                 continue;
@@ -226,6 +226,35 @@ namespace
             return Utf8("$self");
         const auto it = knownAliases.find(target);
         return it == knownAliases.end() ? target : it->second;
+    }
+
+    uint32_t readOnlyDataFoldHash(const CoffInputSection& section, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    {
+        uint32_t hash = Math::hash(section.bytes.span(), section.characteristics);
+        for (const CoffInputReloc& relocation : section.relocs)
+        {
+            hash = Math::hashCombine(hash, relocation.offset);
+            hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
+            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases).view()));
+        }
+        return hash;
+    }
+
+    bool sameFoldableReadOnlyData(const CoffInputSection& lhs, const Utf8& lhsSymbol, const CoffInputSection& rhs, const Utf8& rhsSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    {
+        if (lhs.characteristics != rhs.characteristics || lhs.bytes != rhs.bytes || lhs.relocs.size() != rhs.relocs.size())
+            return false;
+
+        for (size_t i = 0; i < lhs.relocs.size(); ++i)
+        {
+            const CoffInputReloc& lhsRelocation = lhs.relocs[i];
+            const CoffInputReloc& rhsRelocation = rhs.relocs[i];
+            if (lhsRelocation.offset != rhsRelocation.offset || lhsRelocation.type != rhsRelocation.type)
+                return false;
+            if (canonicalRelocationTarget(lhsRelocation.symbolName, lhsSymbol, knownAliases) != canonicalRelocationTarget(rhsRelocation.symbolName, rhsSymbol, knownAliases))
+                return false;
+        }
+        return true;
     }
 
     uint32_t functionFoldHash(const FunctionFoldCandidate& candidate, const std::vector<CoffObject>& objects, const std::unordered_map<Utf8, Utf8>& knownAliases)
@@ -891,6 +920,7 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
     std::vector<CoffObject>                                              pulledObjects;
     std::unordered_map<uint32_t, std::vector<ReadOnlyDataFoldCandidate>> readOnlyDataByHash;
     std::vector<LinkSymbolAlias>                                         readOnlyDataAliases;
+    std::unordered_map<Utf8, Utf8>                                       readOnlyDataAliasMap;
     std::vector                                                          worklist(undefined.begin(), undefined.end());
 
     while (!worklist.empty())
@@ -943,14 +973,15 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
             if (tryGetFoldableReadOnlyData(rdataSectionIndex, rdataSymbolName, pulled))
             {
                 const CoffInputSection& rdata      = pulled.sections[rdataSectionIndex];
-                const uint32_t          hash       = Math::hash(rdata.bytes.span(), rdata.characteristics);
+                const uint32_t          hash       = readOnlyDataFoldHash(rdata, rdataSymbolName, readOnlyDataAliasMap);
                 auto&                   candidates = readOnlyDataByHash[hash];
                 const auto              duplicate  = std::ranges::find_if(candidates, [&](const ReadOnlyDataFoldCandidate& candidate) {
                     const CoffInputSection& canonical = pulledObjects[candidate.objectIndex].sections[candidate.sectionIndex];
-                    return candidate.characteristics == rdata.characteristics && canonical.bytes == rdata.bytes;
+                    return sameFoldableReadOnlyData(rdata, rdataSymbolName, canonical, candidate.symbolName, readOnlyDataAliasMap);
                 });
                 if (duplicate != candidates.end())
                 {
+                    readOnlyDataAliasMap.emplace(rdataSymbolName, duplicate->symbolName);
                     readOnlyDataAliases.push_back({.name = std::move(rdataSymbolName), .canonicalName = duplicate->symbolName});
                     break;
                 }

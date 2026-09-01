@@ -2089,6 +2089,7 @@ impl ViewerWindow
             commandParent: .viewerBar,
             sourceFileName: .currentFile.toString(),
             pluginIcon: actionIcon,
+            window: me,
             hostServices: {
                 reportFailure: &reportViewerFailure,
                 reportDetails: &reportViewerDetails,

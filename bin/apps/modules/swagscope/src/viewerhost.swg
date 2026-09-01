@@ -66,6 +66,7 @@ struct ViewerPluginHost
     sourceFileName:  string
     pluginIcon:      Icon
     hostServices:    Viewer.HostServices
+    window:          #null *ViewerWindow
 }
 
 // One group a viewer contributes to the information band, sized to what it actually shows.
@@ -131,6 +132,14 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl fileName()->string              => .sourceFileName
     mtd impl icon()->Icon                    => .pluginIcon
     mtd impl services()->Viewer.HostServices => .hostServices
+
+    mtd impl createEmbedded(parent: *Wnd)->Viewer.Embedded
+    {
+        Debug.assert(.window != null, "embedded viewers need an application window")
+        let embedded                = EmbeddedViewer.create(parent, .window!)
+        let result: Viewer.Embedded = embedded
+        return result
+    }
 
     mtd impl createActionGroup(width: f32)->*Wnd
     {

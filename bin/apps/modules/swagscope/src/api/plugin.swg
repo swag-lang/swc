@@ -7,7 +7,7 @@ using Core, Gui
 //
 // A descriptor whose version the host does not support is rejected before any of its callbacks
 // runs. Increasing this value denotes an incompatible contract change.
-const ApiVersion = 2'u32
+const ApiVersion = 3'u32
 
 // Prepares one plugin for the application it joined, before any other callback runs.
 //

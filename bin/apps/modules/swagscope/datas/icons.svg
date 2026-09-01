@@ -85,4 +85,9 @@
     <line x1="6.5" y1="15" x2="9.5" y2="15"/>
     <line x1="11.5" y1="15" x2="17.5" y2="15"/>
   </g>
+  <g id="Archive" transform="translate(48 48)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">
+    <path d="M4 8 H20 V20 H4 Z"/>
+    <path d="M3 4 H21 V8 H3 Z"/>
+    <line x1="9" y1="13" x2="15" y2="13" stroke-linecap="round"/>
+  </g>
 </svg>

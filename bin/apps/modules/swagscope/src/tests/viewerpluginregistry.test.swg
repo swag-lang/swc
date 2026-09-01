@@ -47,7 +47,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let registry = createViewerPluginRegistry()
-    Swag.assert(registry.plugins.count == 14)
+    Swag.assert(registry.plugins.count == 15)
     for plugin in registry.plugins do
         Swag.assert(plugin.apiVersion == Viewer.ApiVersion and plugin.create != null and plugin.iconAtlas != null)
 
@@ -112,6 +112,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(registry.choices("movie.mkv")[0].key == "video")
     Swag.assert(registry.choices("score.mid")[0].key == "midi")
     Swag.assert(registry.choices("dialogue.srt")[0].key == "subtitle")
+    Swag.assert(registry.choices("bundle.zip")[0].key == "archive")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do

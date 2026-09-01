@@ -1,0 +1,11 @@
+# French strings of the archive viewer. A key omitted here keeps its English value.
+
+ui_Name              Archive
+ui_ColName           Nom
+ui_ColSize           Taille
+ui_Empty             Cette archive ne contient aucun fichier.
+ui_Select            Sélectionnez un fichier pour afficher son aperçu.
+ui_Previewing        Préparation de l'aperçu…
+ui_PreviewError      Impossible d'afficher l'aperçu de cette entrée.
+ui_Details           % entrées · % décompressés · % compressés
+ui_SearchPlaceholder Filtrer les entrées de l'archive

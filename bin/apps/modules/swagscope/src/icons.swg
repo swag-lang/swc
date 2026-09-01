@@ -22,6 +22,7 @@ enum ViewerIcons
     Table        // Delimited-text table viewer.
     Midi         // Piano-roll viewer.
     Subtitle     // Timed subtitle viewer.
+    Archive      // Compressed-archive browser.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

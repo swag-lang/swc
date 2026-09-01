@@ -27,6 +27,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
         commandParent: commandParent orelse contentParent,
         sourceFileName: fileName,
         pluginIcon: icon,
+        window: null,
         hostServices: services}
     let host: Viewer.Host = &pluginHost
     plugin.create(host)

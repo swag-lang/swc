@@ -33,6 +33,7 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
     expect result.register(fontViewerPlugin())
     expect result.register(midiViewerPlugin())
     expect result.register(tableViewerPlugin())
+    expect result.register(archiveViewerPlugin())
     expect result.register(textViewerPlugin())
     expect result.register(binaryViewerPlugin())
     expect result.register(hexViewerPlugin())

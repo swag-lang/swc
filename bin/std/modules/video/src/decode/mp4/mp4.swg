@@ -1032,8 +1032,13 @@ impl IDecoder for Decoder
         .nextIndex = NoFrameIndex
 
         let frame = .frames[current]
-        if .payload.count != frame.size do
-            .payload.resize(frame.size)
+        if .payload.count != frame.size
+        {
+            // The file read fills the whole payload; leave reused bytes uninitialized until then.
+            .payload.grow(frame.size)
+            .payload.count = frame.size
+        }
+
         source.seek(frame.offset)
         source.readExact(.payload.toSlice())
 

@@ -143,7 +143,8 @@ impl Decoder
     // Applies the sample adaptive offset of every coding tree block, clause 8.7.3.
     //
     // The filter reads the deblocked picture and writes a new one, so the samples one block reads
-    // are never the ones an earlier block wrote; the deblocked picture is kept aside for that.
+    // are never the ones an earlier block wrote. Swapping the picture with the retained scratch
+    // storage makes that separation free; each block then writes every destination sample once.
     mtd applySampleAdaptiveOffset()
     {
         let sps = .activeSps!
@@ -154,21 +155,17 @@ impl Decoder
         .saoSource.resize(frame.luma.count)
         .saoSourceChromaB.resize(frame.chromaB.count)
         .saoSourceChromaR.resize(frame.chromaR.count)
-        Memory.copy(.saoSource.buffer!, frame.luma.buffer!, frame.luma.count * #sizeof(u16))
-        Memory.copy(.saoSourceChromaB.buffer!, frame.chromaB.buffer!, frame.chromaB.count * #sizeof(u16))
-        Memory.copy(.saoSourceChromaR.buffer!, frame.chromaR.buffer!, frame.chromaR.count * #sizeof(u16))
+        Core.swap(&.saoSource, &frame.luma)
+        Core.swap(&.saoSourceChromaB, &frame.chromaB)
+        Core.swap(&.saoSourceChromaR, &frame.chromaR)
 
         for ry in sps.heightInCtbs
         {
             for rx in sps.widthInCtbs
             {
                 let parameters = &.sao[cast(u64) ry * cast(u64) sps.widthInCtbs + cast(u64) rx]
-                for component in 3'u32
-                {
-                    if !parameters.typeIdx[component] do
-                        continue
+                for component in 3'u32 do
                     .applySaoBlock(parameters, component, cast(s32) rx, cast(s32) ry)
-                }
             }
         }
     }
@@ -209,8 +206,20 @@ impl Decoder
         }
 
         let origin = cast(u64) FramePadding * stride + cast(u64) FramePadding
+        let kind   = parameters.typeIdx[component]
 
-        if parameters.typeIdx[component] == 1
+        if !kind
+        {
+            for row in height
+            {
+                let line = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
+                Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+            }
+
+            return
+        }
+
+        if kind == 1
         {
             // Band offset: four consecutive bands of the sample range are shifted. The four are
             // consecutive, so where a sample falls is its distance from the first band rather
@@ -250,10 +259,10 @@ impl Decoder
 
                 while column < width
                 {
-                    let value = cast(s32) source[line + cast(u64) column]
-                    let band  = (cast(s32) (cast(u32) value >> shift) - cast(s32) parameters.bandPosition[component]) & 31
-                    if band < 4 do
-                        destination[line + cast(u64) column] = cast(u16) Math.clamp(value + cast(s32) parameters.offsets[component, cast(u32) band + 1], 0, maximum)
+                    let value  = cast(s32) source[line + cast(u64) column]
+                    let band   = (cast(s32) (cast(u32) value >> shift) - cast(s32) parameters.bandPosition[component]) & 31
+                    let offset = band < 4 ? cast(s32) parameters.offsets[component, cast(u32) band + 1] : 0
+                    destination[line + cast(u64) column] = cast(u16) Math.clamp(value + offset, 0, maximum)
                     column += 1
                 }
             }
@@ -276,8 +285,40 @@ impl Decoder
         let xEnd   = Math.min(x0 + width, planeWidth - Math.max(h0, h1))
         let yBegin = Math.max(y0, -Math.min(v0, v1))
         let yEnd   = Math.min(y0 + height, planeHeight - Math.max(v0, v1))
-        if xBegin >= xEnd or yBegin >= yEnd do
+
+        // The filter below writes only positions whose two neighbours exist. Copy the border it
+        // excludes, and copy the whole block when no such position exists.
+        if xBegin >= xEnd or yBegin >= yEnd
+        {
+            for row in height
+            {
+                let line = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
+                Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+            }
+
             return
+        }
+
+        for y in y0 until yBegin
+        {
+            let line = origin + cast(u64) y * stride + cast(u64) x0
+            Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+        }
+
+        for y in yBegin until yEnd
+        {
+            let line = origin + cast(u64) y * stride
+            if xBegin > x0 do
+                Memory.copy(&destination[line + cast(u64) x0], &source[line + cast(u64) x0], cast(u64) (xBegin - x0) * #sizeof(u16))
+            if xEnd < x0 + width do
+                Memory.copy(&destination[line + cast(u64) xEnd], &source[line + cast(u64) xEnd], cast(u64) (x0 + width - xEnd) * #sizeof(u16))
+        }
+
+        for y in yEnd until y0 + height
+        {
+            let line = origin + cast(u64) y * stride + cast(u64) x0
+            Memory.copy(&destination[line], &source[line], cast(u64) width * #sizeof(u16))
+        }
 
         // The categories the standard derives from two comparisons index the offsets directly,
         // and category two, the flat one, carries no offset. Selecting the offset by category
@@ -327,8 +368,7 @@ impl Decoder
                     edge = edge == 2 ? 0 : edge + 1
 
                 let offset = parameters.offsets[component, cast(u32) edge]
-                if offset != 0 do
-                    destination[centreLine + cast(u64) x] = cast(u16) Math.clamp(centre + cast(s32) offset, 0, maximum)
+                destination[centreLine + cast(u64) x] = cast(u16) Math.clamp(centre + cast(s32) offset, 0, maximum)
                 x += 1
             }
         }

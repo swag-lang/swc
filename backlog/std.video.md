@@ -27,6 +27,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   entropy parse 33.4, reconstruction 17.4, loop filter 8.6 — plus 13.4 for the conversion to RGB.
   FFmpeg on the same machine needs about 27 ms of processor time per picture single-threaded and
   about 3 ms of wall time frame-threaded.
+- One smaller container cost removed on 2026-09-01: a growing H.264 access unit was
+  default-initialized immediately before the file read overwrote every byte. On a local
+  1920x1080p25 H.264 MP4, release native, twenty warm pictures and 500 timed through
+  `GetProcessTimes`, removing that pass changed 16.125 to 15.343 ms of processor time per picture
+  and 16.371 to 15.320 ms of wall time in the quiet alternating pair. VLC 3.0.23 on the same local
+  file, software `yuv420p`, six avcodec frame threads, audio disabled and a dummy output, used
+  8.469 ms of processor time per picture over a warm twenty-second window. This path is therefore
+  1.81x VLC here, against 1.90x before the change.
 - What the gap is no longer responsible for (2026-08-24, release, the same recording played in
   Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
   limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
@@ -372,6 +380,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   falls is its distance from the first band rather than an entry of a table of thirty-two, and
   the four selections that serve an edge category serve it unchanged. Sample adaptive offset now
   costs about 10 ms of a picture, of which 3.3 is the three plane copies: **90 ms became 10**.
+- The three copies left in that figure were removed on 2026-09-01: the deblocked planes now swap
+  with retained scratch storage, and every coding tree block writes its destination once. The
+  available local MP4 was H.264, so this change has no new trustworthy timing; the complete native
+  and JIT conformance selection, including the sixty-picture MediaTek SAO stream, remains exact.
 - Where the picture stands once the two passes above landed, same clip and same method
   (119 ms a picture): the coding tree walk is 94 ms of it, and inside it **coefficient parsing
   is 44**, inter prediction 19, the inverse transform 9, adding the residual 7, intra 0.4, and
@@ -388,12 +400,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Next, in expected order of value: **deblocking is the largest stage left that is not the
   entropy parse**, 18 ms a picture and entirely scalar — it filters four lines at a time and
   the four lines of a horizontal edge are four consecutive columns, so they load as one vector;
-  a vertical edge needs the transpose the H.264 filter already does. What is left of sample
-  adaptive offset is three full-plane copies, which exist so that a block never reads what an
-  earlier one wrote and could be a swap of two buffers instead; the
-  fractional filters and the transform are both 128 bits wide, and this stream is the case where
-  256-bit forms would pay; and a uni-predicted block is filtered into `predBuffer` and then read
-  again to be combined, where one pass could write the picture directly.
+  a vertical edge needs the transpose the H.264 filter already does. The fractional filters and
+  the transform are both 128 bits wide, and this stream is the case where 256-bit forms would pay;
+  and a uni-predicted block is filtered into `predBuffer` and then read again to be combined,
+  where one pass could write the picture directly.
 - What it refuses, and where: `sets.swg` fails a sequence parameter set whose `chroma_format_idc`
   is not 1, whose bit depth is neither 8 nor 10, that enables pulse code modulation blocks, or that
   carries the range extension, multilayer, 3D or screen content tools. The 4:2:2 and 4:4:4 formats

@@ -202,7 +202,10 @@ impl TextView
     mtd detailsText()->String
     {
         let encoding = .encodingName()
-        if Atomic.get(&.statisticsState) != 1 do
+        // Statistics describe the byte interpretation that produced them.  Switching encoding
+        // keeps the already finished worker available for retirement, but its totals must not be
+        // presented as facts about the newly decoded document.
+        if Atomic.get(&.statisticsState) != 1 or .statisticsEncoding != .encoding or .statisticsStart != .contentStart do
             return Format.toString(textStrings().ui_Details, encoding)
         let lines = .statistics.lines == 1 ? String.from(textStrings().ui_OneLine) : Format.toString(textStrings().ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(textStrings().ui_OneWord) : Format.toString(textStrings().ui_Words, .statistics.words)
@@ -213,6 +216,14 @@ impl TextView
     {
         if .reportDetails do
             .reportDetails!(me, .detailsText().toString())
+    }
+
+    mtd retranslate()
+    {
+        .wrapButton.toolTip    = .wrapping ? textStrings().ui_WrapOn : textStrings().ui_WrapOff
+        .encodingCombo.toolTip = textStrings().ui_Encoding
+        .zoomLabel.toolTip     = textStrings().ui_ZoomMenu
+        .reportStatistics()
     }
 
     mtd startStatistics()
@@ -584,7 +595,7 @@ impl IWnd for TextView
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged do
-            .reportStatistics()
+            .retranslate()
         else do
             evt.accepted = false
     }

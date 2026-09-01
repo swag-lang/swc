@@ -8,6 +8,22 @@ func subtitleViewerFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
 }
 
+// Go-to-time accepts its documented forms and rejects values that only look like timestamps.
+#test
+{
+    var seconds: f64
+    Swag.assert(subtitleTimeSeconds("90", &seconds) and seconds == 90)
+    Swag.assert(subtitleTimeSeconds("1:30", &seconds) and seconds == 90)
+    Swag.assert(subtitleTimeSeconds("1:02:03.5", &seconds) and seconds == 3_723.5)
+    Swag.assert(!subtitleTimeSeconds("", &seconds))
+    Swag.assert(!subtitleTimeSeconds("1:", &seconds))
+    Swag.assert(!subtitleTimeSeconds("1:2:3:4", &seconds))
+    Swag.assert(!subtitleTimeSeconds("-1", &seconds))
+    Swag.assert(!subtitleTimeSeconds("1:60", &seconds))
+    Swag.assert(!subtitleTimeSeconds("1:99", &seconds))
+    Swag.assert(!subtitleTimeSeconds("1.5:30", &seconds))
+}
+
 // The dedicated viewer presents a searchable timed transcript rather than raw subtitle syntax.
 #test
 {

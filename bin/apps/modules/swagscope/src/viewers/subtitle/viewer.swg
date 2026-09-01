@@ -152,23 +152,8 @@ private impl SubtitleViewer
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        var seconds = 0'f64
-        var valid   = true
-        let parts   = Tokenize.split(dialog.text().toString(), ':'u8)
-        if parts.isEmpty() or parts.count > 3 do
-            valid = false
-        for part in parts
-        {
-            let value = catch StrConv.toF64(part) as parseError
-            if parseError != null or value < 0
-            {
-                valid = false
-                break
-            }
-            seconds = seconds * 60 + value
-        }
-
-        if !valid do
+        var seconds: f64
+        if !subtitleTimeSeconds(dialog.text().toString(), &seconds) do
             return
         for index in .track!.cueCount() where .track!.cueEndTime(index) >= seconds
         {
@@ -225,6 +210,33 @@ private impl SubtitleViewer
         result.setInitialFocus(result.editor)
         return result
     }
+}
+
+// Parses the three forms advertised by the go-to-time dialog.  Once a colon is present, every
+// field after the first is a base-60 component rather than an unrestricted decimal number.
+func subtitleTimeSeconds(text: string, result: *f64)->bool
+{
+    let parts = Tokenize.split(text, ':'u8, removeEmpty: false)
+    if parts.isEmpty() or parts.count > 3 do
+        return false
+
+    var seconds = 0'f64
+    for part, index in parts
+    {
+        if !part.count do
+            return false
+        let value = catch StrConv.toF64(part) as parseError
+        if parseError != null or value < 0 do
+            return false
+        if index and value >= 60 do
+            return false
+        if index + 1 < parts.count and value != Math.floor(value) do
+            return false
+        seconds = seconds * 60 + value
+    }
+
+    result[] = seconds
+    return true
 }
 
 private func loadSubtitleViewer(host: Viewer.Host)->#null *SubtitleViewer fail => try SubtitleViewer.create(host)

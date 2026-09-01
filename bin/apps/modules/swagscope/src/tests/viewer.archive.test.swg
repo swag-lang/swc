@@ -230,4 +230,21 @@ private func writeZipFixture()->String
     host.settleAnimations(window, 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.archive.document")
+
+    var matches: Array'Viewer.SearchMatch
+    let session = &window.instances[window.activeChoiceIndex]
+    session.collectMatches!(viewer, "readme", {}, &matches)
+    Swag.assert(matches.count == 1 and matches[0].major == 1)
+    Swag.assert(session.revealMatch!(viewer, matches[0], "readme"))
+    var bounds: Math.Rectangle
+    Swag.assert(session.searchBounds!(viewer, matches[0], &bounds) and !bounds.isEmpty())
+    session.clearSearch!(viewer)
+
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(viewer.list.header.itemAt(0).name.raw == archiveStrings().ui_ColName)
+    Swag.assert(viewer.list.header.itemAt(1).name.raw == archiveStrings().ui_ColSize)
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
 }

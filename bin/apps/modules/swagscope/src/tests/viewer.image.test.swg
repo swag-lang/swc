@@ -87,6 +87,15 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
     view.resetTransform()
     Swag.assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
+    var rotate = KeyEvent{kind: .Pressed, key: .R}
+    view.sendEvent(&rotate)
+    Swag.assert(view.imageView.rotationQuarterTurns == 1)
+    var mirror = KeyEvent{kind: .Pressed, key: .V}
+    view.sendEvent(&mirror)
+    Swag.assert(view.imageView.isMirrored)
+    var reset = KeyEvent{kind: .Pressed, key: .R, modifiers: .Control}
+    view.sendEvent(&reset)
+    Swag.assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
     view.dockStyle         = .Center
     view.actions.dockStyle = .None
     view.info.dockStyle    = .None

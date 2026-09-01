@@ -31,7 +31,11 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(760, 520)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(fontViewerPlugin(), &host.root, fixture, commandParent: &host.root)
@@ -49,6 +53,13 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.assert(view.document.pageStart == firstStart)
     view.document.goToCharacterPage(0x370)
     Swag.assert(view.document.pageStart >= 0x370 and view.document.history.count != 0)
+
+    let oldPlaceholder = String.from(view.sampleEdit.name.raw)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(view.sampleEdit.name.raw == fontStrings().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
+    Swag.assert(view.previousButton.toolTip == fontStrings().ui_PreviousPage)
+    Swag.assert(view.nextButton.toolTip == fontStrings().ui_NextPage)
 }
 
 #[Swag.TestTag("golden")]

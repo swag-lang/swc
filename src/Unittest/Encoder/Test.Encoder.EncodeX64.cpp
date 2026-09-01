@@ -858,12 +858,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnwindStopsAfterBodyStart)
 {
-    constexpr std::array<uint8_t, 4> expected = {
-        0x01,
-        0x00,
-        0x00,
-        0x00,
-    };
+    constexpr std::array<uint8_t, 0> expected = {};
 
     SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
         b.emitNop();

@@ -84,6 +84,12 @@ void X64UnwindWindows::buildInfo(ByteArray& outUnwindInfo, const uint32_t codeSi
         return left.codeOffset > right.codeOffset;
     });
 
+    // Windows unwinds a function with no nonvolatile-register or stack-pointer changes as a leaf:
+    // it simulates a return directly, so publishing an empty UNWIND_INFO and a RUNTIME_FUNCTION
+    // record only wastes .xdata/.pdata space.
+    if (unwindOps.empty())
+        return;
+
     std::vector<uint16_t> unwindSlots;
     unwindSlots.reserve(unwindOps.size() * 3 + 4);
     for (const UnwindOp& op : unwindOps)

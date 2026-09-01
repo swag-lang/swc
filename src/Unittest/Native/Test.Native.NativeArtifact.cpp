@@ -4,9 +4,11 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/JIT/JITExecManager.h"
+#include "Backend/Linker/CoffReader.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -588,13 +590,13 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 
     DataSegment& segment                     = fixture.compiler->cstMgr().shardDataSegment(0);
     const auto [stringView, stringOffset]    = segment.addString(dependencyMarker);
-    const auto [nestedOffset, nestedStorage] = segment.reserve<uint64_t>();
-    *nestedStorage                           = reinterpret_cast<uint64_t>(stringView.data());
+    const auto [nestedOffset, nestedStorage] = segment.reserveSpan<uint64_t>(2);
+    nestedStorage[0]                         = reinterpret_cast<uint64_t>(stringView.data());
     segment.addRelocation(nestedOffset, stringOffset);
 
     const auto [rootOffset, rootStorage] = segment.reserve<uint64_t>();
-    *rootStorage                         = reinterpret_cast<uint64_t>(nestedStorage);
-    segment.addRelocation(rootOffset, nestedOffset);
+    *rootStorage                         = reinterpret_cast<uint64_t>(nestedStorage + 1);
+    segment.addRelocation(rootOffset, nestedOffset + sizeof(uint64_t));
 
     ConstantValue value = ConstantValue::makeValuePointer(*fixture.compilerCtx, fixture.compiler->typeMgr().typeU8(), reinterpret_cast<uint64_t>(rootStorage), TypeInfoFlagsE::Const);
     value.setDataSegmentRef({.shardIndex = 0, .offset = rootOffset});
@@ -602,6 +604,14 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 
     MachineCode code = makeConstantAddressCode(rootRef, rootStorage);
     addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "rdata_dependency");
+
+    constexpr uint32_t zeroAllocationSize = 512;
+    const auto [zeroOffset, zeroStorage]  = segment.reserveBytes(zeroAllocationSize, 16, true);
+    ConstantValue zeroValue               = ConstantValue::makeValuePointer(*fixture.compilerCtx, fixture.compiler->typeMgr().typeU8(), reinterpret_cast<uint64_t>(zeroStorage), TypeInfoFlagsE::Const);
+    zeroValue.setDataSegmentRef({.shardIndex = 0, .offset = zeroOffset});
+    const ConstantRef zeroRef  = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, zeroValue);
+    MachineCode       zeroCode = makeConstantAddressCode(zeroRef, zeroStorage);
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, zeroCode, "rdata_zero");
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
@@ -621,6 +631,59 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
         return Result::Error;
     if (emittedRootOffset == emittedNestedOffset || emittedNestedOffset == emittedStringOffset)
         return Result::Error;
+
+    SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
+    SWC_RESULT(fixture.nativeBuilder->buildObjectBytes());
+
+    const auto findAllocationDescription = [&](const uint32_t sourceOffset) -> const NativeObjDescription* {
+        for (const NativeObjDescription& description : fixture.nativeBuilder->objectDescriptions)
+        {
+            if (description.rdataShardIndex != 0 || description.rdataAllocationIndex == INVALID_REF)
+                continue;
+            const auto& mapping = fixture.nativeBuilder->rdataAllocationMap[0][description.rdataAllocationIndex];
+            if (mapping.sourceOffset == sourceOffset)
+                return &description;
+        }
+        return nullptr;
+    };
+
+    const NativeObjDescription* functionDescription = nullptr;
+    for (const NativeObjDescription& description : fixture.nativeBuilder->objectDescriptions)
+    {
+        if (std::ranges::any_of(description.functions, [](const NativeFunctionInfo* info) { return info && info->debugName == "rdata_dependency"; }))
+        {
+            functionDescription = &description;
+            break;
+        }
+    }
+
+    const NativeObjDescription* rootDescription   = findAllocationDescription(rootOffset);
+    const NativeObjDescription* nestedDescription = findAllocationDescription(nestedOffset);
+    const NativeObjDescription* zeroDescription   = findAllocationDescription(zeroOffset);
+    if (!functionDescription || !rootDescription || !nestedDescription || !zeroDescription)
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "archive allocation object is missing");
+
+    const Utf8 rootSymbol   = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, rootOffset);
+    const Utf8 nestedSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, nestedOffset);
+
+    Diagnostic diag;
+    CoffObject functionObject;
+    CoffObject rootObject;
+    CoffObject zeroObject;
+    if (!readCoffObject(functionObject, diag, functionDescription->objBytes) || !readCoffObject(rootObject, diag, rootDescription->objBytes) || !readCoffObject(zeroObject, diag, zeroDescription->objBytes))
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "archive allocation object is invalid");
+
+    const auto functionText = std::ranges::find(functionObject.sections, Utf8(".text"), &CoffInputSection::name);
+    if (functionText == functionObject.sections.end() || !std::ranges::any_of(functionText->relocs, [&](const CoffInputReloc& relocation) { return relocation.symbolName == rootSymbol; }))
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "function does not reference its allocation symbol");
+
+    const auto rootRData = std::ranges::find(rootObject.sections, Utf8(".rdata"), &CoffInputSection::name);
+    if (rootRData == rootObject.sections.end() || rootRData->relocs.size() != 1 || rootRData->relocs.front().symbolName != nestedSymbol || rootRData->bytes.readLe64(0) != sizeof(uint64_t))
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "interior allocation dependency was not preserved");
+
+    const auto zeroRData = std::ranges::find(zeroObject.sections, Utf8(".rbss"), &CoffInputSection::name);
+    if (zeroRData == zeroObject.sections.end() || !zeroRData->isBss || zeroRData->bssSize != zeroAllocationSize)
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "zero allocation still occupies archive file data");
 }
 SWC_TEST_END()
 

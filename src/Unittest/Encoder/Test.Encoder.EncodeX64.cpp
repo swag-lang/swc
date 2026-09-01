@@ -77,13 +77,13 @@ namespace
         ENCODE_CASE("pop_rdi", "5F", b.emitPop(RDI););
         ENCODE_CASE("pop_r15", "41 5F", b.emitPop(R15););
         ENCODE_CASE("pop_r12", "41 5C", b.emitPop(R12););
-        ENCODE_CASE("call_local", "48 B8 00 00 00 00 00 00 00 00 FF D0",
+        ENCODE_CASE("call_local", "B8 00 00 00 00 FF D0",
                     b.emitLoadRegImm(RAX, ApInt(0, 64), MicroOpBits::B64);
                     b.emitCallReg(RAX, CallConvKind::C););
-        ENCODE_CASE("call_extern", "48 B8 00 00 00 00 00 00 00 00 FF D0",
+        ENCODE_CASE("call_extern", "B8 00 00 00 00 FF D0",
                     b.emitLoadRegImm(RAX, ApInt(0, 64), MicroOpBits::B64);
                     b.emitCallReg(RAX, CallConvKind::C););
-        ENCODE_CASE("call_local_repeat", "48 B8 00 00 00 00 00 00 00 00 FF D0",
+        ENCODE_CASE("call_local_repeat", "B8 00 00 00 00 FF D0",
                     b.emitLoadRegImm(RAX, ApInt(0, 64), MicroOpBits::B64);
                     b.emitCallReg(RAX, CallConvKind::C););
         ENCODE_CASE("call_reg_rax", "FF D0", b.emitCallReg(RAX, CallConvKind::C););
@@ -125,6 +125,10 @@ namespace
         ENCODE_CASE("load_reg_imm_r8_b16", "66 41 B8 34 12", b.emitLoadRegImm(R8, ApInt(0x1234, 64), MicroOpBits::B16););
         ENCODE_CASE("load_reg_imm_r9_b32", "41 B9 78 56 34 12", b.emitLoadRegImm(R9, ApInt(0x12345678, 64), MicroOpBits::B32););
         ENCODE_CASE("load_reg_imm_r10_b64", "49 BA F0 DE BC 9A 78 56 34 12", b.emitLoadRegImm(R10, ApInt(0x123456789ABCDEF0, 64), MicroOpBits::B64););
+        ENCODE_CASE("load_reg_imm_compact_rax_b64", "B8 78 56 34 12", b.emitLoadRegImm(RAX, ApInt(0x12345678, 64), MicroOpBits::B64););
+        ENCODE_CASE("load_reg_imm_compact_r10_b64", "41 BA 78 56 34 12", b.emitLoadRegImm(R10, ApInt(0x12345678, 64), MicroOpBits::B64););
+        ENCODE_CASE("load_reg_imm_compact_r10_negative_b64", "49 C7 C2 80 FF FF FF", b.emitLoadRegImm(R10, ApInt(0xFFFFFFFFFFFFFF80, 64), MicroOpBits::B64););
+        ENCODE_CASE("load_reg_imm_compact_r10_wide_b64", "49 BA F0 DE BC 9A 78 56 34 12", b.emitLoadRegImm(R10, ApInt(0x123456789ABCDEF0, 64), MicroOpBits::B64););
 
         ENCODE_CASE("load_reg_reg_r11_r8_b64", "4D 89 C3", b.emitLoadRegReg(R11, R8, MicroOpBits::B64););
         ENCODE_CASE("load_reg_reg_r9_r10_b8", "45 88 D1", b.emitLoadRegReg(R9, R10, MicroOpBits::B8););

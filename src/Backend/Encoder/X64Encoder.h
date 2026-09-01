@@ -44,7 +44,7 @@ protected:
     void encodeBreakpoint() override;
     void encodeRet() override;
     void setUnwindFrameRegister(MicroReg reg) override;
-    void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv) override;
+    void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv) override;
     void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv) override;
     void encodeCallReg(MicroReg reg, CallConvKind callConv) override;
     void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits) override;
@@ -57,6 +57,7 @@ protected:
     void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits) override;
     void encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg) override;
     void encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits) override;
+    void encodeLoadRegImmCompact(MicroReg reg, const ApInt& value, MicroOpBits opBits) override;
     void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits) override;
     void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
     void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;

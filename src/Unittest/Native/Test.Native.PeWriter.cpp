@@ -99,8 +99,8 @@ namespace
 
 // Hand-builds the smallest meaningful program -- one that calls kernel32!ExitProcess(42) through an
 // imported thunk -- writes it to a PE with the internal writer, runs it, and checks the exit code.
-// This exercises section layout, the import table/IAT/thunk path, an absolute (Abs64) relocation and
-// the matching base relocation end to end, independently of the rest of the compiler.
+// This exercises section layout and the import table/IAT/thunk path with a direct relative call,
+// independently of the rest of the compiler.
 SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
 {
     SWC_UNUSED(ctx);
@@ -108,18 +108,17 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     ByteArray text;
     emit(text, {0x48, 0x83, 0xEC, 0x28});       // sub rsp, 0x28
     emit(text, {0xB9, 0x2A, 0x00, 0x00, 0x00}); // mov ecx, 42
-    emit(text, {0x48, 0xB8});                   // movabs rax, <ExitProcess thunk>
+    emit(text, {0xE8});                         // call <ExitProcess thunk>
     const uint32_t relocOffset = static_cast<uint32_t>(text.size());
-    emit(text, {0, 0, 0, 0, 0, 0, 0, 0}); // imm64 (addend 0, patched by the linker)
-    emit(text, {0xFF, 0xD0});             // call rax
-    emit(text, {0xC3});                   // ret
+    emit(text, {0, 0, 0, 0}); // rel32 (addend 0, patched by the linker)
+    emit(text, {0xC3});       // ret
 
     LinkSection textSection;
     textSection.name  = ".text";
     textSection.bytes = std::move(text);
     textSection.align = 16;
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
-    textSection.relocs.push_back({.sectionIndex = 0, .offset = relocOffset, .symbolName = "ExitProcess", .addend = 0, .kind = LinkRelocKind::Abs64});
+    textSection.relocs.push_back({.sectionIndex = 0, .offset = relocOffset, .symbolName = "ExitProcess", .addend = 0, .kind = LinkRelocKind::Rel32});
 
     LinkImage image;
     image.sections.push_back(std::move(textSection));

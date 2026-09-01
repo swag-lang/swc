@@ -1602,6 +1602,37 @@ void X64Encoder::encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits 
     }
 }
 
+void X64Encoder::encodeLoadRegImmCompact(MicroReg reg, const ApInt& value, MicroOpBits opBits)
+{
+    SWC_INTERNAL_CHECK(!reg.isFloat());
+    if (opBits != MicroOpBits::B64 || !value.fit64())
+    {
+        encodeLoadRegImm(reg, value, opBits);
+        return;
+    }
+
+    const uint64_t valueU64 = value.as64();
+    if (valueU64 <= std::numeric_limits<uint32_t>::max())
+    {
+        // Writing a 32-bit register zeroes its upper half, so this is the exact
+        // 64-bit value with a five- or six-byte encoding instead of movabs.
+        encodeLoadRegImm(reg, value, MicroOpBits::B32);
+        return;
+    }
+
+    if (canEncodeSigned32(valueU64))
+    {
+        // C7 /0 sign-extends imm32 to 64 bits and saves three bytes over movabs.
+        emitRex(store_, MicroOpBits::B64, MicroReg{}, reg);
+        emitCpuOp(store_, 0xC7);
+        emitModRm(store_, MODRM_REG_0, reg);
+        store_.pushU32(static_cast<uint32_t>(valueU64));
+        return;
+    }
+
+    encodeLoadRegImm(reg, value, opBits);
+}
+
 void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
@@ -3951,9 +3982,9 @@ void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, 
     encodeCallReg(conv.intReturn, callConv);
 }
 
-void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
+void X64Encoder::encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv)
 {
-    // Local calls use E8 + relocation patched later by the linker/JIT relocation pass.
+    // Direct calls use E8 + relocation patched later by the linker/JIT relocation pass.
     SWC_UNUSED(targetSymbol);
     SWC_UNUSED(callConv);
 

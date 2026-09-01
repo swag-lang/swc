@@ -19,8 +19,8 @@
 //        - pendingLabelJumps_  : conditional jumps with unresolved targets,
 //                                emitted with a placeholder displacement.
 //      Relocation-bearing instructions bind their final code offset into the
-//      corresponding MicroRelocation. Local calls in native artifacts use a
-//      direct relative displacement; other calls and pointer loads stay absolute.
+//      corresponding MicroRelocation. Calls in native artifacts use a direct
+//      relative displacement; pointer loads stay absolute.
 //
 //   2. Branch patching. Now that every Label has a concrete offset, walk the
 //      pending jump list and patch each placeholder displacement.
@@ -100,7 +100,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             break;
         }
         case MicroInstrOpcode::LoadRegPtrImm:
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
+            encoder.encodeLoadRegImmCompact(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
             break;
         case MicroInstrOpcode::LoadRegPtrReloc:
         {
@@ -146,11 +146,11 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
 
             const CompilerInstance& compiler       = context.builder->ctx().compiler();
             const bool              nativeArtifact = !compiler.cmdLine().scriptMode && Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind);
-            if (nativeArtifact && inst.op == MicroInstrOpcode::CallLocal)
+            if (nativeArtifact)
             {
                 const uint32_t callStart = encoder.size();
                 relocation.form          = MicroRelocation::Form::Relative32;
-                encoder.encodeCallLocal(relocation.targetSymbol, ops[0].callConv);
+                encoder.encodeCallRelative(relocation.targetSymbol, ops[0].callConv);
                 bindRel32RelocationOffset(context, instructionRef, callStart, encoder.size());
                 break;
             }
@@ -211,7 +211,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadRegImm:
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
+            encoder.encodeLoadRegImmCompact(ops[0].reg, ops[2].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;
         case MicroInstrOpcode::LoadRegMem:
         {

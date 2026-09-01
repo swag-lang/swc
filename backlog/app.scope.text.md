@@ -96,6 +96,20 @@ implicit network access, macros, or source mutation.
   overlapping matches remain unambiguous; context can be expanded locally; and closing the pane
   releases its index without changing the file.
 
+### app.scope.text.043 — Regular-expression search has no declared resource budget
+
+- Evidence: the host scans regular expressions over asynchronous chunks, but the backlog and
+  compatibility matrix do not state a complexity policy, per-chunk deadline, cancellation latency,
+  match-count ceiling, zero-length-match rule, or behavior for a pattern whose match crosses chunk
+  boundaries. A valid but pathological expression can therefore undermine the bounded-reader claim.
+- Next: specify the accepted expression engine and streamed matching contract, then add adversarial
+  patterns and boundary-spanning fixtures before exposing result projections more widely.
+- Complete when: regex compilation and matching have explicit time, memory, stack, and result
+  limits; cancellation meets a measured latency; zero-length and overlapping matches advance
+  deterministically; boundary-spanning results are correct or the documented maximum look-behind
+  is enforced; and exhaustion is reported separately from no match.
+- Related: app.scope.text.026, app.scope.viewers.004, app.scope.viewers.009
+
 ### app.scope.text.027 — Plain text has no bookmarks or navigation trail
 
 - Evidence: a reader can jump through search results and to the file ends, but cannot mark a line,
@@ -146,6 +160,19 @@ implicit network access, macros, or source mutation.
   to source, newline and decode totals reconcile with app.scope.text.003 and .004, progress can be
   cancelled, and profiling does not delay first content.
 - Related: app.scope.text.003, app.scope.text.004, app.scope.viewers.004
+
+### app.scope.text.042 — Text layout cannot control tab width, wrap column, or reading ruler
+
+- Evidence: Basic text exposes wrap on/off and zoom only. A tab always inherits the widget default,
+  wrapped lines follow the viewport rather than a chosen column, and there is no column ruler,
+  horizontal guide, line-spacing choice, or explicit fixed-font identity to explain alignment.
+- Next: define presentation-only text layout settings shared with Code, keeping every source
+  position independent of visual lines and glyph metrics.
+- Complete when: tab width, viewport versus fixed-column wrapping, wrap column, line spacing, font,
+  and optional column ruler can be inspected and changed; invalid or mixed tabs remain diagnosable;
+  horizontal scrolling is stable with wrap off; settings persist through app.scope.viewers.003;
+  and no presentation choice changes copied text or byte/line/column addressing.
+- Related: app.scope.text.002, app.scope.text.003, app.scope.text.028
 
 ## Source code
 
@@ -223,6 +250,20 @@ implicit network access, macros, or source mutation.
   context silently, remote URLs are never fetched, missing and ambiguous targets are explained,
   and back navigation returns to the originating byte range.
 - Related: app.scope.document.003, app.scope.viewers.011
+
+### app.scope.text.044 — One source view cannot pin two distant regions
+
+- Evidence: understanding a declaration and its use, two related log events, or the beginning and
+  end of a generated file requires repeatedly abandoning one location. A second synchronized view
+  of the same immutable byte source would add comparison context without introducing document tabs
+  or a second file lifecycle.
+- Next: let Text and Code split their content area horizontally or vertically into two bounded
+  resident windows sharing one file identity, search index, settings, and bookmark model.
+- Complete when: either pane can navigate independently, the active pane is unambiguous, search and
+  bookmarks reveal in the intended pane, split orientation and ratio are keyboard accessible,
+  resident memory stays within a declared combined budget, and closing the split returns to the
+  surviving logical position without reopening the file.
+- Related: app.scope.001, app.scope.text.027, app.scope.viewers.003
 
 ## Timed text
 

@@ -89,6 +89,14 @@ alternative instead of guessing an encoding.
   tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
   view, and provides horizontal zoom through the common information-band control without
   synthesizing or executing file content.
+- `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
+  as a real hierarchical file browser. Selecting an entry prepares a bounded temporary copy,
+  verifies its declared size and CRC-32, and hosts that copy through the ordinary viewer registry
+  in the adjacent preview pane. Stored and Deflate entries are decoded; encrypted entries,
+  multi-disk archives, unsupported compression methods, oversized directories, and previews above
+  256 MiB stop with an exact explanation. Nested archives therefore open as nested archive
+  browsers without a second rendering path. The master-detail surface keeps the archive tree and
+  the viewed content visible together, so archive navigation does not require global document tabs.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
   RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
@@ -146,14 +154,15 @@ processes.
 
 `src/api/` is the whole surface a viewer is written against, published under the `Viewer`
 namespace: `Viewer.Plugin` describes a viewer, `Viewer.Host` is what its creation callback
-receives, and `Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, and the search
+receives, `Viewer.Embedded` hosts a file through the same registry inside another viewer, and
+`Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, and the search
 and clock helpers beside them are the support the host offers. Nothing else is available to a
 viewer. No plugin receives `ViewerWindow`, its bars, its session structure, or application-private
 callbacks, and the application never names a format.
 
 Every viewer is written this way, the plain text one included. That is the point of the
 arrangement: a viewer compiled into the executable and a viewer that will one day arrive as a
-separate binary have the same shape, so the API is kept honest by the fourteen viewers already
+separate binary have the same shape, so the API is kept honest by the fifteen viewers already
 using it rather than by intention. Runtime discovery of external binaries is future work — it
 needs a native entry point, a trust and discovery policy, and an ABI adapter that checks
 `Viewer.ApiVersion` — and the source API deliberately does not pretend that loading arbitrary

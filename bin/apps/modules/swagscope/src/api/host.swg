@@ -31,6 +31,30 @@ struct HostServices
     }
 }
 
+// Hosts one file through the same viewer registry inside another viewer.
+//
+// The returned interface borrows a host-owned child window. Its parent owns that window, while
+// the caller controls the viewer resources through [[Viewer.Embedded.retire]]. A caller must let
+// `retire` return true before destroying the parent or deleting the file currently being shown.
+interface Embedded
+{
+    // Opens `fileName` with the host's normal viewer selection and shows `title` as its identity.
+    //
+    // The embedded host needs to be empty; call [[Viewer.Embedded.retire]] until it returns true
+    // before opening another file. File discovery and viewer creation failures are reported with
+    // `fail`, while failures discovered by a progressive viewer appear in its document surface.
+    mtd open(fileName, title: string) fail
+
+    // Requests release of every hosted viewer and reports when its source file is no longer used.
+    //
+    // A false result means progressive work is still retiring and the caller should poll again
+    // without blocking the GUI thread. Repeated calls after success are harmless.
+    mtd retire()->bool
+
+    // Reports whether the selected hosted viewer is still producing visible content.
+    mtd isLoading()->bool
+}
+
 // One viewer-owned contribution hosted in the application side-panel lane.
 //
 // The host owns both windows and keeps them valid until the attached viewer is retired. The
@@ -70,6 +94,12 @@ interface Host
 
     // Returns callbacks that may be retained for asynchronous host notifications.
     mtd services()->HostServices
+
+    // Creates a child host that can display files through the application's viewer registry.
+    //
+    // `parent` takes ownership of the child window. The returned interface borrows that child and
+    // remains valid until `parent` is destroyed.
+    mtd createEmbedded(parent: *Wnd)->Embedded
 
     // Creates and registers the plugin's compact action-bar group.
     mtd createActionGroup(width: f32)->*Wnd

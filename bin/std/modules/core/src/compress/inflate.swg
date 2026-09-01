@@ -140,6 +140,10 @@ public struct Inflate
     // Size of the back-reference window, fixed for the duration of one 'decompress' call.
     private windowSize: u32
 
+    // Maximum number of bytes that this call may append to the destination.
+    private outputLimit: u64
+    private outputStart: u64
+
     // Input cursor and running checksum. The container formats built on top of Inflate read
     // them to parse their own trailer once the compressed block is consumed.
     internal
@@ -284,6 +288,8 @@ impl Inflate
 
             if value < 256
             {
+                if count - .outputStart >= .outputLimit do
+                    fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
                 if count >= cap
                 {
                     dest.count = count
@@ -362,6 +368,8 @@ impl Inflate
                 fail InvalidFormatError{"bad distance"}
             if !length do
                 continue
+            if count - .outputStart > .outputLimit or length > .outputLimit - (count - .outputStart) do
+                fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
 
             // One vector of slack past the match lets the copy below run in whole
             // blocks and overshoot the last one; the overshoot is inside the buffer
@@ -426,12 +434,14 @@ impl Inflate
         }
     }
 
-    // Decompress the associated stream
-    public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = InflateMaxDistance) fail
+    // Decompresses the associated stream, appending at most 'maxOutputSize' bytes to 'result'.
+    public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = InflateMaxDistance, maxOutputSize: u64 = Swag.U64.Max) fail
     {
         .stream.reset(buf)
         .adler.reset()
-        .windowSize = Math.min(winSize, InflateMaxDistance)
+        .windowSize  = Math.min(winSize, InflateMaxDistance)
+        .outputLimit = maxOutputSize
+        .outputStart = result.count
 
         var repeatHt:     HuffmanTable
         var repeatZ:      HuffmanTable
@@ -454,6 +464,8 @@ impl Inflate
                     fail InvalidFormatError{"invalid buffer, length mismatch"}
 
                 .stream.revert()
+                if result.count - .outputStart > .outputLimit or uncompressedLen > .outputLimit - (result.count - .outputStart) do
+                    fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
                 let newSlice = Swag.makeSlice(.stream.currentPointer(), uncompressedLen)
                 .adler.update(newSlice)
                 result.add(newSlice)

@@ -24,6 +24,26 @@ using Swag
     Swag.assert(ok)
 }
 
+// An output limit is enforced while decoding, including within a repeated match, so callers can
+// reject expansion bombs before the destination grows beyond their policy.
+#test
+{
+    var original: [4096] u8
+    for &value in original do
+        value[] = 0xA5
+
+    var deflater: Compress.Deflate
+    deflater.init(.BestCompression, flags: .Zero)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, original)
+
+    var inflater: Compress.Inflate
+    var decoded:  Array'u8
+    catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as limitError
+    Swag.assert(limitError is Errors.UnsupportedFormatError)
+    Swag.assert(decoded.count <= 128)
+}
+
 // Match distances and lengths around the 8/16-byte copy boundaries round-trip
 // through the exact Deflate producer consumed by Inflate.
 #test

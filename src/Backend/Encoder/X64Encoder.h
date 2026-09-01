@@ -34,6 +34,7 @@ public:
     bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
 
 protected:
+    void     resetCode() override;
     uint64_t currentOffset() const override { return store_.size(); }
     void     updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const override;
     void     onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset) override;

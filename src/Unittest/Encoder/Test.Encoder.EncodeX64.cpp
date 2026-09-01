@@ -104,15 +104,15 @@ namespace
                     const auto l = b.createLabel();
                     b.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B8, l);
                     b.placeLabel(l););
-        ENCODE_CASE("jump_above_b32_patch_here", "0F 87 00 00 00 00",
+        ENCODE_CASE("jump_above_b32_patch_here", "77 00",
                     const auto l = b.createLabel();
                     b.emitJumpToLabel(MicroCond::Above, MicroOpBits::B32, l);
                     b.placeLabel(l););
-        ENCODE_CASE("jump_equal_b32_patch_here", "0F 84 00 00 00 00",
+        ENCODE_CASE("jump_equal_b32_patch_here", "74 00",
                     const auto l = b.createLabel();
                     b.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, l);
                     b.placeLabel(l););
-        ENCODE_CASE("jump_less_b32_patch_here", "0F 8C 00 00 00 00",
+        ENCODE_CASE("jump_less_b32_patch_here", "7C 00",
                     const auto l = b.createLabel();
                     b.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, l);
                     b.placeLabel(l););
@@ -152,7 +152,7 @@ namespace
         ENCODE_CASE("load_reg_mem_r8_r12_0_b64", "4D 8B 04 24", b.emitLoadRegMem(R8, R12, 0, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_r9_rbp_7f_b32", "44 8B 4D 7F", b.emitLoadRegMem(R9, RBP, 0x7F, MicroOpBits::B32););
         ENCODE_CASE("load_reg_mem_r8_rbp_neg80_b64", "4C 8B 45 80", b.emitLoadRegMem(R8, RBP, 0xFFFFFFFFFFFFFF80, MicroOpBits::B64););
-        ENCODE_CASE("load_reg_mem_xmm0_rsp_1234_b64", "F2 40 0F 10 84 24 34 12 00 00", b.emitLoadRegMem(XMM0, RSP, 0x1234, MicroOpBits::B64););
+        ENCODE_CASE("load_reg_mem_xmm0_rsp_1234_b64", "F2 0F 10 84 24 34 12 00 00", b.emitLoadRegMem(XMM0, RSP, 0x1234, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_xmm3_r8_b128", "41 0F 10 18", b.emitLoadRegMem(XMM3, R8, 0, MicroOpBits::B128););
         ENCODE_CASE("load_reg_mem_r10_r13_40_b16", "66 45 8B 55 40", b.emitLoadRegMem(R10, R13, 0x40, MicroOpBits::B16););
 
@@ -160,6 +160,7 @@ namespace
         ENCODE_CASE("load_sext_reg_mem_b16", "4D 0F BF 55 20", b.emitLoadSignedExtendRegMem(R10, R13, 0x20, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_sext_reg_mem_b32", "4C 63 4C 24 30", b.emitLoadSignedExtendRegMem(R9, RSP, 0x30, MicroOpBits::B64, MicroOpBits::B32););
         ENCODE_CASE("load_sext_reg_reg_b8", "4D 0F BE C3", b.emitLoadSignedExtendRegReg(R8, R11, MicroOpBits::B64, MicroOpBits::B8););
+        ENCODE_CASE("load_sext_reg_reg_sil_b8_b32", "40 0F BE C6", b.emitLoadSignedExtendRegReg(RAX, RSI, MicroOpBits::B32, MicroOpBits::B8););
         ENCODE_CASE("load_sext_reg_reg_b16", "4D 0F BF CA", b.emitLoadSignedExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_sext_reg_reg_b32", "4D 63 D1", b.emitLoadSignedExtendRegReg(R10, R9, MicroOpBits::B64, MicroOpBits::B32););
 
@@ -167,6 +168,7 @@ namespace
         ENCODE_CASE("load_zext_reg_mem_b16", "4D 0F B7 95 88 00 00 00", b.emitLoadZeroExtendRegMem(R10, R13, 0x88, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_mem_b32", "44 8B 4C 24 24", b.emitLoadZeroExtendRegMem(R9, RSP, 0x24, MicroOpBits::B64, MicroOpBits::B32););
         ENCODE_CASE("load_zext_reg_reg_b8", "4D 0F B6 C3", b.emitLoadZeroExtendRegReg(R8, R11, MicroOpBits::B64, MicroOpBits::B8););
+        ENCODE_CASE("load_zext_reg_reg_sil_b8_b32", "40 0F B6 C6", b.emitLoadZeroExtendRegReg(RAX, RSI, MicroOpBits::B32, MicroOpBits::B8););
         ENCODE_CASE("load_zext_reg_reg_b16", "4D 0F B7 CA", b.emitLoadZeroExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_reg_b32", "45 89 CA", b.emitLoadZeroExtendRegReg(R10, R9, MicroOpBits::B64, MicroOpBits::B32););
 
@@ -195,7 +197,7 @@ namespace
         ENCODE_CASE("load_mem_imm_r12_b8", "41 C6 04 24 7F", b.emitLoadMemImm(R12, 0, ApInt(0x7F, 64), MicroOpBits::B8););
         ENCODE_CASE("load_mem_imm_r13_80_b8", "41 C6 85 80 00 00 00 5A", b.emitLoadMemImm(R13, 0x80, ApInt(0x5A, 64), MicroOpBits::B8););
         ENCODE_CASE("load_mem_imm_r13_b16", "66 41 C7 45 7F 34 12", b.emitLoadMemImm(R13, 0x7F, ApInt(0x1234, 64), MicroOpBits::B16););
-        ENCODE_CASE("load_mem_imm_rsp_b32", "40 C7 44 24 40 78 56 34 12", b.emitLoadMemImm(RSP, 0x40, ApInt(0x12345678, 64), MicroOpBits::B32););
+        ENCODE_CASE("load_mem_imm_rsp_b32", "C7 44 24 40 78 56 34 12", b.emitLoadMemImm(RSP, 0x40, ApInt(0x12345678, 64), MicroOpBits::B32););
         ENCODE_CASE("load_mem_imm_rbp_b64", "48 C7 45 20 80 FF FF FF", b.emitLoadMemImm(RBP, 0x20, ApInt(0xFFFFFFFFFFFFFF80, 64), MicroOpBits::B64););
         return Result::Continue;
     }

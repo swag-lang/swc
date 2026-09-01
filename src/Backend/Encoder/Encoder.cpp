@@ -108,6 +108,12 @@ Encoder::Encoder(TaskContext& ctx) :
 {
 }
 
+void Encoder::resetCode()
+{
+    store_.clear();
+    debugSourceRanges_.clear();
+}
+
 void Encoder::addSymbolRelocation(uint32_t, uint32_t, uint16_t)
 {
 }

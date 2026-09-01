@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 
 // Forward a LoadRegImm into its consumer so the materializing register
 // disappears. We rewrite only the consumer; when every use of the
@@ -554,20 +555,21 @@ namespace InstructionCombine
         }
     }
 
-    // A scalar global accessed through its materialized address folds into a
-    // single RIP-relative access:
+    // A scalar global or constant accessed through its materialized address
+    // folds into a single RIP-relative access:
     //
-    //     LoadRegPtrReloc %a, <global segment + K>     (Absolute64 reloc)
+    //     LoadRegPtrReloc %a, <segment + K>            (Absolute64 reloc)
     //     dst = [%a + off]   or   [%a + off] = src
     //   ->
     //     dst = [rip]        or   [rip] = src          (Relative32 reloc, K + off)
     //
     // The proximity arena is what makes this legal under the JIT: code and
-    // the global segments carve from one reserved region, so the displacement
-    // always fits, and the JIT patches it straight to the real storage. Each
+    // the constant and global segments carve from one reserved region, so the
+    // displacement always fits, and the JIT patches it straight to the real
+    // storage. Constant storage is immutable, so only reads fold for it. Each
     // consumer folds independently; the materializing load dies through DCE
     // once its last consumer is gone, and its relocation is pruned with it.
-    bool tryFoldGlobalAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa || !ctx.builder)
             return false;
@@ -602,7 +604,7 @@ namespace InstructionCombine
         if (reaching.inst->op != MicroInstrOpcode::LoadRegPtrReloc)
             return false;
 
-        // The address materialization owns the relocation naming the global.
+        // The address materialization owns the relocation naming the segment.
         const MicroRelocation* sourceReloc = nullptr;
         for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
         {
@@ -614,21 +616,48 @@ namespace InstructionCombine
         }
         if (!sourceReloc)
             return false;
-        if (sourceReloc->kind != MicroRelocation::Kind::GlobalZeroAddress && sourceReloc->kind != MicroRelocation::Kind::GlobalInitAddress)
+        const bool isGlobal   = sourceReloc->kind == MicroRelocation::Kind::GlobalZeroAddress || sourceReloc->kind == MicroRelocation::Kind::GlobalInitAddress;
+        const bool isConstant = sourceReloc->kind == MicroRelocation::Kind::ConstantAddress && sourceReloc->hasConstantSource();
+        if (!isGlobal && !isConstant)
+            return false;
+        if (isConstant && inst.op != MicroInstrOpcode::LoadRegMem)
             return false;
 
         const uint64_t accessOffset = ops[offIdx].valueU64;
         if (accessOffset > 0x7FFFFFFFull)
             return false;
 
+        uint32_t constantAccessOffset = INVALID_REF;
+        if (isConstant)
+        {
+            if (sourceReloc->constantShard >= ConstantManager::SHARD_COUNT)
+                return false;
+
+            const uint64_t offsetU64 = static_cast<uint64_t>(sourceReloc->constantOffset) + accessOffset;
+            if (offsetU64 > std::numeric_limits<uint32_t>::max())
+                return false;
+
+            const uint64_t        accessSize = getNumBits(ops[2].opBits) / 8;
+            const DataSegment&    segment    = ctx.builder->ctx().cstMgr().shardDataSegment(sourceReloc->constantShard);
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, sourceReloc->constantOffset))
+                return false;
+            if (offsetU64 < allocation.offset || offsetU64 + accessSize > static_cast<uint64_t>(allocation.offset) + allocation.size)
+                return false;
+
+            constantAccessOffset = static_cast<uint32_t>(offsetU64);
+        }
+
         if (!ctx.claimAll({ref}))
             return false;
 
         // Copy before addRelocation: growth invalidates the pointer.
-        MicroRelocation newReloc   = *sourceReloc;
-        newReloc.form              = MicroRelocation::Form::Relative32;
-        newReloc.instructionRef    = ref;
-        newReloc.targetAddress     = sourceReloc->targetAddress + accessOffset;
+        MicroRelocation newReloc = *sourceReloc;
+        newReloc.form            = MicroRelocation::Form::Relative32;
+        newReloc.instructionRef  = ref;
+        newReloc.targetAddress   = sourceReloc->targetAddress + accessOffset;
+        if (isConstant)
+            newReloc.constantOffset = constantAccessOffset;
         newReloc.codeOffset        = 0;
         newReloc.relativeEndOffset = 0;
         ctx.builder->addRelocation(newReloc);

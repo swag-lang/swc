@@ -6,16 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_CFG_HASH_OFFSET_BASIS     = 1469598103934665603ull;
-    constexpr uint64_t K_CFG_HASH_PRIME            = 1099511628211ull;
-    constexpr uint64_t K_CFG_HASH_INVALID_OPS      = std::numeric_limits<uint64_t>::max();
     constexpr uint32_t K_INVALID_INSTRUCTION_INDEX = std::numeric_limits<uint32_t>::max();
-
-    void mixControlFlowHash(uint64_t& inOutHash, uint64_t value)
-    {
-        inOutHash ^= value;
-        inOutHash *= K_CFG_HASH_PRIME;
-    }
 }
 
 void MicroControlFlowGraph::clear()
@@ -26,75 +17,6 @@ void MicroControlFlowGraph::clear()
     hasUnsupportedControlFlowForCfgLiveness_ = false;
     supportsDeadCodeLiveness_                = true;
     hasLoop_                                 = false;
-}
-
-uint64_t MicroControlFlowGraph::computeHash(const MicroStorage& storage, const MicroOperandStorage& operands)
-{
-    uint64_t hash = K_CFG_HASH_OFFSET_BASIS;
-    for (const MicroInstr& inst : storage.view())
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::Label:
-            {
-                mixControlFlowHash(hash, 1);
-                const MicroInstrOperand* ops = inst.ops(operands);
-                if (ops && inst.numOperands >= 1)
-                    mixControlFlowHash(hash, ops[0].valueU64);
-                else
-                    mixControlFlowHash(hash, K_CFG_HASH_INVALID_OPS);
-                break;
-            }
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            {
-                mixControlFlowHash(hash, 2);
-                const MicroInstrOperand* ops = inst.ops(operands);
-                if (ops && inst.numOperands >= 3)
-                {
-                    mixControlFlowHash(hash, static_cast<uint64_t>(ops[0].cpuCond));
-                    mixControlFlowHash(hash, ops[2].valueU64);
-                }
-                else
-                {
-                    mixControlFlowHash(hash, K_CFG_HASH_INVALID_OPS);
-                }
-
-                break;
-            }
-            case MicroInstrOpcode::JumpReg:
-            {
-                mixControlFlowHash(hash, 3);
-                const MicroInstrOperand* ops = inst.ops(operands);
-                if (!ops || inst.numOperands < 2)
-                {
-                    mixControlFlowHash(hash, K_CFG_HASH_INVALID_OPS);
-                    break;
-                }
-
-                for (uint8_t operandIndex = 1; operandIndex < inst.numOperands; ++operandIndex)
-                    mixControlFlowHash(hash, ops[operandIndex].valueU64);
-                break;
-            }
-            case MicroInstrOpcode::Ret:
-                mixControlFlowHash(hash, 4);
-                break;
-            default:
-                if (MicroInstrInfo::isTerminatorInstruction(inst))
-                {
-                    mixControlFlowHash(hash, 5);
-                    mixControlFlowHash(hash, static_cast<uint64_t>(inst.op));
-                }
-                else
-                {
-                    // Keep stream position stable while ignoring non-CFG op rewrites.
-                    mixControlFlowHash(hash, 0);
-                }
-                break;
-        }
-    }
-
-    return hash;
 }
 
 void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperandStorage& operands)

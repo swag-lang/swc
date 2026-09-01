@@ -27,9 +27,8 @@ public:
     bool hasLoop() const { return hasLoop_; }
 
 private:
-    void            clear();
-    void            build(const MicroStorage& storage, const MicroOperandStorage& operands);
-    static uint64_t computeHash(const MicroStorage& storage, const MicroOperandStorage& operands);
+    void clear();
+    void build(const MicroStorage& storage, const MicroOperandStorage& operands);
 
     std::vector<MicroInstrRef> instructionRefs_;
     std::vector<EdgeList>      successors_;

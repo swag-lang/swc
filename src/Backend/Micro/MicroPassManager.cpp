@@ -234,14 +234,12 @@ namespace
             storageRevisionAfter = context.instructions->revision();
 
         // passChanged is the invalidation contract between transforms and shared
-        // analyses. A storage revision change means block layout may have changed;
-        // an in-place mutation keeps CFG possibly usable but marks it suspicious.
+        // analyses. A storage revision change means block layout changed. Passes
+        // that rewrite control-flow operands in place invalidate the CFG directly.
         if (context.passChanged && context.builder)
         {
             if (storageRevisionAfter != storageRevisionBefore)
                 context.builder->invalidateControlFlowGraph();
-            else
-                context.builder->markControlFlowGraphMaybeDirty();
         }
 
         if (context.passChanged && context.builder)

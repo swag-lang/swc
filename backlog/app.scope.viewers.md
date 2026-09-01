@@ -30,7 +30,7 @@ professional readers and inspectors to identify navigation, inspection, presenta
 and interchange expectations, then keeps only outcomes compatible with Swag Scope's offline,
 bounded, non-modifying role:
 
-- [Apple Quick Look](https://support.apple.com/en-ie/guide/mac-help/-mh14119/mac) and the
+- [Apple Quick Look](https://support.apple.com/guide/mac-help/preview-a-file-mh14119/mac) and the
   [Windows preview-handler model](https://learn.microsoft.com/en-us/windows/win32/shell/preview-handlers)
   for selection-to-preview latency, adjacent-file browsing, shell hosting, bounded lifetime, and
   low-integrity out-of-process isolation.
@@ -78,7 +78,7 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | --- | ---: | --- | --- |
 | Archive | 6 / 1 | ZIP tree, stored/Deflate verification, entry preview through the normal viewer registry | nested provenance and 7-Zip-class format breadth; [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
 | Binary | 23 / 4 | bounded hierarchical format reports, previews, navigation, filtering | reusable 010-Editor-class declarative schemas and findings; [app.scope.binary.md](app.scope.binary.md) |
-| Code | 7 / 1 | bounded streamed source with lexical coloring and search | VS Code-class outline, folding, breadcrumbs, minimap, diagnostics; [app.scope.text.md](app.scope.text.md#source-code) |
+| Code | 7 / 1 | bounded streamed source with lexical coloring and search | VS Code-class outline, folding, breadcrumbs, minimap, structure cues, references; [app.scope.text.md](app.scope.text.md#source-code) |
 | Font | 4 / 2 | specimen plus paged glyph map | FontForge-class faces, glyph addressing, metrics, OpenType features, validation; [app.scope.font.md](app.scope.font.md) |
 | Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
 | HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md#html-reading) |
@@ -88,8 +88,8 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | PDF | 5 / 2 | page rendering, search, page jump, fit and zoom | Acrobat-class thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md#pdf-presentation) |
 | Sound | 9 / 1 | streamed playback, seek, volume/mute and bounded waveform | Audacity-class ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
 | Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | Subtitle Edit-class current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md#timed-text) |
-| Table | 5 / 1 | parsed CSV/TSV grid and cell search | Calc-class dialect control, typed columns, sort/filter, frozen headers, bounded rows; [app.scope.text.md](app.scope.text.md#tabular-text) |
-| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, encoding diagnostics, non-resident selection, tail/follow; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
+| Table | 5 / 1 | parsed CSV/TSV grid and cell search | Calc-class dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md#tabular-text) |
+| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | raw alternatives, address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
 | Video | 17 / 2 | progressive A/V playback, seek, tracks, subtitles and frame stepping | VLC-class chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
 ## Shared reading behavior
@@ -256,25 +256,27 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
-| Plain text | `.txt` `.ini` `.cfg` | full, streamed | addresses, gutter, non-resident ranges | [app.scope.text.002](app.scope.text.md) |
+| Plain text | `.txt` | full, streamed | addresses, gutter, non-resident ranges | [app.scope.text.002](app.scope.text.md) |
+| Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code; no raw text | raw text, sections, keys, dialect diagnostics | [app.scope.text.025](app.scope.text.md), [app.scope.text.040](app.scope.text.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
-| Markdown | `.md` `.markdown` | full | outline, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
-| HTML | `.html` `.htm` `.xhtml` | full | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
-| JSON and JSON Lines | `.json` `.jsonl` | code | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
-| XML, YAML, TOML | `.xml` `.yaml` `.yml` `.toml` | code | folding and value tree | — |
-| Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | [app.scope.text.022](app.scope.text.md) |
-| Log | `.log` | text | level coloring, timestamps, tail | [app.scope.text.023](app.scope.text.md) |
+| Markdown | `.md` `.markdown` | rendered; no raw text | raw text, outline, synchronized source, resource diagnostics | [app.scope.text.025](app.scope.text.md), [app.scope.document.001](app.scope.document.md) |
+| HTML | `.html` `.htm` `.xhtml` | rendered and code | basic text, DOM/source/resource inspection; advanced engine layout | [app.scope.text.025](app.scope.text.md), [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
+| JSON and JSON Lines | `.json` `.jsonl` | code / signature | raw text, semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md), [app.scope.text.025](app.scope.text.md) |
+| XML | `.xml` `.xsd` `.xsl` `.xslt` | code | raw text, namespace-aware tree and paths | [app.scope.text.025](app.scope.text.md), [app.scope.text.038](app.scope.text.md) |
+| YAML and TOML | `.yaml` `.yml` `.toml` | code | raw text, typed tree and paths | [app.scope.text.025](app.scope.text.md), [app.scope.text.039](app.scope.text.md) |
+| Diff and patch | `.diff` `.patch` | text | parsed files/hunks, intraline and side-by-side views | [app.scope.text.022](app.scope.text.md) |
+| Log | `.log` | text | entries, tail/follow, queries, structured fields, timelines | [app.scope.text.023](app.scope.text.md), [app.scope.text.034](app.scope.text.md) |
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
-| Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
+| Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB; no raw text | raw text, bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md), [app.scope.text.025](app.scope.text.md) |
 | PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
-| RTF | `.rtf` | text | — | — |
+| RTF | `.rtf` | signature | raw text or a safe document renderer | [app.scope.text.025](app.scope.text.md) |
 | Mail | `.eml` `.msg` | none | — | — |
-| Notebook | `.ipynb` | code | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
+| Notebook | `.ipynb` | signature | raw JSON plus safe rendered cells and stored outputs | [app.scope.text.025](app.scope.text.md), [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |
 
 #### Images

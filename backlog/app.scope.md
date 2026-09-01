@@ -18,6 +18,7 @@ owned by a viewer lives in the corresponding domain:
 
 Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
 ordered by expected product value, not implementation effort.
+
 ## Document lifecycle
 
 ### app.scope.001 — One document per window and per process

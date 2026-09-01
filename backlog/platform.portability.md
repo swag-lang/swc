@@ -680,7 +680,7 @@ capture side. The editor, the forms, the library, and the serialization are alre
 ### platform.portability.072 — Swag Scope has no portable preview-provider boundary
 
 - Intent: the shipped viewers are reachable from where a file is selected. This is the whole reason
-  QuickLook won its category: select, look, move on, without launching an application.
+  Quick Look won its category: select, look, move on, without launching an application.
 - Evidence: Apple exposes Quick Look from Finder with Space and adjacent-item navigation. Windows
   preview handlers likewise render a selected file without launching its associated application,
   but add a security constraint Swag Scope must preserve: the handler runs out of process, at low

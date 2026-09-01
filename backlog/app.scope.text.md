@@ -1,11 +1,38 @@
 # Swag Scope Text Viewer Backlog
 
 This backlog covers the Swag Scope adapters and application-owned behavior of the basic text,
-code, subtitle, table, diff, and log viewers. Markdown and HTML integration lives in
-[app.scope.document.md](app.scope.document.md); engine work owned by `std/gui` remains in
+code, subtitle, table, diff, and log viewers. Raw source access for an inherently textual format
+also belongs here; rendered Markdown and HTML integration lives in
+[app.scope.document.md](app.scope.document.md). Engine work owned by `std/gui` remains in
 [std.gui.html.md](std.gui.html.md), [std.gui.markdown.md](std.gui.markdown.md), or [std.gui.md](std.gui.md).
 
+The competitive baseline is deliberately read-only. [Visual Studio Code's basic editor](https://code.visualstudio.com/docs/editing/codebasics)
+provides encoding choice, folding, file comparison, and direct navigation, while its
+[editor surface](https://code.visualstudio.com/docs/editing/userinterface) adds a minimap, sticky
+scope, indentation guides, and breadcrumbs. [EmEditor](https://help.emeditor.com/en/features_index.html)
+sets the large-file baseline with partial-file opening, markers, filtering, and bounded work on
+multi-gigabyte inputs. [klogg](https://github.com/variar/klogg/blob/master/DOCUMENTATION.md) sets the
+log-reading baseline with regular-expression result panes, match overviews, reusable highlighters,
+marks, and follow mode. Swag Scope should adopt those inspection outcomes without adding editing,
+implicit network access, macros, or source mutation.
+
 ## Shared text reading
+
+### app.scope.text.025 — Textual formats can hide their raw source
+
+- Evidence: `Basic text` registers a closed list of extensions rather than a raw-source
+  capability. A `.md` file therefore offers Markdown, Binary, and Hexadecimal, but not Basic text;
+  HTML offers rendered HTML and Code, while CSV, JSON, XML, YAML, TOML, and subtitles expose
+  inconsistent source alternatives. The README's claim that Basic text follows a format-specific
+  viewer is consequently not true for Markdown or CSV.
+- Next: let a format descriptor declare that its bytes are inherently textual and offer Basic text
+  after the preferred semantic viewer, beginning with every Markdown selector.
+- Complete when: `.md` and `.markdown` offer Markdown, Basic text, Binary, and Hexadecimal in that
+  order; every inherently textual built-in has one predictable raw-source choice; unreadable bytes
+  fail with an encoding explanation rather than fabricated text; binary documents are never
+  admitted merely because a printable prefix passes a probe; and remembered viewer choice keeps
+  working per format.
+- Related: app.scope.document.002, app.scope.viewers.003
 
 ### app.scope.text.001 — Text zoom is not persisted and has no Ctrl+wheel gesture
 
@@ -56,6 +83,70 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
   clipboard bound, exported without that bound, and decoded consistently across chunk boundaries.
 - Related: app.scope.viewers.001
 
+### app.scope.text.026 — Whole-file search has no inspectable result set or context projection
+
+- Evidence: shared search supports case, whole-word, and regular-expression matching across the
+  whole file, but exposes only one highlighted occurrence and a current/total counter. EmEditor and
+  klogg can retain matching lines, surrounding context, and a whole-file match overview, which is
+  the difference between finding one error and investigating a large report.
+- Next: publish the streamed match index as a virtual result pane with configurable context lines
+  and an optional matches-only projection over immutable source ranges.
+- Complete when: results show line, byte offset, matched text, and bounded before/after context;
+  activating a row reveals the source; the overview represents the whole file; duplicate or
+  overlapping matches remain unambiguous; context can be expanded locally; and closing the pane
+  releases its index without changing the file.
+
+### app.scope.text.027 — Plain text has no bookmarks or navigation trail
+
+- Evidence: a reader can jump through search results and to the file ends, but cannot mark a line,
+  revisit arbitrary investigation points, or move backward after a distant seek. Binary already
+  demonstrates a bounded row-navigation history, and klogg exposes marks plus previous/next-mark
+  navigation.
+- Next: define byte-backed text locations with an optional label and a bounded back/forward trail.
+- Complete when: bookmark current line, previous/next bookmark, back, forward, list, rename, and
+  clear are keyboard reachable; locations survive streamed-window eviction; stale locations are
+  detected after replacement; and persistence is an explicit part of app.scope.viewers.003.
+- Related: app.scope.viewers.003, app.scope.viewers.005
+
+### app.scope.text.028 — Pathological long lines have no bounded rendering contract
+
+- Evidence: the text reader bounds its resident byte window but still hands each decoded chunk to
+  one rich-edit document. Minified JSON, generated source, stack traces, and machine logs can put
+  hundreds of megabytes in one logical line, defeating ordinary wrap, shaping, gutter, selection,
+  and line-index assumptions even when total resident bytes are capped.
+- Next: measure shaping and navigation against escalating single-line fixtures, then introduce a
+  visual-segment model whose source identity remains one line.
+- Complete when: first content, horizontal navigation, wrap toggling, search reveal, selection, and
+  copy remain responsive for a line larger than the resident window; elision is explicit and
+  reversible; and no line-number or byte-offset result is invented at a visual boundary.
+
+### app.scope.text.029 — Unicode controls and confusable text cannot be inspected safely
+
+- Evidence: app.scope.text.003 proposes generic control-character visibility, but source and logs
+  can also contain bidi overrides, isolates, zero-width characters, non-breaking spaces, mixed
+  normalization forms, homoglyphs, and invalid scalar sequences whose visual order differs from
+  their byte order. A read-only security viewer must make those facts inspectable without changing
+  the spelling it reports.
+- Next: add an opt-in Unicode inspection layer and a caret inspector backed by exact source bytes
+  and scalar boundaries.
+- Complete when: the caret reports code point, UTF spelling, Unicode name/category, byte range, and
+  normalization state; directional and zero-width controls receive visible, selectable markers;
+  suspicious mixed scripts can be highlighted without claiming malicious intent; and copy can
+  choose exact source or an explicitly escaped representation.
+
+### app.scope.text.030 — Text statistics stop at line and word counts
+
+- Evidence: the background pass reports lines and words only. It does not expose decoded scalar
+  count, byte count excluding BOM, newline-kind totals, longest line, invalid-sequence count,
+  control-character count, or sampled versus exact scope, so it cannot explain why a document
+  renders or navigates unexpectedly.
+- Next: turn the existing bounded statistics worker into a cancellable text profile shared with
+  newline and encoding diagnostics.
+- Complete when: every metric names its unit and exact or sampled scope, line-length extremes link
+  to source, newline and decode totals reconcile with app.scope.text.003 and .004, progress can be
+  cancelled, and profiling does not delay first content.
+- Related: app.scope.text.003, app.scope.text.004, app.scope.viewers.004
+
 ## Source code
 
 ### app.scope.text.006 — Source files have no outline or symbol navigation
@@ -105,6 +196,33 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
   corpus for each language family plus chunk-boundary variants.
 - Complete when: supported constructs and deliberate omissions are documented, state resumes
   correctly after a streamed seek, and each shipped language family has golden style spans.
+
+### app.scope.text.031 — Source structure has no sticky scope, indentation guides, or delimiter matching
+
+- Evidence: lexical color is the only structural cue inside the code surface. VS Code keeps the
+  current nested scope visible while scrolling, draws indentation guides, and pairs brackets;
+  those aids remain useful in a read-only single-file reader and do not require project semantics.
+- Next: derive indentation, delimiter pairs, and sticky headings from the same bounded lexical and
+  outline ranges planned by app.scope.text.006 and .010.
+- Complete when: the current scope path remains visible and navigable, indentation guides survive
+  tabs and mixed widths honestly, matching and unmatched delimiters are distinguishable, each cue
+  can be disabled independently, and streamed seeks reconstruct enough preceding state without
+  rescanning the whole file synchronously.
+- Related: app.scope.text.006, app.scope.text.007, app.scope.text.010
+
+### app.scope.text.032 — Paths, URLs, includes, and source references are inert text
+
+- Evidence: the code viewer cannot identify a local include/import, file-and-line diagnostic,
+  relative path, URL, issue number, or symbol reference as an inspectable target. Copying and
+  manually reopening a target loses provenance, while activating arbitrary text without a policy
+  would weaken Swag Scope's offline and untrusted-input guarantees.
+- Next: define non-executing link providers that first expose target spelling, resolution, source
+  range, and trust state, then allow explicit navigation only through host-owned file opening.
+- Complete when: supported references are underlined only when resolution is known, hover or a
+  panel shows the exact target before activation, relative paths cannot escape the approved local
+  context silently, remote URLs are never fetched, missing and ambiguous targets are explained,
+  and back navigation returns to the originating byte range.
+- Related: app.scope.document.003, app.scope.viewers.011
 
 ## Timed text
 
@@ -213,21 +331,140 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
 - Complete when: direct jumps identify their coordinate space, headers are searchable, current cell
   and source row remain visible, and back/forward survives sort and filter changes where possible.
 
+### app.scope.text.041 — Fixed-width and whitespace-aligned records have no table view
+
+- Evidence: tables require comma, semicolon, tab, or pipe delimiters. Fixed-width exports, aligned
+  command output, and space-delimited scientific data therefore remain plain text even when a
+  stable column layout is visible, and naïve whitespace splitting would corrupt empty or padded
+  fields.
+- Next: add an explicit fixed-width mode with ruler-picked boundaries and a sampled whitespace
+  detector that never becomes the default without high confidence.
+- Complete when: boundaries can be added, moved, removed, and named over a bounded preview; source
+  columns retain exact byte ranges; proportional fonts cannot disguise alignment; ragged and short
+  records publish diagnostics; and the virtual table features operate without rewriting input.
+- Related: app.scope.text.015, app.scope.text.016
+
 ## Dedicated developer-text views
 
 ### app.scope.text.022 — Diff and patch files read as plain text
 
-- Intent: unified diffs are among the most frequently opened developer files and are the format
-  where flat text costs the most.
-- Complete when: hunks, added and removed lines and file headers are colored from the active theme,
-  and per-file navigation moves between hunks.
+- Evidence: unified diffs are among the most frequently opened developer files and are the format
+  where flat text costs the most. The current Text view cannot distinguish file headers, metadata,
+  hunks, additions, removals, context, no-newline markers, binary notices, renames, modes, or
+  malformed ranges. VS Code's diff viewer adds inline/side-by-side layouts, collapsed unchanged
+  regions, previous/next-change navigation, and an accessible unified representation.
+- Next: parse unified and Git patch syntax into immutable file/hunk/line ranges, beginning with a
+  themed unified view and a file/hunk outline before adding a synchronized side-by-side projection.
+- Complete when: file and hunk navigation, inline and side-by-side layouts, intraline differences,
+  whitespace visibility, collapsed context, exact source copying, malformed-hunk diagnostics, and
+  keyboard/screen-reader change navigation work without offering stage, revert, or patch apply.
+
+### app.scope.text.033 — Two local text files cannot be compared
+
+- Evidence: Swag Scope can read a patch that another tool produced, but it cannot compare the open
+  text with another local file or clipboard snapshot. VS Code exposes file-to-file and
+  file-to-clipboard comparison independently of its source-control write operations.
+- Next: reuse the immutable diff presentation from app.scope.text.022 with a cancellable,
+  memory-budgeted line matcher and explicit left/right source identities.
+- Complete when: the reader can select a second local text file or clipboard snapshot, choose
+  line-ending and whitespace comparison policy, navigate exact and moved changes, copy from either
+  side, and cancel or degrade a huge comparison without modifying either source.
+- Related: app.scope.text.022, app.scope.viewers.004
 
 ### app.scope.text.023 — Log files have no dedicated view
 
 - Intent: a log is the archetypal huge file, which is where the streaming architecture already
   wins — but it opens at the beginning, uncolored, with no way to reach the end that matters.
-- Complete when: severity levels and timestamps are recognized and colored, the view can open at the
-  tail, and a level filter narrows what is shown without loading the file.
+- Complete when: common severity and timestamp spellings are recognized with confidence, the
+  reader can start at the tail, entries rather than wrapped screen lines are navigable, multiline
+  stack traces remain attached to their event, and uncertain parsing falls back to exact text.
+
+### app.scope.text.034 — Live logs cannot follow append, truncation, or rotation
+
+- Evidence: opening a log snapshots its current size. klogg's follow mode keeps the viewport at the
+  tail, while real services can append, truncate in place, atomically replace, or rotate and
+  recreate a path; treating those events alike either loses records or joins unrelated files.
+- Next: specialize the host replacement contract with a log cursor carrying file identity, byte
+  offset, decoder state, and whether the reader has scrolled away from the tail.
+- Complete when: append resumes on an encoding boundary, manual scrolling pauses auto-follow,
+  truncation and replacement are labelled, rotated predecessors can remain available by explicit
+  policy, duplicate/omitted byte ranges are reported, and an idle or hot log stays within fixed CPU
+  and memory budgets.
+- Related: app.scope.viewers.005
+
+### app.scope.text.035 — Logs have no reusable queries, highlighters, or context filters
+
+- Evidence: the shared query can highlight one expression, but an investigation commonly needs
+  several named patterns, include/exclude logic, per-pattern colors, and context around each match.
+  klogg supports logical regular-expression filters, quick highlighters, match overviews, and
+  marks; EmEditor likewise combines filters, markers, and extraction over huge files.
+- Next: layer an immutable event projection over the streamed log index with named query clauses,
+  highlight rules, exclusion, and before/after context.
+- Complete when: literal and regular-expression clauses compose with AND, OR, and NOT; colors remain
+  legible in every theme; filtered events retain source offsets and multiline boundaries; counts
+  distinguish scanned versus pending input; query sets can be saved without file content; and
+  disabling the projection restores source order immediately.
+- Related: app.scope.text.026, app.scope.text.027
+
+### app.scope.text.036 — Structured logs collapse into undifferentiated lines
+
+- Evidence: JSON Lines, logfmt, key-value prefixes, and common application envelopes carry level,
+  timestamp, logger, thread, request, trace, and message fields, but the reader cannot expose,
+  select, filter, or correlate them. For JSON Lines, app.scope.text.024 owns the general data tree;
+  the log surface owns event-oriented presentation and field conventions.
+- Next: define a bounded record/field adapter with JSON Lines first and logfmt second, retaining the
+  exact raw event beside normalized fields.
+- Complete when: detected fields and parse confidence are visible, columns can be selected and
+  filtered, nested values remain inspectable, duplicate/malformed fields link to their byte range,
+  multiline messages stay intact, and switching back to raw text preserves the event.
+- Related: app.scope.text.024
+
+### app.scope.text.037 — Events from several logs cannot share one timeline
+
+- Evidence: failures distributed across client, server, build, and worker logs must be correlated
+  manually. File timestamps and embedded timestamps may use different zones, precisions, clock
+  skews, or no date at all, so a simple lexical merge would present a false chronology.
+- Next: allow an explicit set of local log files to feed one virtual timeline with per-source
+  color, parser, timezone, and reversible clock-offset settings.
+- Complete when: source identity is always visible, timestamp assumptions and unplaced events are
+  separated from ordered facts, equal timestamps have deterministic order, filters span sources,
+  following remains bounded, and no source file is opened or discovered implicitly.
+
+### app.scope.text.038 — XML has no namespace-aware structural reader
+
+- Evidence: XML, project files, manifests, SVG source, and XML logs open as colored code. Elements,
+  attributes, namespaces, text nodes, comments, CDATA, processing instructions, and entity damage
+  cannot be explored as a tree or addressed by a stable path.
+- Next: build a bounded token/range index and synchronized source/tree view with namespace-aware
+  paths, without resolving external entities or fetching schemas.
+- Complete when: every node retains its exact source range and qualified name, tree and source
+  selection synchronize, namespaces and entity policy are inspectable, XPath-like navigation is
+  local and bounded, malformed documents publish safe partial structure, and external resource
+  access remains disabled.
+
+### app.scope.text.039 — YAML and TOML have no typed configuration reader
+
+- Evidence: YAML and TOML open as colored code. YAML mappings, sequences, anchors, aliases, tags,
+  block scalars, multi-document streams, and duplicate keys are not exposed; TOML tables, arrays of
+  tables, dotted keys, dates, integers, and spelling diagnostics likewise remain flat text.
+- Next: define format-specific parsers behind one synchronized path/tree/source contract, shipping
+  TOML before the substantially larger and riskier YAML surface.
+- Complete when: nodes retain exact spelling and source ranges, paths are searchable and copyable,
+  duplicate/conflicting keys and type damage are diagnosed, YAML alias expansion is cycle- and
+  budget-safe, schemas are never fetched implicitly, and huge collections remain virtualized.
+
+### app.scope.text.040 — INI, properties, and environment files lack a key/value inspection mode
+
+- Evidence: `.ini`, `.cfg`, `.conf`, `.properties`, and `.env` files are colored as generic code or
+  shown as text even though sections, keys, repeated assignments, comments, continuations, quoted
+  values, and interpolation spellings carry the useful structure. Secret-looking values can also
+  be copied or exposed during a presentation with no masking aid.
+- Next: add a conservative key/value reader whose dialect is declared or detected and whose values
+  remain exact source, with presentation-only masking disabled by default.
+- Complete when: sections and keys form a filterable outline, duplicates and malformed records link
+  to source, dialect/encoding decisions are visible, masking never changes copy without an explicit
+  choice, interpolation is displayed but never evaluated, and no environment variable or external
+  file is read to resolve a value.
 
 ### app.scope.text.024 — JSON and JSON Lines have no semantic reader
 

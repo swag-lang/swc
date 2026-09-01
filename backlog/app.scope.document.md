@@ -19,13 +19,14 @@ integration around those engines.
 
 ### app.scope.document.002 — Markdown cannot switch between rendered, source, and synchronized split views
 
-- Evidence: the Markdown and Basic text viewers are separate choices with independent scroll and
-  selection. There is no one-command source inspection or mapping from a rendered block to its
-  source range.
-- Next: retain parser source ranges in the adapter and host rendered/source panes with a shared
-  logical position.
+- Evidence: `.md` and `.markdown` currently offer Markdown, Binary, and Hexadecimal, but not Basic
+  text. There is no direct source inspection, synchronized split view, or mapping from a rendered
+  block to its source range.
+- Next: first expose Basic text through app.scope.text.025, then retain parser source ranges in the
+  adapter and host rendered/source panes with a shared logical position.
 - Complete when: Rendered, Source, and Split modes preserve the nearest block, scroll can
   synchronize in either direction, search results map across modes, and large files stay streamed.
+- Related: app.scope.text.025
 
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
 
@@ -234,9 +235,10 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
 
 ## Developer documents
 
-### app.scope.document.022 — Jupyter notebooks read as raw JSON
+### app.scope.document.022 — Jupyter notebooks have no document reader
 
-- Evidence: `.ipynb` is claimed by the Code viewer, so Markdown cells, code cells, execution order,
+- Evidence: `.ipynb` has no registered viewer and therefore offers only Binary and Hexadecimal,
+  despite being a textual JSON container. Markdown cells, code cells, execution order,
   attachments, stored images, tables, errors, and metadata lose their document structure. GitHub
   renders notebooks as static HTML without activating custom JavaScript, while Visual Studio Code
   adds cell/output search and outline and hides rich outputs in untrusted workspaces. Those are the
@@ -248,4 +250,4 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   output remain inspectable; outline and search address inputs and outputs separately; unsupported or
   suppressed rich output is named and available as source; large output is collapsed and bounded;
   and opening a notebook never starts a kernel, executes code, or fetches a resource.
-- Related: app.scope.document.003, app.scope.text.024, app.scope.viewers.011
+- Related: app.scope.document.003, app.scope.text.024, app.scope.text.025, app.scope.viewers.011

@@ -35,6 +35,30 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   file, software `yuv420p`, six avcodec frame threads, audio disabled and a dummy output, used
   8.469 ms of processor time per picture over a warm twenty-second window. This path is therefore
   1.81x VLC here, against 1.90x before the change.
+- A function-sampling follow-up on that same 1920x1080p25 MP4 explains the remaining ratio
+  (2026-09-01, release native, planar output, one AVC lane). A quiet 500-picture run took
+  15.406 ms of processor time and 15.657 ms of wall time per picture. VLC 3.0.23, forced to
+  software `yuv420p`, audio disabled and one avcodec frame thread, took 8.531 ms of processor
+  time per picture over the same warm twenty-second window: the like-for-like serial gap is
+  1.81x. Six avcodec frame threads read between 6.344 and 8.469 ms in two quiet windows; that
+  wall-clocked playback figure is useful as a player reference, but its short pipeline and the
+  machine's thermal state make it less stable than the serial comparison.
+- The sampler suspended the decoder owner at one-millisecond intervals and resolved 725 samples
+  inside the generated Swag image. By source file, CABAC took 30.3%, deblocking 15.4%,
+  macroblock parsing and bookkeeping 14.9%, generic `Array` indexing 11.3%, reconstruction
+  10.2%, and intra/inter prediction plus transforms 8.7%. The largest individual functions were
+  `Slice.residualCabac` at 12.4%, `CabacReader.decision` at 9.1%, `Array.opIndexSet` plus
+  `Array.opIndexPtr` at 11.3%, `deblockMb` at 5.1%, and `bookkeepMb` at 4.0%. The MP4 reader does
+  not appear in the decoder-thread profile: after the access-unit initialization pass above was
+  removed, the large difference is the H.264 implementation rather than ISO-BMFF parsing.
+- This sample independently points to the same three causes as the 4K stage probes. FFmpeg keeps
+  neighboring macroblock state in a small local cache while this decoder repeatedly reaches into
+  picture-wide arrays; its CABAC kernels are not paying the generated prologue and spill costs
+  recorded in compiler.optimization.010; and its reconstruction and loop filters use mature SIMD
+  kernels rather than this decoder's mostly scalar small functions. The next useful decoder pass
+  therefore remains a per-macroblock neighbor/state cache, followed by packed deblocking. The
+  CABAC half remains primarily a compiler register-allocation task, not another source-level
+  rearrangement of the arithmetic loop.
 - What the gap is no longer responsible for (2026-08-24, release, the same recording played in
   Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
   limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures

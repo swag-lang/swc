@@ -321,6 +321,130 @@ void PEWriter::buildExports()
     sections_.push_back(std::move(section));
 }
 
+void PEWriter::foldIdenticalUnwindInfo()
+{
+    std::optional<uint32_t> xdataImageIndex;
+    std::optional<uint32_t> pdataImageIndex;
+    for (uint32_t i = 0; i < image_->sections.size(); ++i)
+    {
+        if (image_->sections[i].name == ".xdata")
+            xdataImageIndex = i;
+        else if (image_->sections[i].name == ".pdata")
+            pdataImageIndex = i;
+    }
+
+    if (!xdataImageIndex || !pdataImageIndex)
+        return;
+
+    const LinkSection& sourceXdata = image_->sections[*xdataImageIndex];
+    if (sourceXdata.isUninit() || sourceXdata.bytes.empty() || !sourceXdata.relocs.empty())
+        return;
+
+    std::unordered_map<Utf8, uint32_t> xdataSymbols;
+    for (const LinkSymbol& symbol : image_->symbols)
+        if (symbol.sectionIndex == *xdataImageIndex)
+            xdataSymbols.emplace(symbol.name, symbol.value);
+    if (xdataSymbols.empty())
+        return;
+
+    std::vector<uint32_t> recordOffsets;
+    for (const LinkReloc& relocation : image_->sections[*pdataImageIndex].relocs)
+    {
+        if (relocation.kind != LinkRelocKind::Rva32 || relocation.addend != 0)
+            continue;
+
+        const auto symbolIt = xdataSymbols.find(relocation.symbolName);
+        if (symbolIt != xdataSymbols.end())
+            recordOffsets.push_back(symbolIt->second);
+    }
+
+    std::ranges::sort(recordOffsets);
+    recordOffsets.erase(std::unique(recordOffsets.begin(), recordOffsets.end()), recordOffsets.end());
+    if (recordOffsets.empty() || recordOffsets.front() != 0)
+        return;
+
+    struct UnwindRecord
+    {
+        uint32_t offset = 0;
+        uint32_t size   = 0;
+    };
+
+    std::vector<UnwindRecord> records;
+    records.reserve(recordOffsets.size());
+    uint32_t coveredSize = 0;
+    for (const uint32_t offset : recordOffsets)
+    {
+        if (offset != coveredSize || !sourceXdata.bytes.containsRange(offset, 4))
+            return;
+
+        const uint8_t versionAndFlags = static_cast<uint8_t>(sourceXdata.bytes[offset]);
+        const uint8_t version         = versionAndFlags & 0x07;
+        const uint8_t flags           = versionAndFlags >> 3;
+        if (version != 1 || flags != 0)
+            return;
+
+        const uint32_t slotCount        = static_cast<uint8_t>(sourceXdata.bytes[offset + 2]);
+        const uint32_t alignedSlotCount = (slotCount + 1u) & ~1u;
+        const uint32_t recordSize       = 4 + alignedSlotCount * sizeof(uint16_t);
+        if (!sourceXdata.bytes.containsRange(offset, recordSize))
+            return;
+
+        records.push_back({.offset = offset, .size = recordSize});
+        coveredSize += recordSize;
+    }
+
+    if (coveredSize != sourceXdata.bytes.size())
+        return;
+
+    std::unordered_set<uint32_t> recordStarts(recordOffsets.begin(), recordOffsets.end());
+    for (const auto& [name, offset] : xdataSymbols)
+    {
+        SWC_UNUSED(name);
+        if (!recordStarts.contains(offset))
+            return;
+    }
+
+    ByteArray                                      folded;
+    std::unordered_map<std::string_view, uint32_t> canonicalOffsets;
+    std::unordered_map<uint32_t, uint32_t>         remappedOffsets;
+    folded.reserve(sourceXdata.bytes.size());
+    canonicalOffsets.reserve(records.size());
+    remappedOffsets.reserve(records.size());
+    for (const UnwindRecord& record : records)
+    {
+        const auto recordBytes = std::string_view{reinterpret_cast<const char*>(sourceXdata.bytes.data() + record.offset), record.size};
+        const auto canonicalIt = canonicalOffsets.find(recordBytes);
+        if (canonicalIt != canonicalOffsets.end())
+        {
+            remappedOffsets.emplace(record.offset, canonicalIt->second);
+            continue;
+        }
+
+        const uint32_t newOffset = static_cast<uint32_t>(folded.size());
+        folded.append(std::span{sourceXdata.bytes.data() + record.offset, record.size});
+        canonicalOffsets.emplace(recordBytes, newOffset);
+        remappedOffsets.emplace(record.offset, newOffset);
+    }
+
+    if (folded.size() == sourceXdata.bytes.size())
+        return;
+
+    const uint32_t outSectionIndex = imageToOut_[*xdataImageIndex];
+    for (const auto& [name, oldOffset] : xdataSymbols)
+    {
+        const auto symbolIt = symbols_.find(name);
+        SWC_ASSERT(symbolIt != symbols_.end());
+        if (symbolIt == symbols_.end())
+            return;
+        symbolIt->second.sectionIndex = outSectionIndex;
+        symbolIt->second.value        = remappedOffsets.at(oldOffset);
+    }
+
+    OutSection& xdata = sections_[outSectionIndex];
+    xdata.bytes       = std::move(folded);
+    xdata.virtualSize = static_cast<uint32_t>(xdata.bytes.size());
+}
+
 void PEWriter::assignLayout()
 {
     // Non-bss sections grow up to here (e.g. .text gained import thunks); keep virtual sizes current.
@@ -979,6 +1103,8 @@ bool PEWriter::writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnosti
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_no_text_section);
         return false;
     }
+
+    foldIdenticalUnwindInfo();
 
     buildImports();
     buildExports();

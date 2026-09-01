@@ -647,7 +647,16 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             SWC_ASSERT(targetFunction != nullptr);
             SWC_RESULT(resolveFunctionSymbolName(record.symbolName, targetFunction, target.allowUnresolvedSymbols));
             record.addend = 0;
-            writeU64(*target.bytes, patchOffset, 0);
+            if (relocation.form == MicroRelocation::Form::Relative32)
+            {
+                SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
+                record.type = IMAGE_REL_AMD64_REL32;
+                writeU32(*target.bytes, patchOffset, 0);
+            }
+            else
+            {
+                writeU64(*target.bytes, patchOffset, 0);
+            }
             break;
         }
 

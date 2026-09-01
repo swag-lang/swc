@@ -49,6 +49,7 @@ private:
     uint32_t resolveSymbolRva(bool& outFound, const Utf8& name) const;
     void     buildImports();
     void     buildExports();
+    void     foldIdenticalUnwindInfo();
     void     assignLayout();
     bool     applyRelocations(Diagnostic& outDiag);
     void     buildBaseRelocations();

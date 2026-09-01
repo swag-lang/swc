@@ -180,15 +180,19 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     host.finishAnimations()
 
     let sideRect    = main.libWnd.sideBar.surfaceRect()
-    let contentRect = main.libWnd.contentPanel.surfaceRect()
+    let barRect     = main.libWnd.barPanel.surfaceRect()
+    let captureRect = main.libWnd.captureHost.surfaceRect()
     Swag.assert(main.libWnd.backgroundStyle == .ToolBar)
     Swag.assert(main.libWnd.padding == Math.Rectangle{gutter, gutter, gutter, gutter})
     Swag.assert(main.libWnd.sideBar.backgroundStyle == .Panel)
-    Swag.assert(main.libWnd.contentPanel.backgroundStyle == .Panel)
-    Swag.assert(contentRect.x - sideRect.right() == gutter)
+    Swag.assert(main.libWnd.barPanel.backgroundStyle == .Panel)
+    Swag.assert(barRect.x - sideRect.right() == gutter)
     Swag.assert(main.libWnd.captureHost.backgroundStyle == .Panel)
     Swag.assert(main.libWnd.captureHost.themeColors().wnd_Bk == main.libWnd.captureHost.themeColors().view_Bk)
-    Swag.assert(main.libWnd.captureHost.margin == Math.Rectangle{gutter, gutter, gutter, gutter})
+
+    // The bars and the captures are two panels of one column: same edges, one gutter apart.
+    Swag.assert(captureRect.x == barRect.x and captureRect.right() == barRect.right())
+    Swag.assert(captureRect.y - barRect.bottom() == gutter)
 
     image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "library.surface")

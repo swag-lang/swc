@@ -33,6 +33,7 @@ private func createPdfFixture()->String
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    assertViewerInfoButton(view.zoomLabel)
     Swag.assert(view.details == "PDF")
     view.resize(640, 420)
     view.applyLayout()

@@ -34,6 +34,8 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
     Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null and result.retire != null)
 
     let view = cast(*TextView) result.view!
+    assertViewerInfoButton(view.zoomLabel)
+    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
     finishTextStatistics(&host, view)
     let lineDetails = Format.toString(textStrings().ui_Lines, view.statistics.lines)
     Swag.assert(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))

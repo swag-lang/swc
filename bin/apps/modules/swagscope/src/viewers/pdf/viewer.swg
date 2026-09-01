@@ -18,11 +18,10 @@ func pdfViewerPlugin()->Viewer.Plugin
 }
 
 private const PdfPageWidth = 76.0
-private const PdfZoomWidth = 96.0
 
 private func pdfInfoWidth(metrics: const *ThemeMetrics)->f32
 {
-    return 2 * themeActionButtonSize(metrics) + PdfPageWidth + PdfZoomWidth + 16
+    return 2 * themeActionButtonSize(metrics) + PdfPageWidth + ViewerZoomSlotWidth + 16
 }
 
 // Keeps the page controls and zoom selector in one fixed-width run. Their authored cells are
@@ -214,7 +213,7 @@ private impl PdfViewer
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("50%", "scope.pdf.zoom50")
-        menu.addItem(pdfStrings().ui_Actual, "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), rightName: "Ctrl+0")
+        menu.addItem(pdfStrings().ui_Actual, "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
         menu.addItem("125%", "scope.pdf.zoom125")
         menu.addItem("150%", "scope.pdf.zoom150")
         menu.addItem("200%", "scope.pdf.zoom200")
@@ -282,11 +281,11 @@ private impl PdfViewer
             }
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, PdfZoomWidth, 32}, "scope.pdf.zoom", .CenterContent)
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.pdf.zoom", .CenterContent)
         {
             .dockStyle       = .Right
-            .preferredSize.x = PdfZoomWidth
-            .margin.x        = 8
+            .preferredSize.x = ViewerZoomButtonWidth
+            .margin          = {ViewerInfoControlInset + 8, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)

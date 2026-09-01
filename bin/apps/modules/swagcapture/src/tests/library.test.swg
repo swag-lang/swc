@@ -607,20 +607,22 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(lib.filterBtn.position.x - lib.sortBtn.position.right() == LibButtonGap)
     Swag.assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
 
-    // The rail owns the left edge and the content begins one gutter after it. That is a fact
-    // about where the content panel sits inside the window: the view's own position is
-    // relative to that panel, so it reads the same in both modes and cannot see the move.
+    // The rail owns the left edge and the content begins one gutter after it. That column is
+    // two panels, the bars above and the captures below, so both start at that edge and the
+    // gutter parting them is the one that parts them from the rail.
     Swag.assert(lib.sideBar.isLocallyVisible())
-    Swag.assert(lib.contentPanel.position.x == lib.sideBar.position.right() + lib.sideBar.margin.z)
+    Swag.assert(lib.barPanel.position.x == lib.sideBar.position.right() + lib.sideBar.margin.z)
+    Swag.assert(lib.captureHost.position.x == lib.barPanel.position.x)
+    Swag.assert(lib.captureHost.position.y - lib.barPanel.position.bottom() == lib.barPanel.margin.w)
 
     // With the rail gone the content takes the edge the rail had.
     lib.setTrashMode(true)
     Swag.assert(!lib.sideBar.isLocallyVisible())
-    Swag.assert(lib.contentPanel.position.x == lib.sideBar.position.x)
+    Swag.assert(lib.barPanel.position.x == lib.sideBar.position.x)
 
     lib.setTrashMode(false)
     Swag.assert(lib.sideBar.isLocallyVisible())
-    Swag.assert(lib.contentPanel.position.x == lib.sideBar.position.right() + lib.sideBar.margin.z)
+    Swag.assert(lib.barPanel.position.x == lib.sideBar.position.right() + lib.sideBar.margin.z)
 
     let chrome = testAddLibraryItem(lib.view, "chrome.scc", 10, 1)
     chrome.capture!.sourceApplication = "Chrome"

@@ -167,7 +167,7 @@ private impl MarkdownZoomButton
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("75%", "scope.markdown.zoom75")
-        menu.addItem("100%", "scope.markdown.zoom100", rightName: "Ctrl+0")
+        menu.addItem("100%", "scope.markdown.zoom100")
         menu.addItem("125%", "scope.markdown.zoom125")
         menu.addItem("150%", "scope.markdown.zoom150")
         menu.addItem("200%", "scope.markdown.zoom200")
@@ -183,11 +183,12 @@ private impl MarkdownZoomButton
 
     func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*MarkdownZoomButton
     {
-        let result = Wnd.create'MarkdownZoomButton(parent, null, {0, 0, 96, 32}, "scope.markdown.zoom")
+        let result = Wnd.create'MarkdownZoomButton(parent, null, {0, 0, ViewerZoomButtonWidth, 32}, "scope.markdown.zoom")
         result.view       = view
         result.themeCombo = themeCombo
         result.widthCombo = widthCombo
         result.dockStyle  = .Center
+        result.margin     = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
         result.updateFlags(.CenterContent)
         result.setText("100%")
         result.setArrowPosition(.RightDownward)
@@ -235,7 +236,7 @@ func createMarkdownViewer(host: Viewer.Host)
     themeCombo.addItem("Whitey")
     themeCombo.setSelectedIndex(g_MarkdownViewerSettings.themeIndex, notify: false)
 
-    let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(96), view, themeCombo, widthCombo)
+    let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
 
     let services = host.services()
     if services.reportFailure

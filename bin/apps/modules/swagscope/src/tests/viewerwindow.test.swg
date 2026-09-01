@@ -969,12 +969,40 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     Swag.assert(!window.appearanceButton.sigAboutRequested.isEmpty())
+    let capabilities = window.aboutViewerList()
+    Swag.assert(Utf8.contains(capabilities.toSlice(), "<b>Archive</b>"))
+    Swag.assert(!Utf8.contains(capabilities.toSlice(), "\n") and !Utf8.contains(capabilities.toSlice(), ".zip"))
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.showAbout()
     host.pump()
 
     Swag.assert(host.autoHandled)
     Swag.assert(host.openedSurfaceCount() == 0)
+}
+
+// The application About box presents supported content as one compact capability line instead of
+// a scrolling extension inventory.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 700)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let appIcon = expect Image.decode(".png", AppIcon)
+    host.app.setAppIcon(appIcon)
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let dlg    = window.createAboutDialog({year: 2026, month: 9, day: 1})
+    dlg.applyLayout()
+
+    let surface = dlg.surface!
+    let rendered = host.render(dlg)
+    var image    = rendered.cropped(0, 0, cast(s32) surface.position.width, cast(s32) surface.position.height)
+    Pixel.Testing.assertImageGolden(&image, "about")
+    surface.destroy()
 }
 
 // The live appearance menu switches the complete application tree to French and closes its
@@ -993,6 +1021,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.surface!.setTitle(appStrings().ui_WindowTitle)
+    Swag.assert(window.openButton.toolTip == "Open (Ctrl+O)")
 
     host.openPopupSubMenuWhenShown("Language")
     host.thenClickPopupMenuItem("fr")
@@ -1001,10 +1030,12 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     Swag.assert(host.app.language() == "fr")
     Swag.assert(window.language == "fr")
+
     // Headless surfaces stay outside Application.surfaces, so deliver the broadcast they would
     // receive from setLanguage in a native window.
     host.notify(.LanguageChanged)
     Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
+    Swag.assert(window.openButton.toolTip == "Ouvrir (Ctrl+O)")
     Swag.assert(host.openedSurfaceCount() == 0)
 }
 

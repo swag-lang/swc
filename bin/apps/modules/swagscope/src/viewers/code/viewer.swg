@@ -224,7 +224,7 @@ internal impl CodeViewer
             return
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("75%", "scope.code.zoom75")
-        menu.addItem("100%", "scope.code.zoom100", rightName: "Ctrl+0")
+        menu.addItem("100%", "scope.code.zoom100")
         menu.addItem("125%", "scope.code.zoom125")
         menu.addItem("150%", "scope.code.zoom150")
         menu.addItem("200%", "scope.code.zoom200")
@@ -254,9 +254,10 @@ internal impl CodeViewer
         result.editor.setFlags(.ReadOnly)
         if info
         {
-            with result.zoomLabel = IconButton.create(info!, {}, {0, 0, 96, 32}, "scope.code.zoom", .CenterContent)
+            with result.zoomLabel = IconButton.create(info!, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.code.zoom", .CenterContent)
             {
                 .dockStyle = .Center
+                .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
                 .setText("100%")
                 .setArrowPosition(.RightDownward)
                 .setForm(.Rectangle)
@@ -412,7 +413,7 @@ internal impl IWnd for CodeViewer
 // Creates the integrated syntax-colored source view.
 func createCodeViewer(host: Viewer.Host)
 {
-    let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(96))
+    let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure, host.createInfoGroup(ViewerZoomSlotWidth))
     if !view.failureReason.isEmpty()
     {
         host.reject(view.failureReason.toString())

@@ -54,6 +54,22 @@ struct CodeLanguageSample
     Swag.assert(Utf8.contains(result.failureReason.toSlice(), "zero byte"))
 }
 
+// The code zoom value keeps the shared information-band air outside its button frame.
+#test
+{
+    let fileName = codeFixturePath("sample.cpp")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    defer host.shutdown()
+
+    var result = openTestViewer(codeViewerPlugin(), &host.root, fileName.toString(), infoParent: &host.root)
+    Swag.assert(result.view != null and result.info != null)
+    let view = cast(*CodeViewer) result.view!
+    assertViewerInfoButton(view.zoomLabel!)
+    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
+}
+
 #[Swag.TestTag("golden")]
 #test
 {

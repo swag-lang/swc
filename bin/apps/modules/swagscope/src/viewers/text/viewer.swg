@@ -531,7 +531,7 @@ impl TextView
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("75%", "scope.text.zoom75")
-        menu.addItem("100%", "scope.text.zoom100", rightName: "Ctrl+0")
+        menu.addItem("100%", "scope.text.zoom100")
         menu.addItem("125%", "scope.text.zoom125")
         menu.addItem("150%", "scope.text.zoom150")
         menu.addItem("200%", "scope.text.zoom200")
@@ -636,7 +636,7 @@ impl TextView
         result.contentStart = probed.contentStart
 
         result.commands = host.createCommandGroup(200)
-        result.info     = host.createInfoGroup(96)
+        result.info     = host.createInfoGroup(ViewerZoomSlotWidth)
 
         with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
@@ -668,9 +668,10 @@ impl TextView
             }
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, 96, 32}, "scope.text.zoom", .CenterContent)
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.text.zoom", .CenterContent)
         {
             .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)

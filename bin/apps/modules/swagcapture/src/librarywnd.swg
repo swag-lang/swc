@@ -60,19 +60,19 @@ struct LibraryWnd
 
     #[Swag.Late]
     {
-        main:         *MainWnd
-        view:         *LibraryView
-        sideBar:      *Wnd
-        contentPanel: *Wnd
-        captureHost:  *ScrollWnd
-        listCtrl:     *ListCtrl
-        commandBar:   *StackLayoutCtrl
-        viewBtn:      *IconButton
-        sortBtn:      *IconButton
-        filterBtn:    *IconButton
-        folderBtn:    *IconButton
-        searchEdit:   *EditBox
-        breadcrumb:   *BreadcrumbCtrl
+        main:        *MainWnd
+        view:        *LibraryView
+        sideBar:     *Wnd
+        barPanel:    *Wnd
+        captureHost: *ScrollWnd
+        listCtrl:    *ListCtrl
+        commandBar:  *StackLayoutCtrl
+        viewBtn:     *IconButton
+        sortBtn:     *IconButton
+        filterBtn:   *IconButton
+        folderBtn:   *IconButton
+        searchEdit:  *EditBox
+        breadcrumb:  *BreadcrumbCtrl
     }
 
     previewSize: PreviewSize
@@ -1145,20 +1145,21 @@ impl LibraryWnd
             .padding         = {0, 8, 0, 8}
         }
 
-        with res.contentPanel = Wnd.create'Wnd(res)
+        // The path and command rows are chrome and the captures are content. One panel holding
+        // both made the recessed capture ground read as a square dropped inside a larger box, so
+        // each role stands on its own panel, parted by the same gutter that already separates the
+        // rail from this column.
+        with res.barPanel = Wnd.create'Wnd(res, {0, 0, 0, 2 * themeActionButtonSize(metrics)})
         {
-            .dockStyle       = .Center
+            .dockStyle       = .Top
             .backgroundStyle = .Panel
+            .margin.w        = metrics.panel_GutterSize
         }
 
-        // The path and command rows belong to the structural panel. Captures are content, so
-        // they sit on the recessed View ground inside it; the gutter is enough separation and
-        // avoids introducing a decorative rule between the two roles.
-        with res.captureHost = Wnd.create'ScrollWnd(res.contentPanel)
+        with res.captureHost = Wnd.create'ScrollWnd(res)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Panel
-            .margin          = {metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
             .style.addStyleSheetColors("wnd_Bk $view_Bk")
         }
 
@@ -1198,7 +1199,7 @@ impl LibraryWnd
 
         // Folder path bar: shows the real library folder and lets the user walk it
         // (its sub-folders, incl. the recycle bin, are reachable from the chevrons).
-        with res.breadcrumb = BreadcrumbCtrl.create(res.contentPanel, {0, 0, 0, themeActionButtonSize(metrics)})
+        with res.breadcrumb = BreadcrumbCtrl.create(res.barPanel, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -1208,7 +1209,7 @@ impl LibraryWnd
         }
 
         // Top bar
-        with res.commandBar = StackLayoutCtrl.create(res.contentPanel, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
+        with res.commandBar = StackLayoutCtrl.create(res.barPanel, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .spacing         = LibButtonGap

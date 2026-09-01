@@ -64,6 +64,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     var viewerSession = openTestViewer(hexViewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view          = cast(*HexViewer) viewerSession.view!
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
+    assertViewerInfoButton(view.zoomLabel!)
     view.dockStyle = .Center
     view.resize(width, height)
     view.applyLayout()

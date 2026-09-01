@@ -1,7 +1,7 @@
 # French strings of Swag Scope. A key omitted here keeps its English value.
 
 ui_WindowTitle  Swag Scope — Visionneuse universelle
-ui_Open         Ouvrir
+ui_Open         Ouvrir (Ctrl+O)
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_Viewer       Visionneuse
 ui_Files        Fichiers à côté de celui-ci
@@ -34,7 +34,7 @@ ui_DropHint     ou ouvrez-en un avec Ctrl+O
 ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.
 ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.
-ui_AboutViewers Visionneuses et formats
+ui_AboutViewers Visionneuses prises en charge
 ui_AboutAnyFile tout fichier
 dlg_TitleOpen   Ouvrir un fichier
 dlg_ButtonOpen  Ouvrir

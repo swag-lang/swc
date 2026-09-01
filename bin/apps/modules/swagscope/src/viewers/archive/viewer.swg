@@ -4,6 +4,29 @@ using Core, Gui
 
 private const ArchiveTreeWidth = 380.0
 
+// Keeps directory rows before file rows at every level, while preserving natural name ordering
+// within each kind. Directory rows carry no entry payload, including empty explicit directories.
+func compareArchiveTreeLines(a, b: #null *ListLine, column: u32, descending: bool)->s32
+{
+    if !a or !b do
+        return 0
+
+    let aFolder = a.userData0 == null
+    let bFolder = b.userData0 == null
+    if aFolder != bFolder do
+        return aFolder ? -1 : 1
+
+    let sortColumn = column < a.items.count and column < b.items.count ? column : 0
+    let aItem      = a.itemAt(sortColumn)
+    let bItem      = b.itemAt(sortColumn)
+    let aText      = aItem.sortKey.isEmpty() ? &aItem.name.raw : &aItem.sortKey
+    let bText      = bItem.sortKey.isEmpty() ? &bItem.name.raw : &bItem.sortKey
+    var result     = Latin1.compareNatural(aText[], bText[])
+    if descending do
+        result *= -1
+    return result
+}
+
 func archiveViewerPlugin()->Viewer.Plugin
 {
     var result: retval
@@ -228,6 +251,7 @@ private impl ArchiveViewer
 
         for line in roots do
             .list.expand(line)
+        .list.sort(0, persistent: true)
         .list.computeLayout()
         if .archive.entries.isEmpty() do
             .showPreviewStatus(archiveStrings().ui_Empty)
@@ -442,7 +466,8 @@ private impl ArchiveViewer
 
         with result.list = ListCtrl.createMultiColumns(result.treePane)
         {
-            .dockStyle = .Center
+            .dockStyle    = .Center
+            .compareLines = &compareArchiveTreeLines
             .setSelectionMode(.Single)
             .setIconSize(themeRowIconSize(result.themeMetrics()))
             .updateFlags(.HotTrack | .Ellipsis)

@@ -249,7 +249,7 @@ internal impl ImageViewer
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("25%", "scope.image.zoom25")
         menu.addItem("50%", "scope.image.zoom50")
-        menu.addItem("100%", "scope.image.zoom100", rightName: "Ctrl+0")
+        menu.addItem("100%", "scope.image.zoom100")
         menu.addItem("200%", "scope.image.zoom200")
         menu.addSeparator()
         menu.addItem(imageStrings().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
@@ -467,9 +467,10 @@ private impl ImageViewer
             .hide()
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ImageInfoWidth, 32}, "scope.image.zoom", .CenterContent)
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ImageInfoWidth - 2 * ViewerInfoControlInset, 32}, "scope.image.zoom", .CenterContent)
         {
             .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)

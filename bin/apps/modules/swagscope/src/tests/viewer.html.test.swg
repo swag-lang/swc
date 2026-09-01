@@ -17,6 +17,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         host.app.runFrame()
         attempts += 1
     }
+
     Swag.assert(!result.isLoading!(result.view!))
 }
 
@@ -73,8 +74,10 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.assert(result.view != null and result.info != null)
     infoBar.centerGroup = result.info
     let view = cast(*HtmlViewer) result.view!
+    assertViewerInfoButton(view.zoomLabel)
+    Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
     finishHtmlViewer(&host, &result)
-    view.dockStyle       = .Center
+    view.dockStyle         = .Center
     result.info!.dockStyle = .None
 
     host.root.applyLayout()

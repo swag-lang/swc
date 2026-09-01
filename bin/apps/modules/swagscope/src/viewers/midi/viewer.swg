@@ -18,7 +18,6 @@ func midiViewerPlugin()->Viewer.Plugin
 }
 
 private const MidiCommandWidth = 224.0
-private const MidiInfoWidth    = 96.0
 
 internal struct MidiViewer
 {
@@ -186,9 +185,10 @@ internal impl MidiViewer
             }
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, MidiInfoWidth, 32}, "scope.midi.zoom", .CenterContent)
+        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.midi.zoom", .CenterContent)
         {
             .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
@@ -211,7 +211,7 @@ internal impl MidiViewer
 func createMidiViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.createInfoGroup(MidiInfoWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.createInfoGroup(ViewerZoomSlotWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
     host.setLifecycle({
         isLoading: func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null },

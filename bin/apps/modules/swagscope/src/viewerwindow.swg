@@ -1416,49 +1416,46 @@ impl ViewerWindow
         return result
     }
 
-    // Opens the standard product identity and provenance dialog.
-    mtd showAbout()
+    // Creates the standard product identity, provenance, and capability dialog.
+    mtd createAboutDialog(buildDate: Time.DateTime)->*AboutDlg
     {
-        const BuildDate = #run Time.DateTime.now()
         let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
         let dlg     = AboutDlg.createApplication(.surface!, {
             productName: ProductName,
             version: version.toString(),
-            buildDate: BuildDate,
+            buildDate: buildDate,
             sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagscope",
             copyrightHolder: "Christophe Beaudet"})
 
-        // What this application is is the list of things it opens, and that list is the registry
-        // itself rather than a copy of it written here: a format added to a viewer is in the box
-        // the same day.
+        // The registry remains the source of the compact capability line, but extension details
+        // stay out of the identity box: the viewer names communicate the supported content
+        // families without turning About into a file-association inventory.
         let viewers = .aboutViewerList()
         dlg.addSection(appStrings().ui_AboutViewers, viewers.toString())
+        return dlg
+    }
+
+    // Opens the standard product identity and provenance dialog.
+    mtd showAbout()
+    {
+        const BuildDate = #run Time.DateTime.now()
+        let dlg = .createAboutDialog(BuildDate)
         discard dlg.doModal()
     }
 
-    // Every registered viewer and what it offers itself for, in selection order.
+    // Every registered viewer in selection order, presented as one compact capability line.
     //
-    // The order is the one the host resolves in, so a reader comparing two viewers that both name
-    // an extension can see which one wins it.
-    private mtd const aboutViewerList()->String
+    // The names carry the content families without repeating the registry's extension inventory.
+    mtd const aboutViewerList()->String
     {
         var result: retval
         for plugin in .index.plugins
         {
             if !result.isEmpty() do
-                result += "\n"
+                result += "  ·  "
             result += "<b>"
             result += plugin.displayName()
-            result += "</b>  "
-
-            var first = true
-            for selector in plugin.selectors
-            {
-                if !first do
-                    result += ", "
-                first  = false
-                result += selector.toString() == "*" ? appStrings().ui_AboutAnyFile : selector.toString()
-            }
+            result += "</b>"
         }
 
         return result

@@ -62,6 +62,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    assertViewerInfoButton(view.zoomLabel, result.info!.preferredSize.x - 2 * ViewerInfoControlInset)
     var navigation: s32
     view.userData = &navigation
     Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())

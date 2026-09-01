@@ -9,7 +9,7 @@ using Core, Gui
 struct AppStrings
 {
     ui_WindowTitle:                    string = "Swag Scope — Universal viewer"               // Title of the application window.
-    ui_Open:                           string = "Open"                                        // Tooltip of the open-file button.
+    ui_Open:                           string = "Open (Ctrl+O)"                               // Tooltip of the open-file button.
     ui_OpenDefault:                    string = "Open with default application"               // Tooltip of the system-default application button.
     ui_Viewer:                         string = "Viewer"                                      // Tooltip of the viewer selector.
     ui_Files:                          string = "Files beside this one"                       // Tooltip of the file-panel button.
@@ -42,7 +42,7 @@ struct AppStrings
     ui_Unsupported:                    string = "No viewer can show this file."               // No viewer claimed the file.
     ui_OpenStopped:                    string = "The file could not be shown."                // A viewer refused the file it claimed.
     ui_ViewerError:                    string = "This viewer could not decode the file."      // Heading above a viewer's exact decoder error.
-    ui_AboutViewers:                   string = "Viewers and formats"                         // Heading of the about block listing what the application opens.
+    ui_AboutViewers:                   string = "Supported viewers"                           // Heading of the compact about block listing what the application opens.
     ui_AboutAnyFile:                   string = "any file"                                    // What a viewer offering itself for every file is listed as.
     dlg_TitleOpen:                     string = "Open a file"                                 // Title of the open dialog.
     dlg_ButtonOpen:                    string = "Open"                                        // Confirmation button of the open dialog.

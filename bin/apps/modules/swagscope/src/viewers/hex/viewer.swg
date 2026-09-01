@@ -22,8 +22,7 @@ func hexViewerPlugin()->Viewer.Plugin
 private const HexCommandWidth   = 640.0
 private const HexComboWidth     = 120.0
 private const HexInspectorWidth = 420.0
-private const HexZoomWidth      = 96.0
-private const HexInfoWidth      = HexInspectorWidth + HexZoomWidth
+private const HexInfoWidth      = HexInspectorWidth + ViewerZoomSlotWidth
 
 // Writes an unsigned scalar in the binary spelling used by the inspector.
 private func formatHexBinaryScalar(value, bits: u64)->String
@@ -378,7 +377,7 @@ internal impl HexViewer
         let base = .themeMetrics().defaultFixedFontSize
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("75%", "scope.hex.zoom75")
-        menu.addItem("100%", "scope.hex.zoom100", rightName: "Ctrl+0")
+        menu.addItem("100%", "scope.hex.zoom100")
         menu.addItem("125%", "scope.hex.zoom125")
         menu.addItem("150%", "scope.hex.zoom150")
         menu.addItem("200%", "scope.hex.zoom200")
@@ -547,9 +546,10 @@ internal impl HexViewer
         }
 
         result.info = host.createInfoGroup(HexInfoWidth)
-        with result.zoomLabel = IconButton.create(result.info!, {}, {0, 0, HexZoomWidth, 32}, "scope.hex.zoom", .CenterContent)
+        with result.zoomLabel = IconButton.create(result.info!, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
         {
             .dockStyle = .Right
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)

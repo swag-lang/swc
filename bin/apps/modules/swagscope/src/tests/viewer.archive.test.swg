@@ -112,6 +112,42 @@ private func writeZipFixture()->String
     return path
 }
 
+// Archive hierarchy sorting keeps folders ahead of files at the root and inside each folder,
+// including explicit empty directories that have no child row to identify them.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    let list = ListCtrl.createMultiColumns(&host.root)
+    list.addColumn("Name", 200)
+    list.addColumn("Size", 80)
+    list.compareLines = &compareArchiveTreeLines
+
+    let rootFile = list.createLine(null)
+    rootFile.setItem(0, "a.txt")
+    rootFile.setItem(1, "1 B")
+    rootFile.userData0 = cast(#null *void) 1
+
+    let rootFolder = list.createLine("z-folder")
+    let childFile  = list.createLine(rootFolder)
+    childFile.setItem(0, "a.txt")
+    childFile.setItem(1, "1 B")
+    childFile.userData0 = cast(#null *void) 2
+    let childFolder = list.createLine("z-empty", parentLine: rootFolder)
+
+    list.sort(0, persistent: true)
+    Swag.assert(list.lineAt(0) == rootFolder)
+    list.expand(rootFolder)
+    Swag.assert(list.lineAt(1) == childFolder)
+    Swag.assert(list.lineAt(2) == childFile)
+    Swag.assert(list.lineAt(3) == rootFile)
+
+    list.sort(0, descending: true)
+    Swag.assert(list.lineAt(0) == rootFolder and list.lineAt(1) == childFolder)
+}
+
 // Legacy ZIP names use CP437 when the UTF-8 flag is absent.
 #test
 {

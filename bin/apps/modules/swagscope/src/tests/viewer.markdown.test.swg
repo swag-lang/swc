@@ -23,15 +23,18 @@ private func markdownWhiteyFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    var first = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString(), commandParent: &host.root)
+    var first      = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString(), commandParent: &host.root)
     let firstWidth = cast(*ComboBox) first.commands!.children[0]
     let firstTheme = cast(*ComboBox) first.commands!.children[1]
+    let firstZoom  = cast(*MarkdownZoomButton) first.info!.children[0]
+    assertViewerInfoButton(firstZoom)
+    Swag.assert(first.info!.preferredSize.x == ViewerZoomSlotWidth)
     Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
     firstWidth.setSelectedIndex(0)
     firstTheme.setSelectedIndex(5)
     Swag.assert(g_MarkdownViewerSettings.widthIndex == 0 and g_MarkdownViewerSettings.themeIndex == 5)
 
-    var second = openTestViewer(markdownViewerPlugin(), &host.root, markdownWhiteyFixturePath().toString(), commandParent: &host.root)
+    var second      = openTestViewer(markdownViewerPlugin(), &host.root, markdownWhiteyFixturePath().toString(), commandParent: &host.root)
     let secondWidth = cast(*ComboBox) second.commands!.children[0]
     let secondTheme = cast(*ComboBox) second.commands!.children[1]
     Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)

@@ -46,7 +46,7 @@ private impl HtmlViewer
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("75%", "scope.html.zoom75")
-        menu.addItem("100%", "scope.html.zoom100", rightName: "Ctrl+0")
+        menu.addItem("100%", "scope.html.zoom100")
         menu.addItem("125%", "scope.html.zoom125")
         menu.addItem("150%", "scope.html.zoom150")
         menu.addItem("200%", "scope.html.zoom200")
@@ -75,10 +75,11 @@ func createHtmlViewer(host: Viewer.Host)
         return
     }
 
-    let info = host.createInfoGroup(96)
-    with result.zoomLabel = IconButton.create(info, {}, {0, 0, 96, 32}, "scope.html.zoom", .CenterContent)
+    let info = host.createInfoGroup(ViewerZoomSlotWidth)
+    with result.zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.html.zoom", .CenterContent)
     {
         .dockStyle = .Center
+        .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
         .setText("100%")
         .setArrowPosition(.RightDownward)
         .setForm(.Rectangle)

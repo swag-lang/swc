@@ -3,6 +3,9 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
 // Final emission pass: converts legalized micro instructions to machine code.
@@ -15,10 +18,9 @@
 //        - labelOffsets_       : Label opcode -> code offset, used by stage 2.
 //        - pendingLabelJumps_  : conditional jumps with unresolved targets,
 //                                emitted with a placeholder displacement.
-//      Relocation-bearing instructions (LoadRegPtrReloc, CallLocal/Extern)
-//      bind their final code offset into the corresponding MicroRelocation
-//      via bindAbs64RelocationOffset() so the linker can patch the absolute
-//      pointer at load time.
+//      Relocation-bearing instructions bind their final code offset into the
+//      corresponding MicroRelocation. Local calls in native artifacts use a
+//      direct relative displacement; other calls and pointer loads stay absolute.
 //
 //   2. Branch patching. Now that every Label has a concrete offset, walk the
 //      pending jump list and patch each placeholder displacement.
@@ -136,15 +138,25 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             if (relocIt == relocationByInstructionRef_.end())
                 break;
 
-            const MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
+            MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
             if (inst.op == MicroInstrOpcode::CallLocal)
                 SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress);
             else
                 SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
 
+            const CompilerInstance& compiler       = context.builder->ctx().compiler();
+            const bool              nativeArtifact = !compiler.cmdLine().scriptMode && Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind);
+            if (nativeArtifact && inst.op == MicroInstrOpcode::CallLocal)
+            {
+                const uint32_t callStart = encoder.size();
+                relocation.form          = MicroRelocation::Form::Relative32;
+                encoder.encodeCallLocal(relocation.targetSymbol, ops[0].callConv);
+                bindRel32RelocationOffset(context, instructionRef, callStart, encoder.size());
+                break;
+            }
+
             const CallConv& conv      = CallConv::get(ops[0].callConv);
             const uint32_t  loadStart = encoder.size();
-
             encoder.encodeLoadRegImm(conv.intReturn, ApInt(relocation.targetAddress, 64), MicroOpBits::B64);
             bindAbs64RelocationOffset(context, instructionRef, loadStart, encoder.size());
             encoder.encodeCallReg(conv.intReturn, ops[0].callConv);

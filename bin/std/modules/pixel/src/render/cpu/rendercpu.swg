@@ -614,10 +614,14 @@ private impl RenderCpu
         }
 
         let pixelIdx = cast(u64) y * cast(u64) image.width + cast(u64) x
+
+        // The mark pass keeps the coverage a pixel is most covered by, so the draw pass can
+        // composite it once. It is the alpha itself, not the alpha weighted by itself: squaring
+        // it here made every antialiased fringe and every translucent stroke light by its own
+        // opacity a second time, so a stroke at 50% covered a quarter of what it should.
         if .overlapPass == 1
         {
-            let a = cast(u8) Math.clamp(Math.round(cast(f32) src.a * cast(f32) src.a / 255.0), 0.0, 255.0)
-            .overlapAlpha[pixelIdx] = Math.max(.overlapAlpha[pixelIdx], a)
+            .overlapAlpha[pixelIdx] = Math.max(.overlapAlpha[pixelIdx], src.a)
             return
         }
 
@@ -2085,6 +2089,18 @@ private impl RenderCpu
             return
 
         .clearAlpha(image)
+
+        // The clipping region is replayed with the geometry, so the alpha plane is carved by the
+        // same clips the color plane was. That only reproduces the color pass from a region the
+        // recording started with: the target was cleared right after it was bound, and a clear
+        // empties the stencil, so the replay starts from an empty one too.
+        let stencil = .currentStencil()
+        if stencil.count do
+            Memory.clear(stencil.buffer!, stencil.count)
+        .stencilOn    = false
+        .stencilWrite = false
+        .stencilMode  = .Set
+
         .alphaResolve = true
         for var i = first; i < last; i += 1
         {
@@ -2093,6 +2109,7 @@ private impl RenderCpu
             {
             case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0,
                  .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect,
+                 .StartClippingRegion, .SetClippingRegionMode, .EndClippingRegion, .ResetClippingRegion,
                  .DrawTriangles: .executeCommand(painter, replay, i)
             }
         }

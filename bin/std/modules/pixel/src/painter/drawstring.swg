@@ -171,6 +171,7 @@ struct ShapedRun
         hasInk:        bool                           // Whether `inkBounds` contains visible glyphs.
         tabSize:       u32   = DefaultTextTabSize     // Tab-stop width in space advances.
         letterSpacing: f32                            // Additional spacing between glyphs, in pixels.
+        wordSpacing:   f32                            // Additional advance given to each blank, in pixels.
     }
 }
 
@@ -217,14 +218,14 @@ struct RichStringFormat
     }
 }
 
-private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
+private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32, extraAdvanceX = 0.0'f32)
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
     glyph.glyphIndex = glyphIndex
     glyph.cluster    = cluster
     let desc = glyph.desc
-    glyph.advanceX = isTab ? customAdvanceX : desc.advanceX
+    glyph.advanceX = isTab ? customAdvanceX : desc.advanceX + extraAdvanceX
     glyph.advanceY = desc.advanceY
     glyph.isTab    = isTab
     if previousGlyphIndex and !isTab do
@@ -366,13 +367,14 @@ impl Painter
     // The glyph buffer is cleared while retaining its capacity, so per-frame shaping
     // can avoid allocation. The current implementation preserves one rune per glyph
     // and records glyph indices, advances, and cluster positions.
-    func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)
+    func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)
     {
         Debug.assert(font != null, "invalid font")
 
         result.font          = font
         result.tabSize       = tabSize
         result.letterSpacing = letterSpacing
+        result.wordSpacing   = wordSpacing
         result.hasInk        = false
         result.metrics.ascent, result.metrics.descent, result.metrics.width, result.metrics.height = 0
         result.glyphs.clear()
@@ -383,6 +385,7 @@ impl Painter
         var byteIdx            = 0'u64
         var previousGlyphIndex = 0'u32
         let letterSpacingRef   = letterSpacing / font.scale()
+        let wordSpacingRef     = wordSpacing / font.scale()
 
         while count
         {
@@ -399,7 +402,7 @@ impl Painter
             else
             {
                 let glyphIndex = font.glyphIndex(c)
-                appendShapedGlyph(result, font, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef)
+                appendShapedGlyph(result, font, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef, c == ' ' ? wordSpacingRef : 0.0)
                 previousGlyphIndex = glyphIndex
             }
 
@@ -412,10 +415,10 @@ impl Painter
     }
 
     // Shape a single-font text run, returning a freshly allocated run.
-    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->ShapedRun
+    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->ShapedRun
     {
         var result: retval
-        shapeRunInto(&result, text, font, tabSize, letterSpacing)
+        shapeRunInto(&result, text, font, tabSize, letterSpacing, wordSpacing)
         return result
     }
 
@@ -430,10 +433,19 @@ impl Painter
         result.font          = font
         result.tabSize       = run.tabSize
         result.letterSpacing = run.letterSpacing
+        result.wordSpacing   = run.wordSpacing
         result.glyphs.reserve(run.glyphs.count)
 
         var previousGlyphIndex = 0'u32
         let letterSpacingRef   = run.letterSpacing / font.scale()
+        let wordSpacingRef     = run.wordSpacing / font.scale()
+
+        // Both fonts share one typeface, so the blank keeps its glyph index across the rebuild
+        // and word spacing lands on the same glyphs it did the first time. A run with no word
+        // spacing never asks for that index: resolving a glyph populates the cache, and a run
+        // that has no use for the blank must not be what puts it there.
+        let spaceGlyphIndex = run.wordSpacing != 0 ? font.glyphIndex(' ') : 0'u32
+
         for glyph in run.glyphs
         {
             if glyph.isTab
@@ -443,7 +455,7 @@ impl Painter
             }
             else
             {
-                appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex, 0.0, false, letterSpacingRef)
+                appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex, 0.0, false, letterSpacingRef, glyph.glyphIndex == spaceGlyphIndex ? wordSpacingRef : 0.0)
                 previousGlyphIndex = glyph.glyphIndex
             }
         }
@@ -493,9 +505,9 @@ impl Painter
     }
 
     // Returns the metrics of a given text
-    func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->StringMetrics
+    func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->StringMetrics
     {
-        let shaped = shapeRun(text, font, tabSize, letterSpacing)
+        let shaped = shapeRun(text, font, tabSize, letterSpacing, wordSpacing)
         return shaped.metrics
     }
 

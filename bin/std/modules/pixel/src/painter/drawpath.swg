@@ -745,12 +745,7 @@ impl Painter
     // Simplified drawPath method using the optimized approach
     mtd drawPath(cxt: *Context)
     {
-        // The degenerate-pen cull works in device pixels, transform scale included: a hairline
-        // on a 125% display is 0.8 logical units yet exactly one device pixel wide, and must
-        // draw, and a thin pen under a zooming transform — a vector document scaled by its
-        // viewer — covers several device pixels and must draw too. The measure is the same
-        // physical pixels-per-unit ratio text resolution reads.
-        if cxt.pen.size * .textTransformScale() < 1 or cxt.path.polygon.points.isEmpty() do
+        if cxt.path.polygon.points.isEmpty() do
             return
 
         cxt.penSize    = cxt.pen.size
@@ -867,6 +862,34 @@ impl Painter
     }
 }
 
+// Returns the pen a sub-pixel stroke is drawn with: exactly one device pixel wide, with
+// the width it could not occupy moved into the paint opacity.
+//
+// A stroke thinner than a device pixel has no representation in coverage alone — the
+// fringe it produces rounds away — so drawing it unchanged and dropping it look the same.
+// Vector artwork shown below its authored size is mostly such strokes: a map outline, a
+// plan, a schematic. Promoting them keeps the drawing legible and lets its weight fade
+// with the scale instead of vanishing at a threshold.
+//
+// `deviceScale` is the physical pixels-per-unit ratio text resolution reads, so a hairline
+// on a 125% display is already a whole device pixel and never reaches here.
+private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
+{
+    var result  = pen
+    result.size = 1 / deviceScale
+    result.brush.multiplyOpacity(pen.size * deviceScale)
+
+    // Dash lengths are stroke-width multiples, so widening the pen must not lengthen them.
+    if result.dashStyle == .Pattern
+    {
+        let ratio = pen.size / result.size
+        for &value in result.pattern do
+            value[] *= ratio
+    }
+
+    return result
+}
+
 public impl Painter
 {
     // Draw a line path.
@@ -877,6 +900,20 @@ public impl Painter
     }
 
     mtd drawPath(path: *LinePath, pen: Pen)
+    {
+        let deviceScale = .textTransformScale()
+        if pen.size <= 0 or deviceScale <= 0 do
+            return
+        if pen.size * deviceScale >= 1
+        {
+            .strokePath(path, pen)
+            return
+        }
+
+        .strokePath(path, promoteHairline(pen, deviceScale))
+    }
+
+    private mtd strokePath(path: *LinePath, pen: Pen)
     {
         path.flatten(.curState.paintQuality, .curFlattenScale)
         if Math.isZeroEpsilon(path.polygon.perimeter) do
@@ -912,6 +949,20 @@ public impl Painter
             return
         }
 
+        let deviceScale = .textTransformScale()
+        if pen.size <= 0 or deviceScale <= 0 do
+            return
+        if pen.size * deviceScale >= 1
+        {
+            .strokePathList(pathList, pen)
+            return
+        }
+
+        .strokePathList(pathList, promoteHairline(pen, deviceScale))
+    }
+
+    private mtd strokePathList(pathList: *LinePathList, pen: Pen)
+    {
         pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
         var bvMin = pathList.minBounds

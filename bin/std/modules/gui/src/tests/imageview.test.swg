@@ -145,6 +145,64 @@ using Swag, Core, Pixel
     Pixel.Testing.assertImageGolden(&rendered, "imageview.transform")
 }
 
+// Counts the pixels of one row that sit between the two plateaus of an opaque red-on-white
+// picture, which is how wide the edges crossing that row are drawn.
+private func edgeSpread(image: *Image, row: s32)->s32
+{
+    var result = 0's32
+    for x in image.width
+    {
+        let green = cast(s32) image.pixelColor(x, row).g
+        if green > 8 and green < 247 do
+            result += 1
+    }
+
+    return result
+}
+
+// A vector document is drawn at the scale the view shows it at, so a magnified drawing is drawn
+// again rather than magnified: its edges stay a pixel wide however far the view zooms in.
+//
+// The same document rasterized once at its view-box size and shown through the picture path is
+// the control: there the zoom magnifies pixels, and every edge is spread over the zoom factor.
+// The document is opaque and covers its whole view box, so the only pixels between the two
+// plateaus of the measured row are the two edges of the disc.
+#test
+{
+    const Source = "<svg viewBox='0 0 40 40'><rect width='40' height='40' fill='#FFFFFF'/>" ++
+                   "<circle cx='20' cy='20' r='16' fill='#FF0000'/></svg>"
+
+    var host: Testing.HeadlessHost
+    host.setup(240, 240)
+    defer host.shutdown()
+
+    let drawing = expect Svg.Drawing.parse(Source)
+    let view    = ImageView.create(&host.root, {0, 0, 240, 240})
+
+    view.setDrawing(drawing)
+    Swag.assert(view.hasContent() and view.isFitted)
+    Swag.assert(view.contentSize().width == 40 and view.contentSize().height == 40)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 6, 0.001))
+
+    // A row crossing the disc where its edge is slanted, so the edge covers more than one column
+    // and its width is what the measure reports.
+    const SlantedRow = 52's32
+    var vectorRender = host.render(&host.root)
+    let vectorEdge   = edgeSpread(&vectorRender, SlantedRow)
+
+    view.setImage(drawing.rasterize(40, 40, 1))
+    Swag.assert(!view.hasDrawing() and view.image.width == 40)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 6, 0.001))
+    var rasterRender = host.render(&host.root)
+    let rasterEdge   = edgeSpread(&rasterRender, SlantedRow)
+
+    Swag.assert(vectorEdge > 0 and vectorEdge <= 8)
+    Swag.assert(rasterEdge >= vectorEdge * 3)
+
+    view.clear()
+    Swag.assert(!view.hasContent() and !view.hasDrawing())
+}
+
 // A video frame reaches the view as planes: the texture is kept across frames, the geometry comes
 // from the picture even though the view holds no image, and the next size starts a new texture.
 #test

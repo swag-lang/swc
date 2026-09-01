@@ -246,3 +246,60 @@ using Swag, Core
     painter.end()
     Testing.assertGolden(&painter, "target.bind.unbind")
 }
+
+// Returns the total darkness a horizontal stroke of `size` lays over a white ground.
+private func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
+{
+    const Side = 64's32
+
+    var path: LinePath
+    path.start(8, 32)
+    path.lineTo(56, 32)
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.setContentScale(contentScale)
+    painter.clear(Color.fromArgb(Argb.White))
+    painter.drawPath(&path, Color.fromArgb(Argb.Black), size)
+    painter.end()
+
+    var renderer: RenderCpu
+    renderer.begin(cast(s32) (cast(f32) Side * contentScale), cast(s32) (cast(f32) Side * contentScale))
+    let render: IRenderer = &renderer
+    render.draw(&painter)
+    render.end()
+
+    let image  = renderer.surfaceImage()
+    var result = 0'u64
+    for y in image.height
+    {
+        for x in image.width do
+            result += cast(u64) (255 - image.pixelColor(x, y).r)
+    }
+
+    return result
+}
+
+// A stroke thinner than one device pixel is drawn one pixel wide with the width it lost moved
+// into its opacity, instead of being dropped: a vector drawing shown small is mostly such
+// strokes, and losing them reads as missing geometry rather than as a light line.
+#test
+{
+    let full = strokeDarkness(1)
+    Swag.assert(full > 0)
+
+    // Half a pixel is half the ink of a whole one, and a quarter is a quarter of it.
+    let half    = strokeDarkness(0.5)
+    let quarter = strokeDarkness(0.25)
+    Swag.assert(half > 0 and quarter > 0)
+    Swag.assert(Math.abs(cast(f32) half - cast(f32) quarter * 2) < cast(f32) quarter * 0.2)
+
+    // The measure is device pixels, so a hairline on a display that scales up is a whole pixel
+    // and keeps its full weight.
+    let scaledUp = strokeDarkness(0.5, 2)
+    Swag.assert(cast(f32) scaledUp > cast(f32) half * 3)
+
+    // A pen with no width at all still draws nothing.
+    Swag.assert(strokeDarkness(0) == 0)
+}

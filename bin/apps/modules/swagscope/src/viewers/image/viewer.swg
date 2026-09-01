@@ -41,21 +41,32 @@ struct ImageViewerContent
 {
     image:   Image
     movie:   Movie
+    drawing: Svg.Drawing     // Vector document, for a format that has no pixels of its own.
     details: String
 }
 
+// Rasterizes a vector document at the size it declares, bounded so a poster-sized view box
+// cannot ask for an unbounded bitmap.
+//
+// The viewer itself shows the drawing as vectors, so this is for the callers that genuinely
+// need pixels — a thumbnail, an export, a comparison against a decoded picture.
 internal func loadViewerImage(fileName: string)->Image fail
 {
     if Path.lowercaseExtension(fileName) != ".svg" do
         return try Image.load(fileName)
 
-    let source  = try File.readAllText(fileName)
-    let drawing = try Svg.Drawing.parse(source.toString())
+    let drawing = try loadViewerDrawing(fileName)
     let largest = Math.max(drawing.width, drawing.height)
     let scale   = largest > SvgRasterLimit ? SvgRasterLimit / largest : 1
     let width   = cast(s32) Math.max(Math.round(drawing.width * scale), 1)
     let height  = cast(s32) Math.max(Math.round(drawing.height * scale), 1)
     return drawing.rasterize(width, height, 1)
+}
+
+internal func loadViewerDrawing(fileName: string)->Svg.Drawing fail
+{
+    let source = try File.readAllText(fileName)
+    return try Svg.Drawing.parse(source.toString())
 }
 
 private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
@@ -74,6 +85,13 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         let frame = &result.movie.frame
         result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.movie.frameCount))
     }
+    elif extension == ".svg"
+    {
+        // A drawing has no pixels, so it is handed to the view as the vector document it is:
+        // the view draws it at the scale it shows it at, and zooming stays sharp.
+        result.drawing = try loadViewerDrawing(fileName)
+        result.details = Format.toString(imageStrings().ui_DetailsVector, formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height))
+    }
     else
     {
         result.image   = try loadViewerImage(fileName)
@@ -81,6 +99,14 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
     }
 
     return #move result
+}
+
+// Writes one view-box extent the way the document authored it: a whole number stays whole.
+private func formatViewBoxExtent(value: f32)->String
+{
+    if value == Math.round(value) do
+        return Format.toString("%", cast(s64) value)
+    return Format.toString("%", value)
 }
 
 internal struct ImageViewer
@@ -263,6 +289,8 @@ private impl IWnd for ImageViewer
             if .imageView.movie.frameCount > 1 do
                 .showPlayback()
         }
+        elif content.drawing.width > 0 and content.drawing.height > 0 do
+            .imageView.setDrawing(#move content.drawing)
         else do
             .imageView.setImage(content.image)
 

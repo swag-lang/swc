@@ -1179,9 +1179,12 @@ impl RenderOgl
                 glClear(GL_COLOR_BUFFER_BIT)
 
                 // First we mark the alpha buffer with the 'maximum' alpha to paint.
-                // If a pixel is drawn twice because of overlapping, we will have the 'most opaque'
+                // If a pixel is drawn twice because of overlapping, we will have the 'most opaque'.
+                // The source factor is one: weighting the source alpha by itself would store the
+                // coverage squared, and the draw pass below would then light every antialiased
+                // fringe and every translucent stroke by its own opacity a second time.
                 glEnable(GL_BLEND)
-                glBlendFunc(GL_SRC_ALPHA, GL_ZERO)
+                glBlendFunc(GL_ONE, GL_ZERO)
                 glBlendEquation(GL_MAX)
                 glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
 

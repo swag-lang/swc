@@ -82,37 +82,38 @@ Merge an ordered set of graph inputs without requiring them to be blended pairwi
 
 ## Tier A — SVG input fidelity
 
-### pixel.image.008 — SVG gradient geometry is incomplete
+### pixel.image.008 — A radial gradient has no focal point and no elliptical form
 
-- Linear and centered radial paint servers, stops, spreads, percentages, user-space units and
-  translate/scale gradient transforms are parsed. Radial focal points and non-square
-  object-bounding-box ellipses still need a brush representation that both renderers share.
-- Gradient inheritance resolves an already parsed `href`; forward inheritance chains and cycles
-  still need a deferred resolver with explicit invalid-reference behavior.
-- Related: pixel.image.009, pixel.image.011, pixel.image.012
-
-### pixel.image.009 — SVG clipping paths are not parsed
-
-Implement `clipPath` over the existing painter clipping facilities.
-
-- Related: pixel.image.002, pixel.image.008, pixel.image.010
+- Stops, spreads, percentages, user-space and object-bounding-box units, full affine gradient
+  transforms and `href` inheritance chains are parsed; a radial gradient is still drawn from its
+  centre, and an object-bounding-box one is still drawn round over a shape that is not square.
+- The parser can already state both: `fx`/`fy`/`fr` are read, and the bounds the gradient is
+  stretched over are known. What is missing is on the paint side — [[Pixel.Brush]] carries a
+  centre and two radii, so it has nowhere to put a focus or a second axis, and both renderers
+  sample it from the centre out. `RenderCpu.sampleGradient` and the OpenGL gradient shader have
+  to gain the same form together, or a CPU render and a GPU render stop covering.
+- Next: give the brush a focus point and a gradient-space transform, then implement the
+  two-point conical form in both samplers and pin them against each other with
+  `render.parity.test.swg`.
+- Complete when: `fx`/`fy`/`fr` place the highlight where a browser places it, an
+  object-bounding-box radial over a wide shape draws the ellipse the box implies, and the CPU and
+  OpenGL backends agree on both.
+- Related: pixel.image.010
 
 ### pixel.image.010 — SVG masks are not parsed
 
-Implement `mask` as a compositing operation over render targets independently of clipping paths.
-
-- Related: pixel.image.002, pixel.image.008, pixel.image.009
-
-### pixel.image.011 — SVG markers are not parsed
-
-Implement start, mid, and end markers with correct path tangent orientation.
-
-- Related: pixel.image.008, pixel.image.033
-
-### pixel.image.012 — SVG symbols are not parsed
-
-Implement `symbol` instancing and viewport behavior independently of ordinary `use` references.
-
+- Intent: `mask` composites an element through the luminance of another one. Clipping is in
+  place (its shapes carve the stencil region), but a mask is a continuous coverage, not a
+  region, so it cannot reuse that path.
+- The pieces exist: a [[Pixel.Layer]] renders an element aside, and
+  [[Pixel.BlendingMode.DstIn]] multiplies a destination by a source alpha. What is missing is
+  the step between them — the mask layer holds luminance, and nothing turns luminance into the
+  alpha `DstIn` reads. `mask-type="alpha"` needs no such step and could land first.
+- Next: add a luminance-to-alpha resolve to the layer pipeline, in both renderers, then parse
+  `mask`, `maskUnits` and `maskContentUnits` over it.
+- Complete when: a gradient mask fades an element out continuously, a mask reading as black
+  hides it, `mask-type="alpha"` uses alpha alone, and an unresolved reference leaves the element
+  unmasked.
 - Related: pixel.image.008
 
 ---
@@ -168,7 +169,7 @@ resolution. This is the vector target needed by printing.
 Serialize supported painter content to SVG with explicit fallback behavior for effects and raster
 operations that have no direct representation.
 
-- Related: pixel.image.022, pixel.image.008
+- Related: pixel.image.022
 
 ### pixel.image.024 — No PostScript output
 
@@ -213,7 +214,7 @@ Dashing exists. Add path trimming by normalized or absolute arc-length ranges.
 
 Expose total length and point/tangent sampling with stated flattening tolerance.
 
-- Related: pixel.image.032, pixel.image.011
+- Related: pixel.image.032
 
 ### pixel.image.034 — No corner path effect
 

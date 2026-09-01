@@ -27,9 +27,11 @@ struct ImageStrings
     word_Frames:               string = "frames"                       // Several animation frames.
 
     // Summaries the host shows beside the file size. `%` takes the pixel size, then the frame
-    // count with its noun, or the number of bits one pixel is stored on.
-    ui_DetailsMovie: string = "% × % px · %"
-    ui_DetailsStill: string = "% × % px · % bit"
+    // count with its noun, or the number of bits one pixel is stored on. A vector document
+    // states the extent of its view box instead, which is a coordinate space, not pixels.
+    ui_DetailsMovie:  string = "% × % px · %"
+    ui_DetailsStill:  string = "% × % px · % bit"
+    ui_DetailsVector: string = "% × % · vector"
 }
 
 private const FrenchStringsName = "lang/fr/scope.image.tweak"

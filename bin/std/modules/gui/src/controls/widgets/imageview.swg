@@ -32,6 +32,13 @@ struct ImageView
     isPanning:       bool           // Whether the left mouse button currently pans the image.
     lastPointer:     Math.Point     // Previous surface position of a pan gesture.
 
+    // Vector document shown instead of a bitmap, or an empty drawing.
+    //
+    // A drawing is not rasterized once and magnified: every paint draws the contours at the
+    // scale the view is showing them at, so the picture is as sharp at 800% as at 100% and a
+    // zoom step costs a repaint rather than a re-rasterization.
+    drawing: Svg.Drawing
+
     // Size of the planar picture the view shows, in its own pixels.
     //
     // Such a picture never becomes an image: the renderer keeps it in the layout the decoder
@@ -56,8 +63,11 @@ private impl ImageView
         return &.image
     }
 
+    // Reports whether the view holds a vector document rather than a bitmap.
+    mtd const hasDrawing()->bool => .drawing.width > 0 and .drawing.height > 0
+
     // Reports whether the view has something to paint, whatever kind of content it holds.
-    mtd const hasContent()->bool => .currentImage().isValid() or .planarWidth > 0
+    mtd const hasContent()->bool => .currentImage().isValid() or .planarWidth > 0 or .hasDrawing()
 
     // Returns the size the content is laid out and drawn at.
     //
@@ -71,6 +81,8 @@ private impl ImageView
         let source = .currentImage()
         if source.isValid() do
             return {source.width, source.height}
+        if .hasDrawing() do
+            return {cast(s32) Math.max(Math.round(.drawing.width), 1.0'f32), cast(s32) Math.max(Math.round(.drawing.height), 1.0'f32)}
         return {.planarWidth, .planarHeight}
     }
 
@@ -152,6 +164,32 @@ private impl ImageView
         .invalidate()
     }
 
+    // Draws the vector document at the scale the view currently shows it at.
+    //
+    // Nothing is rasterized: the contours go through the painter under the view's own zoom,
+    // which is what keeps a magnified drawing sharp instead of magnifying pixels. The clip
+    // keeps a zoomed document inside the view, and the ground under it is the same
+    // transparency check a picture with an alpha channel gets.
+    mtd paintDrawing(painter: *Painter, client: Math.Rectangle)
+    {
+        painter.fillRect(client, .themeColors().view_Bk)
+
+        let content = .sourceRect()
+        let scale   = .effectiveZoom()
+        if content.width <= 0 or content.height <= 0 or scale <= 0 do
+            return
+
+        painter.pushClippingRect(client)
+        defer painter.popClippingRect()
+        painter.fillRect(.contentRect(), Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha))
+
+        let base = painter.transform()
+        if .rotationQuarterTurns or .isMirrored do
+            painter.setTransform(.transformedPaint(base, {content.horzCenter(), content.vertCenter()}))
+        .drawing.paint(painter, content.x, content.y, scale)
+        painter.setTransform(base)
+    }
+
     mtd applyTransform(quarterTurns: u32, mirrored: bool)
     {
         .rotationQuarterTurns = quarterTurns & 3
@@ -185,6 +223,12 @@ impl IWnd for ImageView
         {
             .updateUploadedFrame()
             .sigFrameChanged.call(me)
+        }
+
+        if .hasDrawing()
+        {
+            .paintDrawing(painter, client)
+            return
         }
 
         if !.hasContent() or !.uploadedTexture.isValid()
@@ -298,6 +342,8 @@ impl ImageView
         .movie.clear()
         Swag.drop(&.image, 1)
         Swag.init(&.image, 1)
+        Swag.drop(&.drawing, 1)
+        Swag.init(&.drawing, 1)
         .planarWidth          = 0
         .planarHeight         = 0
         .zoom                 = 1
@@ -306,6 +352,23 @@ impl ImageView
         .rotationQuarterTurns = 0
         .isMirrored           = false
         .invalidate()
+    }
+
+    // Displays a vector document and fits it to the viewport.
+    //
+    // The view takes ownership of `drawing` and paints its contours at the scale it is
+    // showing them at, so zooming stays sharp and costs a repaint instead of a new
+    // rasterization. Zoom, pan, fit, rotation, and mirroring behave as they do for a
+    // picture; the document's view box is the size they work from.
+    //
+    // ```swag
+    // view.setDrawing(try Svg.Drawing.parse(source))
+    // ```
+    mtd setDrawing(drawing: Svg.Drawing)
+    {
+        .clear()
+        .drawing = drawing
+        .zoomToFit()
     }
 
     // Displays an owned copy of `image` and fits it to the viewport.

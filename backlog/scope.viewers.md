@@ -211,7 +211,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | Raster | `.bmp` `.gif` `.ico` `.jpg` `.png` `.qoi` `.tga` `.tiff` `.webp` | full | pixel, histogram, comparison, progressive huge-image tools | [scope.image.001](scope.image.md) |
-| Vector | `.svg` | full | clipping, masks, markers, symbols | pixel.image.009, pixel.image.011, pixel.image.012, pixel.image.010 |
+| Vector | `.svg` | full | masks, radial focal points | pixel.image.010, pixel.image.008 |
 | Metadata | EXIF, ICC, XMP | none | panel, orientation, color management | [scope.image.011](scope.image.md) |
 | Simple raster | `.pnm` `.ppm` | none | Pixel codecs | — |
 | Modern codecs | `.avif` `.heic` `.jxl` | none | Pixel codecs | pixel.image.026, pixel.image.027 |

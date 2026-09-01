@@ -133,3 +133,60 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     for value, index in tiled.pixels do
         Swag.assert(value == untiled.pixels[index])
 }
+
+// Returns the colors a source paints at five points across a wide band.
+private func gradientBand(source: string)->[5] Color
+{
+    var result: retval
+    let drawing = expect Svg.Drawing.parse(source)
+    let image   = drawing.rasterize(40, 8, 1)
+    let columns = [2, 12, 20, 28, 37]
+    for column, index in columns do
+        result[index] = image.pixelColor(cast(s32) column, 4)
+
+    return result
+}
+
+// A gradient inherits from the one it references, whichever order the two are written in.
+#test
+{
+    // The referenced gradient is defined after the reference, so the chain is followed once the
+    // whole document is read.
+    let forward = gradientBand("<svg width='40' height='8'><rect width='40' height='8' fill='url(#a)'/>" ++
+                               "<linearGradient id='a' href='#b'/>" ++
+                               "<linearGradient id='b'><stop offset='0' stop-color='#ff0000'/>" ++
+                               "<stop offset='1' stop-color='#0000ff'/></linearGradient></svg>")
+    Swag.assert(forward[0].r > 200 and forward[0].b < 60)
+    Swag.assert(forward[4].b > 200 and forward[4].r < 60)
+
+    // A two-step chain, where the middle link states only the geometry.
+    let chained = gradientBand("<svg width='40' height='8'>" ++
+                               "<linearGradient id='c'><stop offset='0' stop-color='#00ff00'/>" ++
+                               "<stop offset='1' stop-color='#000000'/></linearGradient>" ++
+                               "<linearGradient id='d' href='#c' x1='0' y1='0' x2='1' y2='0'/>" ++
+                               "<linearGradient id='e' href='#d'/>" ++
+                               "<rect width='40' height='8' fill='url(#e)'/></svg>")
+    Swag.assert(chained[0].g > 200 and chained[4].g < 60)
+
+    // A gradient states its own stops, and inheritance never overwrites them.
+    let own = gradientBand("<svg width='40' height='8'>" ++
+                           "<linearGradient id='f'><stop offset='0' stop-color='#ff0000'/>" ++
+                           "<stop offset='1' stop-color='#0000ff'/></linearGradient>" ++
+                           "<linearGradient id='g' href='#f'><stop offset='0' stop-color='#000000'/>" ++
+                           "<stop offset='1' stop-color='#ffffff'/></linearGradient>" ++
+                           "<rect width='40' height='8' fill='url(#g)'/></svg>")
+    Swag.assert(own[0].r < 60 and own[0].g < 60 and own[0].b < 60)
+    Swag.assert(own[4].r > 200 and own[4].g > 200 and own[4].b > 200)
+}
+
+// A reference that loops back on itself stops contributing instead of hanging, and the gradient
+// keeps what it states itself.
+#test
+{
+    let cycle = gradientBand("<svg width='40' height='8'>" ++
+                             "<linearGradient id='h' href='#i'><stop offset='0' stop-color='#ffffff'/>" ++
+                             "<stop offset='1' stop-color='#000000'/></linearGradient>" ++
+                             "<linearGradient id='i' href='#h'/>" ++
+                             "<rect width='40' height='8' fill='url(#h)'/></svg>")
+    Swag.assert(cycle[0].r > 200 and cycle[4].r < 60)
+}

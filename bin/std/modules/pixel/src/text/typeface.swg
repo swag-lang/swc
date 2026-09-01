@@ -107,6 +107,25 @@ public impl TypeFace
         return tf
     }
 
+    // Reports whether [[Pixel.TypeFace.load]] has a font to load for `fullname`.
+    //
+    // A caller choosing among several families needs a miss to be an answer rather than a
+    // failure: a machine that does not carry the requested face still has to draw its text,
+    // and asking here is how it moves on to the next candidate. The lookup follows the same
+    // order `load` does, so an answer of `true` is one `load` honors.
+    func exists(fullname: string)->bool
+    {
+        {
+            Sync.scopedLock(&lock)
+            if g_HashTypeFace.tryFind(fullname) do
+                return true
+        }
+
+        if File.exists(fullname) do
+            return true
+        return File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullname))
+    }
+
     // Get or load a new typeface
     func load(fullname: string)->*TypeFace fail
     {

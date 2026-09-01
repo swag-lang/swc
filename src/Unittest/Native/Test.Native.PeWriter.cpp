@@ -4,6 +4,7 @@
 
 #include "Backend/Linker/Linker.h"
 #include "Backend/Linker/PeWriter.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
@@ -12,6 +13,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using RtlDecompressBufferFn = LONG(WINAPI*)(USHORT compressionFormat, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG* finalUncompressedSize);
+
     void emit(ByteArray& out, std::initializer_list<int> bytes)
     {
         for (const int b : bytes)
@@ -78,6 +81,23 @@ namespace
         return false;
     }
 
+    bool decompressLznt1(ByteArray& outBytes, const std::span<const std::byte> compressedBytes, const uint32_t uncompressedSize)
+    {
+        const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+        if (!ntdll)
+            return false;
+
+        const auto decompressBuffer = reinterpret_cast<RtlDecompressBufferFn>(GetProcAddress(ntdll, "RtlDecompressBuffer"));
+        if (!decompressBuffer)
+            return false;
+
+        outBytes.resize(uncompressedSize);
+        ULONG finalSize = 0;
+        if (decompressBuffer(0x0002, reinterpret_cast<PUCHAR>(outBytes.data()), uncompressedSize, reinterpret_cast<PUCHAR>(const_cast<std::byte*>(compressedBytes.data())), static_cast<ULONG>(compressedBytes.size()), &finalSize) < 0)
+            return false;
+        return finalSize == uncompressedSize;
+    }
+
     ByteArray makeSingleImageIcon(const ByteArray& image)
     {
         ByteArray bytes;
@@ -96,6 +116,79 @@ namespace
         return bytes;
     }
 }
+
+SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
+{
+    ByteArray text;
+    emit(text, {0xC3});
+
+    LinkSection textSection;
+    textSection.name  = ".text";
+    textSection.bytes = std::move(text);
+    textSection.align = 16;
+    textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
+
+    ByteArray debugBytes;
+    debugBytes.appendLe32(0x42445753u);
+    debugBytes.appendLe32(1);
+    debugBytes.appendLe32(0);
+    debugBytes.appendLe32(16);
+    debugBytes.resize(200'000, std::byte{'A'});
+    const uint32_t  originalDebugSize  = static_cast<uint32_t>(debugBytes.size());
+    const ByteArray originalDebugBytes = debugBytes;
+
+    LinkSection debugSection;
+    debugSection.name  = ".swagdbg";
+    debugSection.bytes = std::move(debugBytes);
+    debugSection.align = 4;
+
+    LinkSection dataSection;
+    dataSection.name = ".data";
+    dataSection.bytes.resize(64, std::byte{0x5A});
+
+    LinkImage image;
+    image.sections.push_back(std::move(textSection));
+    image.sections.push_back(std::move(debugSection));
+    image.sections.push_back(std::move(dataSection));
+    image.symbols.push_back({.name = "entry", .sectionIndex = 0, .value = 0});
+    image.entrySymbol  = "entry";
+    image.kind         = LinkImageKind::Executable;
+    image.imageBase    = 0x140000000ull;
+    image.stackReserve = 0x100000;
+
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
+    if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, fs::path{}))
+        return Result::Error;
+
+    PeSectionView debugView;
+    PeSectionView dataView;
+    if (!findPeSection(debugView, peBytes, ".swagdbg") || !findPeSection(dataView, peBytes, ".data"))
+        return Result::Error;
+    if (debugView.virtualSize != originalDebugSize || debugView.rawSize >= Math::alignUpU32(originalDebugSize, 0x200))
+        return Result::Error;
+    if (dataView.rawOffset <= debugView.rawOffset || dataView.rawOffset >= debugView.rawOffset + Math::alignUpU32(originalDebugSize, 0x200))
+        return Result::Error;
+    if (!peBytes.containsRange(debugView.rawOffset, 16))
+        return Result::Error;
+    if (peBytes.readLe32(debugView.rawOffset) != 0x42445753u || peBytes.readLe32(debugView.rawOffset + 4) != 2)
+        return Result::Error;
+    if (peBytes.readLe32(debugView.rawOffset + 8) != originalDebugSize)
+        return Result::Error;
+    const uint32_t compressedSize = peBytes.readLe32(debugView.rawOffset + 12);
+    if (compressedSize + 16 > debugView.rawSize)
+        return Result::Error;
+
+    ByteArray decompressedBytes;
+    if (!decompressLznt1(decompressedBytes, {peBytes.data() + debugView.rawOffset + 16, compressedSize}, originalDebugSize))
+        return Result::Error;
+    if (decompressedBytes != originalDebugBytes)
+        return Result::Error;
+}
+SWC_TEST_END()
 
 // Hand-builds the smallest meaningful program -- one that calls kernel32!ExitProcess(42) through an
 // imported thunk -- writes it to a PE with the internal writer, runs it, and checks the exit code.

@@ -15,6 +15,59 @@ namespace
     constexpr uint32_t SECTION_ALIGNMENT = 0x1000;
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
 
+    constexpr uint32_t SWAG_DEBUG_MAGIC              = 0x42445753u;
+    constexpr uint32_t SWAG_DEBUG_VERSION_PLAIN      = 1;
+    constexpr uint32_t SWAG_DEBUG_VERSION_COMPRESSED = 2;
+    constexpr USHORT   K_COMPRESSION_FORMAT_LZNT1   = 0x0002;
+    constexpr USHORT   K_COMPRESSION_ENGINE_MAXIMUM = 0x0100;
+
+    using RtlGetCompressionWorkSpaceSizeFn = LONG(WINAPI*)(USHORT compressionFormatAndEngine, ULONG* compressBufferWorkSpaceSize, ULONG* compressFragmentWorkSpaceSize);
+    using RtlCompressBufferFn              = LONG(WINAPI*)(USHORT compressionFormatAndEngine, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG uncompressedChunkSize, ULONG* finalCompressedSize, PVOID workSpace);
+
+    bool tryCompressLznt1(ByteArray& outBytes, const ByteArray& source)
+    {
+        if (source.empty() || source.size() > std::numeric_limits<ULONG>::max() - 4096ull)
+            return false;
+
+        const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+        if (!ntdll)
+            return false;
+
+        const auto getWorkspaceSize = reinterpret_cast<RtlGetCompressionWorkSpaceSizeFn>(GetProcAddress(ntdll, "RtlGetCompressionWorkSpaceSize"));
+        const auto compressBuffer   = reinterpret_cast<RtlCompressBufferFn>(GetProcAddress(ntdll, "RtlCompressBuffer"));
+        if (!getWorkspaceSize || !compressBuffer)
+            return false;
+
+        constexpr USHORT format                = K_COMPRESSION_FORMAT_LZNT1 | K_COMPRESSION_ENGINE_MAXIMUM;
+        ULONG            workspaceSize         = 0;
+        ULONG            fragmentWorkspaceSize = 0;
+        if (getWorkspaceSize(format, &workspaceSize, &fragmentWorkspaceSize) < 0)
+            return false;
+
+        std::vector<std::byte> workspace(workspaceSize);
+        std::vector<std::byte> compressed(source.size() + 4096);
+        ULONG                  compressedSize = 0;
+        const LONG             status         = compressBuffer(format,
+                                                               reinterpret_cast<PUCHAR>(const_cast<std::byte*>(source.data())),
+                                                               static_cast<ULONG>(source.size()),
+                                                               reinterpret_cast<PUCHAR>(compressed.data()),
+                                                               static_cast<ULONG>(compressed.size()),
+                                                               4096,
+                                                               &compressedSize,
+                                                               workspace.data());
+        if (status < 0 || compressedSize >= source.size())
+            return false;
+
+        outBytes.clear();
+        outBytes.reserve(16 + compressedSize);
+        outBytes.appendLe32(SWAG_DEBUG_MAGIC);
+        outBytes.appendLe32(SWAG_DEBUG_VERSION_COMPRESSED);
+        outBytes.appendLe32(static_cast<uint32_t>(source.size()));
+        outBytes.appendLe32(compressedSize);
+        outBytes.append(std::span{compressed.data(), compressedSize});
+        return true;
+    }
+
     // The PDB path is embedded both in the exe's RSDS debug-directory record and in the PDB header.
     // Emit it with native (backslash) separators: a forward-slash path built from a
     // forward-slash workspace argument can stop Visual Studio from loading the module's symbols.
@@ -619,6 +672,48 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
     return true;
 }
 
+void PEWriter::compressEmbeddedDebugTable()
+{
+    for (OutSection& section : sections_)
+    {
+        if (section.name != ".swagdbg" || section.bytes.size() < 16)
+            continue;
+        if (section.bytes.readLe32(0) != SWAG_DEBUG_MAGIC || section.bytes.readLe32(4) != SWAG_DEBUG_VERSION_PLAIN)
+            continue;
+
+        ByteArray compressed;
+        if (!tryCompressLznt1(compressed, section.bytes))
+            continue;
+        if (Math::alignUpU32(static_cast<uint32_t>(compressed.size()), FILE_ALIGNMENT) >= section.rawSize)
+            continue;
+
+        section.bytes   = std::move(compressed);
+        section.rawSize = Math::alignUpU32(static_cast<uint32_t>(section.bytes.size()), FILE_ALIGNMENT);
+        compactFileLayout();
+        return;
+    }
+}
+
+void PEWriter::compactFileLayout()
+{
+    std::vector<OutSection*> fileSections;
+    fileSections.reserve(sections_.size());
+    for (OutSection& section : sections_)
+    {
+        if (!section.isBss)
+            fileSections.push_back(&section);
+    }
+    std::ranges::sort(fileSections, {}, &OutSection::fileOffset);
+
+    uint32_t fileOffset = headersSize_;
+    for (OutSection* section : fileSections)
+    {
+        section->fileOffset = fileOffset;
+        section->rawSize    = Math::alignUpU32(static_cast<uint32_t>(section->bytes.size()), FILE_ALIGNMENT);
+        fileOffset += section->rawSize;
+    }
+}
+
 void PEWriter::buildBaseRelocations()
 {
     if (baseRelocSites_.empty())
@@ -1116,6 +1211,7 @@ bool PEWriter::writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnosti
     if (!applyRelocations(outDiag))
         return false;
 
+    compressEmbeddedDebugTable();
     buildBaseRelocations();
 
     return emit(outBytes, outDiag);

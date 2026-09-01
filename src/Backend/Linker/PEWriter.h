@@ -52,6 +52,8 @@ private:
     void     foldIdenticalUnwindInfo();
     void     assignLayout();
     bool     applyRelocations(Diagnostic& outDiag);
+    void     compressEmbeddedDebugTable();
+    void     compactFileLayout();
     void     buildBaseRelocations();
     void     reserveDebugDirectorySection();
     bool     reserveResourceSection(Diagnostic& outDiag);

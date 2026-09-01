@@ -255,48 +255,34 @@ output, path measurement and effects, and the modern renderer choice tracked by
   state their approximation and fill behavior and no caller reimplements flattening.
 - Related: std.pixel.008, std.pixel.009
 
-### std.pixel.020 — A stroke segment costs about thirty-five vertices
+### std.pixel.020 — Measured strokes are not yet what an ordinary stroke does
 
-- Evidence: a stroked polyline pays, per segment, a quad (six vertices), a fringe band on each of
-  its two long edges (twelve), and a join carrying two fringes of its own (eighteen). A stroker
-  that derives coverage in the fragment shader spends four to six. Recording is therefore bound by
-  vertex emission, measured at fifteen to twenty nanoseconds per vertex and two to four times that
-  once the working set leaves cache: a 1724 by 15036 SVG holding 250 000 stroke points records 2.5
-  million vertices and about 110 ms of CPU for one full-document paint, strokes accounting for over
-  90 % of it. Viewport rejection and the minified level of detail already removed a factor of five
-  to three hundred depending on zoom; this is the density that remains for the content genuinely on
-  screen.
-- Measured again on a maximized 3894x2142 window (2026-09-01, release, Swag Scope showing that
-  same document fitted to the window, so a 245 pixel wide column): one full-document repaint
-  records **4.53 million vertices in 14 481 batches and costs 94 to 128 ms of processor time**.
-  Disabling the stroke pass alone takes the same frame to 104 000 vertices and 9.4 ms, so
-  **strokes are 98 % of the geometry and over 90 % of the recording**, with joins already skipped
-  by the minified limits. The document is minified to about 0.14, and the decimation step is the
-  flattening tolerance rather than the device grid — `setMinifiedStrokeLimits` uses
-  `getFlattenDistance(quality) / curFlattenScale`, which at Normal quality drops points closer
-  than 0.2 device pixels and so keeps roughly five contour points per device pixel. Raising that
-  step trades outline fidelity for a proportional cut and is a quality decision, not a free one.
-- What has since been taken out of the per-vertex cost, so the remaining number is honest: the
-  fringe no longer reads its triangle back out of the vertex buffer to find which way to extrude
-  (a stroke knows: it is the pen normal's two sides), and the two sides ask once for how far.
-  That took recording from 118 ms to about 75 without touching the geometry or a single pixel of
-  the result, which puts it at roughly **17 ns per vertex, the rate this entry already predicted**.
-  Recording is therefore at its floor for this vertex count, and the count is the only lever left.
-- Where the frame stands after that and the two OpenGL fixes (2026-09-01, same window and
-  document): about 112 ms a frame, of which 75 is recording, 18 submitting and 18 the adapter.
-  Cutting a
-  segment from eighteen vertices to six would take the whole frame to roughly 50, which a probe
-  confirms: decimating five times more coarsely, which reaches a similar vertex count by throwing
-  away fidelity instead, gives 64 ms and drops the adapter's share to 0.5.
-- The fringe is what to attack: `addEdgeAA` emits a whole quad per silhouette edge because the
-  shaders read coverage from a vertex attribute. A stroke program given the segment and the half
-  width, deriving coverage from the fragment's distance to the centre line, collapses a segment to
-  its two triangles and removes the joins with it.
-- Next: prototype a distance-based stroke program in `RenderCpu` and the OpenGL backend behind an
-  opt-in painter flag, and pin the two against each other with `render.parity.test.swg` before it
-  becomes the default.
-- Complete when: an antialiased stroke emits a constant small number of vertices per segment, both
-  backends agree on the result, and the painter recording goldens move once, deliberately.
+- What exists: `PaintParams.DistanceStrokes` makes a segment one quad carrying the signed distance
+  to its centre line, which both backends turn into coverage the same way — the value travels in
+  the ordinary coverage attribute, told apart from a band's ramp by sitting around
+  `StrokeCoverageBias`, so measured segments and banded joins and caps still draw in one batch.
+  `render.parity.test.swg` pins the OpenGL program against the software rasterizer over widths
+  above and below a device pixel, every join and cap style, a curve, a dash and a transform.
+  `Svg.Drawing.paintImpl` turns it on, so both ways of drawing a document — a viewport painted
+  small and the same drawing rasterized whole — stay the same picture.
+- What it bought (2026-09-01, release, Swag Scope showing a 1724 by 15036 document on a maximized
+  3894x2142 window): 4.53 million vertices a frame down to 1.76, the frame from 112 ms to 74, and
+  the adapter's share of it from 18 ms to half of one. Weight is unchanged to a third of a percent,
+  measured as ink over the drawing. The theme's icons are rasterized through the same path: 39
+  goldens moved, none by more than 0.96 % of its pixels, all of it edge coverage.
+- What is left. A segment is measured; **a join, a cap and a dash cap still emit a quad and a band
+  per edge**, which is most of what a stroke costs once joins are not being skipped — the minified
+  pass skips them, which is why a document gains so much and a widget gains nothing yet. Giving
+  them the same signed distance is the rest of this entry: a join is a wedge whose distance runs
+  from its pivot, a cap a half disc or a square around one, and both are affine per triangle.
+- Then the flag can be weighed as a default for every stroke. What decides it is a look, not a
+  number: a band pair carries a solid core out to the full half width and softens beyond it, while
+  the distance places the contour there and softens across it. On minified content the two are
+  within a third of a percent of the same ink; on a widget's one-pixel rule at its own size they
+  will not be, and that is the comparison to make before flipping it.
+- Complete when: a stroke emits a constant small number of vertices per segment *and* per join, the
+  two backends still agree, and `DistanceStrokes` is either the default or has a written reason not
+  to be.
 - Related: std.pixel.008
 
 ---

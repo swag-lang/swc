@@ -458,29 +458,51 @@ impl Painter
         let v1 = newPos - cxt.normal
         let v3 = cxt.prev + cxt.normal
         let v2 = newPos + cxt.normal
-        cxt.prim1 = .pushTriangle(v0, v1, v3, cxt.pen.brush.color)
-        cxt.prim2 = .pushTriangle(v1, v3, v2, cxt.pen.brush.color)
 
-        // Generate AA edges.
-        //
-        // One band per silhouette edge, not one per triangle sharing it: the two triangles of
-        // a quad are on the same side of each of its edges, so a second call for the same edge
-        // resolves to the same outward direction and emits the same six vertices. A stroked
-        // document is mostly this geometry, and the copy cost every one of them.
-        if .curState.paintParams & .Antialiased
+        let antialiased = .curState.paintParams & .Antialiased
+        if antialiased and .curState.paintParams & .DistanceStrokes
         {
-            // The quad puts the pen normal on one side of each long edge, so which way each band
-            // extrudes is known here and neither has to be derived from the quad's centroid: the
-            // near edge always extrudes away from it and the far edge always toward it.
-            let color = cxt.pen.brush.color.argb
-            .addEdgeAAFlipped(v0, v1, true, color)
-            .addEdgeAAFlipped(v3, v2, false, color)
+            // One quad reaching past the contour by the antialiasing margin, carrying the signed
+            // distance to the centre line. Two triangles replace the quad and the two bands.
+            var unit = cxt.normal
+            unit.normalizeOrZero()
+            let margin = .aaHalfPathSpace(unit)
+            let extent = cxt.normal + unit * margin
 
-            // If we are starting a line, and the line does not have a cap before, then
-            // we must AA the corresponding edge
-            if flatBegin and cxt.beginLine and (!cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
-                .addEdgeAA(cxt.prim1, v0, v3)
+            // The contour sits at the half width, expressed against the span the quad covers.
+            let halfWidth = Math.max(cxt.penSize2, 0.000001'f32)
+            let edge      = 0.5 * (halfWidth + margin) / halfWidth
+
+            cxt.prim1 = .pushStrokeSegment(cxt.prev, newPos, extent, edge, cxt.pen.brush.color.argb)
+            cxt.prim2 = cxt.prim1 + 3
         }
+        else
+        {
+            cxt.prim1 = .pushTriangle(v0, v1, v3, cxt.pen.brush.color)
+            cxt.prim2 = .pushTriangle(v1, v3, v2, cxt.pen.brush.color)
+
+            // Generate AA edges.
+            //
+            // One band per silhouette edge, not one per triangle sharing it: the two triangles of
+            // a quad are on the same side of each of its edges, so a second call for the same edge
+            // resolves to the same outward direction and emits the same six vertices. A stroked
+            // document is mostly this geometry, and the copy cost every one of them.
+            if antialiased
+            {
+                // The quad puts the pen normal on one side of each long edge, so which way each
+                // band extrudes is known here and neither has to be derived from the quad's
+                // centroid: the near edge always extrudes away from it and the far edge toward it.
+                let color = cxt.pen.brush.color.argb
+                .addEdgeAAFlipped(v0, v1, true, color)
+                .addEdgeAAFlipped(v3, v2, false, color)
+            }
+        }
+
+        // If we are starting a line, and the line does not have a cap before, then
+        // we must AA the corresponding edge. The measured quad carries no distance along the
+        // segment, so its butt end needs the band just as the banded one does.
+        if antialiased and flatBegin and cxt.beginLine and (!cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
+            .addEdgeAA(cxt.prim1, v0, v3)
 
         // To draw end joint
         if cxt.firstLine do

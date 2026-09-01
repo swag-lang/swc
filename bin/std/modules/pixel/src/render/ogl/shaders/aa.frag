@@ -24,7 +24,12 @@ void main()
     // edge therefore stays crisp at any zoom, instead of widening (blurring) with
     // the transform the way a raw path-space band does. At scale ~1 this matches the
     // old linear ramp, but it is orientation-correct and scale-invariant.   
-    float d = vcov - 0.5;
+    // A band carries its ramp in zero to one and is signed by subtracting the contour. A measured
+    // stroke instead carries a signed distance around a bias, because one quad has to describe
+    // both of its sides; the two travel in the same batch and are told apart by range. Taking the
+    // magnitude folds the two sides onto the same ramp, and the kink it leaves on the centre line
+    // is where the stroke is most solid, so nothing reads it.
+    float d = vcov > 2.0 ? 0.5 - abs(vcov - 4.0) : vcov - 0.5;
     color.w *= clamp(d / max(fwidth(d), 1e-5) + 0.5, 0.0, 1.0);
 
     color.w *= texture(inTexture1, vuv1).r;

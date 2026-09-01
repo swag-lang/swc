@@ -286,6 +286,21 @@ private impl RenderCpu
         return result
     }
 
+    // Returns an interpolated coverage attribute as a signed distance from the contour.
+    //
+    // A band carries its ramp in zero to one, and subtracting the contour signs it. A measured
+    // stroke carries a signed distance around [[Pixel.StrokeCoverageBias]] instead, because one
+    // quad has to describe both of its sides; the two travel in the same batch and are told apart
+    // by range. This is the OpenGL fragment program's rule, and the two have to agree to the
+    // pixel — see `render.parity.test.swg`.
+    #[Swag.Inline]
+    func signedCoverage(raw: f32)->f32
+    {
+        if raw > StrokeCoverageBias * 0.5 do
+            return 0.5 - Math.abs(raw - StrokeCoverageBias)
+        return raw - 0.5
+    }
+
     // Zeroes `bounds` inside a per-pixel scratch plane stored as `width` bytes per row.
     func clearScratchRows(plane: [*] u8, width: s32, bounds: PixelBounds)
     {
@@ -1672,7 +1687,7 @@ private impl RenderCpu
                                                                          (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                                          (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
-                let cov = needCoverage ? Math.saturate(((v0.cov * w0 + v1.cov * w1 + v2.cov * w2) - 0.5) / covWidth + 0.5) : 0.0
+                let cov = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
                 let src = .shadeBatch(batch, paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov)
                 if fastAlpha
                 {

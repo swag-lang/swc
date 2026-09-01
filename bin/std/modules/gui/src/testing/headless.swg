@@ -81,6 +81,12 @@ impl HeadlessHost
         // a previous test cannot leak content into this one.
         discard catch Clipboard.resetFake()
 
+        // The language is process-wide for the same reason, and a test that switches it restores
+        // it on the way out — which a failing assertion never reaches. One test left mid-switch
+        // would then reword every window built after it, so a host starts from the reference
+        // strings rather than from whatever the last one was doing.
+        discard catch applyLanguage(&.app.resources, ReferenceLanguage)
+
         .app.setRenderer(&.renderer)
         .app.setMotionPreference(.Reduced)
 

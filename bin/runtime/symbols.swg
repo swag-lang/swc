@@ -12,6 +12,7 @@ struct __SwagSym
 
 var __dbgCacheBase:    #null *void  = null
 var __dbgCacheSection: #null [*] u8 = null
+var __dbgCacheDecoded: #null [*] u8 = null
 var __dbgCacheCount:   u32          = 0
 var __dbgCacheValid:   bool         = false
 
@@ -19,20 +20,28 @@ func __dbgU32(p: [*] u8, off: u64)->u32 => (&p[off])[as u32]
 
 func __dbgFindSection(base: #null *void)
 {
+    __hostReleaseDecodedDebugSection(__dbgCacheDecoded)
     __dbgCacheBase    = base
     __dbgCacheValid   = false
     __dbgCacheSection = null
+    __dbgCacheDecoded = null
     __dbgCacheCount   = 0
     if base == null do
         return
 
-    let section = __hostDebugSection(base)
+    let encoded = __hostDebugSection(base)
+    if !encoded do
+        return
+
+    let section = __hostDecodeDebugSection(encoded!)
     if !section do
         return
 
     __dbgCacheSection = section
-    __dbgCacheCount   = __dbgU32(section!, 8)
-    __dbgCacheValid   = true
+    if section != encoded do
+        __dbgCacheDecoded = section
+    __dbgCacheCount = __dbgU32(section!, 8)
+    __dbgCacheValid = true
 }
 
 func __dbgStr(off: u32)->string

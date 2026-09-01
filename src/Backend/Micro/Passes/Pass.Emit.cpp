@@ -119,13 +119,15 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
 
             MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
             const uint32_t   loadStart  = encoder.size();
-            if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress || relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            if ((relocation.kind == MicroRelocation::Kind::ConstantAddress && relocation.hasConstantSource()) ||
+                relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
+                relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
             {
-                // Native images keep globals next to code, and the JIT puts
-                // mutable segments in its proximity arena. LEA [RIP+rel32]
-                // therefore materializes the exact pointer in both paths with
-                // three fewer instruction bytes and no base relocation. It is
-                // one ordinary integer uop, just like MOVABS.
+                // Native images keep segment-backed constants and globals next to code, and
+                // the JIT puts those segments in its proximity arena. LEA [RIP+rel32]
+                // therefore materializes the exact pointer in both paths with three fewer
+                // instruction bytes and no base relocation. Constant-wrapped host pointers
+                // have no segment source and must retain their absolute form.
                 relocation.form = MicroRelocation::Form::Relative32;
                 encoder.encodeLoadAddressRegMem(ops[0].reg, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
                 bindRel32RelocationOffset(context, instructionRef, loadStart, encoder.size());

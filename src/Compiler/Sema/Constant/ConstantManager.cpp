@@ -24,6 +24,9 @@ namespace
 
 ConstantManager::ConstantManager()
 {
+    for (Shard& shard : shards_)
+        shard.dataSegment.enableProximityStorage();
+
     for (auto& ref : smallScalarRefs_)
         ref.store(INVALID_REF, std::memory_order_relaxed);
 }

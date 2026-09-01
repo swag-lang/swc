@@ -176,6 +176,14 @@ namespace
         uint64_t structuralHash  = 0;
     };
 
+    struct LoopPassSettings
+    {
+        uint32_t         maxIterations    = 0;
+        bool             buildSsa         = false;
+        bool             pruneStableSuffix = false;
+        std::string_view name;
+    };
+
 #if SWC_HAS_VALIDATE_MICRO
     struct LoopPassTraceEntry
     {
@@ -324,7 +332,7 @@ namespace
         return Result::Continue;
     }
 
-    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, const uint32_t maxIterations, const bool buildSsa, std::string_view loopName, VerifyStateCache& verifyCache)
+    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, const LoopPassSettings& settings, VerifyStateCache& verifyCache)
     {
         if (passes.empty())
             return Result::Continue;
@@ -333,21 +341,22 @@ namespace
         std::unordered_set<uint64_t> seenStates;
         if (MicroVerify::isEnabled(context))
         {
-            seenStates.reserve(maxIterations + 1);
+            seenStates.reserve(settings.maxIterations + 1);
             SWC_RESULT(verifyCurrentState(context, "optimization-loop-start", verifyCache));
             seenStates.insert(verifyCache.structuralHash);
         }
 #endif
 
         MicroSsaState ssaState;
-        const bool    useSharedSsa = buildSsa && context.builder && context.instructions && context.operands;
+        const bool    useSharedSsa = settings.buildSsa && context.builder && context.instructions && context.operands;
         // Pre-RA optimization passes can share one lazily-built SSA state across
         // a sweep; runPass invalidates it as soon as any transform mutates IR.
         if (useSharedSsa)
             context.ssaState = &ssaState;
 
         bool reachedFixedPoint = false;
-        for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
+        size_t passesToRun     = passes.size();
+        for (uint32_t iteration = 0; iteration < settings.maxIterations; ++iteration)
         {
             context.isFirstAllocationSweep = iteration == 0;
             if (iteration == 0)
@@ -356,16 +365,27 @@ namespace
                 context.intervalAllocated = false;
             }
 
-            bool iterationMutated = false;
+            bool   iterationMutated   = false;
+            size_t lastChangedPassEnd = 0;
 #if SWC_HAS_VALIDATE_MICRO
             std::vector<LoopPassTraceEntry> iterationTrace;
             if (MicroVerify::isEnabled(context))
                 iterationTrace.reserve(passes.size());
 #endif
-            for (MicroPass* pass : passes)
+            for (size_t passIndex = 0; passIndex < passesToRun; ++passIndex)
             {
+                MicroPass* pass = passes[passIndex];
                 SWC_RESULT(runPass(context, *pass, verifyCache));
-                iterationMutated = iterationMutated || context.passChanged;
+                if (context.passChanged)
+                {
+                    iterationMutated  = true;
+                    lastChangedPassEnd = passIndex + 1;
+
+                    // The remaining passes must observe this mutation now. If none
+                    // of them changes the IR, they are already at their fixed point
+                    // and the next sweep only needs to recheck this prefix.
+                    passesToRun = passes.size();
+                }
 #if SWC_HAS_VALIDATE_MICRO
                 if (MicroVerify::isEnabled(context) && context.passChanged)
                 {
@@ -380,6 +400,10 @@ namespace
                 reachedFixedPoint = true;
                 break;
             }
+
+            // RA passes deliberately change behavior after their first sweep, so a
+            // no-change result there is not reusable in the next iteration.
+            passesToRun = settings.pruneStableSuffix ? lastChangedPassEnd : passes.size();
 
 #if SWC_HAS_VALIDATE_MICRO
             if (MicroVerify::isEnabled(context))
@@ -406,7 +430,7 @@ namespace
         {
             context.useDefMap = nullptr;
             context.ssaState  = nullptr;
-            return MicroVerify::reportError(context, loopName, std::format("fixed point not reached after {} iterations", maxIterations));
+            return MicroVerify::reportError(context, settings.name, std::format("fixed point not reached after {} iterations", settings.maxIterations));
         }
 
         context.useDefMap              = nullptr;
@@ -586,7 +610,8 @@ Result MicroPassManager::run(MicroPassContext& context) const
     // Pre-RA optimization loop - converges on the virtual-register IR.
     SWC_ASSERT(context.builder);
     const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
-    SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
+    const LoopPassSettings preRaSettings{.maxIterations = preRaMaxIterations, .buildSsa = true, .pruneStableSuffix = true, .name = "pre-ra-optimization-loop"};
+    SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaSettings, verifyCache));
 
     // Auto-vectorization runs once on the converged scalar IR. When it fires,
     // the pre-RA loop runs again: the scalar chains it strands are dead code,
@@ -595,12 +620,16 @@ Result MicroPassManager::run(MicroPassContext& context) const
     {
         SWC_RESULT(runLinearPasses(context, vectorizePasses_, verifyCache));
         if (context.passChanged)
-            SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "post-vectorize-cleanup-loop", verifyCache));
+        {
+            const LoopPassSettings cleanupSettings{.maxIterations = preRaMaxIterations, .buildSsa = true, .pruneStableSuffix = true, .name = "post-vectorize-cleanup-loop"};
+            SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, cleanupSettings, verifyCache));
+        }
     }
 
     // Register allocation loop - legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
-    SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));
+    const LoopPassSettings raSettings{.maxIterations = raMaxIterations, .name = "ra-legalize-loop"};
+    SWC_RESULT(runLoopPasses(context, raLoopPasses_, raSettings, verifyCache));
 
     SWC_RESULT(runLinearPasses(context, postRaSetupPasses_, verifyCache));
 

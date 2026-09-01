@@ -228,3 +228,19 @@ code, subtitle, table, diff, and log viewers. Markdown and HTML integration live
   wins — but it opens at the beginning, uncolored, with no way to reach the end that matters.
 - Complete when: severity levels and timestamps are recognized and colored, the view can open at the
   tail, and a level filter narrows what is shown without loading the file.
+
+### app.scope.text.024 — JSON and JSON Lines have no semantic reader
+
+- Evidence: `.json` opens in the Code viewer and `.jsonl` has no registered semantic surface, so
+  objects and arrays cannot be explored as a tree, properties cannot be addressed by JSON Pointer,
+  duplicate keys and malformed ranges are not summarized, and schema-derived meaning is absent.
+  Visual Studio Code provides property navigation, structural folding, validation, and schema
+  explanations; Swag Scope can add the read-only parts without inheriting editing or implicit
+  network access.
+- Next: build a bounded JSON token/range index and a synchronized virtual tree/source view, starting
+  with strict JSON and independently streamed JSON Lines before adding optional local schemas.
+- Complete when: tree nodes retain exact source byte ranges and original number/string spelling;
+  filter and JSON Pointer jump in both directions; malformed input publishes every safe partial
+  result plus precise damage; huge arrays and JSON Lines remain paged; search covers keys and values;
+  and schemas are local or explicitly supplied rather than fetched from the network.
+- Related: app.scope.text.004, app.scope.viewers.004, app.scope.viewers.006

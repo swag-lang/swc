@@ -681,13 +681,20 @@ capture side. The editor, the forms, the library, and the serialization are alre
 
 - Intent: the shipped viewers are reachable from where a file is selected. This is the whole reason
   QuickLook won its category: select, look, move on, without launching an application.
+- Evidence: Apple exposes Quick Look from Finder with Space and adjacent-item navigation. Windows
+  preview handlers likewise render a selected file without launching its associated application,
+  but add a security constraint Swag Scope must preserve: the handler runs out of process, at low
+  integrity by default, and should receive a host-owned stream rather than ambient path authority.
 - Next: define an out-of-process-safe preview request/result contract, then host it in an Explorer
   preview handler as the first OS adapter.
 - Complete when: Explorer renders the same supported views through `--register-file-types`, the
-  application window is not required, and another desktop preview service can host the contract.
+  application window is not required, a selected file reaches first presentable content within the
+  shared preview budget, decoder failure cannot damage Explorer, and another desktop preview service
+  can host the contract.
 - Note: the handler hosts a view in a process it does not own, so the viewer request/result contract
   has to be usable without the application window. That constraint is worth checking before committing.
-- Related: platform.portability.073, platform.portability.074
+- Related: app.scope.viewers.009, app.scope.viewers.011, platform.portability.073,
+  platform.portability.074
 
 ### platform.portability.073 — Swag Scope has no portable thumbnail-provider boundary
 

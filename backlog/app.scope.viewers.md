@@ -30,11 +30,21 @@ professional readers and inspectors to identify navigation, inspection, presenta
 and interchange expectations, then keeps only outcomes compatible with Swag Scope's offline,
 bounded, non-modifying role:
 
+- [Apple Quick Look](https://support.apple.com/en-ie/guide/mac-help/-mh14119/mac) and the
+  [Windows preview-handler model](https://learn.microsoft.com/en-us/windows/win32/shell/preview-handlers)
+  for selection-to-preview latency, adjacent-file browsing, shell hosting, bounded lifetime, and
+  low-integrity out-of-process isolation.
 - [Visual Studio Code basic editing](https://code.visualstudio.com/docs/editing/codebasics) and
   [code navigation](https://code.visualstudio.com/docs/editing/editingevolved) for line/symbol
   navigation, folding, overview, history, and discoverable commands.
+- [Visual Studio Code JSON](https://code.visualstudio.com/docs/languages/json) for property
+  navigation, structural folding, schema explanation, and an explicit offline policy.
 - [Visual Studio Code Markdown](https://code.visualstudio.com/docs/languages/markdown) for outline,
   source/preview synchronization, link validation, and explicit preview security.
+- [GitHub's non-code file views](https://docs.github.com/en/repositories/working-with-files/using-files/working-with-non-code-files)
+  and [Visual Studio Code notebooks](https://code.visualstudio.com/docs/datascience/jupyter-notebooks)
+  for static notebook rendering, cell/output search, outline, rich comparison, and suppression of
+  active output from untrusted notebooks.
 - [Adobe Acrobat page thumbnails and bookmarks](https://helpx.adobe.com/acrobat/using/page-thumbnails-bookmarks-pdfs.html)
   for long-document page and destination navigation.
 - [LibreOffice CSV import](https://help.libreoffice.org/latest/en-US/text/scalc/guide/csv_files.html)
@@ -60,15 +70,15 @@ bounded, non-modifying role:
 ## Registered viewer audit map
 
 `createViewerPluginRegistry` registers fifteen viewers. The September 2026 audit found one focused
-test file per viewer, 120 tests in those files, and 25 viewer-specific PNG goldens. Tests elsewhere
+test file per viewer, 123 tests in those files, and 25 viewer-specific PNG goldens. Tests elsewhere
 in the application add host search, replacement, streaming, and lifecycle coverage. The counts are
 an audit snapshot, not a target: new behavior must add the state or interaction that proves it.
 
 | Viewer | Tests / goldens | Current core | Professional frontier and owner |
 | --- | ---: | --- | --- |
-| Archive | 5 / 1 | ZIP tree, stored/Deflate verification, entry preview through the normal viewer registry | nested provenance and 7-Zip-class format breadth; [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
+| Archive | 6 / 1 | ZIP tree, stored/Deflate verification, entry preview through the normal viewer registry | nested provenance and 7-Zip-class format breadth; [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
 | Binary | 23 / 4 | bounded hierarchical format reports, previews, navigation, filtering | reusable 010-Editor-class declarative schemas and findings; [app.scope.binary.md](app.scope.binary.md) |
-| Code | 6 / 1 | bounded streamed source with lexical coloring and search | VS Code-class outline, folding, breadcrumbs, minimap, diagnostics; [app.scope.text.md](app.scope.text.md#source-code) |
+| Code | 7 / 1 | bounded streamed source with lexical coloring and search | VS Code-class outline, folding, breadcrumbs, minimap, diagnostics; [app.scope.text.md](app.scope.text.md#source-code) |
 | Font | 4 / 2 | specimen plus paged glyph map | FontForge-class faces, glyph addressing, metrics, OpenType features, validation; [app.scope.font.md](app.scope.font.md) |
 | Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
 | HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md#html-reading) |
@@ -80,7 +90,7 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | Subtitle Edit-class current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md#timed-text) |
 | Table | 5 / 1 | parsed CSV/TSV grid and cell search | Calc-class dialect control, typed columns, sort/filter, frozen headers, bounded rows; [app.scope.text.md](app.scope.text.md#tabular-text) |
 | Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, encoding diagnostics, non-resident selection, tail/follow; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
-| Video | 16 / 2 | progressive A/V playback, seek, tracks, subtitles and frame stepping | VLC-class chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
+| Video | 17 / 2 | progressive A/V playback, seek, tracks, subtitles and frame stepping | VLC-class chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
 ## Shared reading behavior
 
@@ -179,13 +189,14 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 - Evidence: all fifteen viewers now have focused tests and a viewer-specific golden, but fixture
   depth still ranges from two owning Text tests plus host integration cases to the large Binary,
   Hexadecimal, and Video suites. The audit still found no declared matrix for real-world variants,
-  malformed input, large files, cancellation, keyboard-only use, themes, DPI, or memory ceilings.
+  malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
+  selection-to-first-content latency under rapid adjacent-file browsing.
 - Next: publish one matrix per registered viewer with representative public fixtures, required
-  malformed cases, bounded-resource assertions, interaction checks, and visual states.
+  malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
+  content budgets for cold open, warm open, and replacement before the previous viewer settles.
 - Complete when: the application smoke validates every registered viewer in light and dark themes,
   the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
-  format choice, cancellation, accessibility, or resource bounds fail a focused suite.
-- Related: app.scope.002
+  format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
 
 ### app.scope.viewers.010 — Eight viewers keep stale chrome after a live language change
 
@@ -199,6 +210,41 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 - Complete when: switching among every shipped language updates all visible and tooltip text in
   every viewer without reconstructing it, changing its logical state, or leaving mixed-language
   chrome, and the fifteen focused suites protect the behavior.
+
+### app.scope.viewers.011 — Attacker-controlled decoders share the application process
+
+- Evidence: every registered viewer is a direct function callback compiled into `swagscope.exe`.
+  A malformed image, font, document, archive, or media stream therefore reaches its decoder in the
+  process that owns the window, history, clipboard access, and ordinary user token. Read-only and
+  offline prevent intentional document actions, but they do not contain a parser defect. Windows
+  preview handlers establish the relevant baseline: they run out of process, use low integrity by
+  default, and prefer a stream so the host controls what the preview can read.
+- Next: define a brokered open/render/report contract over host-owned read-only ranges, then move one
+  high-risk decoder family into a disposable worker with CPU, memory, time, file, network, process,
+  and write limits before generalizing the boundary.
+- Complete when: decoder crash, hang, resource exhaustion, and malformed output cannot terminate or
+  corrupt the main window; the worker cannot open arbitrary paths, write, use the network, or spawn
+  processes; results are versioned and size-checked; cancellation kills only the affected job; and
+  failure leaves the file available through bounded hexadecimal inspection.
+- Related: app.scope.viewers.004, app.scope.viewers.009, platform.portability.040,
+  platform.portability.072
+
+### app.scope.viewers.012 — The viewer API cannot load an external viewer
+
+- Evidence: `Viewer.Plugin` already carries an API version, stable key, selectors, icon, localized
+  name, smoke fixture, and creation callback, but `createViewerPluginRegistry` names every plugin in
+  source and the README explicitly records no runtime index, dynamic library, exported entry point,
+  or ABI adapter. Quick Look extensions and 010 Editor's shared template repository show the value
+  of adding formats without rebuilding the host; their distribution risks also make an unversioned,
+  in-process library the wrong next step.
+- Next: define a local manifest and capability-negotiated wire contract on top of
+  app.scope.viewers.011, including publisher identity, package provenance, selector precedence,
+  compatibility ranges, resource limits, translations, icons, and an explicit install/update policy.
+- Complete when: a separately packaged viewer can be installed, disabled, updated, and removed
+  without rebuilding Swag Scope; incompatible, crashing, and duplicate-key packages are quarantined
+  with an exact reason; built-ins retain deterministic precedence; and no external viewer executes
+  in the application or shell-host process.
+- Related: app.scope.viewers.011, platform.portability.072, platform.portability.073
 
 ## Format coverage
 
@@ -215,7 +261,8 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
 | Markdown | `.md` `.markdown` | full | outline, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
 | HTML | `.html` `.htm` `.xhtml` | full | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
-| JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
+| JSON and JSON Lines | `.json` `.jsonl` | code | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
+| XML, YAML, TOML | `.xml` `.yaml` `.yml` `.toml` | code | folding and value tree | — |
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | [app.scope.text.022](app.scope.text.md) |
 | Log | `.log` | text | level coloring, timestamps, tail | [app.scope.text.023](app.scope.text.md) |
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
@@ -227,7 +274,7 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
 | RTF | `.rtf` | text | — | — |
 | Mail | `.eml` `.msg` | none | — | — |
-| Notebook | `.ipynb` | code | rendered cells | — |
+| Notebook | `.ipynb` | code | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |
 
 #### Images

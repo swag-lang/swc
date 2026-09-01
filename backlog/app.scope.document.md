@@ -231,3 +231,21 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
 - Complete when: the spine order is read from the container manifest and its documents stream into
   the reading column in order.
 - Related: app.scope.binary.010
+
+## Developer documents
+
+### app.scope.document.022 — Jupyter notebooks read as raw JSON
+
+- Evidence: `.ipynb` is claimed by the Code viewer, so Markdown cells, code cells, execution order,
+  attachments, stored images, tables, errors, and metadata lose their document structure. GitHub
+  renders notebooks as static HTML without activating custom JavaScript, while Visual Studio Code
+  adds cell/output search and outline and hides rich outputs in untrusted workspaces. Those are the
+  relevant reader behaviors; kernel execution is not.
+- Next: parse notebook cells and render Markdown, syntax-colored source, plain text, bounded images,
+  tables, and JSON output through existing viewers while defining a deny-by-default MIME and trust
+  policy for HTML, SVG, JavaScript, widgets, and external resources.
+- Complete when: cell order, type, execution count, metadata, attachments, errors, and every stored
+  output remain inspectable; outline and search address inputs and outputs separately; unsupported or
+  suppressed rich output is named and available as source; large output is collapsed and bounded;
+  and opening a notebook never starts a kernel, executes code, or fetches a resource.
+- Related: app.scope.document.003, app.scope.text.024, app.scope.viewers.011

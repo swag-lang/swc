@@ -157,10 +157,13 @@ Result NativeRDataCollector::emitReachableAllocations()
 
             emittedAllocations[shardIndex].push_back(allocation);
             NativeRDataAllocationMapEntry mapEntry;
+            mapEntry.shardIndex    = shardIndex;
             mapEntry.sourceOffset  = allocation.offset;
             mapEntry.size          = allocation.size;
+            mapEntry.align         = std::max(allocation.align, 1u);
             mapEntry.emittedOffset = emittedOffset;
             mappings.push_back(mapEntry);
+            builder_->rdataAllocations.push_back(mapEntry);
         }
     }
 

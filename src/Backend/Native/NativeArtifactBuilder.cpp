@@ -698,6 +698,7 @@ void NativeArtifactBuilder::resetDataSections() const
     builder_->mergedBss.bss     = builder_->mergedBss.bssSize != 0;
     for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
+    builder_->rdataAllocations.clear();
 }
 
 Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const
@@ -788,9 +789,10 @@ Result NativeArtifactBuilder::partitionObjects() const
     // Object 0 owns shared sections/startup, so the remaining objects only need code.
     for (uint32_t i = 0; i < numJobs; ++i)
     {
-        builder_->objectDescriptions[i].index       = i;
-        builder_->objectDescriptions[i].includeData = i == 0;
-        builder_->objectDescriptions[i].objPath     = paths.objectPaths[i];
+        builder_->objectDescriptions[i].index              = i;
+        builder_->objectDescriptions[i].includeData        = i == 0;
+        builder_->objectDescriptions[i].includeMergedRData = i == 0;
+        builder_->objectDescriptions[i].objPath            = paths.objectPaths[i];
     }
 
     if (builder_->startup)
@@ -810,10 +812,11 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
 {
     builder_->objectDescriptions.clear();
 
-    // One object per function, plus object 0 which owns the data sections and nothing else. The
-    // startup thunk belongs to executables, and an executable publishes no archive.
+    // One object per function and reachable read-only allocation. Object 0 owns writable data.
+    // This gives the archive linker enough granularity to pull only the constants reached from
+    // selected functions, while relocations between allocation objects preserve transitive roots.
     const size_t   functionCount = builder_->functionInfos.size();
-    const uint32_t numObjects    = static_cast<uint32_t>(functionCount + 1);
+    const uint32_t numObjects    = static_cast<uint32_t>(functionCount + builder_->rdataAllocations.size() + 1);
     builder_->objectDescriptions.resize(numObjects);
 
     NativeArtifactPaths paths;
@@ -821,9 +824,10 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
 
     for (uint32_t i = 0; i < numObjects; ++i)
     {
-        builder_->objectDescriptions[i].index       = i;
-        builder_->objectDescriptions[i].includeData = i == 0;
-        builder_->objectDescriptions[i].objPath     = paths.objectPaths[i];
+        builder_->objectDescriptions[i].index                = i;
+        builder_->objectDescriptions[i].includeData          = i == 0;
+        builder_->objectDescriptions[i].splitRDataReferences = true;
+        builder_->objectDescriptions[i].objPath              = paths.objectPaths[i];
     }
 
     for (size_t i = 0; i < functionCount; ++i)
@@ -833,6 +837,19 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
         info.jobIndex                = objIndex;
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
+
+    uint32_t objIndex = static_cast<uint32_t>(functionCount + 1);
+    for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+    {
+        const auto& mappings = builder_->rdataAllocationMap[shardIndex];
+        for (uint32_t allocationIndex = 0; allocationIndex < mappings.size(); ++allocationIndex)
+        {
+            NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
+            description.rdataShardIndex       = shardIndex;
+            description.rdataAllocationIndex  = allocationIndex;
+        }
+    }
+    SWC_ASSERT(objIndex == numObjects);
 
     return Result::Continue;
 }

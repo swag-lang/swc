@@ -482,28 +482,3 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 - Complete when: either a loaded shared library provably shares the host's allocator and context in
   a workspace test that links its dependencies in, or the backlog records why it cannot and the
   compiler diagnoses the combination it can see.
-
-### compiler.core.028 — An archive member carries its module's whole read-only data
-
-- Area: compiler
-- Found while: measuring what an executable keeps once it links its dependencies in rather than
-  importing them.
-- Observation: the archive a library publishes splits its code one function per member, so the
-  linker keeps only the functions an executable reaches. Its read-only data is not split: every
-  constant the module emitted sits in member 0, which any function touching any constant pulls in
-  whole. `NativeRDataCollector` already emits only what that module's own code reaches, so the blob
-  is not waste for the library — it is waste for a consumer that uses part of the library.
-- Evidence: Swag Capture, devmode. Linking in what it used to import took `.text` from 8,508,068 to
-  6,519,590 bytes (−23%), and `.pdata`/`.xdata` fell with it (−35%), which is whole functions being
-  dropped. `.rdata` went from 7,317,785 to 7,373,360 — nothing dropped, and it is now 48% of the
-  executable. Total shipped bytes fell from 18,584,064 in six files to 15,241,216 in one (−18%);
-  splitting the data is what stands between that and a substantially smaller number.
-- Next: give read-only data the granularity the code already has. Relocations address it as
-  one scoped base symbol plus an offset (`__swc_rdata_base_<hash>`, `NativeNames.h`), which is what
-  forces one member; `NativeRDataCollector` already tracks each allocation's emitted offset and
-  owner, so the smallest useful step is to emit the merged blob as several chunks, each its own
-  object with its own base symbol, and resolve a code relocation to the chunk holding its offset.
-  Measure Swag Capture's `.rdata` again against the 7,373,360 above.
-- Complete when: an executable linking `gui` and `pixel` in keeps measurably less `.rdata` than the
-  sum those modules publish, with the workspace suite and the application tests still green.
-- Related: compiler.core.027.

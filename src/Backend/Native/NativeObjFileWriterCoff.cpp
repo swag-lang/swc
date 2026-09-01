@@ -18,6 +18,13 @@ namespace
 {
     constexpr size_t COFF_RELOCATION_OVERFLOW_LIMIT = 0xFFFFu;
 
+    uint32_t coffAlignmentCharacteristics(const uint32_t align)
+    {
+        SWC_ASSERT(std::has_single_bit(align));
+        const uint32_t clampedAlign = std::min(align, 8192u);
+        return (std::countr_zero(clampedAlign) + 1) << 20;
+    }
+
     bool needsCoffRelocationOverflow(size_t relocationCount)
     {
         return relocationCount >= COFF_RELOCATION_OVERFLOW_LIMIT;
@@ -41,11 +48,18 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     std::vector<CoffSectionBuild> sections;
     sections.push_back(std::move(textSection));
 
-    if (description.includeData && !builder_->mergedRData.bytes.empty())
+    if (description.includeMergedRData && !builder_->mergedRData.bytes.empty())
     {
         CoffSectionBuild section;
         section.data = builder_->mergedRData;
         SWC_RESULT(applySectionRelocations(section));
+        sections.push_back(std::move(section));
+    }
+
+    if (description.rdataAllocationIndex != INVALID_REF)
+    {
+        CoffSectionBuild section;
+        SWC_RESULT(buildRDataAllocationSection(section, description));
         sections.push_back(std::move(section));
     }
 
@@ -65,7 +79,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     }
 
     CollectedDebugRecords debugRecords;
-    collectDebugRecords(*builder_, description.functions, description.startup, description.includeData, debugRecords);
+    collectDebugRecords(*builder_, description.functions, description.startup, description.includeData && description.includeMergedRData, debugRecords);
 
     DebugInfoObjectResult        debugInfoResult;
     const DebugInfoObjectRequest debugInfoRequest = {
@@ -130,34 +144,83 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
         appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes);
 
     if (description.startup)
-        SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));
+        SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));
     for (const NativeFunctionInfo* info : description.functions)
-        SWC_RESULT(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols));
+        SWC_RESULT(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));
 
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
+Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& section, const NativeObjDescription& description) const
+{
+    SWC_ASSERT(description.rdataShardIndex < ConstantManager::SHARD_COUNT);
+    const auto& mappings = builder_->rdataAllocationMap[description.rdataShardIndex];
+    SWC_ASSERT(description.rdataAllocationIndex < mappings.size());
+    const NativeRDataAllocationMapEntry& allocation = mappings[description.rdataAllocationIndex];
+    SWC_ASSERT(allocation.emittedOffset + allocation.size <= builder_->mergedRData.bytes.size());
+
+    section.data.name            = ".rdata";
+    section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
+    section.data.bytes.append(std::span{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size});
+
+    for (const NativeSectionRelocation& sourceRelocation : builder_->mergedRData.relocations)
+    {
+        if (sourceRelocation.offset < allocation.emittedOffset || sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
+            continue;
+
+        NativeSectionRelocation relocation = sourceRelocation;
+        relocation.offset -= allocation.emittedOffset;
+        if (relocation.symbolName == nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL))
+        {
+            const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
+            if (!targetAllocation)
+            {
+                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(builder_->compiler(), allocation.shardIndex, allocation.sourceOffset);
+                return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+            }
+
+            relocation.symbolName = nativeScopedRDataAllocationSymbol(builder_->compiler(), targetAllocation->shardIndex, targetAllocation->sourceOffset);
+            relocation.addend -= targetAllocation->emittedOffset;
+        }
+
+        section.data.relocations.push_back(std::move(relocation));
+    }
+
+    if (section.data.relocations.empty() && section.data.bytes.allZero())
+    {
+        section.data.name            = ".rbss";
+        section.data.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
+        section.data.bytes.clear();
+        section.data.bss     = true;
+        section.data.bssSize = allocation.size;
+        return Result::Continue;
+    }
+
+    return applySectionRelocations(section);
+}
+
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, startup.debugName, relocation, textSection, allowUnresolvedSymbols));
+        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, startup.debugName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, owner.debugName, relocation, textSection, allowUnresolvedSymbols));
+        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, owner.debugName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
+Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
 {
     NativeCodeRelocationTarget target;
     target.bytes                  = &textSection.data.bytes;
     target.relocations            = &textSection.relocations;
     target.functionOffset         = functionOffset;
     target.allowUnresolvedSymbols = allowUnresolvedSymbols;
+    target.splitRDataReferences   = splitRDataReferences;
     return builder_->appendCodeRelocation(target, ownerName, relocation);
 }
 
@@ -266,6 +329,25 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                                                     .type          = extraSymbol.type,
                                                     .storageClass  = extraSymbol.storageClass,
                                                 });
+    }
+
+    if (description.rdataAllocationIndex != INVALID_REF)
+    {
+        const auto& allocation = builder_->rdataAllocationMap[description.rdataShardIndex][description.rdataAllocationIndex];
+        for (const auto& section : sections)
+        {
+            if (section.data.name != ".rdata" && section.data.name != ".rbss")
+                continue;
+
+            addSymbolRecord(symbols, symbolIndices, {
+                                                        .name          = nativeScopedRDataAllocationSymbol(builder_->compiler(), allocation.shardIndex, allocation.sourceOffset),
+                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                        .value         = 0,
+                                                        .type          = 0,
+                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                    });
+            break;
+        }
     }
 
     if (!description.includeData)

@@ -51,8 +51,10 @@ struct NativeRuntimeDependency
 
 struct NativeRDataAllocationMapEntry
 {
+    uint32_t shardIndex    = 0;
     uint32_t sourceOffset  = 0;
     uint32_t size          = 0;
+    uint32_t align         = 1;
     uint32_t emittedOffset = 0;
 };
 
@@ -64,6 +66,10 @@ struct NativeObjDescription
     std::vector<NativeFunctionInfo*> functions;
     NativeStartupInfo*               startup                = nullptr;
     bool                             includeData            = false;
+    bool                             includeMergedRData     = false;
+    bool                             splitRDataReferences   = false;
+    uint32_t                         rdataShardIndex        = INVALID_REF;
+    uint32_t                         rdataAllocationIndex   = INVALID_REF;
     bool                             allowUnresolvedSymbols = false;
 };
 
@@ -80,18 +86,20 @@ public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
     ~NativeBackendBuilder();
 
-    TaskContext&              ctx();
-    const TaskContext&        ctx() const;
-    CompilerInstance&         compiler();
-    const CompilerInstance&   compiler() const;
-    bool                      tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
-    Result                    resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
-    const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
-    Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
-    bool                      tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
-    Result                    appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
-    DiagnosticId              lastErrorId() const { return lastErrorId_; }
-    bool                      artifactLinked() const { return artifactLinked_; }
+    TaskContext&                         ctx();
+    const TaskContext&                   ctx() const;
+    CompilerInstance&                    compiler();
+    const CompilerInstance&              compiler() const;
+    bool                                 tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
+    Result                               resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
+    const NativeFunctionInfo*            tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
+    Result                               resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
+    const NativeRDataAllocationMapEntry* tryFindRDataSourceAllocation(uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
+    bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    Result                               appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
+    DiagnosticId                         lastErrorId() const { return lastErrorId_; }
+    bool                                 artifactLinked() const { return artifactLinked_; }
 
     Result run();
     Result runExistingArtifact();
@@ -151,6 +159,7 @@ public:
     NativeSectionData                                                                    mergedData;
     NativeSectionData                                                                    mergedBss;
     std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantManager::SHARD_COUNT> rdataAllocationMap;
+    std::vector<NativeRDataAllocationMapEntry>                                           rdataAllocations;
     std::vector<NativeObjDescription>                                                    objectDescriptions;
     fs::path                                                                             buildDir;
     fs::path                                                                             artifactPath;

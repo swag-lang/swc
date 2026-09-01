@@ -181,10 +181,7 @@ impl HeadlessHost
             if !wnd.surface do
                 return
 
-            var evt = NotifyEvent{}
-            evt.accepted = false
-            evt.kind     = kind
-            wnd.sendEvent(&evt)
+            wnd.surface!.app.sendBroadcastNotifyEvent(wnd, kind)
         }
 
         // Walk the surface, the way the application's own broadcast does: a view installed with

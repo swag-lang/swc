@@ -23,6 +23,45 @@ var g_LateStrings: LateStrings
 
 const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
+// An application-wide notification visits each window exactly once. It is a broadcast over the
+// tree, not a routed child event that parents should receive again for every descendant.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+    defer host.shutdown()
+
+    let child = Wnd.create'Wnd(&host.root)
+    var rootNotifications, childNotifications: u32
+    host.root.hookOnEvent = func|count = &rootNotifications|(wnd, evt)
+    {
+        discard wnd
+        switch evt
+        {
+        case NotifyEvent as notify where notify.kind == .LanguageChanged:
+            count[] += 1
+        }
+
+        return false
+    }
+
+    child.hookOnEvent = func|count = &childNotifications|(wnd, evt)
+    {
+        discard wnd
+        switch evt
+        {
+        case NotifyEvent as notify where notify.kind == .LanguageChanged:
+            count[] += 1
+        }
+
+        return false
+    }
+
+    host.notify(.LanguageChanged)
+    Swag.assert(rootNotifications == 1)
+    Swag.assert(childNotifications == 1)
+}
+
 // The reference wording is the declared one, and 'en' is always active at start.
 #test
 {

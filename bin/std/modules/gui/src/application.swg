@@ -155,6 +155,25 @@ struct Application
 
 private impl Application
 {
+    // Delivers one node of an application-wide notification without routing it to an owner or
+    // parent. The broadcast already walks every node, so bubbling would notify ancestors again
+    // and could follow an ownership link invalidated by an earlier notification handler.
+    mtd sendBroadcastNotifyEvent(wnd: *Wnd, kind: NotifyEvent.Kind)
+    {
+        var evt = NotifyEvent{}
+        evt.kind   = kind
+        evt.target = wnd
+
+        for hook in .hookOnEvent do
+            hook.itf.onHookEvent(&evt)
+
+        if !evt.target do
+            return
+
+        evt.accepted = true
+        evt.target!.processEvent(&evt)
+    }
+
     // Send and process an event
     mtd sendEventPrivate(evt: IEvent, stopAt: #null *Wnd)
     {
@@ -1156,7 +1175,7 @@ impl Application
     // snapshot, and a window that left the tree meanwhile is skipped rather than sent to.
     private mtd notifyLanguageChanged()
     {
-        func updateLanguage(wnd: *Wnd)
+        func updateLanguage(app: *Application, wnd: *Wnd)
         {
             if !wnd.surface do
                 return
@@ -1166,43 +1185,37 @@ impl Application
             var children: Array'(*Wnd)
             children.add(wnd.children.toSlice())
             for c in children do
-                updateLanguage(c)
+                updateLanguage(app, c)
 
             if !wnd.surface do
                 return
 
-            var evt = NotifyEvent{}
-            evt.accepted = false
-            evt.kind     = .LanguageChanged
-            wnd.sendEvent(&evt)
+            app.sendBroadcastNotifyEvent(wnd, .LanguageChanged)
         }
 
         for s in .surfaces do
-            updateLanguage(s.wnd)
+            updateLanguage(me, s.wnd)
     }
 
     // Recomputes styles and emits a theme-change notification throughout every surface tree.
     mtd notifyThemeChanged()
     {
-        func updateTheme(wnd: *Wnd)
+        func updateTheme(app: *Application, wnd: *Wnd)
         {
             wnd.style.dirty = true
             wnd.computeStyle()
             wnd.invalidate()
             for c in wnd.children do
-                updateTheme(c)
+                updateTheme(app, c)
 
-            var evt = NotifyEvent{}
-            evt.accepted = false
-            evt.kind     = .ThemeChanged
-            wnd.sendEvent(&evt)
+            app.sendBroadcastNotifyEvent(wnd, .ThemeChanged)
         }
 
         .dirtyTheme += 1
         for s in .surfaces
         {
             s.applyNativeSurfaceFlags()
-            s.wnd.updateTheme()
+            updateTheme(me, s.wnd)
         }
     }
 

@@ -25,6 +25,18 @@ internal const RatingGlyphGap  = 2.0
 // frame of the load, and each rebuild is proportional to the whole library.
 internal const ListRefreshDelay = 200
 
+// How far beyond the viewport, in viewport heights, a decoded thumbnail is kept before its
+// texture is released. Zero releases a thumbnail the pixel it leaves the view and decodes it
+// again the pixel it comes back, which is what a scroll does continuously.
+internal const TextureKeepBand = 0.5
+
+// How many retained thumbnails one paint is allowed to decode. A capture's preview is a PNG of
+// about 140 KB and costs a couple of milliseconds to unpack, and a scroll brings a whole row —
+// nine cells at the small preview size — into view on the same frame. Unpacking them all there
+// drops that frame; the cells left over are decoded by the frames that follow, which the paint
+// asks for while any remain.
+internal const MaxPreviewDecodesPerPaint = 3
+
 enum LibraryItemKind
 {
     Capture
@@ -239,14 +251,52 @@ impl IWnd for LibraryView
             .libWnd.refreshAutomaticFilters()
         }
 
-        let spos = .scrollWnd.scrollPosition()
+        // The viewport, and the band a thumbnail is kept decoded in. A library holds thousands
+        // of captures where a viewport shows a dozen, so the loop below places every cell — the
+        // scroll extent needs the whole grid — and paints only the cells the viewport shows.
+        // Building the paths, the glyph runs and the vertex buffers of an off-screen cell costs
+        // what an on-screen one costs; only the clip that discards them afterwards differs.
+        let spos       = .scrollWnd.scrollPosition()
+        let viewTop    = spos.y
+        let viewBottom = spos.y + .position.height
+        let keepTop    = viewTop - .position.height * TextureKeepBand
+        let keepBottom = viewBottom + .position.height * TextureKeepBand
+
+        var decodeBudget  = MaxPreviewDecodesPerPaint
+        var decodesRemain = false
+
         for it, i in .items
         {
-            it.visible = true
-            if y + h < spos.y do
-                it.visible = false
-            if y > spos.y + .position.height do
-                it.visible = false
+            it.rect    = Math.Rectangle{x, y, w, h}
+            it.visible = y + h >= viewTop and y <= viewBottom
+
+            // Next cell. The grid advances whether or not this one is painted, so a culled cell
+            // leaves the layout and the scroll extent exactly where they were.
+            x += w + ItemMargin
+            if x + w + ItemMargin >= clientRect.right()
+            {
+                x = clientRect.x
+                y += h + ItemMargin
+            }
+
+            if !it.visible
+            {
+                // SCC items retain their compressed PNG, not a decoded image plus a texture for
+                // every file in the library, so a thumbnail that scrolled away is released. It
+                // is released a band later than it leaves the view, because a scroll that
+                // crosses the edge and comes back would otherwise decode the same PNG again on
+                // the very next frame.
+                if it.texture.isValid() and (it.rect.bottom() < keepTop or it.rect.y > keepBottom)
+                {
+                    .mutexLoaded.lock()
+                    let capture = it.capture
+                    .mutexLoaded.unlock()
+                    if capture and !capture.previewBytes.isEmpty() do
+                        evt.paintContext.renderer.removeTexture(&it.texture)
+                }
+
+                continue
+            }
 
             // Retrieve the loaded capture if it exists
             .mutexLoaded.lock()
@@ -255,16 +305,28 @@ impl IWnd for LibraryView
             let itemLoaded = it.loaded
             .mutexLoaded.unlock()
 
-            // SCC items retain their compressed PNG, not a decoded image plus a texture for
-            // every file in the library. Materialize only what is visible, upload it, then
-            // release the transient pixels. Off-screen textures are evicted by the same rule.
-            if capture and !it.visible and it.texture.isValid() and !capture.previewBytes.isEmpty()
+            // Materialize only what is visible, upload it, then release the transient pixels.
+            if capture and !it.texture.isValid()
             {
-                evt.paintContext.renderer.removeTexture(&it.texture)
-            }
-            elif capture and it.visible and !it.texture.isValid()
-            {
-                catch capture.materializePreview()
+                // A preview that is already pixels only needs the upload. Retained PNG bytes
+                // need the decoder first, and that is the part this frame rations.
+                if !capture.preview.isValid() and !capture.previewBytes.isEmpty()
+                {
+                    if decodeBudget == 0 do
+                        decodesRemain = true
+                    else
+                    {
+                        decodeBudget -= 1
+                        catch capture.materializePreview()
+
+                        // Bytes this build cannot turn into a picture. Drop them, so the cell
+                        // settles on the preview-less icon instead of paying the decoder again
+                        // on every frame the capture stays on screen.
+                        if !capture.preview.isValid() do
+                            capture.previewBytes.clear()
+                    }
+                }
+
                 if capture.preview.isValid()
                 {
                     it.texture = evt.paintContext.renderer.addImage(capture.preview)
@@ -272,10 +334,9 @@ impl IWnd for LibraryView
                         capture.preview = {}
                 }
             }
-            elif it.kind == .Image and it.visible and !it.texture.isValid() and image.isValid() do
+            elif it.kind == .Image and !it.texture.isValid() and image.isValid() do
                 it.texture = evt.paintContext.renderer.addImage(image)
 
-            it.rect = Math.Rectangle{x, y, w, h}
             let selected = .selModel.isSelected(cast() i)
 
             with var infos: RecentInfos
@@ -343,28 +404,26 @@ impl IWnd for LibraryView
                 }
             }
 
-            // Loading, a legacy preview-less capture, or an image the decoder rejected.
+            // Loading, a decode this frame did not have the budget for, a legacy preview-less
+            // capture, or an image the decoder rejected.
             if !it.texture.isValid()
             {
                 var icon = .theme().icon(.HourGlass, 48)
-                if itemLoaded and it.kind == .Capture do
-                    icon = .mainWnd.icon(.Archive, 48)
-                elif itemLoaded do
+                if itemLoaded and it.kind == .Image do
                     icon = .theme().icon(.Warning, 48)
+                elif itemLoaded and (!capture or capture.previewBytes.isEmpty()) do
+                    icon = .mainWnd.icon(.Archive, 48)
                 let color = Color.fromArgb(50, Argb.White)
                 icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
-            }
-
-            // Next item
-            x += w + ItemMargin
-            if x + w + ItemMargin >= clientRect.right()
-            {
-                x = clientRect.x
-                y += h + ItemMargin
             }
         }
 
         .scrollWnd.setScrollSize(0, y + h + ItemMargin)
+
+        // Cells this frame could not afford to decode. Ask for another one; the hourglass they
+        // carry meanwhile is the same one they carry while their capture is still loading.
+        if decodesRemain do
+            .invalidate()
     }
 }
 

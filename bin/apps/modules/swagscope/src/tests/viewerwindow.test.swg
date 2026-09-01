@@ -977,6 +977,37 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(host.openedSurfaceCount() == 0)
 }
 
+// The live appearance menu switches the complete application tree to French and closes its
+// transient popup before the translated controls are used again.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
+    registerAppStrings(&host.app.resources)
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.surface!.setTitle(appStrings().ui_WindowTitle)
+
+    host.openPopupSubMenuWhenShown("Language")
+    host.thenClickPopupMenuItem("fr")
+    window.appearanceButton.sigPressed.call(window.appearanceButton)
+    host.pump()
+
+    Swag.assert(host.app.language() == "fr")
+    Swag.assert(window.language == "fr")
+    // Headless surfaces stay outside Application.surfaces, so deliver the broadcast they would
+    // receive from setLanguage in a native window.
+    host.notify(.LanguageChanged)
+    Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
+    Swag.assert(host.openedSurfaceCount() == 0)
+}
+
 // Finds a match split across scanner chunks in a multi-megabyte file and materializes it in the
 // resident text window without losing the virtual scroll range.
 #test

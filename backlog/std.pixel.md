@@ -266,6 +266,16 @@ output, path measurement and effects, and the modern renderer choice tracked by
   90 % of it. Viewport rejection and the minified level of detail already removed a factor of five
   to three hundred depending on zoom; this is the density that remains for the content genuinely on
   screen.
+- Measured again on a maximized 3894x2142 window (2026-09-01, release, Swag Scope showing that
+  same document fitted to the window, so a 245 pixel wide column): one full-document repaint
+  records **4.53 million vertices in 14 481 batches and costs 94 to 128 ms of processor time**.
+  Disabling the stroke pass alone takes the same frame to 104 000 vertices and 9.4 ms, so
+  **strokes are 98 % of the geometry and over 90 % of the recording**, with joins already skipped
+  by the minified limits. The document is minified to about 0.14, and the decimation step is the
+  flattening tolerance rather than the device grid — `setMinifiedStrokeLimits` uses
+  `getFlattenDistance(quality) / curFlattenScale`, which at Normal quality drops points closer
+  than 0.2 device pixels and so keeps roughly five contour points per device pixel. Raising that
+  step trades outline fidelity for a proportional cut and is a quality decision, not a free one.
 - The fringe is what to attack: `addEdgeAA` emits a whole quad per silhouette edge because the
   shaders read coverage from a vertex attribute. A stroke program given the segment and the half
   width, deriving coverage from the fragment's distance to the centre line, collapses a segment to

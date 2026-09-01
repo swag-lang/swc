@@ -1911,7 +1911,7 @@ private impl RenderCpu
         clearScratchRows(.overlapWritten.buffer!, image.width, bounds)
 
         // Destination alpha is the scratch channel in the OpenGL overlap path.
-        .clearAlpha(image)
+        .clearAlpha(image, bounds)
         .overlapPass = 1
         .rasterizeRange(&batch, bounds)
         .overlapPass = 2
@@ -1919,20 +1919,39 @@ private impl RenderCpu
         .overlapPass = 0
     }
 
-    // Zeroes the destination alpha of the scissor region, the scratch channel of the overlap resolve.
+    // Returns the region the scissor allows, as the bounds an unrestricted pass covers.
+    mtd clipBounds(image: *Image)->PixelBounds
+    {
+        if !.scissorOn do
+            return {0, 0, image.width - 1, image.height - 1}
+
+        var result: retval
+        result.minX = Math.clamp(cast(s32) .scissorRect.x, 0, image.width - 1)
+        result.minY = Math.clamp(cast(s32) .scissorRect.y, 0, image.height - 1)
+        result.maxX = Math.clamp(cast(s32) .scissorRect.right() - 1, 0, image.width - 1)
+        result.maxY = Math.clamp(cast(s32) .scissorRect.bottom() - 1, 0, image.height - 1)
+        return result
+    }
+
+    // Zeroes the destination alpha over `bounds`, the scratch channel of the overlap resolve.
     //
-    // OpenGL does this with an alpha-masked `glClear`, which the scissor bounds; the region
-    // mirrors that exactly. The alpha byte is written in place: routing a single-channel reset
-    // through a `Color` round trip made this the dominant cost of rasterizing a vector atlas.
-    mtd clearAlpha(image: *Image)
+    // OpenGL does this with an alpha-masked `glClear` bounded by the scissor, which it narrows to
+    // the same range for the same reason: the scratch only has to start from zero where the batch
+    // can write, and zeroing the whole clipping rectangle instead costs its area once per batch
+    // and destroys alpha the batch never touches. The two backends narrow identically, so the
+    // alpha they leave behind stays comparable.
+    //
+    // The alpha byte is written in place: routing a single-channel reset through a `Color` round
+    // trip made this the dominant cost of rasterizing a vector atlas.
+    mtd clearAlpha(image: *Image, bounds: PixelBounds)
     {
         if !image.pixelFormat.hasAlpha() do
             return
 
-        let minX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
-        let minY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
-        let maxX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
-        let maxY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
+        let minX = Math.clamp(bounds.minX, 0, image.width)
+        let minY = Math.clamp(bounds.minY, 0, image.height)
+        let maxX = Math.clamp(bounds.maxX + 1, 0, image.width)
+        let maxY = Math.clamp(bounds.maxY + 1, 0, image.height)
 
         // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
         let pixels = image.pixels.buffer!
@@ -2088,7 +2107,9 @@ private impl RenderCpu
         if !image do
             return
 
-        .clearAlpha(image)
+        // The replay rebuilds the whole alpha plane rather than one batch's scratch, so it starts
+        // from the whole clipped region and not from any batch's bounds.
+        .clearAlpha(image, .clipBounds(image))
 
         // The clipping region is replayed with the geometry, so the alpha plane is carved by the
         // same clips the color plane was. That only reproduces the color pass from a region the

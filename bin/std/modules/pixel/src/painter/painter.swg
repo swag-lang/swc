@@ -201,7 +201,7 @@ struct Command
         using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
         {
             clear:          struct{ color: Color }
-            drawTriangles:  struct{ start: u32, count: u32 }
+            drawTriangles:  struct{ start: u32, count: u32, bbMin: Vector2, bbMax: Vector2 }
             transform:      struct{ tr: Transform2 }
             clippingRect:   struct{ rect: Math.Rectangle }
             clippingRegion: struct{ mode: ClippingMode = undefined }
@@ -680,13 +680,36 @@ impl Painter
         let cmd = .newCommand(.DrawTriangles)
         cmd.drawTriangles.start = cast(u32) .vertexBuffer.count
         cmd.drawTriangles.count = 0
+
+        // An empty batch starts inverted, so the first point it takes in becomes both bounds.
+        cmd.drawTriangles.bbMin = {Swag.F32.Max, Swag.F32.Max}
+        cmd.drawTriangles.bbMax = {-Swag.F32.Max, -Swag.F32.Max}
         return cmd
+    }
+
+    // Grows a batch's bounds to hold one more point, in the space its vertices are recorded in.
+    //
+    // The bounds are what lets a backend touch only the part of the target a batch can reach.
+    // The overlap-safe path is the one that needs them: it uses the destination alpha as a scratch
+    // channel and has to start that channel from zero, which without bounds means clearing the
+    // whole clipping rectangle once per batch — the cost of the window for the width of a stroke.
+    #[Swag.Safety(.All, false)]
+    private func expandBounds(cmd: *Command, pt: Vector2)
+    {
+        let bb = &cmd.drawTriangles
+        bb.bbMin.x = Math.min(bb.bbMin.x, pt.x)
+        bb.bbMin.y = Math.min(bb.bbMin.y, pt.y)
+        bb.bbMax.x = Math.max(bb.bbMax.x, pt.x)
+        bb.bbMax.y = Math.max(bb.bbMax.y, pt.y)
     }
 
     private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
+        expandBounds(cmd, p1)
+        expandBounds(cmd, p2)
+        expandBounds(cmd, p3)
 
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
@@ -711,6 +734,9 @@ impl Painter
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
+        expandBounds(cmd, p1)
+        expandBounds(cmd, p2)
+        expandBounds(cmd, p3)
 
         // 'uv' is unused by the non-text shaders (they derive their texture coordinates from the
         // boundRect / textureRect uniforms), but the vertex storage is reused from frame to frame,
@@ -743,6 +769,10 @@ impl Painter
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 6
+        expandBounds(cmd, innerA)
+        expandBounds(cmd, outerA)
+        expandBounds(cmd, innerB)
+        expandBounds(cmd, outerB)
 
         var ptr = .vertexBuffer.emplaceAddress(6)
         ptr.pos   = innerA

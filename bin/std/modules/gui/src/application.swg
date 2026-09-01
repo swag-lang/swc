@@ -142,6 +142,8 @@ struct Application
         maxRunFrame: u32
     }
 
+    frameTrace: FrameTrace           // Per-frame cost recorder, armed from the command line.
+
     statePath: String                // File used by [[saveState]] and [[loadState]].
     hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
 
@@ -640,6 +642,21 @@ private impl Application
     // on.
     internal mtd paintSurfaces()
     {
+        // A stress run measures what a complete repaint of a full-screen window costs, so it
+        // maximizes what it is about to measure and asks for a complete repaint every frame
+        // instead of depending on what the user happened to move.
+        if .frameTrace.stressing
+        {
+            for s in .surfaces
+            {
+                s.showMaximized()
+                if .frameTrace.boxSide > 0 do
+                    s.invalidateRect(.frameTrace.movingBox(s.size()))
+                    else do
+                        s.invalidate()
+            }
+        }
+
         for s in .surfaces do
             s.paint()
     }
@@ -647,6 +664,7 @@ private impl Application
     // Processes one complete input, event, paint, and frame-callback cycle.
     public mtd runFrame()
     {
+        .frameTrace.beginFrame()
         .timing.update()
         Memory.releaseTemporaryAllocations()
 
@@ -663,8 +681,15 @@ private impl Application
         .deletePointers()
 
         .sigFrame.call(me)
+        .frameTrace.endFrame()
 
         if .maxRunFrame and .timing.frameCount >= .maxRunFrame
+        {
+            .mustQuit = true
+            .quitCode = 0
+        }
+
+        if .frameTrace.isComplete()
         {
             .mustQuit = true
             .quitCode = 0
@@ -1479,6 +1504,8 @@ impl Application
         if !.maxRunFrame do
             .maxRunFrame = Env.smokeFrames()
 
+        .frameTrace.setup()
+
         for s in .surfaces
         {
             var evt = FrameEvent{}
@@ -1489,6 +1516,7 @@ impl Application
         while !.mustQuit do
             .runFrame()
 
+        .frameTrace.report()
         return .quitCode
     }
 

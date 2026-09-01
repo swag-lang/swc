@@ -686,11 +686,25 @@ as [app.capture.md](app.capture.md).
   wait is gone (`RenderOgl.endImpl`), and the same run now presents every picture of a 23.976-fps
   4K stream with 12 ms between two turns of the loop. What remains is adapter time, which limits
   how much else the window can do per second rather than stalling one thread.
-- Next step: the two full-clip passes are the render-target draw and the copy of that target to the
-  screen. Decide whether the copy can be avoided for a surface whose chrome has not changed, and
-  whether the clip should stay one rectangle: a short list of dirty rectangles, or painting each
-  dirty subtree under its own clip, would remove the coupling between two widgets that happen to be
-  far apart, which is the common shape for any animated widget beside a static one.
+- What the copy costs, measured directly (2026-09-01, release, Swag Capture on a maximized
+  3894x2142 window showing a 3894x2142 picture, the repaint driven by a moving 300 pixel box so
+  only 0.2 of the 8.34 megapixels is dirty): recording takes 0.3 ms and submitting the
+  render-target pass 0.1, while the present takes **3.1 ms of a 3.4 ms frame**. The copy is
+  `drawTexture(dstRect, dstRect, ...)` in `Surface.paintWnd`, which covers the whole surface
+  whatever the dirty rectangle was, so moving one widget copies the window.
+- Bounding that copy to the dirty region was tried and does not hold on its own: after
+  `SwapBuffers` the back buffer's content is undefined unless the granted pixel format names a
+  swap method, and the buffer only needs the last frame under `PFD_SWAP_COPY` or the last two
+  under `PFD_SWAP_EXCHANGE`. On the Intel Arc integrated adapter the granted format names
+  **neither**, including when `PFD_SWAP_COPY` is requested explicitly, so nothing may be assumed
+  and the bound stays inert. The machinery was removed rather than shipped unexercised.
+- Next step: get the copy out of the frame instead of bounding it. Either render the hierarchy
+  straight to the back buffer and keep the render target only for the surfaces that need
+  compositing, or find the per-drawable buffer age this platform will actually answer
+  (`DXGI` flip models expose it; WGL does not) before trusting a partial copy. Independently,
+  decide whether the clip should stay one rectangle: a short list of dirty rectangles, or painting
+  each dirty subtree under its own clip, would remove the coupling between two widgets that happen
+  to be far apart, which is the common shape for any animated widget beside a static one.
 
 ### std.gui.050 — A wall-clock budget makes the markdown stream's resident window load-dependent
 

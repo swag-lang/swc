@@ -81,6 +81,7 @@ struct Surface
     paintedWnds: u32     // Windows the last pass painted.
     skippedWnds: u32     // Windows the last pass rejected as unable to reach the repainted region.
 
+
     // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
     // the control the reader left rather than at the top of its traversal.
     //
@@ -402,6 +403,17 @@ impl Surface
         .dirtyRect   = {Swag.F32.Max, Swag.F32.Max, 0, 0}
         .isDirty     = false
 
+        var traceWatch: Time.Stopwatch
+        let tracing = .app.frameTrace.enabled
+        if tracing
+        {
+            traceWatch.restart()
+
+            // The counters belong to the built-in OpenGL renderer. An application drawing through
+            // another one leaves them at zero, which is what it painted through this path.
+            .app.rendererOgl.resetScratchCounters()
+        }
+
         with var cxt: PaintContext
         {
             .painter  = &me.painter
@@ -443,6 +455,17 @@ impl Surface
         .paintShadowOutsideBody()
         .painter.end()
 
+        var recordUs = 0'u64
+        var vertices = 0'u64
+        var batches  = 0'u64
+        if tracing
+        {
+            recordUs = traceWatch.elapsedMicroseconds()
+            vertices = .painter.vertexBuffer.count
+            batches  = .painter.commandBuffer.count
+            traceWatch.restart()
+        }
+
         // Paint to surface render target. The direct scissor works in physical
         // render-target pixels, unlike painter clip rectangles which stay logical.
         var physClip = clipRect
@@ -458,6 +481,13 @@ impl Surface
             .renderer.clear()
             .renderer.draw(&me.painter)
             .renderer.unbindRenderTarget()
+        }
+
+        var rtUs = 0'u64
+        if tracing
+        {
+            rtUs = traceWatch.elapsedMicroseconds()
+            traceWatch.restart()
         }
 
         // Paint render target to screen. This pass copies physical texels one to
@@ -484,11 +514,19 @@ impl Surface
         }
 
         let dstRect = Math.Rectangle{0, 0, cast(f32) .rc.width, cast(f32) .rc.height}
+
         .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, color)
         .painter.end()
 
         cxt.renderer.draw(&.painter)
         cxt.renderer.end()
+
+        if tracing
+        {
+            let area = cast(u64) (physClip.width * physClip.height)
+            .app.frameTrace.addSurface(recordUs, rtUs, traceWatch.elapsedMicroseconds(), area, vertices, batches)
+            .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)
+        }
     }
 
     // `width` and `height` are in physical pixels; the window tree receives the

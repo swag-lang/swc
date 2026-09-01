@@ -97,6 +97,15 @@ struct RenderOgl
         shaderResolve:  ShaderResolve     // Built-in supersampling-resolve shader.
         shaderFont:     ShaderFont        // Built-in bitmap-font shader.
         shaderFontMsdf: ShaderFont        // Built-in MSDF-font shader.
+
+        // Device pixels the overlap-safe path has cleared as alpha scratch, and what the same
+        // batches would have cleared had each been given the whole clipping rectangle.
+        //
+        // The pair is what makes the bound measurable from a single run: the second is the cost
+        // of the unbounded behaviour, on the very geometry the first was measured on. Reset them
+        // with [[Pixel.RenderOgl.resetScratchCounters]].
+        readonly scratchClearedPixels: u64
+        readonly scratchFullPixels:    u64
     }
 
     // The GPU objects and the state mirror of the context. Everything here belongs to the
@@ -106,6 +115,13 @@ struct RenderOgl
         using native:   NativeRenderOgl         // Platform-specific context operations.
         vertexbuffer:   GLuint                  // OpenGL streaming vertex buffer.
         worldTransform: Transform2              // Current painter world transform.
+
+        // The transform the model matrix was last built from, and the scissor currently in force,
+        // in device pixels from the top left. Both are what lets a draw narrow the region it
+        // touches to the geometry it is about to draw.
+        deviceTransform: Transform2
+        scissorBox:      Math.Rectangle
+        scissorOn:       bool
         orthoMatrix:    Matrix4x4               // Current surface projection matrix.
         modelMatrix:    Matrix4x4               // Current model matrix.
         whiteTexture:   GLuint                  // Built-in one-pixel white texture.
@@ -375,6 +391,10 @@ private impl RenderOgl
         if .contentScale != 1 do
             tr.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
 
+        // Vertices reach the screen through this, so a bound recorded in vertex space becomes a
+        // device rectangle through the same transform.
+        .deviceTransform = tr
+
         // Received matrix is in row major order, so transpose it
 
         // x
@@ -483,6 +503,12 @@ private impl RenderOgl
 
 impl RenderOgl
 {
+    // Resets the scratch-clear counters, so a caller measures a frame rather than a session.
+    mtd resetScratchCounters()
+    {
+        .scratchClearedPixels, .scratchFullPixels = 0
+    }
+
     // Reports whether the current context provides advanced blend equations.
     //
     // Call this after [[Pixel.IRenderer.init]]. A `false` result means
@@ -573,15 +599,94 @@ impl RenderOgl
     // Force the scissor
     internal mtd setScissorRectImpl(rect: Math.Rectangle)
     {
-        glEnable(GL_SCISSOR_TEST)
-        let {?, h} = .targetSizeImpl()
-        glScissor(cast(GLint) rect.x, cast(GLint) (h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
+        .applyScissor(rect)
     }
 
     // Reset the scissor
     internal mtd resetScissorRectImpl()
     {
+        .clearScissor()
+    }
+
+    // Restricts drawing to `rect`, in device pixels from the top left of the bound target.
+    //
+    // Every scissor change goes through here so the mirror the overlap-safe path narrows from
+    // says what OpenGL is actually clipping to.
+    private mtd applyScissor(rect: Math.Rectangle)
+    {
+        .scissorBox = rect
+        .scissorOn  = true
+        let {?, h}  = .targetSizeImpl()
+        glEnable(GL_SCISSOR_TEST)
+        glScissor(cast(GLint) rect.x, cast(GLint) (cast(f32) h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
+    }
+
+    // Lets drawing reach the whole bound target again.
+    private mtd clearScissor()
+    {
+        .scissorOn = false
         glDisable(GL_SCISSOR_TEST)
+    }
+
+    // Returns the whole bound target, in device pixels from its top left.
+    private mtd targetRect()->Math.Rectangle
+    {
+        let {w, h} = .targetSizeImpl()
+        return {0, 0, cast(f32) w, cast(f32) h}
+    }
+
+    // Adds one overlap-safe batch to the scratch-clear counters.
+    private mtd countScratchClear(bounded: Math.Rectangle, unbounded: Math.Rectangle)
+    {
+        .scratchClearedPixels += cast(u64) Math.max(bounded.width * bounded.height, 0.0'f32)
+        .scratchFullPixels    += cast(u64) Math.max(unbounded.width * unbounded.height, 0.0'f32)
+    }
+
+    // Narrows the scissor to what a batch bounded by `bbMin`/`bbMax` in vertex space can reach.
+    //
+    // Reports whether it changed anything, so a caller that has to put the previous scissor back
+    // knows whether it must. A batch whose bounds are empty — one that recorded no vertex — or
+    // that reaches outside the target on every side is left alone: there is nothing to gain, and
+    // an inverted rectangle would clip away geometry that must still be drawn.
+    private mtd narrowScissorToBatch(bbMin, bbMax: Math.Vector2)->bool
+    {
+        if bbMin.x > bbMax.x or bbMin.y > bbMax.y do
+            return false
+
+        var box = .deviceTransform.transformBounds({bbMin.x, bbMin.y, bbMax.x - bbMin.x, bbMax.y - bbMin.y})
+
+        // Grow to whole pixels, which is a superset of the pixels the batch can shade: a fragment
+        // is lit from its centre, and every centre inside the bound falls in this range. It is the
+        // rounding [[Pixel.RenderCpu.triangleRangeBounds]] uses, so both backends narrow to the
+        // same region and leave the same alpha behind.
+        let x0 = Math.floor(box.x)
+        let y0 = Math.floor(box.y)
+        let x1 = Math.ceil(box.right())
+        let y1 = Math.ceil(box.bottom())
+
+        let {w, h} = .targetSizeImpl()
+        var clip   = Math.Rectangle{0, 0, cast(f32) w, cast(f32) h}
+        if .scissorOn do
+            clip = .scissorBox
+
+        let nx0 = Math.max(x0, clip.x)
+        let ny0 = Math.max(y0, clip.y)
+        let nx1 = Math.min(x1, clip.right())
+        let ny1 = Math.min(y1, clip.bottom())
+
+        // Nothing of the batch survives the clip: keep the scissor as it is and let the two draw
+        // passes produce no fragment, rather than installing an empty rectangle the clear would
+        // read as the whole target on a backend that normalizes it.
+        if nx1 <= nx0 or ny1 <= ny0 do
+            return false
+
+        // Already at least as tight as what the bounds give: changing it would only cost two
+        // calls per batch.
+        if nx0 <= clip.x and ny0 <= clip.y and nx1 >= clip.right() and ny1 >= clip.bottom() do
+            return false
+
+        .applyScissor({nx0, ny0, nx1 - nx0, ny1 - ny0})
+        return true
     }
 
     internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
@@ -1128,17 +1233,15 @@ impl RenderOgl
             // submission started on: a stream that binds a layer part-way through keeps clipping,
             // and a layer is almost always shorter than the surface, so a stale height puts the
             // scissor entirely outside the framebuffer and drops every fragment of the layer.
-            let k         = .contentScale
-            let {?, curH} = .targetSizeImpl()
-            let x0        = Math.round(params.rect.x * k)
-            let y0        = Math.round(params.rect.y * k)
-            let x1        = Math.round(params.rect.right() * k)
-            let y1        = Math.round(params.rect.bottom() * k)
-            glEnable(GL_SCISSOR_TEST)
-            glScissor(cast(GLint) x0, cast(GLint) (cast(f32) curH - y1), cast(GLint) (x1 - x0), cast(GLint) (y1 - y0))
+            let k  = .contentScale
+            let x0 = Math.round(params.rect.x * k)
+            let y0 = Math.round(params.rect.y * k)
+            let x1 = Math.round(params.rect.right() * k)
+            let y1 = Math.round(params.rect.bottom() * k)
+            .applyScissor({x0, y0, x1 - x0, y1 - y0})
 
         case .ResetClippingRect:
-            glDisable(GL_SCISSOR_TEST)
+            .clearScissor()
 
         case .StartNoOverlap:
             .overlapMode = true
@@ -1172,6 +1275,17 @@ impl RenderOgl
             {
                 .prepareFramebufferTouch()
 
+                // The scratch channel only has to start from zero where this batch can write, so
+                // the clear is confined to the geometry rather than to the whole clipping
+                // rectangle. Unbounded it costs the area of the clip once per batch: a full-screen
+                // window painting a document of strokes clears several megapixels per stroke, and
+                // that, not the strokes, is what the adapter spends the frame on.
+                let savedOn   = .scissorOn
+                let savedBox  = .scissorBox
+                let unbounded = savedOn ? savedBox : .targetRect()
+                let narrowed  = .narrowScissorToBatch(params.bbMin, params.bbMax)
+                .countScratchClear(.scissorOn ? .scissorBox : .targetRect(), unbounded)
+
                 // Fresh start on alpha. Clear all
                 glDisable(GL_BLEND)
                 glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE)
@@ -1196,6 +1310,14 @@ impl RenderOgl
                 glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
                 glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
                 .setColorMask(.colorMask)
+
+                if narrowed
+                {
+                    if savedOn do
+                        .applyScissor(savedBox)
+                    else do
+                        .clearScissor()
+                }
             }
 
         case .StartFont:
@@ -1569,7 +1691,7 @@ impl RenderOgl
         .computeMatrices(curShader.mvp, curShader.mdl)
 
         // Default state
-        glDisable(GL_SCISSOR_TEST)
+        .clearScissor()
         glDisable(GL_STENCIL_TEST)
         glDisable(GL_DEPTH_TEST)
         glClearStencil(0)

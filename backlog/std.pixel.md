@@ -279,11 +279,12 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - What has since been taken out of the per-vertex cost, so the remaining number is honest: the
   fringe no longer reads its triangle back out of the vertex buffer to find which way to extrude
   (a stroke knows: it is the pen normal's two sides), and the two sides ask once for how far.
-  That halved recording without touching the geometry — 118 ms to 70 on the measurement above —
-  which puts it at about **18 ns per vertex, the rate this entry already predicted**. Recording is
-  therefore at its floor for this vertex count, and the count is the only lever left.
+  That took recording from 118 ms to about 75 without touching the geometry or a single pixel of
+  the result, which puts it at roughly **17 ns per vertex, the rate this entry already predicted**.
+  Recording is therefore at its floor for this vertex count, and the count is the only lever left.
 - Where the frame stands after that and the two OpenGL fixes (2026-09-01, same window and
-  document): 123 ms a frame, of which 83 is recording, 21 submitting and 18 the adapter. Cutting a
+  document): about 112 ms a frame, of which 75 is recording, 18 submitting and 18 the adapter.
+  Cutting a
   segment from eighteen vertices to six would take the whole frame to roughly 50, which a probe
   confirms: decimating five times more coarsely, which reaches a similar vertex count by throwing
   away fidelity instead, gives 64 ms and drops the adapter's share to 0.5.

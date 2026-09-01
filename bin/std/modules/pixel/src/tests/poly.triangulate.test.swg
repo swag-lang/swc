@@ -149,3 +149,49 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
         Swag.assert(triCount(pts[to]) == cast(u64) (total - 2))
     }
 }
+
+// Triangulates one closed ring twice: once through 'reused', which has already run, and once
+// through a tessellator that never has.
+func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Vector2)
+{
+    var poly: Pixel.Polygon
+    for pt in pts do
+        poly.add(pt)
+    poly.add(pts[0])
+    poly.recompute()
+
+    reused.addPolyLine(poly)
+    reused.triangulate()
+    let recycled = reused.takeResult()
+    reused.clear()
+
+    var fresh: Pixel.Poly2Tri.Tessellate
+    fresh.addPolyLine(poly)
+    fresh.triangulate()
+    let expected = fresh.takeResult()
+
+    Swag.assert(recycled.vertices.count == expected.vertices.count)
+    for index in recycled.vertices.count do
+        Swag.assert(recycled.vertices[index] == expected.vertices[index])
+}
+
+// One tessellator serves every fill of a frame, and it recycles its points, edges and triangles
+// from one tessellation to the next rather than returning them to the allocator. A recycled
+// object still carrying anything of the shape before it would corrupt the sweep, so a reused
+// tessellator has to answer exactly what a fresh one answers, run after run.
+#test
+{
+    let ngon   = makeNgon(100, 100, 60, 7)
+    var dart   = [Vector2{0, 0}, Vector2{50, 30}, Vector2{100, 0}, Vector2{50, 100}]
+    var lshape = [
+        Vector2{0, 0}, Vector2{60, 0}, Vector2{60, 20},
+        Vector2{20, 20}, Vector2{20, 60}, Vector2{0, 60}]
+
+    var reused: Pixel.Poly2Tri.Tessellate
+    for pass in 3
+    {
+        assertRecycledMatchesFresh(&reused, ngon[to])
+        assertRecycledMatchesFresh(&reused, dart)
+        assertRecycledMatchesFresh(&reused, lshape)
+    }
+}

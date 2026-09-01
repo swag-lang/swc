@@ -50,7 +50,7 @@ public struct Tessellate
         points:     Array'(*Point)        // Points of the input, in sweep order.
         triIndices: Array'u64             // Flat triples indexing 'points'.
 
-        nodes:     Array'(*Node)     // Node pool of the advancing front.
+        nodes: Array'(*Node)     // Node pool of the advancing front.
 
         // Objects returned by 'clear' and handed back out by the next tessellation.
         freeNodes:     Array'(*Node)
@@ -743,9 +743,6 @@ impl Tessellate
     // Clear content
     public mtd clear()
     {
-        let zzT0 = Core.Time.monotonicTicks()
-        defer zzAddP2TClear(Core.Time.monotonicTicks() - zzT0, .points.count, .triangles.count, .edges.count)
-
         Swag.init(&.basin, 1)
         Swag.init(&.edgeEvent, 1)
         .polyStart = 0

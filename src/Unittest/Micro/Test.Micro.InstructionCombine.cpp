@@ -6,6 +6,9 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -57,6 +60,61 @@ SWC_TEST_BEGIN(InstCombine_Identity_AddZero_Erased)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
     return Result::Continue;
+}
+SWC_TEST_END()
+
+// A scalar read from immutable constant storage consumes the address relocation
+// directly and advances both the host address and the native segment offset.
+SWC_TEST_BEGIN(InstCombine_ConstantAddressLoad_FoldsToRip)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    std::array source{
+        std::byte{0x10},
+        std::byte{0x20},
+        std::byte{0x30},
+        std::byte{0x40},
+        std::byte{0x50},
+        std::byte{0x60},
+        std::byte{0x70},
+        std::byte{0x80},
+    };
+    std::array           dims{source.size()};
+    const TypeRef        arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef    cstRef       = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span{source.data(), source.size()}));
+    const ConstantValue& constant     = ctx.cstMgr().get(cstRef);
+    const uint64_t       addressValue = reinterpret_cast<uint64_t>(constant.getArray().data());
+
+    DataSegmentRef sourceRef;
+    if (!ctx.cstMgr().resolveConstantDataSegmentRef(sourceRef, cstRef, constant.getArray().data()))
+        return Result::Error;
+
+    builder.emitLoadRegPtrReloc(address, addressValue, cstRef);
+    builder.emitLoadRegMem(value, address, 2, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    bool foundFoldedLoad = false;
+    for (const MicroRelocation& relocation : builder.codeRelocations())
+    {
+        const MicroInstr* inst = builder.instructions().ptr(relocation.instructionRef);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegMem)
+            continue;
+
+        const MicroInstrOperand* ops = inst->ops(builder.operands());
+        if (!ops || !ops[1].reg.isInstructionPointer() || ops[3].valueU64 != 0)
+            return Result::Error;
+        if (relocation.kind != MicroRelocation::Kind::ConstantAddress || relocation.form != MicroRelocation::Form::Relative32)
+            return Result::Error;
+        if (relocation.targetAddress != addressValue + 2 || relocation.constantShard != sourceRef.shardIndex || relocation.constantOffset != sourceRef.offset + 2)
+            return Result::Error;
+        foundFoldedLoad = true;
+    }
+
+    return foundFoldedLoad ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

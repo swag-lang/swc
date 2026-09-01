@@ -95,6 +95,7 @@ protected:
 
     explicit Encoder(TaskContext& ctx);
     virtual ~Encoder()                     = default;
+    virtual void     resetCode();
     virtual uint64_t currentOffset() const = 0;
 
     virtual void encodePush(MicroReg reg)                                                                                                                                                  = 0;

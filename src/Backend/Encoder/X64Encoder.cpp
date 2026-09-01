@@ -468,7 +468,7 @@ namespace
         store.pushU8(value);
     }
 
-    void emitRex(PagedStore& store, MicroOpBits opBits, MicroReg reg0 = {}, MicroReg reg1 = {})
+    void emitRex(PagedStore& store, MicroOpBits opBits, MicroReg reg0 = {}, MicroReg reg1 = {}, bool hasByteRegisterOperand = false)
     {
         if (opBits == MicroOpBits::B16)
             store.pushU8(0x66);
@@ -483,10 +483,11 @@ namespace
 
         const bool b1 = hasReg0 && isExtendedReg(x64Reg0);
         const bool b2 = hasReg1 && isExtendedReg(x64Reg1);
+        const bool needsByteRex = opBits == MicroOpBits::B8 || hasByteRegisterOperand;
         if (opBits == MicroOpBits::B64 ||
             b1 || b2 ||
-            (hasReg0 && needsRexForByteReg(x64Reg0)) ||
-            (hasReg1 && needsRexForByteReg(x64Reg1)))
+            (needsByteRex && hasReg0 && needsRexForByteReg(x64Reg0)) ||
+            (needsByteRex && hasReg1 && needsRexForByteReg(x64Reg1)))
         {
             const auto value = getRex(opBits == MicroOpBits::B64, b1, false, b2);
             store.pushU8(value);
@@ -1003,6 +1004,12 @@ X64Encoder::X64Encoder(TaskContext& ctx) :
     Encoder(ctx),
     unwind_(X64Unwind::create(ctx.compiler().cmdLine().targetOs))
 {
+}
+
+void X64Encoder::resetCode()
+{
+    Encoder::resetCode();
+    unwind_ = X64Unwind::create(ctx().compiler().cmdLine().targetOs);
 }
 
 void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
@@ -1717,7 +1724,7 @@ void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, Mi
 
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B16 || numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        emitRex(store_, numBitsDst, regDst, regSrc);
+        emitRex(store_, numBitsDst, regDst, regSrc, true);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB6);
         emitModRm(store_, regDst, regSrc);
@@ -1779,7 +1786,7 @@ void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, 
 
     if (numBitsSrc == MicroOpBits::B8)
     {
-        emitRex(store_, numBitsDst, regDst, regSrc);
+        emitRex(store_, numBitsDst, regDst, regSrc, true);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xBE);
         emitModRm(store_, regDst, regSrc);

@@ -38,10 +38,7 @@ private:
     uint32_t allocationSize_   = 0;
     uint32_t unwindInfoOffset_ = 0;
     uint32_t unwindInfoSize_   = 0;
-    // Copies of the constants read by RIP-relative loads, laid out right after
-    // the code so the displacement always fits. The originals live in the
-    // compiler's own heap, which VirtualAlloc gives no reason to sit within
-    // two gigabytes of executable memory.
+    // Nearby fallback thunks for relative calls whose final target lies outside rel32 reach.
     uint32_t constantIslandOffset_ = 0;
     uint32_t constantIslandSize_   = 0;
     void*    hostRuntimeFunction_  = nullptr;

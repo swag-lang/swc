@@ -10,8 +10,8 @@
 
 // Final emission pass: converts legalized micro instructions to machine code.
 //
-// This pass does not optimize — it materializes final bytes. It runs in two
-// stages over the instruction stream:
+// This pass materializes final bytes and relaxes local branches. Each layout
+// runs in two stages over the instruction stream:
 //
 //   1. Forward emission. Each MicroInstr is dispatched to the matching
 //      Encoder::encodeXxx routine. Two side tables are populated as we go:
@@ -25,7 +25,10 @@
 //      within two gigabytes of one another.
 //
 //   2. Branch patching. Now that every Label has a concrete offset, walk the
-//      pending jump list and patch each placeholder displacement.
+//      pending jump list and patch each placeholder displacement. A rel32 jump
+//      that fits rel8 is marked short and the layout is repeated. Shrinking can
+//      only bring intervening targets closer, so this monotonic process ends
+//      with the smallest valid encoding for every local branch.
 //
 // Debug info source ranges are attached during stage 1 whenever an instruction
 // carries valid debug metadata.
@@ -84,12 +87,14 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         {
             // Emit jump with placeholder displacement; patch after all labels are seen.
             MicroJump jump;
-            encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
+            const MicroOpBits jumpBits = shortJumps_.contains(instructionRef) ? MicroOpBits::B8 : ops[1].opBits;
+            encoder.encodeJump(jump, ops[0].cpuCond, jumpBits);
             jump.valid = true;
             SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<uint32_t>::max());
             PendingLabelJump pendingJump;
-            pendingJump.jump     = jump;
-            pendingJump.labelRef = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64));
+            pendingJump.jump           = jump;
+            pendingJump.instructionRef = instructionRef;
+            pendingJump.labelRef       = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64));
             pendingLabelJumps_.push_back(pendingJump);
             break;
         }
@@ -114,13 +119,15 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
 
             MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
             const uint32_t   loadStart  = encoder.size();
-            if (relocation.kind == MicroRelocation::Kind::GlobalZeroAddress || relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            if ((relocation.kind == MicroRelocation::Kind::ConstantAddress && relocation.hasConstantSource()) ||
+                relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
+                relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
             {
-                // Native images keep globals next to code, and the JIT puts
-                // mutable segments in its proximity arena. LEA [RIP+rel32]
-                // therefore materializes the exact pointer in both paths with
-                // three fewer instruction bytes and no base relocation. It is
-                // one ordinary integer uop, just like MOVABS.
+                // Native images keep segment-backed constants and globals next to code, and
+                // the JIT puts those segments in its proximity arena. LEA [RIP+rel32]
+                // therefore materializes the exact pointer in both paths with three fewer
+                // instruction bytes and no base relocation. Constant-wrapped host pointers
+                // have no segment source and must retain their absolute form.
                 relocation.form = MicroRelocation::Form::Relative32;
                 encoder.encodeLoadAddressRegMem(ops[0].reg, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
                 bindRel32RelocationOffset(context, instructionRef, loadStart, encoder.size());
@@ -381,14 +388,8 @@ Result MicroEmitPass::run(MicroPassContext& context)
     auto&       encoder     = *(context.encoder);
     const auto& relocations = context.builder->codeRelocations();
 
-    // The unwind builder has to tell the frame register from the other copies of
-    // the stack pointer a prologue makes, and only the calling convention knows
-    // which one that is.
-    encoder.setUnwindFrameRegister(CallConv::get(context.callConvKind).framePointer);
-
-    labelOffsets_.clear();
-    pendingLabelJumps_.clear();
     relocationByInstructionRef_.clear();
+    shortJumps_.clear();
     (context.builder)->pruneDeadRelocations();
 
     // Build instruction->relocation lookup once so LoadRegPtrReloc can bind encoded offsets.
@@ -400,21 +401,46 @@ Result MicroEmitPass::run(MicroPassContext& context)
         relocationByInstructionRef_[reloc.instructionRef] = idx;
     }
 
-    // Single forward pass emits bytes and accumulates unresolved label jumps.
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    for (;;)
     {
-        encodeInstruction(context, it.current, *it);
-    }
+        encoder.resetCode();
 
-    // Second pass patches all label-relative branches now that offsets are known.
-    for (const auto& pending : pendingLabelJumps_)
-    {
-        const auto it = labelOffsets_.find(pending.labelRef);
-        SWC_ASSERT(it != labelOffsets_.end());
-        if (it == labelOffsets_.end())
-            continue;
+        // The unwind builder has to tell the frame register from the other copies of
+        // the stack pointer a prologue makes, and only the calling convention knows
+        // which one that is.
+        encoder.setUnwindFrameRegister(CallConv::get(context.callConvKind).framePointer);
 
-        encoder.encodePatchJump(pending.jump, it->second);
+        labelOffsets_.clear();
+        pendingLabelJumps_.clear();
+
+        // Emit with the short branches already proved by the preceding layout.
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+            encodeInstruction(context, it.current, *it);
+
+        bool foundShorterJump = false;
+        for (const auto& pending : pendingLabelJumps_)
+        {
+            const auto it = labelOffsets_.find(pending.labelRef);
+            SWC_ASSERT(it != labelOffsets_.end());
+            if (it == labelOffsets_.end())
+                continue;
+
+            encoder.encodePatchJump(pending.jump, it->second);
+
+            if (pending.jump.opBits == MicroOpBits::B8)
+                continue;
+
+            const int64_t displacement = static_cast<int64_t>(it->second) - static_cast<int64_t>(pending.jump.offsetStart);
+            if (displacement < std::numeric_limits<int8_t>::min() || displacement > std::numeric_limits<int8_t>::max())
+                continue;
+
+            foundShorterJump |= shortJumps_.insert(pending.instructionRef).second;
+        }
+
+        // Shrinking a branch can only bring every intervening target closer. Repeat until
+        // no remaining rel32 branch fits rel8; the last layout is the emitted one.
+        if (!foundShorterJump)
+            break;
     }
 
     return Result::Continue;

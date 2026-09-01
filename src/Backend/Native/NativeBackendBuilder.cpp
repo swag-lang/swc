@@ -431,6 +431,59 @@ namespace
         return changed;
     }
 
+    void appendExecutableRoot(std::vector<SymbolFunction*>& functions, SymbolFunction* function)
+    {
+        if (function)
+            functions.push_back(function);
+    }
+
+    void appendExecutableRoots(std::vector<SymbolFunction*>& functions, const std::span<SymbolFunction* const> roots)
+    {
+        for (SymbolFunction* function : roots)
+            appendExecutableRoot(functions, function);
+    }
+
+    // An executable has a closed set of entry points. Start from those roots and let the existing
+    // call/constant dependency walk retain everything they can reach instead of treating every
+    // semantically completed function as an entry point. Besides removing ordinary unused code,
+    // this is particularly important for large implicit operators that a type must declare for
+    // language correctness but that the program never calls.
+    std::vector<SymbolFunction*> collectExecutableFunctionRoots(NativeBackendBuilder& builder)
+    {
+        std::vector<SymbolFunction*> functions;
+        appendExecutableRoots(functions, builder.testFunctions);
+        appendExecutableRoots(functions, builder.initFunctions);
+        appendExecutableRoots(functions, builder.preMainFunctions);
+        appendExecutableRoots(functions, builder.dropFunctions);
+        appendExecutableRoots(functions, builder.mainFunctions);
+
+        CompilerInstance& compiler = builder.compiler();
+        const auto appendRuntimeRoot = [&](const IdentifierManager::RuntimeFunctionKind kind) {
+            const IdentifierRef idRef = builder.ctx().idMgr().runtimeFunction(kind);
+            appendExecutableRoot(functions, idRef.isValid() ? compiler.runtimeFunctionSymbol(idRef) : nullptr);
+        };
+
+        appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+        appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
+        if (!builder.testFunctions.empty())
+        {
+            appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::RunTest);
+            appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::TestsDone);
+        }
+
+        // A statically initialized function value is reached from writable data rather than from
+        // an instruction or a read-only constant. Keep each such target as an independent root.
+        for (const DataSegmentRelocation& relocation : compiler.globalInitSegment().copyRelocations())
+        {
+            if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
+                appendExecutableRoot(functions, const_cast<SymbolFunction*>(relocation.targetSymbol));
+        }
+
+        appendExecutableRoots(functions, compiler.nativeGlobalFunctionInitTargetsSnapshot());
+        filterPreparedSymbols(functions, builder);
+        return functions;
+    }
+
     void rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
     {
         builder.functionInfos.clear();
@@ -945,8 +998,25 @@ Result NativeBackendBuilder::prepare()
         const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions);
         if (!addedCallDeps && !addedConstantDeps)
         {
+            // Preparing native code also serves the JIT, which must keep the complete lowered
+            // segment available. Restrict only the final executable function table after every
+            // function has therefore been lowered successfully.
+            if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+            {
+                auto executableFunctions = collectExecutableFunctionRoots(*this);
+                while (true)
+                {
+                    const bool addedCallDeps     = appendCodeGenDependencies(*this, executableFunctions);
+                    const bool addedConstantDeps = appendConstantFunctionDependencies(*this, executableFunctions);
+                    if (!addedCallDeps && !addedConstantDeps)
+                        break;
+                }
+                SymbolSort::sortAndUniqueByLocation(executableFunctions, *compiler_);
+                rebuildFunctionInfos(*this, executableFunctions);
+            }
+
             if (microStage)
-                microStage->setStat(ScopedTimedLog::formatStatCount(ctx_, functions.size(), "function"));
+                microStage->setStat(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
             return Result::Continue;
         }
     }

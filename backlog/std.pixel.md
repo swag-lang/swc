@@ -255,6 +255,28 @@ output, path measurement and effects, and the modern renderer choice tracked by
   state their approximation and fill behavior and no caller reimplements flattening.
 - Related: std.pixel.008, std.pixel.009
 
+### std.pixel.020 — A stroke segment costs about thirty-five vertices
+
+- Evidence: a stroked polyline pays, per segment, a quad (six vertices), a fringe band on each of
+  its two long edges (twelve), and a join carrying two fringes of its own (eighteen). A stroker
+  that derives coverage in the fragment shader spends four to six. Recording is therefore bound by
+  vertex emission, measured at fifteen to twenty nanoseconds per vertex and two to four times that
+  once the working set leaves cache: a 1724 by 15036 SVG holding 250 000 stroke points records 2.5
+  million vertices and about 110 ms of CPU for one full-document paint, strokes accounting for over
+  90 % of it. Viewport rejection and the minified level of detail already removed a factor of five
+  to three hundred depending on zoom; this is the density that remains for the content genuinely on
+  screen.
+- The fringe is what to attack: `addEdgeAA` emits a whole quad per silhouette edge because the
+  shaders read coverage from a vertex attribute. A stroke program given the segment and the half
+  width, deriving coverage from the fragment's distance to the centre line, collapses a segment to
+  its two triangles and removes the joins with it.
+- Next: prototype a distance-based stroke program in `RenderCpu` and the OpenGL backend behind an
+  opt-in painter flag, and pin the two against each other with `render.parity.test.swg` before it
+  becomes the default.
+- Complete when: an antialiased stroke emits a constant small number of vertices per segment, both
+  backends agree on the result, and the painter recording goldens move once, deliberately.
+- Related: std.pixel.008
+
 ---
 
 ## Out of scope

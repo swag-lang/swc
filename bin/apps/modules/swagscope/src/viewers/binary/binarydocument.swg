@@ -84,6 +84,10 @@ impl BinaryDocument
 
         Debug.assert(.report.level == 0, "a format reader left a group open")
         .prependFileSummary()
+
+        // Reports and previews own everything they retain. Keep the mapping for offset-driven
+        // inspection, but stop charging the complete scanned prefix to the process working set.
+        File.MappedRegion.releasePages(.image.bytes)
         return true
     }
 

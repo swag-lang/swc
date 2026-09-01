@@ -380,6 +380,22 @@ impl ImageView
         .zoomToFit()
     }
 
+    // Takes an image's pixel storage and fits it to the viewport.
+    //
+    // `image` is left empty. Use this after a one-shot decode when the caller has no reason to
+    // retain a second pixel buffer; use [[Gui.ImageView.setImage]] when the caller keeps its own
+    // independent image.
+    mtd takeImage(image: *Image)
+    {
+        .clear()
+        if !image.isValid() do
+            return
+
+        .image           = #move image[]
+        .uploadedTexture = .app().renderer.addImage(.image)
+        .zoomToFit()
+    }
+
     // Updates a still image while reusing its renderer texture and viewing position.
     //
     // `image` is borrowed for the call and its pixels are copied. When its dimensions or pixel

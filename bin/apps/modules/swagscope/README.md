@@ -63,10 +63,11 @@ alternative instead of guessing an encoding.
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. Source files
   are capped at 32 MiB; larger tables retain the bounded streamed basic-text alternative.
-- `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
-  parser. Its centered lower group provides sibling navigation, orientation commands, and GIF
-  playback. The clickable information-band percentage provides zoom presets, fit, and actual
-  size while also reporting temporary orientation.
+- `Image` maps encoded raster and SVG input read-only, so decoding does not first allocate a
+  second file-sized heap buffer. It uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF,
+  and WebP, plus Pixel's SVG parser. Its centered lower group provides sibling navigation,
+  orientation commands, and GIF playback. The clickable information-band percentage provides zoom
+  presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
   mute, volume, and matching keyboard controls. It indexes packets without decoding the file up
@@ -75,9 +76,10 @@ alternative instead of guessing an encoding.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
   sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
   E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, with a selector when several are
-  present. The
-  output-device sample cursor is the master clock: slow picture decoding drops to a clean video
-  sync frame without moving or stretching sound.
+  present. The decoded run-ahead targets a 64 MiB budget, with a two-picture floor for
+  high-resolution streams.
+  The output-device sample cursor is the master clock: slow picture decoding drops to a clean
+  video sync frame without moving or stretching sound.
 - `Sound` uses the Audio module to stream WAV (PCM, float, and ADPCM), FLAC, MP3, AAC, AC-3, E-AC-3, DTS,
   Ogg Vorbis, and Opus files. Its transport provides the same
   basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
@@ -98,10 +100,12 @@ alternative instead of guessing an encoding.
   browsers without a second rendering path. The master-detail surface keeps the archive tree and
   the viewed content visible together, so archive navigation does not require global document tabs.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
-  meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
-  RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
-  still receive signature, size, and entropy analysis. Shared search indexes every decoded report
-  column and reveals folded matches by outlining only the matching text. A compact centered lower
+  meaning. Its bounded 64 MiB prefix is read through a mapping and scanned pages are released from
+  the process working set once the owned report is built. It recognizes Windows images, COFF and
+  `ar` libraries, ELF, Mach-O, WebAssembly, ZIP, RIFF, Standard MIDI Files, sfnt fonts, Windows
+  icons, and Swag Chunk Containers. Unknown files still receive signature, size, and entropy
+  analysis. Shared search indexes every decoded report column and reveals folded matches by
+  outlining only the matching text. A compact centered lower
   group walks visited rows backward or forward and opens the structure-command menu for copying,
   expansion, collapse, and file-offset navigation.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are

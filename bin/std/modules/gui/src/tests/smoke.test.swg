@@ -63,6 +63,22 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.surface.dirtyRect == Math.Rectangle{0, 0, 320, 180})
 }
 
+// A native update region is expressed in physical client pixels. Rounding both logical edges
+// outward preserves every covered device pixel on fractional-scale monitors.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    host.surface.setDpiScaleRaw(1.5)
+    host.surface.isDirty = false
+    host.surface.invalidatePhysicalRect({3, 6, 4, 5})
+
+    Swag.assert(host.surface.isDirty)
+    Swag.assert(host.surface.dirtyRect == Math.Rectangle{2, 4, 3, 4})
+}
+
 #test
 {
     var host: Testing.HeadlessHost

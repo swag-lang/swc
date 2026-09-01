@@ -770,6 +770,17 @@ func videoMatroskaFixturePath()->String
     }
 }
 
+// Decoded run-ahead is sized by bytes: ordinary video keeps useful depth, while 4K pictures do
+// not multiply into a triple-digit-megabyte queue. Seeking never waits for more slots than exist.
+#test
+{
+    Swag.assert(videoPrefetchSlotCount(1920, 1080, true) == 12)
+    Swag.assert(videoPrefetchSlotCount(3840, 2160, true) == 5)
+    Swag.assert(videoPrefetchSlotCount(3840, 2160, false) == 2)
+    Swag.assert(videoRebufferPictureCount(2) == 2)
+    Swag.assert(videoRebufferPictureCount(8) == 4)
+}
+
 // Falling behind jumps to a clean sync picture. The wait overlay remains visible until that
 // picture is available, so a decoder below playback speed reports its actual state.
 #test

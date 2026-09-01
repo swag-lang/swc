@@ -370,12 +370,27 @@ private const VideoRebufferPictures = 4'u64
 // which at 4K is well over a hundred milliseconds. The queue exists to cover exactly that gap,
 // so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
 // gets a deeper one for the same memory.
-private const VideoPrefetchBytes = 128 * 1024 * 1024'u64
-private const VideoPrefetchMax   = 12'u64
-private const VideoPrefetchMin   = 2'u64
+internal const VideoPrefetchBytes = 64 * 1024 * 1024'u64
+private const VideoPrefetchMax    = 12'u64
+private const VideoPrefetchMin    = 2'u64
 
 // Names the absence of a queue slot.
 private const VideoNoSlot = Swag.U32.Max
+
+// Returns the decoded-picture count that fits the run-ahead budget.
+internal func videoPrefetchSlotCount(width, height: s32, planar: bool)->u32
+{
+    let bytes = cast(u64) width * cast(u64) height * (planar ? 3 : 6) / 2
+    var count = bytes ? VideoPrefetchBytes / bytes : VideoPrefetchMax
+    count = Math.clamp(count, VideoPrefetchMin, VideoPrefetchMax)
+    return cast(u32) count
+}
+
+// Returns the queue depth required after a seek without exceeding the available slots.
+internal func videoRebufferPictureCount(slotCount: u32)->u64
+{
+    return Math.min(VideoRebufferPictures, cast(u64) slotCount)
+}
 
 func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
 {
@@ -1138,14 +1153,10 @@ internal impl VideoViewer
     {
         // A planar picture costs half of what the packed one would, so the same budget buys twice
         // the run-ahead on exactly the streams whose key pictures are the most expensive.
-        let bytes = cast(u64) .video.width() * cast(u64) .video.height() * (.planar ? 3 : 6) / 2
-        var count = bytes ? VideoPrefetchBytes / bytes : cast(u64) VideoPrefetchMax
-        count = Math.clamp(count, cast(u64) VideoPrefetchMin, cast(u64) VideoPrefetchMax)
-
-        .slotCount = cast(u32) count
-        .slots.resize(count)
+        .slotCount = videoPrefetchSlotCount(.video.width(), .video.height(), .planar)
+        .slots.resize(.slotCount)
         .freeSlots.clear()
-        for index in count do
+        for index in .slotCount do
             .freeSlots.add(cast(u32) index)
     }
 
@@ -1554,7 +1565,7 @@ internal impl VideoViewer
             }
 
             // The end of the stream is the one place where the queue never reaches the mark.
-            if depth < VideoRebufferPictures and more do
+            if depth < videoRebufferPictureCount(.slotCount) and more do
                 return
             .resumeAudio()
         }

@@ -52,8 +52,12 @@ struct ImageViewerContent
 // need pixels — a thumbnail, an export, a comparison against a decoded picture.
 internal func loadViewerImage(fileName: string)->Image fail
 {
-    if Path.lowercaseExtension(fileName) != ".svg" do
-        return try Image.load(fileName)
+    if Path.lowercaseExtension(fileName) != ".svg"
+    {
+        var file   = try File.MappedFile.open(fileName)
+        let region = try file.mapAll()
+        return try Image.decode(fileName, region.bytes())
+    }
 
     let drawing = try loadViewerDrawing(fileName)
     let largest = Math.max(drawing.width, drawing.height)
@@ -65,8 +69,9 @@ internal func loadViewerImage(fileName: string)->Image fail
 
 internal func loadViewerDrawing(fileName: string)->Svg.Drawing fail
 {
-    let source = try File.readAllText(fileName)
-    return try Svg.Drawing.parse(source.toString())
+    var file   = try File.MappedFile.open(fileName)
+    let region = try file.mapAll()
+    return try Svg.Drawing.parse(cast(string) region.bytes())
 }
 
 private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
@@ -292,7 +297,7 @@ private impl IWnd for ImageViewer
         elif content.drawing.width > 0 and content.drawing.height > 0 do
             .imageView.setDrawing(#move content.drawing)
         else do
-            .imageView.setImage(content.image)
+            .imageView.takeImage(&content.image)
 
         .details = #move content.details
         .refreshZoom()

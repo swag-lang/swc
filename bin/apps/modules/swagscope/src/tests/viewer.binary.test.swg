@@ -744,6 +744,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.assert(doc.open(fileName.toString()))
     Swag.assert(doc.kind == .Unknown)
     Swag.assert(doc.report.formatName == "PNG image")
+    Swag.assert(doc.image.region.isOpen() and doc.image.bytes.count == bytes.count)
 
     // A run of zeros carries no information at all, and the reading says so.
     let entropy = findRow(&doc.report, binStrings().rep_Entropy)

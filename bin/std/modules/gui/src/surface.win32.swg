@@ -3,6 +3,7 @@
 
 #foreignlib("dwmapi")
 #foreignlib("gdi32")
+#foreignlib("user32")
 using Core, Win32
 
 // Region and flags the compositor blurs behind a window, and reads its alpha through.
@@ -40,6 +41,18 @@ private #[Swag.Foreign("gdi32", callconv: Swag.CallConv.C)]
 
     // Releases a GDI object.
     func DeleteObject(ho: #null *void)->BOOL
+}
+
+private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
+{
+    // Starts a low-priority window timer used to pace interactive resize frames.
+    func SetTimer(hWnd: HWND, nIDEvent: u64, uElapse: UINT, lpTimerFunc: #null *void)->u64
+
+    // Stops a window timer.
+    func KillTimer(hWnd: HWND, uIDEvent: u64)->BOOL
+
+    // Removes a native update region after an equivalent frame was presented directly.
+    func ValidateRect(hWnd: HWND, lpRect: #null const *RECT)->BOOL
 }
 
 // Defines dwmwa window corner preference.
@@ -87,6 +100,15 @@ private const HTBOTTOMLEFT = 16
 // Defines htbottomright.
 private const HTBOTTOMRIGHT = 17
 
+// Window-local timer used to coalesce the size messages emitted by a native border drag.
+private const SurfaceResizeTimerId = 1'u64
+
+// Live resize is presented at display cadence instead of once per mouse message.
+private const SurfaceResizeInterval = 16'u32
+
+// WM_SIZE state emitted when a native window has no drawable client area.
+private const SizeMinimized = 1'u64
+
 // Dependency-visible Windows storage embedded by `Surface`.
 #[Swag.Opaque, Swag.NoDoc]
 #[Swag.NoCopy]
@@ -105,6 +127,11 @@ struct NativeSurface
         // without adopting the OS-suggested rectangle (which assumes an old-DPI size).
         inAppPlacement: bool
 
+        interactiveSizing: bool           // Whether the desktop currently owns a border-drag loop.
+        resizeTimerActive: bool           // Whether the live-resize pacing timer is installed.
+        resizePending:     bool           // Whether `pendingResizeSize` has not reached the tree.
+        pendingResizeSize: Math.Point     // Latest physical client size received during the drag.
+
         dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
         dropTargetActive: bool                  // Whether that target is registered with OLE.
     }
@@ -112,6 +139,52 @@ struct NativeSurface
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
 private const TrayIconID = 1
+
+private impl Surface
+{
+    // Starts the desktop-owned border-drag phase. A window timer remains responsive inside that
+    // nested loop and has lower priority than its stream of mouse messages, so it naturally
+    // coalesces obsolete intermediate sizes.
+    mtd beginInteractiveSizing()
+    {
+        .interactiveSizing = true
+        if !.resizeTimerActive do
+            .resizeTimerActive = SetTimer(.hWnd, SurfaceResizeTimerId, SurfaceResizeInterval, null) != 0
+    }
+
+    // Keeps only the newest physical client size until the next live-resize frame.
+    mtd queueInteractiveResize(width, height: f32)
+    {
+        .pendingResizeSize = {width, height}
+        .resizePending     = true
+    }
+
+    // Applies the newest queued size and reports whether the tree changed.
+    mtd flushInteractiveResize()->bool
+    {
+        if !.resizePending do
+            return false
+
+        .resizePending = false
+        .sendResizeEvent(.pendingResizeSize.x, .pendingResizeSize.y)
+        return true
+    }
+
+    // Publishes the exact final geometry before returning control to the application loop.
+    mtd endInteractiveSizing()
+    {
+        .interactiveSizing = false
+        if .resizeTimerActive
+        {
+            discard KillTimer(.hWnd, SurfaceResizeTimerId)
+            .resizeTimerActive = false
+        }
+
+        if .flushInteractiveResize() do
+            .paint()
+        discard ValidateRect(.hWnd, null)
+    }
+}
 
 private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
 {
@@ -167,6 +240,12 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCDESTROY:
+            if surface.resizeTimerActive
+            {
+                discard KillTimer(hWnd, SurfaceResizeTimerId)
+                surface.resizeTimerActive = false
+            }
+
             SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0)
             break
 
@@ -266,9 +345,36 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         case WM_PAINT:
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
-            surface.invalidate()
-            surface.paint()
+
+            // During a border drag the timer owns presentation. Validating this native request
+            // keeps WM_PAINT from spinning between two timer ticks; the latest WM_SIZE remains
+            // queued and the timer paints it as one internally consistent frame.
+            if !surface.interactiveSizing or !surface.resizeTimerActive
+            {
+                if surface.interactiveSizing do
+                    discard surface.flushInteractiveResize()
+                surface.invalidatePhysicalRect({cast(f32) ps.rcPaint.left, cast(f32) ps.rcPaint.top, cast(f32) (ps.rcPaint.right - ps.rcPaint.left), cast(f32) (ps.rcPaint.bottom - ps.rcPaint.top)})
+                surface.paint()
+            }
+
             EndPaint(hWnd, &ps)
+            return 0
+
+        case WM_ENTERSIZEMOVE:
+            surface.beginInteractiveSizing()
+            return 0
+
+        case WM_EXITSIZEMOVE:
+            surface.endInteractiveSizing()
+            return 0
+
+        case WM_TIMER where wParam == SurfaceResizeTimerId and surface.interactiveSizing:
+            if surface.flushInteractiveResize()
+            {
+                surface.paint()
+                discard ValidateRect(hWnd, null)
+            }
+
             return 0
 
         case WM_WINDOWPOSCHANGING:
@@ -342,7 +448,26 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             surface.position.y = GET_Y_LPARAM(lParam)
 
         case WM_SIZE:
-            surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
+
+            // A minimized client has no drawable geometry. Keeping the last arranged tree avoids
+            // a useless collapse to zero followed by a full expansion on restore.
+            if wParam == SizeMinimized do
+                return 0
+
+            let width  = cast(f32) LOWORD(lParam)
+            let height = cast(f32) HIWORD(lParam)
+            if surface.interactiveSizing
+            {
+                surface.queueInteractiveResize(width, height)
+                if !surface.resizeTimerActive
+                {
+                    discard surface.flushInteractiveResize()
+                    surface.invalidate()
+                }
+            }
+            else do
+                surface.sendResizeEvent(width, height)
+            return 0
 
         case WM_SYSCOMMAND:
             switch wParam & 0xFFF0

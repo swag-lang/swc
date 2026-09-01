@@ -1816,7 +1816,11 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     }
 
     if (changed)
+    {
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
         context.passChanged = true;
+    }
 
     return Result::Continue;
 }

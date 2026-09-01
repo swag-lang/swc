@@ -113,6 +113,25 @@ using Swag, Core, Pixel
     Swag.assert(view.image.width == 120)
 }
 
+// A one-shot decode can hand its storage to the view without allocating a second pixel buffer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    defer host.shutdown()
+
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
+    var image = Image.create(100, 50, .RGBA8)
+    image.fill(Argb.Red)
+    let pixels = image.pixels.buffer
+
+    view.takeImage(&image)
+
+    Swag.assert(!image.isValid())
+    Swag.assert(view.image.pixels.buffer == pixels)
+    Swag.assert(view.uploadedTexture.isValid() and view.isFitted)
+}
+
 // Rotation and reflection are paint-time view operations: the source keeps its dimensions and
 // bytes while the asymmetric pattern proves that the composed transform reaches the renderer.
 #[Swag.TestTag("golden")]

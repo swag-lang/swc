@@ -267,38 +267,17 @@ const MicroControlFlowGraph& MicroBuilder::controlFlowGraph()
 {
     const uint64_t storageRevision = instructions_.revision();
     if (hasControlFlowGraph_ && controlFlowGraphStorageRevision_ == storageRevision)
-    {
-        if (!controlFlowGraphMaybeDirty_)
-            return controlFlowGraph_;
-
-        const uint64_t hash = MicroControlFlowGraph::computeHash(instructions_, operands_);
-
-        if (hash == controlFlowGraphHash_)
-        {
-            controlFlowGraphMaybeDirty_ = false;
-            return controlFlowGraph_;
-        }
-    }
+        return controlFlowGraph_;
 
     controlFlowGraph_.build(instructions_, operands_);
     controlFlowGraphStorageRevision_ = storageRevision;
-    controlFlowGraphHash_            = MicroControlFlowGraph::computeHash(instructions_, operands_);
-
-    hasControlFlowGraph_        = true;
-    controlFlowGraphMaybeDirty_ = false;
+    hasControlFlowGraph_             = true;
     return controlFlowGraph_;
 }
 
 void MicroBuilder::invalidateControlFlowGraph()
 {
-    hasControlFlowGraph_        = false;
-    controlFlowGraphMaybeDirty_ = false;
-}
-
-void MicroBuilder::markControlFlowGraphMaybeDirty()
-{
-    if (hasControlFlowGraph_)
-        controlFlowGraphMaybeDirty_ = true;
+    hasControlFlowGraph_ = false;
 }
 
 void MicroBuilder::emitPush(MicroReg reg)
@@ -975,9 +954,7 @@ void MicroBuilder::releaseMemory()
     preservedVirtualCopyRegs_        = {};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
-    controlFlowGraphHash_            = 0;
     hasControlFlowGraph_             = false;
-    controlFlowGraphMaybeDirty_      = false;
 }
 
 SWC_END_NAMESPACE();

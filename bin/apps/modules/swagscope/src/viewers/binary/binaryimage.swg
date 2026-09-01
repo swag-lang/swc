@@ -14,13 +14,15 @@ const BinaryLoadLimit = 64 * 1024 * 1024'u64
 // No read here fails. A field that runs past what was loaded reads as zero and raises
 // [[BinaryImage.truncated]], so a malformed or bounded file still produces a report that names
 // every structure it reached rather than stopping at the first bad offset.
+#[Swag.NoCopy]
 struct BinaryImage
 {
-    fileSize:      u64          // Size the file system reports.
-    bytes:         Array'u8     // Loaded prefix, at most `BinaryLoadLimit` bytes.
-    bigEndian:     bool         // Byte order every multi-byte read uses; a parser sets it once.
-    truncated:     bool         // Whether a read asked for bytes the prefix does not hold.
-    failureReason: String       // File-system explanation when loading stops before any byte is available.
+    fileSize:      u64                                        // Size the file system reports.
+    region:        File.MappedRegion                          // Read-only mapping that owns `bytes`.
+    bytes:         const [..] u8 = cast(const [..] u8) ""     // Mapped prefix, at most `BinaryLoadLimit` bytes.
+    bigEndian:     bool                                       // Byte order every multi-byte read uses; a parser sets it once.
+    truncated:     bool                                       // Whether a read asked for bytes the prefix does not hold.
+    failureReason: String                                     // File-system explanation when loading stops before any byte is available.
 }
 
 impl BinaryImage
@@ -28,21 +30,20 @@ impl BinaryImage
     // Loads the beginning of `fileName` and reports whether anything could be read.
     mtd load(fileName: string)->bool
     {
-        .bytes.clear()
+        .bytes = cast(const [..] u8) ""
+        .region.close()
         .fileSize  = 0
         .truncated = false
         .failureReason.clear()
 
-        var stream = catch File.openRead(fileName) as openError
+        var file = catch File.MappedFile.open(fileName) as openError
         if openError != null
         {
             .failureReason = Errors.message(openError)
             return false
         }
 
-        defer stream.close()
-
-        let size = catch stream.size() as sizeError
+        let size = catch file.size() as sizeError
         if sizeError != null
         {
             .failureReason = Errors.message(sizeError)
@@ -51,19 +52,14 @@ impl BinaryImage
 
         .fileSize = size
 
-        .bytes.resize(Math.min(size, BinaryLoadLimit))
-        if .bytes.isEmpty() do
-            return true
-
-        let read = catch stream.read(.bytes.toSlice()) as readError
-        if readError != null
+        .region = catch file.map(0, Math.min(size, BinaryLoadLimit)) as mapError
+        if mapError != null
         {
-            .failureReason = Errors.message(readError)
-            .bytes.clear()
+            .failureReason = Errors.message(mapError)
             return false
         }
 
-        .bytes.resize(read)
+        .bytes = .region.bytes()
         return true
     }
 
@@ -91,8 +87,8 @@ impl BinaryImage
     mtd const slice(offset, count: u64)->const [..] u8
     {
         if !.has(offset, count) do
-            return .bytes.toSlice()[0 until 0]
-        return .bytes.toSlice()[offset until offset + count]
+            return .bytes[0 until 0]
+        return .bytes[offset until offset + count]
     }
 
     // Assembles `size` bytes at `offset` in the image byte order.

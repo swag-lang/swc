@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.SinkToUse.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -24,6 +25,33 @@ namespace
     // materialize-everything-then-compute runs a block is emitted as; a bound
     // keeps the barrier scans linear in practice.
     constexpr uint32_t K_MAX_SINK_DISTANCE = 96;
+
+    struct RegCounts
+    {
+        uint32_t definitions  = 0;
+        uint32_t uses         = 0;
+        uint32_t onlyUseIndex = 0;
+    };
+
+    struct Move
+    {
+        MicroInstrRef                  ref;
+        MicroInstrRef                  beforeRef;
+        MicroInstrOpcode               op = MicroInstrOpcode::Nop;
+        SmallVector<MicroInstrOperand> ops;
+    };
+
+    struct SinkScratch
+    {
+        std::vector<uint32_t>        blockIds;
+        MicroDenseRegIndex           virtualRegs;
+        std::vector<RegCounts>       regCounts;
+        std::unordered_set<uint32_t> relocationRefs;
+        std::vector<Move>            moves;
+        std::unordered_set<uint32_t> movedRefs;
+    };
+
+    thread_local SinkScratch sinkScratch;
 
     bool instructionReadsMemory(const MicroInstr& inst)
     {
@@ -85,10 +113,11 @@ namespace
             return false;
 
         const auto instrRefs = cfg.instructionRefs();
+        auto&      scratch   = sinkScratch;
 
         // Block ids from the linear listing: a label opens a block, a
         // terminator closes one.
-        std::vector<uint32_t> blockId(n, 0);
+        scratch.blockIds.assign(n, 0);
         {
             uint32_t current   = 0;
             bool     openBlock = true;
@@ -103,7 +132,7 @@ namespace
                     ++current;
                     openBlock = true;
                 }
-                blockId[i] = current;
+                scratch.blockIds[i] = current;
                 if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     openBlock = false;
             }
@@ -111,9 +140,10 @@ namespace
 
         // Whole-function def and use counts per virtual register, and the one
         // use's position when there is exactly one.
-        std::unordered_map<MicroReg, uint32_t> defCount;
-        std::unordered_map<MicroReg, uint32_t> useCount;
-        std::unordered_map<MicroReg, uint32_t> onlyUseIndex;
+        scratch.virtualRegs.clear();
+        scratch.virtualRegs.reserve(n / 2);
+        scratch.regCounts.clear();
+        scratch.regCounts.reserve(n / 2);
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
@@ -121,53 +151,59 @@ namespace
                 return false;
             for (const MicroReg def : useDef->defs)
             {
-                if (def.isVirtual())
-                    ++defCount[def];
+                if (!def.isVirtual())
+                    continue;
+
+                const uint32_t denseIndex = scratch.virtualRegs.ensure(def);
+                if (denseIndex == scratch.regCounts.size())
+                    scratch.regCounts.emplace_back();
+                ++scratch.regCounts[denseIndex].definitions;
             }
             for (const MicroReg used : useDef->uses)
             {
                 if (!used.isVirtual())
                     continue;
-                ++useCount[used];
-                onlyUseIndex[used] = i;
+
+                const uint32_t denseIndex = scratch.virtualRegs.ensure(used);
+                if (denseIndex == scratch.regCounts.size())
+                    scratch.regCounts.emplace_back();
+                ++scratch.regCounts[denseIndex].uses;
+                scratch.regCounts[denseIndex].onlyUseIndex = i;
             }
         }
 
-        std::unordered_set<uint32_t> relocRefs;
+        scratch.relocationRefs.clear();
         for (const MicroRelocation& reloc : context.builder->codeRelocations())
         {
             if (reloc.instructionRef.isValid())
-                relocRefs.insert(reloc.instructionRef.get());
+                scratch.relocationRefs.insert(reloc.instructionRef.get());
         }
 
-        struct Move
-        {
-            MicroInstrRef                  ref;
-            MicroInstrRef                  beforeRef;
-            MicroInstrOpcode               op = MicroInstrOpcode::Nop;
-            SmallVector<MicroInstrOperand> ops;
-        };
-        std::vector<Move>            moves;
-        std::unordered_set<uint32_t> movedRefs;
+        scratch.moves.clear();
+        scratch.movedRefs.clear();
 
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
-            if (!inst || relocRefs.contains(instrRefs[i].get()))
+            if (!inst || scratch.relocationRefs.contains(instrRefs[i].get()))
                 continue;
 
             const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
             if (!useDef || !isSinkableDefinition(*inst, *useDef))
                 continue;
 
-            const MicroReg value = useDef->defs[0];
-            if (defCount[value] != 1 || useCount[value] != 1)
+            const MicroReg value           = useDef->defs[0];
+            const uint32_t valueDenseIndex = scratch.virtualRegs.find(value);
+            if (valueDenseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
+                continue;
+            const RegCounts& valueCounts = scratch.regCounts[valueDenseIndex];
+            if (valueCounts.definitions != 1 || valueCounts.uses != 1)
                 continue;
 
-            const uint32_t useIdx = onlyUseIndex[value];
+            const uint32_t useIdx = valueCounts.onlyUseIndex;
             if (useIdx <= i + 1 || useIdx - i > K_MAX_SINK_DISTANCE)
                 continue;
-            if (blockId[useIdx] != blockId[i])
+            if (scratch.blockIds[useIdx] != scratch.blockIds[i])
                 continue;
 
             // Nothing between the definition and its consumer may redefine
@@ -208,11 +244,12 @@ namespace
                         blocked = blocked || def == used;
                 }
 
-                const bool feedsSameConsumer = betweenUseDef->defs.size() == 1 &&
-                                               betweenUseDef->defs[0].isVirtual() &&
-                                               defCount[betweenUseDef->defs[0]] == 1 &&
-                                               useCount[betweenUseDef->defs[0]] == 1 &&
-                                               onlyUseIndex[betweenUseDef->defs[0]] == useIdx;
+                const MicroReg betweenDef      = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
+                const uint32_t betweenDenseIdx = scratch.virtualRegs.find(betweenDef);
+                const bool feedsSameConsumer   = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
+                                               scratch.regCounts[betweenDenseIdx].definitions == 1 &&
+                                               scratch.regCounts[betweenDenseIdx].uses == 1 &&
+                                               scratch.regCounts[betweenDenseIdx].onlyUseIndex == useIdx;
                 meaningfulGap = meaningfulGap || !feedsSameConsumer;
             }
             if (blocked || !meaningfulGap)
@@ -220,7 +257,7 @@ namespace
 
             // A consumer that is itself moved this round loses its slot; its
             // producer sinks on the next round instead.
-            if (movedRefs.contains(instrRefs[useIdx].get()))
+            if (scratch.movedRefs.contains(instrRefs[useIdx].get()))
                 continue;
 
             const MicroInstrOperand* ops = inst->ops(operands);
@@ -230,14 +267,14 @@ namespace
             move.op        = inst->op;
             if (ops && inst->numOperands)
                 move.ops.assign(ops, ops + inst->numOperands);
-            movedRefs.insert(instrRefs[i].get());
-            moves.push_back(std::move(move));
+            scratch.movedRefs.insert(instrRefs[i].get());
+            scratch.moves.push_back(std::move(move));
         }
 
-        if (moves.empty())
+        if (scratch.moves.empty())
             return false;
 
-        for (const Move& move : moves)
+        for (const Move& move : scratch.moves)
         {
             storage.insertDerivedBefore(operands, move.beforeRef, move.op, move.ops);
             storage.erase(move.ref);

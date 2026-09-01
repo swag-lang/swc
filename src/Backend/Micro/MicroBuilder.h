@@ -91,7 +91,6 @@ public:
     uint32_t                                                   nextVirtualIntRegIndexHint() const;
     const MicroControlFlowGraph&                               controlFlowGraph();
     void                                                       invalidateControlFlowGraph();
-    void                                                       markControlFlowGraphMaybeDirty();
 
     Result        runPasses(Encoder* encoder, MicroPassContext& context);
     Result        runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
@@ -177,9 +176,7 @@ private:
     std::unordered_set<MicroReg>                        preservedVirtualCopyRegs_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;
-    uint64_t                                            controlFlowGraphHash_            = 0;
     bool                                                hasControlFlowGraph_             = false;
-    bool                                                controlFlowGraphMaybeDirty_      = false;
 };
 
 SWC_END_NAMESPACE();

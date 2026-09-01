@@ -325,6 +325,20 @@ impl Surface
         .dirtyRect.setBottom(Math.max(b, rect.bottom()))
     }
 
+    // Adds a physical client-pixel rectangle to the logical repaint region.
+    //
+    // Native paint regions use device pixels while the window tree uses logical units. Both
+    // edges are rounded out so a fractional-scale monitor never leaves the last device pixel of
+    // an exposed strip stale.
+    internal mtd invalidatePhysicalRect(rect: Math.Rectangle)
+    {
+        let left   = Math.floor(rect.x / .dpiScale)
+        let top    = Math.floor(rect.y / .dpiScale)
+        let right  = Math.ceil(rect.right() / .dpiScale)
+        let bottom = Math.ceil(rect.bottom() / .dpiScale)
+        .invalidateRect({left, top, right - left, bottom - top})
+    }
+
     // Centers this surface over `from` without changing its size.
     mtd center(from: *Surface)
     {

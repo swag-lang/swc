@@ -1681,9 +1681,14 @@ impl RenderOgl
         // GL_STREAM_DRAW (write once, draw once) instead of GL_STATIC_DRAW. Orphan
         // the previous storage first so the driver can hand back fresh memory rather
         // than blocking until the in-flight draw releases the old buffer.
+        //
+        // The orphan is what the null does; the fill is a sub-data write into the storage it
+        // just handed back. Filling with a second 'glBufferData' would allocate the whole
+        // buffer a second time instead, which on a document of strokes is tens of megabytes
+        // of driver allocation per frame for nothing.
         let byteSize = dc.vertexBuffer.count * #sizeof(VertexLayout)
         glBufferData(GL_ARRAY_BUFFER, byteSize, null, GL_STREAM_DRAW)
-        glBufferData(GL_ARRAY_BUFFER, byteSize, dc.vertexBuffer.buffer, GL_STREAM_DRAW)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, byteSize, dc.vertexBuffer.buffer)
 
         // Default shader
         .setShader(&.shaderAA)

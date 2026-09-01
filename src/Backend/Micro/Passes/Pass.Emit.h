@@ -16,6 +16,7 @@ private:
     struct PendingLabelJump
     {
         MicroJump     jump;
+        MicroInstrRef instructionRef;
         MicroLabelRef labelRef = MicroLabelRef::invalid();
     };
 
@@ -26,6 +27,7 @@ private:
     std::unordered_map<MicroLabelRef, uint64_t> labelOffsets_;
     std::vector<PendingLabelJump>               pendingLabelJumps_;
     std::unordered_map<MicroInstrRef, uint32_t> relocationByInstructionRef_;
+    std::unordered_set<MicroInstrRef>           shortJumps_;
 };
 
 SWC_END_NAMESPACE();

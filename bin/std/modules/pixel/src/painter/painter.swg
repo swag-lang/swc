@@ -856,29 +856,24 @@ impl Painter
     //
     // `addEdgeAA` derives that side by reading the triangle back out of the vertex buffer and
     // comparing the edge against its centroid. A stroke does not need to be told: the quad it
-    // just emitted has the pen normal for its two long edges, one on each side. Skipping the
-    // derivation removes three vertex loads out of a buffer that is tens of megabytes on a
-    // document of strokes, and it is that walk, rather than the arithmetic, that the recording
+    // just emitted puts the pen normal on one side of each of its two long edges. Skipping the
+    // derivation removes three vertex loads per band out of a buffer that is tens of megabytes on
+    // a document of strokes, and it is that walk, rather than the arithmetic, that the recording
     // was spending its time on.
     //
-    // `outward` is the unit direction the fringe extrudes toward, and must be perpendicular to
-    // the edge for the band to sit square on it.
+    // The band itself is built from the edge, exactly as `addEdgeAA` builds it, so the geometry
+    // is the same to the bit: `flip` only replaces the comparison that would have chosen the
+    // same direction.
     #[Swag.Safety(.All, false)]
-    private mtd addEdgeAAOutward(p, q, outward: Vector2, color: u32)
+    private mtd addEdgeAAFlipped(p, q: Vector2, flip: bool, color: u32)
     {
-        .pushFringeQuad(p - outward, p + outward, q - outward, q + outward, color)
-    }
+        var n = Vector2{q.y - p.y, p.x - q.x}
+        n.normalizeOrZero()
+        if flip do
+            n = -n
 
-    // Returns how far a fringe extrudes along `normal`, which the two sides of a stroke share.
-    //
-    // The width depends on the transformed length of the direction, and negating a direction
-    // negates each of its transformed components exactly, so both sides of a stroke get the same
-    // answer and only one of them has to ask for it.
-    private mtd strokeFringeOffset(normal: Vector2)->Vector2
-    {
-        var unit = normal
-        unit.normalizeOrZero()
-        return unit * .aaHalfPathSpace(unit)
+        let off = n * .aaHalfPathSpace(n)
+        .pushFringeQuad(p - off, p + off, q - off, q + off, color)
     }
 
     #[Swag.Inline]

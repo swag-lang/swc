@@ -115,19 +115,27 @@ fixing a root cause that is already safe and in scope.
 Every backlog entry carries a stable, file-scoped identifier in its heading:
 
 ```
-### <family>.<what>.NNN — A short, descriptive title
+### <scope>[.<subscope>...].NNN — A short, descriptive title
 ```
 
 The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
 another backlog entry, in a code comment. A title, position, or next action can change; the
 identifier does not.
 
-- Derive the prefix from the domain file name without `.md`: `std.gui.md` owns `std.gui.*`.
+- Fully scope every domain file from its broadest real owner to its most specific domain. Use as
+  many dot-separated segments as clarity requires, but never invent an ownership level: the whole
+  `std/truetype` module is `std.truetype`; general `std/pixel` work is `std.pixel` while its
+  image-specific decoder and encoder work is `std.pixel.image`; the HTML subsystem inside `std/gui`
+  is `std.gui.html`; and the MIDI viewer inside Swag Scope is `app.scope.midi`.
+- Derive the prefix from the complete domain file name without `.md`:
+  `app.scope.midi.md` owns `app.scope.midi.*`.
 - Use exactly three digits. Allocate one more than the greatest suffix ever used in that file;
   deleted suffixes remain retired. The README is an index and contract, not a counter registry.
 - Never renumber or reuse an identifier while an entry remains in its file. If an entry moves to a
   different domain, allocate the destination file's next suffix and update every live reference
   and Markdown fragment in the same change.
+- When the domain itself is renamed, preserve its numeric suffixes, change every identifier prefix
+  with the file, and update every live reference and Markdown fragment in the same change.
 - Position expresses expected value where entries are comparable. Put an untriaged lead at the end
   of the closest relevant section until its priority is understood, then move it without changing
   its identifier.
@@ -140,9 +148,9 @@ The whole backlog lives in [backlog/](../../../backlog/) — nowhere else. Each 
 that keeps evidence, open decisions, and committed outcomes together. Read
 [backlog/README.md](../../../backlog/README.md) for the inventory and entry format.
 
-- `backlog/compiler.core.md`, `compiler.optimization.md`, `compiler.safety.md`, `std.gui.md`,
-  and their peers are split by the domain where the issue will be investigated or fixed, not by
-  the task that noticed it.
+- `backlog/compiler.command.doc.md`, `compiler.optimization.md`, `std.gui.html.md`,
+  `app.scope.midi.md`, and their peers are split by the domain where the issue will be
+  investigated or fixed, not by the task that noticed it.
 - `backlog/platform.portability.md` is the cross-domain exception: every operating-system backend, product
   port, target integration, and Windows-bound contract that must be made portable lives there.
 - Evidence and intent are properties of an entry, not different storage classes. Use `Next:` to

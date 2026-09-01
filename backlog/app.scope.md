@@ -5,16 +5,16 @@ management, viewer hosting, and persisted application state. Operating-system in
 in [platform.portability.md](platform.portability.md). Work
 owned by a viewer lives in the corresponding domain:
 
-- [scope.viewers.md](scope.viewers.md) — shared viewer contracts, coverage, and product scope
-- [scope.text.md](scope.text.md) — basic text, code, subtitle, table, diff, and log viewers
-- [scope.document.md](scope.document.md) — Markdown, HTML, PDF, office-document, and ebook viewers
-- [scope.binary.md](scope.binary.md) — structured binary and container viewer
-- [scope.hexa.md](scope.hexa.md) — hexadecimal viewer
-- [scope.image.md](scope.image.md) — image viewer
-- [scope.audio.md](scope.audio.md) — sound viewer
-- [scope.video.md](scope.video.md) — video viewer
-- [scope.font.md](scope.font.md) — font viewer
-- [scope.midi.md](scope.midi.md) — MIDI viewer
+- [app.scope.viewers.md](app.scope.viewers.md) — shared viewer contracts, coverage, and product scope
+- [app.scope.text.md](app.scope.text.md) — basic text, code, subtitle, table, diff, and log viewers
+- [app.scope.document.md](app.scope.document.md) — Markdown, HTML, PDF, office-document, and ebook viewers
+- [app.scope.binary.md](app.scope.binary.md) — structured binary and container viewer
+- [app.scope.hexa.md](app.scope.hexa.md) — hexadecimal viewer
+- [app.scope.image.md](app.scope.image.md) — image viewer
+- [app.scope.audio.md](app.scope.audio.md) — sound viewer
+- [app.scope.video.md](app.scope.video.md) — video viewer
+- [app.scope.font.md](app.scope.font.md) — font viewer
+- [app.scope.midi.md](app.scope.midi.md) — MIDI viewer
 
 Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
 ordered by expected product value, not implementation effort.
@@ -30,7 +30,7 @@ ordered by expected product value, not implementation effort.
   second document in the same window, and no side-by-side comparison of two files.
 - Complete when: a running instance is reused, documents open as tabs, and two documents can be
   shown side by side.
-- Related: std.gui.029, scope.hexa.003 in [scope.hexa.md](scope.hexa.md)
+- Related: std.gui.029, app.scope.hexa.003 in [app.scope.hexa.md](app.scope.hexa.md)
 
 ## Window hosting
 

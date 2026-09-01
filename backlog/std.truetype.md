@@ -37,23 +37,23 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier A — Font containers and outlines
 
-### font.truetype.001 — WOFF containers are rejected
+### std.truetype.001 — WOFF containers are rejected
 
 Add WOFF decompression over the existing face parser using `Core`'s zlib support.
 
-- Related: font.truetype.002
+- Related: std.truetype.002
 
-### font.truetype.002 — WOFF2 containers are rejected
+### std.truetype.002 — WOFF2 containers are rejected
 
 Add WOFF2 reconstruction and Brotli decompression as a separate format implementation.
 
-- Related: font.truetype.001
+- Related: std.truetype.001
 
 ---
 
 ## Tier B — Glyph substitution
 
-### font.truetype.003 — No GSUB single-substitution processing
+### std.truetype.003 — No GSUB single-substitution processing
 
 - `GPOS` is read for pair adjustment only and there is no `GSUB` processing. Implement
   single-substitution lookups first, with unsupported lookup kinds reported or documented.
@@ -61,87 +61,87 @@ Add WOFF2 reconstruction and Brotli decompression as a separate format implement
   definitions in both formats, value-record decoding, and extension-lookup resolution. Every one of
   those is needed by the rest of `GPOS` and by `GSUB`, so shaping starts from the lookup navigation
   rather than from the bytes.
-- Related: font.truetype.008, font.truetype.004, font.truetype.005, font.truetype.006, font.truetype.007
+- Related: std.truetype.008, std.truetype.004, std.truetype.005, std.truetype.006, std.truetype.007
 
-### font.truetype.004 — No GSUB multiple-substitution processing
+### std.truetype.004 — No GSUB multiple-substitution processing
 
 Implement multiple-substitution lookups independently of the single-substitution path.
 
-- Related: font.truetype.003
+- Related: std.truetype.003
 
-### font.truetype.005 — No GSUB alternate-substitution processing
+### std.truetype.005 — No GSUB alternate-substitution processing
 
 Implement alternate selection with an explicit feature/user-choice contract.
 
-- Related: font.truetype.003
+- Related: std.truetype.003
 
-### font.truetype.006 — No GSUB ligature-substitution processing
+### std.truetype.006 — No GSUB ligature-substitution processing
 
 Implement ligature substitution for declared features such as `liga`, including cluster mapping.
 
-- Related: font.truetype.003
+- Related: std.truetype.003
 
-### font.truetype.007 — No GSUB contextual-substitution processing
+### std.truetype.007 — No GSUB contextual-substitution processing
 
 Implement contextual and chaining-context application over the other supported substitution
 lookups.
 
-- Related: font.truetype.003, font.truetype.004, font.truetype.005, font.truetype.006
+- Related: std.truetype.003, std.truetype.004, std.truetype.005, std.truetype.006
 
-### font.truetype.008 — Shaping has no decided module boundary
+### std.truetype.008 — Shaping has no decided module boundary
 
 Decide whether shaping stays in `truetype` or becomes a separate module above face parsing. Record
 the ownership and dependency rule before the shaping API expands.
 
-- Related: font.truetype.003, font.truetype.009, font.truetype.012
+- Related: std.truetype.003, std.truetype.009, std.truetype.012
 
 ## Tier B — Mark positioning
 
-### font.truetype.009 — Combining marks ignore GPOS attachment
+### std.truetype.009 — Combining marks ignore GPOS attachment
 
 Implement mark-to-base positioning so combining accents use the base glyph's anchors.
 
-- Related: font.truetype.003, font.truetype.010, font.truetype.011
+- Related: std.truetype.003, std.truetype.010, std.truetype.011
 
-### font.truetype.010 — No GPOS mark-to-ligature attachment
+### std.truetype.010 — No GPOS mark-to-ligature attachment
 
 Position marks against the selected component anchors of a ligature glyph.
 
-- Related: font.truetype.009, font.truetype.006
+- Related: std.truetype.009, std.truetype.006
 
-### font.truetype.011 — No GPOS mark-to-mark attachment
+### std.truetype.011 — No GPOS mark-to-mark attachment
 
 Position one combining mark relative to another independently of base and ligature attachment.
 
-- Related: font.truetype.009
+- Related: std.truetype.009
 
 ## Tier B — Script shaping
 
-### font.truetype.012 — Arabic text is not shaped
+### std.truetype.012 — Arabic text is not shaped
 
 Implement Arabic joining forms, direction-aware cluster processing, and required feature
 application end to end.
 
-- Related: font.truetype.003, font.truetype.009, font.truetype.013, font.truetype.014
+- Related: std.truetype.003, std.truetype.009, std.truetype.013, std.truetype.014
 
-### font.truetype.013 — Indic text is not shaped
+### std.truetype.013 — Indic text is not shaped
 
 Implement one explicitly named Indic shaping model, reordering, conjunct formation, and required
 features as its own script-support deliverable.
 
-- Related: font.truetype.003, font.truetype.009
+- Related: std.truetype.003, std.truetype.009
 
-### font.truetype.014 — Thai marks are not shaped
+### std.truetype.014 — Thai marks are not shaped
 
 Implement Thai mark ordering and positioning independently of Arabic and Indic support.
 
-- Related: font.truetype.009
+- Related: std.truetype.009
 
 ---
 
 ## Tier C — Variable and color fonts
 
-### font.truetype.015 — Variable fonts
+### std.truetype.015 — Variable fonts
 
 - No `fvar`, `gvar`, `avar` or `HVAR`. A variable font loads only at its default instance, so a
   single file that should provide a whole weight and width range provides one static face.
@@ -149,42 +149,42 @@ Implement Thai mark ordering and positioning independently of Arabic and Indic s
   rather than an exotic feature. CFF2 variation data is part of this entry; the CFF1 charstring
   support already in the module is only its static foundation.
 
-### font.truetype.016 — No COLR/CPAL layered color glyphs
+### std.truetype.016 — No COLR/CPAL layered color glyphs
 
 - `COLR` version 0 is the cheapest useful subset: layered glyph references with a palette, which
   the existing outline pipeline can already draw.
 - The `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves the emoji and
   text presentation selectors. What is missing is a glyph to draw for the emoji one.
-- Related: font.truetype.017, font.truetype.018, font.truetype.019
+- Related: std.truetype.017, std.truetype.018, std.truetype.019
 
-### font.truetype.017 — No `sbix` color bitmap strikes
+### std.truetype.017 — No `sbix` color bitmap strikes
 
 Decode and select `sbix` strikes independently of layered COLR glyphs.
 
-- Related: font.truetype.016, font.truetype.018
+- Related: std.truetype.016, std.truetype.018
 
-### font.truetype.018 — No CBDT/CBLC color bitmap strikes
+### std.truetype.018 — No CBDT/CBLC color bitmap strikes
 
 Decode and select CBDT/CBLC strikes independently of Apple's `sbix` container.
 
-- Related: font.truetype.016, font.truetype.017
+- Related: std.truetype.016, std.truetype.017
 
-### font.truetype.019 — No SVG glyph table
+### std.truetype.019 — No SVG glyph table
 
 Parse and render the OpenType SVG table through Pixel's SVG support, with explicit recursion and
 resource limits.
 
-- Related: font.truetype.016, pixel.image.008
+- Related: std.truetype.016, std.pixel.image.008
 
 ## Tier C — Writing direction and hinting
 
-### font.truetype.020 — Vertical writing
+### std.truetype.020 — Vertical writing
 
 - No `vhea` or `vmtx`. Vertical CJK layout has no metrics to work from.
 - Small and well-bounded: the two tables mirror `hhea` and `hmtx`, which `parseFace` and
   `buildGlyphMetrics` already read, run-length compression included.
 
-### font.truetype.021 — TrueType bytecode hinting
+### std.truetype.021 — TrueType bytecode hinting
 
 - `Face.hintVertical` is a vertical hinting heuristic, not the TrueType interpreter — `fpgm`,
   `prep` and `cvt ` are not executed.

@@ -1,23 +1,23 @@
 # Swag Scope Document Viewer Backlog
 
 This backlog covers Swag Scope's Markdown, HTML, PDF, office-document, and ebook reading surfaces.
-Parser, layout, and renderer defects remain with their engines in [gui.markdown.md](gui.markdown.md),
-[gui.html.md](gui.html.md), and [gui.pdf.md](gui.pdf.md); entries here own navigation, inspection, and application
+Parser, layout, and renderer defects remain with their engines in [std.gui.markdown.md](std.gui.markdown.md),
+[std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
 ## Markdown reading
 
-### scope.document.001 — Markdown has no document outline or heading breadcrumbs
+### app.scope.document.001 — Markdown has no document outline or heading breadcrumbs
 
 - Evidence: the viewer offers reading width and appearance, while heading hierarchy is only part of
-  the rendered page. `Gui.Markdown.View` navigation work is already gui.markdown.005, but Swag Scope has no
+  the rendered page. `Gui.Markdown.View` navigation work is already std.gui.markdown.005, but Swag Scope has no
   outline panel, filter, visible-section tracking, or heading history to present it.
-- Next: define the viewer-side outline model and wire it to engine heading anchors as gui.markdown.005 lands.
+- Next: define the viewer-side outline model and wire it to engine heading anchors as std.gui.markdown.005 lands.
 - Complete when: headings form a filterable hierarchy, activating one reveals it, the current path
   follows scrolling, duplicate headings remain distinct, and keyboard navigation is complete.
-- Related: gui.markdown.005
+- Related: std.gui.markdown.005
 
-### scope.document.002 — Markdown cannot switch between rendered, source, and synchronized split views
+### app.scope.document.002 — Markdown cannot switch between rendered, source, and synchronized split views
 
 - Evidence: the Markdown and Basic text viewers are separate choices with independent scroll and
   selection. There is no one-command source inspection or mapping from a rendered block to its
@@ -27,31 +27,31 @@ integration around those engines.
 - Complete when: Rendered, Source, and Split modes preserve the nearest block, scroll can
   synchronize in either direction, search results map across modes, and large files stay streamed.
 
-### scope.document.003 — Markdown links and resources have no trust or diagnostics surface
+### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
 
 - Evidence: links can activate and images depend on engine work, but the viewer does not list local
   and remote targets, broken anchors, missing images, blocked schemes, or resources outside the
-  document directory. The engine's gui.markdown.006 and preview security policy remain undecided.
+  document directory. The engine's std.gui.markdown.006 and preview security policy remain undecided.
 - Next: inventory every parsed target and classify resolution, availability, scheme, and trust
   without fetching remote content implicitly.
 - Complete when: a resource panel links each target to source and rendered content, broken local
   references are explained, remote access requires explicit policy, and blocked content remains
   visible as a diagnostic.
-- Related: gui.markdown.001, gui.markdown.006
+- Related: std.gui.markdown.001, std.gui.markdown.006
 
-### scope.document.004 — Markdown reading position and presentation cannot be shared or exported
+### app.scope.document.004 — Markdown reading position and presentation cannot be shared or exported
 
 - Evidence: a reader cannot copy a stable link to a heading, export the rendered document, or save
   the active theme/measure as a self-contained reading artifact. Reopening also loses position.
 - Next: define stable heading/block locators and a read-only export contract for HTML and paginated
   output after the shared print path exists.
-- Complete when: a logical reading position restores through scope.viewers.003, heading links can be copied,
-  self-contained HTML preserves safe local assets, and paginated output uses scope.viewers.002.
-- Related: scope.viewers.003, scope.viewers.002
+- Complete when: a logical reading position restores through app.scope.viewers.003, heading links can be copied,
+  self-contained HTML preserves safe local assets, and paginated output uses app.scope.viewers.002.
+- Related: app.scope.viewers.003, app.scope.viewers.002
 
 ## HTML reading
 
-### scope.document.005 — HTML decoding assumes UTF-8 instead of following document encoding rules
+### app.scope.document.005 — HTML decoding assumes UTF-8 instead of following document encoding rules
 
 - Evidence: the adapter summary says `HTML · UTF-8 · streamed`; there is no BOM/header/meta charset
   decision, encoding override, confidence display, or byte mapping for decoding failures.
@@ -59,9 +59,9 @@ integration around those engines.
   encoding selector and diagnostics as text where valid.
 - Complete when: UTF-8, UTF-16, and supported legacy declarations decode predictably, late or
   conflicting declarations warn, invalid bytes remain traceable, and an override re-renders safely.
-- Related: scope.text.004
+- Related: app.scope.text.004
 
-### scope.document.006 — HTML has no DOM outline or element-to-page inspection
+### app.scope.document.006 — HTML has no DOM outline or element-to-page inspection
 
 - Evidence: `HtmlView` is hosted as one rendered surface. A reader cannot browse element hierarchy,
   inspect tag/id/class/attributes, or select an element and see its box and source range.
@@ -70,16 +70,16 @@ integration around those engines.
 - Complete when: nodes can be filtered, collapsed, copied, and revealed; generated boxes identify
   their source node; malformed recovery is explicit; and huge repetitive DOMs remain virtualized.
 
-### scope.document.007 — HTML cannot switch to source or a synchronized split view
+### app.scope.document.007 — HTML cannot switch to source or a synchronized split view
 
 - Evidence: choosing Code or Basic text discards the rendered position, active link, search match,
   and DOM node. There is no formatted source, line address, or live element mapping.
-- Next: compose rendered, source, and split modes over the DOM/source ranges introduced by scope.document.006.
+- Next: compose rendered, source, and split modes over the DOM/source ranges introduced by app.scope.document.006.
 - Complete when: the selected element and scroll position map both ways, source retains exact bytes
   or declares normalization, search can target source or visible text, and scripts never execute.
-- Related: scope.document.006
+- Related: app.scope.document.006
 
-### scope.document.008 — HTML resource loading and blocking are invisible
+### app.scope.document.008 — HTML resource loading and blocking are invisible
 
 - Evidence: local pages may reference stylesheets, images, fonts, frames, media, data URLs, and
   remote URLs, but the viewer has no resource list, status, size, origin, cache, or reason a resource
@@ -89,9 +89,9 @@ integration around those engines.
 - Complete when: every requested resource shows resolved path/origin, type, bytes, result, and
   blocker; remote fetch is opt-in; traversal outside allowed roots is prevented; and entries link
   to the requesting node.
-- Related: gui.html.019
+- Related: std.gui.html.019
 
-### scope.document.009 — HTML navigation has no history, address model, or fragment overview
+### app.scope.document.009 — HTML navigation has no history, address model, or fragment overview
 
 - Evidence: link activation is forwarded to the host, but same-document fragments, relative files,
   back/forward history, visited state, and broken targets do not form a coherent document session.
@@ -101,7 +101,7 @@ integration around those engines.
   against the correct base, broken targets explain themselves, and external activation requires a
   deliberate command.
 
-### scope.document.010 — HTML has no reader-mode or page-level diagnostics
+### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
 
 - Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
   unreadable page. There is no extracted reading view, title/language/description summary, outline,
@@ -110,17 +110,17 @@ integration around those engines.
   reader view from semantic blocks without replacing faithful mode.
 - Complete when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
-- Related: gui.html.017
+- Related: std.gui.html.017
 
 This backlog covers application-owned PDF presentation and the document viewers built by composing
 Swag Scope's existing HTML, table, and container facilities. Parser and renderer gaps owned by the
-reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md), and [std.gui.md](std.gui.md).
+reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](std.gui.html.md), and [std.gui.md](std.gui.md).
 
 ## PDF presentation
 
-### scope.document.011 — A PDF the module cannot fully decode is shown as a failure, not as a page
+### app.scope.document.011 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
-- Intent: the module's own coverage gaps now live in [gui.pdf.md](gui.pdf.md), which is the
+- Intent: the module's own coverage gaps now live in [std.gui.pdf.md](std.gui.pdf.md), which is the
   roadmap for `std/pdf`. What stays here is the viewer's half: `PdfViewer` reports whatever
   `loadPage` or `render` failed with and shows nothing, so a document with one unsupported
   construct anywhere reads as a broken file rather than as a page with a gap in it.
@@ -128,9 +128,9 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
   not represent in localized text beside it rather than as a raw module error, and keeps page
   navigation working across a page it could only partly decode.
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
-- Related: gui.pdf.002, gui.pdf.016
+- Related: std.gui.pdf.002, std.gui.pdf.016
 
-### scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
+### app.scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
 
 - Evidence: the centered command bar provides previous/next and a clickable `current / total`
   readout with validated numeric page entry. There is no thumbnail strip, page-label lookup, or
@@ -139,19 +139,19 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
   address control with PDF page labels.
 - Complete when: thumbnails prioritize the visible neighborhood, direct numeric and page-label
   jumps validate input, the current page is selected, and thousand-page documents stay responsive.
-- Related: gui.pdf.018
+- Related: std.gui.pdf.018
 
-### scope.document.013 — PDF bookmarks and destinations have no viewer surface
+### app.scope.document.013 — PDF bookmarks and destinations have no viewer surface
 
-- Evidence: the PDF engine does not yet read outlines, named destinations, or link targets (gui.pdf.017),
+- Evidence: the PDF engine does not yet read outlines, named destinations, or link targets (std.gui.pdf.017),
   and Swag Scope has no panel or history ready to present them once decoded.
 - Next: define a filterable hierarchical bookmark/destination model and viewer navigation contract
-  against the engine API planned by gui.pdf.017.
+  against the engine API planned by std.gui.pdf.017.
 - Complete when: outline items, internal links, named destinations, and back/forward navigation
   preserve page plus coordinates and zoom; invalid destinations are visible rather than ignored.
-- Related: gui.pdf.017
+- Related: std.gui.pdf.017
 
-### scope.document.014 — PDF viewing is limited to one fitted page or actual size
+### app.scope.document.014 — PDF viewing is limited to one fitted page or actual size
 
 - Evidence: `PdfView` exposes one `pageIndex`, Fit Page, Actual Size, and zoom buttons. There is no
   fit-width, continuous scroll, facing pages, cover-page rule, or presentation mode.
@@ -161,7 +161,7 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
   search; Fit Page/Width/Selection are distinct; page gaps and cover handling are correct; and
   decoded-page caching stays bounded.
 
-### scope.document.015 — PDF pages cannot be rotated or viewed with box and geometry overlays
+### app.scope.document.015 — PDF pages cannot be rotated or viewed with box and geometry overlays
 
 - Evidence: the viewer has no clockwise/counter-clockwise rotation, crop/media/bleed box display,
   page-size readout, coordinate probe, or temporary crop-to-content view.
@@ -170,20 +170,20 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
 - Complete when: rotation affects rendering, search bounds, selection, thumbnails, and print
   consistently; page boxes and dimensions are inspectable; and no command rewrites the PDF.
 
-### scope.document.016 — PDF text selection, copy, and reading order are not a complete workflow
+### app.scope.document.016 — PDF text selection, copy, and reading order are not a complete workflow
 
-- Evidence: search can select one matched word, while gui.pdf.016 records that page text cannot yet be
+- Evidence: search can select one matched word, while std.gui.pdf.016 records that page text cannot yet be
   extracted in reading order. The viewer has no drag selection across runs/pages, copy options,
   reflow reading, or scanned-page explanation.
-- Next: design viewer selection and copy semantics around the ordered text model from gui.pdf.016,
+- Next: design viewer selection and copy semantics around the ordered text model from std.gui.pdf.016,
   preserving glyph/source coordinates for exact and logical forms.
 - Complete when: text can be selected by pointer and keyboard across lines and pages, copied as
   logical or visual order, search and selection agree, and image-only pages state that OCR is absent.
-- Related: gui.pdf.016
+- Related: std.gui.pdf.016
 
-### scope.document.017 — PDF annotations, attachments, forms, layers, and signatures are hidden
+### app.scope.document.017 — PDF annotations, attachments, forms, layers, and signatures are hidden
 
-- Evidence: engine tasks cover annotation appearance (gui.pdf.003) and optional content (gui.pdf.008), but the
+- Evidence: engine tasks cover annotation appearance (std.gui.pdf.003) and optional content (std.gui.pdf.008), but the
   viewer has no read-only inventory for annotations, embedded files, AcroForm fields, layers,
   digital signatures, JavaScript actions, or security permissions.
 - Next: define a safe document-components panel and add sections as the parser exposes each object
@@ -191,21 +191,21 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
 - Complete when: components link to page bounds or objects, attachment extraction is explicit and
   sanitized, signatures report cryptographic status and limits, layers can be toggled temporarily,
   form values are inspectable, and active content never runs.
-- Related: gui.pdf.003, gui.pdf.008
+- Related: std.gui.pdf.003, std.gui.pdf.008
 
-### scope.document.018 — Password-protected PDFs have no application interaction
+### app.scope.document.018 — Password-protected PDFs have no application interaction
 
-- Evidence: gui.pdf.001 records that encrypted documents are refused, and the viewer result can only
+- Evidence: std.gui.pdf.001 records that encrypted documents are refused, and the viewer result can only
   return a terminal failure string. There is no secure password prompt, retry policy, permissions
   summary, or credential lifetime decision.
 - Next: extend progressive viewer opening with a credential request that never persists or logs the
-  password, then connect it to the engine work from gui.pdf.001.
+  password, then connect it to the engine work from std.gui.pdf.001.
 - Complete when: empty and entered passwords can unlock supported encryption, cancellation returns
   to a stable viewer state, retry is bounded, permissions are shown, and secrets leave memory when
   the document closes.
-- Related: gui.pdf.001
+- Related: std.gui.pdf.001
 
-### scope.document.019 — PDF pages and embedded assets cannot be exported for inspection
+### app.scope.document.019 — PDF pages and embedded assets cannot be exported for inspection
 
 - Evidence: Swag Scope can render pages but offers no copy-page-image, save selected pages as
   images, extract an embedded image/font/attachment, or export selected text with provenance.
@@ -217,17 +217,17 @@ reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md),
 
 ## Packaged documents
 
-### scope.document.020 — Office and OpenDocument files stop at the ZIP structure
+### app.scope.document.020 — Office and OpenDocument files stop at the ZIP structure
 
 - Intent: `.docx` and `.odt` show a list of parts, which is right for an archive and useless for a
   document. Full fidelity is not the target; readable content is.
 - Complete when: paragraphs, headings, lists and tables come out as a readable document through the
   existing reading column, and a spreadsheet's cells come out through the table view.
-- Related: scope.text.015, scope.binary.010
+- Related: app.scope.text.015, app.scope.binary.010
 
-### scope.document.021 — EPUB stops at the ZIP structure
+### app.scope.document.021 — EPUB stops at the ZIP structure
 
 - Intent: an EPUB is a spine of HTML documents, and the HTML view already renders them.
 - Complete when: the spine order is read from the container manifest and its documents stream into
   the reading column in order.
-- Related: scope.binary.010
+- Related: app.scope.binary.010

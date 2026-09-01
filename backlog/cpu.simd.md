@@ -296,7 +296,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   (1.07x slower) and was rejected, so strong vertical chroma retains its scalar two-line segments.
 - Complete when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
-- Related: cpu.simd.010, scope.video.014 in [scope.video.md](scope.video.md).
+- Related: cpu.simd.010, app.scope.video.014 in [app.scope.video.md](app.scope.video.md).
 
 ### cpu.simd.024 — H.264 dequantization and irregular directional intra prediction remain scalar
 

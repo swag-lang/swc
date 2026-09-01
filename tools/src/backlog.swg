@@ -178,33 +178,36 @@ private func auditBacklogLinks(fileName: string)->u32 fail
     return errors
 }
 
+private func isBacklogScope(text: string)->bool
+{
+    if text.count == 0 do
+        return false
+
+    var segments = 1'u32
+    var segmentStart: u64
+    for i in text.count
+    {
+        if text[i] == '.'
+        {
+            if i == segmentStart do
+                return false
+            segments     += 1
+            segmentStart = i + 1
+        }
+        elif !Latin1.isLower(text[i]) and !Latin1.isDigit(text[i]) do
+            return false
+    }
+
+    return segments >= 2 and segmentStart != text.count
+}
+
 private func isBacklogIdentifier(text: string)->bool
 {
-    let firstDot = Utf8.indexOf(cast(const [..] u8) text, ".")
-    if firstDot == Swag.U64.Max or firstDot == 0 do
+    let suffixDot = Utf8.lastIndexOf(cast(const [..] u8) text, ".")
+    if suffixDot == Swag.U64.Max or suffixDot + 4 != text.count or !isBacklogScope(text[0 until suffixDot]) do
         return false
 
-    let secondOffset = Utf8.indexOf(cast(const [..] u8) text[firstDot + 1 until text.count], ".")
-    if secondOffset == Swag.U64.Max do
-        return false
-
-    let secondDot = firstDot + 1 + secondOffset
-    if secondDot == firstDot + 1 or secondDot + 4 != text.count do
-        return false
-
-    for i in firstDot
-    {
-        if !Latin1.isLower(text[i]) and !Latin1.isDigit(text[i]) do
-            return false
-    }
-
-    for i in firstDot + 1 until secondDot
-    {
-        if !Latin1.isLower(text[i]) and !Latin1.isDigit(text[i]) do
-            return false
-    }
-
-    for i in secondDot + 1 until text.count
+    for i in suffixDot + 1 until text.count
     {
         if !Latin1.isDigit(text[i]) do
             return false
@@ -282,12 +285,10 @@ public func auditBacklog(context: *Context)->s32 fail
         if name == "README.md" or name == "repo.prompts.md" do
             continue
 
-        let stem      = Path.fileNameWithoutExtension(name) orelse ""
-        let familyEnd = Utf8.indexOf(cast(const [..] u8) stem, ".")
-        let ownerEnd  = familyEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(cast(const [..] u8) stem[familyEnd + 1 until stem.count], ".")
-        if familyEnd == Swag.U64.Max or familyEnd == 0 or familyEnd + 1 == stem.count or ownerEnd != Swag.U64.Max
+        let stem = Path.fileNameWithoutExtension(name) orelse ""
+        if !isBacklogScope(stem)
         {
-            Console.println("error: backlog file name '", name, "' does not follow <family>.<what>.md")
+            Console.println("error: backlog file name '", name, "' does not follow <scope>[.<subscope>...].md")
             errors += 1
         }
 

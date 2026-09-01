@@ -7,10 +7,10 @@ rendering — with CommonMark plus GFM as the reference for what a document mean
 what the whole document family is: an offline, script-free, network-free viewer.
 
 Evidence, investigations, and intended outcomes for the Markdown engine stay together here. The
-engine lives beside its widget inside `gui`, as [gui.pdf.md](gui.pdf.md#where-this-family-lives-and-why)
+engine lives beside its widget inside `gui`, as [std.gui.pdf.md](std.gui.pdf.md#where-this-family-lives-and-why)
 records for the document family; application-level zoom stays in
-[scope.text.md](scope.text.md), shared printing in
-[scope.viewers.md](scope.viewers.md), and shell thumbnail integration in
+[app.scope.text.md](app.scope.text.md), shared printing in
+[app.scope.viewers.md](app.scope.viewers.md), and shell thumbnail integration in
 [app.scope.md](app.scope.md).
 [README.md](README.md) has the whole layout.
 
@@ -38,7 +38,7 @@ mathematics, wrap, forward and reverse streaming, and both failure paths.
 
 ## Tier A — Parity a reader notices in the first minute
 
-### gui.markdown.001 — An image renders as a link, not as an image
+### std.gui.markdown.001 — An image renders as a link, not as an image
 
 `![alt](url)` renders the clickable text `[Image: alt]`. Every README leads with a logo or a
 screenshot, so this is the first difference a reader sees against any competitor. Local images —
@@ -52,7 +52,7 @@ bitmap arrives, without disturbing the byte-to-height estimate.
 - Complete when: a fixture with a local image and a `data:` image paints both through `createText`
   and `createFile`, and a remote URL still renders as today's link
 
-### gui.markdown.002 — Block structure is flat: containers do not nest
+### std.gui.markdown.002 — Block structure is flat: containers do not nest
 
 The parser recognizes every leaf block but no container can hold one. A list inside a quote, a
 fence inside a quote, or a `> >` nested quote all degrade — the second `>` renders as literal
@@ -68,7 +68,7 @@ keeping the streamed, per-block visual pipeline as it is.
   and a two-level quote lays out with correct indentation and borders, and the existing
   list-hoisting test is rewritten to the new stance
 
-### gui.markdown.003 — A code block has no syntax coloring
+### std.gui.markdown.003 — A code block has no syntax coloring
 
 The fence's language is shown as an uppercase label but never used: no syntax coloring, while the
 repository already colors Swag both in `DocMarkdown` and through the RichEdit lexer interface
@@ -81,7 +81,7 @@ Coloring is the visible half of parity with every competitor.
 
 ## Tier B — The text and the links must be right
 
-### gui.markdown.004 — Reference and footnote definitions do not cross a streaming boundary
+### std.gui.markdown.004 — Reference and footnote definitions do not cross a streaming boundary
 
 `parseBlocks` collects definitions only from the chunk it is parsing, and the convention every
 real document follows — all `[name]: target` lines gathered at the end of the file — is exactly
@@ -95,7 +95,7 @@ directions.
 - Complete when: a multi-chunk streamed fixture with end-of-file definitions renders every
   reference link and footnote live, including after a reveal
 
-### gui.markdown.005 — The document cannot navigate itself
+### std.gui.markdown.005 — The document cannot navigate itself
 
 `[TOC]` renders an inert text block: no entry is a link. Heading anchors do not exist, so a
 `#fragment` link leaves through `sigLinkActivated` and dies in `Env.openUrl`. A footnote
@@ -109,21 +109,21 @@ heading's byte offset, which is the same currency `revealFileOffset` already tra
 
 ## Tier C — Conformance and finish
 
-### gui.markdown.006 — Inline HTML has no documented stance
+### std.gui.markdown.006 — Inline HTML has no documented stance
 
 The implementation now does more than this roadmap used to record. Inline phrasing elements are
 parsed through `HtmlParser` and translated into Markdown rich text, while layout-bearing elements
 become embedded `HtmlView` blocks; local and `data:` images in those blocks paint under the HTML
 engine's offline policy. What remains implicit is the public contract: which elements are
 preserved semantically, which merely contribute their children, how unsupported markup falls
-back, and where inline HTML ends and an HTML block begins. Markdown image syntax in gui.markdown.001 is a
+back, and where inline HTML ends and an HTML block begins. Markdown image syntax in std.gui.markdown.001 is a
 separate path and must not be presented as a prerequisite for HTML images.
 
 - Intent: the implemented inline/block HTML split is a deliberate, documented contract
 - Complete when: public module documentation records the supported semantics, fallback and
   offline-resource policy, with fixtures for representative phrasing, block and image elements
 
-### gui.markdown.007 — No measured conformance stance
+### std.gui.markdown.007 — No measured conformance stance
 
 Nobody can say which part of CommonMark the parser speaks. Run the CommonMark and GFM example
 corpora through `parseBlocks`/`renderInline`, record each case as passing or deviating by choice,
@@ -134,7 +134,7 @@ durable artifact; the fixes are the first harvest.
 - Intent: conformance is a measured number with a recorded stance, not a guess
 - Complete when: the corpus runs as a test and a stance file lists every deviation as deliberate
 
-### gui.markdown.008 — Find cannot walk its matches
+### std.gui.markdown.008 — Find cannot walk its matches
 
 `findText` clears the current highlight and advances to the next block, selecting occurrence zero
 there. It therefore cannot reach a second match in the same block, move backwards, or report a
@@ -147,7 +147,7 @@ Markdown as over code.
 - Complete when: repeated find advances match-by-match across and within blocks, and the match
   count is exposed to the host
 
-### gui.markdown.009 — A rendered document ignores a live language switch
+### std.gui.markdown.009 — A rendered document ignores a live language switch
 
 The engine's strings live in `Gui.Strings` with French translations, but an alert title is baked
 into its block's text at parse time, so a document already on screen keeps the previous language
@@ -157,7 +157,7 @@ until it is reloaded — the same class of failure the menu bar once had, one wi
 - Complete when: switching the language re-renders parsed alert blocks in place, in `createText`
   and streamed documents alike
 
-### gui.markdown.010 — No typographic finish
+### std.gui.markdown.010 — No typographic finish
 
 Straight quotes stay straight, `--` never becomes an en dash, `...` never becomes an ellipsis,
 and `:smile:` renders as its source. Typora treats smart punctuation as an opt-in and readers

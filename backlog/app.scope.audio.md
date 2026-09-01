@@ -7,7 +7,7 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ## Transport and navigation
 
-### scope.audio.001 — Audio playback has no speed or pitch policy
+### app.scope.audio.001 — Audio playback has no speed or pitch policy
 
 - Evidence: transport plays at source speed only. There is no 0.25x–4x rate selector, fine rate
   adjustment, pitch-preserving mode, pitch shift, or visible statement of resampling quality.
@@ -17,7 +17,7 @@ the professional listening and inspection surface; decoder and output-engine wor
   based, A/V-independent sound playback stays stable at supported rates, and unsupported pitch
   preservation is never implied.
 
-### scope.audio.002 — Audio cannot loop a selection or mark an A/B region
+### app.scope.audio.002 — Audio cannot loop a selection or mark an A/B region
 
 - Evidence: the timeline supports one playhead and fixed ten-second seeks. There is no range
   selection, set/clear A and B, loop toggle, play-selection, or sample-accurate region readout.
@@ -26,7 +26,7 @@ the professional listening and inspection surface; decoder and output-engine wor
   boundaries, start/end/duration are editable in time or frames, and selection survives zoom but
   not an incompatible file replacement.
 
-### scope.audio.003 — The waveform cannot zoom, pan, or navigate precisely
+### app.scope.audio.003 — The waveform cannot zoom, pan, or navigate precisely
 
 - Evidence: one 4,096-sample envelope always represents the entire file. Dense transients and long
   recordings cannot be examined below that aggregate, and the timeline has no navigator, sample
@@ -37,7 +37,7 @@ the professional listening and inspection surface; decoder and output-engine wor
   synchronized, numeric time/frame jumps work, waveform detail refines asynchronously, and memory
   is independent of recording duration.
 
-### scope.audio.004 — Audio has no markers, chapters, cue-sheet, or navigation history
+### app.scope.audio.004 — Audio has no markers, chapters, cue-sheet, or navigation history
 
 - Evidence: embedded chapter/cue metadata and sidecar `.cue` files are not presented; a listener
   cannot create temporary landmarks or return through seeks and search-like jumps.
@@ -48,7 +48,7 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ## Signal inspection
 
-### scope.audio.005 — Audio channels cannot be isolated, mixed, or compared
+### app.scope.audio.005 — Audio channels cannot be isolated, mixed, or compared
 
 - Evidence: details report channel count, but the waveform and playback present one fixed mix. There
   is no per-channel waveform, mute/solo, stereo L/R/M/S view, phase inversion, downmix policy, or
@@ -59,7 +59,7 @@ the professional listening and inspection surface; decoder and output-engine wor
   available, the active downmix matrix is inspectable, clipping from mixing is reported, and reset
   restores source layout.
 
-### scope.audio.006 — Audio has no spectrogram or frequency probe
+### app.scope.audio.006 — Audio has no spectrogram or frequency probe
 
 - Evidence: the only signal view is a time-domain peak/body waveform. Pitch, noise bands, codec
   cutoffs, harmonics, and transient frequency content cannot be inspected.
@@ -69,7 +69,7 @@ the professional listening and inspection surface; decoder and output-engine wor
   report exact coordinates, settings and color map are visible, zoom refines tiles, and processing
   remains bounded and cancellable.
 
-### scope.audio.007 — Audio has no loudness, peak, clipping, silence, or DC analysis
+### app.scope.audio.007 — Audio has no loudness, peak, clipping, silence, or DC analysis
 
 - Evidence: the waveform is visual only. It reports neither sample/true peak nor RMS/LUFS, channel
   balance, clipping runs, silence ranges, DC offset, crest factor, or analysis scope.
@@ -79,18 +79,18 @@ the professional listening and inspection surface; decoder and output-engine wor
   findings navigate to waveform ranges, sample peak is distinguished from true peak, and results
   include decoder/conversion provenance.
 
-### scope.audio.008 — Tags, artwork, codec/container facts, and ReplayGain are hidden
+### app.scope.audio.008 — Tags, artwork, codec/container facts, and ReplayGain are hidden
 
 - Evidence: the summary carries sample rate, channels, storage bits, and duration only. Title,
   artist, album, date, track/disc, comments, embedded art, codec profile/bitrate, container, delay,
   padding, ReplayGain/R128, and custom tags are not inspectable.
-- Next: define an audio metadata model separate from decoded samples and surface it through scope.viewers.006.
+- Next: define an audio metadata model separate from decoded samples and surface it through app.scope.viewers.006.
 - Complete when: original tag keys/values and normalized common fields coexist, artwork is bounded
   and opens in Image, technical stream facts include provenance, suspicious or malformed metadata
   warns, and no tag is rewritten.
-- Related: scope.viewers.006
+- Related: app.scope.viewers.006
 
-### scope.audio.009 — Lossy codec delay and gapless playback cannot be verified
+### app.scope.audio.009 — Lossy codec delay and gapless playback cannot be verified
 
 - Evidence: elapsed time starts at decoded frame zero, but encoder delay, padding, priming, source
   duration, decoded duration, and container edit lists are not shown. Adjacent sibling tracks cannot
@@ -103,7 +103,7 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ## Output and interchange
 
-### scope.audio.010 — Output device, format conversion, and device loss are invisible
+### app.scope.audio.010 — Output device, format conversion, and device loss are invisible
 
 - Evidence: the viewer acquires the default engine or disables playback. It cannot select a device,
   show negotiated sample format/latency, follow default-device changes, or recover from removal;
@@ -114,7 +114,7 @@ the professional listening and inspection surface; decoder and output-engine wor
   can be changed, loss has an actionable state and recovery, and analysis never depends on output.
 - Related: std.audio.004, std.audio.005, std.audio.006
 
-### scope.audio.011 — Audio selections cannot be copied or exported with exact provenance
+### app.scope.audio.011 — Audio selections cannot be copied or exported with exact provenance
 
 - Evidence: there is no Copy Samples, Save Selection, raw-packet extraction, or waveform/spectrogram
   image export. A viewer user cannot carry a suspicious interval into another tool.

@@ -440,4 +440,4 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   anything this module reads.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
   codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
-- Related: scope.video.015 in [scope.video.md](scope.video.md)
+- Related: app.scope.video.015 in [app.scope.video.md](app.scope.video.md)

@@ -10,8 +10,18 @@ delete it or cut it down to the part that genuinely remains. History lives in Gi
 [repo.prompts.md](repo.prompts.md) is the one exception to the domain layout. It holds one copy-pasteable
 prompt per long-running campaign, with the target, current measurements, and stopping condition.
 
-Domain files use `<family>.<what>.md`: the family groups related surfaces (`app`, `compiler`,
-`gui`, `platform`, `scope`, `std`, and so on), while the second part names the exact owner.
+Domain files use a fully qualified `<scope>[.<subscope>...].md` name, ordered from the broadest
+real owner to the most specific domain needed to make the file unambiguous. There is no limit on
+the number of scope segments. Every segment must describe a real ownership or domain boundary;
+never invent a grouping level merely to make a name longer.
+
+The scope follows the work the file actually owns. A whole standard module, or its general work
+after specialized backlogs are split out, uses its module path, such as `std.truetype` or
+`std.pixel`; a real subsystem adds its parent, such as the image-codec scope `std.pixel.image` or
+`std.gui.html`; an
+application capability uses the application hierarchy, such as `app.scope.midi`; and a compiler
+command uses `compiler.command.doc`. A deliberately cross-cutting domain can remain `cpu.simd` or
+`platform.portability` when no narrower owner contains the work.
 
 ## Areas
 
@@ -19,37 +29,39 @@ Domain files use `<family>.<what>.md`: the family groups related surfaces (`app`
 | --- | --- |
 | [app.capture.md](app.capture.md) | The Swag Capture application |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting |
+| [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer |
+| [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer |
+| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers |
+| [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer |
+| [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer |
+| [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer |
+| [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer |
+| [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers |
+| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer |
+| [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers |
 | [app.vault.md](app.vault.md) | The Swag Vault application |
-| [command.doc.md](command.doc.md) | The `doc` command |
-| [command.format.md](command.format.md) | The `format` command |
+| [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command |
+| [compiler.command.format.md](compiler.command.format.md) | The `format` command |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [compiler.safety.md](compiler.safety.md) | Borrow, lifetime, and sanity analysis |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |
-| [font.truetype.md](font.truetype.md) | `std/truetype` |
-| [gui.html.md](gui.html.md) | The HTML engine behind `Gui.HtmlView` |
-| [gui.markdown.md](gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` |
-| [gui.pdf.md](gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
 | [language.design.md](language.design.md) | The Swag language and its syntax |
-| [pixel.image.md](pixel.image.md) | `std/pixel` |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable |
-| [platform.win32.md](platform.win32.md) | Windows native modules and their checked API boundary |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular |
-| [scope.audio.md](scope.audio.md) | The Swag Scope sound viewer |
-| [scope.binary.md](scope.binary.md) | The Swag Scope structured-binary and container viewer |
-| [scope.document.md](scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers |
-| [scope.font.md](scope.font.md) | The Swag Scope font viewer |
-| [scope.hexa.md](scope.hexa.md) | The Swag Scope hexadecimal viewer |
-| [scope.image.md](scope.image.md) | The Swag Scope image viewer |
-| [scope.midi.md](scope.midi.md) | The Swag Scope MIDI viewer |
-| [scope.text.md](scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers |
-| [scope.video.md](scope.video.md) | The Swag Scope video viewer |
-| [scope.viewers.md](scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers |
 | [std.audio.md](std.audio.md) | `std/audio` |
 | [std.core.md](std.core.md) | `std/core` |
 | [std.gui.md](std.gui.md) | `std/gui` |
+| [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` |
+| [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` |
+| [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
+| [std.pixel.md](std.pixel.md) | `std/pixel` |
+| [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` |
+| [std.truetype.md](std.truetype.md) | `std/truetype` |
 | [std.video.md](std.video.md) | `std/video` |
+| [std.win32.md](std.win32.md) | Windows native modules and their checked API boundary |
 
 Put an entry in the domain where it will be investigated or fixed, not where it happened to be
 noticed. Create a new domain file only when a real cluster forms; a category holding one isolated
@@ -64,16 +76,19 @@ belongs in [platform.portability.md](platform.portability.md), whatever module o
 Every entry carries a file-scoped identifier in its heading:
 
 ```text
-### app.scope.001 — A short, descriptive title
+### app.scope.midi.001 — A short, descriptive title
 ```
 
-- The identifier prefix is the file name without `.md`; `app.scope.md` owns `app.scope.*`.
+- The identifier prefix is the complete file name without `.md`; `app.scope.midi.md` owns
+  `app.scope.midi.*`.
 - The suffix has exactly three digits. For a new entry, take one more than the greatest suffix ever
   allocated in that file. There is no repository-wide counter and no counter stored in this index.
 - Never renumber or reuse an identifier inside a file. A deleted entry takes its suffix with it, so
   an old conversation, commit message, link, or code comment keeps its meaning.
-- Moving an entry to another domain changes its prefix and suffix. Allocate the destination file's
-  next suffix and update every live reference and Markdown fragment in the same change.
+- Renaming a domain preserves each entry's numeric suffix, changes its prefix with the file, and
+  updates every live reference and Markdown fragment in the same change.
+- Moving one entry to another domain changes its prefix and suffix. Allocate the destination
+  file's next suffix and update every live reference and Markdown fragment in the same change.
 - Position expresses expected value where entries are comparable. Put an untriaged lead at the end
   of the closest relevant section until its priority is understood; move it when evidence changes
   that judgment. Identifiers never encode priority.
@@ -92,12 +107,12 @@ without also completing unrelated work hidden under the same heading.
 Every new entry uses this compact core:
 
 ```text
-### <family>.<what>.NNN — Short outcome or open question
+### <scope>[.<subscope>...].NNN — Short outcome or open question
 
 - Evidence: observation, reproduction, measurement, competitive gap, or other reason this remains
 - Next: the smallest useful investigation or implementation step
 - Complete when: observable condition for deleting the entry or rewriting its next action
-- Related: <other-family>.<other-owner>.NNN (when applicable)
+- Related: <other-scope>[.<other-subscope>...].NNN (when applicable)
 ```
 
 Explanatory paragraphs and additional fields may follow when they materially help execution. For

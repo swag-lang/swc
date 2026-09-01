@@ -226,13 +226,15 @@ func subtitleTimeSeconds(text: string, result: *f64)->bool
         if !part.count do
             return false
         let value = catch StrConv.toF64(part) as parseError
-        if parseError != null or value < 0 do
+        if parseError != null or value < 0 or !Math.isFinite(value) do
             return false
         if index and value >= 60 do
             return false
         if index + 1 < parts.count and value != Math.floor(value) do
             return false
         seconds = seconds * 60 + value
+        if !Math.isFinite(seconds) do
+            return false
     }
 
     result[] = seconds

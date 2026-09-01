@@ -249,7 +249,7 @@ Frontend, semantic analysis, and code generation defects: something observed in 
 a reproduction and a next investigation step. Optimization passes and generated-code performance
 are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses
 are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands have their own files,
-[command.doc.md](command.doc.md) and [command.format.md](command.format.md).
+[compiler.command.doc.md](compiler.command.doc.md) and [compiler.command.format.md](compiler.command.format.md).
 
 ## Published symbols, imports, and name resolution
 

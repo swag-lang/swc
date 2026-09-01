@@ -70,8 +70,9 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `build.swgs` | Build every workspace |
 | `vault.swgs` | The privileged Swag Vault/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
-`tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, domain file
-names, Markdown links, and the README inventory before it selects or starts a test campaign.
+`tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, fully scoped
+domain file names, Markdown links, and the README inventory before it selects or starts a test
+campaign.
 
 ## Workspaces
 

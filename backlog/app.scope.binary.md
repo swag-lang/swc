@@ -7,7 +7,7 @@ report into a professional inspection workflow.
 
 ## Report exploration
 
-### scope.binary.001 — Structured reports cannot be filtered by field semantics
+### app.scope.binary.001 — Structured reports cannot be filtered by field semantics
 
 - Evidence: shared search now indexes Field, Value, Offset, and Meaning cells, counts occurrences,
   highlights the exact cell, and opens its ancestor path. The viewer still has no persistent
@@ -18,7 +18,7 @@ report into a professional inspection workflow.
   previous/next works independently from host document search, and clearing restores expansion and
   selection.
 
-### scope.binary.002 — Report navigation has no address spaces or landmarks
+### app.scope.binary.002 — Report navigation has no address spaces or landmarks
 
 - Evidence: the compact report menu now accepts absolute or selected-row-relative hexadecimal file
   offsets and walks visited rows backward or forward. It cannot name an RVA or virtual address,
@@ -28,9 +28,9 @@ report into a professional inspection workflow.
   and row history with those mappings and view-state snapshots.
 - Complete when: address parsing names its space, ambiguous mappings list choices, standard groups
   are jump targets, and history restores row, expansion, and scroll state.
-- Related: scope.hexa.002
+- Related: app.scope.hexa.002
 
-### scope.binary.003 — One report row cannot expose its exact raw bytes and decoded alternatives
+### app.scope.binary.003 — One report row cannot expose its exact raw bytes and decoded alternatives
 
 - Evidence: a row has offset and length but selection only highlights text. There is no inline byte
   sample, endian/scalar reinterpretation, string decode, bit-field expansion, or safe handoff to a
@@ -39,9 +39,9 @@ report into a professional inspection workflow.
 - Complete when: exact bytes, length, endian-aware scalar forms, text candidates, flags/bits, and
   parent/child coverage are inspectable and copyable; large payloads stay lazy; and Open in Hex
   selects the same range.
-- Related: scope.hexa.001, scope.hexa.002
+- Related: app.scope.hexa.001, app.scope.hexa.002
 
-### scope.binary.004 — Structured reports have no professional export formats
+### app.scope.binary.004 — Structured reports have no professional export formats
 
 - Evidence: commands copy one line or the whole indented report as presentation text. There is no
   JSON/CSV tree export, selected-subtree export, schema/version marker, raw offset/length fields, or
@@ -52,20 +52,20 @@ report into a professional inspection workflow.
   text remains localized, exports include format/version/source identity and warnings, and huge
   reports do not require a second in-memory copy.
 
-### scope.binary.005 — Two structured files cannot be compared semantically
+### app.scope.binary.005 — Two structured files cannot be compared semantically
 
-- Evidence: hexadecimal comparison scope.hexa.003 is byte-oriented. The binary viewer cannot align sections,
+- Evidence: hexadecimal comparison app.scope.hexa.003 is byte-oriented. The binary viewer cannot align sections,
   headers, symbols, resources, chunks, or archive entries by identity and distinguish moved fields
   from changed values.
 - Next: define normalized row keys and format-specific match policies, starting with PE/ELF/Mach-O
   headers and sections.
 - Complete when: paired trees show added/removed/changed/moved rows, irrelevant offsets can be
   ignored explicitly, raw-byte differences remain reachable, and comparison stays bounded.
-- Related: scope.hexa.003, app.scope.001
+- Related: app.scope.hexa.003, app.scope.001
 
 ## Analysis depth
 
-### scope.binary.006 — Parser damage and suspicious structures are not summarized as findings
+### app.scope.binary.006 — Parser damage and suspicious structures are not summarized as findings
 
 - Evidence: readers can emit local meanings and truncated states, but there is no severity model,
   consolidated warning list, overlapping-range check, impossible-count/budget report, checksum
@@ -76,7 +76,7 @@ report into a professional inspection workflow.
   findings link to rows and byte ranges, resource limits are distinguished from corruption, and
   clean files state which checks ran.
 
-### scope.binary.007 — Executable reports stop before dependency and symbol analysis
+### app.scope.binary.007 — Executable reports stop before dependency and symbol analysis
 
 - Evidence: PE, ELF, Mach-O, COFF, and archives expose many imports, exports, sections, libraries,
   and symbols, but cannot demangle names, group dependencies, resolve forwarded/re-exported symbols,
@@ -87,19 +87,21 @@ report into a professional inspection workflow.
   without losing originals, dependencies and forwarding are navigable, and security properties
   cite the fields from which they were derived.
 
-### scope.binary.008 — Container inspection is one level deep
+### app.scope.binary.008 — Container inspection is one level deep
 
-- Evidence: ZIP, archive, RIFF, SCC, and other container reports list members or chunks, while scope.binary.010
-  records that entries cannot be opened. Nested containers, compressed payload provenance, preview
-  budgets, and a breadcrumb back to parents are absent.
-- Next: define a virtual child-file contract carrying parent identity, offset, compression, sizes,
-  and extraction budget before opening one supported ZIP or archive member recursively.
+- Evidence: the Archive viewer now opens stored and Deflate ZIP entries through the ordinary viewer
+  registry, but the temporary child file loses a visible breadcrumb and byte-range/compression
+  provenance. Nested archives, shared preview budgets, and a route back to every parent are absent;
+  RIFF, SCC, and Binary report assets still do not use the same child contract.
+- Next: replace the ZIP-only temporary preview seam with a virtual child-file contract carrying
+  parent identity, member path, source offset, compression, sizes, checksum, and extraction budget,
+  then allow one nested ZIP level through it.
 - Complete when: nested supported content opens in the appropriate viewer, breadcrumbs retain the
   complete container path, decompression bombs and traversal names are bounded, and raw extraction
   remains an explicit action.
-- Related: scope.binary.010
+- Related: app.scope.binary.010
 
-### scope.binary.009 — Previews cannot be selected, enlarged, copied, or traced to their source
+### app.scope.binary.009 — Previews cannot be selected, enlarged, copied, or traced to their source
 
 - Evidence: decoded ICO/SCC previews appear in a band, but they have no selection model, full-size
   view, metadata, source-range link, copy/save command, or indication that a preview was transformed.
@@ -115,16 +117,21 @@ compression, cryptography, or codec work stays with the standard module that imp
 
 ## Containers
 
-### scope.binary.010 — An archive's entries cannot be opened
+### app.scope.binary.010 — Archive browsing stops at ZIP
 
-- Intent: a ZIP lists its central directory and stops; `tar`, `gzip`, `xz`, `zstd`, `7z`, `RAR`,
-  `CAB` and `MSI` are only identified. Looking inside an archive is one of the two things a viewer
-  is opened for.
-- Complete when: a directory entry can be selected and its content handed to the matching viewer
-  without extracting the whole archive, starting with the deflate and stored methods that
-  `Core.Inflate` already covers, and with `tar`/`gzip` listing.
+- Evidence: the dedicated Archive viewer lists a complete ZIP tree, verifies CRC-32, extracts
+  stored and Deflate entries under a bounded preview size, and hands the selected entry to the
+  normal viewer registry. `tar`, `gzip`, `xz`, `zstd`, `7z`, RAR, CAB, and MSI remain signature-only,
+  while current 7-Zip reads a much broader archive and disk-image family and distinguishes listing
+  from an explicit integrity test.
+- Next: separate the tree/entry/integrity model from ZIP, add bounded `tar` plus single-stream
+  `gzip` first, and expose Test Archive as a cancellable report that names each failed member.
+- Complete when: ZIP, TAR, and GZIP share one browsing surface and provenance contract, nested
+  compression is bounded, integrity results distinguish header, data, checksum, encryption, and
+  unsupported-method failures, and adding another archive family does not fork the viewer UI.
+- Related: app.scope.binary.008
 
-### scope.binary.011 — MP4 and Matroska containers are only identified
+### app.scope.binary.011 — MP4 and Matroska containers are only identified
 
 - Intent: playback and structural inspection answer different questions. The `Video` viewer reads
   the supported picture and sound tracks, while the `Binary` alternative should expose the
@@ -134,21 +141,21 @@ compression, cryptography, or codec work stays with the standard module that imp
 
 ## Structured developer data
 
-### scope.binary.012 — SQLite databases are only identified
+### app.scope.binary.012 — SQLite databases are only identified
 
 - Intent: `.db` and `.sqlite` reach the entropy line. The schema and a bounded table read are what a
   reader wants, and the file format is documented and stable.
 - Complete when: the schema, the tables and their row counts are listed, and a table is browsable
   through a bounded window over its pages.
 
-### scope.binary.013 — Certificates and keys are not decoded
+### app.scope.binary.013 — Certificates and keys are not decoded
 
 - Intent: `.pem`, `.der`, `.crt`, `.cer` and `.p12` show base64 or bytes. `Core.Crypto` and the
   binary viewer's structure model already give the two halves of what is needed.
 - Complete when: an ASN.1 tree and a decoded X.509 summary — subject, issuer, validity, key, and
   extensions — are shown, with no validation claim of any kind.
 
-### scope.binary.014 — A program database is only identified
+### app.scope.binary.014 — A program database is only identified
 
 - Intent: this repository writes PDBs. Reading one back with the same tool that inspects the image
   it belongs to is a capability the competition does not have, and it is a debugging asset here.

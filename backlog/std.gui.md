@@ -290,7 +290,7 @@ Let a document answer page count and paint page `n` into a page-sized `Pixel.Pai
 physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
 without coupling the document to one printer backend. A fake backend records commands for CI.
 
-- Related: pixel.image.022, std.gui.031, std.gui.033, std.gui.034
+- Related: std.pixel.005, std.gui.031, std.gui.033, std.gui.034
 
 ### std.gui.031 — No printer discovery or native print-job backend
 

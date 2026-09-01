@@ -23,7 +23,7 @@ impl TypeFace
     //
     // The returned length is tested against `GDI_ERROR` here rather than left to the
     // checked wrapper, because Windows sets no last error for a table a font does not
-    // have and a zero last error is reported as success — see `platform.win32.001`. Untested, the
+    // have and a zero last error is reported as success — see `std.win32.001`. Untested, the
     // absent table reads as a length of four gigabytes.
     func readHfontData(hfont: HFONT)->Array'u8 fail
     {

@@ -35,7 +35,7 @@ Add actual-size, fit-to-page, and centered printing with a clear clipping warnin
 pagination/preview contract and Pixel vector output rather than creating an application-only print
 path.
 
-- Related: std.gui.030, pixel.image.022, std.gui.034
+- Related: std.gui.030, std.pixel.005, std.gui.034
 
 
 ## Tier A — Capture effects
@@ -47,7 +47,7 @@ path.
   generated through the existing reflective editor system.
 - Why this high: this is Snagit's actual signature — not the annotations, the finish. It is also
   a natural fit for the existing architecture rather than a foreign subsystem.
-- Related: app.capture.003, app.capture.005, app.capture.007, app.capture.008, pixel.image.002
+- Related: app.capture.003, app.capture.005, app.capture.007, app.capture.008, std.pixel.012
 
 ### app.capture.003 — No capture border effect
 
@@ -59,7 +59,7 @@ Add border width, color, placement, and corner interaction as the first effect u
 
 Add a drop shadow with offset, blur, spread, and color through Pixel's effect graph.
 
-- Related: pixel.image.002, app.capture.002, app.capture.003
+- Related: std.pixel.012, app.capture.002, app.capture.003
 
 ### app.capture.005 — No torn-edge capture effect
 

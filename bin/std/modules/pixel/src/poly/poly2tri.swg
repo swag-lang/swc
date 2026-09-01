@@ -58,6 +58,13 @@ public struct Tessellate
         freeEdges:     Array'(*Edge)
         freeTriangles: Array'(*Triangle)
 
+        // Where every registered point sits on a grid of coincidence-sized cells, so that
+        // registering one asks the nine cells that could hold a match rather than the whole
+        // point set. See 'dupRegister'.
+        dupCells: HashTable'(u64, u32)     // Cell key to the first slot filed in it.
+        dupNext:  Array'u32                // Slot to the next slot filed in the same cell.
+        dupPoint: Array'(#null *Point)     // Slot to its point, or null once forgotten.
+
         front:     AdvancingFront     // The advancing front itself.
         head:      #null *Point       // Left artificial point of the front.
         tail:      #null *Point       // Right artificial point of the front.
@@ -773,6 +780,7 @@ impl Tessellate
         .triangles.clear()
         .triIndices.clear()
         .nodes.clear()
+        .dupClear()
     }
 
     // Releases the pooled sweep objects a cleared tessellator is still holding.
@@ -812,6 +820,95 @@ impl Tessellate
         return result
     }
 
+    // Two points closer than this in both axes are the same vertex as far as the sweep is
+    // concerned, and the grid cell is sized to match so a candidate can only be in the nine
+    // cells around the one it lands in.
+    const CoincidentDistance = 0.0005'f32
+
+    // Returns the grid column or row a coordinate falls in.
+    //
+    // The clamp is what keeps a wild coordinate — a path built from an unchecked transform —
+    // from converting to an out-of-range integer; two such points landing in the same clamped
+    // cell only costs an extra exact comparison.
+    #[Swag.Inline]
+    private func dupCellCoord(value: f32)->s32
+    {
+        return cast(s32) Math.floor(Math.clamp(value / CoincidentDistance, -1.0e9, 1.0e9))
+    }
+
+    #[Swag.Inline]
+    private func dupCellKey(cx, cy: s32)->u64 => (cast(u64) cast #bit (u32) cx << 32) | cast(u64) cast #bit (u32) cy
+
+    // Files one registered point in its cell.
+    //
+    // A chain link is a slot index biased by one, so that the zero a fresh table entry starts
+    // life with reads as the end of the chain rather than as slot zero pointing at itself.
+    private mtd dupRegister(p: *Point)
+    {
+        let entry = .dupCells.findOrAdd(dupCellKey(dupCellCoord(p.x), dupCellCoord(p.y)))
+        .dupPoint.add(p)
+        .dupNext.add(entry.value)
+        entry.value = cast(u32) .dupPoint.count
+    }
+
+    // Drops one point from its cell, so a point the ring cleanup removed stops matching.
+    private mtd dupForget(p: *Point)
+    {
+        let entry = .dupCells.tryFind(dupCellKey(dupCellCoord(p.x), dupCellCoord(p.y)))
+        if !entry do
+            return
+
+        var link = entry!.value
+        while link
+        {
+            if .dupPoint[link - 1] == p
+            {
+                .dupPoint[link - 1] = null
+                return
+            }
+
+            link = .dupNext[link - 1]
+        }
+    }
+
+    // Whether a point within the coincidence distance of `(x, y)` is already registered.
+    private mtd dupContains(x, y: f32)->bool
+    {
+        if .dupPoint.isEmpty() do
+            return false
+
+        let cx = dupCellCoord(x)
+        let cy = dupCellCoord(y)
+        for dy in -1 to 1
+        {
+            for dx in -1 to 1
+            {
+                let entry = .dupCells.tryFind(dupCellKey(cx + dx, cy + dy))
+                if !entry do
+                    continue
+
+                var link = entry!.value
+                while link
+                {
+                    let other = .dupPoint[link - 1]
+                    if other and Math.abs(x - other.x) < CoincidentDistance and Math.abs(y - other.y) < CoincidentDistance do
+                        return true
+                    link = .dupNext[link - 1]
+                }
+            }
+        }
+
+        return false
+    }
+
+    // Empties the coincidence grid without releasing what it allocated.
+    private mtd dupClear()
+    {
+        .dupCells.clear()
+        .dupNext.clear()
+        .dupPoint.clear()
+    }
+
     // To call before adding a polyline.
     // A polyline is a polygon border.
     // See [[addPoint]] and [[endPolyLine]]
@@ -827,6 +924,7 @@ impl Tessellate
         p.x = pt.x
         p.y = pt.y
         .points.add(p)
+        .dupRegister(p)
     }
 
     // To call to register the polyline.
@@ -850,7 +948,17 @@ impl Tessellate
         // changes the fill.
         func closeEnough(a, b: *Point)->bool
         {
-            return Math.abs(a.x - b.x) < 0.0005 and Math.abs(a.y - b.y) < 0.0005
+            return Math.abs(a.x - b.x) < CoincidentDistance and Math.abs(a.y - b.y) < CoincidentDistance
+        }
+
+        // A dropped point leaves the ring for good: it is unfiled from the coincidence grid so
+        // it stops matching, and returned to the pool rather than left behind.
+        mtd dropPoint(index: u64)
+        {
+            let p = .points[index]
+            .dupForget(p)
+            .points.removeAtOrdered(index)
+            .deletePoint(p)
         }
 
         var i = 0'u64
@@ -865,7 +973,7 @@ impl Tessellate
             let prev = .points[.polyStart + (i + count - 1) % count]
             if closeEnough(cur, next)
             {
-                .points.removeAtOrdered(.polyStart + (i + 1) % count)
+                dropPoint(me, .polyStart + (i + 1) % count)
                 i = 0
             }
             elif closeEnough(prev, next)
@@ -873,8 +981,8 @@ impl Tessellate
                 // Remove the spike tip and one of its equal ends.
                 let tip = .polyStart + i
                 let end = .polyStart + (i + 1) % count
-                .points.removeAtOrdered(Math.max(tip, end))
-                .points.removeAtOrdered(Math.min(tip, end))
+                dropPoint(me, Math.max(tip, end))
+                dropPoint(me, Math.min(tip, end))
                 i = 0
             }
             else do
@@ -907,21 +1015,18 @@ impl Tessellate
         {
             let p  = .newPoint()
             var pt = poly.points[i]
-            for existing in .points
+            if .dupContains(pt.x, pt.y)
             {
-                if Math.abs(pt.x - existing.x) >= 0.0005 or Math.abs(pt.y - existing.y) >= 0.0005 do
-                    continue
-
                 var direction = Math.Vector2.normalizedOrZero(center - pt)
                 if direction.isEqualEpsilon({}) do
                     direction = {1, 0}
                 pt += direction * 0.001
-                break
             }
 
             p.x = pt.x
             p.y = pt.y
             .points.add(p)
+            .dupRegister(p)
         }
 
         .endPolyLine()

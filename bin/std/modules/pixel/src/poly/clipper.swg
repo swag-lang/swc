@@ -229,6 +229,18 @@ public struct Transform
         currentLM:         u64                                     // Index of the next local minimum to enter.
         activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
         sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.
+
+        // Output records and points live exactly as long as one clipping operation: the sweep
+        // creates them, tidying the result unlinks some of them, and the rest are released
+        // together at the end. Handing every one to the allocator made releasing them cost
+        // three times the sweep that produced them, so they are carved out of blocks the
+        // transform owns and the whole set is reclaimed by resetting a cursor.
+        outPtBlocks:   Array'([*] OutPt)
+        outPtBlock:    u64     // Block being carved from.
+        outPtInBlock:  u64     // Records already carved out of it.
+        outRecBlocks:  Array'([*] OutRec)
+        outRecBlock:   u64
+        outRecInBlock: u64
     }
 }
 
@@ -243,11 +255,61 @@ impl Transform
     #[Swag.Inline]
     func nnIntersect(n: #null *IntersectNode)->*IntersectNode => n!
 
-    // Releases edge storage owned by the transform.
+    // Records carved per block. Large enough that a whole ordinary operation fits in one.
+    private const RecordBlockSize = 512'u64
+
+    // Releases edge and record storage owned by the transform.
     public mtd opDrop()
     {
         for it in .edgeList do
             Memory.delete(it.edge, it.rank)
+        for block in .outPtBlocks do
+            Memory.delete(block, RecordBlockSize)
+        for block in .outRecBlocks do
+            Memory.delete(block, RecordBlockSize)
+    }
+
+    // Returns a zeroed output point from the current block.
+    private mtd newOutPt()->*OutPt
+    {
+        if .outPtBlocks.isEmpty() or .outPtInBlock == RecordBlockSize
+        {
+            if !.outPtBlocks.isEmpty() do
+                .outPtBlock += 1
+            if .outPtBlock == .outPtBlocks.count do
+                .outPtBlocks.add(Memory.new'OutPt(RecordBlockSize))
+            .outPtInBlock = 0
+        }
+
+        let result = .outPtBlocks[.outPtBlock] + .outPtInBlock
+        .outPtInBlock += 1
+        Swag.init(result, 1)
+        return result
+    }
+
+    // Returns a zeroed output record from the current block.
+    private mtd newOutRec()->*OutRec
+    {
+        if .outRecBlocks.isEmpty() or .outRecInBlock == RecordBlockSize
+        {
+            if !.outRecBlocks.isEmpty() do
+                .outRecBlock += 1
+            if .outRecBlock == .outRecBlocks.count do
+                .outRecBlocks.add(Memory.new'OutRec(RecordBlockSize))
+            .outRecInBlock = 0
+        }
+
+        let result = .outRecBlocks[.outRecBlock] + .outRecInBlock
+        .outRecInBlock += 1
+        Swag.init(result, 1)
+        return result
+    }
+
+    // Reclaims every record at once, keeping the blocks for the next operation.
+    private mtd resetRecords()
+    {
+        .outPtBlock, .outPtInBlock   = 0
+        .outRecBlock, .outRecInBlock = 0
     }
 
     mtd execute(clipT: ClipType, solution: *ClipperPaths, subjFillT, clipFillT: PolyFillType)
@@ -1243,14 +1305,12 @@ impl Transform
                 let tmppp = nnOutPt(pp.prev)
                 tmppp.next            = pp.next
                 nnOutPt(pp.next).prev = tmppp
-                Memory.delete(pp)
-                pp = tmppp
+                pp                    = tmppp
             }
         }
 
         if pp == pp.prev
         {
-            disposeOutPts(pp)
             outrec.pts = null
         }
     }
@@ -1266,7 +1326,6 @@ impl Transform
         {
             if pp.prev == pp or pp.prev == pp.next
             {
-                disposeOutPts(pp)
                 outrec.pts = null
                 return
             }
@@ -1278,12 +1337,10 @@ impl Transform
                (.slopesEqual(ppPrev.pt, pp.pt, ppNext.pt) and
                 (!preserveCol or !pt2IsBetweenPt1AndPt3(ppPrev.pt, pp.pt, ppNext.pt)))
             {
-                lastOK = null
-                let tmp = pp
+                lastOK      = null
                 ppPrev.next = pp.next
                 ppNext.prev = pp.prev
                 pp          = ppPrev
-                Memory.delete(tmp)
             }
             elif pp == lastOK do
                 break
@@ -1330,8 +1387,8 @@ impl Transform
                 return false
             if reverse1
             {
-                op1b      = dupOutPt(op1, false)
-                op2b      = dupOutPt(op2, true)
+                op1b      = .dupOutPt(op1, false)
+                op2b      = .dupOutPt(op2, true)
                 op1.prev  = op2
                 op2.next  = op1
                 op1b.next = op2b
@@ -1341,8 +1398,8 @@ impl Transform
                 return true
             }
 
-            op1b      = dupOutPt(op1, true)
-            op2b      = dupOutPt(op2, false)
+            op1b      = .dupOutPt(op1, true)
+            op2b      = .dupOutPt(op2, false)
             op1.next  = op2
             op2.prev  = op1
             op1b.prev = op2b
@@ -1399,7 +1456,7 @@ impl Transform
 
             j.outPt1 = op1
             j.outPt2 = op2
-            return joinHorz(op1, op1b, op2, op2b, pt, discardLeftSide)
+            return .joinHorz(op1, op1b, op2, op2b, pt, discardLeftSide)
         }
 
         op1b = nnOutPt(op1.next)
@@ -1433,8 +1490,8 @@ impl Transform
 
         if reverse1
         {
-            op1b      = dupOutPt(op1, false)
-            op2b      = dupOutPt(op2, true)
+            op1b      = .dupOutPt(op1, false)
+            op2b      = .dupOutPt(op2, true)
             op1.prev  = op2
             op2.next  = op1
             op1b.next = op2b
@@ -1444,8 +1501,8 @@ impl Transform
             return true
         }
 
-        op1b      = dupOutPt(op1, true)
-        op2b      = dupOutPt(op2, false)
+        op1b      = .dupOutPt(op1, true)
+        op2b      = .dupOutPt(op2, false)
         op1.next  = op2
         op2.prev  = op1
         op1b.prev = op2b
@@ -1455,7 +1512,7 @@ impl Transform
         return true
     }
 
-    func joinHorz(op1P, op1bP, op2P, op2bP: *OutPt, pt: IntPoint, discardLeft: bool)->bool
+    mtd joinHorz(op1P, op1bP, op2P, op2bP: *OutPt, pt: IntPoint, discardLeft: bool)->bool
     {
         var op1  = op1P
         var op1b = op1bP
@@ -1473,12 +1530,12 @@ impl Transform
                 op1 = nnOutPt(op1.next)
             if discardLeft and (op1.pt.x != pt.x) do
                 op1 = nnOutPt(op1.next)
-            op1b = dupOutPt(op1, !discardLeft)
+            op1b = .dupOutPt(op1, !discardLeft)
             if op1b.pt != pt
             {
                 op1    = op1b
                 op1.pt = pt
-                op1b   = dupOutPt(op1, !discardLeft)
+                op1b   = .dupOutPt(op1, !discardLeft)
             }
         }
         else
@@ -1487,12 +1544,12 @@ impl Transform
                 op1 = nnOutPt(op1.next)
             if !discardLeft and (op1.pt.x != pt.x) do
                 op1 = nnOutPt(op1.next)
-            op1b = dupOutPt(op1, discardLeft)
+            op1b = .dupOutPt(op1, discardLeft)
             if op1b.pt != pt
             {
                 op1    = op1b
                 op1.pt = pt
-                op1b   = dupOutPt(op1, discardLeft)
+                op1b   = .dupOutPt(op1, discardLeft)
             }
         }
 
@@ -1502,12 +1559,12 @@ impl Transform
                 op2 = nnOutPt(op2.next)
             if discardLeft and (op2.pt.x != pt.x) do
                 op2 = nnOutPt(op2.next)
-            op2b = dupOutPt(op2, !discardLeft)
+            op2b = .dupOutPt(op2, !discardLeft)
             if op2b.pt != pt
             {
                 op2    = op2b
                 op2.pt = pt
-                op2b   = dupOutPt(op2, !discardLeft)
+                op2b   = .dupOutPt(op2, !discardLeft)
             }
         }
         else
@@ -1516,12 +1573,12 @@ impl Transform
                 op2 = nnOutPt(op2.next)
             if !discardLeft and (op2.pt.x != pt.x) do
                 op2 = nnOutPt(op2.next)
-            op2b = dupOutPt(op2, discardLeft)
+            op2b = .dupOutPt(op2, discardLeft)
             if op2b.pt != pt
             {
                 op2    = op2b
                 op2.pt = pt
-                op2b   = dupOutPt(op2, discardLeft)
+                op2b   = .dupOutPt(op2, discardLeft)
             }
         }
 
@@ -1575,9 +1632,9 @@ impl Transform
         return left < right
     }
 
-    func dupOutPt(outPt: *OutPt, insertAfter: bool)->*OutPt
+    mtd dupOutPt(outPt: *OutPt, insertAfter: bool)->*OutPt
     {
-        let result = Memory.new'OutPt()
+        let result = .newOutPt()
         result.pt  = outPt.pt
         result.idx = outPt.idx
         if insertAfter
@@ -2468,7 +2525,7 @@ impl Transform
 
     mtd createOutRec()->*OutRec
     {
-        let result = Memory.new'OutRec()
+        let result = .newOutRec()
         .polyOuts.add(result)
         result.idx = cast(s32) (.polyOuts.count - 1)
         return nnOutRec(result)
@@ -2511,7 +2568,7 @@ impl Transform
         {
             let outRec = .createOutRec()
             outRec.isOpen = e.windDelta == 0
-            let newOp = Memory.new'OutPt()
+            let newOp = .newOutPt()
             outRec.pts = newOp
             newOp.idx  = outRec.idx
             newOp.pt   = pt
@@ -2533,7 +2590,7 @@ impl Transform
             if !toFront and (pt == nnOutPt(op.prev).pt) do
                 return nnOutPt(op.prev)
 
-            let newOp = Memory.new'OutPt()
+            let newOp = .newOutPt()
             newOp.idx                = outRec.idx
             newOp.pt                 = pt
             newOp.next               = op
@@ -3186,33 +3243,8 @@ impl Transform
 
     mtd disposeAllOutRecs()
     {
-        for i in (.polyOuts).count do
-            .disposeOutRec(i)
         .polyOuts.clear()
-    }
-
-    func disposeOutPts(pts: #null *OutPt)
-    {
-        var pp = pts
-        if !pp do
-            return
-
-        nnOutPt(pp.prev).next = null
-        while pp
-        {
-            let tmppp = pp
-            pp = pp.next
-            Memory.delete(tmppp)
-        }
-    }
-
-    mtd disposeOutRec(index: u64)
-    {
-        let outRec = nnOutRec(.polyOuts[index])
-        if outRec.pts do
-            disposeOutPts(outRec.pts)
-        Memory.delete(outRec)
-        .polyOuts[index] = null
+        .resetRecords()
     }
 
     mtd getBounds()->IntRect

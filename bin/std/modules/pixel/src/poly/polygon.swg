@@ -141,6 +141,65 @@ impl Polygon
         return result
     }
 
+    // Fills `target` with the unit-offset direction of every point of the contour, in order.
+    //
+    // This answers what [[Pixel.Polygon.offsetPointAt]] answers for offset one, for every point
+    // at once. Asking point by point makes a ring pay for the closed-ring test, and for both of
+    // its edge normals, once per point — and every edge normal is shared by the two points it
+    // joins, so a contour normalizes each of its edges twice. Here each edge is normalized once
+    // and read by both of its ends.
+    internal mtd const fillOffsetDirections(target: *Array'Vector2)
+    {
+        target.clear()
+        if !.points.count do
+            return
+
+        let points = .points.buffer!
+        var count  = .points.count
+        if count > 1 and points[0].distanceSquaredTo(points[count - 1]) < 0.5 * 0.5 do
+            count -= 1
+
+        target.reserve(.points.count)
+        if count < 3
+        {
+            for i in .points.count do
+                target.add(points[i % count] - points[i])
+            return
+        }
+
+        // Normal of the edge leaving each point, which is the incoming normal of the next.
+        var normals: Array'Vector2
+        normals.reserve(count)
+        for i in count
+        {
+            let next = i + 1 == count ? 0 : i + 1
+            normals.add(Vector2.normalizedOrZero(points[next] - points[i]).cross(1))
+        }
+
+        let edgeNormals = normals.buffer!
+        for i in .points.count
+        {
+            let pointIndex = i % count
+            let previous   = pointIndex == 0 ? count - 1 : pointIndex - 1
+            let n0         = edgeNormals[previous]
+            let n1         = edgeNormals[pointIndex]
+            let v0         = points[previous]
+            let v1         = points[pointIndex]
+            let v2         = points[pointIndex + 1 == count ? 0 : pointIndex + 1]
+
+            // Rebuilt the way the per-point answer builds it, down to landing on the point and
+            // stepping away from it again, so that a contour offset in one pass and a contour
+            // offset point by point stay the same geometry to the last bit.
+            let {intersects, intersectionPoint} = Geometry.intersectLines(v0 + n0, v1 + n0, v1 + n1, v2 + n1)
+            var offsetPoint: Vector2            = v1
+            if intersects do
+                offsetPoint += (intersectionPoint - v1) * 1
+            else do
+                offsetPoint += Vector2.normalizedOrZero(n0 + n1) * 1
+            target.add(offsetPoint - points[i])
+        }
+    }
+
     // Divide by adding points if two points are too far away
     mtd subdivideEdges(maxDistance: f32, closed: bool = true)
     {
@@ -197,6 +256,43 @@ impl Polygon
         .points.add(v)
     }
 
+    // Rings up to this many points are tested pair by pair; past it the spatial grid pays for
+    // itself. It also sizes the on-stack box table of that test.
+    private const SmallRingLimit = 48'u64
+
+    // How far outside a segment the intersection test still reports a meeting.
+    private const IntersectTolerance = 0.01'f32
+
+    // One segment's bounds, already widened by everything the tolerance allows.
+    private struct SegmentBox
+    {
+        minX, minY, maxX, maxY: f32
+    }
+
+    // Returns the widened bounds of one segment.
+    //
+    // The tolerance lets the reported crossing sit `IntersectTolerance` of the segment's length
+    // past either end, and lets a degenerate segment count as met from that absolute distance,
+    // so both slacks are added: the Manhattan length is an upper bound of the true one and costs
+    // no square root.
+    #[Swag.Inline]
+    private func segmentBox(a, b: Vector2)->SegmentBox
+    {
+        let margin = IntersectTolerance * (Math.abs(b.x - a.x) + Math.abs(b.y - a.y) + 1)
+        var result: retval
+        result.minX = Math.min(a.x, b.x) - margin
+        result.minY = Math.min(a.y, b.y) - margin
+        result.maxX = Math.max(a.x, b.x) + margin
+        result.maxY = Math.max(a.y, b.y) + margin
+        return result
+    }
+
+    #[Swag.Inline]
+    private func boxesAreApart(a, b: SegmentBox)->bool
+    {
+        return a.maxX < b.minX or b.maxX < a.minX or a.maxY < b.minY or b.maxY < a.minY
+    }
+
     private mtd computeIsSimple(count: u64)->bool
     {
         if count < 4 do
@@ -204,8 +300,21 @@ impl Polygon
 
         // Small rings: the brute-force all-pairs test is cheaper than building a grid
         // (no allocation), and stays exact. The O(n^2) cost is negligible here.
-        if count <= 48
+        if count <= SmallRingLimit
         {
+            // Almost every pair of a ring is far apart, and deciding that from two boxes costs
+            // four comparisons where the segment test costs a division and two cross products.
+            // The boxes are widened by the slack the tolerance grants — the crossing may sit up
+            // to `IntersectTolerance` of a segment's own length past its end, and a degenerate
+            // edge counts as met from that distance away — so a pair the full test would accept
+            // is never rejected here.
+            var boxes: [SmallRingLimit] SegmentBox = undefined
+            for i in count
+            {
+                let nextI = (i + 1) % count
+                boxes[i] = segmentBox(.points[i], .points[nextI])
+            }
+
             for i in count
             {
                 let nextI = (i + 1) % count
@@ -214,19 +323,22 @@ impl Polygon
                 if a0.isEqualEpsilon(a1) do
                     continue
 
-                var j = i + 1
+                let boxI = boxes[i]
+                var j    = i + 1
                 while j < count
                 {
                     defer j += 1
                     let nextJ = (j + 1) % count
                     if nextI == j or nextJ == i do
                         continue
+                    if boxesAreApart(boxI, boxes[j]) do
+                        continue
 
                     let b0 = .points[j]
                     let b1 = .points[nextJ]
                     if b0.isEqualEpsilon(b1) do
                         continue
-                    if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
+                    if Geometry.intersectSegments(a0, a1, b0, b1, IntersectTolerance).intersects do
                         return false
                 }
             }
@@ -250,8 +362,18 @@ impl Polygon
         let invCw = w > Math.ConstF32.Epsilon ? cast(f32) res / w : 0'f32
         let invCh = h > Math.ConstF32.Epsilon ? cast(f32) res / h : 0'f32
 
-        var grid: Array'(Array'u32)
-        grid.resize(cast(u64) res * cast(u64) res)
+        // The cells are chained through two flat arrays rather than owning a list each: a grid
+        // sized to the contour would otherwise allocate once per cell and once more per cell that
+        // receives an edge, which costs more than the test it accelerates. A link is a slot index
+        // biased by one so that the zero a fresh cell starts at reads as an empty cell. The chain
+        // hands edges back newest-first, which the test does not care about: it answers whether
+        // any pair crosses, not which.
+        var cellHead: Array'u32
+        var slotEdge: Array'u32
+        var slotNext: Array'u32
+        cellHead.resize(cast(u64) res * cast(u64) res)
+        slotEdge.reserve(count)
+        slotNext.reserve(count)
 
         for i in count
         {
@@ -271,8 +393,11 @@ impl Polygon
             {
                 for cx in cx0 to cx1
                 {
-                    for j in grid[cast(u64) (cy * res + cx)]
+                    var link = cellHead[cast(u64) (cy * res + cx)]
+                    while link
                     {
+                        let j = cast(u64) slotEdge[link - 1]
+                        link = slotNext[link - 1]
                         let nextJ = (j + 1) % count
                         if nextI == j or nextJ == i do
                             continue
@@ -290,8 +415,13 @@ impl Polygon
             // Register this edge in every overlapped cell.
             for cy in cy0 to cy1
             {
-                for cx in cx0 to cx1 do
-                    grid[cast(u64) (cy * res + cx)].add(cast(u32) i)
+                for cx in cx0 to cx1
+                {
+                    let cell = cast(u64) (cy * res + cx)
+                    slotEdge.add(cast(u32) i)
+                    slotNext.add(cellHead[cell])
+                    cellHead[cell] = cast(u32) slotEdge.count
+                }
             }
         }
 
@@ -494,21 +624,50 @@ impl Polygon
         if count == 1 do
             return
 
+        // The ring is walked with rolling indices rather than by taking `i + 1` and `i + 2`
+        // modulo the count: two integer divisions per point cost more than everything else
+        // this loop does, and a contour is walked on every flatten of every widget.
+        let points          = .points.buffer!
         var signedTwiceArea = 0'f32
         var firstTurnSign   = 0'f32
+        var next            = 1'u64
+        var afterNext       = count > 2 ? 2'u64 : 2 - count
+
+        // The bounds are a per-lane minimum and maximum over the same coordinates the walk
+        // below reads, and neither depends on the order the points arrive in, so they are taken
+        // two points at a time and folded once at the end. The perimeter and the signed area do
+        // depend on that order — the sign of the area decides the winding direction — so they
+        // stay in the sequential walk, added exactly as they were.
+        let coords    = cast(const [*] f32) points
+        var packedMin = Simd.load(coords)
+        var packedMax = packedMin
+        var pair      = 0'u64
+        while pair + 2 <= count
+        {
+            let packed = Simd.load(coords + pair * 2)
+            packedMin = Math.min(packedMin, packed)
+            packedMax = Math.max(packedMax, packed)
+            pair      += 2
+        }
+
+        .minBounds = {Math.min(packedMin[0], packedMin[2]), Math.min(packedMin[1], packedMin[3])}
+        .maxBounds = {Math.max(packedMax[0], packedMax[2]), Math.max(packedMax[1], packedMax[3])}
+        if pair < count
+        {
+            .minBounds = Vector2.min(.minBounds, points[pair])
+            .maxBounds = Vector2.max(.maxBounds, points[pair])
+        }
+
         for i in count
         {
-            let current = .points[i]
-            let next    = .points[(i + 1) % count]
-            .minBounds      = Vector2.min(.minBounds, current)
-            .maxBounds      = Vector2.max(.maxBounds, current)
-            .perimeter      += current.distanceTo(next)
-            signedTwiceArea += current.x * next.y - next.x * current.y
+            let current   = points[i]
+            let nextPoint = points[next]
+            .perimeter      += current.distanceTo(nextPoint)
+            signedTwiceArea += current.x * nextPoint.y - nextPoint.x * current.y
 
             if count >= 3
             {
-                let afterNext = .points[(i + 2) % count]
-                let turn      = (next - current).cross(afterNext - next)
+                let turn = (nextPoint - current).cross(points[afterNext] - nextPoint)
                 if !Math.isZeroEpsilon(turn)
                 {
                     if Math.isZeroEpsilon(firstTurnSign) do
@@ -517,6 +676,9 @@ impl Polygon
                         .isConvex = false
                 }
             }
+
+            next      = next + 1 == count ? 0 : next + 1
+            afterNext = afterNext + 1 == count ? 0 : afterNext + 1
         }
 
         .area        = Math.abs(signedTwiceArea) * 0.5

@@ -39,14 +39,14 @@ public impl Painter
         .sharedDirections.clear()
         for contour in island
         {
-            let points = contour.polygon.points
-            for i in points.count
-            {
-                let key = contourPointKey(points[i])
-                if .sharedDirections.contains(key) do
-                    continue
-                .sharedDirections.add(key, contour.polygon.offsetPointAt(i, 1) - points[i])
-            }
+            contour.polygon.fillOffsetDirections(&.sharedOffsetDirs)
+            let points = contour.polygon.points.buffer!
+            let dirs   = .sharedOffsetDirs.buffer!
+
+            // The first direction filed under a position is the one that stands, which is what
+            // asking the table before writing used to express in two probes instead of one.
+            for i in contour.polygon.points.count do
+                .sharedDirections.add(contourPointKey(points[i]), dirs[i], updateValue: false)
         }
 
         for i in p.triangles.vertices.count
@@ -80,10 +80,7 @@ public impl Painter
         // four times per edge, and every point is one edge's start and the previous edge's end,
         // so a contour paid eight miters per point where it needs one. It is resolved once here
         // and every corner of the band is that direction scaled.
-        .sharedOffsetDirs.clear()
-        .sharedOffsetDirs.reserve(count)
-        for i in count do
-            .sharedOffsetDirs.add(polygon.offsetPointAt(i, 1) - polygon.points[i])
+        polygon.fillOffsetDirections(&.sharedOffsetDirs)
 
         let argb = color.argb
         let dirs = .sharedOffsetDirs.buffer!

@@ -33,6 +33,51 @@ namespace
         return bytes.readLe16(optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
     }
 
+    struct PeSectionView
+    {
+        uint32_t virtualSize = 0;
+        uint32_t rva         = 0;
+        uint32_t rawSize     = 0;
+        uint32_t rawOffset   = 0;
+    };
+
+    bool findPeSection(PeSectionView& outSection, const ByteArray& bytes, const std::string_view name)
+    {
+        outSection = {};
+        if (!bytes.containsRange(0x3C, sizeof(uint32_t)))
+            return false;
+
+        const uint32_t peOffset         = bytes.readLe32(0x3C);
+        const size_t   fileHeaderOffset = peOffset + sizeof(uint32_t);
+        if (!bytes.containsRange(fileHeaderOffset, sizeof(IMAGE_FILE_HEADER)))
+            return false;
+
+        IMAGE_FILE_HEADER fileHeader;
+        std::memcpy(&fileHeader, bytes.data() + fileHeaderOffset, sizeof(fileHeader));
+        const size_t sectionTableOffset = fileHeaderOffset + sizeof(fileHeader) + fileHeader.SizeOfOptionalHeader;
+        if (!bytes.containsRange(sectionTableOffset, static_cast<size_t>(fileHeader.NumberOfSections) * sizeof(IMAGE_SECTION_HEADER)))
+            return false;
+
+        for (uint32_t i = 0; i < fileHeader.NumberOfSections; ++i)
+        {
+            IMAGE_SECTION_HEADER header;
+            std::memcpy(&header, bytes.data() + sectionTableOffset + static_cast<size_t>(i) * sizeof(header), sizeof(header));
+            size_t nameLength = 0;
+            while (nameLength < IMAGE_SIZEOF_SHORT_NAME && header.Name[nameLength])
+                ++nameLength;
+            if (std::string_view{reinterpret_cast<const char*>(header.Name), nameLength} != name)
+                continue;
+
+            outSection.virtualSize = header.Misc.VirtualSize;
+            outSection.rva         = header.VirtualAddress;
+            outSection.rawSize     = header.SizeOfRawData;
+            outSection.rawOffset   = header.PointerToRawData;
+            return true;
+        }
+
+        return false;
+    }
+
     ByteArray makeSingleImageIcon(const ByteArray& image)
     {
         ByteArray bytes;
@@ -127,6 +172,79 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
         std::println(stderr, "[pe-writer] generated process exited with code {}, expected 42", exitCode);
         return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeWriter_FoldsIdenticalUnwindInfo)
+{
+    ByteArray text;
+    emit(text, {0xC3, 0xC3, 0xC3});
+
+    LinkSection textSection;
+    textSection.name  = ".text";
+    textSection.bytes = std::move(text);
+    textSection.align = 16;
+    textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
+
+    ByteArray xdata;
+    emit(xdata, {1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0});
+
+    LinkSection xdataSection;
+    xdataSection.name  = ".xdata";
+    xdataSection.bytes = std::move(xdata);
+    xdataSection.align = 4;
+    xdataSection.flags = LinkSectionFlagsE::Read;
+
+    LinkSection pdataSection;
+    pdataSection.name  = ".pdata";
+    pdataSection.align = 4;
+    pdataSection.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Exception;
+    pdataSection.bytes.resize(36, std::byte{0});
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        const uint32_t offset       = i * 12;
+        const Utf8     functionName = std::format("function{}", i);
+        const Utf8     unwindName   = std::format("unwind{}", i);
+        pdataSection.relocs.push_back({.sectionIndex = 2, .offset = offset, .symbolName = functionName, .kind = LinkRelocKind::Rva32});
+        pdataSection.relocs.push_back({.sectionIndex = 2, .offset = offset + 4, .symbolName = functionName, .addend = 1, .kind = LinkRelocKind::Rva32});
+        pdataSection.relocs.push_back({.sectionIndex = 2, .offset = offset + 8, .symbolName = unwindName, .kind = LinkRelocKind::Rva32});
+    }
+
+    LinkImage image;
+    image.sections.push_back(std::move(textSection));
+    image.sections.push_back(std::move(xdataSection));
+    image.sections.push_back(std::move(pdataSection));
+    image.symbols.push_back({.name = "function0", .sectionIndex = 0, .value = 0});
+    image.symbols.push_back({.name = "function1", .sectionIndex = 0, .value = 1});
+    image.symbols.push_back({.name = "function2", .sectionIndex = 0, .value = 2});
+    image.symbols.push_back({.name = "unwind0", .sectionIndex = 1, .value = 0});
+    image.symbols.push_back({.name = "unwind1", .sectionIndex = 1, .value = 4});
+    image.symbols.push_back({.name = "unwind2", .sectionIndex = 1, .value = 8});
+    image.entrySymbol  = "function0";
+    image.kind         = LinkImageKind::Executable;
+    image.imageBase    = 0x140000000ull;
+    image.stackReserve = 0x100000;
+
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
+    if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, fs::path{}))
+        return Result::Error;
+
+    PeSectionView emittedXdata;
+    PeSectionView emittedPdata;
+    if (!findPeSection(emittedXdata, peBytes, ".xdata") || !findPeSection(emittedPdata, peBytes, ".pdata"))
+        return Result::Error;
+    if (emittedXdata.virtualSize != 8 || emittedPdata.virtualSize != 36)
+        return Result::Error;
+
+    const uint32_t firstUnwind  = peBytes.readLe32(emittedPdata.rawOffset + 8);
+    const uint32_t secondUnwind = peBytes.readLe32(emittedPdata.rawOffset + 20);
+    const uint32_t thirdUnwind  = peBytes.readLe32(emittedPdata.rawOffset + 32);
+    if (firstUnwind != emittedXdata.rva || secondUnwind != firstUnwind || thirdUnwind != emittedXdata.rva + 4)
+        return Result::Error;
 }
 SWC_TEST_END()
 

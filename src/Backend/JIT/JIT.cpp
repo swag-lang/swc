@@ -33,8 +33,11 @@
 SWC_BEGIN_NAMESPACE();
 
 // One slot per RIP-relative constant reference. Eight bytes covers every scalar
-// float shape and keeps the island naturally aligned.
+// float shape and keeps the island naturally aligned. A function thunk needs a
+// six-byte indirect jump followed by its eight-byte target address; pad it to
+// sixteen bytes so the following slot stays aligned.
 constexpr uint32_t K_CONSTANT_ISLAND_SLOT = 8;
+constexpr uint32_t K_FUNCTION_THUNK_SLOT  = 16;
 
 namespace
 {
@@ -926,7 +929,7 @@ namespace
     // target, for RIP-relative accesses whose target must stay the one true
     // storage (mutable globals). The proximity arena keeps the distance
     // within a signed 32-bit displacement.
-    void patchRelative32Direct(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
+    bool tryPatchRelative32Direct(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
         auto* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
 
@@ -935,10 +938,35 @@ namespace
         SWC_ASSERT(reloc.relativeEndOffset >= patchEndOffset);
 
         const int64_t distance = static_cast<int64_t>(targetAddress) - static_cast<int64_t>(reinterpret_cast<uint64_t>(basePtr) + reloc.relativeEndOffset);
-        SWC_FORCE_ASSERT(distance >= std::numeric_limits<int32_t>::min() && distance <= std::numeric_limits<int32_t>::max());
+        if (distance < std::numeric_limits<int32_t>::min() || distance > std::numeric_limits<int32_t>::max())
+            return false;
 
         const auto displacement = static_cast<int32_t>(distance);
         std::memcpy(basePtr + reloc.codeOffset, &displacement, sizeof(displacement));
+        return true;
+    }
+
+    void patchRelative32Direct(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
+    {
+        SWC_FORCE_ASSERT(tryPatchRelative32Direct(writableCode, reloc, targetAddress));
+    }
+
+    void patchRelative32Function(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset)
+    {
+        if (tryPatchRelative32Direct(writableCode, reloc, targetAddress))
+            return;
+
+        auto*          basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
+        const uint64_t slotEnd = static_cast<uint64_t>(islandSlotOffset) + K_FUNCTION_THUNK_SLOT;
+        SWC_ASSERT(slotEnd <= writableCode.size_bytes());
+
+        // jmp qword ptr [rip+0]
+        static constexpr std::array<uint8_t, 6> JUMP_THUNK = {0xFF, 0x25, 0x00, 0x00, 0x00, 0x00};
+        std::memcpy(basePtr + islandSlotOffset, JUMP_THUNK.data(), JUMP_THUNK.size());
+        std::memcpy(basePtr + islandSlotOffset + JUMP_THUNK.size(), &targetAddress, sizeof(targetAddress));
+
+        const uint64_t thunkAddress = reinterpret_cast<uint64_t>(basePtr + islandSlotOffset);
+        SWC_FORCE_ASSERT(tryPatchRelative32Direct(writableCode, reloc, thunkAddress));
     }
 
     // Copies the constant into the island slot reserved for it and writes the
@@ -1063,10 +1091,10 @@ namespace
         if (relocations.empty())
             return Result::Continue;
 
-        // Island slots are handed out in relocation order, which is the same
-        // order prepare() counted them in, so both agree without recording a
-        // slot index in the relocation itself.
-        uint32_t islandSlot = 0;
+        // Island storage is handed out in relocation order, which is the same
+        // order prepare() measured it in, so both agree without recording a
+        // slot offset in the relocation itself.
+        uint32_t islandOffset = islandBase;
 
         // All relocations for one emitted function share resolution caches. This matters
         // for local functions that may need preparation before they expose a patchable
@@ -1113,8 +1141,15 @@ namespace
                     continue;
                 }
 
-                patchRelative32(writableCode, reloc, targetAddress, islandBase + islandSlot * K_CONSTANT_ISLAND_SLOT);
-                ++islandSlot;
+                if (reloc.kind == MicroRelocation::Kind::LocalFunctionAddress || reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress)
+                {
+                    patchRelative32Function(writableCode, reloc, targetAddress, islandOffset);
+                    islandOffset += K_FUNCTION_THUNK_SLOT;
+                    continue;
+                }
+
+                patchRelative32(writableCode, reloc, targetAddress, islandOffset);
+                islandOffset += K_CONSTANT_ISLAND_SLOT;
                 continue;
             }
 
@@ -1141,25 +1176,31 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteAr
     // that reach of a VirtualAlloc'd page. Each such relocation therefore gets
     // its own copy of the value, allocated with the code so the distance is
     // measured in bytes rather than gigabytes.
-    uint32_t constantIslandCount = 0;
+    uint32_t islandSize = 0;
     for (const MicroRelocation& relocation : relocations)
     {
         // Mutable globals patch straight to their arena-resident storage and
-        // take no island slot; only immutable constants are copied.
-        if (relocation.form == MicroRelocation::Form::Relative32 &&
-            relocation.kind != MicroRelocation::Kind::GlobalZeroAddress &&
-            relocation.kind != MicroRelocation::Kind::GlobalInitAddress)
-            ++constantIslandCount;
+        // take no island slot. Constants need a copied value, while function
+        // calls reserve a fallback thunk in case their target is out of range.
+        if (relocation.form != MicroRelocation::Form::Relative32 ||
+            relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
+            relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            continue;
+
+        if (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress)
+            islandSize += K_FUNCTION_THUNK_SLOT;
+        else
+            islandSize += K_CONSTANT_ISLAND_SLOT;
     }
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
     const uint64_t islandBaseU64     = Math::alignUpU64(static_cast<uint64_t>(codeSize) + unwindSizeU64, K_CONSTANT_ISLAND_SLOT);
-    const uint64_t islandSizeU64     = static_cast<uint64_t>(constantIslandCount) * K_CONSTANT_ISLAND_SLOT;
-    const uint64_t allocationSizeU64 = constantIslandCount ? islandBaseU64 + islandSizeU64 : static_cast<uint64_t>(codeSize) + unwindSizeU64;
+    const uint64_t islandSizeU64     = islandSize;
+    const uint64_t allocationSizeU64 = islandSize ? islandBaseU64 + islandSizeU64 : static_cast<uint64_t>(codeSize) + unwindSizeU64;
     const uint32_t allocationSize    = static_cast<uint32_t>(allocationSizeU64);
     memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
 
-    if (constantIslandCount)
+    if (islandSize)
     {
         outExecutableMemory.constantIslandOffset_ = static_cast<uint32_t>(islandBaseU64);
         outExecutableMemory.constantIslandSize_   = static_cast<uint32_t>(islandSizeU64);

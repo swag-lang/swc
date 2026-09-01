@@ -8,7 +8,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 StartNoOverlap
-DrawTriangles n=54 bbox=(9.5,27.391)-(30,29.391) colors=[FF000000] cov=aa
+DrawTriangles n=30 bbox=(9.5,27.391)-(30,29.391) colors=[FF000000] cov=aa
 StopNoOverlap
 BindTextureFont font#0 atlas=0
 DrawTriangles n=12 bbox=(10,15)-(29,28) uv=(0,0)-(0.297,0.203) colors=[FF000000] cov=solid

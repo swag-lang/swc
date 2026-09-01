@@ -116,6 +116,27 @@ impl Transform2
         return Vector2{rx, ry}
     }
 
+    // Returns the axis-aligned rectangle enclosing `rect` once transformed.
+    //
+    // The four corners are mapped, because a rotated or skewed rectangle is no longer
+    // described by an origin and an extent. The result is the smallest rectangle holding the
+    // transformed shape, which is what a caller rejecting work against a viewport needs.
+    //
+    // ```swag
+    // if !viewport.intersects(transform.transformBounds(item.bounds)) do
+    //     continue
+    // ```
+    mtd const transformBounds(rect: Rectangle)->Rectangle
+    {
+        let p0  = .transformPoint({rect.x, rect.y})
+        let p1  = .transformPoint({rect.right(), rect.y})
+        let p2  = .transformPoint({rect.x, rect.bottom()})
+        let p3  = .transformPoint({rect.right(), rect.bottom()})
+        let min = Vector2.min(Vector2.min(p0, p1), Vector2.min(p2, p3))
+        let max = Vector2.max(Vector2.max(p0, p1), Vector2.max(p2, p3))
+        return Rectangle{min.x, min.y, max.x - min.x, max.y - min.y}
+    }
+
     // Multiplies the current transform by another transformation matrix
     mtd multiply(matrix2: Transform2)
     {

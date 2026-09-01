@@ -151,8 +151,8 @@ func nestedSquares()->LinePathList
     Swag.assert(path.polygon.points.count == fine)
 }
 
-// The painter quantizes the flattening scale to power-of-two buckets and never drops below
-// the calibrated scale-one tolerances.
+// The painter quantizes the flattening scale to power-of-two buckets, between a sixty-fourth
+// and sixty-four.
 #test
 {
     var painter: Painter
@@ -166,5 +166,21 @@ func nestedSquares()->LinePathList
     painter.setFlattenScale(1000)
     Swag.assert(painter.flattenScale() == 64)
     painter.setFlattenScale(0.2)
-    Swag.assert(painter.flattenScale() == 1)
+    Swag.assert(painter.flattenScale() == 0.125)
+    painter.setFlattenScale(0.5)
+    Swag.assert(painter.flattenScale() == 0.5)
+    painter.setFlattenScale(0.0001)
+    Swag.assert(painter.flattenScale() == 1.0'f32 / 64)
+}
+
+// A minified pass never coarsens the flattening itself: a contour keeps the finest
+// tessellation anything asked of it, whichever order the consumers arrived in.
+#test
+{
+    var path: LinePath
+    path.setEllipseRaw(50, 50, 40, 40)
+    path.flatten(.Normal)
+    let expected = path.polygon.points.count
+    path.flatten(.Normal, 1.0 / 32)
+    Swag.assert(path.polygon.points.count == expected)
 }

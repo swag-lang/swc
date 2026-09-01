@@ -120,6 +120,21 @@ struct DrawingItem
     // element that named it, so a group's clip stays where the group put it however its
     // children are transformed. An empty range is an unclipped item.
     clipFirst, clipCount: u64
+
+    // Drawing-space rectangle outside which the item cannot lay ink, already reduced by the
+    // clip it is drawn under.
+    //
+    // A painter whose clipping rectangle misses it skips the item whole, which is what keeps
+    // a pan or a zoom proportional to what a window shows rather than to what the document
+    // holds. The rectangle is never narrower than the ink and may be wider.
+    bounds: Rectangle
+
+    // Whether `bounds` has been established.
+    //
+    // A shape or a picture is measured once the document is parsed. Text is measured the
+    // first time it is painted, because where a run lands depends on the shaping of the runs
+    // before it, and shaping needs the painter's font cache.
+    hasBounds: bool
 }
 
 private enum TextAnchor
@@ -230,13 +245,13 @@ private struct GroupState
     markerMidId:   String     // Inherited `marker-mid` reference.
     markerEndId:   String     // Inherited `marker-end` reference.
 
-    clipPathId:    String                                          // Inherited `clip-path` reference.
+    clipPathId:    String                                         // Inherited `clip-path` reference.
     clipTransform: Math.Transform2 = Math.Transform2.Identity     // Transform of the element that named the clip.
 
     currentColor: Color = Color.fromArgb(Argb.Black)     // Inherited `currentColor` value.
 
-    isDisplayed:  bool  = true                           // Whether an ancestor selected `display:none`.
-    isVisible:    bool  = true                           // Inherited visibility state.
+    isDisplayed: bool = true     // Whether an ancestor selected `display:none`.
+    isVisible:   bool = true     // Inherited visibility state.
 
     opacity: f32 = 1     // Accumulated group opacity.
     inDefs:  bool        // Whether the element sits inside a `defs` scope.
@@ -293,12 +308,12 @@ private struct MarkerDefinition
 {
     first, count: u64     // Shapes of the definition, in the drawing's hidden range.
 
-    refX, refY:     f32                // Point of the marker placed on the vertex.
-    width:          f32 = 3            // Marker viewport width.
-    height:         f32 = 3            // Marker viewport height.
-    scaleWithWidth: bool = true        // `markerUnits` is `strokeWidth` rather than user space.
+    refX, refY:     f32             // Point of the marker placed on the vertex.
+    width:          f32  = 3        // Marker viewport width.
+    height:         f32  = 3        // Marker viewport height.
+    scaleWithWidth: bool = true     // `markerUnits` is `strokeWidth` rather than user space.
 
-    hasViewBox:                          bool
+    hasViewBox: bool
     viewX, viewY, viewWidth, viewHeight: f32
 
     orientAuto:         bool     // `orient="auto"` or `auto-start-reverse`.
@@ -309,7 +324,7 @@ private struct MarkerDefinition
 // The viewport a `symbol` establishes for the elements that instantiate it.
 private struct SymbolViewport
 {
-    hasViewBox:                        bool
+    hasViewBox: bool
     viewX, viewY, viewWidth, viewHeight: f32
 }
 
@@ -340,8 +355,8 @@ private struct Gradient
 {
     kind: GradientKind = Linear
 
-    href:      String                  // Gradient this one inherits from, without its `#`.
-    specified: GradientSpecified       // Attributes this gradient states itself.
+    href:      String                // Gradient this one inherits from, without its `#`.
+    specified: GradientSpecified     // Attributes this gradient states itself.
 
     x1: SvgLength = {0, true}
     y1: SvgLength = {0, true}
@@ -356,7 +371,7 @@ private struct Gradient
     fr: SvgLength
 
     userSpace: bool
-    spread:    GradientSpread   = Clamp
+    spread:    GradientSpread  = Clamp
     transform: Math.Transform2 = Math.Transform2.Identity
     stops:     Array'GradientStop
 }
@@ -902,7 +917,7 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
         // Every function takes a bounded list of numbers; read what is there and let the
         // defaults of the shorter forms stand.
         var arguments: [6] f32
-        var count     = 0'u64
+        var count = 0'u64
         while count < 6
         {
             var look = pos
@@ -1040,7 +1055,8 @@ private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform
 // Maps one user-space direction into drawing space, without the translation.
 #[Swag.Inline]
 private func mapVector(transform: Math.Transform2, x, y: f32)->Vector2
-    => {x * transform.m11 + y * transform.m21, x * transform.m12 + y * transform.m22}
+    =>
+{x * transform.m11 + y * transform.m21, x * transform.m12 + y * transform.m22}
 
 // Length of the transformed unit vector of each axis.
 #[Swag.Inline]
@@ -1288,8 +1304,8 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
 // makes a start marker point forward and an end marker point back along the last segment.
 private struct MarkerVertex
 {
-    point:            Vector2
-    inDir, outDir:    Vector2
+    point:         Vector2
+    inDir, outDir: Vector2
 }
 
 // Returns the marker vertices of a `points` list, or nothing when the element carries none.
@@ -1594,8 +1610,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             continue
 
         case 'A', 'a':
-            let rx = number(data, &pos, &valid)
-            let ry = number(data, &pos, &valid)
+            let rx       = number(data, &pos, &valid)
+            let ry       = number(data, &pos, &valid)
             let rotation = number(data, &pos, &valid)
             let largeArc = flag(data, &pos, &valid)
             let sweepF   = flag(data, &pos, &valid)
@@ -2251,10 +2267,11 @@ private impl Parser
 
         let index = .drawing.images.count
         let item  = .drawing.images.emplaceInitAddress()
-        item.image   = try .loadImage(href.value.toString())
+        item.image = try .loadImage(href.value.toString())
+
         // A raster rectangle has no rotated form here: the origin is transformed and the extents
         // take the axis scales, which is exact for every transform that keeps the axes.
-        let origin   = mapPoint(state, .geoNumber(geo, "x"), .geoNumber(geo, "y"))
+        let origin = mapPoint(state, .geoNumber(geo, "x"), .geoNumber(geo, "y"))
         item.rect    = {origin.x, origin.y, width * transformScaleX(state.transform), height * transformScaleY(state.transform)}
         item.opacity = state.opacity
         if !state.inDefs do
@@ -2302,10 +2319,10 @@ private impl Parser
         let dx  = .geoNumber(geo, "dx")
         let dy  = .geoNumber(geo, "dy")
         let run = block.runs.emplaceInitAddress()
-        run.text          = #move normalized
-        run.typeFace      = typeFace
-        run.hasX          = first or x != null
-        run.hasY          = first or y != null
+        run.text     = #move normalized
+        run.typeFace = typeFace
+        run.hasX     = first or x != null
+        run.hasY     = first or y != null
         let anchor = mapPoint(state, x ? .geoNumber(geo, "x") : 0, y ? .geoNumber(geo, "y") : 0)
         let offset = mapVector(state.transform, dx, dy)
         run.x             = anchor.x
@@ -2565,7 +2582,7 @@ private impl Parser
                 let d = geo.tryFind("d")
                 if d
                 {
-                    var list: LinePathList
+                    var list:     LinePathList
                     var vertices: Array'MarkerVertex
                     parsePathData(&list, d.value.toString(), &state, state.hasMarkers() ? &vertices : null)
                     emitShape(.drawing, list, &state)
@@ -2599,11 +2616,11 @@ private impl Parser
 
             case "line":
                 var list: LinePathList
-                let path = list.newPath()
-                let x1 = .geoNumber(&geo, "x1")
-                let y1 = .geoNumber(&geo, "y1")
-                let x2 = .geoNumber(&geo, "x2")
-                let y2 = .geoNumber(&geo, "y2")
+                let path   = list.newPath()
+                let x1     = .geoNumber(&geo, "x1")
+                let y1     = .geoNumber(&geo, "y1")
+                let x2     = .geoNumber(&geo, "x2")
+                let y2     = .geoNumber(&geo, "y2")
                 let from   = mapPoint(&state, x1, y1)
                 let target = mapPoint(&state, x2, y2)
                 path.start(from.x, from.y)
@@ -2620,6 +2637,7 @@ private impl Parser
                     vertices.add(MarkerVertex{{x2, y2}, direction, {}})
                     .applyMarkers(&state, vertices.toSlice())
                 }
+
                 if !selfClosed do
                     try .parseContent(state)
 
@@ -2639,7 +2657,7 @@ private impl Parser
                 // clip instantiates a copy under its own transform.
                 var clipState: GroupState
                 clipState.inDefs = true
-                let clipFirst    = .drawing.shapes.count
+                let clipFirst = .drawing.shapes.count
                 if !selfClosed do
                     try .parseContent(clipState)
 
@@ -2654,7 +2672,7 @@ private impl Parser
                 // size it asks for.
                 var symbolState: GroupState
                 symbolState.inDefs = true
-                let symbolFirst    = .drawing.shapes.count
+                let symbolFirst = .drawing.shapes.count
                 if !selfClosed do
                     try .parseContent(symbolState)
 
@@ -2685,7 +2703,7 @@ private impl Parser
                 // paint order; the elements that reference it place copies on their vertices.
                 var markerState: GroupState
                 markerState.inDefs = true
-                let markerFirst    = .drawing.shapes.count
+                let markerFirst = .drawing.shapes.count
                 if !selfClosed do
                     try .parseContent(markerState)
 
@@ -2951,7 +2969,7 @@ private impl Parser
 
         var clipState: GroupState
         clipState.transform = state.clipTransform
-        let clip            = .instantiate(definition.value.first, definition.value.count, &clipState, hidden: true)
+        let clip = .instantiate(definition.value.first, definition.value.count, &clipState, hidden: true)
         if clip.count == 0 do
             return
 
@@ -3028,7 +3046,7 @@ private impl Parser
                 let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
                 let radius           = gradient.r.isPercent ? gradient.r.value * viewportDiagonal : gradient.r.value
                 let inner            = gradient.fr.isPercent ? gradient.fr.value * viewportDiagonal : gradient.fr.value
-                let radiusScale = transformScale(gradient.transform) * transformScale(shape.paintTransform)
+                let radiusScale      = transformScale(gradient.transform) * transformScale(shape.paintTransform)
                 result.gradientRadius0 = Math.max(inner * radiusScale, 0)
                 result.gradientRadius1 = Math.max(radius * radiusScale, result.gradientRadius0)
             }
@@ -3084,16 +3102,65 @@ private impl Parser
                     break
 
                 let from = &base.value
-                if !resolved.specified.x1 { resolved.x1 = from.x1; resolved.specified.x1 = from.specified.x1 }
-                if !resolved.specified.y1 { resolved.y1 = from.y1; resolved.specified.y1 = from.specified.y1 }
-                if !resolved.specified.x2 { resolved.x2 = from.x2; resolved.specified.x2 = from.specified.x2 }
-                if !resolved.specified.y2 { resolved.y2 = from.y2; resolved.specified.y2 = from.specified.y2 }
-                if !resolved.specified.cx { resolved.cx = from.cx; resolved.specified.cx = from.specified.cx }
-                if !resolved.specified.cy { resolved.cy = from.cy; resolved.specified.cy = from.specified.cy }
-                if !resolved.specified.r { resolved.r = from.r; resolved.specified.r = from.specified.r }
-                if !resolved.specified.fx { resolved.fx = from.fx; resolved.specified.fx = from.specified.fx }
-                if !resolved.specified.fy { resolved.fy = from.fy; resolved.specified.fy = from.specified.fy }
-                if !resolved.specified.fr { resolved.fr = from.fr; resolved.specified.fr = from.specified.fr }
+                if !resolved.specified.x1
+                {
+                    resolved.x1           = from.x1
+                    resolved.specified.x1 = from.specified.x1
+                }
+
+                if !resolved.specified.y1
+                {
+                    resolved.y1           = from.y1
+                    resolved.specified.y1 = from.specified.y1
+                }
+
+                if !resolved.specified.x2
+                {
+                    resolved.x2           = from.x2
+                    resolved.specified.x2 = from.specified.x2
+                }
+
+                if !resolved.specified.y2
+                {
+                    resolved.y2           = from.y2
+                    resolved.specified.y2 = from.specified.y2
+                }
+
+                if !resolved.specified.cx
+                {
+                    resolved.cx           = from.cx
+                    resolved.specified.cx = from.specified.cx
+                }
+
+                if !resolved.specified.cy
+                {
+                    resolved.cy           = from.cy
+                    resolved.specified.cy = from.specified.cy
+                }
+
+                if !resolved.specified.r
+                {
+                    resolved.r           = from.r
+                    resolved.specified.r = from.specified.r
+                }
+
+                if !resolved.specified.fx
+                {
+                    resolved.fx           = from.fx
+                    resolved.specified.fx = from.specified.fx
+                }
+
+                if !resolved.specified.fy
+                {
+                    resolved.fy           = from.fy
+                    resolved.specified.fy = from.specified.fy
+                }
+
+                if !resolved.specified.fr
+                {
+                    resolved.fr           = from.fr
+                    resolved.specified.fr = from.specified.fr
+                }
 
                 if !resolved.specified.units
                 {
@@ -3229,6 +3296,7 @@ private impl Parser
                     value[] *= geometryScale
                 capStyle  = src.capStyle
                 joinStyle = src.joinStyle
+
                 // The definition's own paint space is composed under the instance's, with the
                 // `use` offset between them.
                 paintTransform = src.paintTransform
@@ -3236,7 +3304,7 @@ private impl Parser
 
                 for srcPath in src.pathList.paths
                 {
-                    let path  = list.newPath()
+                    let path   = list.newPath()
                     let origin = mapPoint(state, srcPath.startPoint.x, srcPath.startPoint.y)
                     path.start(origin.x, origin.y)
                     for &element in srcPath.elements
@@ -3276,30 +3344,53 @@ private impl Parser
 
             let shapeIndex = .drawing.shapes.count
             let shape      = .drawing.shapes.emplaceInitAddress()
-            shape.pathList      = #move list
-            shape.fillColor     = fillColor
-            shape.fillPaintId   = #move fillPaintId
-            shape.fillOpacity   = fillOpacity
-            shape.strokeColor   = strokeColor
-            shape.strokePaintId = #move strokePaintId
-            shape.strokeOpacity = strokeOpacity
-            shape.hasFill       = hasFill
-            shape.hasStroke     = hasStroke
-            shape.evenOdd       = evenOdd
-            shape.strokeWidth   = strokeWidth
-            shape.strokeOffset  = strokeOffset
-            shape.strokeMiter   = strokeMiter
-            shape.strokePattern = #move strokePattern
-            shape.capStyle      = capStyle
-            shape.joinStyle     = joinStyle
+            shape.pathList       = #move list
+            shape.fillColor      = fillColor
+            shape.fillPaintId    = #move fillPaintId
+            shape.fillOpacity    = fillOpacity
+            shape.strokeColor    = strokeColor
+            shape.strokePaintId  = #move strokePaintId
+            shape.strokeOpacity  = strokeOpacity
+            shape.hasFill        = hasFill
+            shape.hasStroke      = hasStroke
+            shape.evenOdd        = evenOdd
+            shape.strokeWidth    = strokeWidth
+            shape.strokeOffset   = strokeOffset
+            shape.strokeMiter    = strokeMiter
+            shape.strokePattern  = #move strokePattern
+            shape.capStyle       = capStyle
+            shape.joinStyle      = joinStyle
             shape.paintTransform = paintTransform
-            shape.hidden        = hidden or state.inDefs
-            shape.filterId      = #move filterId
+            shape.hidden         = hidden or state.inDefs
+            shape.filterId       = #move filterId
             if !shape.hidden do
                 .drawing.items.add(DrawingItem{.Shape, shapeIndex})
         }
 
         result.count = .drawing.shapes.count - result.first
+        return result
+    }
+}
+
+// How far outside its geometry an antialiased edge lays its fringe, which a rectangle tested
+// against a viewport is widened by so an item touching the edge is never rejected.
+private const InkFringeMargin = 2.0'f32
+
+internal impl Shape
+{
+    // Returns the rectangle this shape can ink, its contours plus whatever a stroke adds
+    // around them.
+    mtd const inkBounds()->Rectangle
+    {
+        var result: retval = .pathList.controlBounds()
+        if .hasStroke
+        {
+            // Half the width lies either side of the contour, and a miter join reaches at
+            // most the miter limit past a corner. A cap never reaches further than a join.
+            let margin = Math.abs(.strokeWidth) * 0.5 * Math.max(.strokeMiter, 1.0'f32)
+            result.inflate(margin)
+        }
+
         return result
     }
 }
@@ -3341,6 +3432,58 @@ impl Drawing
         if result.width <= 0 or result.height <= 0 do
             fail Swag.SystemError{"SVG document has no valid dimensions"}
 
+        result.measureItems()
+        return result
+    }
+
+    // Records what each item can ink, so painting can reject the ones a viewport misses.
+    //
+    // Shapes and pictures are bounded from the geometry the parser produced. A text block is
+    // left unmeasured: its runs are placed by the advances of the runs before them, which only
+    // shaping can give, so the first paint measures it and every later one rejects it.
+    private mtd measureItems()
+    {
+        for &item in .items
+        {
+            switch item.kind
+            {
+            case .Shape:
+
+                // A filter spreads ink past the shape that carries it — a blur by its radius,
+                // an offset by its distance — so a filtered shape is never rejected.
+                let shape  = &.shapes[item.index]
+                let filter = .filters.tryFind(shape.filterId)
+                if filter and filter.value.primitives.count do
+                    break
+                item.bounds    = shape.inkBounds()
+                item.hasBounds = true
+
+            case .Image:
+                item.bounds    = .images[item.index].rect
+                item.hasBounds = true
+
+            case .Text:
+                break
+            }
+
+            if item.hasBounds and item.clipCount do
+                item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
+        }
+    }
+
+    // Returns the rectangle a clip range can keep, which is the union of its shapes.
+    private mtd const clipRangeBounds(first, count: u64)->Rectangle
+    {
+        var result: retval
+        for i in count
+        {
+            let bounds = .shapes[first + i].pathList.controlBounds()
+            if !i do
+                result = bounds
+            else do
+                result.expandToInclude(bounds)
+        }
+
         return result
     }
 
@@ -3352,16 +3495,19 @@ impl Drawing
     mtd const paint(painter: *Painter, x, y: f32, scale = 1.0'f32)
     {
         // Contours are flattened in drawing units, so a magnified drawing needs the scale to
-        // reach the tolerance or its curves show their segments. The painter buckets the value,
-        // so a viewer that zooms continuously re-flattens only on doublings.
+        // reach the tolerance or its curves show their segments. Shown smaller than its own
+        // units the same statement runs the other way: a document poster-sized next to the
+        // window it is fitted into holds far more contour points than the window has pixels,
+        // and the stroker is told so here rather than walking all of them. The painter buckets
+        // the value, so a viewer that zooms continuously re-keys only on doublings.
         //
-        // [[Pixel.Svg.Drawing.rasterize]] deliberately does not do this. A contour keeps the
+        // [[Pixel.Svg.Drawing.rasterize]] deliberately declares nothing. A contour keeps the
         // finest flattening anything ever asked it for, so a drawing rasterized at several sizes
         // would carry the tolerance of whichever size came first, and a cached sheet — a theme's
         // icon atlas — would depend on the order its sizes were first requested.
         let previousFlattenScale = painter.flattenScale()
         defer painter.setFlattenScale(previousFlattenScale)
-        painter.setFlattenScale(Math.max(scale * painter.contentScale(), 1))
+        painter.setFlattenScale(Math.max(scale * painter.contentScale(), 1.0'f32 / 64))
 
         .paintImpl(painter, x, y, scale, false)
     }
@@ -3478,13 +3624,17 @@ impl Drawing
         painter.releaseTexture(texture)
     }
 
-    private mtd const paintText(painter: *Painter, text: const *SvgText, compensateAlpha: bool)
+    // Paints one text block and returns the drawing-space rectangle its runs covered.
+    private mtd const paintText(painter: *Painter, text: const *SvgText, compensateAlpha: bool)->Rectangle
     {
         // The pen is a point plus a distance along the baseline, because a rotated element
         // runs its text along a direction rather than along the drawing's x axis. With no
         // rotation the direction is the x axis and this is the ordinary running position.
         var origin:  Vector2
         var advance: f32
+
+        var inked:    retval
+        var hasInked: bool
 
         for run in text.runs
         {
@@ -3516,22 +3666,40 @@ impl Drawing
             if compensateAlpha do
                 color.a = cast(u8) Math.round(255.0 * Math.sqrt(cast(f32) color.a / 255.0))
 
+            // The run is drawn from `font.ascent` above the baseline; its glyphs can reach a
+            // little past the recommended extents either way, so the box takes the larger of
+            // the two and a margin of its own.
+            let above   = Math.max(font.ascent, metrics.ascent)
+            let below   = Math.max(font.descent, metrics.descent)
             let rotated = Math.abs(run.rotation) > 0.0001
+            var runBox  = Rectangle{origin.x + offset, origin.y - above, metrics.width, above + below}
+            runBox.inflate(run.fontSize * 0.5)
             if rotated
             {
                 // Turning the painter around the baseline origin puts the run on the direction
                 // its element states, and leaves glyph shaping in its own upright space.
                 painter.pushState()
                 var tr = Math.Transform2.createRotation(run.rotation, origin.x, origin.y)
+                runBox = tr.transformBounds(runBox)
                 tr.multiply(painter.transform())
                 painter.setTransform(tr)
             }
+
+            if !hasInked
+            {
+                inked    = runBox
+                hasInked = true
+            }
+            else do
+                inked.expandToInclude(runBox)
 
             painter.drawShapedRun(origin.x + offset, origin.y - font.ascent, &shaped, font, Brush.createSolid(color))
             if rotated do
                 painter.popState()
             advance += metrics.width
         }
+
+        return inked
     }
 
     private mtd const paintImage(painter: *Painter, image: const *SvgImage, compensateAlpha: bool)
@@ -3618,8 +3786,22 @@ impl Drawing
         // stamp their clip once.
         var activeFirst, activeCount: u64
 
-        for item in .items
+        // What the painter can still reach, in surface space. An item landing outside it is
+        // not drawn, and does not stamp its clip either: a document is normally much larger
+        // than the window showing it, and a rejected item costs a rectangle test instead of
+        // all of its geometry.
+        let visible = painter.clippingRect()
+
+        for &item in .items
         {
+            if item.hasBounds
+            {
+                var painted = tr.transformBounds(item.bounds)
+                painted.inflate(InkFringeMargin)
+                if !visible.intersects(painted) do
+                    continue
+            }
+
             if item.clipFirst != activeFirst or item.clipCount != activeCount
             {
                 .exchangeClip(painter, activeFirst, activeCount, item.clipFirst, item.clipCount)
@@ -3648,7 +3830,17 @@ impl Drawing
                     .paintShapeCore(painter, shape, compensateAlpha)
 
             case .Text:
-                .paintText(painter, &.texts[item.index], compensateAlpha)
+                let inked = .paintText(painter, &.texts[item.index], compensateAlpha)
+
+                // Where the runs landed is what the block covers, and it is the same at every
+                // scale because a run is shaped in its own upright space.
+                if !item.hasBounds
+                {
+                    item.bounds = inked
+                    if item.clipCount do
+                        item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
+                    item.hasBounds = true
+                }
 
             case .Image:
                 .paintImage(painter, &.images[item.index], compensateAlpha)
@@ -3758,7 +3950,7 @@ impl Drawing
         // drawing rasterizes to nothing. Such a drawing is rebuilt by the replay instead:
         // slightly soft alpha beats no alpha at all.
         let directAlpha = (.texts.count or .images.count or .patterns.count or .filters.count) and !.hasStrokedShape()
-        var result        = Image.create(width, height, .BGRA8)
+        var result      = Image.create(width, height, .BGRA8)
 
         // Targets are created at the exact size instead of acquired from the pool, which
         // rounds up to a power of two: the resolve reads the sampled target as a whole,

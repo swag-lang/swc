@@ -88,3 +88,28 @@ func expectTransform(actual, expected: Math.Transform2)
     expectTransform(selfMul, Math.Transform2{4, 0, 0, 9, 0, 0})
     expectVec2(selfMul.transformPoint(Math.Vector2{1, 1}), Math.Vector2{4, 9})
 }
+
+func expectRect(actual, expected: Math.Rectangle)
+{
+    Swag.assert(Math.isEqualEpsilon(actual.x, expected.x, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.y, expected.y, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.width, expected.width, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.height, expected.height, 0.001))
+}
+
+// Transformed bounds hold the mapped corners, whatever the transform does to them.
+#test
+{
+    const Source = Math.Rectangle{10, 20, 30, 40}
+
+    expectRect(Math.Transform2.Identity.transformBounds(Source), Source)
+    expectRect(Math.Transform2.createTranslation(5, -7).transformBounds(Source), {15, 13, 30, 40})
+    expectRect(Math.Transform2.createScale(2, 3, 0, 0).transformBounds(Source), {20, 60, 60, 120})
+
+    // A negative scale keeps the rectangle positive: the corners are ordered again.
+    expectRect(Math.Transform2.createScale(-1, 1, 0, 0).transformBounds(Source), {-40, 20, 30, 40})
+
+    // A quarter turn about the origin swaps the extents.
+    let quarter = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
+    expectRect(quarter.transformBounds(Source), {-60, 10, 40, 30})
+}

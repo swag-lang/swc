@@ -24,6 +24,16 @@ struct Context
     pen:             const *Pen      = undefined
     offsetPath:      f32
 
+    // Squared distance below which a contour point is not worth a segment of its own,
+    // because the one before it already covers the same place on the device grid. Zero
+    // walks every point.
+    minStepSquared: f32
+
+    // Squared distance below which the two segment ends a join would bridge are the same
+    // corner to the device grid, so the join filling the sliver between them is not worth
+    // its geometry.
+    joinSkipSpanSquared: f32
+
     remainingPatternLen: f32
     patternTotalLen:     f32
     patternIndex:        s32
@@ -51,8 +61,6 @@ impl Painter
             .addEdgeAA(prim1, v0, v3)
             .addEdgeAA(prim1, v1, v2)
             .addEdgeAA(prim2, v3, v2)
-            .addEdgeAA(prim2, v1, v2)
-            .addEdgeAA(prim2, v0, v3)
         }
     }
 
@@ -88,7 +96,7 @@ impl Painter
         let v3 = Math.Vector2{v0.x + n.x, v0.y + n.y}
 
         let prim1 = .pushTriangle(v0, v1, v3, pen.brush.color)
-        let prim2 = .pushTriangle(v1, v3, v2, pen.brush.color)
+        discard .pushTriangle(v1, v3, v2, pen.brush.color)
 
         if .curState.paintParams & .Antialiased
         {
@@ -96,11 +104,6 @@ impl Painter
             .addEdgeAA(prim1, v1, v2)
             .addEdgeAA(prim1, v3, v2)
             .addEdgeAA(prim1, v0, v1)
-
-            .addEdgeAA(prim2, v0, v3)
-            .addEdgeAA(prim2, v1, v2)
-            .addEdgeAA(prim2, v3, v2)
-            .addEdgeAA(prim2, v0, v1)
         }
     }
 
@@ -356,18 +359,22 @@ impl Painter
         }
 
         let prim1 = .pushTriangle(v0, v1, v3, pen.brush.color)
-        let prim2 = .pushTriangle(v1, v3, v2, pen.brush.color)
+        discard .pushTriangle(v1, v3, v2, pen.brush.color)
         if .curState.paintParams & .Antialiased
         {
             .addEdgeAA(prim1, v3, v2)
             .addEdgeAA(prim1, v1, v2)
-            .addEdgeAA(prim2, v3, v2)
-            .addEdgeAA(prim2, v1, v2)
         }
     }
 
     mtd drawJoin(cxt: *Context, p, d1, d2: Math.Vector2)
     {
+        // `d1` and `d2` are the two corners the turn leaves apart, relative to the vertex, so
+        // their distance bounds the sector this join fills. A minified pass sets a span below
+        // which that sector cannot reach a pixel; see 'setMinifiedStrokeLimits'.
+        if (d1 - d2).lengthSquared() < cxt.joinSkipSpanSquared do
+            return
+
         switch #complete cxt.pen.joinStyle
         {
         case .None:       break
@@ -396,7 +403,6 @@ impl Painter
             let p      = prim2p.pos
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)
-            .addEdgeAA(cxt.prim2, p, q)
         }
     }
 
@@ -455,21 +461,21 @@ impl Painter
         cxt.prim1 = .pushTriangle(v0, v1, v3, cxt.pen.brush.color)
         cxt.prim2 = .pushTriangle(v1, v3, v2, cxt.pen.brush.color)
 
-        // Generate AA edges
+        // Generate AA edges.
+        //
+        // One band per silhouette edge, not one per triangle sharing it: the two triangles of
+        // a quad are on the same side of each of its edges, so a second call for the same edge
+        // resolves to the same outward direction and emits the same six vertices. A stroked
+        // document is mostly this geometry, and the copy cost every one of them.
         if .curState.paintParams & .Antialiased
         {
             .addEdgeAA(cxt.prim1, v0, v1)
             .addEdgeAA(cxt.prim1, v3, v2)
-            .addEdgeAA(cxt.prim2, v0, v1)
-            .addEdgeAA(cxt.prim2, v3, v2)
 
             // If we are starting a line, and the line does not have a cap before, then
             // we must AA the corresponding edge
-            if flatBegin and cxt.beginLine and (!cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed)
-            {
+            if flatBegin and cxt.beginLine and (!cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
                 .addEdgeAA(cxt.prim1, v0, v3)
-                .addEdgeAA(cxt.prim2, v0, v3)
-            }
         }
 
         // To draw end joint
@@ -827,6 +833,14 @@ impl Painter
                     if i < cxt.path.polygon.points.count
                     {
                         let p = cxt.path.polygon.offsetPointAt(i, cxt.offsetPath)
+
+                        // A contour is only accurate to its flattening tolerance, so a point
+                        // that close to the one already reached describes no separate place;
+                        // a whole quad, its fringes and its join for it are geometry the
+                        // device grid cannot show. The last point is always kept, so the
+                        // stroke still ends where the contour does.
+                        if i != endPointIndex and p.distanceSquaredTo(cxt.prev) < cxt.minStepSquared do
+                            continue
                         .drawLine(cxt, p)
                     }
                 }
@@ -853,7 +867,6 @@ impl Painter
             let p      = prim2p.pos
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)
-            .addEdgeAA(cxt.prim2, p, q)
         }
         elif cxt.path.isClosed and !cxt.firstLine and !cxt.beginLine
         {
@@ -875,7 +888,7 @@ impl Painter
 // on a 125% display is already a whole device pixel and never reaches here.
 private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
 {
-    var result  = pen
+    var result = pen
     result.size = 1 / deviceScale
     result.brush.multiplyOpacity(pen.size * deviceScale)
 
@@ -913,6 +926,39 @@ public impl Painter
         .strokePath(path, promoteHairline(pen, deviceScale))
     }
 
+    // Fills in what a minified pass is allowed to leave out of a stroke.
+    //
+    // Only a minified pass leaves anything out. At its own scale or above, a contour was
+    // flattened for exactly the tolerance it is drawn at, every point it holds earns its
+    // segment, and every join fills a wedge the grid can show; below it, the contour carries
+    // the detail of a size the pass is not showing, and walking all of it spends most of a
+    // stroke's geometry on places one device pixel cannot tell apart.
+    //
+    // The step is the tolerance the pass would have flattened with. A dashed stroke keeps
+    // every point, because the pattern is laid along the segments it is given.
+    private mtd setMinifiedStrokeLimits(cxt: *Context, pen: Pen)
+    {
+        cxt.minStepSquared, cxt.joinSkipSpanSquared = 0
+        if .curFlattenScale >= 1 do
+            return
+
+        if pen.dashStyle == .None
+        {
+            let step = LinePath.getFlattenDistance(.curState.paintQuality) / .curFlattenScale
+            cxt.minStepSquared = step * step
+        }
+
+        // A join bridges the two outer corners the turn leaves apart, so the sector it fills
+        // is never wider than the distance between them. A tenth of a device pixel of that,
+        // in the path units the corners are measured in.
+        let deviceScale = .textTransformScale()
+        if deviceScale > 0
+        {
+            let span = 0.1 / deviceScale
+            cxt.joinSkipSpanSquared = span * span
+        }
+    }
+
     private mtd strokePath(path: *LinePath, pen: Pen)
     {
         path.flatten(.curState.paintQuality, .curFlattenScale)
@@ -922,6 +968,7 @@ public impl Painter
         var cxt: Context
         cxt.path = path
         cxt.pen  = &pen
+        .setMinifiedStrokeLimits(&cxt, pen)
         if pen.dashStyle != .None do
             preparePattern(&cxt)
 
@@ -975,6 +1022,7 @@ public impl Painter
         .startOverlapMode(pen)
 
         var cxt: Context
+        .setMinifiedStrokeLimits(&cxt, pen)
         for p in pathList.paths
         {
             cxt.path = p

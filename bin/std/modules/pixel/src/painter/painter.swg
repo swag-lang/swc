@@ -405,16 +405,25 @@ impl Painter
     // Flattening tolerances are expressed in path units, so a consumer that zooms vector
     // geometry through its transform — a document viewer scaling a page — declares the zoom
     // here and curves stay as smooth on screen as they are at scale one. The value is
-    // quantized to the power of two below it and never drops under one, so the flattening
-    // caches re-key on zoom *buckets* rather than on every wheel step. `1`, the default,
-    // keeps the calibrated path-space tolerances untouched. Set it per pass and restore it,
-    // the way [[Pixel.Painter.setContentScale]] is managed.
+    // quantized to the power of two below it, between a sixty-fourth and sixty-four, so the
+    // derived caches re-key on zoom *buckets* rather than on every wheel step. `1`, the
+    // default, keeps the calibrated path-space tolerances untouched. Set it per pass and
+    // restore it, the way [[Pixel.Painter.setContentScale]] is managed.
+    //
+    // Below one it declares a *minified* pass, where a path unit covers less than a device
+    // pixel: round joins and caps take fewer segments, and a stroke walks its contour in
+    // steps of one tolerance rather than visiting points a shared pixel could not tell
+    // apart. Curve flattening itself is never coarsened — a cached contour keeps the finest
+    // tessellation anything asked of it, so the result cannot depend on the order two
+    // consumers reached the same geometry.
     mtd setFlattenScale(scale: f32)
     {
         Debug.assert(scale > 0)
         var bucket = 1.0'f32
         while bucket * 2 <= scale and bucket < 64 do
             bucket *= 2
+        while bucket > scale and bucket > 1.0 / 64 do
+            bucket *= 0.5
         .curFlattenScale = bucket
     }
 

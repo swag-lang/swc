@@ -102,7 +102,7 @@ protected:
     virtual void encodeNop()                                                                                                                                                               = 0;
     virtual void encodeBreakpoint()                                                                                                                                                        = 0;
     virtual void encodeRet()                                                                                                                                                               = 0;
-    virtual void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)                                                                                                              = 0;
+    virtual void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv)                                                                                                           = 0;
     virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)                                                                                     = 0;
     virtual void encodeCallReg(MicroReg reg, CallConvKind callConv)                                                                                                                        = 0;
     virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits)                                                                                                        = 0;
@@ -115,6 +115,7 @@ protected:
     virtual void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits)                                                                         = 0;
     virtual void encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg indicesReg)                                                                                                = 0;
     virtual void encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)                                                                                                    = 0;
+    virtual void encodeLoadRegImmCompact(MicroReg reg, const ApInt& value, MicroOpBits opBits)                                                                                             = 0;
     virtual void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits)                                                                                                    = 0;
     virtual void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                           = 0;
     virtual void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                            = 0;

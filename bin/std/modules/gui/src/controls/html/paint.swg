@@ -481,12 +481,12 @@ impl HtmlPainter
             elif item.hyphenAtBreak
             {
                 // The soft hyphen only exists where the line actually broke.
-                var hyphenated: String = item.text
+                var hyphenated: String = .layout.inlineText(item)
                 hyphenated += "-"
                 .paintTextRun(hyphenated.toString(), style, font, ink, x, y)
             }
             else do
-                .paintTextRun(item.text.toString(), style, font, ink, x, y)
+                .paintTextRun(.layout.inlineText(item), style, font, ink, x, y)
             .paintDecorationLines(item, style, alpha, x, y)
         }
     }
@@ -512,7 +512,7 @@ impl HtmlPainter
         if room < markerWidth do
             return
 
-        let source = item.text.toString()
+        let source = .layout.inlineText(item)
         var end    = 0'u64
         while end < source.count
         {
@@ -540,16 +540,17 @@ impl HtmlPainter
         result.width = item.width
 
         let sourceLength = item.sourceEnd - item.sourceStart
-        if sourceLength == item.text.count and sourceLength
+        if sourceLength == item.textCount and sourceLength
         {
+            let text  = .layout.inlineText(item)
             let start = Math.max(rangeStart, item.sourceStart) - item.sourceStart
             let end   = Math.min(rangeEnd, item.sourceEnd) - item.sourceStart
 
             // A range that starts before this item has an empty prefix, and an empty range cannot
             // reach a user opSlice: its inclusive upper bound would underflow.
             if start do
-                result.left += .layout.measure(item.style, item.text[0 until start])
-            result.width = start < end ? .layout.measure(item.style, item.text[start until end]) : 0
+                result.left += .layout.measure(item.style, text[0 until start])
+            result.width = start < end ? .layout.measure(item.style, text[start until end]) : 0
         }
 
         return result
@@ -1321,10 +1322,10 @@ impl HtmlPainter
     private mtd offsetAtRun(item: const *HtmlInlineItem, localX: f32)->u64
     {
         let sourceLength = item.sourceEnd - item.sourceStart
-        if sourceLength != item.text.count or !sourceLength do
+        if sourceLength != item.textCount or !sourceLength do
             return localX < item.width * 0.5 ? item.sourceStart : item.sourceEnd
 
-        let source   = item.text.toString()
+        let source   = .layout.inlineText(item)
         var end      = 0'u64
         var previous = 0.0'f32
         while end < source.count
@@ -1380,15 +1381,16 @@ impl HtmlPainter
             }
 
             let sourceLength = item.sourceEnd - item.sourceStart
-            if sourceLength == item.text.count and sourceLength
+            let text         = .layout.inlineText(item)
+            if sourceLength == item.textCount and sourceLength
             {
                 let start = Math.max(range.start, item.sourceStart) - item.sourceStart
                 let end   = Math.min(range.end, item.sourceEnd) - item.sourceStart
                 if start < end do
-                    result[] += item.text[start until end]
+                    result[] += text[start until end]
             }
             else do
-                result[] += item.text
+                result[] += text
 
             lastBox[] = box
             lastY[]   = item.y

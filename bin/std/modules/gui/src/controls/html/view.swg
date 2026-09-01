@@ -170,6 +170,11 @@ struct HtmlView
         layout:   HtmlLayout
         images:   HtmlImageCache
 
+        // A completed style node is immutable while the streaming parser appends the rest of
+        // the document, so its rules remain in the sheet until a new document or host width.
+        parsedStyleNodes: HashTable'(u32, bool)
+        styleSheetWidth = -1'f32
+
         stream:      File.FileStream
         fileName:    String
         encoding:    Text.Encoding
@@ -285,17 +290,23 @@ internal impl HtmlView
         return {Math.max(rect.width, 1), Math.max(rect.height, 1)}
     }
 
-    // Collects the stylesheets a document carries, in the order it declares them.
+    // Appends stylesheets that became complete since the previous streaming rebuild.
     mtd collectStyleSheets()
     {
-        .sheet.clear()
         .pool.clear()
-        .appendStyleSheets(0)
 
         // A reading measure the host asked for behaves like a user stylesheet: it applies before
         // anything the document says, so a page that sets its own width still wins.
-        if .documentStyle.maxContentWidth > 0 do
-            .sheet.parse(Format.toString("body { max-width: %px; margin-left: auto; margin-right: auto }", .documentStyle.maxContentWidth).toString())
+        if .styleSheetWidth != .documentStyle.maxContentWidth
+        {
+            .sheet.clear()
+            .parsedStyleNodes.clear()
+            .styleSheetWidth = .documentStyle.maxContentWidth
+            if .styleSheetWidth > 0 do
+                .sheet.parse(Format.toString("body { max-width: %px; margin-left: auto; margin-right: auto }", .styleSheetWidth).toString())
+        }
+
+        .appendStyleSheets(0)
     }
 
     private mtd appendStyleSheets(node: u32)
@@ -305,16 +316,25 @@ internal impl HtmlView
         {
             if current.tag == .Style
             {
+                if .parsedStyleNodes.tryFind(node) do
+                    return
+
                 var css: String
                 for child in .document.children(node) where .document.constNode(child).kind == .Text do
                     css += .document.textOf(child)
+                if css.isEmpty() do
+                    return
                 .sheet.parse(css.toString())
+                .parsedStyleNodes.add(node, true)
                 return
             }
 
             if current.tag == .Link and .isStyleSheetLink(node)
             {
+                if .parsedStyleNodes.tryFind(node) do
+                    return
                 .appendExternalStyleSheet(.document.attribute(node, "href"))
+                .parsedStyleNodes.add(node, true)
                 return
             }
         }
@@ -522,6 +542,9 @@ internal impl HtmlView
             return false
 
         .document.clear()
+        .sheet.clear()
+        .parsedStyleNodes.clear()
+        .styleSheetWidth = -1
         .parser.start(&.document)
         .layout.boxes.clear()
         .layout.root = HtmlNoNode
@@ -1351,6 +1374,9 @@ internal impl HtmlView
         .stopLoading()
         .images.clear()
         .document.clear()
+        .sheet.clear()
+        .parsedStyleNodes.clear()
+        .styleSheetWidth = -1
         .parser.start(&.document)
         .layout.boxes.clear()
         .layout.root = HtmlNoNode

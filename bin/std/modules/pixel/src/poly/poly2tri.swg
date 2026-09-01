@@ -51,7 +51,12 @@ public struct Tessellate
         triIndices: Array'u64             // Flat triples indexing 'points'.
 
         nodes:     Array'(*Node)     // Node pool of the advancing front.
-        freeNodes: Array'(*Node)     // Nodes returned to the pool.
+
+        // Objects returned by 'clear' and handed back out by the next tessellation.
+        freeNodes:     Array'(*Node)
+        freePoints:    Array'(*Point)
+        freeEdges:     Array'(*Edge)
+        freeTriangles: Array'(*Triangle)
 
         front:     AdvancingFront     // The advancing front itself.
         head:      #null *Point       // Left artificial point of the front.
@@ -652,36 +657,69 @@ impl Tessellate
         .clearCache()
     }
 
+    // The sweep allocates one object per input point, per constrained edge and per triangle it
+    // builds, and [[Pixel.Poly2Tri.Tessellate.clear]] hands every one of them back between two
+    // tessellations. Releasing them to the allocator instead would make a page of vector art pay
+    // millions of allocation pairs — a document whose thousands of paths are tessellated once
+    // spends more time freeing sweep state than sweeping. Every kind is therefore pooled the way
+    // the front nodes already were: `clear` returns them, the next tessellation takes them back,
+    // and [[Pixel.Poly2Tri.Tessellate.clearCache]] is what actually releases them. Because `clear`
+    // empties the working arrays each time, a pool only ever holds what the largest single
+    // tessellation needed, never what a whole document allocated.
     #[Swag.Inline]
     {
-        func newPoint()->*Point
+        mtd newPoint()->*Point
         {
+            if .freePoints.count
+            {
+                let p = .freePoints.popBack()
+
+                // A point owns its incident-edge array, so it is reset field by field rather
+                // than re-initialized: clearing keeps the storage the next ring will refill.
+                p.v         = {}
+                p.border[0] = null
+                p.border[1] = null
+                p.edges.clear()
+                return p
+            }
+
             return Memory.new'Point()
         }
 
-        func deletePoint(ptr: *Point)
+        mtd deletePoint(ptr: *Point)
         {
-            Memory.delete(ptr)
+            .freePoints.add(ptr)
         }
 
-        func newEdge()->*Edge
+        mtd newEdge()->*Edge
         {
+            // Both endpoints are written by 'Edge.set' before the edge is used, which is why a
+            // recycled edge needs no reset and a fresh one leaves them undefined.
+            if .freeEdges.count do
+                return .freeEdges.popBack()
             return Memory.new'Edge()
         }
 
-        func deleteEdge(ptr: *Edge)
+        mtd deleteEdge(ptr: *Edge)
         {
-            Memory.delete(ptr)
+            .freeEdges.add(ptr)
         }
 
-        func newTriangle()->*Triangle
+        mtd newTriangle()->*Triangle
         {
+            if .freeTriangles.count
+            {
+                let p = .freeTriangles.popBack()
+                Swag.init(p, 1)
+                return p
+            }
+
             return Memory.new'Triangle()
         }
 
-        func deleteTriangle(ptr: *Triangle)
+        mtd deleteTriangle(ptr: *Triangle)
         {
-            Memory.delete(ptr)
+            .freeTriangles.add(ptr)
         }
 
         mtd newNode()->*Node
@@ -705,14 +743,17 @@ impl Tessellate
     // Clear content
     public mtd clear()
     {
+        let zzT0 = Core.Time.monotonicTicks()
+        defer zzAddP2TClear(Core.Time.monotonicTicks() - zzT0, .points.count, .triangles.count, .edges.count)
+
         Swag.init(&.basin, 1)
         Swag.init(&.edgeEvent, 1)
         .polyStart = 0
 
         if .head do
-            deletePoint(nnPoint(.head))
+            .deletePoint(nnPoint(.head))
         if .tail do
-            deletePoint(nnPoint(.tail))
+            .deletePoint(nnPoint(.tail))
         if .afHead do
             .deleteNode(nnNode(.afHead))
         if .afMiddle do
@@ -722,11 +763,11 @@ impl Tessellate
         .head, .tail, .afHead, .afMiddle, .afTail = null
 
         for p in .points do
-            deletePoint(p)
+            .deletePoint(p)
         for p in .edges do
-            deleteEdge(p)
+            .deleteEdge(p)
         for p in .triangles do
-            deleteTriangle(p)
+            .deleteTriangle(p)
         for p in .nodes do
             .deleteNode(p)
 
@@ -737,12 +778,21 @@ impl Tessellate
         .nodes.clear()
     }
 
-    // Clear cache
+    // Releases the pooled sweep objects a cleared tessellator is still holding.
     mtd clearCache()
     {
         for p in .freeNodes do
             Memory.delete(p)
+        for p in .freePoints do
+            Memory.delete(p)
+        for p in .freeEdges do
+            Memory.delete(p)
+        for p in .freeTriangles do
+            Memory.delete(p)
         .freeNodes.clear()
+        .freePoints.clear()
+        .freeEdges.clear()
+        .freeTriangles.clear()
     }
 
     // Transfers the triangulation result out of this tessellator.
@@ -776,7 +826,7 @@ impl Tessellate
     // Register a new point
     public mtd addPoint(pt: Math.Vector2)
     {
-        let p = newPoint()
+        let p = .newPoint()
         p.x = pt.x
         p.y = pt.y
         .points.add(p)
@@ -791,7 +841,7 @@ impl Tessellate
             for pt, i in polyline
             {
                 let nexti = (i + 1) % polyline.count
-                let edge  = newEdge()
+                let edge  = .newEdge()
                 edge.set(pt, polyline[nexti])
                 .edges.add(edge)
             }
@@ -858,7 +908,7 @@ impl Tessellate
         .startPolyLine()
         for i in count
         {
-            let p  = newPoint()
+            let p  = .newPoint()
             var pt = poly.points[i]
             for existing in .points
             {
@@ -1376,7 +1426,7 @@ impl Tessellate
     {
         let prev     = nnNode(node.prev)
         let next     = nnNode(node.next)
-        let triangle = newTriangle()
+        let triangle = .newTriangle()
         triangle.points[0] = prev.point
         triangle.points[1] = node.point
         triangle.points[2] = next.point
@@ -1397,7 +1447,7 @@ impl Tessellate
     mtd newFrontTriangle(point: *Point, node: *Node)->*Node
     {
         let oldNext  = nnNode(node.next)
-        let triangle = newTriangle()
+        let triangle = .newTriangle()
         triangle.points[0] = point
         triangle.points[1] = node.point
         triangle.points[2] = oldNext.point
@@ -1654,10 +1704,10 @@ impl Tessellate
         const KAlpha = 0.3'f32
         let dx = KAlpha * (xmax - xmin)
         let dy = KAlpha * (ymax - ymin)
-        .head   = newPoint()
+        .head   = .newPoint()
         .head.x = xmin - dx
         .head.y = ymin - dy
-        .tail   = newPoint()
+        .tail   = .newPoint()
         .tail.x = xmax + dx
         .tail.y = ymin - dy
 
@@ -1679,7 +1729,7 @@ impl Tessellate
 
     mtd createAdvancingFront()
     {
-        let triangle = newTriangle()
+        let triangle = .newTriangle()
         triangle.points[0] = .points[0]
         triangle.points[1] = nnPoint(.head)
         triangle.points[2] = nnPoint(.tail)

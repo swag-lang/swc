@@ -131,7 +131,7 @@ private func parseContentNumber(content: *PdfParser)->f32
     return sign * value
 }
 
-private func operandNumber(parser: *PdfParser, operands: Array'ContentOperand, index: u64)->f32
+private func operandNumber(parser: *PdfParser, operands: const [..] ContentOperand, index: u64)->f32
 {
     if index >= operands.count do
         return 0
@@ -143,7 +143,7 @@ private func operandNumber(parser: *PdfParser, operands: Array'ContentOperand, i
 }
 
 // Returns the node of one operand, for the few operators that need more than a number.
-private func operandNode(operands: Array'ContentOperand, index: u64)->u32
+private func operandNode(operands: const [..] ContentOperand, index: u64)->u32
 {
     if index >= operands.count do
         return InvalidNode
@@ -151,7 +151,7 @@ private func operandNode(operands: Array'ContentOperand, index: u64)->u32
 }
 
 // Returns one operand as a whole number, or reports that it is not one.
-private func operandInteger(parser: *PdfParser, operands: Array'ContentOperand, index: u64)->{ value: s64, found: bool }
+private func operandInteger(parser: *PdfParser, operands: const [..] ContentOperand, index: u64)->{ value: s64, found: bool }
 {
     var result: retval
     if index >= operands.count do
@@ -182,7 +182,7 @@ private func nodeNumber(parser: *PdfParser, nodeId: u32)->f32
 }
 
 // Collects the trailing numeric operands of a color operator.
-private func colorComponents(parser: *PdfParser, operands: Array'ContentOperand, target: [..] f32)->u32
+private func colorComponents(parser: *PdfParser, operands: const [..] ContentOperand, target: [..] f32)->u32
 {
     var count = 0'u64
     while count < operands.count and count < target.count
@@ -571,6 +571,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         }
 
         let op = cast(string) Swag.makeSlice(bytes.buffer + start, content.pos - start)
+        let ops = operands.toSlice()
         switch op
         {
         case "q":
@@ -586,33 +587,33 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "cm":
-            if operands.count >= 6
+            if ops.count >= 6
             {
-                let n      = operands.count - 6
-                let a      = operandNumber(&content, operands, n)
-                let b      = operandNumber(&content, operands, n + 1)
-                let c      = operandNumber(&content, operands, n + 2)
-                let d      = operandNumber(&content, operands, n + 3)
-                let e      = operandNumber(&content, operands, n + 4)
-                let f      = operandNumber(&content, operands, n + 5)
+                let n      = ops.count - 6
+                let a      = operandNumber(&content, ops, n)
+                let b      = operandNumber(&content, ops, n + 1)
+                let c      = operandNumber(&content, ops, n + 2)
+                let d      = operandNumber(&content, ops, n + 3)
+                let e      = operandNumber(&content, ops, n + 4)
+                let f      = operandNumber(&content, ops, n + 5)
                 var matrix = Transform2{a, b, c, d, e, f}
                 matrix.multiply(state.ctm)
                 state.ctm = matrix
             }
 
         case "w":
-            if operands.count
+            if ops.count
             {
-                let width = operandNumber(&content, operands, operands.count - 1)
+                let width = operandNumber(&content, ops, ops.count - 1)
                 if width < 0 or !Math.isFinite(width) do
                     fail InvalidFormatError{"PDF line width needs a non-negative finite number"}
                 state.strokeWidth = width
             }
 
         case "J":
-            if operands.count
+            if ops.count
             {
-                let cap = operandInteger(&content, operands, operands.count - 1)
+                let cap = operandInteger(&content, ops, ops.count - 1)
                 if !cap.found do
                     fail InvalidFormatError{"PDF line cap needs an integer from 0 to 2"}
                 switch cap.value
@@ -625,9 +626,9 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "j":
-            if operands.count
+            if ops.count
             {
-                let join = operandInteger(&content, operands, operands.count - 1)
+                let join = operandInteger(&content, ops, ops.count - 1)
                 if !join.found do
                     fail InvalidFormatError{"PDF line join needs an integer from 0 to 2"}
                 switch join.value
@@ -640,19 +641,19 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "M":
-            if operands.count
+            if ops.count
             {
-                let limit = operandNumber(&content, operands, operands.count - 1)
+                let limit = operandNumber(&content, ops, ops.count - 1)
                 if limit < 1 or !Math.isFinite(limit) do
                     fail InvalidFormatError{"PDF miter limit needs a finite number of at least 1"}
                 state.strokeStyle.miterLimit = limit
             }
 
         case "d":
-            if operands.count >= 2
+            if ops.count >= 2
             {
-                let arrayId = content.resolve(operandNode(operands, operands.count - 2))
-                let phase   = operandNumber(&content, operands, operands.count - 1)
+                let arrayId = content.resolve(operandNode(ops, ops.count - 2))
+                let phase   = operandNumber(&content, ops, ops.count - 1)
                 if arrayId == InvalidNode or content.nodes[arrayId].kind != .Array do
                     fail InvalidFormatError{"PDF dash pattern needs an array"}
                 if !Math.isFinite(phase) do
@@ -684,64 +685,64 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "gs":
-            if operands.count do
-                applyExtGState(parser, page, resourcesId, &state, content.name(operands.back().node))
+            if ops.count do
+                applyExtGState(parser, page, resourcesId, &state, content.name(ops[ops.count - 1].node))
 
         case "g":
-            if operands.count
+            if ops.count
             {
                 state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Gray, 1)
-                state.fillColor = grayColor(operandNumber(&content, operands, operands.count - 1))
+                state.fillColor = grayColor(operandNumber(&content, ops, ops.count - 1))
             }
 
         case "G":
-            if operands.count
+            if ops.count
             {
                 state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Gray, 1)
-                state.strokeColor = grayColor(operandNumber(&content, operands, operands.count - 1))
+                state.strokeColor = grayColor(operandNumber(&content, ops, ops.count - 1))
             }
 
         case "rg":
-            if operands.count >= 3
+            if ops.count >= 3
             {
                 state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Rgb, 3)
-                state.fillColor = rgbColor(operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+                state.fillColor = rgbColor(operandNumber(&content, ops, ops.count - 3), operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
             }
 
         case "RG":
-            if operands.count >= 3
+            if ops.count >= 3
             {
                 state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Rgb, 3)
-                state.strokeColor = rgbColor(operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+                state.strokeColor = rgbColor(operandNumber(&content, ops, ops.count - 3), operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
             }
 
         case "k":
-            if operands.count >= 4
+            if ops.count >= 4
             {
                 state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Cmyk, 4)
-                state.fillColor = cmykColor(operandNumber(&content, operands, operands.count - 4), operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+                state.fillColor = cmykColor(operandNumber(&content, ops, ops.count - 4), operandNumber(&content, ops, ops.count - 3), operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
             }
 
         case "K":
-            if operands.count >= 4
+            if ops.count >= 4
             {
                 state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Cmyk, 4)
-                state.strokeColor = cmykColor(operandNumber(&content, operands, operands.count - 4), operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+                state.strokeColor = cmykColor(operandNumber(&content, ops, ops.count - 4), operandNumber(&content, ops, ops.count - 3), operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
             }
 
         case "cs", "CS":
-            if operands.count
+            if ops.count
             {
                 // The operand is a name parsed by the content scanner, so it is resolved
                 // against the page resources rather than through a document node.
                 var picked = deviceSpace(.Gray, 1)
-                let space  = catch resolveNamedColorSpace(parser, content.name(operands.back().node), resourcesId, 0) as spaceError
+                let space  = catch resolveNamedColorSpace(parser, content.name(ops[ops.count - 1].node), resourcesId, 0) as spaceError
                 if spaceError == null do
                     picked = space
                 else do
@@ -761,7 +762,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "sc", "scn", "SC", "SCN":
-            let count = colorComponents(&content, operands, values)
+            let count = colorComponents(&content, ops, values)
             if count
             {
                 let stroke = op == "SC" or op == "SCN"
@@ -774,46 +775,46 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "m":
-            if operands.count >= 2 do
-                currentPath(&path, &current, transformPoint(&state, page, operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1)))
+            if ops.count >= 2 do
+                currentPath(&path, &current, transformPoint(&state, page, operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1)))
 
         case "l":
-            if current and operands.count >= 2
+            if current and ops.count >= 2
             {
-                let p = transformPoint(&state, page, operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+                let p = transformPoint(&state, page, operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
                 current!.lineTo(p.x, p.y)
             }
 
         case "c":
-            if current and operands.count >= 6
+            if current and ops.count >= 6
             {
-                let n  = operands.count - 6
-                let c1 = transformPoint(&state, page, operandNumber(&content, operands, n), operandNumber(&content, operands, n + 1))
-                let c2 = transformPoint(&state, page, operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3))
-                let p  = transformPoint(&state, page, operandNumber(&content, operands, n + 4), operandNumber(&content, operands, n + 5))
+                let n  = ops.count - 6
+                let c1 = transformPoint(&state, page, operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1))
+                let c2 = transformPoint(&state, page, operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3))
+                let p  = transformPoint(&state, page, operandNumber(&content, ops, n + 4), operandNumber(&content, ops, n + 5))
                 current!.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
             }
 
         case "v":
 
             // The first control point of `v` is the current point itself.
-            if current and operands.count >= 4
+            if current and ops.count >= 4
             {
-                let n  = operands.count - 4
+                let n  = ops.count - 4
                 let c1 = current!.endPoint
-                let c2 = transformPoint(&state, page, operandNumber(&content, operands, n), operandNumber(&content, operands, n + 1))
-                let p  = transformPoint(&state, page, operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3))
+                let c2 = transformPoint(&state, page, operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1))
+                let p  = transformPoint(&state, page, operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3))
                 current!.bezierTo(p.x, p.y, c1.x, c1.y, c2.x, c2.y)
             }
 
         case "y":
 
             // The second control point of `y` is its own end point.
-            if current and operands.count >= 4
+            if current and ops.count >= 4
             {
-                let n  = operands.count - 4
-                let c1 = transformPoint(&state, page, operandNumber(&content, operands, n), operandNumber(&content, operands, n + 1))
-                let p  = transformPoint(&state, page, operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3))
+                let n  = ops.count - 4
+                let c1 = transformPoint(&state, page, operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1))
+                let p  = transformPoint(&state, page, operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3))
                 current!.bezierTo(p.x, p.y, c1.x, c1.y, p.x, p.y)
             }
 
@@ -822,13 +823,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 current!.close()
 
         case "re":
-            if operands.count >= 4
+            if ops.count >= 4
             {
-                let n    = operands.count - 4
-                let x    = operandNumber(&content, operands, n)
-                let y    = operandNumber(&content, operands, n + 1)
-                let w    = operandNumber(&content, operands, n + 2)
-                let h    = operandNumber(&content, operands, n + 3)
+                let n    = ops.count - 4
+                let x    = operandNumber(&content, ops, n)
+                let y    = operandNumber(&content, ops, n + 1)
+                let w    = operandNumber(&content, ops, n + 2)
+                let h    = operandNumber(&content, ops, n + 3)
                 let p0   = transformPoint(&state, page, x, y)
                 let p1   = transformPoint(&state, page, x + w, y)
                 let p2   = transformPoint(&state, page, x + w, y + h)
@@ -883,83 +884,83 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             state.lineMatrix = Transform2.Identity
 
         case "Tf":
-            if operands.count >= 2
+            if ops.count >= 2
             {
-                state.fontName = content.name(operandNode(operands, operands.count - 2))
-                state.fontSize = operandNumber(&content, operands, operands.count - 1)
+                state.fontName = content.name(operandNode(ops, ops.count - 2))
+                state.fontSize = operandNumber(&content, ops, ops.count - 1)
             }
 
         case "Tc":
-            if operands.count do
-                state.charSpacing = operandNumber(&content, operands, operands.count - 1)
+            if ops.count do
+                state.charSpacing = operandNumber(&content, ops, ops.count - 1)
 
         case "Tw":
-            if operands.count do
-                state.wordSpacing = operandNumber(&content, operands, operands.count - 1)
+            if ops.count do
+                state.wordSpacing = operandNumber(&content, ops, ops.count - 1)
 
         case "Tz":
-            if operands.count do
-                state.horizScale = operandNumber(&content, operands, operands.count - 1) / 100.0
+            if ops.count do
+                state.horizScale = operandNumber(&content, ops, ops.count - 1) / 100.0
 
         case "TL":
-            if operands.count do
-                state.leading = operandNumber(&content, operands, operands.count - 1)
+            if ops.count do
+                state.leading = operandNumber(&content, ops, ops.count - 1)
 
         case "Ts":
-            if operands.count do
-                state.rise = operandNumber(&content, operands, operands.count - 1)
+            if ops.count do
+                state.rise = operandNumber(&content, ops, ops.count - 1)
 
         case "Tr":
-            if operands.count do
-                state.renderMode = operandInteger(&content, operands, operands.count - 1).value
+            if ops.count do
+                state.renderMode = operandInteger(&content, ops, ops.count - 1).value
 
         case "Tm":
-            if operands.count >= 6
+            if ops.count >= 6
             {
-                let n = operands.count - 6
-                state.textMatrix = Transform2{operandNumber(&content, operands, n), operandNumber(&content, operands, n + 1), operandNumber(&content, operands, n + 2), operandNumber(&content, operands, n + 3), operandNumber(&content, operands, n + 4), operandNumber(&content, operands, n + 5)}
+                let n = ops.count - 6
+                state.textMatrix = Transform2{operandNumber(&content, ops, n), operandNumber(&content, ops, n + 1), operandNumber(&content, ops, n + 2), operandNumber(&content, ops, n + 3), operandNumber(&content, ops, n + 4), operandNumber(&content, ops, n + 5)}
                 state.lineMatrix = state.textMatrix
             }
 
         case "Td":
-            if operands.count >= 2 do
-                moveTextLine(&state, operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
+            if ops.count >= 2 do
+                moveTextLine(&state, operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
 
         case "TD":
-            if operands.count >= 2
+            if ops.count >= 2
             {
-                let y = operandNumber(&content, operands, operands.count - 1)
+                let y = operandNumber(&content, ops, ops.count - 1)
                 state.leading = -y
-                moveTextLine(&state, operandNumber(&content, operands, operands.count - 2), y)
+                moveTextLine(&state, operandNumber(&content, ops, ops.count - 2), y)
             }
 
         case "T*":
             moveTextLine(&state, 0, -state.leading)
 
         case "Tj":
-            if operands.count do
-                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back().node))
+            if ops.count do
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node))
 
         case "'":
-            if operands.count
+            if ops.count
             {
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back().node))
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node))
             }
 
         case "\"":
-            if operands.count >= 3
+            if ops.count >= 3
             {
-                state.wordSpacing = operandNumber(&content, operands, operands.count - 3)
-                state.charSpacing = operandNumber(&content, operands, operands.count - 2)
+                state.wordSpacing = operandNumber(&content, ops, ops.count - 3)
+                state.charSpacing = operandNumber(&content, ops, ops.count - 2)
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back().node))
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node))
             }
 
         case "TJ":
-            if operands.count
+            if ops.count
             {
-                let arrayId = content.resolve(operands.back().node)
+                let arrayId = content.resolve(ops[ops.count - 1].node)
                 if arrayId != InvalidNode and content.nodes[arrayId].kind == .Array
                 {
                     for value in content.nodes[arrayId].values
@@ -974,8 +975,8 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "Do":
-            if operands.count do
-                try appendXObject(parser, page, resourcesId, &state, content.name(operands.back().node), depth)
+            if ops.count do
+                try appendXObject(parser, page, resourcesId, &state, content.name(ops[ops.count - 1].node), depth)
 
         case "BI":
             try appendInlineImage(parser, &content, page, resourcesId, &state)

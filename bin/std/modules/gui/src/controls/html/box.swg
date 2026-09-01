@@ -39,7 +39,8 @@ public struct HtmlInlineItem
     style:       u32
     node:        u32 = HtmlNoNode
     box:         u32 = HtmlNoNode
-    text:        String
+    textStart:   u64
+    textCount:   u64
     sourceStart: u64
     sourceEnd:   u64
     width:       f32

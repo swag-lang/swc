@@ -45,7 +45,7 @@ func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, fou
     var result: retval
     for item in view.layout.constBox(box).items
     {
-        if item.kind != .Text or item.text.toString() != text do
+        if item.kind != .Text or view.layout.inlineText(item) != text do
             continue
         result.x     = item.x
         result.y     = item.y
@@ -717,7 +717,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_html_refresh_%.html", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
 
-    var source: String = "<pre>"
+    var source: String = "<style>pre { color: #102030 }</style><pre>"
     for 2_400 do
         source += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ repeated source line\n"
     source += "</pre>"
@@ -731,11 +731,47 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(640, 360)
     view.applyLayout()
+    let firstParseCount = view.sheet.parseCount
+    Swag.assert(firstParseCount == 1)
     while view.bytesRead < 192 * 1024 do
         view.streamStep()
 
     Swag.assert(view.nextRefresh == view.bytesRead * 4)
+    Swag.assert(view.sheet.parseCount == firstParseCount)
+    view.rebuild()
+    Swag.assert(view.sheet.parseCount == firstParseCount)
     view.stopLoading()
+}
+
+// Inline runs share one build arena, so retaining a paragraph costs storage proportional to its
+// bytes rather than one allocator block per word.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    var source: String = "<p id='words'>"
+    for 2_000 do
+        source += "repeat "
+    source += "</p>"
+
+    let allocator = Swag.defaultAllocator()
+    let before    = allocator.stats()
+    let view      = HtmlView.createText(&host.root, source.toString())
+    view.resize(640, 360)
+    view.applyLayout()
+    view.rebuild()
+
+    let box   = view.layout.constBox(view.boxOfNode(view.elementById("words")))
+    var words = 0'u64
+    for item in box.items where item.kind == .Text do
+        words += 1
+    Swag.assert(words == 2_000)
+    Swag.assert(view.layout.textPool.length >= 2_000 * ("repeat").count)
+
+    let after = allocator.stats()
+    Swag.assert(after.countAlloc < before.countAlloc + 256)
 }
 
 // Painting a search hit survives every split of the match across inline items: an item that
@@ -1950,7 +1986,7 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     let hyphenated = view.boxOfNode(view.elementById("s"))
     Swag.assert(view.layout.constBox(hyphenated).lines.count == 2)
     var sawHyphen: bool
-    for item in view.layout.constBox(hyphenated).items where item.kind == .Text and item.text.toString() == "cccccccccc"
+    for item in view.layout.constBox(hyphenated).items where item.kind == .Text and view.layout.inlineText(item) == "cccccccccc"
     {
         sawHyphen = item.hyphenAtBreak
         break
@@ -2132,7 +2168,7 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
         for itemIndex in box.items.count
         {
             let item = &box.items[itemIndex]
-            if item.text == text do
+            if view.layout.inlineText(item) == text do
                 return {item.x, item.y, item.width, item.ascent + item.descent}
         }
     }

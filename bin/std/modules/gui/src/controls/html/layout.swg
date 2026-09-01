@@ -36,6 +36,10 @@ public struct HtmlLayout
     // of a streaming load instead of re-shaping every word of the document each time.
     widthCache: HashTable'(u64, f32)
 
+    // All inline text of one box build shares this reusable arena. Items keep offsets, so
+    // growing the arena never invalidates text already emitted during the build.
+    textPool: String
+
     // The face each style resolves to, filled lazily; painting asks once per drawn run and the
     // theme lookup is not free at that rate.
     fontCache: Array'(#null *Font)
@@ -84,6 +88,8 @@ impl HtmlLayout
     mtd style(index: u32)->*HtmlComputedStyle => &.styles[index]
 
     mtd const constStyle(index: u32)->const *HtmlComputedStyle => &.styles[index]
+
+    mtd const inlineText(item: const *HtmlInlineItem)->string => .textPool.toString()[item.textStart until item.textStart + item.textCount]
 
     // Returns the style that governs a node, which for text is the style of the element that
     // contains it.
@@ -227,6 +233,7 @@ impl HtmlLayout
         .listOrdinals.clear()
         .pseudoStyles.clear()
         .nodeBox.clear()
+        .textPool.clear()
 
         // Generated styles join the element ones so a box only ever indexes a single table.
         for value in resolver.pseudos
@@ -666,25 +673,31 @@ impl HtmlLayout
 // Inline item generation.
 private impl HtmlLayout
 {
-    // Applies `text-transform` to one word.
-    func transform(text: string, kind: HtmlTextTransform)->String
+    // Stores one rendered run in the build arena and applies `text-transform` in place.
+    mtd storeText(text: string, kind = HtmlTextTransform.None)->HtmlRange
     {
+        var result: retval
+        result.start = cast(u32) .textPool.length
+        result.count = cast(u32) text.count
+        .textPool    += text
+
+        let buffer = .textPool.buffer!
         switch kind
         {
         case .Uppercase:
-            return String.from(text).toUpper()
+            for index in result.count do
+                buffer[result.start + index] = Latin1.toUpper(buffer[result.start + index])
 
         case .Lowercase:
-            return String.from(text).toLower()
+            for index in result.count do
+                buffer[result.start + index] = Latin1.toLower(buffer[result.start + index])
 
         case .Capitalize:
-            var result = String.from(text)
-            if result.length do
-                result[0] = Latin1.toUpper(result[0])
-            return result
+            if result.count do
+                buffer[result.start] = Latin1.toUpper(buffer[result.start])
         }
 
-        return String.from(text)
+        return result
     }
 
     // Native byte reads can be widened to one machine word. Keep the final bytes in padded
@@ -774,13 +787,15 @@ private impl HtmlLayout
                 }
 
                 var item: HtmlInlineItem
+                let stored = .storeText(text[index until end])
                 item.kind        = .Space
                 item.style       = styleIndex
                 item.node        = node
-                item.text        = text[index until end]
+                item.textStart   = stored.start
+                item.textCount   = stored.count
                 item.sourceStart = index
                 item.sourceEnd   = end
-                item.width       = .measure(styleIndex, item.text.toString()) + style.wordSpacing * cast(f32) spaces
+                item.width       = .measure(styleIndex, .inlineText(&item)) + style.wordSpacing * cast(f32) spaces
                 item.ascent      = font.ascent
                 item.descent     = -font.descent
                 pending.add(#move item)
@@ -837,13 +852,15 @@ private impl HtmlLayout
                     break
 
                 var item: HtmlInlineItem
+                let stored = .storeText(text[fragStart until fragEnd], style.textTransform)
                 item.kind        = .Text
                 item.style       = styleIndex
                 item.node        = node
-                item.text        = HtmlLayout.transform(text[fragStart until fragEnd], style.textTransform)
+                item.textStart   = stored.start
+                item.textCount   = stored.count
                 item.sourceStart = fragStart
                 item.sourceEnd   = fragEnd + shyEat
-                item.width       = .measure(styleIndex, item.text.toString())
+                item.width       = .measure(styleIndex, .inlineText(&item))
                 item.ascent      = font.ascent
                 item.descent     = -font.descent
                 item.softHyphen  = shyEat != 0
@@ -890,10 +907,12 @@ private impl HtmlLayout
             return
 
         var item: HtmlInlineItem
+        let stored = .storeText(" ")
         item.kind        = .Space
         item.style       = styleIndex
         item.node        = node
-        item.text        = " "
+        item.textStart   = stored.start
+        item.textCount   = stored.count
         item.sourceStart = sourceStart
         item.sourceEnd   = sourceEnd
         item.width       = .measure(styleIndex, " ") + .styles[styleIndex].wordSpacing
@@ -1906,10 +1925,10 @@ private impl HtmlLayout
                 let head = &.boxes[box].items[write - 1]
                 if head.kind == .Text and head.node == .boxes[box].items[read].node and head.style == .boxes[box].items[read].style
                 {
-                    head.text       += .boxes[box].items[read].text
+                    head.textCount  += .boxes[box].items[read].textCount
                     head.sourceEnd  = .boxes[box].items[read].sourceEnd
                     head.softHyphen = .boxes[box].items[read].softHyphen
-                    head.width      = .measure(head.style, head.text.toString())
+                    head.width      = .measure(head.style, .inlineText(head))
                     continue
                 }
             }
@@ -1930,9 +1949,9 @@ private impl HtmlLayout
         if room <= 0 do
             return false
 
-        let source: String = .boxes[box].items[index].text
-        let styleIndex     = .boxes[box].items[index].style
-        let text           = source.toString()
+        let item       = &.boxes[box].items[index]
+        let styleIndex = item.style
+        let text       = .inlineText(item)
         if text.count < 2 do
             return false
 
@@ -1955,12 +1974,13 @@ private impl HtmlLayout
             return false
 
         var tail: HtmlInlineItem = .boxes[box].items[index]
-        tail.text         = String.from(text[fit to])
-        tail.width        = .measure(styleIndex, tail.text.toString())
+        tail.textStart    += fit
+        tail.textCount    -= fit
+        tail.width        = .measure(styleIndex, .inlineText(&tail))
         tail.sourceStart  = tail.sourceStart + fit
         tail.continuation = true
 
-        .boxes[box].items[index].text       = String.from(text[0 until fit])
+        .boxes[box].items[index].textCount  = fit
         .boxes[box].items[index].width      = .measure(styleIndex, text[0 until fit])
         .boxes[box].items[index].sourceEnd  = .boxes[box].items[index].sourceStart + fit
         .boxes[box].items[index].softHyphen = false

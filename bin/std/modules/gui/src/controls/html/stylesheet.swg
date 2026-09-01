@@ -146,6 +146,9 @@ public struct HtmlStyleSheet
     tagIndex:   HashTable'(String, Array'u32)
     universal:  Array'u32
     order:      u32
+
+    // Lifetime count used to verify that cached source sheets are not parsed again.
+    parseCount: u64
 }
 
 // The document state a selector can ask about.
@@ -681,6 +684,7 @@ impl HtmlStyleSheet
     // Appends every rule of a stylesheet text.
     mtd parse(source: string)
     {
+        .parseCount += 1
         let stripped = htmlStripCssComments(source)
         .parseRules(stripped.toString(), HtmlNoNode)
     }

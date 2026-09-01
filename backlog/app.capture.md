@@ -285,3 +285,28 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
   what is left of it is a backend matter, in
   [compiler.optimization.006](compiler.optimization.md#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).
+### app.capture.022 — Editing a large capture full screen is paced by the present, not by the app
+
+- Found while: looking for the full-screen cost the vector work had just removed from Swag Scope,
+  on the case this application actually has — a big picture with things dragged over it.
+- Measured (2026-09-01, release, a maximized 3894x2142 window showing a 7680x2169 two-monitor grab
+  with sixteen shapes and texts on it, one dragged through `snap` and `invalidateMovedRegion` every
+  frame the way the body drag does): **moving a form runs at 213-239 fps and resizing it, which
+  makes its cached rendering stale every frame, at 118-153**. The drag repaints 0.04 of the
+  window's 8.34 megapixels; recording it costs 0.5-0.7 ms and submitting it 0.2-0.4, and **the
+  remaining 3-7 ms is the present**. A complete repaint costs about 14 ms.
+- What that rules out, each by measurement rather than by argument. The size of the capture: a
+  640x181 source, a 3840x1085 one and the 7680x2169 one all give the same 14 ms, so the background
+  is not being sampled expensively. The two full-view fills `Capture.paint` lays down before the
+  picture covers them: removing them changes nothing. The content at all: reducing the whole of
+  `Capture.paint` to a single fill also gives 14 ms. Form count in the steady state, and gizmos,
+  which `paintGizmo` already skips unless a form is hot or selected. Pointer flooding: mouse
+  position is polled once a frame, so a drag cannot outrun the frame rate.
+- What that leaves is the surface's own present path, which copies the whole render target to the
+  back buffer whatever the dirty region was — see std.gui.049. Bounding that copy to the dirty
+  region was tried here and **did not reliably help**: on this adapter a partial back-buffer write
+  measured slower as often as faster, which is a second reason beyond the undefined swap semantics
+  not to pursue it as written.
+- Next: nothing, on this evidence. Reopen it with a case that reproduces slowness — a zoom level,
+  a form kind, a capture, or a machine — and the numbers above are the baseline to beat. The
+  `swag.frametrace` split between the copy and the swap is what tells the two apart.

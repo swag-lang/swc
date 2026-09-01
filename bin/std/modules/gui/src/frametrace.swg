@@ -27,7 +27,8 @@ struct FrameTrace
     totalUs:   u64        // Whole frames, from the start of one to the start of the next.
     recordUs:  u64        // Recording the hierarchy and the chrome into the painter.
     targetUs:  u64        // Submitting the recorded frame to the adapter as the render-target pass.
-    presentUs: u64        // Copying that target to the back buffer and presenting it.
+    presentUs: u64        // Copying that target to the back buffer.
+    swapUs:    u64        // Handing that buffer to the display, which is where a frame waits for it.
     frames:    u64        // Frames the totals cover.
     warmedUp:  u64        // Frames already dropped as warm-up.
     worstUs:   u64        // The worst frame of the run, which is what a stall actually feels like.
@@ -109,13 +110,14 @@ internal impl FrameTrace
     }
 
     // Adds one surface's recorded and executed cost, and the area it covered.
-    mtd addSurface(recordUs, targetUs, presentUs, pixels, vertices, batches: u64)
+    mtd addSurface(recordUs, targetUs, presentUs, swapUs, pixels, vertices, batches: u64)
     {
         if !.enabled do
             return
         .recordUs  += recordUs
         .targetUs  += targetUs
         .presentUs += presentUs
+        .swapUs    += swapUs
         .pixels    += pixels
         .vertices  += vertices
         .batches   += batches
@@ -143,6 +145,7 @@ internal impl FrameTrace
             .recordUs  = 0
             .targetUs  = 0
             .presentUs = 0
+            .swapUs    = 0
             .pixels    = 0
             .vertices  = 0
             .batches   = 0
@@ -172,6 +175,7 @@ internal impl FrameTrace
         text.appendFormat("record      % ms\n", round2(cast(f64) .recordUs / frames / 1000.0))
         text.appendFormat("target      % ms\n", round2(cast(f64) .targetUs / frames / 1000.0))
         text.appendFormat("present     % ms\n", round2(cast(f64) .presentUs / frames / 1000.0))
+        text.appendFormat("swap        % ms\n", round2(cast(f64) .swapUs / frames / 1000.0))
         text.appendFormat("megapixels  %\n", round2(cast(f64) .pixels / frames / 1000000.0))
         text.appendFormat("kvertices   %\n", round2(cast(f64) .vertices / frames / 1000.0))
         text.appendFormat("scratch Mpx % of %\n", round2(cast(f64) .scratchPixels / frames / 1000000.0), round2(cast(f64) .scratchFull / frames / 1000000.0))

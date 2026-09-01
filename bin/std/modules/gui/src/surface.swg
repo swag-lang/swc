@@ -533,12 +533,19 @@ impl Surface
         .painter.end()
 
         cxt.renderer.draw(&.painter)
+
+        // The copy and the present are timed apart because they answer different questions: one
+        // is work the window asked for, the other is how long the display made it wait.
+        var presentUs = 0'u64
+        if tracing do
+            presentUs = traceWatch.elapsedMicroseconds()
         cxt.renderer.end()
 
         if tracing
         {
             let area = cast(u64) (physClip.width * physClip.height)
-            .app.frameTrace.addSurface(recordUs, rtUs, traceWatch.elapsedMicroseconds(), area, vertices, batches)
+            let totalUs = traceWatch.elapsedMicroseconds()
+            .app.frameTrace.addSurface(recordUs, rtUs, presentUs, totalUs - presentUs, area, vertices, batches)
             .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)
         }
     }

@@ -195,3 +195,50 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
         assertRecycledMatchesFresh(&reused, lshape)
     }
 }
+
+// Two rings that share a vertex, which is what a glyph with touching counters hands the sweep.
+// The tessellator cannot represent one vertex carrying two constraints, so it separates the
+// repeated point; the coincidence index it uses to find repeats must terminate, and must find
+// the same repeats a full scan of the point set would.
+#test
+{
+    var tess: Pixel.Poly2Tri.Tessellate
+
+    func ringAt(cx, cy, radius: f32, count: s32)->Pixel.Polygon
+    {
+        var result: retval
+        for i in count
+        {
+            let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) count)
+            result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
+        }
+
+        result.add(result.points[0])
+        result.recompute()
+        return result
+    }
+
+    // Both rings carry the point (0, 0) exactly, plus a run of vertices repeated inside one ring.
+    var left: Pixel.Polygon
+    left.add({0, 0})
+    left.add({-40, -20})
+    left.add({-40, 20})
+    left.add({-40, 20})
+    left.add({0, 0})
+    left.recompute()
+
+    var right: Pixel.Polygon
+    right.add({0, 0})
+    right.add({40, 20})
+    right.add({40, -20})
+    right.add({0, 0})
+    right.recompute()
+
+    tess.addPolyLine(left)
+    tess.addPolyLine(right)
+    tess.addPolyLine(ringAt(0, 200, 30, 12))
+    tess.triangulate()
+    let result = tess.takeResult()
+    Swag.assert(result.triangleCount() != 0)
+    tess.clear()
+}

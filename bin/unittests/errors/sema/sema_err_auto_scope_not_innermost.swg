@@ -18,7 +18,7 @@ impl NotInnermostRecorder
     {
         with reading
         {
-            .tag = 1
+            .tag   = 1
             .total = 2     // swc-expected-error {{sema_err_auto_scope_not_innermost}}
         }
     }
@@ -26,7 +26,7 @@ impl NotInnermostRecorder
 
 #test
 {
-    var reading: NotInnermostReading
+    var reading:  NotInnermostReading
     var recorder: NotInnermostRecorder
     recorder.record(&reading)
 }

@@ -440,7 +440,9 @@ namespace
         // before the frame that reads it, so the chain walked above does not arrive in nesting
         // order, and an inlined body sees the caller's scopes as if they were its own.
         const SemaInlinePayload* currentInlinePayload = frame.currentInlinePayload();
-        const auto               subjectIsOwn         = [currentInlinePayload](const SemaScope::AutoMemberBinding& binding) { return binding.inlinePayload == currentInlinePayload; };
+        const auto               subjectIsOwn         = [currentInlinePayload](const SemaScope::AutoMemberBinding& binding) {
+            return binding.inlinePayload == currentInlinePayload;
+        };
         std::ranges::stable_sort(autoMemberBindings, [&](const SemaScope::AutoMemberBinding& a, const SemaScope::AutoMemberBinding& b) {
             if (subjectIsOwn(a) != subjectIsOwn(b))
                 return subjectIsOwn(a);

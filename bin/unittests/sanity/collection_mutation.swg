@@ -222,7 +222,7 @@ struct CollMutEntry
 func collMutElementMethodDuringIter()
 {
     var entries: [2] CollMutEntry
-    var total   = 0'u64
+    var total = 0'u64
 
     for &entry in entries
     {

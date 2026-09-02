@@ -248,7 +248,7 @@ namespace
             return Result::Continue;
 
         const TokenRef errorTokRef = tokNames[2].isValid() ? tokNames[2] : node.tokRef();
-        auto           diag         = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{node.srcViewRef(), errorTokRef});
+        auto           diag        = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{node.srcViewRef(), errorTokRef});
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(tokNames.size()));
         diag.report(sema.ctx());
         return Result::Error;

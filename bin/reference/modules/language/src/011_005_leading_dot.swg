@@ -29,8 +29,8 @@ resolves shows up as a test failure rather than as a surprise in a caller.
 
 enum Channel
 {
-    Red,
-    Green,
+    Red
+    Green
     Blue
 }
 
@@ -38,12 +38,9 @@ func channelScore(c: Channel)->s32
 {
     switch c
     {
-    case .Red:
-        return 1
-    case .Green:
-        return 2
-    default:
-        return 3
+    case .Red:   return 1
+    case .Green: return 2
+    default:     return 3
     }
 }
 
@@ -151,7 +148,7 @@ the whole rule: nesting decides, and nothing else is consulted.
 */
 #test
 {
-    var reading: Reading
+    var reading:  Reading
     var recorder: Recorder
     recorder.record(&reading)
 

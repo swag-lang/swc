@@ -249,32 +249,32 @@ public:
     void noteExplicitUndefinedLocal() { hasExplicitUndefinedLocals_ = true; }
     bool hasExplicitUndefinedLocals() const { return hasExplicitUndefinedLocals_; }
 
-    ConstantManager&                               cstMgr();
-    const ConstantManager&                         cstMgr() const;
-    TypeManager&                                   typeMgr();
-    const TypeManager&                             typeMgr() const;
-    TypeGen&                                       typeGen();
-    const TypeGen&                                 typeGen() const;
-    IdentifierManager&                             idMgr();
-    const IdentifierManager&                       idMgr() const;
-    SourceView&                                    srcView(SourceViewRef srcViewRef);
-    const SourceView&                              srcView(SourceViewRef srcViewRef) const;
-    NodePayload&                                   currentNodePayloadContext() { return nodePayloadContext(); }
-    const NodePayload&                             currentNodePayloadContext() const { return nodePayloadContext(); }
-    const SourceFile*                              ownerSourceFile(SourceViewRef srcViewRef) const;
-    NodePayload*                                   owningNodePayloadContext(SourceViewRef srcViewRef) const;
-    AstNodeRef                                     ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid()) const;
-    Sema*                                          tryCreateDeclSema(std::unique_ptr<Sema>& outOwnedSema, SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid());
-    bool                                           usesOwningNodePayloadContext(SourceViewRef srcViewRef) const;
-    Ast&                                           ast();
-    const Ast&                                     ast() const;
-    AstNode&                                       node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&                                 node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    const Token&                                   token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
-    SourceCodeRange                                tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
-    std::string_view                               tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
-    Utf8                                           fileName() const;
-    const SourceFile*                              file() const;
+    ConstantManager&         cstMgr();
+    const ConstantManager&   cstMgr() const;
+    TypeManager&             typeMgr();
+    const TypeManager&       typeMgr() const;
+    TypeGen&                 typeGen();
+    const TypeGen&           typeGen() const;
+    IdentifierManager&       idMgr();
+    const IdentifierManager& idMgr() const;
+    SourceView&              srcView(SourceViewRef srcViewRef);
+    const SourceView&        srcView(SourceViewRef srcViewRef) const;
+    NodePayload&             currentNodePayloadContext() { return nodePayloadContext(); }
+    const NodePayload&       currentNodePayloadContext() const { return nodePayloadContext(); }
+    const SourceFile*        ownerSourceFile(SourceViewRef srcViewRef) const;
+    NodePayload*             owningNodePayloadContext(SourceViewRef srcViewRef) const;
+    AstNodeRef               ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid()) const;
+    Sema*                    tryCreateDeclSema(std::unique_ptr<Sema>& outOwnedSema, SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid());
+    bool                     usesOwningNodePayloadContext(SourceViewRef srcViewRef) const;
+    Ast&                     ast();
+    const Ast&               ast() const;
+    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    const Token&             token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
+    SourceCodeRange          tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
+    std::string_view         tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
+    Utf8                     fileName() const;
+    const SourceFile*        file() const;
     // Mints the rank of the next 'with' subject. See 'SemaScope::AutoMemberBinding::order'.
     static uint64_t nextAutoMemberOrder();
 

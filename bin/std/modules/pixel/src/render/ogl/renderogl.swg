@@ -110,6 +110,7 @@ struct RenderOgl
 
     // The GPU objects and the state mirror of the context. Everything here belongs to the
     // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
+
     private
     {
         using native:   NativeRenderOgl     // Platform-specific context operations.

@@ -4,9 +4,7 @@
 // scope into the current context.
 namespace WithScopeSubjectNs
 {
-    func helper()
-    {
-    }
+    func helper() {}
 }
 
 enum WithScopeSubjectColor

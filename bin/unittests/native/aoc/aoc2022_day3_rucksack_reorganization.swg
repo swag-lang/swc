@@ -82,11 +82,11 @@ func priorityFromMask(mask: u64)->u32
     Swag.assert(mask != 0'u64)
     Swag.assert((mask & (mask - 1'u64)) == 0'u64)
 
-    for 52
+    for index in 52
     {
-        let bit = 1'u64 << cast(u64) Swag.index
+        let bit = 1'u64 << cast(u64) index
         if bit == mask do
-            return cast(u32) Swag.index + 1'u32
+            return cast(u32) index + 1'u32
     }
 
     Swag.assert(false)
@@ -97,9 +97,9 @@ func buildMask(line: const [..] u8)->u64
 {
     var result: u64
 
-    for line.count
+    for index in line.count
     {
-        let ch = line[Swag.index]
+        let ch = line[index]
         Swag.assert(isItemType(ch))
         result |= maskForItem(ch)
     }
@@ -129,13 +129,13 @@ func solveClean(bytes: const [..] u8)->RucksackReport
     var groupMasks: [3] u64
     var groupCount: u32
 
-    for bytes.count
+    for index in bytes.count
     {
-        if isLineBreak(bytes[Swag.index]) or Swag.index == bytes.count - 1
+        if isLineBreak(bytes[index]) or index == bytes.count - 1
         {
-            var lineEnd = Swag.index
-            if !isLineBreak(bytes[Swag.index]) do
-                lineEnd = Swag.index + 1
+            var lineEnd = index
+            if !isLineBreak(bytes[index]) do
+                lineEnd = index + 1
 
             if lineEnd > lineStart
             {
@@ -153,7 +153,7 @@ func solveClean(bytes: const [..] u8)->RucksackReport
                 }
             }
 
-            lineStart = Swag.index + 1
+            lineStart = index + 1
         }
     }
 
@@ -163,9 +163,9 @@ func solveClean(bytes: const [..] u8)->RucksackReport
 
 func(T) fill(values: [..] T, value: T)
 {
-    for values.count
+    for index in values.count
     {
-        values[Swag.index] = value
+        values[index] = value
     }
 }
 
@@ -236,13 +236,13 @@ func declareFeatureState()
 func forEachLine(bytes: const [..] u8, stmt: #code(line))
 {
     var lineStart: u64
-    for bytes.count
+    for index in bytes.count
     {
-        if isLineBreak(bytes[Swag.index]) or Swag.index == bytes.count - 1
+        if isLineBreak(bytes[index]) or index == bytes.count - 1
         {
-            var lineEnd = Swag.index
-            if !isLineBreak(bytes[Swag.index]) do
-                lineEnd = Swag.index + 1
+            var lineEnd = index
+            if !isLineBreak(bytes[index]) do
+                lineEnd = index + 1
 
             if lineEnd > lineStart
             {
@@ -250,7 +250,7 @@ func forEachLine(bytes: const [..] u8, stmt: #code(line))
                 #inject(stmt, line = bytes[lineStart until lineStart + lineLen])
             }
 
-            lineStart = Swag.index + 1
+            lineStart = index + 1
         }
     }
 }

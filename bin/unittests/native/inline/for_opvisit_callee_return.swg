@@ -17,9 +17,9 @@ impl InlineBug10VisitBytes
     mtd(ptr: bool) const visitBytes(stmt: #code(item: u8, index: u64))
         where !ptr
     {
-        for .count
+        for ordinal in .count
         {
-            let idx = Swag.index
+            let idx = ordinal
 
             #inject(stmt, item = me.values[idx], index = idx)
         }

@@ -57,7 +57,7 @@ func mazeInit()->Maze
     var m: Maze
     m.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxCells)
     let cells = m.cells!
-    for MaxCells { cells[Swag.index] = 0 }
+    for index in MaxCells { cells[index] = 0 }
     return m
 }
 
@@ -96,9 +96,9 @@ func parseMaze(text: string)->Maze
     var row: u32
     var col: u32
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0
@@ -159,7 +159,7 @@ func solve(text: string)->u64
     let stateCount = MaxCells * 4
     let best       = cast([*] u64) (testAlloc(cast(u64) stateCount * #sizeof(u64)))!
     defer testFree(best)
-    for stateCount { best[Swag.index] = Infinity }
+    for index in stateCount { best[index] = Infinity }
 
     let queue = cast([*] QEntry) (testAlloc(cast(u64) MaxQueue * #sizeof(QEntry)))!
     defer testFree(queue)

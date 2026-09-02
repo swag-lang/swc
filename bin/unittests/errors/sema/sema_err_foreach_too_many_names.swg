@@ -13,7 +13,7 @@ impl CustomVisitTooManyNames
     {
         for idx in 2
         {
-            #inject(stmt, item = me.values[idx], index = Swag.index)
+            #inject(stmt, item = me.values[idx], index = idx)
         }
     }
 }
@@ -28,4 +28,16 @@ impl CustomVisitTooManyNames
 {
     var values = CustomVisitTooManyNames{}
     for value, ordinal, extra in values {}     // swc-expected-error {{sema_err_too_many_aliases}}
+}
+
+#test
+{
+    var arr: [2] s32 = [1, 2]
+    for ?, ?, ? in arr {}     // swc-expected-error {{sema_err_foreach_too_many_names}}
+}
+
+#test
+{
+    var values = CustomVisitTooManyNames{}
+    for ?, ?, ? in values {}     // swc-expected-error {{sema_err_too_many_aliases}}
 }

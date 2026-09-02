@@ -168,14 +168,20 @@ impl SelModel
 
     // Block parameters: `item` is the selected index and `index` its selection ordinal.
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
+        // The ordinal runs across every range, and moves before the body so that a
+        // 'continue' in it cannot skip the step.
+        var ordinal = 0'u64
+
         #scope(Up)
         for &range in .rangesStorage
         {
             for itemIndex in range.start to range.end
             {
-                #inject(stmt, item = itemIndex, index = Swag.index, break = break to Up)
+                let current = ordinal
+                ordinal += 1
+                #inject(stmt, item = itemIndex, index = current, break = break to Up)
             }
         }
     }

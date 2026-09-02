@@ -348,9 +348,9 @@ impl Image
     func(ptr: bool) opVisit(me, stmt: #code(var pixel, var index: u64))
     {
         var scan = pixels.buffer
-        for width * height
+        for idx in width * height
         {
-            #inject(stmt, pixel = scan, index = Swag.index)
+            #inject(stmt, pixel = scan, index = idx)
 
             scan += bytesPerPixel
         }

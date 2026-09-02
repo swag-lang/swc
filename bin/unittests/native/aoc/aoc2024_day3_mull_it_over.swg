@@ -52,9 +52,9 @@ func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
     let litBytes = cast(const [..] u8) lit
     if pos + litBytes.count > bytes.count do
         return false
-    for litBytes.count
+    for index in litBytes.count
     {
-        if bytes[pos + Swag.index] != litBytes[Swag.index] do
+        if bytes[pos + index] != litBytes[index] do
             return false
     }
     return true
@@ -149,9 +149,9 @@ func evaluateClean(stream: TokenStream)->MulResult
     var result: MulResult
     var enabled = true
 
-    for stream.count
+    for index in stream.count
     {
-        let tok = stream.tokens[cast(u32) Swag.index]
+        let tok = stream.tokens[cast(u32) index]
         switch tok.kind
         {
         case TokenKind.Do:
@@ -205,9 +205,9 @@ func accumulateMul(lhs: s32, rhs: s32)
 #[Swag.Macro]
 func visitTokens(stream: TokenStream, stmt: #code(tok, idx: u32))
 {
-    for stream.count
+    for index in stream.count
     {
-        #inject(stmt, tok = stream.tokens[cast(u32) Swag.index], idx = cast(u32) Swag.index)
+        #inject(stmt, tok = stream.tokens[cast(u32) index], idx = cast(u32) index)
     }
 }
 

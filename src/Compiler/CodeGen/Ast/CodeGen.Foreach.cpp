@@ -568,7 +568,6 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
     frame.setCurrentLoopContinueLabel(loopState->continueLabel);
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    frame.setCurrentLoopIndex(loopState->indexReg, loopState->indexTypeRef);
     codeGen.pushFrame(frame);
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     registerForeachAliasImplicitDrops(codeGen, *loopState);

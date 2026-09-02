@@ -170,9 +170,6 @@ public:
     void                 setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
     bool                 currentLoopHasContinueJump() const { return currentLoopHasContinueJump_; }
     void                 setCurrentLoopHasContinueJump(bool value) { currentLoopHasContinueJump_ = value; }
-    MicroReg             currentLoopIndexReg() const { return currentLoopIndexReg_; }
-    void                 setCurrentLoopIndex(MicroReg reg, TypeRef typeRef);
-    TypeRef              currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
     InlineContext&       currentInlineContextRef() { return inlineContext_; }
     void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
@@ -191,8 +188,6 @@ private:
     MicroLabelRef currentLoopContinueLabel_   = MicroLabelRef::invalid();
     MicroLabelRef currentLoopBreakLabel_      = MicroLabelRef::invalid();
     bool          currentLoopHasContinueJump_ = false;
-    MicroReg      currentLoopIndexReg_        = MicroReg::invalid();
-    TypeRef       currentLoopIndexTypeRef_    = TypeRef::invalid();
     InlineContext inlineContext_;
     AstNodeRef    inlineBoundaryRootRef_ = AstNodeRef::invalid();
 };

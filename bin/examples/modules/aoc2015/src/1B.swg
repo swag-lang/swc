@@ -17,12 +17,12 @@ func day1B()
     let lines    = expect File.readAllText(dataPath)
 
     var total = 0
-    for c in lines.bytes()
+    for c, index in lines.bytes()
     {
         total += c == '(' ? 1 : -1
         if total == -1
         {
-            total = 1 + cast(s32) Swag.index
+            total = 1 + cast(s32) index
             break
         }
     }

@@ -98,16 +98,16 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var source:   [1025] u8
     var actual:   [1025] u8
     var expected: [1025] u8
-    for source.count do
-        source[Swag.index] = cast(u8) ((cast(u64) Swag.index * 47 + 13) & 0xFF)
+    for index in source.count do
+        source[index] = cast(u8) ((cast(u64) index * 47 + 13) & 0xFF)
 
     let lengths: [15] u64 = [0, 1, 63, 64, 65, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
     for length in lengths
     {
-        for actual.count
+        for index in actual.count
         {
-            actual[Swag.index]   = 0xA5
-            expected[Swag.index] = 0xA5
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
         }
 
         scalarChaCha20Xor(key, nonce, Swag.makeSlice(source.buffer, length), Swag.makeSlice(expected.buffer, length), 7)

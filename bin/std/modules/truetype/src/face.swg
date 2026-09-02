@@ -214,9 +214,9 @@ public impl Face
     // ```swag
     // let bytes = File.readAllBytes("msgothic.ttc")
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
-    // for count
+    // for index in count
     // {
-    //     let face = (try TrueType.Face.loadAt(bytes.toSlice(), Swag.index))!
+    //     let face = (try TrueType.Face.loadAt(bytes.toSlice(), index))!
     //     defer face.destroy()
     // }
     // ```
@@ -248,9 +248,9 @@ public impl Face
     // ```swag
     // let bytes = File.readAllBytes("msgothic.ttc")
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
-    // for count
+    // for index in count
     // {
-    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), Swag.index)) == "MS PGothic" do
+    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), index)) == "MS PGothic" do
     //         break
     // }
     // ```
@@ -503,8 +503,8 @@ public impl Face
             return
 
         let points = o.points!
-        for cast(u32) o.pointCount do
-            points[Swag.index].y = hintMapY(points[Swag.index].y, xh, xhS, ch, chS)
+        for index in cast(u32) o.pointCount do
+            points[index].y = hintMapY(points[index].y, xh, xhS, ch, chS)
     }
 
     // Renders the current outline as a single-channel signed-distance field.

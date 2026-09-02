@@ -35,9 +35,9 @@ func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
     let bytes = cast(const [..] u8) schematic[row]
     Swag.assert(bytes.count == SchematicWidth)
 
-    for SchematicWidth
+    for index in SchematicWidth
     {
-        let column = cast(u32) Swag.index
+        let column = cast(u32) index
         if bytes[column] != ch do
             return false
     }
@@ -61,19 +61,19 @@ func profileFromSchematic(schematic: const [..] string)->PinProfile
 
     var result: PinProfile
 
-    for SchematicHeight
+    for index in SchematicHeight
     {
-        Swag.assert(lineWidth(schematic[Swag.index]) == SchematicWidth)
+        Swag.assert(lineWidth(schematic[index]) == SchematicWidth)
     }
 
-    for SchematicWidth
+    for index in SchematicWidth
     {
-        let column = cast(u32) Swag.index
+        let column = cast(u32) index
         var filledCount: u32
 
-        for SchematicHeight
+        for idx in SchematicHeight
         {
-            let row = cast(u32) Swag.index
+            let row = cast(u32) idx
             if filledAt(schematic, row, column) do
                 filledCount += 1
         }
@@ -88,9 +88,9 @@ func profileFromSchematic(schematic: const [..] string)->PinProfile
 
 func fits(lockProfile, keyProfile: PinProfile)->bool
 {
-    for SchematicWidth
+    for index in SchematicWidth
     {
-        let column = cast(u32) Swag.index
+        let column = cast(u32) index
         if lockProfile.heights[column] + keyProfile.heights[column] > MaxColumnHeight do
             return false
     }

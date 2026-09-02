@@ -200,16 +200,6 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 };
 
 // -----------------------------------------------------------------------------
-struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
-{
-    TokenId intrinsicId = TokenId::Invalid;
-
-    Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPostNode(Sema& sema);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
 // Auto-inline cost model. Tokens are a cheap, stable proxy for body size. Leaf helpers use the
 // regular budget without introducing sema dependencies; calls add cost within the much larger
 // single-module-call-site budget, where eliminating the last call does not duplicate the body.
@@ -1646,6 +1636,8 @@ enum class AstForeachStmtFlagsE : AstNode::ParserFlags
 {
     Zero      = 0,
     ByAddress = 1 << 0,
+    // The first position is discarded ('for ?, index in ...'), so the first declared
+    // binding of a built-in iteration is the index rather than the element.
     IndexOnly = 1 << 1,
     // Set by sema when the by-value binding aliases a struct element through its
     // const address (a synthesized pointer type): codegen must store the element

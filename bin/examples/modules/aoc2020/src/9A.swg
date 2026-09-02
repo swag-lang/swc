@@ -55,10 +55,10 @@ func day9A()
 
     var sum, val: Array's32
     const N = 25
-    for l in lines
+    for l, index in lines
     {
         let v1 = expect StrConv.toS32(l[])
-        if Swag.index < N
+        if index < N
         {
             for v0 in val do
                 sum.add(v0 + v1)

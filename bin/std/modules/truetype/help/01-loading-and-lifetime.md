@@ -46,12 +46,12 @@ collection can be searched first and loaded once.
 ```swag
 let bytes = File.readAllBytes("msgothic.ttc")
 let count = try Face.countFaces(bytes.toSlice())
-for count
+for index in count
 {
-    if (try Face.familyNameAt(bytes.toSlice(), Swag.index)) != "MS PGothic" do
+    if (try Face.familyNameAt(bytes.toSlice(), index)) != "MS PGothic" do
         continue
 
-    let face = (try Face.loadAt(bytes.toSlice(), Swag.index))!
+    let face = (try Face.loadAt(bytes.toSlice(), index))!
     defer face.destroy()
     break
 }

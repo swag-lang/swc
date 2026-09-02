@@ -53,10 +53,10 @@ func day2A()
 
         var prev = 0, ls = 0
         var bad  = false
-        for v in first
+        for v, index in first
         {
             let a = expect StrConv.toS32(v)
-            if Swag.index
+            if index
             {
                 let diff = a - prev
                 if Swag.abs(diff) < 1 or Swag.abs(diff) > 3 do

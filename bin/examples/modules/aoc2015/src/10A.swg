@@ -88,12 +88,12 @@ internal func day10EnsureLengths()
 
     var current: String = "1113122113"
     var next:    String
-    for 50
+    for index in 50
     {
         day10RunStep(current.toString(), &next)
         swap(&current, &next)
 
-        if Swag.index == 39 do
+        if index == 39 do
             day10Length40 = current.length
     }
 

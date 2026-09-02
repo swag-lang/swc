@@ -73,9 +73,9 @@ func parseGrid(text: string)->Grid
     var result: Grid
 
     var col: u32
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0
@@ -174,12 +174,12 @@ func findTrails(grid: Grid)->TrailResult
                 continue
 
             // Clear visited for this trailhead
-            for grid.height
+            for index in grid.height
             {
-                let r = cast(u32) Swag.index
-                for grid.width
+                let r = cast(u32) index
+                for idx in grid.width
                 {
-                    let c = cast(u32) Swag.index
+                    let c = cast(u32) idx
                     visited[r * MaxDim + c] = false
                 }
             }

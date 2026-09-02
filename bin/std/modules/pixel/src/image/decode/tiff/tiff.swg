@@ -172,8 +172,8 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
             checkBuffer(p, last, 1)
             let value = p[0]
             p += 1
-            for count do
-                dst[out + Swag.index] = value
+            for index in count do
+                dst[out + index] = value
             out += count
         }
     }

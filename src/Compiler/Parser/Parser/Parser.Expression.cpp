@@ -570,14 +570,6 @@ AstNodeRef Parser::parseInitializerExpression(TokenRef tokAssign)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseIntrinsicValue()
-{
-    const TokenRef tokRef         = consume();
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicValue>(tokRef);
-    nodePtr->intrinsicId          = ast_->srcView().token(tokRef).id;
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
 {
     AstNodeRef left = parseRelationalExpr();
@@ -681,7 +673,7 @@ AstNodeRef Parser::parsePostFixExpression()
                 if (firstOptionalAccessTokRef.isInvalid())
                     firstOptionalAccessTokRef = nodePtr->tokRef();
             }
-            nodeRef = lowerSwagIntrinsicValue(nodeParent);
+            nodeRef = nodeParent;
             continue;
         }
 
@@ -828,9 +820,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicMakeInterface:
         case TokenId::IntrinsicAs:
             return parseIntrinsicCall(3);
-
-        case TokenId::IntrinsicIndex:
-            return parseIntrinsicValue();
 
         case TokenId::IntrinsicCompiler:
         case TokenId::IntrinsicRtFlags:

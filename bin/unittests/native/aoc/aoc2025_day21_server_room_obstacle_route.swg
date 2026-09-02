@@ -35,9 +35,9 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
 
     var blocked: [MaxGridCells] bool
 
-    for dropCount
+    for index in dropCount
     {
-        let drop = drops[Swag.index]
+        let drop = drops[index]
         Swag.assert(drop.x < gridSize)
         Swag.assert(drop.y < gridSize)
         blocked[cellIndex(drop.x, drop.y, gridSize)] = true
@@ -134,9 +134,9 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
     result.shortestSteps = steps
 
     let extraDrops = cast(u32) drops.count - initialDropCount
-    for extraDrops
+    for index in extraDrops
     {
-        let dropCount = initialDropCount + cast(u32) Swag.index + 1
+        let dropCount = initialDropCount + cast(u32) index + 1
         if !hasEscapeRoute(&steps, drops, gridSize, dropCount)
         {
             let blocking = drops[dropCount - 1]

@@ -570,9 +570,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         switch i
         {
         case 1:
-            sum += cast(s32) Swag.index
+            sum += cast(s32) i
         default:
-            sum += cast(s32) Swag.index
+            sum += cast(s32) i
         }
     }
 

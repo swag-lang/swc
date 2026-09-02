@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -77,16 +76,6 @@ namespace
     Result failIntrinsicInitRequiresValue(Sema& sema, AstNodeRef whatRef, TypeRef fillTypeRef)
     {
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.node(whatRef).codeRef(), fillTypeRef);
-    }
-
-    LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<LoopSemaPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
     }
 
     const TypeInfo* normalizedIntrinsicOperandType(Sema& sema, const SemaNodeView& operandView)
@@ -195,31 +184,6 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 
     SemaNodeView argView = sema.viewNodeTypeConstant(args.front());
     return Cast::cast(sema, argView, fillTypeRef, CastKind::Initialization);
-}
-
-Result AstIntrinsicValue::semaPostNode(Sema& sema)
-{
-    sema.setIsValue(*this);
-
-    switch (intrinsicId)
-    {
-        case TokenId::IntrinsicIndex:
-        {
-            const TypeRef indexTypeRef = sema.frame().currentLoopIndexTypeRef();
-            if (!indexTypeRef.isValid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_index_outside_loop, sema.curNodeRef());
-
-            const AstNodeRef ownerRef = sema.frame().currentLoopIndexOwnerRef();
-            if (ownerRef.isValid())
-                ensureLoopSemaPayload(sema, ownerRef).usesLoopIndex = true;
-
-            sema.setType(sema.curNodeRef(), indexTypeRef);
-            return Result::Continue;
-        }
-
-        default:
-            SWC_INTERNAL_ERROR();
-    }
 }
 
 Result AstIntrinsicDrop::semaPostNode(Sema& sema) const

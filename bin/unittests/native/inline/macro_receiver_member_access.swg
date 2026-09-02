@@ -30,10 +30,10 @@ impl VisitBag
         let buffer = .buffer!
 
         var scan = buffer - 1
-        for .count
+        for idx in .count
         {
             scan += 1
-            let visitIdx = Swag.index
+            let visitIdx = idx
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)

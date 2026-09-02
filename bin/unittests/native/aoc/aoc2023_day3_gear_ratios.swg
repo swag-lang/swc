@@ -99,9 +99,9 @@ func parseGrid(bytes: const [..] u8)->Grid
     var result: retval
     var col:    u32
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if isNewline(ch)
         {
             if col > 0
@@ -222,10 +222,10 @@ func checkAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool
 
     for c in cast(s32) entry.col0 to cast(s32) entry.col1
     {
-        for 8
+        for index in 8
         {
-            let nr = r + DirDR[Swag.index]
-            let nc = c + DirDC[Swag.index]
+            let nr = r + DirDR[index]
+            let nc = c + DirDC[index]
             if grid.inBounds(nr, nc) and isSymbol(grid.at(cast(u32) nr, cast(u32) nc)) do
                 return true
         }

@@ -8,9 +8,9 @@ providing a streamlined and efficient way to process each item.
 
 #test
 {
-    for value in "ABC"
+    for value, index in "ABC"
     {
-        let a = Swag.index
+        let a = index
         switch a
         {
         case 0: Swag.assert(value == 'A')
@@ -24,7 +24,8 @@ providing a streamlined and efficient way to process each item.
 # Naming Only the Index
 Use `?` for the discarded element and put the index in the second binding:
 `for ?, index in collection`. A counted loop has no element binding, so it simply uses
-`for index in 3`.
+`for index in 3`. `?` stands for a **position**, not for the first one: it discards
+whichever value sits there, and every position after it keeps its place.
 */
 
 #test
@@ -92,8 +93,8 @@ enum Channel: u8
 /**
 # Reverse Order with '.reversed()'
 Iterate from the last element to the first through a borrowed reverse view.
-The second visit value is the index within the original collection; 'Swag.index'
-is the ordinal within the view.
+The second visit value is the index within the original collection, which counts
+down; a loop that needs the position within the view keeps its own counter.
 */
 #test
 {

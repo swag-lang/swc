@@ -305,9 +305,9 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
     sliceJobs.resize(cast(u64) workers)
 
     var ptr = range.buffer
-    for &j in sliceJobs
+    for &j, index in sliceJobs
     {
-        let sizeSlice = Swag.index == sliceJobs.count - 1 ? lastSplitSize : splitSize
+        let sizeSlice = index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
         j.base.lambda = &jobEntry
         j.base.data   = j
@@ -368,9 +368,9 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
     sliceJobs.resize(cast(u64) workers)
 
     var startIndex = 0'u32
-    for &j in sliceJobs
+    for &j, idx in sliceJobs
     {
-        let sizeSlice = Swag.index == sliceJobs.count - 1 ? lastSplitSize : splitSize
+        let sizeSlice = idx == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
         j.base.lambda = &jobEntry
         j.base.data   = j

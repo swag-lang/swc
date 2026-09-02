@@ -767,7 +767,7 @@ impl LibraryView
             .postInvalidateEvent()
         }
 
-        for it in copy
+        for it, index in copy
         {
             if th.requestEnd do
                 break
@@ -775,7 +775,7 @@ impl LibraryView
                 continue
 
             .loadOne(it)
-            if (Swag.index & 15) == 0 do
+            if (index & 15) == 0 do
                 .postInvalidateEvent()
         }
 
@@ -812,13 +812,13 @@ impl LibraryView
             var best:  f32
             var bestI: u64
             var foundMatch = false
-            for it in remaining where toCompare.haar.size == it.haar.size
+            for it, index in remaining where toCompare.haar.size == it.haar.size
             {
                 let similarity = ImageStatistics.quickCompareHaarCoefficients(toCompare.haar, it.haar)
                 if similarity > best
                 {
                     best       = similarity
-                    bestI      = Swag.index
+                    bestI      = index
                     foundMatch = true
                 }
             }

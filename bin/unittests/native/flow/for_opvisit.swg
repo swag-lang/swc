@@ -12,7 +12,7 @@ struct FieldVisits
 impl FieldVisits
 {
     #[Swag.Macro]
-    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index))
+    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index: u64))
         where !ptr
     {
 
@@ -26,7 +26,7 @@ impl FieldVisits
             default: visitItem = me.z
             }
 
-            #inject(stmt, item = visitItem, index = Swag.index)
+            #inject(stmt, item = visitItem, index = idx)
         }
     }
 }
@@ -39,20 +39,20 @@ struct BufferVisits
 impl BufferVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = Swag.index)
+                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = idx)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = Swag.index)
+                #inject(stmt, item = me.values[idx], index = idx)
             }
         }
     }
@@ -66,12 +66,12 @@ struct ReverseVisits
 impl ReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where !ptr
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], index = Swag.index)
+            #inject(stmt, item = me.values[idx], index = idx)
         }
     }
 
@@ -113,12 +113,12 @@ struct ReturnVisits
 impl HiddenAliasVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
         where !ptr
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = Swag.index)
+            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = idx)
         }
     }
 }
@@ -126,7 +126,7 @@ impl HiddenAliasVisits
 impl FieldPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
@@ -146,7 +146,7 @@ impl FieldPointerVisits
                 case 2: visitItem = me.third
                 }
 
-                #inject(stmt, item = visitItem, index = Swag.index)
+                #inject(stmt, item = visitItem, index = idx)
             }
         }
     }
@@ -155,20 +155,20 @@ impl FieldPointerVisits
 impl ConstPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = Swag.index)
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = idx)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = Swag.index)
+                #inject(stmt, item = me.values[idx], index = idx)
             }
         }
     }
@@ -253,18 +253,18 @@ struct(T) GenericScopedVisits
 impl GenericScopedVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
         where !ptr
     {
         #scope(Outer)
-        for 3
+        for idx in 3
         {
-            if Swag.index < GenericScopedVisits.FIRST do
+            if idx < GenericScopedVisits.FIRST do
                 continue
 
             #scope(Inner)
             {
-                #inject(stmt, item = me.values[Swag.index], index = Swag.index, break = break to Outer, continue = break to Inner)
+                #inject(stmt, item = me.values[idx], index = idx, break = break to Outer, continue = break to Inner)
             }
         }
     }
@@ -279,7 +279,7 @@ impl GenericScopedVisits
     for value, index in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(index) == #typeof(Swag.index))
+        #assert(#typeof(index) == u64)
         sumValues  += value
         sumIndexes += index
     }
@@ -341,7 +341,7 @@ impl GenericScopedVisits
     for value, index in (values).reversed()
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(index) == #typeof(Swag.index))
+        #assert(#typeof(index) == u64)
         code = code * 10 + value + cast(s32) index - cast(s32) index
     }
 
@@ -354,11 +354,10 @@ impl GenericScopedVisits
     var count: u64
     var sum    = 0
 
-    for value in values
+    for ?, ?, index in values
     {
         count += 1
-        sum   += cast(s32) Swag.index
-        discard value
+        sum   += cast(s32) index
     }
 
     Swag.assert(count == 3)
@@ -371,11 +370,11 @@ impl GenericScopedVisits
     var code   = 0
     var order: u64
 
-    for value in values
+    for value, ?, index in values
     {
         #assert(#typeof(value) == s32)
         code  = code * 10 + value
-        order += Swag.index
+        order += index
     }
 
     Swag.assert(code == 456)
@@ -387,11 +386,11 @@ impl GenericScopedVisits
     var values = HiddenAliasVisits{}
     var sum    = 0
 
-    for value, scaled in values
+    for value, scaled, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
-        sum += value + scaled + cast(s32) Swag.index
+        sum += value + scaled + cast(s32) ordinal
     }
 
     Swag.assert(sum == 168)
@@ -432,12 +431,13 @@ impl GenericScopedVisits
     var signature = 0
     var order: u64
 
-    for left, right in values.pairs()
+    for left, right, index in values.pairs()
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
+        #assert(#typeof(index) == u64)
         signature = signature * 100 + left * 10 + right
-        order     += Swag.index
+        order     += index
     }
 
     Swag.assert(signature == 244668)
@@ -499,7 +499,7 @@ impl GenericScopedVisits
     for value, ordinal in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(ordinal) == #typeof(Swag.index))
+        #assert(#typeof(ordinal) == u64)
         sum     += value
         indexes += ordinal
     }

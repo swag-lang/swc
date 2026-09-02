@@ -19,9 +19,9 @@ func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bo
     if startIndex + patternLength > cast(u32) design.count do
         return false
 
-    for patternLength
+    for index in patternLength
     {
-        let offset = cast(u32) Swag.index
+        let offset = cast(u32) index
         if design[startIndex + offset] != patternBytes[offset] do
             return false
     }
@@ -38,9 +38,9 @@ func countAssemblies(patterns: const [..] string, design: string)->u64
     var ways: [MaxDesignLength + 1] u64
     ways[0] = 1
 
-    for designLength
+    for idx in designLength
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         if ways[index] == 0 do
             continue
 

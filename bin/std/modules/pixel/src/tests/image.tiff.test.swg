@@ -566,8 +566,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var raw: Array'u8
-    for 4096 do
-        raw.add(cast(u8) ((Swag.index * 73 + 19) & 0xFF))
+    for index in 4096 do
+        raw.add(cast(u8) ((index * 73 + 19) & 0xFF))
     let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
     let buf    = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)

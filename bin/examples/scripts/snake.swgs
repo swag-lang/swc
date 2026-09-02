@@ -14,13 +14,13 @@ var g_Time:       u64
 func paintSnake(painter: *Painter)
 {
     var scale = 0.52
-    for p in g_Snake
+    for p, index in g_Snake
     {
         let x = p.x * ElemSize
         let y = p.y * ElemSize
 
         painter.fillCircle(x, y, ElemSize * scale, Argb.Black)
-        if Swag.index == 0 do
+        if index == 0 do
             painter.fillCircle(x, y, ElemSize * 0.45, Argb.Green)
         scale -= 0.025
         scale = Math.max(scale, 0.4)

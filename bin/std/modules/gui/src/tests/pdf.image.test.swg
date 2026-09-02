@@ -56,19 +56,19 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var graySource:   [80] u8
     var grayActual:   [240] u8
     var grayExpected: [240] u8
-    for graySource.count do
-        graySource[Swag.index] = cast(u8) ((cast(u64) Swag.index * 37 + 11) & 0xFF)
+    for index in graySource.count do
+        graySource[index] = cast(u8) ((cast(u64) index * 37 + 11) & 0xFF)
 
-    for 65
+    for idx in 65
     {
-        for grayActual.count
+        for index in grayActual.count
         {
-            grayActual[Swag.index]   = 0xA5
-            grayExpected[Swag.index] = 0xA5
+            grayActual[index]   = 0xA5
+            grayExpected[index] = 0xA5
         }
 
-        expandGray8(grayActual.buffer, graySource.buffer, Swag.index)
-        for i in Swag.index
+        expandGray8(grayActual.buffer, graySource.buffer, idx)
+        for i in idx
         {
             grayExpected[i * 3 + 0] = graySource[i]
             grayExpected[i * 3 + 1] = graySource[i]
@@ -81,15 +81,15 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var cmykSource:   [80] u8
     var cmykActual:   [64] u8
     var cmykExpected: [64] u8
-    for cmykSource.count do
-        cmykSource[Swag.index] = cast(u8) ((cast(u64) Swag.index * 53 + 19) & 0xFF)
+    for index in cmykSource.count do
+        cmykSource[index] = cast(u8) ((cast(u64) index * 53 + 19) & 0xFF)
 
     for length in 21
     {
-        for cmykActual.count
+        for index in cmykActual.count
         {
-            cmykActual[Swag.index]   = 0x5A
-            cmykExpected[Swag.index] = 0x5A
+            cmykActual[index]   = 0x5A
+            cmykExpected[index] = 0x5A
         }
 
         expandCmyk8(cmykActual.buffer, cmykSource.buffer, length)
@@ -123,8 +123,8 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
             expandCmyk8(actual.buffer, source.buffer, 4)
             cmykToRgb(cast(f32) component / 255.0, cast(f32) component / 255.0, cast(f32) component / 255.0, cast(f32) black / 255.0, scalar)
-            for actual.count do
-                Swag.assert(actual[Swag.index] == scalar[Swag.index % 3])
+            for index in actual.count do
+                Swag.assert(actual[index] == scalar[index % 3])
         }
     }
 }

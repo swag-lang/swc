@@ -55,7 +55,7 @@ func graphInit()->Graph
     var g: Graph
     g.adj = cast(#null [*] bool) testAlloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
     let adj = g.adj!
-    for MaxNodes * MaxNodes { adj[Swag.index] = false }
+    for index in MaxNodes * MaxNodes { adj[index] = false }
     return g
 }
 

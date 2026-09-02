@@ -47,8 +47,8 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
 
         var chars: Array'u16
         chars.resize(raw.count / 2)
-        for chars.count do
-            chars[Swag.index] = readU16(raw, cast(u64) Swag.index * 2)
+        for index in chars.count do
+            chars[index] = readU16(raw, cast(u64) index * 2)
         return Utf8.fromUtf16(chars.toSlice())
     }
 
@@ -65,9 +65,9 @@ func decodeBestName(nameTable: #null const [..] u8, nameID: u16)->String fail
     let stringOffset = readU16(nameTable, 4)
     var bestScore    = -1
 
-    for count
+    for index in count
     {
-        let base = 6'u64 + cast(u64) Swag.index * 12
+        let base = 6'u64 + cast(u64) index * 12
         if readU16(nameTable, base + 6) != nameID do
             continue
 
@@ -171,9 +171,9 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
     var bestScore = -1
     var bestFmt   = 0'u16
 
-    for count
+    for index in count
     {
-        let base       = 4'u64 + cast(u64) Swag.index * 8
+        let base       = 4'u64 + cast(u64) index * 8
         let platformID = readU16(cmapTable, base + 0)
         let encodingID = readU16(cmapTable, base + 2)
         let offset     = readU32(cmapTable, base + 4)
@@ -220,24 +220,24 @@ func buildGlyphMetrics(faceData: *FaceImpl) fail
     faceData.glyphMetrics.resize(faceData.face.glyphCount)
 
     var lastAdvance = 0'u16
-    for faceData.face.glyphCount
+    for index in faceData.face.glyphCount
     {
         var metric: GlyphMetric
-        if Swag.index < faceData.numLongMetrics
+        if index < faceData.numLongMetrics
         {
-            let base = cast(u64) Swag.index * 4
+            let base = cast(u64) index * 4
             metric.advanceWidth    = readU16(hmtx, base + 0)
             metric.leftSideBearing = readS16(hmtx, base + 2)
             lastAdvance            = metric.advanceWidth
         }
         else
         {
-            let base = cast(u64) faceData.numLongMetrics * 4 + cast(u64) (Swag.index - faceData.numLongMetrics) * 2
+            let base = cast(u64) faceData.numLongMetrics * 4 + cast(u64) (index - faceData.numLongMetrics) * 2
             metric.advanceWidth    = lastAdvance
             metric.leftSideBearing = readS16(hmtx, base)
         }
 
-        faceData.glyphMetrics[Swag.index] = metric
+        faceData.glyphMetrics[index] = metric
     }
 }
 
@@ -248,13 +248,13 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
 
     if faceData.indexToLocFormat == 0
     {
-        for faceData.glyphLocations.count do
-            faceData.glyphLocations[Swag.index] = cast(u32) readU16(loca, cast(u64) Swag.index * 2) * 2
+        for index in faceData.glyphLocations.count do
+            faceData.glyphLocations[index] = cast(u32) readU16(loca, cast(u64) index * 2) * 2
     }
     else
     {
-        for faceData.glyphLocations.count do
-            faceData.glyphLocations[Swag.index] = readU32(loca, cast(u64) Swag.index * 4)
+        for index in faceData.glyphLocations.count do
+            faceData.glyphLocations[index] = readU32(loca, cast(u64) index * 4)
     }
 }
 
@@ -370,9 +370,9 @@ func findFaceOffset(data: #null const [..] u8, faceIndex: u32)->u64 fail
 func findTableAt(data: #null const [..] u8, faceOffset: u64, tag: u32)->#null const [..] u8 fail
 {
     let numTables = readU16(data, faceOffset + 4)
-    for numTables
+    for index in numTables
     {
-        let base = faceOffset + 12 + cast(u64) Swag.index * 16
+        let base = faceOffset + 12 + cast(u64) index * 16
         if readU32(data, base) != tag do
             continue
         return getSlice(data, readU32(data, base + 8), readU32(data, base + 12))
@@ -516,12 +516,12 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     let numTables = readU16(data, faceOffset + 4)
     faceData.tables.resize(numTables)
 
-    for numTables
+    for idx in numTables
     {
-        let base = faceOffset + 12 + cast(u64) Swag.index * 16
-        faceData.tables[Swag.index].tag    = readU32(data, base + 0)
-        faceData.tables[Swag.index].offset = readU32(data, base + 8)
-        faceData.tables[Swag.index].length = readU32(data, base + 12)
+        let base = faceOffset + 12 + cast(u64) idx * 16
+        faceData.tables[idx].tag    = readU32(data, base + 0)
+        faceData.tables[idx].offset = readU32(data, base + 8)
+        faceData.tables[idx].length = readU32(data, base + 12)
     }
 
     let cffTable = findTable(faceData, TAG_CFF)

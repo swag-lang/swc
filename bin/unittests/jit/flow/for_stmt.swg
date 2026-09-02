@@ -76,9 +76,9 @@ impl StringRefIndexBox
     {
         var arr: [4] s32 = [2, 4, 6, 8]
         var acc: s32     = 0
-        for arr
+        for index in arr.count
         {
-            acc += arr[Swag.index] * cast(s32) (Swag.index + 1)
+            acc += arr[index] * cast(s32) (index + 1)
         }
 
         return acc
@@ -115,9 +115,9 @@ impl StringRefIndexBox
             switch i
             {
             case 1:
-                acc += cast(s32) Swag.index
+                acc += cast(s32) i
             default:
-                acc += cast(s32) Swag.index
+                acc += cast(s32) i
             }
         }
 

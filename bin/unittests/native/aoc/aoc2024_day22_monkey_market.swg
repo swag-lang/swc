@@ -73,9 +73,9 @@ func parseBuyers(text: string)->BuyerList
     var inNum = false
     var acc:    u64
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch >= '0' and ch <= '9'
         {
             acc   = acc * 10 + cast(u64) (ch - '0')
@@ -154,7 +154,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     // Global totals for each possible 4-change sequence
     let totals = cast([*] u64) (testAlloc(cast(u64) SeqCount * #sizeof(u64)))!
     defer testFree(totals)
-    for SeqCount { totals[Swag.index] = 0 }
+    for index in SeqCount { totals[index] = 0 }
 
     // Per-buyer seen flags
     let seen = cast([*] bool) (testAlloc(cast(u64) SeqCount * #sizeof(bool)))!
@@ -163,7 +163,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     for bi in buyers.count
     {
         // Clear seen flags
-        for SeqCount { seen[Swag.index] = false }
+        for index in SeqCount { seen[index] = false }
 
         var s         = buyers.secrets[bi]
         var prevPrice = cast(s32) (s % 10)
@@ -200,10 +200,10 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
 
     // Find maximum
     var best: u64
-    for SeqCount
+    for index in SeqCount
     {
-        if totals[Swag.index] > best do
-            best = totals[Swag.index]
+        if totals[index] > best do
+            best = totals[index]
     }
 
     return makeSeqResult(best)

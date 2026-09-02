@@ -57,8 +57,8 @@ impl Array
         {
             .initNewSlots(0, .count)
             let buffer = .buffer!
-            for .count do
-                buffer[Swag.index] = #nodrop oldBuffer[Swag.index]
+            for index in .count do
+                buffer[index] = #nodrop oldBuffer[index]
         }
         else
         {
@@ -181,10 +181,9 @@ impl Array
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         var scan = buffer - 1
 
-        for .count
+        for visitIdx in .count
         {
             scan += 1
-            let visitIdx = Swag.index
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)
@@ -382,8 +381,8 @@ impl Array
     {
         #static if Reflection.hasDrop(T)
         {
-            for .count do
-                Swag.drop(.buffer + Swag.index)
+            for index in .count do
+                Swag.drop(.buffer + index)
         }
 
         .count = 0
@@ -596,9 +595,9 @@ impl Array
         {
             let vals    = values!
             var destPtr = buffer + oldCount
-            for sliceCount
+            for index in sliceCount
             {
-                destPtr[] = #nodrop vals[Swag.index]
+                destPtr[] = #nodrop vals[index]
                 destPtr   += 1
             }
         }

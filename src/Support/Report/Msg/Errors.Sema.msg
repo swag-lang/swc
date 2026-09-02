@@ -230,7 +230,6 @@ SWC_DIAG_DEF(sema_err_fallible_call_requires_handler, Error, "call to fallible f
 SWC_DIAG_DEF(sema_err_error_mgmt_operand_not_fallible, Error, "'{tok}' needs a fallible expression or block; [help] apply it to a call to a function declared with 'fail', or to a block that contains one")
 SWC_DIAG_DEF(sema_err_orelse_not_nullable_type, Error, "'orelse' substitutes a missing value, but '{type}' can never be null; [help] to substitute a zero value, test it: 'value != 0 ? value : fallback'")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#scope' named '{sym}'; [help] check the name, or add the matching enclosing scope")
-SWC_DIAG_DEF(sema_err_index_outside_loop, Error, "'Swag.index' is used outside a loop statement; [help] use 'Swag.index' inside the loop that defines it")
 SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on values of type '{type}'; [help] use integer, float, bool, string, pointer, typeinfo, any, or interface values")
 SWC_DIAG_DEF(sema_err_switch_dynamic_case, Error, "dynamic case does not name a struct type; [help] use a struct type, optionally followed by 'as <identifier>'")
 SWC_DIAG_DEF(sema_err_switch_case_enum_value_requires_dot, Error, "enum value '{sym}' needs a leading '.' in a switch case; [help] write '.{sym}'")

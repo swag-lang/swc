@@ -70,9 +70,9 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         Swag.assert(lineWidth(layout[rowIndex]) == width)
         let row = cast(const [..] u8) layout[rowIndex]
 
-        for width
+        for idx in width
         {
-            let x     = cast(u32) Swag.index
+            let x     = cast(u32) idx
             let index = cellIndex(x, cast(u32) rowIndex, width)
             let value = row[x]
 
@@ -88,10 +88,10 @@ func analyzeRoute(layout: const [..] string)->RouteReport
     var steps:   [MaxHallwayStates] u32
     var visited: [MaxHallwayStates] bool
 
-    for MaxHallwayStates
+    for idx in MaxHallwayStates
     {
-        dist[Swag.index]  = Swag.U64.Max
-        steps[Swag.index] = Swag.U32.Max
+        dist[idx]  = Swag.U64.Max
+        steps[idx] = Swag.U32.Max
     }
 
     let startState = stateIndex(startCell, 0)
@@ -106,9 +106,9 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         var bestDistance  = Swag.U64.Max
         var bestStepCount = Swag.U32.Max
 
-        for stateCount
+        for idx in stateCount
         {
-            let candidate = cast(u32) Swag.index
+            let candidate = cast(u32) idx
             if visited[candidate] do
                 continue
 
@@ -169,9 +169,9 @@ func analyzeRoute(layout: const [..] string)->RouteReport
     result.bestScore = Swag.U64.Max
     result.stepCount = Swag.U32.Max
 
-    for 4
+    for idx in 4
     {
-        let endState = stateIndex(endCell, cast(u32) Swag.index)
+        let endState = stateIndex(endCell, cast(u32) idx)
         if dist[endState] < result.bestScore or dist[endState] == result.bestScore and steps[endState] < result.stepCount
         {
             result.bestScore = dist[endState]

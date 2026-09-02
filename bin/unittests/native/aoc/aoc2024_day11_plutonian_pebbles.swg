@@ -151,10 +151,10 @@ func mapClear(m: *StoneMap)
 {
     let alive  = m.alive!
     let counts = m.counts!
-    for MapCap
+    for index in MapCap
     {
-        alive[Swag.index]  = false
-        counts[Swag.index] = 0
+        alive[index]  = false
+        counts[index] = 0
     }
     m.used = 0
 }
@@ -250,9 +250,9 @@ func parseInput(text: string)->StoneMap
     var acc:    u64
     var inNum          = false
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch >= '0' and ch <= '9'
         {
             acc   = acc * 10 + cast(u64) (ch - '0')

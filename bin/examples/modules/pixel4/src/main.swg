@@ -192,7 +192,7 @@ func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: 
 
     var path: LinePath
     path.start(points[0].x, points[0].y)
-    for pt in points where Swag.index do
+    for pt, index in points where index do
         path.lineTo(pt.x, pt.y)
     path.close()
     painter.drawPath(&path, pen)

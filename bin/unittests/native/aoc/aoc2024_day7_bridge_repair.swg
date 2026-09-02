@@ -222,9 +222,9 @@ func calibrate(text: string)->CalibrationReport
     result.allocGrowCount = list.growCount
 
     let data = list.data!
-    for list.count
+    for index in list.count
     {
-        let eq = data[cast(u32) Swag.index]
+        let eq = data[cast(u32) index]
 
         if isEquationSolvable(eq, false) do
             result.twoOpTotal += eq.target

@@ -51,10 +51,10 @@ func gridInit()->Grid
     g.dist  = cast(#null [*] u32) testAlloc(cast(u64) MaxCells * #sizeof(u32))
     let cells = g.cells!
     let dist  = g.dist!
-    for MaxCells
+    for index in MaxCells
     {
-        cells[Swag.index] = 0
-        dist[Swag.index]  = Unvisited
+        cells[index] = 0
+        dist[index]  = Unvisited
     }
     return g
 }
@@ -130,9 +130,9 @@ func parseGrid(text: string)->Grid
     var row: u32
     var col: u32
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0

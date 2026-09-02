@@ -98,7 +98,7 @@ attribute instead.
 Intrinsic values:
 
 ```swag
-Swag.args()  Swag.compiler()  Swag.gvtd()  Swag.index  Swag.jit()
+Swag.args()  Swag.compiler()  Swag.gvtd()  Swag.jit()
 Swag.modules()  Swag.processInfos()  Swag.runtimeFlags()
 ```
 

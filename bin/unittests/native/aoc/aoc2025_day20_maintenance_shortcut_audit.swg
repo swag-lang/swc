@@ -47,9 +47,9 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
         Swag.assert(lineWidth(layout[rowIndex]) == width)
         let row = cast(const [..] u8) layout[rowIndex]
 
-        for width
+        for idx in width
         {
-            let x     = cast(u32) Swag.index
+            let x     = cast(u32) idx
             let index = cellIndex(x, cast(u32) rowIndex, width)
             let cell  = row[x]
 
@@ -187,18 +187,18 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     let baseDistance = distFromStart[endCell]
     var result: u32
 
-    for totalCells
+    for idx in totalCells
     {
-        let fromCell = cast(u32) Swag.index
+        let fromCell = cast(u32) idx
         if !walkable[fromCell] or distFromStart[fromCell] == Swag.U32.Max do
             continue
 
         let fromX = fromCell % width
         let fromY = fromCell / width
 
-        for totalCells
+        for ordinal in totalCells
         {
-            let toCell = cast(u32) Swag.index
+            let toCell = cast(u32) ordinal
             if !walkable[toCell] or distFromEnd[toCell] == Swag.U32.Max do
                 continue
 

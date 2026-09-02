@@ -8,7 +8,7 @@ func pushContextRestoresAfterContinue()->bool
     pushed.user0 = 0xC071E
 
     var reachedTail = 0
-    for 4
+    for index in 4
     {
         if Swag.getContext() != base or Swag.getContext().user0 != base.user0 do
             return false
@@ -18,7 +18,7 @@ func pushContextRestoresAfterContinue()->bool
             if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0 do
                 return false
 
-            if Swag.index != 3 do
+            if index != 3 do
                 continue
         }
 

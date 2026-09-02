@@ -2786,10 +2786,13 @@ namespace
         if (!source.root || source.root != receiver.root)
             return false;
 
-        // Iterating the whole variable: any mutation that roots at it hits the snapshot,
-        // whatever the receiver's exact path (the classic 'for x in arr { arr.add() }').
+        // Iterating the whole variable: a mutation of that variable hits the snapshot (the
+        // classic 'for x in arr { arr.add() }'). A receiver that reaches INSIDE the storage
+        // changes one element's own state, which the snapshot survives - the same reasoning
+        // the callee-owner test below applies to a collection struct, and which a raw array
+        // needs too. An unknown receiver path stays flagged rather than guessed silent.
         if (source.components.empty())
-            return true;
+            return !receiverExact || receiver.components.empty();
 
         // Iterating a SPECIFIC field: the mutation must provably reach that field or
         // something nested in it. Without a reliable field path on both sides we cannot

@@ -465,9 +465,9 @@ func assertS32Array(values: Array's32, expected: const [..] s32)->bool
     if values.count != expected.count do
         return false
 
-    for values.count
+    for index in values.count
     {
-        if values[Swag.index] != expected[Swag.index] do
+        if values[index] != expected[index] do
             return false
     }
 
@@ -479,9 +479,9 @@ func assertCompressedBlob(values: Array'u8)->bool
     if values.count != 512 do
         return false
 
-    for values.count
+    for index in values.count
     {
-        if values[Swag.index] != cast(u8) (Swag.index % 4) do
+        if values[index] != cast(u8) (index % 4) do
             return false
     }
 
@@ -493,9 +493,9 @@ func assertU32Array(values: Array'u32, expected: const [..] u32)->bool
     if values.count != expected.count do
         return false
 
-    for values.count
+    for index in values.count
     {
-        if values[Swag.index] != expected[Swag.index] do
+        if values[index] != expected[index] do
             return false
     }
 

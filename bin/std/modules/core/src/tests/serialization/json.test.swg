@@ -58,9 +58,9 @@ func assertIntArray(values: Array's32, expected: const [..] s32)->bool
     if values.count != expected.count do
         return false
 
-    for values.count
+    for index in values.count
     {
-        if values[Swag.index] != expected[Swag.index] do
+        if values[index] != expected[index] do
             return false
     }
 

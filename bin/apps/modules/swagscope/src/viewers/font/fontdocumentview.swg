@@ -142,9 +142,9 @@ private impl FontDocumentView
         painter.drawString(FontContentInset, .layout.captionTop, fontStrings().ui_Specimen, .fontLabel, colors.label_TextFaint)
 
         let sample = .sampleEdit.text()
-        for size in FontSampleSizes
+        for size, index in FontSampleSizes
         {
-            let top      = .layout.sampleTops[Swag.index]
+            let top      = .layout.sampleTops[index]
             let sizeText = Format.toString("% px", size)
             painter.drawString(FontContentInset, top + FontCellPadding, sizeText.toString(), .fontCode, colors.label_TextFaint)
             painter.drawString(FontContentInset + FontSampleLabelWidth, top, sample, .sampleFont(size), colors.label_Text)
@@ -321,9 +321,9 @@ internal impl FontDocumentView
         .layout.captionTop = y
         y += .fontLabel.height + FontCaptionGap
 
-        for size in FontSampleSizes
+        for size, index in FontSampleSizes
         {
-            .layout.sampleTops[Swag.index] = y
+            .layout.sampleTops[index] = y
             y += .sampleFont(size).height + FontSampleGap
         }
 

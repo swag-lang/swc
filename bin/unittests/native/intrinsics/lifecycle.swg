@@ -572,8 +572,8 @@ impl MemoryAllocatorGenericBuffer
     {
         if !.count do
             return
-        for .count do
-            Swag.drop(.buffer + Swag.index)
+        for index in .count do
+            Swag.drop(.buffer + index)
         .count = 0
     }
 

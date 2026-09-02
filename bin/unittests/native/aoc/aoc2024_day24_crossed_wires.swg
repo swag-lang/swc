@@ -148,7 +148,7 @@ func circuitInit()->Circuit
     c.wireVal = cast(#null [*] u8) testAlloc(cast(u64) MaxWireIdx * #sizeof(u8))
     let total   = MaxWireIdx
     let wireVal = c.wireVal!
-    for total { wireVal[Swag.index] = 255 }
+    for index in total { wireVal[index] = 255 }
     c.maxZBit = 0
     return c
 }

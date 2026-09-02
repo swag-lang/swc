@@ -56,8 +56,8 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
     var tails: [64] u8
     for length in 65
     {
-        for tails.count do
-            tails[Swag.index] = 0xA5
+        for index in tails.count do
+            tails[index] = 0xA5
         expect Crypto.pbkdf2HmacSha256(password, salt, 2, Swag.makeSlice(tails.buffer, length))
         for i in length do
             Swag.assert(tails[i] == expected[i])

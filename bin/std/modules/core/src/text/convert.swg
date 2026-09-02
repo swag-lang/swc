@@ -230,9 +230,9 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
 
         let sl       = cast(#null const [..] u8) valueData
         var bufSlice = sl.buffer
-        for sl.count
+        for index in sl.count
         {
-            if Swag.index do
+            if index do
                 buf.addBytes(", ")
             let v = Swag.makeAny(bufSlice, ptrSlice.pointedType)
             convertAny(buf, v, convFmt, strFormat)
@@ -250,9 +250,9 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
         var bufArr = cast(#null const [*] u8) valueData
 
         buf.addBytes("[")
-        for ptrArr.count
+        for index in ptrArr.count
         {
-            if Swag.index do
+            if index do
                 buf.addBytes(", ")
             let v = Swag.makeAny(bufArr, ptrArr.pointedType)
             convertAny(buf, v, convFmt, strFormat)
@@ -340,9 +340,9 @@ func convertStruct(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertF
 
     // Do it field by field
     buf.addBytes("{")
-    for field in kindof.fields
+    for field, index in kindof.fields
     {
-        if Swag.index do
+        if index do
             buf.addBytes(", ")
         buf.addBytes(field.name)
         buf.addBytes(" = ")

@@ -87,7 +87,7 @@ release logic stay close together and cleanup always happens.
     func isResourceCreated(b: bool) => b
 
     var resource = false
-    for 10
+    for index in 10
     {
         resource = createResource()
         defer
@@ -96,7 +96,7 @@ release logic stay close together and cleanup always happens.
             releaseResource(&resource)
         }
 
-        if Swag.index == 2 do
+        if index == 2 do
             break     // Defer ensures cleanup even on early exit.
     }
 

@@ -389,9 +389,9 @@ func dismissAggregateFailureInfo()->AggregateInfo
 func repeatedCatchFailureSum()->s32
 {
     var result: s32 = 0
-    for 40
+    for index in 40
     {
-        catch alwaysFailVoid(cast(s32) Swag.index + 1) as err7
+        catch alwaysFailVoid(cast(s32) index + 1) as err7
         let err = cast(ErrValue) err7
         result += err.code
     }

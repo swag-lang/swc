@@ -159,34 +159,34 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     var source:   [80] u8
     var actual:   [160] u16
     var expected: [160] u16
-    for source.count do
-        source[Swag.index] = cast(u8) ('a' + Swag.index % 26)
+    for index in source.count do
+        source[index] = cast(u8) ('a' + index % 26)
 
-    for 66
+    for idx in 66
     {
-        for actual.count
+        for index in actual.count
         {
-            actual[Swag.index]   = 0xBEEF
-            expected[Swag.index] = 0xBEEF
+            actual[index]   = 0xBEEF
+            expected[index] = 0xBEEF
         }
 
-        let src           = Swag.makeSlice(source.buffer, Swag.index)
+        let src           = Swag.makeSlice(source.buffer, idx)
         let actualCount   = Utf16.fromUtf8(actual, src)
         let expectedCount = scalarUtf16FromUtf8(expected, src)
         Swag.assert(actualCount == expectedCount)
         Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 
-    for 48
+    for index in 48
     {
-        for source.count do
-            source[Swag.index] = cast(u8) ('a' + Swag.index % 26)
-        source[Swag.index]     = 0xC3
-        source[Swag.index + 1] = 0xA9
-        for actual.count
+        for idx in source.count do
+            source[idx] = cast(u8) ('a' + idx % 26)
+        source[index]     = 0xC3
+        source[index + 1] = 0xA9
+        for idx in actual.count
         {
-            actual[Swag.index]   = 0xBEEF
-            expected[Swag.index] = 0xBEEF
+            actual[idx]   = 0xBEEF
+            expected[idx] = 0xBEEF
         }
 
         let src           = Swag.makeSlice(source.buffer, 64)

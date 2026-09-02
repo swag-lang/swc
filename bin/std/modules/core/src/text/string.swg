@@ -557,8 +557,8 @@ impl String
     func join(values: string...)->String
     {
         var result: String
-        for values do
-            result += values[Swag.index]
+        for index in values.count do
+            result += values[index]
         return result
     }
 
@@ -567,11 +567,11 @@ impl String
     func joinWith(separator: string, values: string...)->String
     {
         var result: String
-        for values
+        for index in values.count
         {
-            if separator.count and Swag.index do
+            if separator.count and index do
                 result += separator
-            result += values[Swag.index]
+            result += values[index]
         }
 
         return result

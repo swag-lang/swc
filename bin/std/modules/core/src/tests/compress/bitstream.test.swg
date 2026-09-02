@@ -8,9 +8,9 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     if actual.count != expected.count do
         return false
 
-    for actual.count
+    for index in actual.count
     {
-        if actual[Swag.index] != expected[Swag.index] do
+        if actual[index] != expected[index] do
             return false
     }
 

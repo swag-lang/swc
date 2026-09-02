@@ -8,15 +8,15 @@
         var outer: s32     = 0
         var inner: s32     = 0
 
-        for arr
+        for index in arr.count
         {
-            outer += cast(s32) Swag.index
+            outer += cast(s32) index
 
-            for value in arr
+            for value, idx in arr
             {
-                if Swag.index == 0 do
+                if idx == 0 do
                     continue
-                inner += value + cast(s32) Swag.index
+                inner += value + cast(s32) idx
             }
         }
 
@@ -34,13 +34,13 @@
         var arr: [5] s32 = [3, 6, 9, 12, 15]
         var acc: s32     = 0
 
-        for arr
+        for index in arr.count
         {
-            if Swag.index == 0 do
+            if index == 0 do
                 continue
-            if Swag.index == 4 do
+            if index == 4 do
                 break
-            acc += arr[Swag.index] + cast(s32) Swag.index
+            acc += arr[index] + cast(s32) index
         }
 
         return acc
@@ -55,9 +55,9 @@
     func indexOnInlineCount()->s32
     {
         var acc: s32 = 0
-        for 6
+        for index in 6
         {
-            acc += cast(s32) Swag.index * 3
+            acc += cast(s32) index * 3
         }
 
         return acc

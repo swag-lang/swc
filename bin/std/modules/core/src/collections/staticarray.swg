@@ -137,10 +137,9 @@ impl StaticArray
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         var scan = cast([*] T) &.buffer[0] - 1
 
-        for .count
+        for visitIdx in .count
         {
             scan += 1
-            let visitIdx = Swag.index
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)
@@ -224,8 +223,8 @@ impl StaticArray
         let oldCount = .count
         #static if Reflection.hasDrop(T)
         {
-            for oldCount do
-                Swag.drop(&.buffer[Swag.index])
+            for index in oldCount do
+                Swag.drop(&.buffer[index])
 
             Swag.init(&.buffer[0], oldCount)
         }
@@ -412,9 +411,9 @@ impl StaticArray
         {
             let vals    = values!
             var destPtr = cast([*] T) &.buffer[oldCount]
-            for sliceCount
+            for index in sliceCount
             {
-                destPtr[] = #nodrop vals[Swag.index]
+                destPtr[] = #nodrop vals[index]
                 destPtr   += 1
             }
         }

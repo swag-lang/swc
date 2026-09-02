@@ -76,9 +76,9 @@ func allocBytes(size: u32)->[*] u8
 
 func zeroBytes(ptr: [*] u8, count: u32)
 {
-    for count
+    for index in count
     {
-        ptr[cast(u32) Swag.index] = 0'u8
+        ptr[cast(u32) index] = 0'u8
     }
 }
 
@@ -178,9 +178,9 @@ func parseGrid(outGrid: *GridMap, text: string)
 
     var height:    u32
     var lineWidth: u32
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if isLineBreak(ch)
         {
             if lineWidth != 0
@@ -209,9 +209,9 @@ func parseGrid(outGrid: *GridMap, text: string)
 
     var x: u32
     var y: u32
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if isLineBreak(ch) do
             continue
 
@@ -343,9 +343,9 @@ func countLoopObstacles(grid: GridMap, trace: IndexBuffer)->u32
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
     let data       = trace.data!
 
-    for trace.count
+    for index in trace.count
     {
-        let obstacleIndex = data[cast(u32) Swag.index]
+        let obstacleIndex = data[cast(u32) index]
         if obstacleIndex == startIndex do
             continue
 

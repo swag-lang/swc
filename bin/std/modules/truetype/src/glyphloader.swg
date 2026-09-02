@@ -29,9 +29,9 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
     var offset       = 10'u64
     var contourEnds: Array'u16
     contourEnds.resize(contourCount)
-    for contourCount
+    for index in contourCount
     {
-        contourEnds[Swag.index] = readU16(glyphData, offset)
+        contourEnds[index] = readU16(glyphData, offset)
         offset += 2
     }
 
@@ -63,9 +63,9 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
     var xs: Array's32
     xs.resize(pointCount)
     var x = 0's32
-    for pointCount
+    for index in pointCount
     {
-        let flag = flags[Swag.index]
+        let flag = flags[index]
         if (flag & 0x02) != 0
         {
             let dx = cast(s32) readU8(glyphData, offset)
@@ -78,15 +78,15 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
             offset += 2
         }
 
-        xs[Swag.index] = x
+        xs[index] = x
     }
 
     var ys: Array's32
     ys.resize(pointCount)
     var y = 0's32
-    for pointCount
+    for index in pointCount
     {
-        let flag = flags[Swag.index]
+        let flag = flags[index]
         if (flag & 0x04) != 0
         {
             let dy = cast(s32) readU8(glyphData, offset)
@@ -99,19 +99,19 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
             offset += 2
         }
 
-        ys[Swag.index] = y
+        ys[index] = y
     }
 
     let startPoint = faceData.outlinePoints.count
-    for pointCount
+    for index in pointCount
     {
-        let px = scale26_6(xs[Swag.index], xPpem, faceData.unitsPerEm)
-        let py = scale26_6(ys[Swag.index], yPpem, faceData.unitsPerEm)
-        addScaledPoint(faceData, px, py, (flags[Swag.index] & CURVE_TAG_ON) != 0)
+        let px = scale26_6(xs[index], xPpem, faceData.unitsPerEm)
+        let py = scale26_6(ys[index], yPpem, faceData.unitsPerEm)
+        addScaledPoint(faceData, px, py, (flags[index] & CURVE_TAG_ON) != 0)
     }
 
-    for contourCount do
-        faceData.outlineContours.add(cast(s16) (startPoint + contourEnds[Swag.index]))
+    for index in contourCount do
+        faceData.outlineContours.add(cast(s16) (startPoint + contourEnds[index]))
 }
 
 func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpem, yPpem: u32, depth: u32) fail
@@ -183,9 +183,9 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, x
                 dy = scale26_6(arg2, yPpem, faceData.unitsPerEm)
             }
 
-            for addedPointCount
+            for index in addedPointCount
             {
-                let idx = basePointCount + cast(u32) Swag.index
+                let idx = basePointCount + cast(u32) index
                 let src = faceData.outlinePoints[idx]
                 let tx  = cast(f64) src.x
                 let ty  = cast(f64) src.y
@@ -201,16 +201,16 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, x
                 dy = anchorParent.y - anchorChild.y
             }
 
-            for addedPointCount
+            for index in addedPointCount
             {
-                let idx = basePointCount + cast(u32) Swag.index
+                let idx = basePointCount + cast(u32) index
                 faceData.outlinePoints[idx].x = cast(s32) Math.round(faceData.outlinePoints[idx].x + dx)
                 faceData.outlinePoints[idx].y = cast(s32) Math.round(faceData.outlinePoints[idx].y + dy)
             }
         }
 
-        for faceData.outlineContours.count - baseContourCount do
-            faceData.outlineContours[baseContourCount + Swag.index] = cast(s16) faceData.outlineContours[baseContourCount + Swag.index]
+        for index in faceData.outlineContours.count - baseContourCount do
+            faceData.outlineContours[baseContourCount + index] = cast(s16) faceData.outlineContours[baseContourCount + index]
 
         hasMore = (flags & CMP_MORE_COMPONENTS) != 0
     }

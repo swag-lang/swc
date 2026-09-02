@@ -52,7 +52,7 @@ func day4A()
     let lines    = expect File.readAllLines(dataPath)
 
     var total, pass: u32
-    for l in lines
+    for l, index in lines
     {
         let res = Tokenize.split(l[], ' 'u8)
         for r in res
@@ -62,7 +62,7 @@ func day4A()
             pass |= 1 << cast(u32) idx
         }
 
-        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].length == 0
         {
             if pass & 0b1111111 == 0b1111111 do
                 total += 1

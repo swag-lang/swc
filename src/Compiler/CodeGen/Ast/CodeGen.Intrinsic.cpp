@@ -552,37 +552,6 @@ namespace
 
 }
 
-Result AstIntrinsicValue::codeGenPostNode(CodeGen& codeGen) const
-{
-    switch (intrinsicId)
-    {
-        case TokenId::IntrinsicIndex:
-        {
-            const MicroReg indexReg = codeGen.frame().currentLoopIndexReg();
-            SWC_ASSERT(indexReg.isValid());
-
-            TypeRef indexTypeRef = codeGen.frame().currentLoopIndexTypeRef();
-            if (indexTypeRef.isInvalid())
-                indexTypeRef = codeGen.curViewType().typeRef();
-
-            const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), indexTypeRef);
-            auto                      opBits  = MicroOpBits::B64;
-            if (indexTypeRef.isValid())
-            {
-                const uint64_t sizeOfType = codeGen.typeMgr().get(indexTypeRef).sizeOf(codeGen.ctx());
-                if (sizeOfType == 1 || sizeOfType == 2 || sizeOfType == 4 || sizeOfType == 8)
-                    opBits = microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfType));
-            }
-
-            codeGen.builder().emitLoadRegReg(payload.reg, indexReg, opBits);
-            return Result::Continue;
-        }
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
 Result AstIntrinsicInit::codeGenPostNode(CodeGen& codeGen) const
 {
     return emitIntrinsicInitStmt(codeGen, *this);

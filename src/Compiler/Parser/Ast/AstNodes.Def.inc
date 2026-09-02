@@ -185,7 +185,6 @@ SWC_NODE_DEF(CompilerSwitchCase, AstNodeIdFlagsE::Zero)
 // ============================================================================
 //  Intrinsics / Internal Calls
 // ============================================================================
-SWC_NODE_DEF(IntrinsicValue, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicInit, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicDrop, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicPostCopy, AstNodeIdFlagsE::Zero)

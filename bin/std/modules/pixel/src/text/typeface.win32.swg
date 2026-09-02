@@ -82,11 +82,11 @@ impl TypeFace
         let count = try Face.countFaces(bytes)
         if count > 1 and family.count != 0
         {
-            for count
+            for index in count
             {
-                let name = catch Face.familyNameAt(bytes, Swag.index) as err
+                let name = catch Face.familyNameAt(bytes, index) as err
                 if err == null and !Latin1.compare(name, family, ignoreCase: true) do
-                    return Face.loadAt(bytes, Swag.index, allocator)
+                    return Face.loadAt(bytes, index, allocator)
             }
         }
 

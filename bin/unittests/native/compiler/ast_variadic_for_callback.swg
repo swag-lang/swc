@@ -57,14 +57,14 @@ impl RegressionArray
             return
 
         var scan = cast([*] T) &.values[0] - 1
-        for .count
+        for idx in .count
         {
             scan += 1
 
             #static if ptr do
-                #inject(stmt, item = scan, index = Swag.index)
+                #inject(stmt, item = scan, index = idx)
             else do
-                #inject(stmt, item = scan[0], index = Swag.index)
+                #inject(stmt, item = scan[0], index = idx)
         }
     }
 }

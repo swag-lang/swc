@@ -46,9 +46,9 @@ using Swag, Core
     var hasOutside = false
     var hasInside  = false
     let sdfBuf     = sdf.buffer!
-    for cast(u64) sdf.width * sdf.rows
+    for index in cast(u64) sdf.width * sdf.rows
     {
-        let value = sdfBuf[Swag.index]
+        let value = sdfBuf[index]
         if value < 128 do
             hasOutside = true
         if value > 128 do
@@ -131,9 +131,9 @@ using Swag, Core
     var hasFull    = false
     var hasPartial = false
     let bmpBuf     = bmp.buffer!
-    for cast(u64) bmp.width * bmp.rows
+    for index in cast(u64) bmp.width * bmp.rows
     {
-        let v = bmpBuf[Swag.index]
+        let v = bmpBuf[index]
         if v == 0 do
             hasZero = true
         elif v == 255 do

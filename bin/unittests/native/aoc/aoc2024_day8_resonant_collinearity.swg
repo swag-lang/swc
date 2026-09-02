@@ -110,9 +110,9 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     result.cells = cast(#null [*] u8) testAlloc(size)
     Swag.assert(result.cells != null)
     let cells = result.cells!
-    for width * height
+    for index in width * height
     {
-        cells[cast(u32) Swag.index] = 0'u8
+        cells[cast(u32) index] = 0'u8
     }
     return result
 }
@@ -138,9 +138,9 @@ func markAntinode(grid: *AntinodeGrid, x, y: s32)->bool
 func clearGrid(grid: *AntinodeGrid)
 {
     let cells = grid.cells!
-    for grid.width * grid.height
+    for index in grid.width * grid.height
     {
-        cells[cast(u32) Swag.index] = 0'u8
+        cells[cast(u32) index] = 0'u8
     }
 }
 
@@ -148,9 +148,9 @@ func countMarked(grid: AntinodeGrid)->u32
 {
     var count: u32
     let cells = grid.cells!
-    for grid.width * grid.height
+    for index in grid.width * grid.height
     {
-        if cells[cast(u32) Swag.index] != 0'u8 do
+        if cells[cast(u32) index] != 0'u8 do
             count += 1
     }
     return count
@@ -174,9 +174,9 @@ func parseAntennaMap(result: *AntennaMap, text: string)
 
     var x: u32
     var y: u32
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if isLineBreak(ch)
         {
             if x > 0
@@ -211,9 +211,9 @@ func parseAntennaMap(result: *AntennaMap, text: string)
 func countAntennas(map: AntennaMap)->u32
 {
     var total: u32
-    for MaxFrequencies
+    for index in MaxFrequencies
     {
-        total += map.groups[cast(u32) Swag.index].count
+        total += map.groups[cast(u32) index].count
     }
     return total
 }
@@ -221,9 +221,9 @@ func countAntennas(map: AntennaMap)->u32
 func countFrequencies(map: AntennaMap)->u32
 {
     var total: u32
-    for MaxFrequencies
+    for index in MaxFrequencies
     {
-        if map.freqUsed[cast(u32) Swag.index] do
+        if map.freqUsed[cast(u32) index] do
             total += 1
     }
     return total
@@ -235,9 +235,9 @@ func countFrequencies(map: AntennaMap)->u32
 
 func computeSimpleAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 {
-    for MaxFrequencies
+    for index in MaxFrequencies
     {
-        let freq = cast(u32) Swag.index
+        let freq = cast(u32) index
         if !map.freqUsed[freq] do
             continue
 
@@ -262,9 +262,9 @@ func computeSimpleAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 
 func computeHarmonicAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 {
-    for MaxFrequencies
+    for index in MaxFrequencies
     {
-        let freq = cast(u32) Swag.index
+        let freq = cast(u32) index
         if !map.freqUsed[freq] do
             continue
 

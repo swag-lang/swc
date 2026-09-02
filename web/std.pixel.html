@@ -9236,22 +9236,22 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L521">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L522">src</a></div>
 <p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetScratchCounters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetScratchCounters</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetScratchCounters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L508">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetScratchCounters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetScratchCounters</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetScratchCounters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L509">src</a></div>
 <p>Resets the scratch-clear counters, so a caller measures a frame rather than a session.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetScratchCounters</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1724">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1725">src</a></div>
 <p>Set the current shader</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShader</span>(shader: <span class="SItr">#null</span> *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span> = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_supportsAdvancedBlending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.supportsAdvancedBlending</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_supportsAdvancedBlending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L518">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_supportsAdvancedBlending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.supportsAdvancedBlending</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_supportsAdvancedBlending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L519">src</a></div>
 <p>Reports whether the current context provides advanced blend equations.</p>
 <p>Call this after <a href="#Pixel_IRenderer_init">Pixel.IRenderer.init</a>. A <span class="code-inline">false</span> result means <a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> remains available for the artistic blend modes, while this OpenGL context can use the traditional modes only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">supportsAdvancedBlending</span>()-&gt;<span class="STpe">bool</span> =&gt; .advancedBlending</span></div>
@@ -9569,7 +9569,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.323</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.325</div>
 </footer>
 </section>
 </main>

@@ -7617,8 +7617,8 @@ indent-style = spaces</span></div>
 <p>The rules below are pinned by the tests on this page, so a change to how a dot resolves shows up as a test failure rather than as a surprise in a caller.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Channel</span>
 {
-    <span class="SCst">Red</span>,
-    <span class="SCst">Green</span>,
+    <span class="SCst">Red</span>
+    <span class="SCst">Green</span>
     <span class="SCst">Blue</span>
 }
 
@@ -7626,12 +7626,9 @@ indent-style = spaces</span></div>
 {
     <span class="SLgc">switch</span> c
     {
-    <span class="SLgc">case</span> .<span class="SCst">Red</span>:
-        <span class="SLgc">return</span> <span class="SNum">1</span>
-    <span class="SLgc">case</span> .<span class="SCst">Green</span>:
-        <span class="SLgc">return</span> <span class="SNum">2</span>
-    <span class="SLgc">default</span>:
-        <span class="SLgc">return</span> <span class="SNum">3</span>
+    <span class="SLgc">case</span> .<span class="SCst">Red</span>:   <span class="SLgc">return</span> <span class="SNum">1</span>
+    <span class="SLgc">case</span> .<span class="SCst">Green</span>: <span class="SLgc">return</span> <span class="SNum">2</span>
+    <span class="SLgc">default</span>:     <span class="SLgc">return</span> <span class="SNum">3</span>
     }
 }</span></div>
 <h3 id="_011_005_leading_dot_swg_The_Type_Plane">The Type Plane</h3>
@@ -7716,7 +7713,7 @@ indent-style = spaces</span></div>
 <p>When two live subjects both carry the name, the innermost one answers. That is the whole rule: nesting decides, and nothing else is consulted.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> reading: <span class="SCst">Reading</span>
+    <span class="SKwd">var</span> reading:  <span class="SCst">Reading</span>
     <span class="SKwd">var</span> recorder: <span class="SCst">Recorder</span>
     recorder.<span class="SFct">record</span>(&amp;reading)
 
@@ -9546,7 +9543,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.323</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.325</div>
 </footer>
 </section>
 </main>

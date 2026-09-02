@@ -1280,27 +1280,44 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 }
             }
 
+            // A conditional jump that leaves a loop is cold next to the
+            // fall-through path that stays inside it: the plain spot sits
+            // before the jump, so its moves would run on every iteration of
+            // the loop. Even when the plain placement is legal, prefer the
+            // trampoline for such an edge whenever the branch can be
+            // inverted, and keep the plain spot when it cannot.
+            bool useTrampoline = !plainOk;
+            if (plainOk && isConditional && loopDepth_[p] > loopDepth_[s])
+                useTrampoline = true;
+
             uint32_t trampJump = std::numeric_limits<uint32_t>::max();
-            if (!plainOk)
+            if (useTrampoline)
             {
                 MicroCond                inverted = MicroCond::Unconditional;
                 const MicroInstrOperand* predOps  = predInst->ops(*operands_);
                 if (!isConditional || !predOps || !invertMicroCond(predOps[0].cpuCond, inverted))
-                    return false; // uninvertible edge
-                Trampoline trampoline;
-                trampoline.jumpIndex  = p;
-                trampoline.inverted   = inverted;
-                trampoline.opBits     = predOps[1].opBits;
-                trampoline.origTarget = predOps[2].valueU64;
-                trampoline.newLabel   = context_->builder->createLabel();
-                trampolines.push_back(trampoline);
-                trampJump = p;
+                {
+                    if (!plainOk)
+                        return false; // uninvertible edge
+                    useTrampoline = false;
+                }
+                else
+                {
+                    Trampoline trampoline;
+                    trampoline.jumpIndex  = p;
+                    trampoline.inverted   = inverted;
+                    trampoline.opBits     = predOps[1].opBits;
+                    trampoline.origTarget = predOps[2].valueU64;
+                    trampoline.newLabel   = context_->builder->createLabel();
+                    trampolines.push_back(trampoline);
+                    trampJump = p;
+                }
             }
 
             for (const EdgeMove& move : edgeMoves)
             {
                 const size_t before = connectors.size();
-                addConnector(plainOk ? beforeIndex : p + 1, move.denseIndex, move.from, move.to, 1);
+                addConnector(useTrampoline ? p + 1 : beforeIndex, move.denseIndex, move.from, move.to, 1);
                 if (connectors.size() != before)
                     connectors.back().trampJump = trampJump;
             }

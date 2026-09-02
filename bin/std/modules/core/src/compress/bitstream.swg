@@ -63,7 +63,7 @@ impl BitStream
         if .numBits <= 56 and .curByte + 8 <= (.stream).count
         {
             let chunk = .currentPointer()![as u64]
-            .codeBuffer |= chunk << #wrap .numBits
+            .codeBuffer |= chunk << #wrap (.numBits & 63)
             let nbytes = (64 - cast(u64) .numBits) >> 3
             .curByte += nbytes
             .numBits += cast(u8) (nbytes << 3)

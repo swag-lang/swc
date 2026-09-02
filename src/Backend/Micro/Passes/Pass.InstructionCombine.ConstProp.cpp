@@ -744,7 +744,8 @@ namespace InstructionCombine
                 {
                     if (getNumBits(defOps[1].opBits) < 32)
                         return false;
-                    const uint64_t imm = defOps[3].valueU64 & getBitsMask(defOps[1].opBits);
+                    const uint64_t opMask = getBitsMask(defOps[1].opBits);
+                    const uint64_t imm    = defOps[3].valueU64 & opMask;
                     if (defOps[2].microOp == MicroOp::And)
                     {
                         outBound = imm;
@@ -754,11 +755,44 @@ namespace InstructionCombine
                     {
                         uint64_t inner = 0;
                         if (!unsignedUpperBound(inner, ctx, reg, rd.instRef, depth - 1))
-                            inner = getBitsMask(defOps[1].opBits);
+                            inner = opMask;
                         outBound = imm >= 64 ? 0 : inner >> imm;
                         return true;
                     }
+                    if (defOps[2].microOp == MicroOp::Add || defOps[2].microOp == MicroOp::Or)
+                    {
+                        // x|imm never exceeds x+imm, so one saturating sum
+                        // bounds both, as long as the sum stays in the width.
+                        uint64_t inner = 0;
+                        if (!unsignedUpperBound(inner, ctx, reg, rd.instRef, depth - 1))
+                            return false;
+                        if (inner + imm < inner || inner + imm > opMask)
+                            return false;
+                        outBound = inner + imm;
+                        return true;
+                    }
                     return false;
+                }
+
+                case MicroInstrOpcode::OpBinaryRegReg:
+                {
+                    if (getNumBits(defOps[2].opBits) < 32)
+                        return false;
+                    if (defOps[1].reg == reg)
+                        return false;
+                    if (defOps[3].microOp != MicroOp::Add && defOps[3].microOp != MicroOp::Or)
+                        return false;
+                    const uint64_t opMask = getBitsMask(defOps[2].opBits);
+                    uint64_t       lhs    = 0;
+                    uint64_t       rhs    = 0;
+                    if (!unsignedUpperBound(lhs, ctx, reg, rd.instRef, depth - 1))
+                        return false;
+                    if (!unsignedUpperBound(rhs, ctx, defOps[1].reg, rd.instRef, depth - 1))
+                        return false;
+                    if (lhs + rhs < lhs || lhs + rhs > opMask)
+                        return false;
+                    outBound = lhs + rhs;
+                    return true;
                 }
 
                 default:

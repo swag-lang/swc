@@ -20,11 +20,31 @@ func fnv(data: const [..] u8)->u64
 
 #test
 {
+    // Allocator churn probe: the decode path allocates and frees two
+    // image-sized buffers per call; this measures that cost in isolation.
+    const ProbeSize = 12'u64 * 1024 * 1024
+    var swm: Time.Stopwatch
+    swm.start()
+    for 10
+    {
+        let p   = cast([*] u8) Memory.alloc(ProbeSize)
+        var off = 0'u64
+        while off < ProbeSize
+        {
+            p[off] = 1
+            off    += 4096
+        }
+
+        Memory.free(p, ProbeSize)
+    }
+
+    Console.println("memprobe alloc+touch+free 12MB x10: us=", swm.elapsedMicroseconds())
+
     let files = ["gray16.png", "gray8.png", "icon_256.png", "icon_32.png", "interlaced.png",
                  "palette.png", "photo_4k.png", "photo_opt.png", "photo_rgb.png",
                  "photo_rgba.png", "rgb16.png", "screenshot.png"]
 
-    const Rounds = 3
+    const Rounds = 8
     Console.println("file             us       MP      digest")
     for f in files
     {

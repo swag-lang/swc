@@ -312,7 +312,7 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= (src! + cur)[as u64] << #wrap nb
+                cb  |= (src! + cur)[as u64] << #wrap (nb & 63)
                 cur += cast(u64) ((63 - nb) >> 3)
                 nb  |= 56
             }
@@ -355,7 +355,7 @@ impl Inflate
 
                 while count < fastEnd and cur < fastLimit
                 {
-                    cb  |= (src! + cur)[as u64] << #wrap nb
+                    cb  |= (src! + cur)[as u64] << #wrap (nb & 63)
                     cur += cast(u64) ((63 - nb) >> 3)
                     nb  |= 56
 
@@ -437,7 +437,7 @@ impl Inflate
                     // is either zero or already the correct next source bit.
                     if cur < fastLimit
                     {
-                        cb  |= (src! + cur)[as u64] << #wrap nb
+                        cb  |= (src! + cur)[as u64] << #wrap (nb & 63)
                         cur += cast(u64) ((63 - nb) >> 3)
                         nb  |= 56
                     }
@@ -446,7 +446,7 @@ impl Inflate
                         let srcp = src!
                         while nb <= 56 and cur < srcN
                         {
-                            cb  |= cast(u64) srcp[cur] << #wrap nb
+                            cb  |= cast(u64) srcp[cur] << #wrap (nb & 63)
                             cur += 1
                             nb  += 8
                         }

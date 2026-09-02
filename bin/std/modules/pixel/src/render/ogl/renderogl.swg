@@ -112,9 +112,9 @@ struct RenderOgl
     // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
     private
     {
-        using native:   NativeRenderOgl         // Platform-specific context operations.
-        vertexbuffer:   GLuint                  // OpenGL streaming vertex buffer.
-        worldTransform: Transform2              // Current painter world transform.
+        using native:   NativeRenderOgl     // Platform-specific context operations.
+        vertexbuffer:   GLuint              // OpenGL streaming vertex buffer.
+        worldTransform: Transform2          // Current painter world transform.
 
         // The transform the model matrix was last built from, and the scissor currently in force,
         // in device pixels from the top left. Both are what lets a draw narrow the region it
@@ -122,10 +122,10 @@ struct RenderOgl
         deviceTransform: Transform2
         scissorBox:      Math.Rectangle
         scissorOn:       bool
-        orthoMatrix:    Matrix4x4               // Current surface projection matrix.
-        modelMatrix:    Matrix4x4               // Current model matrix.
-        whiteTexture:   GLuint                  // Built-in one-pixel white texture.
-        hatchTextures:  [HatchStyle] GLuint     // Built-in hatch texture handles.
+        orthoMatrix:     Matrix4x4               // Current surface projection matrix.
+        modelMatrix:     Matrix4x4               // Current model matrix.
+        whiteTexture:    GLuint                  // Built-in one-pixel white texture.
+        hatchTextures:   [HatchStyle] GLuint     // Built-in hatch texture handles.
         // The two chroma planes of every planar texture, keyed by the luma handle the caller
         // holds. A texture is one handle everywhere else in this module, and a planar picture is
         // three: keeping the other two here is what lets it travel as an ordinary texture.
@@ -616,7 +616,7 @@ impl RenderOgl
     {
         .scissorBox = rect
         .scissorOn  = true
-        let {?, h}  = .targetSizeImpl()
+        let {?, h} = .targetSizeImpl()
         glEnable(GL_SCISSOR_TEST)
         glScissor(cast(GLint) rect.x, cast(GLint) (cast(f32) h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
     }

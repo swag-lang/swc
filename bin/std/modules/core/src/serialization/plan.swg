@@ -80,8 +80,8 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
         Debug.assert(field.pointedType != null)
 
         var pf: PlanField
-        pf.value      = field
-        pf.key        = wireFieldKey(field)
+        pf.value = field
+        pf.key   = wireFieldKey(field)
         if pf.key == "" do
             fail SerializationError{"serialized field needs a non-empty key", field: field}
         pf.wireCrc    = wireTypeCrc(field.pointedType)

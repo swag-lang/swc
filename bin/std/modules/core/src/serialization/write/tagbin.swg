@@ -65,14 +65,14 @@ struct TagBinSection
 {
     public
     {
-        startSeek:    ConcatBufferPosition                      // Position of the patched section header words.
-        mapSeek:      HashTable'(string, ConcatBufferPosition)  // Ad-hoc sections: maps field keys to their position.
-        keys:         ArrayPtr'String                           // Owns stable text borrowed by 'mapSeek'.
-        offsets:      Array'u32                                 // Shaped sections: per-field offsets, relative to the section payload.
-        plan:         #null const *Plan                         // Shaped sections: the plan driving the field order.
-        payloadStart: u64                                       // Offset of the first payload byte of the section.
-        fieldIndex:   u64                                       // Shaped sections: index of the next field to write.
-        kind:         SectionKind                               // Type of section (e.g., Raw or Unordered)
+        startSeek:    ConcatBufferPosition                         // Position of the patched section header words.
+        mapSeek:      HashTable'(string, ConcatBufferPosition)     // Ad-hoc sections: maps field keys to their position.
+        keys:         ArrayPtr'String                              // Owns stable text borrowed by 'mapSeek'.
+        offsets:      Array'u32                                    // Shaped sections: per-field offsets, relative to the section payload.
+        plan:         #null const *Plan                            // Shaped sections: the plan driving the field order.
+        payloadStart: u64                                          // Offset of the first payload byte of the section.
+        fieldIndex:   u64                                          // Shaped sections: index of the next field to write.
+        kind:         SectionKind                                  // Type of section (e.g., Raw or Unordered)
     }
 }
 
@@ -103,7 +103,7 @@ struct TagBin
     // Writing state: the compressor, the section stack and the buffer pools it recycles.
     private
     {
-        rootType:     #null typeinfo                                               // Root type supplied by the high-level encoder.
+        rootType:     #null typeinfo                                              // Root type supplied by the high-level encoder.
         compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
         finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
         output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.

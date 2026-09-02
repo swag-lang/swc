@@ -69,7 +69,7 @@ struct TagBin
     outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
     elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
     tmpPool:           ArrayPtr'Buffer
-    expectedRootType:  #null typeinfo                       // Root type supplied by [[Core.Serialization.Decoder.readAll]].
+    expectedRootType:  #null typeinfo     // Root type supplied by [[Core.Serialization.Decoder.readAll]].
 }
 
 // Counters describing what a decode had to tolerate.
@@ -123,19 +123,19 @@ struct TagBinSection
 {
     public
     {
-        mapSeek:       HashTable'(String, TagBinFieldRef)  // Field index of the section, keyed by readable identity.
-        afterFatSeek:  u64                                 // Stream position right after the section and its fat.
-        fatSeek:       u64                                 // Stream position of the fat table.
-        fatCount:      u64                                 // Number of fat entries.
-        payloadStart:  u64                                 // Stream position of the first payload byte.
-        consumedCount: u64                                 // How many indexed fields the decode requested.
-        posIndex:      u64                                 // Next field index in positional mode.
-        version:       u32                                 // Version number of this section
-        kind:          SectionKind                         // Type of section (ordered, unordered, or raw)
-        positional:    bool                                // Shape matches the plan, so fields are read in order.
-        mapLoaded:     bool                                // Whether 'mapSeek' is populated.
-        shape:         #null const *TagBinShape            // Shape describing the stream fields.
-        plan:          #null const *Plan                   // The reader plan of the struct, when known.
+        mapSeek:       HashTable'(String, TagBinFieldRef)     // Field index of the section, keyed by readable identity.
+        afterFatSeek:  u64                                    // Stream position right after the section and its fat.
+        fatSeek:       u64                                    // Stream position of the fat table.
+        fatCount:      u64                                    // Number of fat entries.
+        payloadStart:  u64                                    // Stream position of the first payload byte.
+        consumedCount: u64                                    // How many indexed fields the decode requested.
+        posIndex:      u64                                    // Next field index in positional mode.
+        version:       u32                                    // Version number of this section
+        kind:          SectionKind                            // Type of section (ordered, unordered, or raw)
+        positional:    bool                                   // Shape matches the plan, so fields are read in order.
+        mapLoaded:     bool                                   // Whether 'mapSeek' is populated.
+        shape:         #null const *TagBinShape               // Shape describing the stream fields.
+        plan:          #null const *Plan                      // The reader plan of the struct, when known.
     }
 }
 
@@ -370,7 +370,7 @@ private impl TagBin
         var fatCount = sec.fatCount
         while fatCount
         {
-            var key = .readWireString()
+            var key  = .readWireString()
             let seek = .stream.readNative'u64()
             if sec.mapSeek.contains(key) do
                 fail SerializationError{"serialized field key is duplicated"}
@@ -378,7 +378,7 @@ private impl TagBin
             fatCount -= 1
         }
 
-        sec.mapLoaded = true
+        sec.mapLoaded    = true
         sec.afterFatSeek = .stream.position()
         .stream.setPosition(savedSeek)
     }
@@ -488,7 +488,7 @@ private impl TagBin
         for i in shape.fields.count
         {
             let off = cast(u64) .stream.readNative'u32()
-            let sf = shape.fields[i]
+            let sf  = shape.fields[i]
             if sec.mapSeek.contains(sf.key) do
                 fail SerializationError{"serialized field key is duplicated"}
             sec.mapSeek.add(sf.key, {sec.payloadStart + off, cast(u32) i})

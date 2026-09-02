@@ -29,12 +29,12 @@ const MaxFormCacheRefresh = 3
 // [Capture.pruneFormCaches] before the form's memory can be recycled.
 struct FormCache
 {
-    form:  #null IForm     // The rendered form; the key of this entry. Set at creation.
-    layer: Layer           // Retained targets: resolved content, plus the shadow once built.
-    zoom:  f32             // View zoom the content was rendered at.
-    scale: f32             // Painter content scale the content was rendered at.
-    samples: s32           // Samples per pixel the content was rendered with.
-    dirty: bool = true     // The content changed; re-render before the next draw.
+    form:    #null IForm     // The rendered form; the key of this entry. Set at creation.
+    layer:   Layer           // Retained targets: resolved content, plus the shadow once built.
+    zoom:    f32             // View zoom the content was rendered at.
+    scale:   f32             // Painter content scale the content was rendered at.
+    samples: s32             // Samples per pixel the content was rendered with.
+    dirty:   bool = true     // The content changed; re-render before the next draw.
 }
 
 impl FormCache
@@ -1141,7 +1141,7 @@ impl Capture
         // at a readable zoom. Lower the sampling until the layer fits instead, and give the form
         // up only when one sample per pixel still does not: a slightly softer glyph is a better
         // answer than repainting the whole form for every mouse move.
-        let scale       = painter.contentScale()
+        let scale           = painter.contentScale()
         var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
         while textSuperSample > 1 and (wt2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample)) or ht2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample))) do
             textSuperSample -= 1

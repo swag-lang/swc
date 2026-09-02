@@ -1687,8 +1687,8 @@ namespace
         reachable[0] = 1;
 
         std::unordered_map<uint64_t, uint32_t> labelInstructionIndices;
-        SmallVector<uint64_t>                   addressTakenLabels;
-        const auto                              instructionRefs = cfg.instructionRefs();
+        SmallVector<uint64_t>                  addressTakenLabels;
+        const auto                             instructionRefs = cfg.instructionRefs();
         for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
         {
             const MicroInstr* inst = storage.ptr(instructionRefs[instructionIndex]);
@@ -1728,7 +1728,7 @@ namespace
             }
         }
 
-        bool       changed         = false;
+        bool changed = false;
         for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
         {
             if (reachable[instructionIndex])

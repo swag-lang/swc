@@ -86,7 +86,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::JumpCond:
         {
             // Emit jump with placeholder displacement; patch after all labels are seen.
-            MicroJump jump;
+            MicroJump         jump;
             const MicroOpBits jumpBits = shortJumps_.contains(instructionRef) ? MicroOpBits::B8 : ops[1].opBits;
             encoder.encodeJump(jump, ops[0].cpuCond, jumpBits);
             jump.valid = true;

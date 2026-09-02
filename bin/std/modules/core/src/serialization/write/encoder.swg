@@ -230,6 +230,7 @@ impl Encoder
                     objValue.pointedType = objType
                     .writeTypeValue(objValue, itf.obj)
                 }
+
                 return
             }
 

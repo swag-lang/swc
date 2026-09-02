@@ -8,27 +8,27 @@ using Swag, Core
 #[Serialization.Schema("pixel.image")]
 struct LegacyImage
 {
-    pixels:    Array'u8
+    pixels: Array'u8
 
     #[Serialization.Key("metadata")]
     metaDatas: Array'LegacyImageMetaData
 
     #[Serialization.Key("byteCount")]
-    size:      u64
-    width:     s32
-    height:    s32
+    size:   u64
+    width:  s32
+    height: s32
 
     #[Serialization.Key("rowStride")]
-    width8:    s32
+    width8: s32
 
     #[Serialization.Key("pixelFormat")]
-    pf:        PixelFormat
+    pf: PixelFormat
 
     #[Serialization.Key("bitsPerPixel")]
-    bpp:       u8
+    bpp: u8
 
     #[Serialization.Key("bytesPerPixel")]
-    bpp8:      u8
+    bpp8: u8
 }
 
 struct LegacyImageMetaData

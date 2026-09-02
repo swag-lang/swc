@@ -24,24 +24,24 @@ struct FrameTrace
     maxFrames: u64        // Measured frames the stress run stops after, or zero when unbounded.
 
     // Accumulated cost of the run, in microseconds.
-    totalUs:   u64        // Whole frames, from the start of one to the start of the next.
-    recordUs:  u64        // Recording the hierarchy and the chrome into the painter.
-    targetUs:  u64        // Submitting the recorded frame to the adapter as the render-target pass.
-    presentUs: u64        // Copying that target to the back buffer.
-    swapUs:    u64        // Handing that buffer to the display, which is where a frame waits for it.
-    frames:    u64        // Frames the totals cover.
-    warmedUp:  u64        // Frames already dropped as warm-up.
-    worstUs:   u64        // The worst frame of the run, which is what a stall actually feels like.
-    pixels:    u64        // Device pixels the dirty rectangles covered, to tell a cheaper frame from a smaller one.
-    vertices:  u64        // Vertices the recording emitted, which is what bounds the recording cost.
-    batches:   u64        // Draw commands the recording emitted, which is what bounds the state changes.
+    totalUs:   u64     // Whole frames, from the start of one to the start of the next.
+    recordUs:  u64     // Recording the hierarchy and the chrome into the painter.
+    targetUs:  u64     // Submitting the recorded frame to the adapter as the render-target pass.
+    presentUs: u64     // Copying that target to the back buffer.
+    swapUs:    u64     // Handing that buffer to the display, which is where a frame waits for it.
+    frames:    u64     // Frames the totals cover.
+    warmedUp:  u64     // Frames already dropped as warm-up.
+    worstUs:   u64     // The worst frame of the run, which is what a stall actually feels like.
+    pixels:    u64     // Device pixels the dirty rectangles covered, to tell a cheaper frame from a smaller one.
+    vertices:  u64     // Vertices the recording emitted, which is what bounds the recording cost.
+    batches:   u64     // Draw commands the recording emitted, which is what bounds the state changes.
 
     // What the batch bound saved, counted rather than timed: the pixels the overlap-safe path
     // actually cleared, and the pixels it would have cleared unbounded, on the same frames.
     scratchPixels: u64     // Alpha scratch the overlap-safe path cleared.
     scratchFull:   u64     // Alpha scratch it would have cleared with no per-batch bound.
 
-    watch:     Time.Stopwatch
+    watch: Time.Stopwatch
 }
 
 // Frames dropped before the totals start, letting the adapter, the caches and the atlases settle.
@@ -94,8 +94,8 @@ internal impl FrameTrace
         let spanX = Math.max(size.x - side, 1.0'f32)
         let spanY = Math.max(size.y - side, 1.0'f32)
         let step  = cast(f32) (.frames + .warmedUp)
-        let x = step * 7 - Math.floor(step * 7 / spanX) * spanX
-        let y = step * 5 - Math.floor(step * 5 / spanY) * spanY
+        let x     = step * 7 - Math.floor(step * 7 / spanX) * spanX
+        let y     = step * 5 - Math.floor(step * 5 / spanY) * spanY
         return {x, y, side, side}
     }
 
@@ -141,7 +141,7 @@ internal impl FrameTrace
         let us = .watch.elapsedMicroseconds()
         if .warmedUp < WarmUpFrames
         {
-            .warmedUp += 1
+            .warmedUp  += 1
             .recordUs  = 0
             .targetUs  = 0
             .presentUs = 0

@@ -142,7 +142,7 @@ struct Application
         maxRunFrame: u32
     }
 
-    frameTrace: FrameTrace           // Per-frame cost recorder, armed from the command line.
+    frameTrace: FrameTrace     // Per-frame cost recorder, armed from the command line.
 
     statePath: String                // File used by [[saveState]] and [[loadState]].
     hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
@@ -671,8 +671,8 @@ private impl Application
                 s.showMaximized()
                 if .frameTrace.boxSide > 0 do
                     s.invalidateRect(.frameTrace.movingBox(s.size()))
-                    else do
-                        s.invalidate()
+                else do
+                    s.invalidate()
             }
         }
 
@@ -1248,7 +1248,7 @@ impl Application
         var buf:  ConcatBuffer
         var save: Encoder'Write.TagBin
         save.serializer.schema = "gui.application-state"
-        var ser:  Serializer
+        var ser: Serializer
         ser.startWrite(&save, &buf)
         .serializeState(&ser)
         ser.end()
@@ -1297,7 +1297,7 @@ impl Application
 
         var load: Decoder'Read.TagBin
         load.serializer.schema = "gui.application-state"
-        var ser:  Serializer
+        var ser: Serializer
         ser.startRead(&load, buf.toSlice())
         .serializeState(&ser)
         ser.end()

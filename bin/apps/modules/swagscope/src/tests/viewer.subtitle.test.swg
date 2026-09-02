@@ -75,8 +75,8 @@ func subtitleViewerFixturePath()->String
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: infoBar)
     Swag.assert(result.view != null)
-    infoBar.centerGroup       = result.info
-    result.info!.dockStyle    = .None
+    infoBar.centerGroup    = result.info
+    result.info!.dockStyle = .None
     result.view!.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

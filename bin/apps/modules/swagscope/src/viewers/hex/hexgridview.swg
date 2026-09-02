@@ -1084,7 +1084,6 @@ impl IActionUI for ActionHex
             evt.updatedFields |= .Name | .Shortcut
             evt.name          = hexStrings().ui_GoTo
             evt.shortcut      = "Ctrl+G"
-
         }
 
         return true

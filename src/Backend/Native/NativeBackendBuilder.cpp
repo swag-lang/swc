@@ -457,8 +457,8 @@ namespace
         appendExecutableRoots(functions, builder.dropFunctions);
         appendExecutableRoots(functions, builder.mainFunctions);
 
-        CompilerInstance& compiler = builder.compiler();
-        const auto appendRuntimeRoot = [&](const IdentifierManager::RuntimeFunctionKind kind) {
+        CompilerInstance& compiler          = builder.compiler();
+        const auto        appendRuntimeRoot = [&](const IdentifierManager::RuntimeFunctionKind kind) {
             const IdentifierRef idRef = builder.ctx().idMgr().runtimeFunction(kind);
             appendExecutableRoot(functions, idRef.isValid() ? compiler.runtimeFunctionSymbol(idRef) : nullptr);
         };

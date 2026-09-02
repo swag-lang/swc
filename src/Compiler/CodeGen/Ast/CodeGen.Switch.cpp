@@ -527,7 +527,7 @@ namespace
     // only ever reached through a label.
     struct SwitchDispatchSearch
     {
-        static constexpr size_t K_MAX_CHAIN_ENTRIES = 8;
+        static constexpr size_t K_MAX_CHAIN_ENTRIES      = 8;
         static constexpr size_t K_MIN_JUMP_TABLE_ENTRIES = 32;
         static constexpr size_t K_MAX_JUMP_TABLE_ENTRIES = 240;
 
@@ -621,7 +621,7 @@ namespace
                     successorLabels.push_back(label);
             }
 
-            MicroBuilder& builder  = codeGen->builder();
+            MicroBuilder&  builder  = codeGen->builder();
             const MicroReg indexReg = codeGen->nextVirtualIntRegister();
             if (opBits == MicroOpBits::B64)
                 builder.emitLoadRegReg(indexReg, valueReg, MicroOpBits::B64);
@@ -1130,11 +1130,11 @@ namespace
                 return false;
 
             const SwitchDispatchSearch search{.codeGen         = &codeGen,
-                                               .valueReg        = switchState.switchValueReg,
-                                               .opBits          = switchState.compareOpBits,
-                                               .useUnsignedCond = switchState.useUnsignedCond,
-                                               .allowJumpTable  = true,
-                                               .defaultLabel    = defaultLabel};
+                                              .valueReg        = switchState.switchValueReg,
+                                              .opBits          = switchState.compareOpBits,
+                                              .useUnsignedCond = switchState.useUnsignedCond,
+                                              .allowJumpTable  = true,
+                                              .defaultLabel    = defaultLabel};
             search.emit(entries.span());
             return true;
         }

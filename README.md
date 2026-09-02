@@ -39,7 +39,7 @@ moving with it.
 ### Swag is not...
 
 * **Object oriented**, because you know what, I am not sure this was such a good idea after all. But with `interface`, a powerful `using`, and UFCS (uniform function call syntax), you get the feel of object oriented programming without inheritance or encapsulation.
-* **Safe** at all cost. I want to be the one who makes my program safe. I want to be the one who deals with memory. But Swag helps: runtime guards (`#[Swag.Safety]`), static analyses that report a proven fault as an error (`#[Swag.Sanity]`), nullability in the type system, and use-after-move detection.
+* **Safe** at all cost. I want to be the one who makes my program safe. I want to be the one who deals with memory. But Swag helps: runtime guards (`#[Swag.Safety]`), static analyses that report a proven fault as an error (`#[Swag.Sanity]`), nullability in the type system, use-after-move detection, and inferred borrow rules that reject views escaping the storage they refer to.
 * **32 bits**. Only 64 bits is supported.
 
 ### Swag has...
@@ -137,7 +137,7 @@ external formatter or documentation generator.
 
 # Examples
 
-Games, demos, tools, and a full application, written in Swag on top of the standard modules — some as
+Games, demos, tools, and full applications, written in Swag on top of the standard modules — some as
 single-file scripts run through the JIT, others as workspace modules compiled to native executables.
 
 <p align="center">
@@ -149,7 +149,7 @@ single-file scripts run through the JIT, others as workspace modules compiled to
 * [bin/apps/modules/swagcapture](bin/apps/modules/swagcapture) — screen capture, annotation, and image library with the standard Swag application identity
 * [bin/apps/modules/swagvault](bin/apps/modules/swagvault) — portable encrypted virtual drives backed by WinFsp and implemented entirely in Swag
 * [bin/apps/modules/swagscope](bin/apps/modules/swagscope) — universal read-only file inspection through integrated format viewers
-* [bin/std/modules](bin/std/modules) — the standard workspace: `core`, `pixel`, `gui`, `ogl`, `audio`, `truetype`, and the native Windows bindings
+* [bin/std/modules](bin/std/modules) — the standard workspace: `core`, `pixel`, `gui`, `ogl`, `audio`, `video`, `truetype`, and the native Windows bindings
 
 # Getting started
 

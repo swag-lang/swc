@@ -846,7 +846,7 @@ impl Painter
         // last space, together with the chunk the word after it starts at. A style boundary is
         // not a break: `<url>here</url>.` is three chunks and one word, and breaking between
         // them left its closing period alone on the next line.
-        var wordLine:  OneLine
+        var wordLine: OneLine
         var wordStart = 0
 
         var startLine         = 0
@@ -904,8 +904,8 @@ impl Painter
                         // does not end on a space.
                         if wordStart - 1 > startLine
                         {
-                            wordLine.start        = startLine
-                            wordLine.end          = wordStart - 1
+                            wordLine.start       = startLine
+                            wordLine.end         = wordStart - 1
                             wordLine.countSpaces -= 1
                             if format.horzAlignment != .Justify do
                                 wordLine.measure.width -= text.chunks[wordStart - 1].boundRect.width

@@ -521,30 +521,6 @@ splitting, MemorySSA/GVN-PRE/jump threading/loop unswitching (all need phi nodes
 cannot express), SCEV with LoopStrengthReduce, a post-RA scheduler and software pipelining,
 cmov-to-branch back-conversion, and profile-gated passes.
 
-### compiler.optimization.014 — Rematerialized invariants are hoisted back out of loops
-
-- Intent: `PostRALoopHoist` re-hoists what the allocator re-materialized into a loop body -
-  `LoadRegImm`, `ClearReg`, `LoadRegPtrReloc`, `LoadAddrRegMem` whose destination register
-  has no other definition in the body and is dead at preheader live-out - the way post-RA
-  MachineLICM repairs the spiller's insertions, cancelling the measured LICM-versus-remat fight
-  from the consumer side.
-- Next: none - re-measure only if a later change makes a hot loop re-make a memory
-  operand rather than an immediate.
-- Complete when: an invariant constant or address re-made on every iteration of a hot loop is
-  emitted once in the preheader (verified on a `PrintMicro` dump), relocations survive the
-  move, and the video workspace decodes byte-exact.
-- Measured 2026-08-27, closed without implementing: on the probe corpus at release, 44 remat
-  instructions sit inside loop bodies, and only 4 satisfy the single-def-in-loop condition
-  `HoistRegionPostRA` requires - all marginal invariant leas; the other 38 write registers the
-  body reuses for other values (the deblock line loop re-makes its clamp constants into rdx,
-  r10 and rsi in different arms). Dedicating one of the free registers instead (rax and rbp are
-  untouched across that body) was checked against the answer sheet first: clang re-makes the
-  same constants at the same sites (`mov r13d, 1023`, `mov edi, 6`, `mov edx, -6` inside the
-  loop) rather than pinning a register - in-loop constant rematerialization is the behavior
-  LLVM itself chooses on this kernel, because an immediate materialization is dependency-free
-  and near-zero cost on an out-of-order core. There is no gap here to close.
-- Related: the loop-invariant recomputation half of compiler.optimization.011; compiler.optimization.023 closed the eviction-policy route.
-
 ### compiler.optimization.015 — Loop-carried slot promotion covers multi-access, multi-exit loops
 
 - Intent: `promoteCarriedSlots` promotes a carried frame slot accessed N times across several
@@ -586,7 +562,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   re-coalesces live ranges; this allocator does not yet. Blocked behind pre-RA re-coalescing of
   non-interfering webs or live-range splitting in the allocator. Prototype parked in the session
   scratchpad (`webrename-parked/`: `Pass.WebRename.{h,cpp}` plus the registration diff).
-- Related: compiler.optimization.014, compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
+- Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
 
 ### compiler.optimization.017 — Jump-entered loops get a dedicated preheader
 
@@ -661,7 +637,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: the shared analysis replaces all three private copies, forwarding survives
   across a disjoint-space store in a codec inner loop (dump-verified), and instruction counts on
   the video corpus do not regress.
-- Related: compiler.optimization.014, compiler.optimization.015.
+- Related: compiler.optimization.015.
 
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
@@ -681,33 +657,6 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: a read-only by-value aggregate parameter costs no copy after inlining, a written
   one still copies, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-### compiler.optimization.023 — Eviction-policy changes have no purchase while loop residency covers the hot loops
-
-- Area: compiler/backend
-- Found while: the first recommendation of the LLVM study (2026-08-27), attempted before the
-  entries above.
-- Observation: three eviction-comparator variants in `Pass.RegisterAllocation.cpp` - next-use
-  loop depth ranked first, an LLVM-style suffix sum of 10^depth over remaining uses, and a
-  back-edge-wrapped next-use distance (the linear use cursor reads a loop-carried value whose
-  static uses are behind the scan as infinitely cold, which is exactly backwards) - produced
-  either regressions or byte-identical code on every measured function.
-- Evidence: deterministic dump counts on the deblock C-twin probe and the real
-  `Hevc.Decoder.filterLumaEdge` / `interpolateLuma`. Depth-first: 712 -> 719 instructions;
-  suffix weights: 712 -> 723, damage concentrated in the straight-line segment preamble where
-  flat next-use distance is near-Belady-optimal and depth weights over-protect multiples the
-  per-line preloads already serve once per segment. Wrapped distance alone (comparator and the
-  `K_KEEP_MAX_NEXT_USE_DISTANCE` boundary drop): byte-identical on all probes and hot
-  functions; corpus-wide, release DLL sizes moved by at most one 512-byte alignment quantum in
-  mixed directions. The sealed-loop residency of std.video.005 already exempts resident values from both
-  the boundary drop and back-edge eviction, which is where the predicted pathology would have
-  lived.
-- Next: none while residency holds the hot loops; re-measure only if compiler.optimization.015, compiler.optimization.016 or compiler.optimization.017
-  creates loop pressure the residency machinery does not absorb. The wrapped-distance diff is
-  parked in the session scratchpad (`r1-wrap-parked.diff`).
-- Complete when: a loop-pressure change from compiler.optimization.015, compiler.optimization.016 or compiler.optimization.017 re-opens the question and
-  the parked wrapped-distance diff is measured against it; delete otherwise.
-- Related: compiler.optimization.010, compiler.optimization.013.
-
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Area: compiler/backend

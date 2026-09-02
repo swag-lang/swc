@@ -481,8 +481,8 @@ namespace
         const auto x64Reg0 = hasReg0 ? microRegToX64Reg(reg0) : X64Reg::Rax;
         const auto x64Reg1 = hasReg1 ? microRegToX64Reg(reg1) : X64Reg::Rax;
 
-        const bool b1 = hasReg0 && isExtendedReg(x64Reg0);
-        const bool b2 = hasReg1 && isExtendedReg(x64Reg1);
+        const bool b1           = hasReg0 && isExtendedReg(x64Reg0);
+        const bool b2           = hasReg1 && isExtendedReg(x64Reg1);
         const bool needsByteRex = opBits == MicroOpBits::B8 || hasByteRegisterOperand;
         if (opBits == MicroOpBits::B64 ||
             b1 || b2 ||

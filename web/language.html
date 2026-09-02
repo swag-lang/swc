@@ -529,6 +529,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">--test-jit</span>, <span class="code-inline">-tj</span> / <span class="code-inline">--no-test-jit</span></td><td>Enable or disable JIT tests</td></tr>
 <tr><td><span class="code-inline">--test-native</span>, <span class="code-inline">-tn</span> / <span class="code-inline">--no-test-native</span></td><td>Enable or disable native tests</td></tr>
 <tr><td><span class="code-inline">--test-file</span> <span class="code-inline">TEXT</span></td><td>Run <span class="code-inline">#test</span> functions from source paths containing <span class="code-inline">TEXT</span>; repeat to select a union</td></tr>
+<tr><td><span class="code-inline">--test-tag</span> <span class="code-inline">TEXT</span></td><td>Run <span class="code-inline">#test</span> functions whose <span class="code-inline">Swag.TestTag</span> equals <span class="code-inline">TEXT</span>; repeat to select a union</td></tr>
 <tr><td><span class="code-inline">--output</span> / <span class="code-inline">--no-output</span></td><td>Enable or disable native artifact generation</td></tr>
 <tr><td><span class="code-inline">--lex-only</span></td><td>Stop after lexing source-driven tests</td></tr>
 <tr><td><span class="code-inline">--syntax-only</span></td><td>Stop after parsing</td></tr>
@@ -536,6 +537,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">--verbose-verify</span>, <span class="code-inline">-vv</span></td><td>Show diagnostics normally consumed by expected-error tests</td></tr>
 </tbody>
 </table>
+<p>Repeated file filters form one union and repeated tag filters form another. When both kinds are present, a test must match both dimensions. With no tag filter, tagged and untagged tests run normally.</p>
 <p>The three <span class="code-inline">*-only</span> modes are mutually exclusive. For this reference, keep the default JIT and native paths enabled so examples verify both execution engines.</p>
 <h2 id="_002_000_modules_and_source_code_swg">Modules and Source Code</h2>
 <p>A Swag program is organized as source files inside modules, and modules inside a workspace. This chapter covers setup files, dependencies, declaration order, comments, statement termination, identifiers, sigils, visibility, and module lifecycle hooks.</p>
@@ -7202,6 +7204,21 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p><span class="code-inline">PrintAst</span> and <span class="code-inline">PrintMicro</span> are development aids: they write compiler output and should not be used for program logic.</p>
+<h3 id="_010_002_predefined_attributes_swg_Testing">Testing</h3>
+<table class="table-markdown">
+<thead>
+<tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td>'TestTag(name: string)'</td><td>Assign one runtime-selection category to a <span class="code-inline">#test</span> function</td></tr>
+</tbody>
+</table>
+<p>Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating the option selects a union of tags. A test can have one <span class="code-inline">TestTag</span>; omit it when the test does not belong to a named campaign.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">TestTag("golden")]</span>
+<span class="SFct">#test</span>
+{
+    <span class="SCmt">// Compare a text or image snapshot here.</span>
+}</span></div>
 <h3 id="_010_002_predefined_attributes_swg_Metaprogramming_and_Call_Semantics">Metaprogramming and Call Semantics</h3>
 <table class="table-markdown">
 <thead>
@@ -9397,7 +9414,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.294</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.315</div>
 </footer>
 </section>
 </main>
@@ -10163,6 +10180,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Declaring Attributes|_010_002_predefined_attributes_swg_Declaring_Attributes|",
 "h|Name Resolution|_010_002_predefined_attributes_swg_Name_Resolution|",
 "h|Compile-Time Execution and Code Generation|_010_002_predefined_attributes_swg_Compile-Time_Execution_and_Code_Generation|",
+"h|Testing|_010_002_predefined_attributes_swg_Testing|",
 "h|Metaprogramming and Call Semantics|_010_002_predefined_attributes_swg_Metaprogramming_and_Call_Semantics|",
 "h|Operators, Matching, and Enums|_010_002_predefined_attributes_swg_Operators__Matching__and_Enums|",
 "h|Layout, Ownership, and Export|_010_002_predefined_attributes_swg_Layout__Ownership__and_Export|",

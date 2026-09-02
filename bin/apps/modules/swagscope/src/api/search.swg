@@ -50,12 +50,12 @@ struct SearchPresentation
 {
     public
     {
-        placeholder:    String          // Short query hint shown while the search field is empty.
-        toolTip:        String          // Longer syntax help owned by the presentation value.
-        filterPlaceholder: String       // Short hint used when this viewer is in filter mode.
-        filterToolTip:  String          // Longer filter help owned by the presentation value.
-        useTextOptions: bool = true     // Whether case, whole-word, and regular-expression options apply.
-        canFilter:      bool            // Whether the shared field can switch from finding to filtering.
+        placeholder:       String          // Short query hint shown while the search field is empty.
+        toolTip:           String          // Longer syntax help owned by the presentation value.
+        filterPlaceholder: String          // Short hint used when this viewer is in filter mode.
+        filterToolTip:     String          // Longer filter help owned by the presentation value.
+        useTextOptions:    bool = true     // Whether case, whole-word, and regular-expression options apply.
+        canFilter:         bool            // Whether the shared field can switch from finding to filtering.
     }
 }
 

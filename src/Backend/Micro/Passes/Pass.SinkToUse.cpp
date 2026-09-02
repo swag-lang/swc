@@ -244,9 +244,9 @@ namespace
                         blocked = blocked || def == used;
                 }
 
-                const MicroReg betweenDef      = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
-                const uint32_t betweenDenseIdx = scratch.virtualRegs.find(betweenDef);
-                const bool feedsSameConsumer   = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
+                const MicroReg betweenDef        = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
+                const uint32_t betweenDenseIdx   = scratch.virtualRegs.find(betweenDef);
+                const bool     feedsSameConsumer = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
                                                scratch.regCounts[betweenDenseIdx].definitions == 1 &&
                                                scratch.regCounts[betweenDenseIdx].uses == 1 &&
                                                scratch.regCounts[betweenDenseIdx].onlyUseIndex == useIdx;

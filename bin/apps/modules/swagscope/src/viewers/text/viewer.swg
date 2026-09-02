@@ -74,30 +74,30 @@ struct TextView
         zoomLabel:     *IconButton
     }
 
-    stream:            File.FileStream
-    fileName:          String
-    fileSize:          u64
-    bytesRead:         u64
-    residentStart:     u64
-    residentOffsetY:   f32
-    virtualHeight:     f32
-    loadTimer:         #null *Timer
-    statisticsThread:  Threading.Thread
-    statisticsTimer:   #null *Timer
-    statisticsState:   u32
-    statistics:        TextStatistics
+    stream:             File.FileStream
+    fileName:           String
+    fileSize:           u64
+    bytesRead:          u64
+    residentStart:      u64
+    residentOffsetY:    f32
+    virtualHeight:      f32
+    loadTimer:          #null *Timer
+    statisticsThread:   Threading.Thread
+    statisticsTimer:    #null *Timer
+    statisticsState:    u32
+    statistics:         TextStatistics
     statisticsEncoding: Text.Encoding
-    statisticsStart:   u64
-    hasText:           bool
-    pauseStreaming:    bool
-    pendingSeek:       bool
-    pendingSeekOffset: u64
-    repositioning:     bool
-    encoding:          Text.Encoding
-    contentStart:      u64
-    wrapping               = true
-    zoomPercent:       u32 = 100
-    reportDetails:     #null Viewer.ReportDetails
+    statisticsStart:    u64
+    hasText:            bool
+    pauseStreaming:     bool
+    pendingSeek:        bool
+    pendingSeekOffset:  u64
+    repositioning:      bool
+    encoding:           Text.Encoding
+    contentStart:       u64
+    wrapping                = true
+    zoomPercent:        u32 = 100
+    reportDetails:      #null Viewer.ReportDetails
 }
 
 private func runTextStatistics(thread: Threading.Thread)
@@ -112,13 +112,14 @@ private func runTextStatistics(thread: Threading.Thread)
         Atomic.exchange(&view.statisticsState, 2)
         return
     }
+
     defer stream.close()
     discard catch stream.seek(.Begin, view.statisticsStart)
 
-    var result: TextStatistics
-    var inWord:       bool
-    var sawRune:      bool
-    var previousCr:   bool
+    var result:             TextStatistics
+    var inWord:             bool
+    var sawRune:            bool
+    var previousCr:         bool
     var endedWithLineBreak: bool
     while !thread.requestEnd
     {
@@ -128,6 +129,7 @@ private func runTextStatistics(thread: Threading.Thread)
             Atomic.exchange(&view.statisticsState, 2)
             return
         }
+
         if chunk.isEmpty() do
             break
 
@@ -136,14 +138,14 @@ private func runTextStatistics(thread: Threading.Thread)
         while scan < text.count
         {
             let {c, eat} = Utf8.decodeRune(text[scan to])
-            scan += eat
+            scan    += eat
             sawRune = true
             if c == '\r'
             {
-                result.lines += 1
-                previousCr = true
+                result.lines       += 1
+                previousCr         = true
                 endedWithLineBreak = true
-                inWord = false
+                inWord             = false
                 continue
             }
 
@@ -151,13 +153,13 @@ private func runTextStatistics(thread: Threading.Thread)
             {
                 if !previousCr do
                     result.lines += 1
-                previousCr = false
+                previousCr         = false
                 endedWithLineBreak = true
-                inWord = false
+                inWord             = false
                 continue
             }
 
-            previousCr = false
+            previousCr         = false
             endedWithLineBreak = false
             if Unicode.isSpace(c)
             {
@@ -202,6 +204,7 @@ impl TextView
     mtd detailsText()->String
     {
         let encoding = .encodingName()
+
         // Statistics describe the byte interpretation that produced them.  Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
         // presented as facts about the newly decoded document.
@@ -228,7 +231,7 @@ impl TextView
 
     mtd startStatistics()
     {
-        .statisticsState = 0
+        .statisticsState    = 0
         .statisticsEncoding = .encoding
         .statisticsStart    = .contentStart
         catch .statisticsThread.init(&runTextStatistics, me, priority: .BelowNormal) as initError
@@ -248,11 +251,13 @@ impl TextView
             .removeTimer(.statisticsTimer!)
             .statisticsTimer = null
         }
+
         if .statisticsThread.isValid() and !.statisticsThread.isDone()
         {
             .statisticsThread.safeForceEnd()
             return false
         }
+
         if .statisticsThread.isValid() do
             .statisticsThread.wait()
         return true

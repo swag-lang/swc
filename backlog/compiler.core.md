@@ -4,7 +4,7 @@ This backlog covers the compiler front end, back end, workspace build engine, an
 
 Items are ordered by decreasing expected value inside each tier. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
 
-As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 251,275 physical lines in 663 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 83,938 lines in 150 files. The compiler diagnostic catalog contains 644 source `SWC_DIAG_DEF` entries, and the formatter configuration schema exposes 86 options. Recompute these figures when using them to prioritize work.
+As of 2026-09-02, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 264,112 physical lines in 687 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,236 lines in 154 files. The compiler diagnostic catalog contains 562 source `SWC_DIAG_DEF` entries, and `swc format --dump-config` exposes 131 options. Recompute these figures when using them to prioritize work.
 
 ## Tier A — Persisted compiler state
 

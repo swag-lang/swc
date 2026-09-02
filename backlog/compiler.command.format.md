@@ -12,7 +12,7 @@ ships; history lives in git, not here.
 
 ## Where the command already stands
 
-130 options covering whitespace, indentation, wrapping, braces, switch layout, alignment
+131 options covering whitespace, indentation, wrapping, braces, switch layout, alignment
 (including two-column declaration grids and outlier exclusion), spacing, attributes, comments,
 `using` blocks and numeric literals; a built-in canonical style (`--style swag`, the default) with
 an explicit opt-out (`--style preserve`) and a `style` key that rebases a config file

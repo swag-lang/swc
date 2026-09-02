@@ -18,8 +18,8 @@ namespace
     constexpr uint32_t SWAG_DEBUG_MAGIC              = 0x42445753u;
     constexpr uint32_t SWAG_DEBUG_VERSION_PLAIN      = 1;
     constexpr uint32_t SWAG_DEBUG_VERSION_COMPRESSED = 2;
-    constexpr USHORT   K_COMPRESSION_FORMAT_LZNT1   = 0x0002;
-    constexpr USHORT   K_COMPRESSION_ENGINE_MAXIMUM = 0x0100;
+    constexpr USHORT   K_COMPRESSION_FORMAT_LZNT1    = 0x0002;
+    constexpr USHORT   K_COMPRESSION_ENGINE_MAXIMUM  = 0x0100;
 
     using RtlGetCompressionWorkSpaceSizeFn = LONG(WINAPI*)(USHORT compressionFormatAndEngine, ULONG* compressBufferWorkSpaceSize, ULONG* compressFragmentWorkSpaceSize);
     using RtlCompressBufferFn              = LONG(WINAPI*)(USHORT compressionFormatAndEngine, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG uncompressedChunkSize, ULONG* finalCompressedSize, PVOID workSpace);

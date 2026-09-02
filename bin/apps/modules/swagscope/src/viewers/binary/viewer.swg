@@ -525,6 +525,7 @@ internal impl BinaryViewer
             if expressionError == null do
                 options.expression = &expression
         }
+
         for row, index in .doc.report.rows
         {
             discard row
@@ -536,7 +537,7 @@ internal impl BinaryViewer
         // earlier sibling branch.
         for matched in .doc.report.rows.count where .filterIncluded[matched]
         {
-            var depth = cast(u64) .doc.report.rows[matched].level
+            var depth  = cast(u64) .doc.report.rows[matched].level
             var parent = matched
             while depth and parent
             {
@@ -555,8 +556,8 @@ internal impl BinaryViewer
         let enteringFilter = .filterQuery.isEmpty() and query.count
         if enteringFilter and .loadPublished do
             .captureViewState()
-        .filterQuery = query
-        .filterOptions = options
+        .filterQuery              = query
+        .filterOptions            = options
         .filterOptions.expression = null
         if !.loadPublished do
             return

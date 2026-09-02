@@ -94,7 +94,7 @@ protected:
     const TaskContext& ctx() const { return *(ctx_); }
 
     explicit Encoder(TaskContext& ctx);
-    virtual ~Encoder()                     = default;
+    virtual ~Encoder() = default;
     virtual void     resetCode();
     virtual uint64_t currentOffset() const = 0;
 

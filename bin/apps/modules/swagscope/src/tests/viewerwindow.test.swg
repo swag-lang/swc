@@ -998,7 +998,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let dlg    = window.createAboutDialog({year: 2026, month: 9, day: 1})
     dlg.applyLayout()
 
-    let surface = dlg.surface!
+    let surface  = dlg.surface!
     let rendered = host.render(dlg)
     var image    = rendered.cropped(0, 0, cast(s32) surface.position.width, cast(s32) surface.position.height)
     Pixel.Testing.assertImageGolden(&image, "about")

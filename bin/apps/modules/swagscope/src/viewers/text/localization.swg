@@ -8,18 +8,18 @@ using Core, Gui
 // than in this table.
 struct TextStrings
 {
-    ui_Name:     string = "Basic text"                                                                             // Name of this viewer in the viewer selector.
-    ui_WrapOn:   string = "Line wrapping on (Ctrl+W)"                                                              // Tooltip while long lines are folded.
-    ui_WrapOff:  string = "Line wrapping off (Ctrl+W)"                                                             // Tooltip while long lines run off the edge.
-    ui_Encoding: string = "Character encoding"                                                                     // Tooltip of the encoding selector.
-    ui_ZoomMenu: string = "Text zoom options"                                                                      // Tooltip of the zoom value menu.
-    ui_NotText:  string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
-    ui_Details:  string = "%"                                                                                      // Summary the host shows beside the file size, starting with the encoding.
-    ui_DetailsStats: string = "% · % · %"                                                                          // Encoding, line count, and word count after background analysis.
-    ui_OneLine:  string = "1 line"                                                                                  // Singular line count.
-    ui_Lines:    string = "% lines"                                                                                 // Plural line count.
-    ui_OneWord:  string = "1 word"                                                                                  // Singular word count.
-    ui_Words:    string = "% words"                                                                                 // Plural word count.
+    ui_Name:         string = "Basic text"                                                                             // Name of this viewer in the viewer selector.
+    ui_WrapOn:       string = "Line wrapping on (Ctrl+W)"                                                              // Tooltip while long lines are folded.
+    ui_WrapOff:      string = "Line wrapping off (Ctrl+W)"                                                             // Tooltip while long lines run off the edge.
+    ui_Encoding:     string = "Character encoding"                                                                     // Tooltip of the encoding selector.
+    ui_ZoomMenu:     string = "Text zoom options"                                                                      // Tooltip of the zoom value menu.
+    ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
+    ui_Details:      string = "%"                                                                                      // Summary the host shows beside the file size, starting with the encoding.
+    ui_DetailsStats: string = "% · % · %"                                                                              // Encoding, line count, and word count after background analysis.
+    ui_OneLine:      string = "1 line"                                                                                 // Singular line count.
+    ui_Lines:        string = "% lines"                                                                                // Plural line count.
+    ui_OneWord:      string = "1 word"                                                                                 // Singular word count.
+    ui_Words:        string = "% words"                                                                                // Plural word count.
 }
 
 private const FrenchStringsName = "lang/fr/scope.text.tweak"

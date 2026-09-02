@@ -24,9 +24,9 @@ public struct AboutDlg
         contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
     }
 
-    sectionsScroll: #null *ScrollWnd          // Bounded column the added sections stand in.
-    sectionsStack:  #null *StackLayoutCtrl    // Stack of headings and paragraphs inside that column.
-    fitsToContent:  bool                      // Whether the caller left the height to the content.
+    sectionsScroll: #null *ScrollWnd           // Bounded column the added sections stand in.
+    sectionsStack:  #null *StackLayoutCtrl     // Stack of headings and paragraphs inside that column.
+    fitsToContent:  bool                       // Whether the caller left the height to the content.
 
     sourceUrl: String     // Source page owned for the lifetime of an application about dialog.
 }
@@ -262,9 +262,10 @@ public impl AboutDlg
             // Measured against the width left once a bar is there, whether or not one is showing:
             // measured against the full viewport, the text would wrap one line further the moment
             // the bar appeared, and the column would need the room it was just told it had.
-            let inner  = .sectionsStack!
-            let bar    = .themeMetrics().scrollBar_SmallSize
-            let room   = Math.max(scroll.paddedClientRect().width - bar, 1)
+            let inner = .sectionsStack!
+            let bar   = .themeMetrics().scrollBar_SmallSize
+            let room  = Math.max(scroll.paddedClientRect().width - bar, 1)
+
             // The column's own content, not its measured size: a scroll view resizes its view to
             // the viewport, and a resized window answers for the size it was given. Rounded out,
             // because the window it goes in lands on whole units: a viewport a fraction shorter

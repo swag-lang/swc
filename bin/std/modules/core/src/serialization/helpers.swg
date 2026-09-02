@@ -18,6 +18,7 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
         if key != null do
             return cast(string) key!
     }
+
     if val.name == null do
         return ""
     return val.name

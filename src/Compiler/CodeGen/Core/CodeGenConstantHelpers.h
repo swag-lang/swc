@@ -18,7 +18,7 @@ namespace CodeGenConstantHelpers
     // A struct or array constant reached through its address: the payload carries the register
     // the relocated pointer was loaded into, marked as an address rather than a value.
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef);
-    Result      loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef);
+    Result             loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef);
 }
 
 SWC_END_NAMESPACE();

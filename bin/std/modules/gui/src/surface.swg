@@ -81,7 +81,6 @@ struct Surface
     paintedWnds: u32     // Windows the last pass painted.
     skippedWnds: u32     // Windows the last pass rejected as unable to reach the repainted region.
 
-
     // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
     // the control the reader left rather than at the top of its traversal.
     //
@@ -543,7 +542,7 @@ impl Surface
 
         if tracing
         {
-            let area = cast(u64) (physClip.width * physClip.height)
+            let area    = cast(u64) (physClip.width * physClip.height)
             let totalUs = traceWatch.elapsedMicroseconds()
             .app.frameTrace.addSurface(recordUs, rtUs, presentUs, totalUs - presentUs, area, vertices, batches)
             .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)

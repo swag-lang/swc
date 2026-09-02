@@ -635,23 +635,23 @@ struct ViewerWindow
 
     // Guards the one nested dispatch [[forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
-    forwardingViewerKey:       bool
-    playPauseKeyDown:          bool
-    recent:                    Array'String
-    folderHistory:             Array'ViewerFolderHistory
-    preferences:               Array'ViewerPreference
-    panelVisible:              bool
+    forwardingViewerKey: bool
+    playPauseKeyDown:    bool
+    recent:              Array'String
+    folderHistory:       Array'ViewerFolderHistory
+    preferences:         Array'ViewerPreference
+    panelVisible:        bool
     recentPaneSize = ViewerRecentHeight
-    refreshingLists:           bool
-    fileDlgState:              FileDlgState
-    themeIndex:                u32
-    language:                  String
-    smokeDirectory:            String
-    smokeSpecIndex:            u64
-    smokeWaitSteps:            u32
-    smokeOpened:               bool
-    smokeSelected:             bool
-    smokeRunning:              bool
+    refreshingLists:     bool
+    fileDlgState:        FileDlgState
+    themeIndex:          u32
+    language:            String
+    smokeDirectory:      String
+    smokeSpecIndex:      u64
+    smokeWaitSteps:      u32
+    smokeOpened:         bool
+    smokeSelected:       bool
+    smokeRunning:        bool
 }
 
 func reportViewerDetails(view: *Wnd, details: string)
@@ -863,7 +863,7 @@ impl IWnd for ViewerWindow
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(!.folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
-            g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
+            g_VideoSubtitleSettings.delay       = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
             g_MarkdownViewerSettings.themeIndex = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
             g_MarkdownViewerSettings.widthIndex = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
         }
@@ -2236,12 +2236,12 @@ impl ViewerWindow
     {
         const SearchModeId = "scope.search.mode.search"
         const FilterModeId = "scope.search.mode.filter"
-        const MatchCaseId = "scope.search.matchCase"
-        const WholeWordId = "scope.search.wholeWord"
-        const RegExpId    = "scope.search.regularExpression"
+        const MatchCaseId  = "scope.search.matchCase"
+        const WholeWordId  = "scope.search.wholeWord"
+        const RegExpId     = "scope.search.regularExpression"
 
-        let texts = appStrings()
-        let menu  = MenuCtrl.createPopup(me, owner: me)
+        let texts     = appStrings()
+        let menu      = MenuCtrl.createPopup(me, owner: me)
         let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
         if canFilter
         {
@@ -2249,6 +2249,7 @@ impl ViewerWindow
             menu.addItem(texts.ui_FilterMode, FilterModeId, checked: .searchFilterMode)
             menu.addSeparator()
         }
+
         menu.addItem(texts.ui_SearchMatchCase, MatchCaseId, checked: .searchMatchCaseOption)
         menu.addItem(texts.ui_SearchWholeWord, WholeWordId, checked: .searchWholeWordOption)
         menu.addItem(texts.ui_SearchRegularExpression, RegExpId, checked: .searchRegexOption)
@@ -2259,14 +2260,23 @@ impl ViewerWindow
             if !.searchFilterMode do
                 return
             .searchFilterMode = false
+
         case FilterModeId:
             if .searchFilterMode do
                 return
             .searchFilterMode = true
-        case MatchCaseId: .searchMatchCaseOption = !.searchMatchCaseOption
-        case WholeWordId: .searchWholeWordOption = !.searchWholeWordOption
-        case RegExpId:    .searchRegexOption = !.searchRegexOption
-        default:          return
+
+        case MatchCaseId:
+            .searchMatchCaseOption = !.searchMatchCaseOption
+
+        case WholeWordId:
+            .searchWholeWordOption = !.searchWholeWordOption
+
+        case RegExpId:
+            .searchRegexOption = !.searchRegexOption
+
+        default:
+            return
         }
 
         // A query that was literal may be incomplete regexp syntax, and vice versa. Re-run the
@@ -2318,6 +2328,7 @@ impl ViewerWindow
             .searchToolTip = #move presentation.toolTip
             .searchBox.setPlaceholder(presentation.placeholder.toString())
         }
+
         .searchBox.toolTip = .searchToolTip
         .searchOptionsButton.show(presentation.useTextOptions or presentation.canFilter)
         if presentation.canFilter
@@ -2330,6 +2341,7 @@ impl ViewerWindow
             .searchOptionsButton.setIcon(.theme().icon(.Options, themeActionIconSize(.themeMetrics())))
             .searchBox.setIcon(.theme().icon(.Search, themeActionIconSize(.themeMetrics())))
         }
+
         .searchOptionsButton.toolTip = presentation.canFilter ? (.searchFilterMode ? appStrings().ui_FilterMode : appStrings().ui_SearchMode) : appStrings().ui_SearchOptions
 
         // With no options button, let the enlarged field meet navigation directly. Keeping the

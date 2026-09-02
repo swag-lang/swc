@@ -128,7 +128,7 @@ private impl SubtitleViewer
         if .cueText.isEmpty() do
             return
         var options: EditDlgOptions
-        let message     = Format.toString(subtitleStrings().ui_CueRange, .cueText.count)
+        let message = Format.toString(subtitleStrings().ui_CueRange, .cueText.count)
         options.title   = subtitleStrings().ui_GoToCue
         options.message = message.toString()
         options.text    = "1"
@@ -160,6 +160,7 @@ private impl SubtitleViewer
             discard .revealCue(index)
             return
         }
+
         discard .revealCue(.cueText.count - 1)
     }
 
@@ -178,7 +179,7 @@ private impl SubtitleViewer
             .margin.x  = 8
             .setText(Viewer.durationText(result.duration))
             .setForm(.Rectangle)
-            .toolTip = subtitleStrings().ui_GoToTime
+            .toolTip    = subtitleStrings().ui_GoToTime
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -191,7 +192,7 @@ private impl SubtitleViewer
             .dockStyle = .Right
             .setText(subtitleCueCountText(result.track!.cueCount()).toString())
             .setForm(.Rectangle)
-            .toolTip = subtitleStrings().ui_GoToCue
+            .toolTip    = subtitleStrings().ui_GoToCue
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -253,7 +254,7 @@ func createSubtitleViewer(host: Viewer.Host)
         return
     }
 
-    let track    = view!.track!
+    let track = view!.track!
     host.attachView(view!)
     host.setDetails(subtitleFormatText(track.sourceFormat()))
     host.setSearch({

@@ -38,8 +38,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
         discard wnd
         switch evt
         {
-        case NotifyEvent as notify where notify.kind == .LanguageChanged:
-            count[] += 1
+        case NotifyEvent as notify where notify.kind == .LanguageChanged: count[] += 1
         }
 
         return false
@@ -50,8 +49,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
         discard wnd
         switch evt
         {
-        case NotifyEvent as notify where notify.kind == .LanguageChanged:
-            count[] += 1
+        case NotifyEvent as notify where notify.kind == .LanguageChanged: count[] += 1
         }
 
         return false

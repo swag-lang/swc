@@ -570,7 +570,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             continue
         }
 
-        let op = cast(string) Swag.makeSlice(bytes.buffer + start, content.pos - start)
+        let op  = cast(string) Swag.makeSlice(bytes.buffer + start, content.pos - start)
         let ops = operands.toSlice()
         switch op
         {

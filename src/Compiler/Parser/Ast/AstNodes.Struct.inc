@@ -214,8 +214,8 @@ struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 // regular budget without introducing sema dependencies; calls add cost within the much larger
 // single-module-call-site budget, where eliminating the last call does not duplicate the body.
 constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 80;
-constexpr uint32_t K_AUTO_INLINE_CALL_PENALTY     = 10;
-constexpr uint32_t K_AUTO_INLINE_LAST_CALL_COST   = 4096;
+constexpr uint32_t K_AUTO_INLINE_CALL_PENALTY    = 10;
+constexpr uint32_t K_AUTO_INLINE_LAST_CALL_COST  = 4096;
 
 enum class AstFunctionFlagsE : AstNode::ParserFlags
 {

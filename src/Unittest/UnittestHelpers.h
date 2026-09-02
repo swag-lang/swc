@@ -18,11 +18,11 @@ namespace Backend::Unittest
         bool    wildcard = false;
     };
 
-    Result   parseExpected(const char* text, std::vector<ExpectedByte>& result);
-    Result   runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn);
+    Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
+    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn);
 
-    bool     isPersistentReg(MicroRegSpan regs, MicroReg reg);
-    Result   assertNoVirtualRegs(MicroBuilder& builder);
+    bool   isPersistentReg(MicroRegSpan regs, MicroReg reg);
+    Result assertNoVirtualRegs(MicroBuilder& builder);
     // How many times an opcode occurs in what the builder has emitted so far.
     uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode);
 }

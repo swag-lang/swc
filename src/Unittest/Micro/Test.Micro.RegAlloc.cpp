@@ -289,12 +289,12 @@ namespace
     void buildKnownComputedJump(MicroBuilder& b, CallConvKind callConvKind)
     {
         const CallConv&     conv       = CallConv::get(callConvKind);
-        constexpr MicroReg targetReg   = MicroReg::virtualIntReg(7200);
-        constexpr MicroReg liveReg     = MicroReg::virtualIntReg(7201);
+        constexpr MicroReg  targetReg  = MicroReg::virtualIntReg(7200);
+        constexpr MicroReg  liveReg    = MicroReg::virtualIntReg(7201);
         const MicroLabelRef firstLabel = b.createLabel();
         const MicroLabelRef nextLabel  = b.createLabel();
         const MicroLabelRef doneLabel  = b.createLabel();
-        const std::array    targets     = {firstLabel, nextLabel};
+        const std::array    targets    = {firstLabel, nextLabel};
 
         b.emitLoadLabelAddress(targetReg, firstLabel);
         b.emitLoadRegImm(liveReg, ApInt(10, 64), MicroOpBits::B64);

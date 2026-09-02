@@ -8,8 +8,8 @@ using Core, Gui
 // only sentence this viewer writes.
 struct HtmlStrings
 {
-    ui_ZoomMenu: string = "Document zoom options"       // Tooltip of the zoom value menu.
-    ui_Details:  string = "HTML · UTF-8"                // Summary the host shows beside the file size.
+    ui_ZoomMenu: string = "Document zoom options"     // Tooltip of the zoom value menu.
+    ui_Details:  string = "HTML · UTF-8"              // Summary the host shows beside the file size.
 }
 
 private const FrenchStringsName = "lang/fr/scope.html.tweak"

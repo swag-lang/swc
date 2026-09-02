@@ -1091,7 +1091,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions)
 {
-    static constexpr std::string_view SOURCE = R"(#global private
+    static constexpr std::string_view SOURCE     = R"(#global private
 
 alias ValueFn = func()->u32
 
@@ -1116,7 +1116,7 @@ var GHolder:  Holder
     Swag.assert(GHolder.text.count == 0)
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "ExecutablePrunesUnreachableGeneratedFunctions");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "ExecutablePrunesUnreachableGeneratedFunctions");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("executable_prunes_unreachable_generated_functions", Runtime::BuildCfgBackendKind::Executable);
     cmdLine.directories.clear();
@@ -1131,7 +1131,7 @@ var GHolder:  Holder
         return failNativeArtifactTest("NativeArtifact_ExecutablePrunesUnreachableGeneratedFunctions", "errors after sema");
 
     const TaskContext compilerCtx(compiler);
-    const auto isHolderEquality = [&](const SymbolFunction* function) {
+    const auto        isHolderEquality = [&](const SymbolFunction* function) {
         return function && function->getFullScopedName(compilerCtx).view().ends_with("Holder.opEquals");
     };
     if (!std::ranges::any_of(compiler.nativeCodeSegment(), isHolderEquality))

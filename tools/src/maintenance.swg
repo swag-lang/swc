@@ -63,13 +63,11 @@ private func runGoldenTests(context: *Context, options: *Options)->s32 fail
                 var code = 0's32
                 switch workspace
                 {
-                case "std":
-                    code = try runStd(context, &sub)
-                case "examples":
-                    code = try runExamples(context, &sub)
-                case "apps":
-                    code = try runApps(context, &sub)
+                case "std":      code = try runStd(context, &sub)
+                case "examples": code = try runExamples(context, &sub)
+                case "apps":     code = try runApps(context, &sub)
                 }
+
                 failed = failed or code != 0
             }
         }
@@ -81,7 +79,7 @@ private func runGoldenTests(context: *Context, options: *Options)->s32 fail
             Console.println()
             Console.println("golden tests: reference (", cfg.toString(), ")")
             let code = try runReference(context, &sub)
-            failed   = failed or code != 0
+            failed = failed or code != 0
         }
     }
 
@@ -95,7 +93,7 @@ private func runGoldenTests(context: *Context, options: *Options)->s32 fail
         failed = true
     }
 
-    let after = try goldenSnapshots(context)
+    let after   = try goldenSnapshots(context)
     var created = 0'u64
     for snapshot in after
     {
@@ -106,6 +104,7 @@ private func runGoldenTests(context: *Context, options: *Options)->s32 fail
             Console.println()
             Console.println("new goldens created during the test:")
         }
+
         Console.println("  ", snapshot.toString())
         created += 1
     }

@@ -178,8 +178,8 @@ namespace
 
     struct LoopPassSettings
     {
-        uint32_t         maxIterations    = 0;
-        bool             buildSsa         = false;
+        uint32_t         maxIterations     = 0;
+        bool             buildSsa          = false;
         bool             pruneStableSuffix = false;
         std::string_view name;
     };
@@ -354,8 +354,8 @@ namespace
         if (useSharedSsa)
             context.ssaState = &ssaState;
 
-        bool reachedFixedPoint = false;
-        size_t passesToRun     = passes.size();
+        bool   reachedFixedPoint = false;
+        size_t passesToRun       = passes.size();
         for (uint32_t iteration = 0; iteration < settings.maxIterations; ++iteration)
         {
             context.isFirstAllocationSweep = iteration == 0;
@@ -378,7 +378,7 @@ namespace
                 SWC_RESULT(runPass(context, *pass, verifyCache));
                 if (context.passChanged)
                 {
-                    iterationMutated  = true;
+                    iterationMutated   = true;
                     lastChangedPassEnd = passIndex + 1;
 
                     // The remaining passes must observe this mutation now. If none
@@ -609,7 +609,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
 
     // Pre-RA optimization loop - converges on the virtual-register IR.
     SWC_ASSERT(context.builder);
-    const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
+    const uint32_t         preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
     const LoopPassSettings preRaSettings{.maxIterations = preRaMaxIterations, .buildSsa = true, .pruneStableSuffix = true, .name = "pre-ra-optimization-loop"};
     SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaSettings, verifyCache));
 
@@ -627,7 +627,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     }
 
     // Register allocation loop - legalize + regalloc iterate until stable.
-    const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
+    const uint32_t         raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
     const LoopPassSettings raSettings{.maxIterations = raMaxIterations, .name = "ra-legalize-loop"};
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raSettings, verifyCache));
 

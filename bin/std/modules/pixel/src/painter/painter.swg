@@ -80,8 +80,8 @@ enum CommandId
 #[Swag.EnumFlags]
 enum PaintParams
 {
-    Zero                      // Disable every optional behavior.
-    Antialiased               // Generate coverage fringes along vector edges.
+    Zero            // Disable every optional behavior.
+    Antialiased     // Generate coverage fringes along vector edges.
 
     // Antialias a stroke from the fragment's distance to its centre line instead of from a
     // fringe band extruded along each side.
@@ -93,7 +93,6 @@ enum PaintParams
     // distance places the same contour there and softens across it, which reads a shade finer.
     // Turn it on for content whose weight is its own, and compare before making it a default.
     DistanceStrokes
-
     Default = Antialiased     // Use the normal antialiased configuration.
 }
 

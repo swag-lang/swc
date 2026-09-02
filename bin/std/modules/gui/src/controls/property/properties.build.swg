@@ -68,14 +68,14 @@ internal impl Properties
             // row label from stealing focus away from the navigation surface.
             .focusPolicy = .None
 
-            if .isGridLike()
+            if me.isGridLike()
             {
-                .margin.z = .rightMargin
-                .margin.y = .gridLineMargin * 0.5
-                .margin.w = .gridLineMargin * 0.5
+                .margin.z = me.rightMargin
+                .margin.y = me.gridLineMargin * 0.5
+                .margin.w = me.gridLineMargin * 0.5
             }
             else do
-                .setListContentPadding(line)
+                me.setListContentPadding(line)
         }
 
         // Panel rows keep the same vertical breathing room between rows as the grid ones
@@ -90,7 +90,7 @@ internal impl Properties
             .initialize(line, value.pointedType, value, data, parentItem)
             .level           = parentItem ? parentItem.level + 1 : 0
             .section         = parentItem ? parentItem.section : 0
-            .valueCellHeight = height != 0 ? height : .gridLineHeight
+            .valueCellHeight = height != 0 ? height : me.gridLineHeight
         }
 
         line.hookOnEvent = func|prop = me, item|(wnd, evt) { return prop.onItemEvent(item, wnd, evt); }
@@ -107,22 +107,22 @@ internal impl Properties
                     labelWidth = .listContentWidth()
                 with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
                 {
-                    if .isGridLike()
+                    if me.isGridLike()
                     {
                         .setTextAlignment(.Left, .Center)
-                        .setTextPadding({.leftMargin, 0, 0, 0})
+                        .setTextPadding({me.leftMargin, 0, 0, 0})
                         .dockStyle = .Left
-                        .margin.z  = .gridMarginColumn
+                        .margin.z  = me.gridMarginColumn
                     }
                     else
                     {
                         .updateFlags(.WordWrap | .AutoHeight)
                         .setTextAlignment(.Left, .Top)
-                        .margin.y = .listNameMarginBefore
-                        .margin.w = .listNameMarginAfter
+                        .margin.y = me.listNameMarginBefore
+                        .margin.w = me.listNameMarginAfter
                     }
 
-                    .style.setFont(.fontName)
+                    .style.setFont(me.fontName)
                 }
 
                 item.assignLabel(label)
@@ -154,7 +154,7 @@ internal impl Properties
                     {
                         .updateFlags(.WordWrap | .AutoHeight)
                         .setTextAlignment(.Left, .Top)
-                        .margin.w = .listDescMarginAfter
+                        .margin.w = me.listDescMarginAfter
                         .setText(descText)
                         item.assignDescriptionLabel(labelDesc)
                     }
@@ -453,7 +453,7 @@ internal impl Properties
         with let item = .addItem(v, null, parentItem)
         {
             if Swag.isSet(.label) do
-                .label.style.setFont(&.fontCategory)
+                .label.style.setFont(&me.fontCategory)
             .level = parentItem!.level
             .flags.add(.Header | .NoSeparator | .NoFocus)
         }
@@ -474,8 +474,8 @@ internal impl Properties
         {
             .setTextAlignment(.Left, .Center)
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding({(.valBarGlyphWidth - .valBarIconSize) * 0.5, 0, 0, 0})
-            .setTextPadding({.valBarGlyphWidth, 0, .valBarPaddingX, 0})
+            .setIconPadding({(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
+            .setTextPadding({me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
             .dockStyle = .Center
         }
 

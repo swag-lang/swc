@@ -275,6 +275,9 @@ public:
     std::string_view                               tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
     Utf8                                           fileName() const;
     const SourceFile*                              file() const;
+    // Mints the rank of the next 'with' subject. See 'SemaScope::AutoMemberBinding::order'.
+    static uint64_t nextAutoMemberOrder();
+
     std::vector<ActiveCompilerAstExpansion>&       compilerAstExpansions() { return compilerAstExpansions_; }
     const std::vector<ActiveCompilerAstExpansion>& compilerAstExpansions() const { return compilerAstExpansions_; }
 

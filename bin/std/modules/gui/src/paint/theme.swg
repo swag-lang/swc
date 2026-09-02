@@ -417,15 +417,15 @@ impl Theme
             .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName, DefaultFontFsItalic)!
             .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName, DefaultFontFsBoldItalic)!
 
-            .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
-            .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)
-            .fontDefault.italic     = .fonts.createFont(.defaultTypeFaceI, me.metrics.defaultFontSize)
-            .fontDefault.boldItalic = .fonts.createFont(.defaultTypeFaceBI, me.metrics.defaultFontSize)
+            .fontDefault.regular    = me.fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
+            .fontDefault.bold       = me.fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)
+            .fontDefault.italic     = me.fonts.createFont(.defaultTypeFaceI, me.metrics.defaultFontSize)
+            .fontDefault.boldItalic = me.fonts.createFont(.defaultTypeFaceBI, me.metrics.defaultFontSize)
 
-            .fontDefaultFs.regular    = .fonts.createFont(.defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.bold       = .fonts.createFont(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.italic     = .fonts.createFont(.defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.boldItalic = .fonts.createFont(.defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.regular    = me.fonts.createFont(.defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.bold       = me.fonts.createFont(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.italic     = me.fonts.createFont(.defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.boldItalic = me.fonts.createFont(.defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
         }
     }
 

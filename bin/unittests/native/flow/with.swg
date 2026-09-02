@@ -140,21 +140,16 @@ func nativeWithAssignmentsAndScopes()->s32
         .y += 2
     }
 
-    with NativeWithColor
-    {
-        let a = Red
-        let b = .Blue
-        total += nativeWithColorScore(a)
-        total += nativeWithColorScore(.Blue)
-        if b == Blue do
-            total += 1
-    }
+    using NativeWithColor
+    let a = Red
+    let b = Blue
+    total += nativeWithColorScore(a)
+    total += nativeWithColorScore(.Blue)
+    if b == Blue do
+        total += 1
 
-    with NativeWithNs
-    {
-        total += bias(2)
-        total += .bias(0)
-    }
+    total += NativeWithNs.bias(2)
+    total += NativeWithNs.bias(0)
 
     return point.x + point.y + total
 }

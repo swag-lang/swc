@@ -55,17 +55,14 @@ func parser_with_examples()
         .x += 5
     }
 
-    with ParserWithColor
-    {
-        let a = Red
-        let b = .Blue
-    }
+    using ParserWithColor
+    let a = Red
+    let b = Blue
+    discard a
+    discard b
 
-    with ParserWithNs
-    {
-        bias(1)
-        .bias(2)
-    }
+    discard ParserWithNs.bias(1)
+    discard ParserWithNs.bias(2)
 
     with var pair: { a, b: s32 }
     {

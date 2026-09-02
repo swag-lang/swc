@@ -681,6 +681,16 @@ SemaNodeView Sema::curView(EnumFlags<SemaNodeViewPartE> part)
     return view(curNodeRef(), part);
 }
 
+// One counter for the whole compilation. A per-analysis counter would restart whenever a body is
+// analyzed by a fresh 'Sema' — a generic instantiation, an inlined body — and two subjects stamped
+// with the same rank stop ordering against each other. Only the relative order inside one chain of
+// nested 'with' blocks is read, and one thread creates those in order.
+uint64_t Sema::nextAutoMemberOrder()
+{
+    static std::atomic<uint64_t> counter{0};
+    return counter.fetch_add(1, std::memory_order_relaxed) + 1;
+}
+
 SemaScope* Sema::pushScope(SemaScopeFlags flags)
 {
     SemaScope* parent = curScope_;

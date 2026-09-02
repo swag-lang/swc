@@ -95,7 +95,15 @@ Cast to the interface and call its methods.
 
 /**
 # Accessing Interface Methods Directly
-Implementation functions live under a scope named after the interface.
+An 'impl I for T' publishes its functions under a scope named 'I' inside 'T', so
+'value.I.method()' calls that implementation directly, without building an
+interface value and without going through the virtual table.
+
+This is the only place where the right-hand side of a dot names a scope rather
+than a member, and it is what a call to a base implementation is written with: a
+composed type reaches the implementation it wraps as 'me.base.IWnd.onResize(evt)'.
+Because the scope shares the struct's member namespace, an interface name and a
+field name cannot collide on the same struct.
 */
 #test
 {

@@ -995,7 +995,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.app.setAppIcon(appIcon)
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    let dlg    = window.createAboutDialog({year: 2026, month: 9, day: 1})
+    let dlg    = window.createAboutDialog({year: 2026, month: 9, day: 1}, version: "1.2.3")
     dlg.applyLayout()
 
     let surface  = dlg.surface!

@@ -318,37 +318,6 @@ with exactly one language and keeps deliberately.
 - Complete when: the lexer, formatter, editor grammar, and reference share one tested
   disambiguation rule, or generic arguments have a distinct spelling migrated across all four.
 
-### language.design.012 — The leading dot carries four unrelated roles
-
-- Area: language
-- Found while: the same pass
-- Observation: `.name` means "member of `me`" in a method
-  ([006_002_impl.swg:60-63](../bin/reference/modules/language/src/006_002_impl.swg#L60-L63)),
-  "member of the `with` subject" in a `with` block
-  ([011_004_with.swg](../bin/reference/modules/language/src/011_004_with.swg)), "value of the
-  inferred enum type" in an expression or a `case`
-  ([004_004_enum.swg:266-283](../bin/reference/modules/language/src/004_004_enum.swg#L266-L283)),
-  and "member of the interface scope" in `pt2.IReset.set(10)`. Inside a method containing a `with`
-  block and switching on an enum, three of them are live at once, and the resolution order between
-  `with` and `me` had to be fixed by hand in the compiler.
-- Evidence: the ordering fix is in the tree (`Sema.Member.Auto.cpp`), and the ambiguous-`.member`
-  diagnostic is already a separate finding (compiler.core.019 in
-  [compiler.core.md](compiler.core.md)).
-- Elsewhere: the languages with a leading dot give it exactly one rule. Swift's `.member` is
-  implicit-member lookup on the contextual type, and Zig's `.Field` is resolved by the expected
-  type — one subject, decided by the type checker, with no second candidate to order against.
-  Neither has a `with`. The `with` reading is the Pascal family's, and Visual Basic spells it the
-  same way Swag does (`.member` inside `With`); it is also the feature whose scoping ambiguity is
-  the standard cautionary tale — Wirth left it out of Oberon, and Delphi documentation still warns
-  that a `with` silently captures names the reader expected to come from the enclosing scope. Swag
-  stacks that reading on top of Swift's, plus `me`, plus interface scope.
-- Next: this is a design question rather than a defect, and it should be written down as one
-  before the next construct that wants a leading dot is added. The concrete deliverable is a
-  precedence table in the reference — one place stating which subject a leading dot binds to, in
-  which order — rather than four pages that each mention their own case.
-- Complete when: one reference table specifies leading-dot resolution and focused tests cover every
-  overlap among `with`, `me`, inferred enum members, and interface scope.
-
 ### language.design.013 — A `switch` accepts several `default` clauses
 
 - Area: language

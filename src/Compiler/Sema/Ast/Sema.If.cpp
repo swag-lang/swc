@@ -222,20 +222,6 @@ namespace
 
     Result configureWithBindings(Sema& sema, AstNodeRef errorRef, Symbol* symbol, TypeRef rawTypeRef, AstNodeRef baseExprRef, SemaFrame& ioFrame, SemaScope& bodyScope)
     {
-        if (symbol && symbol->isNamespace())
-        {
-            bodyScope.addUsingSymMap(symbol->asSymMap());
-            bodyScope.addAutoMemberBinding({.symMap = symbol->asSymMap()});
-            return Result::Continue;
-        }
-
-        if (symbol && symbol->isEnum())
-        {
-            bodyScope.addUsingSymMap(symbol->asSymMap());
-            bodyScope.addAutoMemberBinding({.symMap = symbol->asSymMap()});
-            return Result::Continue;
-        }
-
         const TypeRef normalizedTypeRef = normalizeWithBindingType(sema.ctx(), rawTypeRef);
         if (!normalizedTypeRef.isValid())
         {
@@ -256,26 +242,35 @@ namespace
             if (typeInfo.isEnum())
                 bodyScope.addUsingSymMap(typeInfo.payloadSymEnum().asSymMap());
 
-            SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
-            if (symVar &&
-                (symVar->hasGlobalStorage() ||
-                 symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-                 symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
-                 symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
-                 symVar->isClosureCapture()))
-            {
-                ioFrame.pushBindingVar(symVar);
-            }
-            else
-            {
-                const SymbolMap* symMap = nullptr;
-                if (typeInfo.isStruct())
-                    symMap = &typeInfo.payloadSymStruct();
-                else if (typeInfo.isEnum())
-                    symMap = &typeInfo.payloadSymEnum();
+            const SymbolMap* symMap = nullptr;
+            if (typeInfo.isStruct())
+                symMap = &typeInfo.payloadSymStruct();
+            else if (typeInfo.isEnum())
+                symMap = &typeInfo.payloadSymEnum();
 
-                bodyScope.addAutoMemberBinding({.symMap = symMap, .typeRef = normalizedTypeRef, .baseExprRef = baseExprRef});
-            }
+            // Every 'with' subject is recorded as an auto-member binding, whatever shape it has,
+            // and carries the rank that says how deeply it is nested. A binding var cannot answer
+            // that question: they are one flat list, shared with the receiver and with the frames a
+            // closure inherits, so a nested 'with' would not be ranked against an enclosing one.
+            SymbolVariable* symVar   = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+            const bool      namedVar = symVar &&
+                                  (symVar->hasGlobalStorage() ||
+                                   symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                                   symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
+                                   symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
+                                   symVar->isClosureCapture());
+
+            // A subject that has a name is reached through its symbol; anything else is reached by
+            // re-evaluating the place the header wrote. Keeping the two shapes apart matters at
+            // code generation: a cloned expression's children are not walked, so a named subject
+            // must not be turned into a cloned expression.
+            const AstNodeRef subjectExprRef = namedVar ? AstNodeRef::invalid() : baseExprRef;
+            bodyScope.addAutoMemberBinding({.symMap = symMap, .typeRef = normalizedTypeRef, .symVar = namedVar ? symVar : nullptr, .baseExprRef = subjectExprRef, .order = sema.nextAutoMemberOrder(), .inlinePayload = sema.frame().currentInlinePayload()});
+
+            // A named subject stays a binding var too: that is what resolves its bare name inside
+            // the block, and the duplicate candidate collapses during collection.
+            if (namedVar)
+                ioFrame.pushBindingVar(symVar);
 
             return Result::Continue;
         }
@@ -555,13 +550,23 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     const AstNodeRef   baseExprRef = withBindingExprRef(sema, nodeExprRef);
     const SemaNodeView exprView    = sema.viewNodeTypeSymbol(baseExprRef);
 
+    // The subject of a 'with' is a value. A namespace, an enum, or a struct type names a scope
+    // instead, and 'using' is what brings a scope into the current context; letting 'with' take
+    // both would give the leading dot a second, unrelated subject to be ranked against.
+    const Symbol* subjectSym = exprView.sym();
+    if (subjectSym && subjectSym->isSymMap())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_with_scope_subject, nodeExprRef);
+        diag.addArgument(Diagnostic::ARG_SYM, subjectSym->getFullScopedName(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     // The block reaches the subject by writing it out again for every '.member' it holds. That is
     // exact for a place — a variable, a field, an element — and wrong for anything computed: a
     // call would run once more per member the block touches, on a different value each time, and
-    // the value the statement itself produced would be dropped. A scope subject (a namespace, an
-    // enum, a struct) names no value and is bound by its symbol map instead.
-    const Symbol* subjectSym = exprView.sym();
-    if (baseExprRef.isValid() && !(subjectSym && subjectSym->isSymMap()) && !sema.isLValue(baseExprRef))
+    // the value the statement itself produced would be dropped.
+    if (baseExprRef.isValid() && !sema.isLValue(baseExprRef))
         return SemaError::raise(sema, DiagnosticId::sema_err_with_needs_a_place, baseExprRef);
 
     auto       scopedFrame = sema.frame();

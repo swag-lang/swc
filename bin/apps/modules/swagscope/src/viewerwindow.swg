@@ -1417,12 +1417,15 @@ impl ViewerWindow
     }
 
     // Creates the standard product identity, provenance, and capability dialog.
-    mtd createAboutDialog(buildDate: Time.DateTime)->*AboutDlg
+    // `version` is a parameter for the same reason `buildDate` is: the live one carries the
+    // compiler build number, which moves with every compiler change, and a golden of this box
+    // would be invalidated by each of them.
+    mtd createAboutDialog(buildDate: Time.DateTime, version: #null string = null)->*AboutDlg
     {
-        let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
-        let dlg     = AboutDlg.createApplication(.surface!, {
+        let liveVersion = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
+        let dlg         = AboutDlg.createApplication(.surface!, {
             productName: ProductName,
-            version: version.toString(),
+            version: version orelse liveVersion.toString(),
             buildDate: buildDate,
             sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/swagscope",
             copyrightHolder: "Christophe Beaudet"})

@@ -141,7 +141,7 @@ internal impl Properties
 
             // A field that names a document takes one dropped from the desktop; the path
             // replaces the value and commits with the focus, exactly as a typed one does.
-            if Reflection.hasAttribute(value, .FilePath) do
+            if Reflection.hasAttribute(value, Properties.FilePath) do
                 .updateFlags(.AcceptFileDrop)
 
             .sigFocusLost += func|prop = me, item|(ed) { prop.validateDynamicString(item); }

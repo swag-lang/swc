@@ -2,9 +2,13 @@
 
 /**
 # The 'with' Statement
-The 'with' statement reduces repetition by letting you access fields and methods
-of a variable, struct, or namespace within a scoped block. Inside a 'with' block,
-the '.' prefix refers to the selected object, yielding concise, readable code.
+The 'with' statement reduces repetition by letting you access the fields and
+methods of one value within a scoped block. Inside a 'with' block, the leading
+dot names a member of that value.
+
+The subject is always a value — a variable, a field, an element, or a value the
+header declares. A namespace, an enum, or a struct type names a scope rather than
+a value, and 'using' is what brings a scope into the current context.
 */
 
 struct Point
@@ -19,24 +23,6 @@ impl Point
         me.x, me.y = 1
 
     // Set both coordinates to 1 on this Point.
-    }
-}
-
-/**
-# 'with' and a Namespace
-You can apply 'with' to a namespace to call functions or access constants
-without fully qualifying names.
-*/
-namespace NameSpace
-{
-    func inside0()
-    {
-    // Example namespaced function.
-    }
-
-    func inside1()
-    {
-    // Another namespaced function.
     }
 }
 
@@ -75,19 +61,6 @@ Inside a 'with' block, you can invoke methods and access fields directly.
 
     Swag.assert(pt.x == 1)
     Swag.assert(pt.y == 2)
-}
-
-/**
-# Using Names from a 'with' Namespace
-Demonstrates calling namespaced functions via 'with'.
-*/
-#test
-{
-    with NameSpace
-    {
-        .inside0()
-        .inside1()
-    }
 }
 
 /**

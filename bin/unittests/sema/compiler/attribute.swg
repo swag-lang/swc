@@ -104,8 +104,6 @@ func semaTest002()
 
 func semaTest003()
 {
-    with AttrTypeInfoReflection
-    {
-        discard hasAttribute(ReflectedAttrTypeInfoArg, .AttrTypeInfoArg)
-    }
+    using AttrTypeInfoReflection
+    discard hasAttribute(ReflectedAttrTypeInfoArg, AttrTypeInfoReflection.AttrTypeInfoArg)
 }

@@ -139,21 +139,16 @@ func jitWithAssignmentsAndScopes()->s32
         .y += 2
     }
 
-    with JitWithAssignColor
-    {
-        let a = Red
-        let b = .Blue
-        total += jitWithAssignColorScore(a)
-        total += jitWithAssignColorScore(.Blue)
-        if b == Blue do
-            total += 1
-    }
+    using JitWithAssignColor
+    let a = Red
+    let b = Blue
+    total += jitWithAssignColorScore(a)
+    total += jitWithAssignColorScore(.Blue)
+    if b == Blue do
+        total += 1
 
-    with JitWithAssignNs
-    {
-        total += bias(2)
-        total += .bias(0)
-    }
+    total += JitWithAssignNs.bias(2)
+    total += JitWithAssignNs.bias(0)
 
     return point.x + point.y + total
 }

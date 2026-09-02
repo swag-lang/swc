@@ -40,14 +40,11 @@ func viewerSmokeDirectory(arguments: const [..] string)->String
 
 private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
 {
-    with Env
+    Env.registerApplication(ApplicationId, ProductName)
+    for plugin in registry.plugins where plugin.matchNames
     {
-        .registerApplication(ApplicationId, ProductName)
-        for plugin in registry.plugins where plugin.matchNames
-        {
-            for extension in plugin.selectors where extension[] != "*" and extension[].toString()[0] == '.' do
-                .associateFileExtension(extension[].toString(), ApplicationId, Env.executablePath())
-        }
+        for extension in plugin.selectors where extension[] != "*" and extension[].toString()[0] == '.' do
+            Env.associateFileExtension(extension[].toString(), ApplicationId, Env.executablePath())
     }
 }
 

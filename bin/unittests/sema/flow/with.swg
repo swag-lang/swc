@@ -201,21 +201,16 @@ func semaTest006()
 {
     var sum = 0
 
-    with SemaWithColor
-    {
-        let a = Red
-        let b = .Blue
-        sum += semaWithColorScore(a)
-        sum += semaWithColorScore(.Blue)
-        if b == Blue do
-            sum += 1
-    }
+    using SemaWithColor
+    let a = Red
+    let b = Blue
+    sum += semaWithColorScore(a)
+    sum += semaWithColorScore(.Blue)
+    if b == Blue do
+        sum += 1
 
-    with SemaWithNs
-    {
-        sum += bias(1)
-        sum += .bias(2)
-    }
+    sum += SemaWithNs.bias(1)
+    sum += SemaWithNs.bias(2)
 
     Swag.assert(sum == 21)
 }
@@ -305,4 +300,37 @@ func semaWithErr002()
     {
         .x += 1
     }
+}
+
+// Two nested 'with' blocks whose subjects share a member: the inner one is the innermost subject
+// and answers. This used to resolve to the enclosing 'with' instead.
+struct SemaWithOuterSubject
+{
+    value: s32
+}
+
+struct SemaWithInnerSubject
+{
+    value: s32
+}
+
+func semaWithNestedPrecedence()->s32
+{
+    var outer: SemaWithOuterSubject
+    var inner: SemaWithInnerSubject
+
+    with outer
+    {
+        with inner
+        {
+            .value = 7
+        }
+    }
+
+    return outer.value * 100 + inner.value
+}
+
+#test
+{
+    Swag.assert(semaWithNestedPrecedence() == 7)
 }

@@ -56,12 +56,9 @@ const SurfaceId     = "swag.capture"
     // the surface is destroyed.
     surface.setTrayIcon(appIcon, ProductName)
 
-    with Env
-    {
-        .registerApplication(ApplicationId, ProductName)
-        .associateFileExtension(".png", ApplicationId, Env.executablePath())
-        .associateFileExtension(".jpg", ApplicationId, Env.executablePath())
-    }
+    Env.registerApplication(ApplicationId, ProductName)
+    Env.associateFileExtension(".png", ApplicationId, Env.executablePath())
+    Env.associateFileExtension(".jpg", ApplicationId, Env.executablePath())
 
     for arg in args
     {

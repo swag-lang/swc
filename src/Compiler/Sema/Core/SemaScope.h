@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolMap;
 class Symbol;
 class SymbolVariable;
+struct SemaInlinePayload;
 
 enum class SemaScopeFlagsE
 {
@@ -29,6 +30,17 @@ public:
         TypeRef          typeRef     = TypeRef::invalid();
         SymbolVariable*  symVar      = nullptr;
         AstNodeRef       baseExprRef = AstNodeRef::invalid();
+
+        // Ranks one subject against another. A binding created later is nested inside the ones
+        // created before it, and that is the only ordering a leading dot needs: the scope chain
+        // cannot answer it, because a subject is not always recorded on the scope a reader would
+        // call innermost, and binding vars live in one flat list shared with the receiver.
+        uint64_t order = 0;
+
+        // The inline expansion this subject was written in, or null for ordinary source. An
+        // inlined body sees the caller's scopes, and a subject the caller owns is not one of the
+        // body's own: it ranks behind the body's receiver, exactly like a caller's binding var.
+        const SemaInlinePayload* inlinePayload = nullptr;
     };
 
     static constexpr uint32_t UNIQ_COUNT = 10;

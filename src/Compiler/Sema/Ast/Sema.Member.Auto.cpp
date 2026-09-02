@@ -56,6 +56,16 @@ namespace
         return typeRef;
     }
 
+    // A leading dot reads on one of two planes. The subject plane names a member of a value
+    // that is in scope ('me', a 'with' target); the type plane names a member of the type the
+    // position itself asks for ('.EnumValue' in a typed slot). They answer different questions,
+    // so they are ranked apart instead of sharing one precedence run.
+    enum class AutoMemberPlane : uint8_t
+    {
+        Subject,
+        Type,
+    };
+
     struct AutoMemberCandidate
     {
         const SymbolMap*      symMap        = nullptr;
@@ -64,6 +74,12 @@ namespace
         const SymbolVariable* symVar        = nullptr;
         AstNodeRef            baseExprRef   = AstNodeRef::invalid();
         uint32_t              precedence    = UINT32_MAX;
+        AutoMemberPlane       plane         = AutoMemberPlane::Subject;
+
+        // A subject the caller owns, reachable here only because an inlined body inherits the
+        // caller's frame. It is not one of this body's own subjects, so it neither answers for
+        // "innermost" nor counts as a name this body shadows.
+        bool fromCaller = false;
     };
 
     struct AutoMemberMatch
@@ -191,7 +207,7 @@ namespace
         return typeInfo.tryGetAggregateMemberIndexByName(memberIndex, sema.ctx(), idRef);
     }
 
-    Result addCandidateFromType(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, TypeRef typeRef, const SymbolVariable* symVar, AstNodeRef baseExprRef, uint32_t precedence)
+    Result addCandidateFromType(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, TypeRef typeRef, const SymbolVariable* symVar, AstNodeRef baseExprRef, uint32_t precedence, AutoMemberPlane plane)
     {
         const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), typeRef);
         if (!normalizedTypeRef.isValid())
@@ -216,16 +232,16 @@ namespace
         if (typeInfo.isStruct())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
+            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence, .plane = plane});
         }
         else if (typeInfo.isEnum())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
+            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence, .plane = plane});
         }
         else if (typeInfo.isAggregateStruct())
         {
-            outCandidates.push_back({.typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
+            outCandidates.push_back({.typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence, .plane = plane});
         }
 
         return Result::Continue;
@@ -309,7 +325,7 @@ namespace
                 const auto& boundVar = boundSymbol->cast<SymbolVariable>();
                 if (SemaHelpers::bindingSymbolResolvesStandalone(sema, boundVar))
                 {
-                    SWC_RESULT(addCandidateFromType(sema, outCandidates, boundVar.typeRef(), &boundVar, AstNodeRef::invalid(), precedence++));
+                    SWC_RESULT(addCandidateFromType(sema, outCandidates, boundVar.typeRef(), &boundVar, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Subject));
                     return Result::Continue;
                 }
             }
@@ -328,7 +344,7 @@ namespace
             if (typeRef.isInvalid())
                 continue;
 
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, typeRef, nullptr, binding.exprRef, precedence++));
+            SWC_RESULT(addCandidateFromType(sema, outCandidates, typeRef, nullptr, binding.exprRef, precedence++, AutoMemberPlane::Subject));
             return Result::Continue;
         }
 
@@ -382,15 +398,16 @@ namespace
 
     Result addCandidatesFromAutoMemberBindings(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, std::span<const SemaScope::AutoMemberBinding> autoMemberBindings, uint32_t& precedence)
     {
-        for (auto& binding : std::ranges::reverse_view(autoMemberBindings))
+        // Ranked innermost first by the caller, so this reads them in order.
+        for (auto& binding : autoMemberBindings)
         {
             if (binding.typeRef.isValid())
             {
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef, precedence++));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef, precedence++, AutoMemberPlane::Subject));
             }
             else if (binding.symMap)
             {
-                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef, .precedence = precedence++});
+                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef, .precedence = precedence++, .plane = AutoMemberPlane::Subject});
             }
         }
 
@@ -418,6 +435,22 @@ namespace
                 autoMemberBindings.push_back(binding);
         }
 
+        // Order the subject stack once: the body's own subjects first, innermost of them first.
+        // The scope a binding sits on answers neither question — a 'with' body pushes its scope
+        // before the frame that reads it, so the chain walked above does not arrive in nesting
+        // order, and an inlined body sees the caller's scopes as if they were its own.
+        const SemaInlinePayload* currentInlinePayload = frame.currentInlinePayload();
+        const auto               subjectIsOwn         = [currentInlinePayload](const SemaScope::AutoMemberBinding& binding) { return binding.inlinePayload == currentInlinePayload; };
+        std::ranges::stable_sort(autoMemberBindings, [&](const SemaScope::AutoMemberBinding& a, const SemaScope::AutoMemberBinding& b) {
+            if (subjectIsOwn(a) != subjectIsOwn(b))
+                return subjectIsOwn(a);
+            return a.order > b.order;
+        });
+
+        const size_t ownBindingCount = static_cast<size_t>(std::ranges::count_if(autoMemberBindings, subjectIsOwn));
+        const auto   ownBindings     = autoMemberBindings.span().subspan(0, ownBindingCount);
+        const auto   callerBindings  = autoMemberBindings.span().subspan(ownBindingCount);
+
         const auto hasEnumBindingType = [&] {
             for (const TypeRef bindingTypeRef : bindingTypes)
             {
@@ -441,26 +474,23 @@ namespace
                 const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), bindingType);
                 if (normalizedTypeRef.isInvalid() || !sema.typeMgr().get(normalizedTypeRef).isEnum())
                     continue;
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Type));
             }
         }
 
-        // A `with` block must shadow the enclosing receiver `me`. `with <var>` targets
-        // are pushed as binding vars after the receiver (so they already outrank it),
-        // but `with <member-access>`/`with <expr>` targets are auto-member bindings,
-        // which must therefore be ranked *before* the binding vars (which include `me`)
-        // so the `with` target — not the receiver — wins for an ambiguous `.member`.
-        if (!bindingTypesFirst)
-            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
-
         // The inline receiver `me` must rank like a non-inlined method's receiver: its own `with`
-        // targets outrank it, but bindings inherited from the caller's frame (the materialized body
-        // inherits the caller frame's binding vars) do not — they belong to the caller, not this
-        // method. So add the method's own binding vars (its `with <var>` targets) first, then `me`,
-        // then the caller-inherited binding vars. In a non-inlined body there is no inline receiver
-        // payload, so every binding var counts as "own" and `me` is itself one of them (added in the
-        // first loop), preserving the original ordering exactly.
+        // targets outrank it, but subjects inherited from the caller's frame (the materialized body
+        // sees the caller's scopes and binding vars) do not — they belong to the caller, not this
+        // method. So the body's own subjects come first, then `me`, then everything the caller owns.
+        // In a non-inlined body there is no inline payload, so every subject counts as "own" and
+        // `me` is one of the binding vars, preserving the original ordering exactly.
         const SemaInlinePayload* inlineReceiverPayload = nearestInlineReceiverPayload(sema);
+
+        // Every `with` subject is an auto-member binding, ranked by how deeply it nests, so this
+        // list is the subject stack from innermost outward. It comes before the binding vars
+        // because those hold the receiver: a `with` target is always nearer than `me`.
+        if (!bindingTypesFirst)
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, ownBindings, precedence));
 
         // A binding var that cannot be named standalone at codegen (a macro's own `me`
         // parameter pushed as the receiver binding) must not produce a bare-symbol
@@ -469,31 +499,39 @@ namespace
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
             if (!isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar) && SemaHelpers::bindingSymbolResolvesStandalone(sema, *bindingVar))
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Subject));
         }
 
         SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
 
+        const size_t callerCandidateStart = outCandidates.size();
+        if (!bindingTypesFirst)
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, callerBindings, precedence));
+
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
             if (isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar) && SemaHelpers::bindingSymbolResolvesStandalone(sema, *bindingVar))
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Subject));
         }
+
+        for (size_t i = callerCandidateStart; i < outCandidates.size(); ++i)
+            outCandidates[i].fromCaller = true;
 
         if (!bindingTypesFirst)
         {
             for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
             {
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Type));
             }
         }
 
         if (bindingTypesFirst)
         {
-            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, ownBindings, precedence));
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, callerBindings, precedence));
             for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
             {
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Type));
             }
         }
 
@@ -522,6 +560,42 @@ namespace
         }
 
         return Result::Continue;
+    }
+
+    // The innermost subject answers. A leading dot that reached past it did so only because
+    // that subject lacks the name, which is the classic 'with' defect: the block silently
+    // hands the access to the enclosing receiver. Reject it, and let the source name a subject.
+    Result checkAutoScopeIsInnermost(Sema& sema, AstNodeRef nodeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, const AutoMemberCandidate& selected)
+    {
+        if (selected.plane != AutoMemberPlane::Subject || selected.typeRef.isInvalid())
+            return Result::Continue;
+
+        // Inside an inlined body or an expanded macro two functions' subjects are live at once, and
+        // which of them is nearer is a property of the expansion rather than of anything a reader
+        // wrote. The rule is enforced on the source as written: the same body is analyzed with its
+        // own receiver innermost and no caller in scope.
+        if (nearestInlineReceiverPayload(sema))
+            return Result::Continue;
+
+        const AutoMemberCandidate* innermost = nullptr;
+        for (const auto& candidate : candidates)
+        {
+            if (candidate.plane != AutoMemberPlane::Subject || candidate.fromCaller)
+                continue;
+            if (!innermost || candidate.precedence < innermost->precedence)
+                innermost = &candidate;
+        }
+
+        if (!innermost || innermost->precedence == selected.precedence || innermost->typeRef.isInvalid())
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_not_innermost, nodeRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
+        diag.addArgument(Diagnostic::ARG_TYPE, innermost->typeRef);
+        diag.addNote(DiagnosticId::sema_note_auto_scope_hint);
+        diag.last().addArgument(Diagnostic::ARG_TYPE, selected.typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result probeAutoMemberCandidates(Sema& sema, const SourceCodeRef& codeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, SmallVector2<AutoMemberMatch>& outMatches)
@@ -841,6 +915,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     }
 
     AutoMemberCandidate selected = matches.front().candidate;
+    SWC_RESULT(checkAutoScopeIsInnermost(sema, sema.curNodeRef(), idRef, candidates.span(), selected));
     bindCurrentReceiverIfCandidateMatches(sema, selected);
 
     if (selected.symMap)

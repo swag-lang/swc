@@ -4,6 +4,7 @@ using Core, Pixel
 public struct EditDlg
 {
     public using dialog: Dialog     // Embedded dialog state.
+
     public readonly
     {
         #[Swag.Late]

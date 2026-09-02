@@ -34,6 +34,7 @@ public struct Outline
 {
     // The face owns the arrays and their shape. Public outline methods may mutate
     // the pointed-to coordinates without allowing callers to replace the view.
+
     public readonly
     {
         contourCount: s16                  // Number of closed contours.

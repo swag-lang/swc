@@ -59,6 +59,7 @@ struct Header
 
         // The columns the header shows, and which one it sorts on. Add columns through the methods
         // so the layout and the owning list stay in step.
+
         readonly
         {
             flags         = HeaderFlags.Clickable | .Separators     // Active interaction and separator options.

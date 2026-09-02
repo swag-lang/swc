@@ -7,6 +7,7 @@ struct(T = MultiplyWithCarry32) Generator
 {
     // The generator state and whether it was seeded. Seed and draw through the methods:
     // reading a raw state tells nothing, and writing one can produce a degenerate sequence.
+
     private
     {
         rng:      T        // State of the underlying generator.

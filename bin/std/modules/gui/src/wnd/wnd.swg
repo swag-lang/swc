@@ -269,6 +269,7 @@ struct Wnd
         invalidatePadding: Math.Vector4     // Extra repaint extent around the logical rectangle.
 
         // Presentation-only state changes painting without moving layout, hit testing, or focus.
+
         readonly
         {
             presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
@@ -329,10 +330,12 @@ struct Wnd
 
     isAllocated:      bool     // Whether destruction must release this allocation.
     paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
+
     public
     {
         // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
         // writing it from outside would desynchronize the pass from the tree.
+
         readonly
         {
             isPendingDestroy: bool                // Whether the window is scheduled for destruction.

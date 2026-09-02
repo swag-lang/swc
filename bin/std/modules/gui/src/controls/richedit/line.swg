@@ -6,6 +6,7 @@ public struct RichEditLine
 {
     // One line of the document: its runes, the style of each rune, and the state the layout
     // and the lexer left on it. The control that owns the line maintains all of it.
+
     internal
     {
         chars:            Array'rune                 // Runes of the line, without its terminator.

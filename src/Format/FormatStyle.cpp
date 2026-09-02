@@ -33,6 +33,8 @@ namespace
         o.blankLineBeforeTypeDefinition        = FormatBlankLineStyle::Always;
         o.blankLineBeforeCommentBlock          = FormatBlankLineStyle::Always;
         o.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Always;
+        o.blankLineBeforeAccessBlock           = FormatBlankLineStyle::Always;
+        o.blankLineAfterAccessBlock            = FormatBlankLineStyle::Always;
 
         // Indentation
         o.indentStyle             = FormatIndentStyle::Spaces;

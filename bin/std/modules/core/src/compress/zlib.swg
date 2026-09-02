@@ -8,6 +8,7 @@ using Core.Errors
 struct ZLib
 {
     // One codec of each direction, reused across calls.
+
     private
     {
         decoder: Inflate     // Decompressor used by 'decompress'.

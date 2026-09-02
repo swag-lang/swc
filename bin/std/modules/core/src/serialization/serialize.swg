@@ -66,6 +66,7 @@ struct Serializer
 
     // The backend the serializer drives. It is chosen by 'startWrite' and 'startRead', which
     // also pair it with the matching 'end'.
+
     internal
     {
         encode: #null IEncoder     // Encoder used while writing.

@@ -25,7 +25,6 @@ bool MicroRegisterAllocationPass::intervalAllocationAccepts() const
     const Runtime::BuildCfgBackend& backendCfg = context_->builder->backendBuildCfg();
     if (!backendCfg.splitsLiveRanges())
         return false;
-
     // The same CFG precision the write-back protocol needs: every edge into
     // every block known. keepAcrossBoundaries_ is not computed yet at this
     // point, so the condition is tested directly.

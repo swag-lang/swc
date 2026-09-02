@@ -8,6 +8,7 @@ public struct PaintImage
     public paint: #null func||(app: *Application, painter: *Painter)
 
     // The offscreen application, its painter and the surface backing the render target.
+
     private
     {
         app:     Application     // Headless application driving the offscreen paint.

@@ -33,6 +33,7 @@ struct ImageCanvas
     public painter: Painter     // Records the drawing; every painter operation is available.
 
     // The size of the surface being drawn, established by 'create'.
+
     public readonly
     {
         width:  s32     // Canvas width, in pixels.
@@ -45,6 +46,7 @@ struct ImageCanvas
     // The renderer and the target live on the heap because the renderer keeps a pointer to the
     // bound target: moving either of them, as returning a canvas by value would, leaves that
     // pointer behind. On the heap their addresses outlive every move of the canvas itself.
+
     internal
     {
         renderer:   #null *RenderCpu        // Owns the target and executes painter commands.

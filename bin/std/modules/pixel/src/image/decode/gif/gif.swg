@@ -69,6 +69,7 @@ public struct Decoder
 {
     // Decoding state: the logical screen, the frame being assembled, and the input cursor.
     // Drive the decoder through its methods; every field below is one step of that work.
+
     private
     {
         fd:         s32                // Frame delay of the frame being decoded, in hundredths of a second.

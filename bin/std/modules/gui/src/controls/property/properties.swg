@@ -113,6 +113,7 @@ struct Properties
 
         // Construction options are read-only to callers. Use the setters below when a value has to
         // change so cached layout state remains synchronized.
+
         readonly
         {
             kind             = PropertiesKind.List     // Presentation selected at creation.
@@ -158,12 +159,14 @@ struct Properties
     fontSection:  FontFamily
     fontCategory: FontFamily
     fontName:     FontFamily
+
     public
     {
         sigValueChanged: SigArray'func||(*Properties, #null *PropertiesItem)     // Emitted after an edited value changes; item is null for detached undo/redo.
 
         // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
         // selection moves with the keyboard and the mouse; a host reads both to follow the grid.
+
         readonly
         {
             items:   ArrayPtr'PropertiesItem     // Rows of the grid, in display order.

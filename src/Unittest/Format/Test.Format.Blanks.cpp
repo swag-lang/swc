@@ -220,6 +220,119 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBraceAlways)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksAlways)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Record\n"
+        "{\n"
+        "    public\n"
+        "    {\n"
+        "        first: s32\n"
+        "    }\n"
+        "    cached: bool\n"
+        "    public\n"
+        "    {\n"
+        "        value: s32\n"
+        "        readonly\n"
+        "        {\n"
+        "            count: s32\n"
+        "        }\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Record\n"
+        "{\n"
+        "    public\n"
+        "    {\n"
+        "        first: s32\n"
+        "    }\n"
+        "\n"
+        "    cached: bool\n"
+        "\n"
+        "    public\n"
+        "    {\n"
+        "        value: s32\n"
+        "\n"
+        "        readonly\n"
+        "        {\n"
+        "            count: s32\n"
+        "        }\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Always;
+    options.blankLineAfterAccessBlock  = FormatBlankLineStyle::Always;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksNever)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Record\n"
+        "{\n"
+        "\n"
+        "    public\n"
+        "    {\n"
+        "        first: s32\n"
+        "    }\n"
+        "\n"
+        "    cached: bool\n"
+        "\n"
+        "    readonly\n"
+        "    {\n"
+        "        count: s32\n"
+        "    }\n"
+        "\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Record\n"
+        "{\n"
+        "    public\n"
+        "    {\n"
+        "        first: s32\n"
+        "    }\n"
+        "    cached: bool\n"
+        "    readonly\n"
+        "    {\n"
+        "        count: s32\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Never;
+    options.blankLineAfterAccessBlock  = FormatBlankLineStyle::Never;
+    options.maxConsecutiveEmptyLines   = 0;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksPreserve)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Record\n"
+        "{\n"
+        "    cached: bool\n"
+        "\n"
+        "    public\n"
+        "    {\n"
+        "        value: s32\n"
+        "    }\n"
+        "\n"
+        "    tail: bool\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Preserve;
+    options.blankLineAfterAccessBlock  = FormatBlankLineStyle::Preserve;
+    options.maxConsecutiveEmptyLines   = 0;
+    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBlanks_TrimTrailingNewlinesCollapsesToOne)
 {
     static constexpr std::string_view SOURCE =

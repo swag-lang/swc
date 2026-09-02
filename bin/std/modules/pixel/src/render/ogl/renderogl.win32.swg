@@ -84,7 +84,7 @@ internal impl NativeRenderOgl
     // Makes `rc` current on the calling thread.
     mtd setCurrentContext(rc: OglContext)
     {
-        catch wglMakeCurrent(cast(HDC) rc.hDC, cast(HGLRC) rc.hRC)
+        expect wglMakeCurrent(cast(HDC) rc.hDC, cast(HGLRC) rc.hRC)
     }
 
     // Presents the current back buffer for `rc`.

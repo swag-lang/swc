@@ -16,21 +16,23 @@ ships; history lives in git, not here.
 
 ### language.design.001 — Enum switches are silently non-exhaustive
 
-- A `switch` over a three-value enum that handles two of them compiles with no error, no warning,
+- Evidence: a `switch` over a three-value enum that handles two of them compiles with no error, no warning,
   and no `default`; the third value simply falls through to nothing. Exhaustiveness exists but is
   opt-in through `switch #complete`
   ([005_005_switch.swg:178](../bin/reference/modules/language/src/005_005_switch.swg#L178)).
-- Every language that made exhaustiveness the default — Rust, Swift, Kotlin, and Zig for tagged
+- Elsewhere: every language that made exhaustiveness the default — Rust, Swift, Kotlin, and Zig for tagged
   unions — did so because the failure is invisible at the time it is introduced and shows up when
   a value is *added* to the enum later, in code nobody re-read.
-- The decision to make: whether `#complete` should be the default for enum switches, with an
+- Next: decide whether `#complete` should be the default for enum switches, with an
   explicit `else` as the opt-out. That is a breaking change with a mechanical migration, and it
   rides on the warning policy layer that now exists (`#[Swag.Warning]`, `cfg.warnings`,
   `--warn-*`) — without one, the only two answers available are "error" and "silence".
+- Complete when: enum-switch exhaustiveness has one documented default, one explicit opt-out, and
+  compiler and reference tests covering a member added after the switch was written.
 
 ### language.design.002 — There is no tagged union
 
-- `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
+- Evidence: `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written is legal and meaningless
   ([004_006_union.swg](../bin/reference/modules/language/src/004_006_union.swg)). `any` covers the
   dynamic case. There is nothing in between — no discriminated union, no payload-carrying enum,
@@ -39,10 +41,16 @@ ships; history lives in git, not here.
   invariant lives in a comment. `pixel`'s painter command is exactly that — `id: CommandId`
   followed by `using params: union`, documented as "Command-specific payload selected by `id`;
   inactive members must not be read"
-  ([painter.swg:147-149](../bin/std/modules/pixel/src/painter/painter.swg#L147-L149)). Nothing
+  ([painter.swg:222-225](../bin/std/modules/pixel/src/painter/painter.swg#L222-L225)). Nothing
   checks that sentence. Rust, Swift, Zig and modern C# all consider the checked version table
   stakes; it is arguably the single largest expressiveness gap in the language.
-- It interacts with language.design.001 (a tagged union is where exhaustive matching earns its keep) and with
+- Elsewhere: Rust and Swift attach payloads to enum cases, Zig pairs a union with an enum tag, and
+  modern C# models the same closed choice through discriminated records and exhaustive patterns.
+- Next: design the smallest tagged-union and payload-pattern contract that composes with existing
+  enum switches without reopening `fail`/`try`/`catch`.
+- Complete when: the language can declare a closed payload-carrying choice, construct every arm,
+  destructure it in a switch, and diagnose a missing or mismatched arm in focused reference tests.
+- Related: it interacts with language.design.001 (a tagged union is where exhaustive matching earns its keep) and with
   the error-handling design already shipped (`fail`/`try`/`catch`), which chose a different axis
   and should not be re-litigated by the same feature.
 
@@ -50,39 +58,63 @@ ships; history lives in git, not here.
 
 ### language.design.003 — The generic instantiation chain omits the call site
 
-- The diagnostic is already better than most: it reports the error inside the generic *and*
+- Evidence: the diagnostic reports the error inside the generic *and*
   attaches a note naming the specialization (`while checking generic function 'doubleIt' with
   T = Point`). What it does not do is name the call site that caused the instantiation — the one
   line the user has to change. Adding that frame to the instantiation chain is a small, immediate
   win.
+- Next: retain the call expression that requested each generic instantiation and append it to the
+  diagnostic context without duplicating frames during nested or repeated instantiations.
+- Complete when: a failing nested generic reports the original error, every specialization in the
+  chain, and the source span of each call that requested the next specialization.
 - Related: language.design.004
 
-### language.design.004 — Generic constraints cannot name a required interface
+### language.design.004 — Generic interface requirements have no first-class spelling
 
-`where` is a compile-time boolean over generic parameters
-([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)).
-There is no declaration-site way to state that `T` must provide a member or satisfy a named
-contract, so a missing operation fails only inside an instantiation. Decide named contracts versus
-predicates after language.design.003 makes the current model's diagnostics complete.
+- Evidence: `where` is a compile-time boolean over generic parameters
+  ([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)),
+  and the standard library can already express an interface requirement as
+  `where Reflection.hasInterface(T, IFoo)`. `Reflection.hasInterface` is a public `#[ConstExpr]`
+  predicate ([struct.swg:145-168](../bin/std/modules/core/src/reflection/struct.swg#L145-L168)),
+  just as generic operations already use predicates such as `where Reflection.canCompare(T)`
+  ([array.swg:732](../bin/std/modules/core/src/collections/array.swg#L732)).
+  What is missing is a first-class bound that declares the contract, participates directly in
+  overload diagnostics, and lets the generic body be checked against the interface rather than
+  waiting for each concrete instantiation.
+- `T is IFoo` is not that bound. Bare `is` requires a value on the left and performs a dynamic
+  struct/interface cast test
+  ([Sema.Cast.cpp:199-208](../src/Compiler/Sema/Ast/Sema.Cast.cpp#L199-L208)).
+  `Swag.typeIs(IFoo, T)` accepts type information, but follows exact type and `using`-field ancestry;
+  it does not inspect the interfaces implemented by `T`
+  ([core.swg:21-55](../bin/runtime/core.swg#L21-L55)).
+  `where T is IFoo` remains a plausible new bound spelling, but it would add a type-level meaning
+  to today's value-level operator rather than reuse behavior the language already has.
+- Elsewhere: Rust traits, Swift protocols, C# interface constraints, and Go type constraints all
+  put the required named contract in the generic declaration and diagnose its absence at the call.
+- Next: decide whether the existing predicate is the permanent contract or whether generic
+  parameters need a first-class interface-bound spelling. In either case, make the interface name
+  part of the failed-constraint diagnostic and document the preferred declaration-site form.
+- Complete when: a generic declaration can state a required interface in the reference's preferred
+  spelling, a conforming type can use the interface operations in its body, and a non-conforming
+  call is rejected at the call site with the interface and declaration named.
 
 - Related: language.design.003
 
 ### language.design.005 — The concurrency model is undecided
 
-- The library omissions are split into std.core.025 (tasks), std.core.026 (channels), std.core.027 (condition
+- Evidence: the library omissions are split into std.core.025 (tasks), std.core.026 (channels), std.core.027 (condition
   variables), and std.core.028 (asynchronous I/O). This entry owns only the language-level concurrency
   decision that must precede those API choices.
-- Go answered with goroutines and channels, Rust with `async` and a futures machinery that reaches
+- Elsewhere: Go answered with goroutines and channels, Rust with `async` and a futures machinery that reaches
   into the type system, .NET with `Task`. Each answer changed the language, not just the library.
-- The forcing function is already scheduled: [std.core.001](std.core.md#stdcore001--no-blocking-tcp-sockets) puts
+- Next: decide the language-level execution, suspension, cancellation, and error-propagation model
+  before the standard library commits to tasks or channels. The forcing function is already
+  scheduled: [std.core.004](std.core.md#stdcore004--no-non-blocking-socket-readiness-api) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.
-
----
-
-The entries below were open investigations when the unified backlog was introduced. Update their
-next action in place as the evidence matures. They retain their former order until re-triaged, so
-position in this imported block carries no priority claim.
+- Complete when: the language has a recorded concurrency model with an executable prototype that
+  settles suspension, scheduling, cancellation, and failure, and std.core.025–.028 can design their
+  APIs against it without inventing a second model.
 
 Surprises in the language itself: rules that are consistent on their own page and stop being
 consistent once two pages meet, spellings that carry more than one meaning, and defaults that
@@ -93,7 +125,7 @@ should say it.
 
 Compiler defects are in [compiler.core.md](compiler.core.md).
 
-Every entry carries an `Elsewhere` line: what the neighbouring languages do about the same
+Each comparative investigation carries an `Elsewhere` line: what the neighbouring languages do about the same
 question. A wart no one else has and a convention half the industry shares are different problems,
 and the line exists so the difference is on the page before anyone argues from taste. It is not an
 argument that Swag should follow the majority — several entries below record a rule Swag shares
@@ -126,10 +158,12 @@ with exactly one language and keeps deliberately.
   the fix rather than for the rule: tuple element names are cosmetic there too, and the compiler
   emits CS8123 — "the tuple element name is ignored because a different name is specified by the
   target type" — for exactly the shape this entry is about.
-- Next step: decide whether a positional pattern whose every name matches a field of the source —
+- Next: decide whether a positional pattern whose every name matches a field of the source —
   in a different order — should be a warning (`sema_warn_positional_pattern_shadows_field`) or an
   error. A warning is enough: the shape is unambiguous to detect, and the fix is one colon per
   binding. It also needs the warning-policy layer that now exists, so it is cheap.
+- Complete when: reordered field-looking positional patterns cannot silently bind the wrong fields,
+  and the reference and compiler tests show the positional and named spellings side by side.
 - Related: the same pattern syntax is what `let {r, g, b} = getWhite()` uses in
   [007_008_retval.swg:49](../bin/reference/modules/language/src/007_008_retval.swg#L49), where the
   names read as field names and happen to be in order.
@@ -155,10 +189,12 @@ with exactly one language and keeps deliberately.
   grouped form — each parameter repeats its type. Where C++ *does* allow several declarators on one
   line, `int a = 0, b;` gives the initializer to `a` alone, which is the reading this entry proposes:
   the language that looks most like Swag here already decided the other way.
-- Next step: sweep `bin/` for grouped parameter declarations carrying a default and count how many
+- Next: sweep `bin/` for grouped parameter declarations carrying a default and count how many
   are deliberate. If the honest answer is "almost none", the rule to consider is that a default in a
   grouped declaration applies to the last name only, or is rejected outright — both are mechanical
   migrations. Decide it before the surface grows further.
+- Complete when: grouped defaults have a measured compatibility cost and one documented rule, with
+  reference and compiler tests covering named calls that omit each member of the group.
 
 ## Value and conversion semantics
 
@@ -168,7 +204,7 @@ with exactly one language and keeps deliberately.
 - Found while: the same pass
 - Observation: when two integer operands have the same width and differ in signedness, "the
   unsigned type wins"
-  ([003_006_operators.swg:243-265](../bin/reference/modules/language/src/003_006_operators.swg#L243-L265)).
+  ([003_006_operators.swg:348-368](../bin/reference/modules/language/src/003_006_operators.swg#L348-L368)).
   Because Swag deliberately does *not* promote 8- and 16-bit operands to 32 bits the way C does,
   that rule has no wider type to escape into: `s8 + u8` is computed in `u8`, so a negative left
   operand is not added, it is reinterpreted. The expression that looks like arithmetic is a guarded
@@ -184,11 +220,13 @@ with exactly one language and keeps deliberately.
   integer types do not convert implicitly, and Zig's peer-type resolution additionally requires the
   result to hold both operands. So the two rules Swag combines — no promotion, and unsigned wins —
   are each held by a different half of the field, and no language holds both.
-- Next step: the promotion table is a deliberate design choice and should not be re-litigated
+- Next: the promotion table is a deliberate design choice and should not be re-litigated
   wholesale. What can be decided narrowly is whether a *mixed-signedness* operation, specifically,
   deserves a warning at the operator rather than a panic at the conversion — the operand types are
   known statically, so it costs nothing, and it is the one case where the "no C promotion" rule and
   the "unsigned wins" rule combine into something neither one predicts.
+- Complete when: mixed-signedness arithmetic has a recorded policy and its diagnostics, operator
+  reference, compile-time behavior, checked-runtime behavior, and release behavior agree.
 
 ## Failure handling
 
@@ -213,10 +251,13 @@ with exactly one language and keeps deliberately.
   none of those also offers a visible keyword meaning the same thing, so no reader has to decide
   which of two spellings is in force. The second half has no precedent at all: no language changes
   what a keyword means inside a test.
-- Next step: these are two independent decisions and should be taken separately. For the first,
+- Next: these are two independent decisions and should be taken separately. For the first,
   measure how much `bin/` relies on the implicit form before considering making `try` mandatory. For
   the second, `expect` already exists and says what it means; the `#test` aliasing buys three saved
   characters and costs a reader the ability to read one line in isolation.
+- Complete when: propagation sites and test assertions each have one context-independent,
+  documented spelling, with migration counts and focused tests for fallible calls inside and outside
+  `#test`.
 
 ### language.design.010 — `catch` without a capture substitutes the type default and says nothing
 
@@ -237,11 +278,13 @@ with exactly one language and keeps deliberately.
   `Result` trips `#[must_use]`), Go makes the discard explicit with `_`. Swag's `catch` is the only
   one that both handles and substitutes with no mark, in a language that otherwise requires
   `discard` for an unread `s32`.
-- Next step: the shape is legitimate and has real uses. What it lacks is the deliberateness the rest
+- Next: the shape is legitimate and has real uses. What it lacks is the deliberateness the rest
   of the language asks for. Consider making the discarding form its own spelling — `catch discard
   f()`, or requiring the `as err` capture and letting an unread `err` be the thing the warning layer
   reports — so that "I looked at the error and chose to ignore it" and "I did not look" stop reading
   the same.
+- Complete when: intentional error discard is either explicit or deliberately retained as implicit,
+  and the reference and compiler tests distinguish discard, fallback, capture, and propagation.
 
 ## Overloaded syntax and declaration rules
 
@@ -267,11 +310,13 @@ with exactly one language and keeps deliberately.
   and Rust's turbofish `::<>` exists *because* generic arguments in expression position need a
   marker the parser cannot confuse — which is the same problem `'` is solving here, with the one
   character already carrying three other meanings.
-- Next step: nothing here is broken, and changing a sigil is expensive. What is worth measuring is
+- Next: nothing here is broken, and changing a sigil is expensive. What is worth measuring is
   the cost paid elsewhere: check how the syntax highlighter, the formatter's classifier, and the
   language reference each disambiguate, and whether any of the three gets it wrong. If they all
   carry a copy of the same lookbehind rule, that is the argument for a distinct generic-argument
   spelling.
+- Complete when: the lexer, formatter, editor grammar, and reference share one tested
+  disambiguation rule, or generic arguments have a distinct spelling migrated across all four.
 
 ### language.design.012 — The leading dot carries four unrelated roles
 
@@ -297,10 +342,12 @@ with exactly one language and keeps deliberately.
   the standard cautionary tale — Wirth left it out of Oberon, and Delphi documentation still warns
   that a `with` silently captures names the reader expected to come from the enclosing scope. Swag
   stacks that reading on top of Swift's, plus `me`, plus interface scope.
-- Next step: this is a design question rather than a defect, and it should be written down as one
+- Next: this is a design question rather than a defect, and it should be written down as one
   before the next construct that wants a leading dot is added. The concrete deliverable is a
   precedence table in the reference — one place stating which subject a leading dot binds to, in
   which order — rather than four pages that each mention their own case.
+- Complete when: one reference table specifies leading-dot resolution and focused tests cover every
+  overlap among `with`, `me`, inferred enum members, and interface scope.
 
 ### language.design.013 — A `switch` accepts several `default` clauses
 
@@ -326,10 +373,12 @@ with exactly one language and keeps deliberately.
   Swag has that they do not is the guard, which is what makes the plural expressible in the first
   place. Guarded arms themselves are ordinary: Rust's `match` guards and Swift's `case ... where`
   are first-match-wins exactly like these, but neither calls a guarded arm `default`.
-- Next step: `case where <cond>` already expresses a valueless guarded arm in an expression-less
+- Next: `case where <cond>` already expresses a valueless guarded arm in an expression-less
   `switch` ([005_005_switch.swg:343-367](../bin/reference/modules/language/src/005_005_switch.swg#L343-L367)).
   Check whether `default where` can be spelled that way instead and `default` restored to exactly
   one unguarded arm — a small change with a mechanical migration, if `bin/` does not lean on it.
+- Complete when: a switch has one unmistakable fallback form, guarded fallback usage has been
+  measured and migrated or retained deliberately, and duplicate-arm tests protect the rule.
 
 ### language.design.014 — The slice upper bound is inclusive
 
@@ -353,10 +402,12 @@ with exactly one language and keeps deliberately.
   compose the way a slice of a slice must. Dijkstra's EWD831 is the canonical argument for the
   half-open convention, and its two points are the ones this entry lists: the length is the
   difference of the bounds, and the empty case needs no special rule.
-- Next step: not a change to make — both spellings exist and the inclusive one is the shorter word
+- Next: not a change to make — both spellings exist and the inclusive one is the shorter word
   by design. What is worth doing is measuring: count `to` versus `until` in slice position across
   `bin/`, and check whether the off-by-one it invites shows up in the test corpus. That number
   decides whether this is a wart or a trap.
+- Complete when: slice-form usage and off-by-one failures are measured, the inclusive default is
+  retained or changed explicitly, and the reference tests define empty and inverted ranges.
 
 ### language.design.015 — `#[Swag.EnumFlags]` silently renumbers every member
 
@@ -376,11 +427,13 @@ with exactly one language and keeps deliberately.
   requires every value to be written out. Java has no flags attribute; `EnumSet` packs by ordinal and
   never rewrites a declared value. So the one thing no neighbour does is let an annotation change the
   numbers a serialized enum already shipped with.
-- Next step: this repository already knows what a silently-renumbered enum costs
+- Next: this repository already knows what a silently-renumbered enum costs
   (`TagBin` flag values are wire format). The cheap guard is a warning when `Swag.EnumFlags` is
   added to an enum that has no explicit values *and* is reachable from a public API — or, more
   simply, requiring an explicit `= 0` first member on a flags enum, which documents the "none" case
   and makes the renumbering visible in the source.
+- Complete when: applying `Swag.EnumFlags` cannot accidentally renumber a persisted or public enum,
+  or that behavior requires an explicit opt-in protected by compiler and reference tests.
 
 ## Strings, mixins, and macros
 
@@ -406,10 +459,12 @@ with exactly one language and keeps deliberately.
   concatenation precisely to keep it clear of the arithmetic operators. Rust refuses `&str + &str`
   outright and makes the allocation visible (`String + &str`, `format!`), which is the same
   "concatenation is not an operator" position Swag takes at runtime.
-- Next step: the honest question is whether the four diagnostics should be variadic instead, which
+- Next: the honest question is whether the four diagnostics should be variadic instead, which
   removes most of `++`'s remaining job. That is a small parser change and it would let `++` be
   judged on its own merits — as a constant-folding operator that a `#[Swag.ConstExpr]` function
   could arguably provide instead.
+- Complete when: diagnostic argument structure and `++` each have a recorded purpose, and parser,
+  semantic, formatter, and reference tests agree on the resulting surface.
 
 ### language.design.017 — Mixins resolve their body in the caller's scope
 
@@ -432,10 +487,13 @@ with exactly one language and keeps deliberately.
   internal, though: Swag's *macros* already chose hygiene, so the language holds both answers at
   once. Even the workaround is smaller than the C one it copies — `__COUNTER__` is unbounded, and
   `#uniq0`..`#uniq9` stop at ten.
-- Next step: check how many mixins under `bin/` actually rely on free identifiers rather than on
+- Next: check how many mixins under `bin/` actually rely on free identifiers rather than on
   parameters and `#code` blocks. If the number is small, the interesting question is whether the
   free-identifier form still earns its keep now that `#code(...)` block parameters exist — they
   cover the same ground with a declared contract.
+- Complete when: free-identifier mixin usage is quantified and mixin name resolution has one
+  documented contract, with hygiene or deliberate capture protected by declaration- and call-site
+  tests.
 - Related: `#uniq0`..`#uniq9` exist precisely to work around the collisions this creates, and there
   are exactly ten of them.
 
@@ -459,10 +517,12 @@ with exactly one language and keeps deliberately.
   problem is usually solved by not having the feature: languages that need user blocks in a
   library-defined loop either make the block a closure, where `break` is a compile error (Swift's
   `forEach`, Kotlin without an inline function), or make the construct part of the language.
-- Next step: the capacity is what makes `opVisit` work at all and should not be removed. What is
+- Next: the capacity is what makes `opVisit` work at all and should not be removed. What is
   missing is disclosure: consider requiring the block literal to acknowledge it
   (`#code(break, continue) { ... }`, the same shape the call site already uses to rename block
   parameters), so a reader of the call site knows the keywords are not the ones they look like.
+- Complete when: every block whose control-flow keywords can be remapped discloses that contract at
+  its call site, and macro, compiler, and reference tests make the selected targets observable.
 
 ## Cross-feature semantic consistency
 
@@ -485,12 +545,14 @@ with exactly one language and keeps deliberately.
   and replaced it with a comma, on the argument that `where` read as though it introduced a different
   kind of condition than the one before it, which is the reading this entry is about. The truthiness
   half comes from C, where `if (int x = f())` does coerce — and C has no `where` to sit next to it.
-- Next step: decide whether the implicit truthiness test should be restricted to nullable-capable
+- Next: decide whether the implicit truthiness test should be restricted to nullable-capable
   types, where "did I get something" is the intended reading and `#null` already marks it in the
   type. On a plain `s32` the same line silently means "is it non-zero", which the ternary already
   spells out — and the reference makes that exact argument when it explains why `orelse` refuses a
   non-nullable operand
-  ([003_006_operators.swg:209-227](../bin/reference/modules/language/src/003_006_operators.swg#L209-L227)).
+  ([003_006_operators.swg:312-329](../bin/reference/modules/language/src/003_006_operators.swg#L312-L329)).
+- Complete when: the truthiness domain of `if let` is documented and compiler tests cover zero,
+  null, nullable values, and `where` short-circuiting under the chosen rule.
 
 ### language.design.020 — There are two metaprogramming systems and they do not meet
 
@@ -516,9 +578,11 @@ with exactly one language and keeps deliberately.
   has two macro systems but both consume and produce token streams, so a declaration-generating
   macro and an expression-generating one meet in the same representation. C# source generators emit
   strings like `#ast` — and there the diagnostic problem is the same one this entry names.
-- Next step: no rewrite is proposed. The narrow, useful step is to find out what `#ast` is actually
+- Next: no rewrite is proposed. The narrow, useful step is to find out what `#ast` is actually
   used for across `bin/` — if it is overwhelmingly "one field per reflected field", that shape
   deserves a declarative spelling, and the string escape hatch can stay for everything else.
+- Complete when: `#ast` usage is classified by generated declaration shape and recurring shapes
+  have either a typed generation path or a recorded reason to remain source strings.
 
 ## Literal typing
 
@@ -537,10 +601,10 @@ with exactly one language and keeps deliberately.
   ([003_002_number_literals.swg:38-57](../bin/reference/modules/language/src/003_002_number_literals.swg#L38-L57)))
   as a fact about magnitude, and says nothing about it being a fact about signedness.
 - Evidence: `Sema.Literal.cpp` builds a decimal literal with `TypeInfo::Sign::Unknown`
-  ([Sema.Literal.cpp:557](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L557)) and a hex or binary one
+  ([Sema.Literal.cpp:546](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L546)) and a hex or binary one
   with `Sign::Unsigned`
-  ([Sema.Literal.cpp:469](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L469),
-  [Sema.Literal.cpp:509](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L509)). An isolated probe,
+  ([Sema.Literal.cpp:458](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L458),
+  [Sema.Literal.cpp:498](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L498)). An isolated probe,
   `swc test -d <dir>`, prints two types for one value:
 
   ```swag
@@ -566,12 +630,14 @@ with exactly one language and keeps deliberately.
   consulted in order and the first entry fits. Swag applies the unsigned reading at every magnitude.
   Nobody else applies it at all: `0xFF` is `i32` in Rust, `int` in C# and Java, an untyped constant
   in Go, and a signless `comptime_int` in Zig, where the base is purely notation.
-- Next step: decide whether the base should pin the sign, or only the width. The cheap experiment is
+- Next: decide whether the base should pin the sign, or only the width. The cheap experiment is
   to build `swc` with the hex and binary paths using `Sign::Unknown` like the decimal one and run
   the suites: what breaks is the set of places relying on a bare `0x...` being unsigned, and that
   number is the argument either way. If the rule stays, language.design.008's proposed warning at a
   mixed-signedness operator covers the damage, and the `#print`-visible surprise is worth one
   sentence on the number-literals page.
+- Complete when: the unsigned-literal experiment is measured, base and signedness have one stable
+  rule, and literal, operator, and reference tests cover named and context-adapted constants.
 - Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
   is what turns the difference into arithmetic.
 
@@ -608,13 +674,16 @@ with exactly one language and keeps deliberately.
   diagnostic — Rust rejects a literal outside the range of the type it was annotated with — never by
   letting the digits choose how wide the variable is. So the "widen instead of round" rule is
   genuinely Swag's own, and the 32-bit default it is attached to is already unusual on its own.
-- Next step: fix the page first, because it is wrong today for the common case and one paragraph
+- Next: fix the page first, because it is wrong today for the common case and one paragraph
   fixes it — state the rule as "the narrowest of `f32` and `f64` that holds the written value
   exactly". Then decide whether the value-dependence should be visible in a second way: an
   inferred-`f64` literal in a context the author expected to be `f32` changes arithmetic width in a
   hot loop, and the only current way to see it is `#typeof`. A warning is the wrong tool here — a
   query on the doc page, and the habit of writing `'f32` where the width matters, is probably
   enough. Measure how many `bin/` locals are inferred from a float literal before deciding.
+- Complete when: the reference states the implemented inference rule, inferred-float usage is
+  measured, and focused tests protect one stable width rule for exactly and inexactly representable
+  literals.
 
 ## Conversions the call site does not show
 
@@ -648,11 +717,13 @@ with exactly one language and keeps deliberately.
   out-of-range `@intCast` panics in safe builds instead of arriving as a value. C++ has no
   type-inferred cast at all, and the guidance that produced `static_cast` was precisely that a cast
   should say what it does. Swag's `cast()` is one token covering the whole set.
-- Next step: count the `cast()` uses in `bin/` and sort them by what the conversion turned out to
+- Next: count the `cast()` uses in `bin/` and sort them by what the conversion turned out to
   be. If they are overwhelmingly widening or same-kind, the narrow rule worth proposing is that a
   blank `cast()` performs only the conversions that would have been implicit anyway plus the
   same-kind narrowing, and that a float-to-integer truncation needs its type written. That keeps the
   convenience where it is a convenience and removes it where it is a silent behaviour change.
+- Complete when: blank-cast usage is classified by conversion kind and the permitted target-inferred
+  conversions are documented and tested, especially float-to-integer and narrowing cases.
 
 ### language.design.024 — A `#move` parameter accepts a plain value and copies it
 
@@ -660,7 +731,7 @@ with exactly one language and keeps deliberately.
 - Found while: the same pass
 - Observation: `#move` in a parameter position is documented as part of the signature — "they select
   how an argument reaches the callee"
-  ([002_008_sigils.swg:144-155](../bin/reference/modules/language/src/002_008_sigils.swg#L144-L155)).
+  ([002_008_sigils.swg:152-160](../bin/reference/modules/language/src/002_008_sigils.swg#L152-L160)).
   At the call site it selects nothing: a `#move` parameter also accepts a plain argument, and the
   compiler materializes a call-site copy and moves *that*
   ([006_009_custom_copy_and_move.swg:93-98](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg#L93-L98)).
@@ -680,12 +751,14 @@ with exactly one language and keeps deliberately.
   compiler inserts a copy, exactly as here. So the behaviour has a precedent, and it is the
   precedent from the language with implicit copies everywhere else; in Swag, where `#move` is
   written at the call site in every example, the same rule reads as a guarantee it is not.
-- Next step: decide whether the copy should be reportable rather than whether it should exist.
+- Next: decide whether the copy should be reportable rather than whether it should exist.
   The call site already distinguishes the two forms syntactically, so a warning at a plain argument
   passed to a `#move` parameter of a type with `opPostCopy` is mechanical, names the exact line, and
   has a one-token fix. Check first whether `bin/` relies on the copy path through lambdas and
   interface methods, where the reference says a single `#move` function is what makes both styles
   work at all — those call sites are the ones a warning must not drown.
+- Complete when: plain arguments to `#move` parameters have a documented copy policy and focused
+  tests cover direct, lambda, interface, copyable, and non-copyable call paths.
 
 ## Declining and leaking
 
@@ -712,12 +785,14 @@ with exactly one language and keeps deliberately.
   be re-declared or reassigned per scope is the same collision problem, solved by making the
   declaration visible. Even the constructs that deliberately extend a binding's reach — C's
   `for (int i = ...)`, C++17's `if (auto x = f(); x)` — scope inward, never outward.
-- Next step: this is worth settling together with language.design.010, since both are about what happens to a
+- Next: this is worth settling together with language.design.010, since both are about what happens to a
   caught error nobody looked at. The narrow question here is whether the capture could scope to the
   statement plus the statements dominated by its test — which is what every use in the reference
   actually needs — and whether anything in `bin/` reads an `err` outside the block that produced it.
   Count that first; if the answer is nothing, the change is a scope narrowing with a mechanical
   migration.
+- Complete when: cross-statement catch-capture usage is counted and one scope rule is documented,
+  migrated where necessary, and protected by reference and compiler tests.
 - Related: [language.design.010](#languagedesign010--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
 
 ## Types and bindings that do not own what they name
@@ -742,10 +817,12 @@ with exactly one language and keeps deliberately.
   the rectangular case out of nested arrays, while Fortran and Ada make it a single type with a
   single spelling — and in each case there is nothing to confuse. Swag is alone in offering both
   *and* giving them one access syntax.
-- Next step: measure before proposing anything: count `[a, b] T` versus `[a][b] T` declarations in
+- Next: measure before proposing anything: count `[a, b] T` versus `[a][b] T` declarations in
   `bin/`. If one form is vestigial, deleting it is better than documenting it. If both are used, the
   cheap guard is a warning when the two appear in one module's public surface, since the cost lands
   on the consumer who cannot see the declarations side by side.
+- Complete when: both multidimensional-array forms are measured in implementation and public APIs,
+  and their compatibility or intentionally distinct use-site contract is documented and enforced.
 
 ### language.design.027 — The index binding has three different integer types depending on what is iterated
 
@@ -778,12 +855,14 @@ with exactly one language and keeps deliberately.
   `Enumerable.Range` both give `int`. Where a language does use an unsigned index everywhere,
   as C++ does with `size_t`, the uniformity is the point, and the `i >= 0` loop bug that comes with
   it is a single well-known hazard rather than a per-form one.
-- Next step: decide whether the three should agree, and on what. `u64` matches `.count` and is the
+- Next: decide whether the three should agree, and on what. `u64` matches `.count` and is the
   only one that cannot overflow on a real collection; `s32` is the one that makes `i - 1` behave.
   The cheapest useful step first: add the three-way result above to the `for` chapter, since a
   reader today has no way to know which one they have without `#typeof`. Then check whether a
   counted `for i in N` could simply take the type of `N`, which would remove one of the three
   without touching the other two.
+- Complete when: all three invented-index types are documented and a unified or deliberately split
+  policy is protected by compiler and reference tests.
 
 ## Where a move can land
 
@@ -805,10 +884,12 @@ with exactly one language and keeps deliberately.
 - Elsewhere: C++ and Rust both accept it. `Pair{kind, std::move(text)}` move-constructs the field,
   and Rust moves out of a binding in any value position, a `match` arm included. No neighbouring
   language with move semantics restricts a move to a call argument.
-- Next step: decide whether a literal field and a conditional branch should move-construct their
+- Next: decide whether a literal field and a conditional branch should move-construct their
   destination. The rule is not the obstacle, the lowering is: an aggregate literal is materialized
   as one value through `emitAggregateLiteralPayload`, so a moved field needs its own store plus
   the source's post-move invalidation instead of that path.
+- Complete when: aggregate fields and conditional branches either consume move references with
+  lifecycle and code-generation tests or reject them consistently with an explicit reference rule.
 
 ## What a payload pointer promises
 
@@ -827,11 +908,16 @@ with exactly one language and keeps deliberately.
 - Evidence: `semaIntrinsicDataOf` ([Sema.Intrinsic.cpp](../src/Compiler/Sema/Ast/Sema.Intrinsic.cpp))
   builds the `any` and `interface` results with `TypeInfo::makeBlockPointer(typeVoid(), flags)`,
   where `flags` comes from the container type. Probe — `convertAny` had to read its `any` through
-  `[as #null any]` to keep asking the question at all. Verified against 0.1.186.
+  `[as #null any]` to keep asking the question at all. The old 0.1.186 note is obsolete: at the
+  2026-09-02 HEAD (0.1.315), a raw tracked-source inventory reports 3,972 `.buffer` occurrences
+  under `bin/**/*.swg` and `bin/**/*.swgs`; that is an upper bound, not the number requiring a
+  nullable assertion, because the receiver types have not yet been classified.
 - Elsewhere: Rust's `Option<&T>` and C#'s nullable references both attach absence to the payload
   reference, never to the handle that carries it.
-- Next step: decide whether the `any` and `interface` payload pointers are always nullable-capable,
-  which is what the runtime says. The obstacle is scale, not doctrine: `bin/` holds around 1300
-  `.buffer` uses and the interface form is the common one, so the sweep is `cast(*T) itf.buffer!`
-  at every site. Measure it before committing, and consider whether a non-null `any` should instead
+- Next: decide whether the `any` and `interface` payload pointers are always nullable-capable,
+  which is what the runtime says. Classify the inventory by receiver type before estimating the
+  migration; the eventual sweep may require `cast(*T) itf.buffer!` at affected sites. Also consider
+  whether a non-null `any` should instead
   be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `#null`.
+- Complete when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
+  contract is documented, and the resulting migration plus compiler and module tests agree.

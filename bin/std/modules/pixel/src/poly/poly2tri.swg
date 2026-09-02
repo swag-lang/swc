@@ -40,6 +40,7 @@ public struct Tessellate
 {
     // Sweep-line state of one tessellation: the advancing front, the node pool, and the
     // graph being built. Read the outcome from 'Result', never from here.
+
     private
     {
         basin:     Basin         // Basin being filled by the current sweep event.

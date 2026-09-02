@@ -101,6 +101,7 @@ struct TagBin
     }
 
     // Writing state: the compressor, the section stack and the buffer pools it recycles.
+
     private
     {
         rootType:     #null typeinfo                                              // Root type supplied by the high-level encoder.

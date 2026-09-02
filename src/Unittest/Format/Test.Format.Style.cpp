@@ -147,6 +147,53 @@ SWC_TEST_BEGIN(FormatStyle_SwagKeepsAccessModifiersWithTheirDeclarations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagSeparatesAccessBlocks)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Record\n"
+        "{\n"
+        "    public\n"
+        "    {\n"
+        "        first: s32\n"
+        "    }\n"
+        "    cached: bool\n"
+        "    public\n"
+        "    {\n"
+        "        value: s32\n"
+        "        readonly\n"
+        "        {\n"
+        "            count: s32\n"
+        "        }\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Record\n"
+        "{\n"
+        "    public\n"
+        "    {\n"
+        "        first: s32\n"
+        "    }\n"
+        "\n"
+        "    cached: bool\n"
+        "\n"
+        "    public\n"
+        "    {\n"
+        "        value: s32\n"
+        "\n"
+        "        readonly\n"
+        "        {\n"
+        "            count: s32\n"
+        "        }\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return checkStyleRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStyle_SwagLeavesLineEndingsAndColumnsAlone)
 {
     // Line endings belong to the checkout and the column budget to the author:
@@ -174,6 +221,8 @@ SWC_TEST_BEGIN(FormatStyle_DescribeRendersEveryOption)
     // comment.
     if (dump.find("\nbrace-style = allman\n") == std::string::npos ||
         dump.find("\nindent-width = 4\n") == std::string::npos ||
+        dump.find("\nblank-line-before-access-block = always\n") == std::string::npos ||
+        dump.find("\nblank-line-after-access-block = always\n") == std::string::npos ||
         dump.find("\nend-of-line-style = preserve\n") == std::string::npos ||
         dump.find("\nformat-off-comment = \"swc-format off\"\n") == std::string::npos ||
         dump.find("# Possible values: preserve, attach, allman, stroustrup\n") == std::string::npos)

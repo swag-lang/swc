@@ -1,2 +1,4 @@
 # Snapshots written next to a golden when a comparison fails; never committed.
 *.actual.txt
+*.actual.png
+*.expected.png

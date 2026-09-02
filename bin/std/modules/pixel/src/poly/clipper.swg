@@ -210,6 +210,7 @@ public struct Transform
     // Sweep-line state of one clipping operation: the edge pool, the scanbeam schedule, and
     // the output records being stitched. Set the operation up through the methods and read
     // the outcome from the produced paths.
+
     private
     {
         useFullRange:      bool                                    // Whether coordinates need the full integer range.

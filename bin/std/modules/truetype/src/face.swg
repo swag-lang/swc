@@ -30,6 +30,7 @@ public struct Face
 
     // Loading and glyph operations establish all face state. Callers may inspect
     // it but cannot break the relationships between its metrics and borrowed data.
+
     public readonly
     {
         style:              StyleFlag     // Declared bold and italic traits.

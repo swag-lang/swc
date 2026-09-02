@@ -30,6 +30,7 @@ struct Image
         //
         // Explicit serialization keys keep these persisted names independent from future source
         // renames.
+
         readonly
         {
             #[Core.Serialization.Key("byteCount")]

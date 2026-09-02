@@ -163,6 +163,7 @@ internal struct Encoder
 {
     // Baseline JPEG encoding state: the padded source, the quantization and Huffman tables,
     // and the 8x8 block being transformed. Encode through the module entry points.
+
     private
     {
         imageX:    u16                // Width of the padded source, a multiple of eight.

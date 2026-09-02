@@ -51,6 +51,7 @@ struct FileDlgOptions
 struct FileDlg
 {
     public using dialog: Dialog     // Embedded dialog state.
+
     public readonly
     {
         #[Swag.Late]

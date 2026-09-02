@@ -169,6 +169,7 @@ internal
 public struct Deflate
 {
     // Compression state, established by 'init' and consumed by 'compress'.
+
     private
     {
         state:     #null *Compressor                               // Compressor state, allocated on first use.

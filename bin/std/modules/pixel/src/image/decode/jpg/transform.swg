@@ -11,6 +11,7 @@ using Swag, Core, Core.Errors
 //
 // A table byte of 0x80 clears the destination byte, so the contribution of each source vector is
 // combined with a bitwise or.
+
 private
 {
     const TripletLowBG  = cast(Math.Simd.U8x16) [0'u8, 8, 0x80, 1, 9, 0x80, 2, 10, 0x80, 3, 11, 0x80, 4, 12, 0x80, 5]
@@ -31,6 +32,7 @@ private struct ChromaBias
 }
 
 #[Swag.Inline]
+
 private
 {
     // Centers four chroma samples around zero, the way the conversion coefficients expect them.
@@ -119,6 +121,7 @@ private
 // Each pair belongs to two input lines: the even part reads lines 0 and 4, then 2 and 6, and the
 // odd part reads lines 1 and 3, then 5 and 7. Every constant below is the sum the scalar form of
 // the transform reaches for that line, so both forms compute the same integers.
+
 private
 {
     const EvenSum        = cast(Math.Simd.S16x8) [8192's16, 8192, 8192, 8192, 8192, 8192, 8192, 8192]
@@ -137,6 +140,7 @@ private
 }
 
 #[Swag.Inline]
+
 private
 {
     // Pairs the lanes of two vectors, low halves and high halves.

@@ -6,6 +6,7 @@ public struct MessageDlg
     public
     {
         using dialog: Dialog     // Embedded dialog state.
+
         readonly
         {
             #[Swag.Late]

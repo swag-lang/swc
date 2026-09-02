@@ -74,6 +74,7 @@ struct Tab
 
         // The tabs the bar shows, in display order. Add and remove them through the methods, which
         // keep the views, the layout and the selection consistent.
+
         readonly
         {
             barForm:          TabBarForm  = .Flat            // Tab bar background presentation.

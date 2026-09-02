@@ -4,7 +4,10 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Backend/RuntimeBuildConfig.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 
 // Forward a LoadRegImm into its consumer so the materializing register
 // disappears. We rewrite only the consumer; when every use of the
@@ -616,8 +619,22 @@ namespace InstructionCombine
         }
         if (!sourceReloc)
             return false;
-        const bool isGlobal   = sourceReloc->kind == MicroRelocation::Kind::GlobalZeroAddress || sourceReloc->kind == MicroRelocation::Kind::GlobalInitAddress;
-        const bool isConstant = sourceReloc->kind == MicroRelocation::Kind::ConstantAddress && sourceReloc->hasConstantSource();
+        const bool isGlobal = sourceReloc->kind == MicroRelocation::Kind::GlobalZeroAddress || sourceReloc->kind == MicroRelocation::Kind::GlobalInitAddress;
+
+        // Folding a constant address into a RIP-relative access is proven correct for executable
+        // and JIT targets (the full native suite exercises it), but it miscompiles a shared- or
+        // static-library target: a folded constant load inside a module DLL corrupts that module's
+        // rendered output even though the load itself reads the right bytes. The cause is not yet
+        // understood - see compiler.optimization.026 - so restrict the constant case to artifacts
+        // that do not emit a library image. Globals are unaffected and keep folding everywhere.
+        bool artifactFoldsConstants = true;
+        if (ctx.builder->ctx().hasCompiler())
+        {
+            const auto backendKind = ctx.builder->ctx().compiler().buildCfg().backendKind;
+            artifactFoldsConstants = backendKind != Runtime::BuildCfgBackendKind::SharedLibrary &&
+                                     backendKind != Runtime::BuildCfgBackendKind::StaticLibrary;
+        }
+        const bool isConstant = artifactFoldsConstants && sourceReloc->kind == MicroRelocation::Kind::ConstantAddress && sourceReloc->hasConstantSource();
         if (!isGlobal && !isConstant)
             return false;
         if (isConstant && inst.op != MicroInstrOpcode::LoadRegMem)

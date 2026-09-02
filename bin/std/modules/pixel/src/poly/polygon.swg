@@ -14,6 +14,7 @@ struct Polygon
 
     // Everything [[Pixel.Polygon.recompute]] derives from `points`. Change the points and recompute
     // again; writing one of these on its own would describe a contour that is not there.
+
     public readonly
     {
         isClockwise: bool             // Winding direction after `recompute`.

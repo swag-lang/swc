@@ -44,6 +44,7 @@ public struct Voice
 
     // Playback state, owned by the voice and by the driver that drains it. A caller drives a
     // voice through its methods; touching this state from outside the module races the driver.
+
     internal
     {
         allocationAllocator: IAllocator = undefined     // Allocator that owns this voice and its buffers.

@@ -8,6 +8,7 @@ using Swag, Core
 public struct CharMap
 {
     // The selected mapping is owned by the face and cannot be replaced by callers.
+
     public readonly
     {
         #[Swag.Late]

@@ -164,6 +164,7 @@ internal struct Decoder
     // Decoding state of one image: the entropy-coded bit cursor, the frame and scan tables,
     // and the coefficient and scanline buffers. Decode through the module entry points;
     // nothing here survives the call.
+
     private
     {
         stream:     #null const [*] u8

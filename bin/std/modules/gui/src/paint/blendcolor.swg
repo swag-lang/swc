@@ -9,6 +9,7 @@ struct BlendColor
 
     // Interpolation state owned by the application animator. Set a target with `apply` and read
     // the current value with `cur`.
+
     internal
     {
         curVec4:   Math.Vector4           // Color of the current frame.

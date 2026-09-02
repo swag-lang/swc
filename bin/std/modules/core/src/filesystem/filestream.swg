@@ -10,6 +10,7 @@ struct FileStream
 {
     // What the stream is and what it can do. All of it is fixed when the file is opened, by the
     // access the caller asked for; reopen the file to change any of it.
+
     public readonly
     {
         name:     String     // File name associated with the stream

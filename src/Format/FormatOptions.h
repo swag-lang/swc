@@ -171,6 +171,8 @@ struct FormatOptions
     FormatBlankLineStyle blankLineBeforeTypeDefinition        = FormatBlankLineStyle::Preserve; // Blank line before a multi-line type / impl / namespace definition
     FormatBlankLineStyle blankLineBeforeCommentBlock          = FormatBlankLineStyle::Preserve; // Blank line before a whole-line comment block that follows code
     FormatBlankLineStyle blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Preserve; // Blank line after a standalone `}` followed by code
+    FormatBlankLineStyle blankLineBeforeAccessBlock           = FormatBlankLineStyle::Preserve; // Blank line before a braced access group
+    FormatBlankLineStyle blankLineAfterAccessBlock            = FormatBlankLineStyle::Preserve; // Blank line after a braced access group
 
     // -----------------------------------------------------------------------
     // End-of-line

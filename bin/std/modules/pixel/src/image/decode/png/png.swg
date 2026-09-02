@@ -102,6 +102,7 @@ internal struct Decoder
     // Decoding state of one image: the chunk cursor, the palette and transparency chunks it
     // collected, and the scanline buffers it defilters into. Decode through the module entry
     // points; nothing here survives the call.
+
     private
     {
         decOptions:    DecodeOptions          // Options the caller asked for.

@@ -10,6 +10,7 @@ struct LinePathList
     internal paths: Array'(*LinePath)     // Owned path pointers.
 
     // Combined bounds of the paths, derived when the list is flattened.
+
     public readonly
     {
         minBounds: Vector2     // Minimum combined bound after flattening.
@@ -19,6 +20,7 @@ struct LinePathList
     // Fill-normalization cache (see [[Pixel.LinePathList.normalizedFill]]): the verdict and,
     // when normalizing was needed, the owned normalized copy. Keyed by the revision of every
     // contour, so any geometry change rebuilds it and an unchanged list never normalizes twice.
+
     internal
     {
         fillCache:            #null *LinePathList     // Owned normalized copy, when one was needed.

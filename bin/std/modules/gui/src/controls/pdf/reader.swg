@@ -22,6 +22,7 @@ struct Reader
 {
     // The parser retains slices into the mapped region, so the mapping is owned for the complete
     // reader lifetime.
+
     internal
     {
         documentMetadata: Metadata

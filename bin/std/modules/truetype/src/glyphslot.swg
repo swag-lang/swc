@@ -58,6 +58,7 @@ public struct GlyphSlot
 
     // Loading and rendering replace the slot atomically. Use the public methods to
     // mutate its outline instead of assigning derived state directly.
+
     public readonly
     {
         #[Swag.Late]

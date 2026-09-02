@@ -291,10 +291,12 @@ struct Painter
     // Optional backend selected for [[Painter.render]]. It is borrowed and may
     // remain unset when the painter is used only to inspect recorded commands.
     private rendererItf: #null IRenderer
+
     public
     {
         // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
         // drawing methods append to it.
+
         readonly
         {
             commandBuffer: Array'Command          // Deferred renderer command stream.
@@ -307,6 +309,7 @@ struct Painter
     gradientStops: Array'GradientStop
 
     // Reusable workspaces. They only hold intermediate results of the call in progress.
+
     private
     {
         triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
@@ -327,6 +330,7 @@ struct Painter
 
     // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
     // memos that keep the command stream free of redundant state changes.
+
     private
     {
         stackState:     Array'PaintState     // States saved by [[Painter.pushState]].

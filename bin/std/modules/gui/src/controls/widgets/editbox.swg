@@ -66,12 +66,14 @@ struct EditBox
     }
 
     textStorage: String     // Current UTF-8 text content.
+
     public
     {
         sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
         sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
         sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
         sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
+
         readonly
         {
             icon:           Icon                                           // Optional leading icon.

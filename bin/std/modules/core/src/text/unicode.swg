@@ -6,6 +6,7 @@
 #global namespace Unicode
 
 #[Swag.Inline, Swag.ConstExpr]
+
 public
 {
     // Returns whether latin1.
@@ -16,6 +17,7 @@ public
 }
 
 #[Swag.ConstExpr]
+
 public
 {
     // Returns whether digit.

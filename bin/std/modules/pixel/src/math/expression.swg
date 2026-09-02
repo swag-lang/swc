@@ -197,6 +197,7 @@ struct MathExpression
     // The parsed expression tree. Build it with 'parse' and render it with the layout pass;
     // the node pool owns every node, so a caller holding one would outlive its storage.
     // The module reads the tree directly to check the parser.
+
     internal
     {
         source: String                    // Expression text the tree was parsed from.

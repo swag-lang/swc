@@ -22,6 +22,7 @@ struct Movie
         sigFrameChanged:      SigArray'func||(*Movie)     // Signal emitted after the visible frame changes.
 
         // Where the movie is. The playback advances all three; seek with 'setFrame'.
+
         readonly
         {
             frameCount: s32       // Number of frames exposed by the source.

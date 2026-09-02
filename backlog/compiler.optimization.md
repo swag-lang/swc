@@ -676,3 +676,41 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
 - Related: compiler.optimization.010, compiler.optimization.013, compiler.optimization.016.
+
+### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
+
+- Area: compiler/backend
+- Found while: a repository health reset, chasing the `render.parity.stroke.cpu-ogl` golden that
+  compares the CPU and OpenGL painter backends. The OpenGL image came back entirely zero (all
+  24 576 pixels differ, `(0,0)` produced 0 against the expected clear colour), and the CPU image
+  was correct.
+- Observation: `tryFoldRelocatedAddressIntoAccess` (added by "Fold constant addresses into direct
+  loads") rewrites `LoadRegPtrReloc %base, <const K>` + `LoadRegMem %d, [%base + off]` into a
+  single `LoadRegMem %d, [rip]` whose relocation carries `K + off`. Disabling only the constant
+  case of that fold turns the golden green; re-enabling it turns it red again. The fold is the
+  cause, and it is confirmed with nothing else changed.
+- What was ruled out by inspection and by measurement, so the next attempt does not re-walk them:
+  the fold is value-equivalent (the folded `[rip]` load reads the exact bytes the base-plus-offset
+  load read — verified on `__utoa`'s `conv.buffer` load via `PrintMicro`); the merged-rdata REL32
+  addend and the internal linker's REL32 resolution (`PEWriter.cpp`) are correct; reachability of
+  the referenced constant and its transitive relocations is unchanged. The full `native` suite
+  (2 983 cases, an executable artifact) passes with the fold on, including non-zero-offset folds.
+  The break appears only when the folded function lands in a shared- or static-library image: the
+  folds that actually fire in the failing build are all in library modules (`__utoa`, `__itoa`,
+  `Argb.fromName`, `Pixel.Svg.parseColor`), none on the render path, so a library-image emission or
+  register-allocation cascade the fold triggers — not a wrong value in the folded function —
+  corrupts the module. `partitionArchiveObjects` is dead code, so the split-rdata archive path is
+  not the difference; executable and library targets share `partitionObjects`.
+- Mitigation in place: the constant case is gated to artifacts that do not emit a library image
+  (`backendKind` neither `SharedLibrary` nor `StaticLibrary`) in
+  `Pass.InstructionCombine.ConstProp.cpp`. Globals still fold everywhere, and executables and JIT
+  still fold constants. The `InstCombine_ConstantAddressLoad_FoldsToRip` C++ unit test still
+  exercises the fold.
+- Next: reproduce the miscompile in a `workspace` suite case that builds a library module holding a
+  pointer-carrying constant and reads it from a consumer, then bisect the library-image path
+  (base-relocation emission, export handling, and the register allocation that changes when the
+  address materialization is dropped) to the actual defect.
+- Complete when: the constant fold is sound for shared- and static-library images, the gate in
+  `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
+  the `render.parity.stroke.cpu-ogl` golden stays green.
+- Related: compiler.optimization.003.

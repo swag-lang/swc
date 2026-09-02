@@ -34,6 +34,8 @@ namespace
         addBlankLineStyle(schema, "blank-line-before-type-definition", &options.blankLineBeforeTypeDefinition, "Choose the blank-line policy before a multi-line type, impl, or namespace definition");
         addBlankLineStyle(schema, "blank-line-before-comment-block", &options.blankLineBeforeCommentBlock, "Choose the blank-line policy before a whole-line comment block that follows code");
         addBlankLineStyle(schema, "blank-line-after-standalone-closing-brace", &options.blankLineAfterStandaloneClosingBrace, "Choose the blank-line policy after a standalone `}` followed by code");
+        addBlankLineStyle(schema, "blank-line-before-access-block", &options.blankLineBeforeAccessBlock, "Choose the blank-line policy before a braced access group");
+        addBlankLineStyle(schema, "blank-line-after-access-block", &options.blankLineAfterAccessBlock, "Choose the blank-line policy after a braced access group");
     }
 
     void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)

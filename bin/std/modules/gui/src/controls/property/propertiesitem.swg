@@ -36,6 +36,7 @@ enum PropertiesItemFlags
 struct PropertiesItem
 {
     filter: String
+
     public
     {
         #[Swag.Late]
@@ -74,6 +75,7 @@ struct PropertiesItem
     // command. Captured at build for every snapshot-able row (POD or String); left invalid for
     // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
     undoValue: PropFieldValue
+
     public
     {
         type:      #null typeinfo            // Bound field type.
@@ -98,6 +100,7 @@ struct PropertiesItem
 
     #[Swag.Late]
     validationLabel: *Label
+
     public
     {
         #[Swag.Late]

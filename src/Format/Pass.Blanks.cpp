@@ -366,6 +366,47 @@ namespace
             applyBlankLineStyle(model, next, options.blankLineAfterStandaloneClosingBrace);
         }
     }
+
+    uint32_t accessBlockStart(const FormatModel& model, const FormatBlock& block)
+    {
+        uint32_t first = model.prevPiece(block.openPiece);
+        if (first == INVALID_PIECE || !model.piece(first).hasRole(FormatRoleE::AccessModifier))
+            return INVALID_PIECE;
+
+        for (;;)
+        {
+            const uint32_t prev = model.prevPiece(first);
+            if (prev == INVALID_PIECE || !model.piece(prev).hasRole(FormatRoleE::AccessModifier))
+                return first;
+            first = prev;
+        }
+    }
+
+    void applyBlankLinesAroundAccessBlocks(FormatModel& model)
+    {
+        const FormatOptions&       options = model.options();
+        const FormatBlankLineStyle before  = options.blankLineBeforeAccessBlock;
+        const FormatBlankLineStyle after   = options.blankLineAfterAccessBlock;
+        if (before == FormatBlankLineStyle::Preserve && after == FormatBlankLineStyle::Preserve)
+            return;
+
+        for (const FormatBlock& block : model.blocks())
+        {
+            const uint32_t start = accessBlockStart(model, block);
+            if (start == INVALID_PIECE)
+                continue;
+
+            const uint32_t prev = model.prevPiece(start);
+            if (before != FormatBlankLineStyle::Preserve && prev != INVALID_PIECE &&
+                (!model.piece(prev).is(TokenId::SymLeftCurly) || before == FormatBlankLineStyle::Never))
+                applyBlankLineStyle(model, start, before);
+
+            const uint32_t next = model.nextPiece(block.closePiece);
+            if (after != FormatBlankLineStyle::Preserve && next != INVALID_PIECE &&
+                (!model.piece(next).is(TokenId::SymRightCurly) || after == FormatBlankLineStyle::Never))
+                applyBlankLineStyle(model, next, after);
+        }
+    }
 }
 
 namespace FormatPass
@@ -379,6 +420,7 @@ namespace FormatPass
         applyBlankLinesBeforeComments(model);
         applyBlankLinesAtBlockEdges(model);
         applyBlankLinesAtInlineBodyStarts(model);
+        applyBlankLinesAroundAccessBlocks(model);
     }
 
     // `multi-line` airs the arms that span several lines, and how tall an arm is

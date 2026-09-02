@@ -37,6 +37,7 @@ struct ConcatBuffer
 
     // The bucket chain and the cursor inside it. Append and seek through the methods, which keep
     // the chain, the per-bucket counts and the cursor consistent.
+
     private
     {
         firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.

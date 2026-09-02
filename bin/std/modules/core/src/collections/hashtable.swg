@@ -29,6 +29,7 @@ struct(K, V) HashTable
     internal allocator: #null IAllocator
 
     // Sizes are reported, never set: the table grows itself when it needs to.
+
     public readonly
     {
         count:    u64     // The number of valid key-value pairs currently in the table.
@@ -37,6 +38,7 @@ struct(K, V) HashTable
 
     // Open-addressing state. The layout is an implementation choice: reaching into it from
     // outside would tie callers to the probing scheme and the load factor.
+
     private
     {
         table:         #null [*] HashTableEntry     // Contiguous memory block for the slots.

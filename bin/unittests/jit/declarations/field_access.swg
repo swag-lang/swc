@@ -112,6 +112,7 @@ struct Nested
 
 // A nested named aggregate and a top-level declaration block introduce declaration scopes of
 // their own. Their access modifiers do not restate the level of the enclosing block.
+
 public
 {
     struct PublicContainer

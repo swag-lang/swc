@@ -41,6 +41,7 @@ struct ComboBox
 
         // What the combo shows. Add items through the methods, which keep the popup and the
         // measured icon width in step, and select through 'setSelected'.
+
         readonly
         {
             mode          = ComboBoxMode.Selection     // Text interaction mode chosen at creation.

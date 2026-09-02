@@ -146,6 +146,7 @@ public struct Inflate
 
     // Input cursor and running checksum. The container formats built on top of Inflate read
     // them to parse their own trailer once the compressed block is consumed.
+
     internal
     {
         stream: BitStream        // Bit cursor over the compressed input.

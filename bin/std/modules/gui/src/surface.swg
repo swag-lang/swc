@@ -53,6 +53,7 @@ struct Surface
 
         // What the surface is made of and where it stands. The application creates surfaces and
         // the event loop moves them between these states; reading them tells what is on screen.
+
         readonly
         {
             painter: Painter          // Painter recording the surface's frame.

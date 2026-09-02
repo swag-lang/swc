@@ -51,6 +51,7 @@ public impl Plan
 
 // Plans are built once per reflected type and shared behind a lock. Pointer identity keeps
 // two unrelated types from sharing a plan when their runtime CRCs collide.
+
 private
 {
     var g_Plans:    HashTable'(u64, *Plan)

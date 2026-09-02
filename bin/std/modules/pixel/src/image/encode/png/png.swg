@@ -130,6 +130,7 @@ internal struct Encoder
 {
     // Encoding state: the chunk being written, the scanline filter windows, and the
     // interlacing passes. Encode through the module entry points; none of this is a knob.
+
     private
     {
         stream:              #null *ConcatBuffer     // Output buffer chunks are appended to.

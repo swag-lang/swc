@@ -47,6 +47,7 @@ struct Application
     appIconList:     ImageList     // The glyph alone, its ink ground keyed out.
     appIconTileList: ImageList     // The mark as it ships: the glyph on its ink tile.
     appIconLoaded:   bool
+
     public
     {
         // Named resources of the application: theme art, fonts, theme sheets, and language
@@ -54,6 +55,7 @@ struct Application
         // fallback, so a bare application needs no configuration; add a disk folder before
         // creating the first surface to let files override any of those names.
         resources: Resources.Bundle
+
         readonly
         {
             #[Swag.Late]
@@ -62,6 +64,7 @@ struct Application
     }
 
     rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+
     public
     {
         #[Swag.Late]
@@ -97,6 +100,7 @@ struct Application
     // window it is over and the position it reached are followed apart from the pointer state.
     dragEnterWnd:  #null *Wnd     // Window the drag last entered, or `null` outside a gesture.
     dragScreenPos: Math.Point     // Last position a drag reported, in physical screen pixels.
+
     public
     {
         // The tool tip belongs here for the same reason the focus and the drag do: it is one
@@ -135,6 +139,7 @@ struct Application
     modalSurfaces:       Array'(*Surface)                                           // Surface stack of the nested modal loops.
     toDelete:            Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
     systemReducedMotion: bool                                                       // Platform client-area-animation preference.
+
     public
     {
         // Stops the run loop after this many frames, or never when zero. A test or a scripted

@@ -139,6 +139,7 @@ public struct Font
 {
     // A font view is what the cache hands out: everything it carries is a result to read.
     // Ask the cache for another view instead of rewriting this one.
+
     public readonly
     {
         mode:        FontRenderMode     // Creation intent; the underlying cache is always concrete.
@@ -157,6 +158,7 @@ public struct Font
 
     // Links back to the storage this view borrows. The text pipeline resolves glyphs through
     // them; a caller has no use for either.
+
     internal
     {
         owner: *FontCache  = undefined     // Cache that created this view and owns it.
@@ -178,6 +180,7 @@ public struct Font
 public struct FontCache
 {
     // The storage the cache owns. Views come out of 'create'; nothing else should reach in.
+
     internal
     {
         glyphCaches: ArrayPtr'GlyphCache     // Glyph storage, one per typeface / reference size / style.

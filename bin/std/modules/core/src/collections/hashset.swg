@@ -28,6 +28,7 @@ struct(K) HashSet
     internal allocator: #null IAllocator
 
     // Sizes are reported, never set: the set grows itself when it needs to.
+
     public readonly
     {
         count:    u64     // The number of valid elements currently in the set.
@@ -36,6 +37,7 @@ struct(K) HashSet
 
     // Open-addressing state. The layout is an implementation choice: reaching into it from
     // outside would tie callers to the probing scheme and the load factor.
+
     private
     {
         table:   #null [*] HashSetEntry     // Contiguous memory block for the slots.

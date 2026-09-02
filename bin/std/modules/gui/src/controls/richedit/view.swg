@@ -7,6 +7,7 @@ public struct RichEditView
     public using wnd: Wnd     // Embedded wnd state.
 
     // The control this view paints for, and the transient state of one editing gesture.
+
     internal
     {
         ed:               #null *RichEditCtrl     // Control owning the document.

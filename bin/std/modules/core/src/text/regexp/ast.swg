@@ -77,6 +77,7 @@ struct Ast
     hasBackref:   bool                // Whether a backreference appears anywhere.
 
     // Parse state, kept here so the tree and its cursor are one value.
+
     private
     {
         pattern: Array'rune     // The pattern, as scalar values.

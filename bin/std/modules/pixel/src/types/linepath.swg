@@ -49,6 +49,7 @@ public struct LinePath
 
     // Flattening cache, rebuilt from the segments whenever the path or the quality changes.
     // Call 'flatten' and read the result through the accessors; the cache is not an input.
+
     internal
     {
         isDirty:          bool                // Whether cached flattened geometry is stale.

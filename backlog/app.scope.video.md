@@ -9,11 +9,15 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.001 — Video playback has no speed or pitch policy
 
-- Evidence: playback runs at the stream rate only. There is no 0.25x–4x selector, frame-rate
-  override, pitch-preserving audio mode, or indication of the frame-drop/duplication policy.
-- Next: make the media clock rate-adjustable and add audio resampling with pitch-following first,
-  leaving pitch preservation explicitly unavailable until implemented.
-- Complete when: rate is visible and keyboard adjustable, time labels remain source-time based,
+- Evidence: the transport's settings menu now offers 0.25x–2x pitch-following rates through
+  `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
+  based, and the host summary declares a non-1x rate. 2x is the XAudio2 default frequency-ratio
+  ceiling. There is still no keyboard rate stepping, no rate above 2x, no pitch-preserving mode,
+  and no indication of the frame-drop/duplication policy.
+- Next: add keyboard rate stepping, then decide the above-2x path — a voice created with a larger
+  maximum frequency ratio, or software resampling — leaving pitch preservation explicitly
+  unavailable until implemented.
+- Complete when: rate is keyboard adjustable, rates above 2x are offered or explicitly declined,
   A/V sync and subtitle timing hold at supported rates, frame scheduling declares drops, and reset
   returns exactly to 1x.
 
@@ -30,8 +34,9 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.003 — Video cannot mark or loop an A/B range
 
-- Evidence: the timeline carries only a playhead. There is no set A/B, range selection, loop,
-  play-once selection, or duration readout for a scene under inspection.
+- Evidence: the settings menu can now loop the whole file, but the timeline carries only a
+  playhead. There is no set A/B, range selection, range loop, play-once selection, or duration
+  readout for a scene under inspection.
 - Next: reuse the source-time range contract from app.scope.audio.002 on the video clock and seek pipeline.
 - Complete when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
   preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range

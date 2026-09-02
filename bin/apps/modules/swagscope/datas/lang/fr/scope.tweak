@@ -5,6 +5,8 @@ ui_Open         Ouvrir (Ctrl+O)
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_Viewer       Visionneuse
 ui_Files        Fichiers à côté de celui-ci
+ui_FullScreen   Plein écran (F11)
+ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
 ui_Recent       Récents
 ui_ClearHistory Effacer l'historique

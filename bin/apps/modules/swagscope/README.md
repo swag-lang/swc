@@ -70,7 +70,9 @@ alternative instead of guessing an encoding.
   presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
-  mute, volume, and matching keyboard controls. It indexes packets without decoding the file up
+  mute, volume, and matching keyboard controls, plus a settings menu offering loop playback and a
+  0.25x-2x playback rate whose pitch follows the rate and whose time labels stay in source time.
+  It indexes packets without decoding the file up
   front and materializes only the selected picture and the few audio buffers queued at the device.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
@@ -138,7 +140,9 @@ viewers retires hidden progressive work.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder
 history, and remembered viewer choices in the user's application-data folder. It toggles full
-screen with F11, navigates the current folder with Left/Right, reloads with F5, opens with Ctrl+O,
+screen with F11 or the action bar's top-right button — full screen hides every bar and panel and
+reveals the top or bottom chrome while the pointer rests at that screen edge — navigates the
+current folder with Left/Right, reloads with F5, opens with Ctrl+O,
 and accepts one file dropped anywhere on the surface. The recent and current-folder lists show the
 glyph of each file's default viewer; the current-folder heading opens the recent-folder menu and
 returns to the last file viewed in the selected folder. Audio and video claim bare Left/Right for

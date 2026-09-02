@@ -152,6 +152,24 @@ pointer sequence.
 
 - Related: std.gui.011, std.gui.012, std.gui.014, std.gui.016, std.gui.017, std.gui.018, std.gui.019
 
+### std.gui.051 — Polled mouse input cannot see occlusion or activation
+
+- Evidence: `Application.sendMouseEvents` builds hover and click events from the globally polled
+  cursor and button state, not from this application's own message stream. A press made on another
+  application's window that happens to overlap a Swag surface therefore lands on the control
+  underneath, and hover tracking lights rows under windows that cover them. The keyboard had the
+  same defect for shortcuts and is now gated on `Application.isActivated`; headless hosts no longer
+  receive the polled mouse at all, which is what had a parked desktop cursor lighting a popup row
+  inside two golden images. The remaining hole is the active-application case with an overlapping
+  foreign window, which polling cannot detect.
+- Next: derive mouse position and button transitions from the surface's own `WM_MOUSE*` messages,
+  keeping the polled path only for what messages cannot express, then decide whether the activating
+  click should reach the control it lands on.
+- Complete when: a click on an overlapping foreign window never reaches a Swag control, hover
+  follows what the compositor actually shows, and the existing capture and drag behaviors survive
+  the change.
+- Related: std.gui.011
+
 ### std.gui.014 — No tap recognizer
 
 Recognize a tap with platform-appropriate distance and timing thresholds.

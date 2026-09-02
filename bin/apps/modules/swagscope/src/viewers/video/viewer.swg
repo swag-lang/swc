@@ -24,11 +24,15 @@ func videoViewerPlugin()->Viewer.Plugin
 }
 
 private const VideoSeekSeconds                        = 10.0
-private const VideoCommandWidth                       = 1040.0
+private const VideoCommandWidth                       = 1080.0
 private const VideoSeekOverlaySize                    = Math.Point{112, 64}
 private const VideoSeekOverlayOffsetY                 = 56.0
 private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
 private const VideoNoSubtitle                         = Swag.U32.Max
+
+// The playback rates the settings menu offers. XAudio2 creates every voice with the default
+// maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
+private const VideoPlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
 internal enum VideoSubtitleSource
 {
@@ -412,6 +416,17 @@ private func videoAudioTrackCommand(index: u32)->String
     return Format.toString("scope.video.audioTrack.%", index)
 }
 
+private func videoPlaybackRateCommand(index: u32)->String
+{
+    return Format.toString("scope.video.player.speed.%", index)
+}
+
+// Names one selectable playback rate; the source rate keeps its word rather than a number.
+private func videoPlaybackRateText(rate: f64)->String
+{
+    return rate == 1 ? String.from(videoStrings().ui_PlayerSpeedNormal) : Format.toString("%×", rate)
+}
+
 private func videoSubtitleTrackCommand(sidecar: bool, index: u32)->String
 {
     return Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
@@ -522,6 +537,7 @@ internal struct VideoViewer
         forwardButton:   *IconButton
         timeline:        *Slider
         timeLabel:       *Label
+        settingsButton:  *IconButton
         audioButton:     *IconButton
         subtitleButton:  *IconButton
         muteButton:      *IconButton
@@ -607,6 +623,8 @@ internal struct VideoViewer
     playing:              bool
     autoPlayPending:      bool = true
     muted:                bool
+    loopPlayback:         bool
+    playbackRate:         f64  = 1
     volume = 1'f32
     details:              String
     metadataReady:        bool
@@ -725,6 +743,7 @@ private impl VideoViewer
 
         .audioButton.toolTip    = videoStrings().ui_TipAudio
         .subtitleButton.toolTip = videoStrings().ui_TipSubtitles
+        .settingsButton.toolTip = videoStrings().ui_TipPlayerSettings
 
         .refreshDetails()
     }
@@ -741,7 +760,30 @@ internal impl VideoViewer
     {
         if !.playing do
             return .elapsed
-        return .elapsed + cast(f64) .clock.elapsedMicroseconds() / 1_000_000.0
+        return .elapsed + cast(f64) .clock.elapsedMicroseconds() / 1_000_000.0 * .playbackRate
+    }
+
+    // Changes the playback rate while keeping the current position and time labels in source time.
+    //
+    // The silent clock and the sound scale together: the voice consumes source samples at this
+    // ratio, so the position it reports keeps advancing in source seconds and the ordinary drift
+    // correction stays valid. Pitch follows the rate; no pitch-preserving resampler exists yet.
+    mtd setPlaybackRate(rate: f64)
+    {
+        if rate == .playbackRate do
+            return
+
+        // Re-anchor first, so the time already spent on the old rate is not replayed at the new one.
+        .elapsed = .currentSeconds()
+        if .playing do
+            .clock.restart()
+        .playbackRate = rate
+
+        // A backend that refuses the ratio keeps playing at 1x, and the audio clock then simply
+        // keeps correcting the picture back onto the sound.
+        if .voice do
+            catch .voice!.setFrequencyRatio(cast(f32) rate)
+        .refreshDetails()
     }
 
     // Pulls the playback timeline back onto the sound whenever the two have separated.
@@ -922,6 +964,8 @@ internal impl VideoViewer
         }
 
         newVoice.setVolume(.muted ? 0 : .volume)
+        if .playbackRate != 1 do
+            catch newVoice.setFrequencyRatio(cast(f32) .playbackRate)
         if coversRange do
             newVoice.seekSampleFrame(videoSoundSample(sound, position))
         if oldVoice do
@@ -974,6 +1018,42 @@ internal impl VideoViewer
             catch .selectAudioTrack(index) as trackError
             if trackError != null and .reportFailure do
                 .reportFailure!(me, Errors.message(trackError))
+            return
+        }
+    }
+
+    // Offers the transport policies that qualify how the movie plays, not what it plays.
+    //
+    // The rates stand directly in the menu rather than in a submenu: seven short rows cost
+    // less to scan than one more level, and the check mark keeps the current rate visible
+    // the moment the menu opens.
+    mtd showPlayerSettingsMenu()
+    {
+        let strings = videoStrings()
+        let menu    = MenuCtrl.createPopup(.settingsButton, owner: me)
+        menu.addItem(strings.ui_PlayerLoop, "scope.video.player.loop", checked: .loopPlayback)
+        menu.addSeparator()
+
+        var commands: Array'String
+        commands.reserve(VideoPlaybackRates.count)
+        for rate, index in VideoPlaybackRates
+        {
+            commands.add(videoPlaybackRateCommand(cast(u32) index))
+            menu.addItem(videoPlaybackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
+        }
+
+        let chosen = menu.doModal(.settingsButton, autoDestroy: true)
+        if !chosen do
+            return
+        if chosen! == "scope.video.player.loop"
+        {
+            .loopPlayback = !.loopPlayback
+            return
+        }
+
+        for rate, index in VideoPlaybackRates where chosen! == commands[index].toString()
+        {
+            .setPlaybackRate(rate)
             return
         }
     }
@@ -1165,7 +1245,10 @@ internal impl VideoViewer
     // A reposition that is still waiting for its own picture is not repeated: a starved queue
     // asks for the same sync frame on every tick, and restarting the decoder each time would
     // never let it fill.
-    mtd repositionTo(index: u64)
+    //
+    // `notifyLoading` lets a loop wrap keep the last picture on screen without the wait overlay:
+    // the reposition resolves within one decode, which is not worth announcing as loading.
+    mtd repositionTo(index: u64, notifyLoading = true)
     {
         var notify: bool
         {
@@ -1173,7 +1256,7 @@ internal impl VideoViewer
             if .anchorPending and .produceFrom == index and !.hasFailure do
                 return
 
-            notify = .hasFrame and !.awaitingFrame
+            notify = notifyLoading and .hasFrame and !.awaitingFrame
             for slot in .ready do
                 .freeSlots.add(slot)
             .ready.clear()
@@ -1461,6 +1544,42 @@ internal impl VideoViewer
         .audioClockLast = -1
     }
 
+    // Wraps playback to the first picture without the pause a cold user seek shows.
+    //
+    // A loop is not a reader's seek: the sound restarts at its first sample right away instead
+    // of waiting for the picture queue to rebuffer, and the last picture keeps the screen,
+    // without the wait overlay, for exactly the decode of the first one.
+    mtd restartForLoop()
+    {
+        .elapsed              = 0
+        .resumeAudioAfterSeek = false
+        .audioClockLast       = -1
+        .clock.restart()
+
+        if .voice and .audio
+        {
+            .audioRangePending = !videoSoundCovers(.audio!, 0)
+            if !.audioRangePending
+            {
+                catch .voice!.seekSampleFrame(videoSoundSample(.audio!, 0)) as seekError
+                if seekError != null
+                {
+                    .playing = false
+                    catch .voice!.pause()
+                    .refreshTransport()
+                    if .reportFailure do
+                        .reportFailure!(me, Errors.message(seekError))
+                    return
+                }
+
+                catch .voice!.play()
+            }
+        }
+
+        .repositionTo(0, notifyLoading: false)
+        .decodeWake.signal()
+    }
+
     mtd togglePlayback()
     {
         if !.hasFrame do
@@ -1598,6 +1717,12 @@ internal impl VideoViewer
         let count = .video.frameCount()
         if count and clock >= count and .frameIndex + 1 >= count
         {
+            if .loopPlayback
+            {
+                .restartForLoop()
+                return
+            }
+
             .playing              = false
             .resumeAudioAfterSeek = false
             .audioRangePending    = false
@@ -1694,6 +1819,10 @@ private impl VideoViewer
         .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(duration))
         if .audio do
             .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio!).toString())
+
+        // An adjusted rate is part of what the reader is watching, so the summary declares it.
+        if .playbackRate != 1 do
+            .details = Format.toString("% · %", .details.toString(), videoPlaybackRateText(.playbackRate).toString())
         if .reportDetails do
             .reportDetails!(me, .details.toString())
     }
@@ -1840,7 +1969,7 @@ private impl VideoViewer
         with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
-            .margin.x  = 8
+            .margin.x  = 4
             .toolTip   = videoStrings().ui_TipStop
             .enable(false)
             .sigPressed += func|view = result|(button)
@@ -1852,8 +1981,11 @@ private impl VideoViewer
 
         with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
+            .dockStyle = .Left
+
+            // Play/stop drive the transport and the two relative seeks move it: two families,
+            // one block of air between them.
+            .margin.x   = 16
             .toolTip    = videoStrings().ui_TipBackward
             .sigPressed += func|view = result|(button)
             {
@@ -1865,7 +1997,7 @@ private impl VideoViewer
         with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
+            .margin.x   = 4
             .toolTip    = videoStrings().ui_TipForward
             .sigPressed += func|view = result|(button)
             {
@@ -1879,6 +2011,19 @@ private impl VideoViewer
             .dockStyle = .Left
             .margin    = {8, 0, 8, 0}
             .setTextAlignment(.Right, .Center)
+        }
+
+        with result.settingsButton = IconButton.create(result.commands, result.theme().icon(.Options, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
+        {
+            .dockStyle = .Right
+            .margin.x  = 4
+            .toolTip   = videoStrings().ui_TipPlayerSettings
+            .setArrowPosition(.RightUpward)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showPlayerSettingsMenu()
+            }
         }
 
         with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
@@ -1897,7 +2042,7 @@ private impl VideoViewer
         with result.subtitleButton = IconButton.create(result.commands, {}, {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Right
-            .margin.x  = 8
+            .margin.x  = 4
             .toolTip   = videoStrings().ui_TipSubtitles
             .setText("CC")
             .setArrowPosition(.RightUpward)
@@ -1913,7 +2058,7 @@ private impl VideoViewer
         with result.volumeSlider = Slider.create(result.commands, {0, 0, 96, 36})
         {
             .dockStyle = .Right
-            .margin    = {0, 1, 8, 1}
+            .margin    = {0, 1, 4, 1}
             .toolTip   = videoStrings().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
@@ -1927,7 +2072,7 @@ private impl VideoViewer
         with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Right
-            .margin.x  = 8
+            .margin.x  = 4
             .toolTip   = videoStrings().ui_TipMute
             .setCheckIndicator(.Frame)
             .enable(false)

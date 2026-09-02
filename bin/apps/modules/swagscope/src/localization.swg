@@ -13,6 +13,8 @@ struct AppStrings
     ui_OpenDefault:                    string = "Open with default application"               // Tooltip of the system-default application button.
     ui_Viewer:                         string = "Viewer"                                      // Tooltip of the viewer selector.
     ui_Files:                          string = "Files beside this one"                       // Tooltip of the file-panel button.
+    ui_FullScreen:                     string = "Full screen (F11)"                           // Tooltip of the enter-full-screen button.
+    ui_ExitFullScreen:                 string = "Exit full screen (F11)"                      // Tooltip of the leave-full-screen button.
     ui_SameKind:                       string = "Only files of the same kind"                 // Tooltip of the folder-navigation filter toggle.
     ui_Recent:                         string = "Recent"                                      // Panel section listing what was read before.
     ui_ClearHistory:                   string = "Clear history"                               // Tooltip of the clear-history button.

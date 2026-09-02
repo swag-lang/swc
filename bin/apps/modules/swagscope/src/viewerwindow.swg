@@ -14,6 +14,7 @@ const ViewerInfoFileSpacing                   = 8.0
 const ViewerInfoSideButtonSpacing             = 8.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
+const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerSize                = 56.0
 const ViewerLoadingSpinnerMinRadius           = 15.0
@@ -39,6 +40,9 @@ internal func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f
     result.start  = phase * 540 - 90 - result.sweep * 0.5
     return result
 }
+
+const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
+const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 276.0
@@ -539,6 +543,7 @@ struct ViewerWindow
         openButton:          *IconButton
         openDefaultButton:   *IconButton
         filesButton:         *IconButton
+        fullScreenButton:    *IconButton
         searchGroup:         *StackLayoutCtrl
         searchNavigation:    *StackLayoutCtrl
         searchBox:           *EditBox
@@ -646,12 +651,21 @@ struct ViewerWindow
     fileDlgState:        FileDlgState
     themeIndex:          u32
     language:            String
-    smokeDirectory:      String
-    smokeSpecIndex:      u64
-    smokeWaitSteps:      u32
-    smokeOpened:         bool
-    smokeSelected:       bool
-    smokeRunning:        bool
+
+    // A monitor-sized presentation is transient: what the window was before entering it is what
+    // leaving it restores, placement, maximized state, and surface flags alike.
+    fullScreen:                bool
+    fullScreenWasMaximized:    bool
+    fullScreenRestorePosition: Math.Rectangle
+    fullScreenRestoreFlags:    SurfaceFlags
+    fullScreenTopVisible:      bool
+    fullScreenBottomVisible:   bool
+    smokeDirectory:            String
+    smokeSpecIndex:            u64
+    smokeWaitSteps:            u32
+    smokeOpened:               bool
+    smokeSelected:             bool
+    smokeRunning:              bool
 }
 
 func reportViewerDetails(view: *Wnd, details: string)
@@ -696,12 +710,15 @@ impl IWnd for ViewerWindow
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        if evt.kind == .Move or evt.kind == .Enter do
+            .updateFullScreenChrome(evt.surfacePos)
         evt.accepted = false
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
+        .layoutFullScreenChrome()
     }
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)
@@ -732,7 +749,11 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if evt.key == .O and evt.modifiers.has(.Control) do
+        if evt.key == .F11 and evt.modifiers == .None do
+            .setFullScreen(!.fullScreen)
+        elif evt.key == .Escape and evt.modifiers == .None and .fullScreen do
+            .setFullScreen(false)
+        elif evt.key == .O and evt.modifiers.has(.Control) do
             .chooseFile()
         elif evt.key == .F and evt.modifiers.has(.Control) do
             .showSearch()
@@ -802,6 +823,8 @@ impl IWnd for ViewerWindow
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        if .fullScreen do
+            .setFullScreen(false)
         catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
@@ -952,18 +975,133 @@ impl ViewerWindow
         .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
     }
 
+    // A monitor-sized full-screen placement is transient and must never replace the saved
+    // window placement. Closing first restores the regular placement, then persists it.
     private mtd saveState() fail
     {
+        if .fullScreen do
+            return
         try g_App.saveState()
     }
 
-    // Keeps a four-pixel structural edge when the selected viewer has no command bar.
+    // Keeps a four-pixel structural edge when the selected viewer has no command bar. Full screen
+    // remains immersive and reveals the complete command bar only when the viewer owns one.
     private mtd updateViewerBar()
     {
         .viewerBar.centerGroup     = .currentCommands
         .viewerBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
-        .viewerBar.show()
+        if .fullScreen do
+            .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
+        else do
+            .viewerBar.show()
         .viewerBar.centerContent()
+    }
+
+    // Enters or leaves a borderless monitor-sized presentation without losing the reader's
+    // previous window placement or maximized state.
+    mtd setFullScreen(enabled: bool)
+    {
+        if .fullScreen == enabled do
+            return
+
+        let srfn = .surface!
+        if enabled
+        {
+            .fullScreenRestorePosition = srfn.isMaximized ? srfn.restoredPosition : srfn.position
+            .fullScreenRestoreFlags    = srfn.flags
+            .fullScreenWasMaximized    = srfn.isMaximized
+            if srfn.isMaximized do
+                srfn.showNormal()
+
+            .fullScreen = true
+            srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
+            .accentRail.hide()
+            .commandBar.dockStyle  = .None
+            .infoBarHost.dockStyle = .None
+            .viewerBar.dockStyle   = .None
+            .commandBar.hide()
+            .infoBarHost.hide()
+            .viewerBar.hide()
+            .filePanelHost.hide()
+            .filesButton.hide()
+            .currentSidePanelHost?.hide()
+            .currentSidePanelButton?.hide()
+            .infoContentGroup.sideButton = null
+            .fullScreenTopVisible        = false
+            .fullScreenBottomVisible     = false
+            .applyLayout()
+            srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
+        }
+        else
+        {
+            .fullScreen = false
+            srfn.updateFlags(add: .fullScreenRestoreFlags & (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags), remove: (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags) & ~.fullScreenRestoreFlags)
+            .accentRail.show()
+            .commandBar.dockStyle  = .Top
+            .infoBarHost.dockStyle = .Top
+            .viewerBar.dockStyle   = .Bottom
+            .commandBar.show()
+            .infoBarHost.show()
+            .updateViewerBar()
+            .filePanelHost.show(.panelVisible)
+            .filesButton.show()
+            .currentSidePanelButton?.show()
+            .currentSidePanelHost?.show(.currentSidePanelButton?.isChecked orelse false)
+            .infoContentGroup.sideButton = .currentSidePanelButton
+            .fullScreenTopVisible        = false
+            .fullScreenBottomVisible     = false
+            .applyLayout()
+            srfn.setPosition(.fullScreenRestorePosition)
+            if .fullScreenWasMaximized do
+                srfn.showMaximized()
+        }
+
+        srfn.invalidate()
+        .fullScreenButton.setChecked(.fullScreen)
+        .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, themeActionIconSize(.themeMetrics())))
+        .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
+    }
+
+    // Reveals full-screen chrome only while the pointer is at the corresponding screen edge.
+    mtd updateFullScreenChrome(position: Math.Point)
+    {
+        if !.fullScreen do
+            return
+        let height = .clientRect().height
+        let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerActionBarHeight + .infoBarHost.position.height)
+        let bottom = position.y >= height - ViewerFullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - ViewerBarHeight)
+        if top == .fullScreenTopVisible and bottom == .fullScreenBottomVisible do
+            return
+        .fullScreenTopVisible    = top
+        .fullScreenBottomVisible = bottom
+        .layoutFullScreenChrome()
+    }
+
+    // Positions the transient bars over the content without changing its full-screen rectangle.
+    mtd layoutFullScreenChrome()
+    {
+        if !.fullScreen do
+            return
+        let rect = .clientRect()
+        .commandBar.show(.fullScreenTopVisible)
+        .infoBarHost.show(.fullScreenTopVisible)
+        .updateViewerBar()
+        if .fullScreenTopVisible
+        {
+            .commandBar.setPosition({rect.x, rect.y, rect.width, ViewerActionBarHeight}, computeLayout: false)
+            .infoBarHost.setPosition({rect.x, rect.y + ViewerActionBarHeight, rect.width, .infoBarHost.position.height}, computeLayout: false)
+            .commandBar.applyLayout()
+            .infoBarHost.applyLayout()
+            .commandBar.bringToFront()
+            .infoBarHost.bringToFront()
+        }
+
+        if .fullScreenBottomVisible and .currentCommands
+        {
+            .viewerBar.setPosition({rect.x, rect.bottom() - ViewerBarHeight, rect.width, ViewerBarHeight}, computeLayout: false)
+            .viewerBar.applyLayout()
+            .viewerBar.bringToFront()
+        }
     }
 
     func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
@@ -1023,6 +1161,17 @@ impl ViewerWindow
             {
                 discard button
                 window.openCurrentFileDefault()
+            }
+        }
+
+        with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
+        {
+            .dockStyle = .Right
+            .toolTip   = appStrings().ui_FullScreen
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
+            {
+                window.setFullScreen(button.isChecked)
             }
         }
 
@@ -1402,8 +1551,9 @@ impl ViewerWindow
             discard wnd
             switch evt
             {
-            case KeyEvent as key where window.routePlaybackKey(key):         return true
-            case KeyEvent as key where window.routeSearchNavigationKey(key): return true
+            case KeyEvent as key where window.routePlaybackKey(key):                    return true
+            case KeyEvent as key where window.routeSearchNavigationKey(key):            return true
+            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
             }
 
             return false
@@ -1735,7 +1885,7 @@ impl ViewerWindow
         .infoSizeLabel.toolTip = ""
         .layoutFileInfo()
         .infoIconLabel.setIcon({})
-        .infoBarHost.show()
+        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
         .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .updateSearchAvailability()
@@ -1808,7 +1958,7 @@ impl ViewerWindow
         .currentSidePanelButton      = button
         .infoContentGroup.sideButton = button
 
-        if button
+        if button and !.fullScreen
         {
             button.show()
             panel?.show(button.isChecked)
@@ -2028,6 +2178,7 @@ impl ViewerWindow
             .loadingOverlay.cover(.currentView!.position)
             .loadingOverlay.show()
             .loadingOverlay.bringToFront()
+            .layoutFullScreenChrome()
         }
         else do
             .loadingOverlay.hide()
@@ -2836,7 +2987,7 @@ impl ViewerWindow
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .layoutFileInfo()
-        .infoBarHost.show()
+        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
     }
 
     // Measures the identity row again after asynchronous metadata changes. Text widths are

@@ -86,7 +86,7 @@ struct Application
         {
             timing:           Time.FrameTiming               // Timing of the frame being run.
             motionPreference: MotionPreference = .System     // Application override of the platform motion preference.
-            isActivated:      bool                           // Whether the application owns a native window.
+            isActivated:      bool                           // Whether one of this application's native windows is the active one.
         }
     }
 
@@ -234,6 +234,14 @@ private impl Application
     mtd sendMouseEvents()
     {
         .mouse.update()
+
+        // A renderer without native windows has no native pointer either: what the system mouse
+        // reports belongs to whoever is using the desktop while the test runs. Headless hosts
+        // drive the pointer through synthesized events, so the polled state must not reach the
+        // window tree — a real cursor parked over a popup's rectangle was enough to light one of
+        // its rows in a golden image.
+        if !.renderer.needsNativeWindow() do
+            return
 
         // A drag in flight owns the pointer, and the gesture is already being delivered as its
         // own event to the window under it. The pointer state polled here would only tell a
@@ -409,6 +417,14 @@ private impl Application
     mtd sendKeyboardEvents()
     {
         .keyboard.update()
+
+        // The state above is polled from the system, not read from this application's own message
+        // stream, so it keeps moving while another application owns the keyboard. Presenting every
+        // key as released while this application is not the active one keeps its shortcuts
+        // focus-bound: nothing is pressed, so nothing is dispatched and nothing re-seeds the
+        // keyboard focus until the application is activated again.
+        if !.isActivated do
+            .keyboard.releaseAllKeys()
 
         // Modifiers
         let modifiers = .keyboard.pressedModifiers()

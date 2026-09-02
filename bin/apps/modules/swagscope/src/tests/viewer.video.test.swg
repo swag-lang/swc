@@ -390,6 +390,73 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.voice!.playbackSampleFrame() == 0)
 }
 
+// The player settings menu qualifies how the movie plays: an adjusted rate scales the silent
+// clock and the sound together, and stays declared by the host summary until reset.
+#test
+{
+    Swag.assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let fileName = videoAudioFixturePath()
+    var result   = openTestViewer(videoViewerPlugin(), &host.root, fileName, commandParent: commands)
+    Swag.assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    Swag.assert(view.settingsButton.icon.isValid() and view.settingsButton.isEnabled())
+    Swag.assert(view.audio != null and view.voice != null)
+
+    // The speed entry rescales the voice with the clock, and the summary declares the rate.
+    host.clickPopupMenuItemWhenShown("scope.video.player.speed.6")
+    view.showPlayerSettingsMenu()
+    Swag.assert(view.playbackRate == 2)
+    Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 2, 0.001))
+    Swag.assert(view.details.indexOf("2×") != Swag.U64.Max)
+    view.setPlaybackRate(1)
+    Swag.assert(view.playbackRate == 1 and view.details.indexOf("2×") == Swag.U64.Max)
+    Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 1, 0.001))
+
+    // The loop entry is a plain toggle; its effect on the transport has its own soundless test.
+    host.clickPopupMenuItemWhenShown("scope.video.player.loop")
+    view.showPlayerSettingsMenu()
+    Swag.assert(view.loopPlayback)
+}
+
+// Looping replays from the first picture once the clock passes the last one, and keeps the
+// transport in its playing state across the wrap.
+#test
+{
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-loop-%.mp4", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    var result   = openTestViewer(videoViewerPlugin(), &host.root, fileName, commandParent: commands)
+    Swag.assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    Swag.assert(view.playing and view.voice == null)
+
+    view.loopPlayback = true
+    let count = view.video.frameCount()
+    view.seekFrame(count - 1)
+    waitForVideoFrame(view)
+    Swag.assert(view.frameIndex == count - 1 and view.playing)
+
+    // No sound owns this clock, so pushing it past the end is exactly what real time would do.
+    view.elapsed = view.video.durationInSeconds() + 1
+    view.updatePlayback()
+    waitForVideoFrame(view)
+    Swag.assert(view.frameIndex == 0 and view.playing)
+}
+
 // Full-screen chrome is presentation-only: resizing and revealing either bar preserves the
 // active voice and the transport state.
 #test
@@ -416,6 +483,11 @@ func videoMatroskaFixturePath()->String
     Swag.assert(!window.loadingOverlay.isLocallyVisible())
 
     let voice = view.voice!
+
+    window.setFullScreen(true)
+    window.updateFullScreenChrome({10, 1})
+    window.updateFullScreenChrome({10, window.clientRect().height - 1})
+    window.setFullScreen(false)
 
     Swag.assert(view.playing and view.voice == voice and voice.isPlaying())
 }
@@ -549,7 +621,8 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.timeLabel.textHorizontalAlignment == .Right)
     Swag.assert(view.volumeSlider.position.right() <= view.subtitleButton.position.x)
     Swag.assert(view.subtitleButton.position.right() <= view.audioButton.position.x)
-    Swag.assert(view.audioButton.position.right() == view.commands.clientRect().right())
+    Swag.assert(view.audioButton.position.right() <= view.settingsButton.position.x)
+    Swag.assert(view.settingsButton.position.right() == view.commands.clientRect().right())
     Testing.assertContentFits(view.commands)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")

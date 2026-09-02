@@ -11,6 +11,9 @@ ui_TipVolume     Volume
 ui_TipAudio      Piste audio
 ui_AudioTrack        <b>%</b>% · <p3>% · % can. · %{f1} kHz</p>
 ui_TipSubtitles  Sous-titres
+ui_TipPlayerSettings  Réglages de lecture
+ui_PlayerLoop         Lecture en boucle
+ui_PlayerSpeedNormal  Normale
 ui_AudioTrackNumber  Audio %
 ui_AudioTrackLang    <p2> (%)</p>
 ui_AudioDetails  % · % can. · %{f1} kHz

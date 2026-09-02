@@ -15,6 +15,9 @@ struct VideoStrings
     ui_TipVolume:              string = "Volume"                                       // Tooltip of the volume slider.
     ui_TipAudio:               string = "Audio track"                                  // Tooltip of the sound-track selector.
     ui_TipSubtitles:           string = "Subtitles"                                    // Tooltip of the subtitle selector.
+    ui_TipPlayerSettings:      string = "Playback settings"                            // Tooltip of the player-settings menu button.
+    ui_PlayerLoop:             string = "Loop playback"                                // Settings entry restarting the movie when it ends.
+    ui_PlayerSpeedNormal:      string = "Normal"                                       // The source playback rate.
     ui_AudioTrack:             string = "<b>%</b>% · <p3>% · % ch · %{f1} kHz</p>"     // One sound-track selector entry.
     ui_AudioTrackNumber:       string = "Audio %"                                      // Fallback name for an unnamed sound track.
     ui_AudioTrackLang:         string = "<p2> (%)</p>"                                 // A sound-track language suffix.

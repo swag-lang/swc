@@ -634,8 +634,9 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// A left-opening submenu without any visible item glyph collapses the unused glyph column, so
-// its wording follows the leading chevron at the normal icon-to-text distance.
+// A popup without any visible item glyph whose submenus open on the left reserves one shared
+// arrow column, so the wording of every row starts at the same place whether or not its row
+// carries the arrow.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -664,8 +665,10 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     iconPopup.setSubmenuDirection(.Left)
     iconPopup.computeLayoutPopup()
 
+    // The shared arrow column is paid for once by the whole popup, so the no-glyph popup ends
+    // up wider than the glyph one by the chevron column minus the glyph column it replaces.
     let metrics = popup.themeMetrics()
-    Swag.assert(Math.abs(iconPopup.position.width - popup.position.width - (metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin - metrics.menuPopup_IconMargin)) < 0.01)
+    Swag.assert(Math.abs(popup.position.width - iconPopup.position.width - (metrics.chevron_Size + metrics.menuPopup_IconMargin - metrics.menuPopup_IconSize)) < 0.01)
 
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(app)

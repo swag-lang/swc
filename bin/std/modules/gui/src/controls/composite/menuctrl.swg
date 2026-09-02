@@ -92,6 +92,7 @@ public struct MenuCtrl
     popupButtonOpensUp:      bool                   // Whether an attached icon-button menu opens above its tab.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
+    popupHasMarkerColumn:    bool                   // Whether left-opening arrows own one shared leading column.
 }
 
 public impl IWnd for MenuCtrl
@@ -193,12 +194,15 @@ public impl IWnd for MenuCtrl
         let rects   = .themeRects()
         let metrics = .themeMetrics()
 
-        // Shadow
+        // Shadow. The anchor band carries the attached bar item or button, not the body, so the
+        // shadow spans everything but that band: below the body when the popup hangs from a bar,
+        // above it when the popup stands on its button.
         if !.paintByFrame
         {
             let subRect      = &theme.rects.menuPopup_Shadow
             let anchorHeight = .getPopupBarAnchorHeight()
-            theme.drawSubRect(painter, {0, anchorHeight, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
+            let shadowY      = .popupButtonOpensUp ? 0 : anchorHeight
+            theme.drawSubRect(painter, {0, shadowY, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
         }
 
         // Back
@@ -261,16 +265,27 @@ public impl IWnd for MenuCtrl
 
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
+
+            // When left-opening arrows are the only leading signs of this popup, they own one
+            // shared minimal column: every wording then starts at the same place whether or not
+            // its row carries the arrow, instead of the arrowed rows drifting to the right.
+            var submenuMarkerX: f32
+            if .popupHasMarkerColumn
+            {
+                submenuMarkerX = iconPos.x
+                iconPos.x      += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
+            }
+
             labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
             labelPos.width -= metrics.menuPopup_IconSize
 
             // A left-opening submenu uses the shared glyph column when the row has no glyph of
             // its own. Reserving another column after the marker left a conspicuous hole before
             // the wording. A row that genuinely has both a marker and a glyph still keeps both.
-            var submenuMarkerX: f32
             if Swag.isSet(it.popup)
             {
-                if it.submenuOpensLeft
+                if it.submenuOpensLeft and !.popupHasMarkerColumn
                 {
                     submenuMarkerX = iconPos.x
                     let rowHasGlyph = it.checked or it.rg == .ExclusiveGroup or it.icon.isValid()
@@ -280,7 +295,7 @@ public impl IWnd for MenuCtrl
                         labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
                     }
                 }
-                else
+                elif !it.submenuOpensLeft
                 {
                     labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
 
@@ -637,14 +652,16 @@ impl MenuCtrl
         // otherwise the two independently rounded tiles leave a visible break at the junction.
         if Math.abs(anchorRect.x - bodyRect.x) < metrics.wnd_BorderSize
         {
-            let y = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y
-            painter.fillRect({bodyRect.x, y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
+            let y   = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y
+            let pen = Pen.createSolid(colors.menuPopup_Border, metrics.wnd_BorderSize)
+            painter.drawLine(bodyRect.x + metrics.wnd_BorderSize * 0.5, y, bodyRect.x + metrics.wnd_BorderSize * 0.5, y + metrics.menuPopup_BarItemOverlap, pen)
         }
 
         if Math.abs(anchorRect.right() - bodyRect.right()) < metrics.wnd_BorderSize
         {
-            let y = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y
-            painter.fillRect({bodyRect.right() - metrics.wnd_BorderSize, y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
+            let y   = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y
+            let pen = Pen.createSolid(colors.menuPopup_Border, metrics.wnd_BorderSize)
+            painter.drawLine(bodyRect.right() - metrics.wnd_BorderSize * 0.5, y, bodyRect.right() - metrics.wnd_BorderSize * 0.5, y + metrics.menuPopup_BarItemOverlap, pen)
         }
 
         if .popupAnchorButton
@@ -984,6 +1001,7 @@ impl MenuCtrl
         rsf.font = .font()
 
         var lastIsSeparator = true
+        var hasSubmenuRows  = false
         .popupHasGlyphs = false
         for i, idx in .items
         {
@@ -1030,8 +1048,11 @@ impl MenuCtrl
             // A submenu row paints a chevron after the text column. Reserve that band while
             // measuring too, otherwise the row is exactly wide enough only until the chevron is
             // subtracted at paint time and its last word is clipped.
-            if Swag.isSet(it.popup) do
-                w += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+            if Swag.isSet(it.popup)
+            {
+                hasSubmenuRows = true
+                w              += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+            }
 
             .position.width  = Math.max(.position.width, w)
             .position.height += it.size
@@ -1043,6 +1064,13 @@ impl MenuCtrl
 
         let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
         .position.width += metrics.menuPopup_IconSize + leadingWidth
+
+        // With no glyph column to share, a popup whose submenus deliberately open on the left
+        // aligns everything on one arrow column instead; the column has to be paid for once,
+        // since the rows without an arrow reserved nothing for it.
+        .popupHasMarkerColumn = hasSubmenuRows and .submenuDirection == .Left and !.popupHasGlyphs
+        if .popupHasMarkerColumn do
+            .position.width += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
 
         if .hasPopupBarAnchor() and !.paintByFrame
         {

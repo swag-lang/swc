@@ -1273,6 +1273,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchGroup.parent == window.commandBar)
     Swag.assert(window.searchBox.parent == window.searchGroup)
     Swag.assert(window.searchNavigation.parent == window.searchGroup)
+    Swag.assert(window.fullScreenButton.parent == window.commandBar)
+    Swag.assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
     Swag.assert(window.openDefaultButton.parent == window.commandBar and !window.openDefaultButton.isEnabled())
     Swag.assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     Swag.assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
@@ -1456,6 +1458,45 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.infoStatsLabel.position.width < narrowDetailWidth)
     Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() - narrowClient.right()) < 0.01)
     Swag.assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
+}
+
+// F11 preserves the exact window state around a content-only presentation. Moving at either
+// screen edge reveals the corresponding chrome over the content without shrinking it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(viewerFixturePath(), remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.setFilePanelVisible(true)
+    let position = host.surface.position
+    let flags    = host.surface.flags
+
+    var key = KeyEvent{kind: .Pressed, key: .F11}
+    window.sendEvent(&key)
+    Swag.assert(window.fullScreen and window.fullScreenButton.isChecked)
+    Swag.assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
+    Swag.assert(!host.surface.flags.has(.LargeCaption) and !host.surface.flags.has(.Border))
+    Swag.assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
+    Swag.assert(!window.viewerBar.isLocallyVisible() and !window.filePanelHost.isLocallyVisible())
+
+    window.updateFullScreenChrome({10, 1})
+    Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
+    Swag.assert(!window.viewerBar.isLocallyVisible())
+    window.updateFullScreenChrome({10, window.clientRect().height / 2})
+    Swag.assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
+    window.updateFullScreenChrome({10, window.clientRect().height - 1})
+    Swag.assert(window.viewerBar.isLocallyVisible())
+
+    window.setFullScreen(false)
+    Swag.assert(!window.fullScreen and !window.fullScreenButton.isChecked)
+    Swag.assert(host.surface.flags == flags and host.surface.position == position)
+    Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
+    Swag.assert(window.viewerBar.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.

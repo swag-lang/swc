@@ -907,6 +907,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecShuffle2:
         case TokenId::IntrinsicVecAlign:
         case TokenId::IntrinsicVecSelect:
+        case TokenId::IntrinsicVecClmul:
             return parseIntrinsicCallExpr(3);
 
         case TokenId::NumberInteger:

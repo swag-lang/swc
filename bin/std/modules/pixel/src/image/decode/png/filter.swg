@@ -301,7 +301,9 @@ func addPixelLanes(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Sim
 //
 // The three distances reduce to differences of the neighbours, which keeps every lane inside
 // 's16': 'p - left' is 'up - upLeft', 'p - up' is 'left - upLeft', and 'p - upLeft' is their
-// sum. Taking the smallest and preferring left, then up, reproduces the ordered comparisons.
+// sum. Two strict comparisons reproduce the ordered scalar rule — a tie keeps the earlier
+// candidate — and keep the dependency chain on 'left' two steps shorter than picking the
+// minimum of the three distances first.
 #[Swag.Inline]
 func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
 {
@@ -310,8 +312,9 @@ func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
     let distanceLeft   = Math.abs(deltaUp)
     let distanceUp     = Math.abs(deltaLeft)
     let distanceUpLeft = Math.abs(deltaUp + deltaLeft)
-    let smallest       = Math.min(distanceUpLeft, Math.min(distanceLeft, distanceUp))
-    return Math.Simd.select(smallest == distanceLeft, left, Math.Simd.select(smallest == distanceUp, up, upLeft))
+    let nearer         = Math.Simd.select(distanceUp < distanceLeft, up, left)
+    let nearest        = Math.min(distanceUp, distanceLeft)
+    return Math.Simd.select(distanceUpLeft < nearest, upLeft, nearer)
 }
 
 // Reverses the Average predictor, carrying the reconstructed left pixel in a register.

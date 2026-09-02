@@ -359,6 +359,14 @@ namespace Simd
         func select(mask: U64x2, ifTrue, ifFalse: S64x2)->S64x2 => Swag.vecselect(mask, ifTrue, ifFalse)
         func select(mask: U64x2, ifTrue, ifFalse: F64x2)->F64x2 => Swag.vecselect(mask, ifTrue, ifFalse)
 
+        // Carry-less multiplication of one 64-bit lane of each source into a full
+        // 128-bit product; the suffix names the lane taken from each side. This is
+        // the primitive CRC folding is made of.
+        func clmulLowLow(x, y: U64x2)->U64x2   => Swag.vecclmul(x, y, 0x00)
+        func clmulHighLow(x, y: U64x2)->U64x2  => Swag.vecclmul(x, y, 0x01)
+        func clmulLowHigh(x, y: U64x2)->U64x2  => Swag.vecclmul(x, y, 0x10)
+        func clmulHighHigh(x, y: U64x2)->U64x2 => Swag.vecclmul(x, y, 0x11)
+
         // Gathers the lane sign bits into the low bits of an integer, lane zero in bit zero.
         //
         // On a comparison mask this is one bit per lane, set where the compare held.

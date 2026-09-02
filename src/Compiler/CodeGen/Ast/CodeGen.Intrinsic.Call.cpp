@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -2371,6 +2372,24 @@ namespace
                     resultPayload.reg            = CodeGenVectorHelpers::emitDynamicAlign(codeGen, lowReg, highReg, countReg, byteLaneType);
                 }
 
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecClmul:
+            {
+                SWC_ASSERT(children.size() == 3);
+
+                // The selector is baked into the instruction: it must be a constant.
+                SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[2]));
+                const SemaNodeView   selView = codeGen.viewTypeConstant(children[2]);
+                const ConstantValue& selCst  = codeGen.cstMgr().get(selView.cstRef());
+
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = codeGen.nextVirtualFloatRegister();
+                builder.emitOpTernaryRegRegRegImm(resultPayload.reg, leftReg, rightReg, static_cast<uint8_t>(selCst.getIntLike().as64()), MicroOp::VecClmul, MicroOpBits::B128);
                 outHandled = true;
                 return Result::Continue;
             }

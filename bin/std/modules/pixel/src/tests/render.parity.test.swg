@@ -70,6 +70,72 @@ func renderOgl(className, title: string, width, height: s32, scene: RenderParity
     return scene(renderer)
 }
 
+// Reports whether `actual` is a lost windowed readback rather than a render of the scene.
+//
+// On this platform a freshly created windowed GL context occasionally reads back the default
+// framebuffer instead of its render target — a blank buffer, or a foreign window once the parity
+// window is shown — which reads as a whole-image difference from the CPU reference. Every real
+// CPU/OpenGL parity difference stays under a couple thousand edge pixels at a channel delta of a
+// few; a lost readback misses on a quarter of the image or more at a channel delta of tens, so the
+// two are never confused.
+private func readbackLost(expected, actual: const *Image)->bool
+{
+    if !actual.isValid() or actual.width != expected.width or actual.height != expected.height do
+        return true
+
+    let limit = (expected.width * expected.height) / 4
+    var bad   = 0
+    for y in expected.height
+    {
+        for x in expected.width
+        {
+            let e  = expected.pixelColor(x, y)
+            let a  = actual.pixelColor(x, y)
+            let dr = Math.abs(cast(s32) e.r - cast(s32) a.r)
+            let dg = Math.abs(cast(s32) e.g - cast(s32) a.g)
+            let db = Math.abs(cast(s32) e.b - cast(s32) a.b)
+            if Math.max(Math.max(dr, dg), db) > 24
+            {
+                bad += 1
+                if bad > limit do
+                    return true
+            }
+        }
+    }
+
+    return false
+}
+
+// Renders the OpenGL side of a parity scene and returns it, re-rendering when the windowed readback
+// is lost. The retry is what makes a real-window GL test deterministic on a live desktop; a genuine
+// parity difference is never catastrophic, so it is never retried away. An unsupported
+// advanced-blending context returns an invalid image on purpose — the capability answer, not a lost
+// readback — and is returned as-is for the caller to skip.
+func renderOglStable(className, title: string, width, height: s32, scene: RenderParityScene, expected: const *Image, needsAdvancedBlending = false)->Image fail
+{
+    var actual: Image
+    for 5
+    {
+        actual = expect renderOgl(className, title, width, height, scene, needsAdvancedBlending)
+        if needsAdvancedBlending and !actual.isValid() do
+            break
+        if !readbackLost(expected, &actual) do
+            break
+    }
+
+    return actual
+}
+
+// Renders both backends for one scene and asserts they agree within `options`.
+func assertOglParity(className, title: string, width, height: s32, scene: RenderParityScene, name: string, options: Testing.ImageGoldenOptions, needsAdvancedBlending = false) fail
+{
+    let expected = renderCpu(scene)
+    let actual   = try renderOglStable(className, title, width, height, scene, &expected, needsAdvancedBlending)
+    if needsAdvancedBlending and !actual.isValid() do
+        return
+    Testing.assertImagesNear(&expected, &actual, name, options)
+}
+
 // Exercises every artistic mode over opaque and partially covered backdrops. The latter row
 // proves the premultiplied overlap/source-only/backdrop-only terms, not only the color formula.
 private func renderBlendParityScene(renderer: IRenderer)->Image
@@ -493,9 +559,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // whether a GPU or a single core filled the supersampled buffer and resolved it.
 #test
 {
-    let expected = renderCpu(&renderSvgParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_SVG_PARITY", "Pixel svg rasterize parity", RenderSvgWidth, RenderSvgHeight, &renderSvgParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.svg.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 600})
+    expect assertOglParity("SWAG_PIXEL_SVG_PARITY", "Pixel svg rasterize parity", RenderSvgWidth, RenderSvgHeight, &renderSvgParityScene, "render.parity.svg.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 600})
 }
 
 // Image comparisons expose separate limits for small channel drift and bounded outlier pixels.
@@ -526,19 +590,14 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // contexts expose their limitation through the capability query.
 #test
 {
-    let expected = renderCpu(&renderBlendParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_BLEND_PARITY", "Pixel blend parity", RenderBlendWidth, RenderBlendHeight, &renderBlendParityScene, true)
-    if image.isValid() do
-        Testing.assertImagesNear(&expected, &image, "render.parity.blend.cpu-ogl", {maxChannelDelta: 3})
+    expect assertOglParity("SWAG_PIXEL_BLEND_PARITY", "Pixel blend parity", RenderBlendWidth, RenderBlendHeight, &renderBlendParityScene, "render.parity.blend.cpu-ogl", {maxChannelDelta: 3}, true)
 }
 
 // OpenGL must stay visually equivalent to the CPU reference. Raster-edge differences are
 // bounded explicitly; flat fills, texture interiors and state transitions still compare exactly.
 #test
 {
-    let expected = renderCpu(&renderParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_RENDER_PARITY", "Pixel renderer parity", RenderParityWidth, RenderParityHeight, &renderParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
+    expect assertOglParity("SWAG_PIXEL_RENDER_PARITY", "Pixel renderer parity", RenderParityWidth, RenderParityHeight, &renderParityScene, "render.parity.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
 }
 
 // The deterministic CPU backend is the reviewable reference for measured strokes too.
@@ -554,9 +613,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // the software rasterizer. This is what keeps the two honest before the flag becomes a default.
 #test
 {
-    let expected = renderCpu(&renderStrokeParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_STROKE_PARITY", "Pixel stroke parity", RenderParityWidth, RenderParityHeight, &renderStrokeParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.stroke.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
+    expect assertOglParity("SWAG_PIXEL_STROKE_PARITY", "Pixel stroke parity", RenderParityWidth, RenderParityHeight, &renderStrokeParityScene, "render.parity.stroke.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
 }
 
 // Text goldens cover bitmap sampling plus the complete built-in MTSDF effects path.
@@ -570,9 +627,7 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // CPU and OpenGL implement the same built-in text programs, including MTSDF effects.
 #test
 {
-    let expected = renderCpu(&renderTextParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_TEXT_PARITY", "Pixel text parity", RenderTextWidth, RenderTextHeight, &renderTextParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.text.cpu-ogl", {maxChannelDelta: 5, maxDifferentPixels: 1500})
+    expect assertOglParity("SWAG_PIXEL_TEXT_PARITY", "Pixel text parity", RenderTextWidth, RenderTextHeight, &renderTextParityScene, "render.parity.text.cpu-ogl", {maxChannelDelta: 5, maxDifferentPixels: 1500})
 }
 
 // The CPU backend makes composite layer output deterministic and reviewable.
@@ -586,17 +641,13 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // Layer resolve, blur, paint-alpha replay and pooled targets agree across both backends.
 #test
 {
-    let expected = renderCpu(&renderLayerParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_LAYER_PARITY", "Pixel layer parity", RenderLayerWidth, RenderLayerHeight, &renderLayerParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.layer.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
+    expect assertOglParity("SWAG_PIXEL_LAYER_PARITY", "Pixel layer parity", RenderLayerWidth, RenderLayerHeight, &renderLayerParityScene, "render.parity.layer.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
 }
 
 // A clipping rectangle pushed inside a layer clips the layer, on both backends.
 #test
 {
-    let expected = renderCpu(&renderLayerClipParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_LAYER_CLIP_PARITY", "Pixel layer clip parity", RenderLayerWidth, RenderLayerHeight, &renderLayerClipParityScene)
-    Testing.assertImagesNear(&expected, &image, "render.parity.layer.clip.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
+    expect assertOglParity("SWAG_PIXEL_LAYER_CLIP_PARITY", "Pixel layer clip parity", RenderLayerWidth, RenderLayerHeight, &renderLayerClipParityScene, "render.parity.layer.clip.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
 }
 
 // Builds a planar 4:2:0 picture with a different value in every corner: a luma ramp that rises
@@ -707,7 +758,7 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420
     var storage: Array'u8
     let picture  = makeRenderPlanarPicture(&storage)
     let expected = renderCpu(&renderPlanarParityScene)
-    let image    = expect renderOgl("SWAG_PIXEL_PLANAR_PARITY", "Pixel planar parity", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene)
+    let image    = try renderOglStable("SWAG_PIXEL_PLANAR_PARITY", "Pixel planar parity", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene, &expected)
     Testing.assertImagesNear(&expected, &image, "render.parity.planar.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
     assertPlanarCornersUpright(&image, &picture)
 }

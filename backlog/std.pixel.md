@@ -285,52 +285,6 @@ output, path measurement and effects, and the modern renderer choice tracked by
   to be.
 - Related: std.pixel.008
 
----
-
-## Tests
-
-### std.pixel.021 — The OpenGL parity readback returns an empty or foreign framebuffer
-
-- Area: std.pixel
-- Found while: running `tests.swgs dm` (default devmode) during the 2026-09-02 repository health
-  reset, which stops at this test every time.
-- Observation: `render.parity.stroke.cpu-ogl`
-  ([render.parity.test.swg:547](../bin/std/modules/pixel/src/tests/render.parity.test.swg#L547))
-  compares a fresh OpenGL render against the CPU reference. The OpenGL side intermittently comes
-  back empty — the whole 192x128 image zero, first pixel produced 0 against an expected
-  4279243288 (the clear colour 16,18,24) — while the CPU reference is always correct.
-- The failure is no longer devmode-clean. It now reproduces in the default devmode `test` path,
-  not only in release/JIT. Measured 2026-09-02 on master at 07f22d826 with a compiler built from
-  that tree: the full stroke scene fails 5/5 in `swc tools/std.swgs dm test pixel --test-file
-  render.parity.test.swg`, and an isolated single-`#test` copy of the same scene, on an idle
-  machine, rendered correctly once (a real 1604-pixel CPU/OGL diff, itself above the 512-pixel
-  tolerance) and returned an all-zero image on the next two runs — so the empty readback is
-  intermittent, not load-gated. A probe that creates many windowed GL contexts in one process run
-  eventually fails context creation outright (`Swag.SystemError`), so the environment also
-  exhausts GL/windowing resources under repeated create/destroy.
-- The readback does not report a lost context. Across runs the same assertion has produced an
-  empty image, the scene of the neighbouring `render.parity.cpu-ogl` test, and a capture of the
-  desktop behind the window. `renderOgl` builds a real top-level window and an OpenGL context and
-  never shows or pumps it; `createRenderTargetImpl` builds the FBO with no
-  `glCheckFramebufferStatus`; `readRenderTargetImpl` binds the FBO and reads, and if the FBO
-  handle is 0 the bind falls through to the default framebuffer (the window/desktop) with no error.
-- Two distinct defects live here. (1) The windowed GL context/FBO in this environment produces
-  nothing intermittently and exhausts on repeated creation — the render path itself is correct
-  (it renders when the context is healthy), so the fault is in how the test acquires and reads a
-  GL surface, not in the painter. (2) When it does render, the CPU/OGL distance-stroke diff has
-  been seen above the 512-pixel tolerance in one sample; confirm whether that is a real parity
-  regression once a reliable render can be measured.
-- Next step: make the readback self-proving so a lost or foreign framebuffer reports itself
-  instead of arriving as a parity difference — assert `glCheckFramebufferStatus ==
-  GL_FRAMEBUFFER_COMPLETE` after `createRenderTarget`, reject a zero FBO handle in
-  `readRenderTargetImpl`, and stamp one sentinel pixel before the readback and verify it after.
-  Independently, investigate why the windowed context yields nothing (show/pump the window before
-  the first frame, or render fully off-screen without a top-level window). Only after a reliable
-  render exists, re-measure the distance-stroke parity diff against the 512-pixel tolerance.
-- Complete when: the OpenGL parity readback either renders reliably or fails with a message that
-  names the lost context, and the measured CPU/OGL distance-stroke diff is inside tolerance on a
-  healthy context.
-
 ## Out of scope
 
 **Image codecs.** Decoding, encoding, metadata, multi-image containers, and SVG input are tracked

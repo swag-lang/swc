@@ -476,14 +476,10 @@ func loadAssets(wnd: *Wnd) fail
     dataPath = Path.combine(dataPath, "flappy")
 
     // Load all sounds.
-    // 'with' makes Audio.SoundFile the implicit namespace inside the block.
-    with Audio.SoundFile
-    {
-        g_SoundDie   = .load(Path.combine(dataPath, "die.wav"))
-        g_SoundScore = .load(Path.combine(dataPath, "point.wav"))
-        g_SoundHit   = .load(Path.combine(dataPath, "hit.wav"))
-        g_SoundFlap  = .load(Path.combine(dataPath, "flap.wav"))
-    }
+    g_SoundDie   = Audio.SoundFile.load(Path.combine(dataPath, "die.wav"))
+    g_SoundScore = Audio.SoundFile.load(Path.combine(dataPath, "point.wav"))
+    g_SoundHit   = Audio.SoundFile.load(Path.combine(dataPath, "hit.wav"))
+    g_SoundFlap  = Audio.SoundFile.load(Path.combine(dataPath, "flap.wav"))
 
     // Load all textures through the application's selected renderer.
     g_BirdTexture[0] = render.addImage(Path.combine(dataPath, "yellowbird-upflap.png"))

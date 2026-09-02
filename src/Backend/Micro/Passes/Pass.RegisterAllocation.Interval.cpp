@@ -1280,14 +1280,15 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 }
             }
 
-            // A conditional jump that leaves a loop is cold next to the
-            // fall-through path that stays inside it: the plain spot sits
-            // before the jump, so its moves would run on every iteration of
-            // the loop. Even when the plain placement is legal, prefer the
-            // trampoline for such an edge whenever the branch can be
-            // inverted, and keep the plain spot when it cannot.
+            // The moves belong to the taken edge alone, but the plain spot sits
+            // before the jump, where the fall-through path executes them too.
+            // That is pure waste on the hot side of a branch: an edge that
+            // leaves a loop pays it on every iteration, and an in-loop edge
+            // with several moves pays several dead stores per pass. Prefer the
+            // trampoline for both whenever the branch can be inverted, and
+            // keep the plain spot when it cannot.
             bool useTrampoline = !plainOk;
-            if (plainOk && isConditional && loopDepth_[p] > loopDepth_[s])
+            if (plainOk && isConditional && (loopDepth_[p] > loopDepth_[s] || edgeMoves.size() >= 2))
                 useTrampoline = true;
 
             uint32_t trampJump = std::numeric_limits<uint32_t>::max();

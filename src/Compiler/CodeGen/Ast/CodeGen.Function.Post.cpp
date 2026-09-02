@@ -579,9 +579,18 @@ namespace
 
     // The local named by 'return exprRef' when the return can transfer its ownership:
     // the value moves to the caller and this return's deferred actions skip its drop.
+    // An explicit 'return #move local' asks for exactly what the bare local already
+    // gets, so the modifier is looked through instead of defeating the transfer.
     const SymbolVariable* returnMoveOutSource(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, exprRef);
+        AstNodeRef sourceRef = exprRef;
+        if (const auto* unary = codeGen.node(exprRef).safeCast<AstUnaryExpr>())
+        {
+            if (codeGen.token(unary->codeRef()).id == TokenId::ModifierMove)
+                sourceRef = unary->nodeExprRef;
+        }
+
+        const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, sourceRef);
         if (!symVar || !CodeGenMoveElision::canMoveOutAtReturn(codeGen, *symVar))
             return nullptr;
         return symVar;
@@ -987,6 +996,7 @@ namespace
             if (moveOutVar != nullptr || movesOwnedTemporary)
                 copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
         }
+
 
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)

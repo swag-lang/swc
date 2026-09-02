@@ -179,7 +179,7 @@
     "intrinsics-control": {
       "patterns": [
         {
-          "match": "\\b(Swag)(\\.)(index|args|jit|compiler|processInfos|modules|gvtd|runtimeFlags)\\b",
+          "match": "\\b(Swag)(\\.)(args|jit|compiler|processInfos|modules|gvtd|runtimeFlags)\\b",
           "captures": {
             "1": { "name": "entity.name.namespace.builtin.swag" },
             "2": { "name": "punctuation.accessor.namespace.swag" },

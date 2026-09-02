@@ -1947,14 +1947,6 @@ AstNodeRef AstAliasDecl::semaClone(Sema& sema, const CloneContext& cloneContext)
     return newRef;
 }
 
-AstNodeRef AstIntrinsicValue::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    SWC_UNUSED(cloneContext);
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IntrinsicValue>(tokRef());
-    newPtr->intrinsicId   = intrinsicId;
-    return newRef;
-}
-
 AstNodeRef AstParenExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ParenExpr>(tokRef());

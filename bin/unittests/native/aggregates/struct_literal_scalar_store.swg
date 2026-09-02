@@ -12,14 +12,14 @@ func buildMutationMap(text: string)->[3] MutationSpan
 {
     var nextId: s64
     var map:    [3] MutationSpan
-    for ch in text
+    for ch, index in text
     {
         let runLength = ch - '0'
-        if Swag.index & 1 do
-            map[Swag.index] = {MutationFreeSpanId, runLength}
+        if index & 1 do
+            map[index] = {MutationFreeSpanId, runLength}
         else
         {
-            map[Swag.index] = {nextId, runLength}
+            map[index] = {nextId, runLength}
             nextId          += 1
         }
     }

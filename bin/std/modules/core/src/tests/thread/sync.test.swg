@@ -43,13 +43,13 @@ func scopedLockUnlocksAfterContinue()->bool
     var sync        = FakeSync{}
     var reachedTail = 0
 
-    for 4
+    for index in 4
     {
         Sync.scopedLock(&sync)
         if sync.depth != 1 do
             return false
 
-        if Swag.index != 3 do
+        if index != 3 do
             continue
 
         reachedTail += 1
@@ -99,13 +99,13 @@ func sharedLockUnlocksAfterContinue()->bool
     var sync        = FakeSync{}
     var reachedTail = 0
 
-    for 3
+    for index in 3
     {
         Sync.sharedLock(&sync)
         if sync.sharedDepth != 1 do
             return false
 
-        if Swag.index != 2 do
+        if index != 2 do
             continue
 
         reachedTail += 1

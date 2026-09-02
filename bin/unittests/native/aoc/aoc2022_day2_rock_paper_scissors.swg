@@ -195,9 +195,9 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
     var haveOpponent = false
     var haveCode     = false
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch == ' 'u8 or ch == '\r'u8 do
             continue
 
@@ -246,9 +246,9 @@ func solveClean(guide: StrategyGuide)->ScoreSummary
 {
     var result: ScoreSummary
 
-    for guide.count
+    for index in guide.count
     {
-        let round        = guide.rounds[cast(u32) Swag.index]
+        let round        = guide.rounds[cast(u32) index]
         let opponent     = decodeOpponent(round.opponentToken)
         let partOneShape = decodePartOneShape(round.codeToken)
         let desired      = decodeDesiredOutcome(round.codeToken)
@@ -298,9 +298,9 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
     var haveOpponent = false
     var haveCode     = false
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch == ' 'u8 or ch == '\r'u8 do
             continue
 

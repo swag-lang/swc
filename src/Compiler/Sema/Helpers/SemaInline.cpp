@@ -970,15 +970,13 @@ namespace
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
         SmallVector<TokenRef> foreachNames;
-        bool                  isForeachCall    = false;
-        bool                  foreachIndexOnly = false;
+        bool                  isForeachCall = false;
         if (callRef.isValid())
         {
             const auto* foreachStmt = sema.node(callRef).safeCast<AstForeachStmt>();
             if (foreachStmt)
             {
-                isForeachCall    = true;
-                foreachIndexOnly = foreachStmt->hasFlag(AstForeachStmtFlagsE::IndexOnly);
+                isForeachCall = true;
                 sema.ast().appendTokens(foreachNames, foreachStmt->spanNamesRef);
             }
         }
@@ -991,19 +989,22 @@ namespace
         // The declared '#code' parameters are the arity contract.
         const uint32_t slotCount = static_cast<uint32_t>(std::min(declaredParams.size(), outAliasIdentifiers.size()));
 
-        const size_t foreachSlotOffset = foreachIndexOnly ? 1 : 0;
-        size_t       providedCount     = foreachNames.size() + foreachSlotOffset;
+        // A loop binds the declared positions in order, and a discarded one holds no token.
+        size_t providedCount = foreachNames.size();
         if (!binderNames.empty())
             providedCount = binderNames.size();
         if (providedCount > slotCount)
         {
             SourceCodeRef errorRef;
             if (!binderNames.empty())
+            {
                 errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[slotCount]};
-            else if (foreachIndexOnly)
-                errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames.front()};
+            }
             else
-                errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slotCount]};
+            {
+                const TokenRef errorTokRef = foreachNames[slotCount].isValid() ? foreachNames[slotCount] : sema.node(callRef).tokRef();
+                errorRef                   = SourceCodeRef{sema.node(callRef).srcViewRef(), errorTokRef};
+            }
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, errorRef);
             diag.addArgument(Diagnostic::ARG_COUNT, slotCount);
             diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(providedCount));
@@ -1012,7 +1013,11 @@ namespace
         }
 
         for (size_t slot = 0; slot < foreachNames.size(); ++slot)
-            outAliasIdentifiers[slot + foreachSlotOffset] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
+        {
+            if (foreachNames[slot].isInvalid())
+                continue;
+            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
+        }
 
         for (size_t slot = 0; slot < binderNames.size() && slot < outAliasIdentifiers.size(); ++slot)
             outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{binderNode->srcViewRef(), binderNames[slot]});

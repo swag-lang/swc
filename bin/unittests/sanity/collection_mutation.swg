@@ -194,3 +194,41 @@ func collMutRemoveThenBreak()
         }
     }
 }
+
+// A raw array of structs: a non-const method on ONE ELEMENT changes that element's own
+// storage, not the array, so the iteration snapshot survives it.
+struct CollMutName
+{
+    length: u64
+}
+
+impl CollMutName
+{
+    // Non-const on purpose: what makes the check look is the method's mutability, and a
+    // name reached through the loop's address binding is not the iterated array.
+    mtd measure()->u64
+    {
+        .length += 1
+        return .length
+    }
+}
+
+struct CollMutEntry
+{
+    name: CollMutName
+    seen: s32
+}
+
+func collMutElementMethodDuringIter()
+{
+    var entries: [2] CollMutEntry
+    var total   = 0'u64
+
+    for &entry in entries
+    {
+        entry.seen += 1
+        total      += entry.name.measure()
+    }
+
+    Swag.assert(total == 2)
+}

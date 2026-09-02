@@ -54,9 +54,9 @@ func declareShippingFees(baseFeeCents: s32)
 #[Swag.Macro]
 func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line: InvoiceLine, index: s32, lineTotalCents: s32))
 {
-    for lines.count
+    for idx in lines.count
     {
-        #inject(stmt, line = lines[Swag.index], index = cast(s32) Swag.index, lineTotalCents = lines[Swag.index].quantity * lines[Swag.index].unitPriceCents)
+        #inject(stmt, line = lines[idx], index = cast(s32) idx, lineTotalCents = lines[idx].quantity * lines[idx].unitPriceCents)
     }
 }
 

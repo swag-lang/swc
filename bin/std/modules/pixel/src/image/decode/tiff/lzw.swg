@@ -52,8 +52,8 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
     var suffixes: [4096] u8 = undefined
     var stack:    [4096] u8 = undefined
 
-    for 256 do
-        suffixes[Swag.index] = cast(u8) Swag.index
+    for index in 256 do
+        suffixes[index] = cast(u8) index
 
     var output: u64
     var width    = 9'u32

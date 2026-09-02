@@ -28,3 +28,23 @@ ordered by expected product value, not implementation effort.
 - Complete when: a running instance is reused, documents open as tabs, and two documents can be
   shown side by side.
 - Related: std.gui.029, app.scope.hexa.003 in [app.scope.hexa.md](app.scope.hexa.md)
+
+## Tests
+
+### app.scope.002 — The About golden has to be re-recorded on every compiler bump
+
+- Area: app.scope
+- Found while: removing `Swag.index`, which bumped `SWC_BUILD_NUM` twice and broke the golden both
+  times for no reason other than the number printed in the box.
+- Observation: `createAboutDialog` builds its version line from
+  `#swcversion`, `#swcrevision` and `#swcbuildnum`
+  ([viewerwindow.swg](../bin/apps/modules/swagscope/src/viewerwindow.swg)), and
+  `viewerwindow.test.swg` snapshots the rendered dialog as `about.png`. Since
+  [modify-swag-codebase](../.agents/skills/modify-swag-codebase/SKILL.md) requires a build-number
+  bump with every compiler change, the snapshot is stale before any application code moves, and
+  every such change ends with a golden promotion that reviews one changed digit.
+- Evidence: the failure is exactly the version string — 133 pixels, first at (303, 113), between
+  "Swag Scope 0.1.314" and "Swag Scope 0.1.316". Nothing else in the dialog moved.
+- Next step: decide what the snapshot is for. If it owns the dialog's composition, the test should
+  render a fixed version through `AboutDlgParams.version` and leave the live one to a separate
+  assertion on the string; if it owns the identity line, the golden should be a text one.

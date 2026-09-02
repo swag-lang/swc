@@ -12,7 +12,7 @@ struct SemaFieldVisits
 impl SemaFieldVisits
 {
     #[Swag.Macro]
-    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index))
+    func(ptr: bool) opVisit(me, stmt: #code(item: s32, index: u64))
         where !ptr
     {
 
@@ -26,7 +26,7 @@ impl SemaFieldVisits
             default: visitItem = me.z
             }
 
-            #inject(stmt, item = visitItem, index = Swag.index)
+            #inject(stmt, item = visitItem, index = idx)
         }
     }
 }
@@ -39,20 +39,20 @@ struct SemaBufferVisits
 impl SemaBufferVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = Swag.index)
+                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = idx)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = Swag.index)
+                #inject(stmt, item = me.values[idx], index = idx)
             }
         }
     }
@@ -93,12 +93,12 @@ struct SemaConstPointerVisits
 impl SemaHiddenAliasVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
         where !ptr
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = Swag.index)
+            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = idx)
         }
     }
 }
@@ -106,7 +106,7 @@ impl SemaHiddenAliasVisits
 impl SemaFieldPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
@@ -126,7 +126,7 @@ impl SemaFieldPointerVisits
                 case 2: visitItem = me.third
                 }
 
-                #inject(stmt, item = visitItem, index = Swag.index)
+                #inject(stmt, item = visitItem, index = idx)
             }
         }
     }
@@ -135,12 +135,12 @@ impl SemaFieldPointerVisits
 impl SemaReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where !ptr
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], index = Swag.index)
+            #inject(stmt, item = me.values[idx], index = idx)
         }
     }
 
@@ -150,13 +150,13 @@ impl SemaReverseVisits
 impl SemaGenericReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
         where !ptr
     {
 
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], index = Swag.index)
+            #inject(stmt, item = me.values[idx], index = idx)
         }
     }
 
@@ -171,20 +171,20 @@ impl SemaPairVisits
 impl SemaConstPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
         #static if ptr
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = Swag.index)
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = idx)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = Swag.index)
+                #inject(stmt, item = me.values[idx], index = idx)
             }
         }
     }
@@ -199,18 +199,18 @@ struct(T) SemaGenericScopedVisits
 impl SemaGenericScopedVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item, index))
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
         where !ptr
     {
         #scope(Outer)
-        for 3
+        for idx in 3
         {
-            if Swag.index < SemaGenericScopedVisits.FIRST do
+            if idx < SemaGenericScopedVisits.FIRST do
                 continue
 
             #scope(Inner)
             {
-                #inject(stmt, item = me.values[Swag.index], index = Swag.index, break = break to Outer, continue = break to Inner)
+                #inject(stmt, item = me.values[idx], index = idx, break = break to Outer, continue = break to Inner)
             }
         }
     }
@@ -222,7 +222,7 @@ func semaTest001()
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type *s32)
-        #assert(#typeof(ordinal) == #typeof(Swag.index))
+        #assert(#typeof(ordinal) == u64)
         var x = value
     }
 }
@@ -234,7 +234,7 @@ func semaTest002()
     for value, ordinal in (values).reversed()
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(ordinal) == #typeof(Swag.index))
+        #assert(#typeof(ordinal) == u64)
         var x = value
         var y = ordinal
     }
@@ -248,7 +248,7 @@ func semaTest002b()
     for value, ordinal in (values).reversed()
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(ordinal) == #typeof(Swag.index))
+        #assert(#typeof(ordinal) == u64)
         var x = value
         var y = ordinal
     }
@@ -258,9 +258,9 @@ func semaTest003()
 {
     var values = SemaHiddenAliasVisits{}
 
-    for value in values
+    for value, ?, index in values
     {
-        let ordinal = Swag.index
+        let ordinal = index
         var x       = ordinal
         var y       = value
     }
@@ -270,12 +270,11 @@ func semaTest004()
 {
     var values = SemaHiddenAliasVisits{}
 
-    for value in values
+    for ?, ?, index in values
     {
-        #assert(#typeof(value) == s32)
-        let ordinal = Swag.index
-        var x       = value
-        var y       = ordinal
+        #assert(#typeof(index) == u64)
+        let ordinal = index
+        var x       = ordinal
     }
 }
 
@@ -283,14 +282,13 @@ func semaTest005()
 {
     var values = SemaHiddenAliasVisits{}
 
-    for value, scaled in values
+    for value, scaled, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
-        let ordinal = Swag.index
-        var x       = value
-        var y       = scaled
-        var z       = ordinal
+        var x = value
+        var y = scaled
+        var z = ordinal
     }
 }
 
@@ -322,14 +320,14 @@ func semaTest007()
 {
     var values = SemaPairVisits{}
 
-    for left, right in values.pairs()
+    for left, right, index in values.pairs()
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
-        let ordinal = Swag.index
-        var x       = left
-        var y       = right
-        var z       = ordinal
+        #assert(#typeof(index) == u64)
+        var x = left
+        var y = right
+        var z = index
     }
 }
 
@@ -352,7 +350,7 @@ func semaTest009()
     for value, ordinal in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(ordinal) == #typeof(Swag.index))
+        #assert(#typeof(ordinal) == u64)
         var x = value
         var y = ordinal
     }

@@ -56,9 +56,9 @@ func nestedBlock(seed: s32, stmt: #code(value: s32))
 #[Swag.Macro]
 func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(value, out))
 {
-    for values.count
+    for index in values.count
     {
-        #inject(stmt, value = values[Swag.index] + delta, out = sumPtr)
+        #inject(stmt, value = values[index] + delta, out = sumPtr)
     }
 }
 
@@ -73,9 +73,9 @@ impl MemberMacroWalker
     mtd visit(scale: s32 = 1, stmt: #code(item: s32))
     {
         let values = .values
-        for values.count
+        for index in values.count
         {
-            #inject(stmt, item = values[Swag.index] * scale)
+            #inject(stmt, item = values[index] * scale)
         }
     }
 
@@ -83,9 +83,9 @@ impl MemberMacroWalker
     mtd visitWithData(userData: #null *s32 = null, scale: s32 = 1, stmt: #code(item: s32, out: #null *s32))
     {
         let values = .values
-        for values.count
+        for index in values.count
         {
-            #inject(stmt, item = values[Swag.index] * scale, out = userData)
+            #inject(stmt, item = values[index] * scale, out = userData)
         }
     }
 }
@@ -95,9 +95,9 @@ namespace QualifiedMacroScope
     #[Swag.Macro]
     public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(item, out))
     {
-        for values.count
+        for index in values.count
         {
-            #inject(stmt, item = values[Swag.index] + delta, out = sumPtr)
+            #inject(stmt, item = values[index] + delta, out = sumPtr)
         }
     }
 }

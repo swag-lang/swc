@@ -752,7 +752,9 @@ with exactly one language and keeps deliberately.
 - Area: language
 - Found while: the same pass, while reviewing index bindings
 - Observation: one role, three types. Binding the index over a collection gives a `u64`, over a
-  counted loop a `u32`, and over a range an `s32`. Nothing at the use site distinguishes the three,
+  counted loop a `u32`, and over a range an `s32`. Naming the index is now the only way to read
+  one at all, since `Swag.index` was removed, so every loop that used to get the type from the
+  intrinsic states one of the three instead. Nothing at the use site distinguishes them,
   and the difference is exactly the one language.design.008 turns into arithmetic: an index that is unsigned in
   two of the three forms, next to a `.count` that is always `u64` and a signed computation that is
   `s32`. The reference asserts the collection case (`#assert(#typeof(index) == u64)`
@@ -835,3 +837,4 @@ with exactly one language and keeps deliberately.
   `.buffer` uses and the interface form is the common one, so the sweep is `cast(*T) itf.buffer!`
   at every site. Measure it before committing, and consider whether a non-null `any` should instead
   be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `#null`.
+

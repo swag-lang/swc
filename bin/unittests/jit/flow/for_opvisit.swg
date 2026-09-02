@@ -24,7 +24,7 @@ impl JitFieldVisits
             default: visitItem = me.z
             }
 
-            #inject(stmt, item = visitItem, index = Swag.index)
+            #inject(stmt, item = visitItem, index = idx)
         }
     }
 }
@@ -43,14 +43,14 @@ impl JitBufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = Swag.index)
+                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = idx)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = Swag.index)
+                #inject(stmt, item = me.values[idx], index = idx)
             }
         }
     }
@@ -69,7 +69,7 @@ impl JitReverseVisits
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], index = Swag.index)
+            #inject(stmt, item = me.values[idx], index = idx)
         }
     }
 
@@ -111,7 +111,7 @@ impl JitHiddenAliasVisits
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = Swag.index)
+            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = idx)
         }
     }
 }
@@ -139,7 +139,7 @@ impl JitFieldPointerVisits
                 case 2: visitItem = me.third
                 }
 
-                #inject(stmt, item = visitItem, index = Swag.index)
+                #inject(stmt, item = visitItem, index = idx)
             }
         }
     }
@@ -159,14 +159,14 @@ impl JitConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = Swag.index)
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = idx)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = Swag.index)
+                #inject(stmt, item = me.values[idx], index = idx)
             }
         }
     }
@@ -307,6 +307,35 @@ func jitForeachVisitSecondOnly()->s32
     return signature
 }
 
+func jitForeachVisitLastOnly()->u64
+{
+    let values = JitHiddenAliasVisits{}
+    var signature: u64
+
+    for ?, ?, index in values
+    {
+        #assert(#typeof(index) == u64)
+        signature = signature * 10 + index
+    }
+
+    return signature
+}
+
+func jitForeachVisitSkipMiddle()->s32
+{
+    let values = JitHiddenAliasVisits{}
+    var signature: s32
+
+    for value, ?, index in values
+    {
+        #assert(#typeof(value) == s32)
+        #assert(#typeof(index) == u64)
+        signature = signature * 100 + value + cast(s32) index
+    }
+
+    return signature
+}
+
 func jitForeachVisitReturn()->bool
 {
     var values = JitReturnVisits{}
@@ -359,4 +388,16 @@ func jitForeachVisitReturn()->bool
 #test
 {
     Swag.assert(jitForeachVisitReturn())
+}
+
+#test
+{
+    const V = #run jitForeachVisitLastOnly()
+    #assert(V == 12)
+}
+
+#test
+{
+    const V = #run jitForeachVisitSkipMiddle()
+    #assert(V == 40608)
 }

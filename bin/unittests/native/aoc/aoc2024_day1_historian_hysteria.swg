@@ -113,9 +113,9 @@ func buildFrequencies(leftFreq, rightFreq: [..] u32, lists: LocationLists)
     Swag.assert(leftFreq.count == MaxLocationId + 1)
     Swag.assert(rightFreq.count == MaxLocationId + 1)
 
-    for lists.count
+    for idx in lists.count
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         leftFreq[lists.left[index]]   += 1
         rightFreq[lists.right[index]] += 1
     }
@@ -125,9 +125,9 @@ func computeSimilarityFromFrequencies(leftFreq, rightFreq: const [..] u32)->u64
 {
     var result: u64
 
-    for leftFreq.count
+    for index in leftFreq.count
     {
-        let value = cast(u32) Swag.index
+        let value = cast(u32) index
         result += cast(u64) value * cast(u64) leftFreq[value] * cast(u64) rightFreq[value]
     }
 
@@ -182,9 +182,9 @@ func copyValues(outValues: [..] u32, sourceValues: const [..] u32)
 {
     Swag.assert(outValues.count == sourceValues.count)
 
-    for sourceValues.count
+    for idx in sourceValues.count
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         outValues[index] = sourceValues[index]
     }
 }
@@ -266,9 +266,9 @@ func computeDistanceBySorting(lists: LocationLists)->u64
     sortValues(rightSorted[until lists.count])
 
     var result: u64
-    for lists.count
+    for idx in lists.count
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         result += cast(u64) distanceBetween(leftSorted[index], rightSorted[index])
     }
 
@@ -284,9 +284,9 @@ func computeSimilarityBySorting(lists: LocationLists)->u64
     let sortedSlice = rightSorted[until lists.count]
     var result: u64
 
-    for lists.count
+    for idx in lists.count
     {
-        let index     = cast(u32) Swag.index
+        let index     = cast(u32) idx
         let value     = lists.left[index]
         let frequency = countSortedOccurrences(sortedSlice, value)
         result += cast(u64) value * cast(u64) frequency

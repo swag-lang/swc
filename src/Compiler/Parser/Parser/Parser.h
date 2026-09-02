@@ -135,7 +135,6 @@ private:
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
     TokenId          swagIntrinsicId(AstNodeRef nodeExpr) const;
     AstNodeRef       lowerSwagIntrinsicCall(AstNodeRef nodeExpr, SpanRef spanArgsRef, TokenRef tokCallRef);
-    AstNodeRef       lowerSwagIntrinsicValue(AstNodeRef nodeExpr);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
     AstModifierFlags parseModifiers();
     AstNodeRef       parseBinaryExpr(int minPrecedence);
@@ -234,7 +233,6 @@ private:
     template<AstNodeId NODE_ID>
     AstNodeRef parseLifecycleIntrinsic();
     AstNodeRef parseIntrinsicInit();
-    AstNodeRef parseIntrinsicValue();
     AstNodeRef parseLogicalExpr(int minPrecedence);
     AstNodeRef parseLambdaExpression();
     AstNodeRef parseLambdaType();

@@ -73,9 +73,9 @@ func parseReports(bytes: const [..] u8)->ReportBatch
     var value:   s32
     var readingNumber = false
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if isDigit(ch)
         {
             value         = value * 10 + cast(s32) (ch - '0')
@@ -131,9 +131,9 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
     var previous: s32
     var havePrevious = false
 
-    for report.count
+    for index in report.count
     {
-        let rawIndex = cast(u32) Swag.index
+        let rawIndex = cast(u32) index
         if cast(s32) rawIndex == skippedIndex do
             continue
 
@@ -165,9 +165,9 @@ func isSafeWithProblemDampener(report: Report)->bool
     if isSafeReport(report, -1) do
         return true
 
-    for report.count
+    for index in report.count
     {
-        let skippedIndex = cast(s32) Swag.index
+        let skippedIndex = cast(s32) index
         if isSafeReport(report, skippedIndex) do
             return true
     }
@@ -180,9 +180,9 @@ func auditReportsClean(batch: ReportBatch)->SafetyAudit
     var result: SafetyAudit
     result.reportCount = batch.count
 
-    for batch.count
+    for idx in batch.count
     {
-        let index      = cast(u32) Swag.index
+        let index      = cast(u32) idx
         let report     = batch.reports[index]
         let strictSafe = isSafeReport(report, -1)
         if strictSafe do
@@ -248,12 +248,12 @@ func noteFeatureLevel(level: s32)
 #[Swag.Macro]
 func visitReportLevels(report: Report, skippedIndex: s32, stmt: #code(level, rawIndex: u32))
 {
-    for report.count
+    for index in report.count
     {
-        if cast(s32) Swag.index == skippedIndex do
+        if cast(s32) index == skippedIndex do
             continue
 
-        #inject(stmt, level = report.levels[cast(u32) Swag.index], rawIndex = cast(u32) Swag.index)
+        #inject(stmt, level = report.levels[cast(u32) index], rawIndex = cast(u32) index)
     }
 }
 
@@ -276,9 +276,9 @@ func isSafeWithProblemDampenerLanguageFeatures(report: Report)->bool
     if isSafeReportWithLanguageFeatures(report, -1) do
         return true
 
-    for report.count
+    for index in report.count
     {
-        let skippedIndex = cast(s32) Swag.index
+        let skippedIndex = cast(s32) index
         if isSafeReportWithLanguageFeatures(report, skippedIndex) do
             return true
     }
@@ -291,9 +291,9 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
     var result: SafetyAudit
     result.reportCount = batch.count
 
-    for batch.count
+    for idx in batch.count
     {
-        let index      = cast(u32) Swag.index
+        let index      = cast(u32) idx
         let report     = batch.reports[index]
         let strictSafe = isSafeReportWithLanguageFeatures(report, -1)
         if strictSafe do

@@ -211,7 +211,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("Swag.compiler", State.Intrinsic)
         .mapWords.add("Swag.modules", State.Intrinsic)
         .mapWords.add("Swag.gvtd", State.Intrinsic)
-        .mapWords.add("Swag.index", State.Intrinsic)
 
         .mapWords.add("Swag.kindOf", State.Intrinsic)
         .mapWords.add("Swag.makeSlice", State.Intrinsic)

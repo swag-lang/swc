@@ -99,8 +99,8 @@ impl NumericArray
     {
         Debug.assert(values.count == N)
         var result: retval
-        for N do
-            result.buf[Swag.index] = values[Swag.index]
+        for index in N do
+            result.buf[index] = values[index]
         return result
     }
 

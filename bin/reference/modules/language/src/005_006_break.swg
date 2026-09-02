@@ -140,9 +140,9 @@ after that labeled statement.
     #scope(Up)
     for 10
     {
-        for 10
+        for index in 10
         {
-            if Swag.index == 5 do
+            if index == 5 do
                 break to Up     // Exit to after the labeled 'for'
         }
 

@@ -55,9 +55,9 @@ namespace DiskLayout
         result.fileCount  = src.fileCount
         let dstBlocks = result.blocks!
         let srcBlocks = src.blocks!
-        for src.blockCount
+        for index in src.blockCount
         {
-            dstBlocks[cast(u32) Swag.index] = srcBlocks[cast(u32) Swag.index]
+            dstBlocks[cast(u32) index] = srcBlocks[cast(u32) index]
         }
         return result
     }
@@ -69,14 +69,14 @@ namespace DiskLayout
         let blocks = result.blocks!
         var currentFileId: u16
 
-        for bytes.count
+        for index in bytes.count
         {
-            let ch = bytes[Swag.index]
+            let ch = bytes[index]
             if ch < '0' or ch > '9' do
                 continue
 
             let runLength = cast(u32) (ch - '0')
-            let isFile    = (Swag.index & 1) == 0
+            let isFile    = (index & 1) == 0
 
             #assert(#typeof(isFile) == bool)
             #assert(#typeof(runLength) == u32)
@@ -221,9 +221,9 @@ namespace Compaction
     func moveFileToGap(dm: *DiskMap, fileStart, fileLen, gapStart: u32)
     {
         let blocks = dm.blocks!
-        for fileLen
+        for index in fileLen
         {
-            let offset = cast(u32) Swag.index
+            let offset = cast(u32) index
             blocks[gapStart + offset]  = blocks[fileStart + offset]
             blocks[fileStart + offset] = FreeId
         }
@@ -242,9 +242,9 @@ namespace Checksum
     {
         var total: u64
         let blocks = dm.blocks!
-        for dm.blockCount
+        for index in dm.blockCount
         {
-            let pos = cast(u32) Swag.index
+            let pos = cast(u32) index
             let blk = blocks[pos]
             if blk != FreeId do
                 total += cast(u64) pos * cast(u64) blk
@@ -298,9 +298,9 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
     var prevId    = cast(u32) FreeId + 1
     var foundFree = false
     let blocks    = dm.blocks!
-    for dm.blockCount
+    for index in dm.blockCount
     {
-        let pos = cast(u32) Swag.index
+        let pos = cast(u32) index
         let blk = blocks[pos]
         if cast(u32) blk != prevId
         {

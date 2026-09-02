@@ -365,20 +365,15 @@ AstNodeRef Parser::parseForLoop()
         tokNames.push_back(tokName);
         hasValueBinding = true;
     }
-    else if (is(TokenId::SymQuestion) && nextIs(TokenId::SymComma))
+    else if (is(TokenId::SymQuestion) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
+        // A discarded position holds no token: the value it would have named is left
+        // unnamed, and the loop keeps every position after it in place.
         consume();
-        consumeAssert(TokenId::SymComma);
         nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
-        tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
-        isElementForm = true;
-    }
-    else if (is(TokenId::SymQuestion) && nextIs(TokenId::KwdIn))
-    {
-        consume();
-        consumeAssert(TokenId::KwdIn);
-        nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
-        isElementForm = true;
+        tokNames.push_back(TokenRef::invalid());
+        hasValueBinding = true;
+        isElementForm   = true;
     }
     else if (is(TokenId::Identifier) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
@@ -389,7 +384,15 @@ AstNodeRef Parser::parseForLoop()
     while (hasValueBinding && consumeIf(TokenId::SymComma).isValid())
     {
         isElementForm = true;
-        tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
+        if (is(TokenId::SymQuestion))
+        {
+            consume();
+            tokNames.push_back(TokenRef::invalid());
+        }
+        else
+        {
+            tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
+        }
     }
 
     nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());

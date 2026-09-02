@@ -35,9 +35,9 @@ struct ReactorReport
 
 func resetMemo(memo: [..] s32)
 {
-    for memo.count
+    for index in memo.count
     {
-        memo[Swag.index] = -1
+        memo[index] = -1
     }
 }
 
@@ -53,9 +53,9 @@ func countPaths(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
     var total: u32
     let outputCount = graph.outputCounts[nodeIndex]
 
-    for outputCount
+    for index in outputCount
     {
-        let nextIndex = graph.outputs[nodeIndex][Swag.index]
+        let nextIndex = graph.outputs[nodeIndex][index]
         total += countPaths(memo, graph, nextIndex)
     }
 
@@ -75,9 +75,9 @@ func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
     var best: u32
     let outputCount = graph.outputCounts[nodeIndex]
 
-    for outputCount
+    for index in outputCount
     {
-        let nextIndex = graph.outputs[nodeIndex][Swag.index]
+        let nextIndex = graph.outputs[nodeIndex][index]
         let candidate = 1'u32 + longestChain(memo, graph, nextIndex)
         if candidate > best do
             best = candidate
@@ -104,13 +104,13 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
     let intakeIndex = cast(u32) ReactorNode.Intake
     let branchCount = graph.outputCounts[intakeIndex]
 
-    for branchCount
+    for index in branchCount
     {
         var branchMemoStorage: [NodeCount] s32
         var branchMemo:        [..] s32 = branchMemoStorage
         resetMemo(branchMemo)
 
-        let nextIndex   = graph.outputs[intakeIndex][Swag.index]
+        let nextIndex   = graph.outputs[intakeIndex][index]
         let branchPaths = countPaths(branchMemo, graph, nextIndex)
         if branchPaths > result.busiestBranchPaths do
             result.busiestBranchPaths = branchPaths

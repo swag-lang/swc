@@ -5,9 +5,9 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 {
     if actual.count != expected.count do
         return false
-    for actual
+    for index in actual.count
     {
-        if actual[Swag.index] != expected[Swag.index] do
+        if actual[index] != expected[index] do
             return false
     }
 
@@ -20,8 +20,8 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     defer discard catch File.delete(fileName)
 
     var source: [96 * 1024] u8
-    for &value in source do
-        value[] = cast(u8) (Swag.index % 251)
+    for &value, index in source do
+        value[] = cast(u8) (index % 251)
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
@@ -99,8 +99,8 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     defer discard catch File.delete(fileName)
 
     var source: [96 * 1024] u8
-    for &value in source do
-        value[] = cast(u8) (Swag.index % 239)
+    for &value, index in source do
+        value[] = cast(u8) (index % 239)
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName)

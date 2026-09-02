@@ -19,7 +19,6 @@ struct LoopSemaPayload
     bool                              usesCustomVisit = false;
     bool                              isRangeLoop     = false;
     bool                              inclusive       = false;
-    bool                              usesLoopIndex   = false;
     SmallVector<Symbol*>              localSymbols;
 };
 

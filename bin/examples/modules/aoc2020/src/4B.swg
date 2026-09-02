@@ -81,7 +81,7 @@ func day4B0()
     let lines    = expect File.readAllLines(dataPath)
 
     var total, pass: u32
-    for l in lines
+    for l, index in lines
     {
         for r in Tokenize.split(l[], ' 'u8)
         {
@@ -135,7 +135,7 @@ func day4B0()
             }
         }
 
-        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].length == 0
         {
             if pass & 0b1111111 == 0b1111111 do
                 total += 1
@@ -164,7 +164,7 @@ func day4B1()
     map.add("pid", {expect Parser.RegExp.create("[0-9]{9}"), 64})
 
     var total, pass: u32
-    for l in lines
+    for l, index in lines
     {
         for r in Tokenize.split(l[], ' 'u8)
         {
@@ -174,7 +174,7 @@ func day4B1()
                 pass |= it.value.b
         }
 
-        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].length == 0
         {
             total += cast(s32) (pass == 0b1111111)
             pass  = 0

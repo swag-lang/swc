@@ -43,12 +43,12 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 #test
 {
     var bytes: [80] u8
-    for bytes.count do
-        bytes[Swag.index] = ((Swag.index * 13 + 5) % 11) ? cast(u8) (Swag.index + 1) : 0
+    for index in bytes.count do
+        bytes[index] = ((index * 13 + 5) % 11) ? cast(u8) (index + 1) : 0
 
-    for 80
+    for idx in 80
     {
-        let slice    = Swag.makeSlice(bytes.buffer, Swag.index)
+        let slice    = Swag.makeSlice(bytes.buffer, idx)
         let actual   = Text.countZeroPositions(slice)
         let expected = scalarCountZeroPositions(slice)
         Swag.assert(actual.even == expected.even)

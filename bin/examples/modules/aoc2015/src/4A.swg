@@ -49,14 +49,17 @@ func day4A()
 {
     var buffer: [16] u8
     day4InitBuffer(buffer)
+    var index = 0'u64
     for
     {
-        let v = Hash.Md5.compute(day4BuildInput(buffer, Swag.index))
+        let v = Hash.Md5.compute(day4BuildInput(buffer, index))
         if v[0] == 0 and v[1] == 0 and (v[2] & 0xF0) == 0
         {
-            // Console.print("total: ", Swag.index)
-            Swag.assert(Swag.index == 282749)
+            // Console.print("total: ", index)
+            Swag.assert(index == 282749)
             break
         }
+
+        index += 1
     }
 }

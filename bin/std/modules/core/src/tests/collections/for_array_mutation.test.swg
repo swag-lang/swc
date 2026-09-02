@@ -17,10 +17,10 @@ func compactMutationFor(text: string)->u64
 {
     var map:    Array'{ what, num: s64 }
     var nextId: s64
-    for ch in text
+    for ch, index in text
     {
         let runLength = ch - '0'
-        if Swag.index & 1 do
+        if index & 1 do
             map.add({MutationFreeSpanId, runLength})
         else
         {
@@ -75,10 +75,10 @@ func compactMutationWhile(text: string)->u64
 {
     var map:    Array'{ what, num: s64 }
     var nextId: s64
-    for ch in text
+    for ch, index in text
     {
         let runLength = ch - '0'
-        if Swag.index & 1 do
+        if index & 1 do
             map.add({MutationFreeSpanId, runLength})
         else
         {

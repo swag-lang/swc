@@ -154,12 +154,12 @@
 <p>Looking for one member by name does not mean loading the others. <a href="#TrueType_Face_familyNameAt">TrueType.Face.familyNameAt</a> reads a face's <span class="code-inline">name</span> table and nothing else, so a collection can be searched first and loaded once.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
-<span class="SLgc">for</span> count
+<span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
-    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index)) != <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), index)) != <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
         <span class="SLgc">continue</span>
 
-    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index))!
+    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), index))!
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
     <span class="SLgc">break</span>
 }</span></div>
@@ -897,9 +897,9 @@
 <p>Only the offset table and the <span class="code-inline">name</span> table are read, so no face is loaded and nothing but the returned string is allocated. This is what makes a collection searchable by family: a caller looking for one member reads the names first, then calls <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> once, instead of loading every face to ask each one what it is called. The answer is the value <a href="#TrueType_Face_familyName">TrueType.Face.familyName</a> carries once that face is loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
-<span class="SLgc">for</span> count
+<span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
-    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index)) == <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">familyNameAt</span>(bytes.<span class="SFct">toSlice</span>(), index)) == <span class="SStr">"MS PGothic"</span> <span class="SLgc">do</span>
         <span class="SLgc">break</span>
 }</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">familyNameAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
@@ -997,9 +997,9 @@
 <p>A <span class="code-inline">ttcf</span> collection packs several faces into one file, which is the form a stock Windows installation ships many of its font families in. Indices run from zero to <a href="#TrueType_Face_countFaces">TrueType.Face.countFaces</a> minus one, and a bare font file behaves as a collection holding its single face at index zero. Ownership and cleanup match <a href="#TrueType_Face_load">TrueType.Face.load</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
-<span class="SLgc">for</span> count
+<span class="SLgc">for</span> index <span class="SLgc">in</span> count
 {
-    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNsp">Swag</span>.index))!
+    <span class="SKwd">let</span> face = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadAt</span>(bytes.<span class="SFct">toSlice</span>(), index))!
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 }</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
@@ -1083,7 +1083,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.294</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.317</div>
 </footer>
 </section>
 </main>

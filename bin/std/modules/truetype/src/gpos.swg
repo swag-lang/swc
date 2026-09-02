@@ -151,17 +151,17 @@ func collectKernLookups(table: #null const [..] u8, featureListOffset: u64)->Arr
     var result: retval
 
     let featureCount = readU16(table, featureListOffset)
-    for featureCount
+    for index in featureCount
     {
-        let record = featureListOffset + 2 + cast(u64) Swag.index * 6
+        let record = featureListOffset + 2 + cast(u64) index * 6
         if readU32(table, record) != TAG_KERN do
             continue
 
         let feature     = featureListOffset + cast(u64) readU16(table, record + 4)
         let lookupCount = readU16(table, feature + 2)
-        for lookupCount
+        for idx in lookupCount
         {
-            let lookupIndex = readU16(table, feature + 4 + cast(u64) Swag.index * 2)
+            let lookupIndex = readU16(table, feature + 4 + cast(u64) idx * 2)
             if !result.contains(lookupIndex) do
                 result.add(lookupIndex)
         }
@@ -200,9 +200,9 @@ func parseGpos(faceData: *FaceImpl) fail
         let lookupType    = readU16(table, lookup)
         let subTableCount = readU16(table, lookup + 4)
 
-        for subTableCount
+        for index in subTableCount
         {
-            var subTable = lookup + cast(u64) readU16(table, lookup + 6 + cast(u64) Swag.index * 2)
+            var subTable = lookup + cast(u64) readU16(table, lookup + 6 + cast(u64) index * 2)
             var kind     = lookupType
 
             // An extension subtable names the real type and a 32-bit offset to it,

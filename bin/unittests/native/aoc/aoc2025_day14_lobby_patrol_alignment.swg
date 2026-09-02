@@ -87,9 +87,9 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
     result.safetyFactor = computeSafetyFactor(robots, width, height, safetyStep)
     result.compactArea  = Swag.U32.Max
 
-    for cast(u32) (searchLimit + 1)
+    for index in cast(u32) (searchLimit + 1)
     {
-        let step = cast(s32) Swag.index
+        let step = cast(s32) index
 
         var minX = Swag.S32.Max
         var minY = Swag.S32.Max

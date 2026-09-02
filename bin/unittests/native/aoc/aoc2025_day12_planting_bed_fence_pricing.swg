@@ -47,9 +47,9 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         Swag.assert(lineWidth(layout[rowIndex]) == width)
     }
 
-    for totalCells
+    for index in totalCells
     {
-        let startIndex = cast(u32) Swag.index
+        let startIndex = cast(u32) index
         if visited[startIndex] do
             continue
 
@@ -127,9 +127,9 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         var perimeter: u32
         var sideCount: u32
 
-        for regionCount
+        for idx in regionCount
         {
-            let current = regionCells[Swag.index]
+            let current = regionCells[idx]
             let x       = current % width
             let y       = current / width
 
@@ -168,9 +168,9 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         result.totalPerimeterPrice  += cast(u64) regionCount * cast(u64) perimeter
         result.totalDiscountedPrice += cast(u64) regionCount * cast(u64) sideCount
 
-        for regionCount
+        for idx in regionCount
         {
-            inRegion[regionCells[Swag.index]] = false
+            inRegion[regionCells[idx]] = false
         }
     }
 

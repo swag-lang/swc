@@ -52,11 +52,11 @@ func day4B()
             }
         }
 
-        for &j in sliceJobs
+        for &j, idx in sliceJobs
         {
             j.base.lambda = &jobEntry
             j.data        = j
-            j.start       = Swag.index
+            j.start       = idx
             Jobs.schedule(j)
         }
 

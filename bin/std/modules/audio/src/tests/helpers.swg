@@ -12,9 +12,9 @@ func audioAssertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     if actual.count != expected.count do
         return false
 
-    for actual.count
+    for index in actual.count
     {
-        if actual[Swag.index] != expected[Swag.index] do
+        if actual[index] != expected[index] do
             return false
     }
 
@@ -31,8 +31,8 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 {
     Swag.assert(actual.count == expected.count * #sizeof(s16))
     let samples = cast(const [*] s16) actual.buffer
-    for expected.count do
-        Swag.assert(samples[Swag.index] == expected[Swag.index])
+    for index in expected.count do
+        Swag.assert(samples[index] == expected[index])
 }
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate

@@ -73,13 +73,13 @@ func day7B()
         total += 1
 
         var done: Array'u64
-        for &w in workers
+        for &w, index in workers
         {
             if w.val == 0 do
                 continue
             w.tick -= 1
             if w.tick == 0 do
-                done.add(Swag.index)
+                done.add(index)
         }
 
         var avail: Array'u8

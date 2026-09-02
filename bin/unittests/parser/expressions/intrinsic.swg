@@ -6,7 +6,6 @@ var c = ("foo").count
 var _01 = Swag.getContext()
 var _06 = Swag.args()
 var _07 = Swag.jit()
-var _08 = Swag.index
 var _09 = Swag.runtimeFlags()
 var _10 = Swag.processInfos()
 var _11 = Swag.modules()

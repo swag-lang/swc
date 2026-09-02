@@ -108,9 +108,9 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code(single: s32, doubled: s3
 #[Swag.Macro]
 func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(value, out))
 {
-    for values.count
+    for index in values.count
     {
-        #inject(stmt, value = values[Swag.index] + delta, out = sumPtr)
+        #inject(stmt, value = values[index] + delta, out = sumPtr)
     }
 }
 
@@ -125,9 +125,9 @@ impl MemberMacroWalker
     mtd visit(scale: s32 = 1, stmt: #code(item: s32))
     {
         let values = .values
-        for values.count
+        for index in values.count
         {
-            #inject(stmt, item = values[Swag.index] * scale)
+            #inject(stmt, item = values[index] * scale)
         }
     }
 
@@ -135,9 +135,9 @@ impl MemberMacroWalker
     mtd visitWithData(userData: *s32, scale: s32 = 1, stmt: #code(item: s32, out: *s32))
     {
         let values = .values
-        for values.count
+        for index in values.count
         {
-            #inject(stmt, item = values[Swag.index] * scale, out = userData)
+            #inject(stmt, item = values[index] * scale, out = userData)
         }
     }
 }
@@ -147,9 +147,9 @@ namespace QualifiedMacroScope
     #[Swag.Macro]
     public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(item, out))
     {
-        for values.count
+        for index in values.count
         {
-            #inject(stmt, item = values[Swag.index] + delta, out = sumPtr)
+            #inject(stmt, item = values[index] + delta, out = sumPtr)
         }
     }
 }
@@ -381,7 +381,7 @@ namespace QualifiedMacroScope
     Swag.assert(sum == 36)
 }
 
-// #[Swag.Macro] variadic [..] T parameter with for .count + values[Swag.index]:
+// #[Swag.Macro] variadic [..] T parameter with for .count + values[index]:
 // the macro body must resolve its own 'values' parameter even when the caller
 // has a same-named local. Regression coverage for two clone bugs:
 //   1. copyImplicitCastPayload lost the type on constant-cast clones (hit by let/const arrays).
@@ -390,9 +390,9 @@ namespace QualifiedMacroScope
 #[Swag.Macro]
 func(T) variadicSameName(values: [..] T, sumPtr: *T)
 {
-    for values.count
+    for index in values.count
     {
-        let item = values[Swag.index]
+        let item = values[index]
         sumPtr[] += item
     }
 }

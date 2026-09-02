@@ -59,7 +59,7 @@ impl WorkloadForecast
                 case 4: visitItem = me.friday
                 }
 
-                #inject(stmt, item = visitItem, index = Swag.index)
+                #inject(stmt, item = visitItem, index = idx)
             }
         }
     }
@@ -80,7 +80,7 @@ impl WorkloadForecast
             default: visitItem = me.friday
             }
 
-            #inject(stmt, item = visitItem, index = Swag.index)
+            #inject(stmt, item = visitItem, index = idx)
         }
     }
 

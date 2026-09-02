@@ -451,18 +451,6 @@ void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind k
         continuable_.kind           = kind;
         currentLoopHasContinueJump_ = false;
     }
-
-    if (kind != BreakContextKind::Switch)
-    {
-        currentLoopIndexReg_     = MicroReg::invalid();
-        currentLoopIndexTypeRef_ = TypeRef::invalid();
-    }
-}
-
-void CodeGenFrame::setCurrentLoopIndex(MicroReg reg, TypeRef typeRef)
-{
-    currentLoopIndexReg_     = reg;
-    currentLoopIndexTypeRef_ = typeRef;
 }
 
 void CodeGenFrame::setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)

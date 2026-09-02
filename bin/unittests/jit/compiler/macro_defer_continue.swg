@@ -17,11 +17,11 @@ func macroWithDefer(stmt: #code)
 func runMacroDeferContinue()->s64
 {
     Trace = 0
-    for 4
+    for index in 4
     {
         macroWithDefer()
         {
-            if Swag.index != 3 do
+            if index != 3 do
                 continue
         }
 

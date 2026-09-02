@@ -2,11 +2,11 @@ using Core, Gui, Pixel
 
 func addTabSample(tab: *Tab, prefix: string)
 {
-    for 4
+    for index in 4
     {
         let view = Wnd.create'Wnd(tab)
-        let name = Format.toString("%%", prefix, Swag.index + 1)
-        discard createText(view, Format.toString("View %", Swag.index + 1), {14, 12, 120, 24})
+        let name = Format.toString("%%", prefix, index + 1)
+        discard createText(view, Format.toString("View %", index + 1), {14, 12, 120, 24})
         tab.addItem(name, app.theme.icon(ThemeIcons.Search, 14), view)
     }
 }

@@ -50,10 +50,10 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 {
     var result: MarketForecast
 
-    for SequenceCount
+    for idx in SequenceCount
     {
-        SequenceTotals[Swag.index]    = 0
-        SequenceSeenStamp[Swag.index] = 0
+        SequenceTotals[idx]    = 0
+        SequenceSeenStamp[idx] = 0
     }
 
     for initialSecret, buyerIndex in initialSecrets
@@ -63,9 +63,9 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
         var changes: [ForecastRounds] s32
         let buyerStamp = cast(u32) buyerIndex + 1
 
-        for ForecastRounds
+        for idx in ForecastRounds
         {
-            let roundIndex = cast(u32) Swag.index
+            let roundIndex = cast(u32) idx
             secret = nextSecret(secret)
             let currentPrice = priceDigit(secret)
             changes[roundIndex] = currentPrice - lastPrice

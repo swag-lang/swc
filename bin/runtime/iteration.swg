@@ -182,7 +182,8 @@ func(T) reverseSlice(values: [..] T)->ReversedSlice'T => {values: values}
 #[Swag.NoDoc, Swag.Inline]
 func(T) reverseSlice(values: const [..] T)->ConstReversedSlice'T => {values: values}
 
-// Iterates adjacent elements of an immutable slice without allocating pairs.
+// Iterates adjacent elements of an immutable slice without allocating pairs. The third
+// visit value is the position of the left element.
 #[Swag.Opaque]
 struct(T) Pairs
 {
@@ -192,7 +193,7 @@ struct(T) Pairs
 impl Pairs
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(left, right))
+    mtd(ptr: bool) const opVisit(stmt: #code(left, right, index: u64))
         where !ptr
     {
         let count = (.values).count
@@ -203,9 +204,9 @@ impl Pairs
         for index in count - 1
         {
             #static if #typeof(#type T).kind == .Struct do
-                #inject(stmt, left = cast(const *T) (data + index), right = cast(const *T) (data + index + 1))
+                #inject(stmt, left = cast(const *T) (data + index), right = cast(const *T) (data + index + 1), index = index)
             else do
-                #inject(stmt, left = data[index], right = data[index + 1])
+                #inject(stmt, left = data[index], right = data[index + 1], index = index)
         }
     }
 }

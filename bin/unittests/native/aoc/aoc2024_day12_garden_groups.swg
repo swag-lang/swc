@@ -75,16 +75,16 @@ func parseGrid(text: string)->Grid
     var g: Grid
     g.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxDim * MaxDim)
     let cells = g.cells!
-    for MaxDim * MaxDim
+    for index in MaxDim * MaxDim
     {
-        cells[Swag.index] = 0
+        cells[index] = 0
     }
     let bytes = cast(const [..] u8) text
     var col: u32
 
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0
@@ -267,9 +267,9 @@ func solveGrid(g: *Grid)->FenceCost
 {
     let visited = cast([*] bool) (testAlloc(cast(u64) MaxDim * MaxDim * #sizeof(bool)))!
     defer testFree(visited)
-    for MaxDim * MaxDim
+    for index in MaxDim * MaxDim
     {
-        visited[Swag.index] = false
+        visited[index] = false
     }
 
     var result: FenceCost

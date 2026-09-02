@@ -301,7 +301,6 @@ SWC_TOKEN_DEF(IntrinsicTableOf, "Swag.tableOf", TokenIdKindE::Intrinsic | TokenI
 
 SWC_TOKEN_DEF(IntrinsicArgs, "Swag.args", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicJit, "Swag.jit", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicIndex, "Swag.index", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicRtFlags, "Swag.runtimeFlags", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicProcessInfos, "Swag.processInfos", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicModules, "Swag.modules", TokenIdKindE::Intrinsic | TokenIdKindE::Return)

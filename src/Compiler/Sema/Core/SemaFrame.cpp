@@ -179,13 +179,6 @@ void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind
         continuable_.nodeRef = nodeRef;
         continuable_.kind    = kind;
     }
-
-    // A switch does not define a new loop index. Keep exposing the enclosing loop index inside it.
-    if (kind != BreakContextKind::Switch)
-    {
-        currentLoopIndexTypeRef_  = TypeRef::invalid();
-        currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
-    }
 }
 
 SymbolMap* SemaFrame::currentSymMap(Sema& sema)

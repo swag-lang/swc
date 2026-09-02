@@ -67,9 +67,9 @@ func buildFontCollection(fileNames: const [..] string)->Array'u8
         result.add(font.toSlice())
 
         let tableCount = readBigU16(&result, cast(u64) fontOffset + 4)
-        for tableCount
+        for index in tableCount
         {
-            let record = cast(u64) fontOffset + 12 + cast(u64) Swag.index * 16
+            let record = cast(u64) fontOffset + 12 + cast(u64) index * 16
             writeBigU32(&result, record + 8, readBigU32(&result, record + 8) + fontOffset)
         }
     }
@@ -77,8 +77,8 @@ func buildFontCollection(fileNames: const [..] string)->Array'u8
     writeBigU32(&result, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
     writeBigU32(&result, 4, 0x0001_0000)
     writeBigU32(&result, 8, cast(u32) fileNames.count)
-    for offset in fontOffsets do
-        writeBigU32(&result, 12 + cast(u64) Swag.index * 4, offset)
+    for offset, index in fontOffsets do
+        writeBigU32(&result, 12 + cast(u64) index * 4, offset)
 
     return result
 }
@@ -130,9 +130,9 @@ func getOutlineBounds(outline: const *Outline)->BBox
     }
 
     let pts = outline.points!
-    for cast(u32) outline.pointCount
+    for index in cast(u32) outline.pointCount
     {
-        let pt = pts[Swag.index]
+        let pt = pts[index]
         result.xMin = Math.min(result.xMin, pt.x)
         result.yMin = Math.min(result.yMin, pt.y)
         result.xMax = Math.max(result.xMax, pt.x)
@@ -148,9 +148,9 @@ func countBitmapCoverage(bitmap: const *Bitmap)->u32
         return 0
 
     var count = 0'u32
-    for cast(u64) bitmap.width * bitmap.rows
+    for index in cast(u64) bitmap.width * bitmap.rows
     {
-        if bitmap.buffer[Swag.index] != 0 do
+        if bitmap.buffer[index] != 0 do
             count += 1
     }
 
@@ -161,10 +161,10 @@ func findPointWithNonZeroY(outline: const *Outline)->u32
 {
     Swag.assert(outline != null)
     let pts = outline.points!
-    for cast(u32) outline.pointCount
+    for index in cast(u32) outline.pointCount
     {
-        if pts[Swag.index].y != 0 do
-            return Swag.index
+        if pts[index].y != 0 do
+            return index
     }
 
     Swag.assert(false)

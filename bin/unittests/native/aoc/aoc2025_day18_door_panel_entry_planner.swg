@@ -184,9 +184,9 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
     var total: u64
     var current = 'A'u8
 
-    for path.count
+    for index in path.count
     {
-        let next      = path.buttons[Swag.index]
+        let next      = path.buttons[index]
         let fromIndex = directionalKeyIndex(current)
         let toIndex   = directionalKeyIndex(next)
         let cached    = DirectionalMemo[depth][fromIndex][toIndex]

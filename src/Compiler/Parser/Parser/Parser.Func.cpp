@@ -482,18 +482,6 @@ TokenId Parser::swagIntrinsicId(const AstNodeRef nodeExpr) const
     return Token::intrinsicFromName(rightTok.string(srcView));
 }
 
-AstNodeRef Parser::lowerSwagIntrinsicValue(const AstNodeRef nodeExpr)
-{
-    const TokenId intrinsicId = swagIntrinsicId(nodeExpr);
-    if (intrinsicId != TokenId::IntrinsicIndex)
-        return nodeExpr;
-
-    const auto& member            = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicValue>(ast_->node(member.nodeRightRef).tokRef());
-    nodePtr->intrinsicId          = intrinsicId;
-    return nodeRef;
-}
-
 AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanRef spanArgsRef, const TokenRef tokCallRef)
 {
     const TokenId intrinsicId = swagIntrinsicId(nodeExpr);

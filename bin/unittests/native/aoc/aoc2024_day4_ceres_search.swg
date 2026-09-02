@@ -97,9 +97,9 @@ func parseGrid(bytes: const [..] u8)->Grid
     var result: retval
 
     var col: u32
-    for bytes.count
+    for index in bytes.count
     {
-        let ch = bytes[Swag.index]
+        let ch = bytes[index]
         if isNewline(ch)
         {
             if col > 0
@@ -142,13 +142,13 @@ const XmasWord: [4] u8 = ['X'u8, 'M'u8, 'A'u8, 'S'u8]
 
 func matchWord(grid: Grid, startRow, startCol: s32, dir: Vec2)->bool
 {
-    for 4
+    for index in 4
     {
-        let r = startRow + cast(s32) Swag.index * dir.dy
-        let c = startCol + cast(s32) Swag.index * dir.dx
+        let r = startRow + cast(s32) index * dir.dy
+        let c = startCol + cast(s32) index * dir.dx
         if !inBounds(r, c, grid.rowCount, grid.colCount) do
             return false
-        if gridAt(grid, cast(u32) r, cast(u32) c) != XmasWord[Swag.index] do
+        if gridAt(grid, cast(u32) r, cast(u32) c) != XmasWord[index] do
             return false
     }
 
@@ -163,9 +163,9 @@ func countXmasClean(grid: Grid)->u32
     {
         for col in grid.colCount
         {
-            for Directions
+            for index in Directions.count
             {
-                let dir = directionVector(Directions[Swag.index])
+                let dir = directionVector(Directions[index])
                 if matchWord(grid, cast(s32) row, cast(s32) col, dir) do
                     count += 1
             }

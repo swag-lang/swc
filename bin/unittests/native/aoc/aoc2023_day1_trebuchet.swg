@@ -76,9 +76,9 @@ func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
     let litBytes = cast(const [..] u8) lit
     if pos + litBytes.count > bytes.count do
         return false
-    for litBytes.count
+    for index in litBytes.count
     {
-        if bytes[pos + Swag.index] != litBytes[Swag.index] do
+        if bytes[pos + index] != litBytes[index] do
             return false
     }
     return true
@@ -86,10 +86,10 @@ func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
 
 func spelledDigitAt(bytes: const [..] u8, pos: u64)->s32
 {
-    for DigitCount
+    for index in DigitCount
     {
-        if matchLiteral(bytes, pos, SpelledDigits[Swag.index]) do
-            return cast(s32) Swag.index + 1
+        if matchLiteral(bytes, pos, SpelledDigits[index]) do
+            return cast(s32) index + 1
     }
     return -1
 }
@@ -103,9 +103,9 @@ func calibrationValueDigitOnly(line: const [..] u8)->u32
     var first = -1's32
     var last  = -1's32
 
-    for line.count
+    for index in line.count
     {
-        let ch = line[Swag.index]
+        let ch = line[index]
         if isDigit(ch)
         {
             let d = digitValue(ch)
@@ -125,15 +125,15 @@ func calibrationValueWithWords(line: const [..] u8)->u32
     var first = -1's32
     var last  = -1's32
 
-    for line.count
+    for index in line.count
     {
         var d  = -1's32
-        let ch = line[Swag.index]
+        let ch = line[index]
 
         if isDigit(ch) do
             d = digitValue(ch)
         else do
-            d = spelledDigitAt(line, Swag.index)
+            d = spelledDigitAt(line, index)
 
         if d >= 0
         {
@@ -153,13 +153,13 @@ func solveClean(bytes: const [..] u8)->CalibrationResult
     var result:    CalibrationResult
     var lineStart: u64
 
-    for bytes.count
+    for index in bytes.count
     {
-        if isNewline(bytes[Swag.index]) or Swag.index == bytes.count - 1
+        if isNewline(bytes[index]) or index == bytes.count - 1
         {
-            var lineEnd = Swag.index
-            if !isNewline(bytes[Swag.index]) do
-                lineEnd = Swag.index + 1
+            var lineEnd = index
+            if !isNewline(bytes[index]) do
+                lineEnd = index + 1
 
             if lineEnd > lineStart
             {
@@ -169,7 +169,7 @@ func solveClean(bytes: const [..] u8)->CalibrationResult
                 result.withWords += cast(u64) calibrationValueWithWords(line)
             }
 
-            lineStart = Swag.index + 1
+            lineStart = index + 1
         }
     }
 
@@ -184,10 +184,10 @@ impl IDigitFinder for DigitOnlyFinder
 {
     mtd impl findFirst(line: const [..] u8)->s32
     {
-        for line.count
+        for index in line.count
         {
-            if isDigit(line[Swag.index]) do
-                return digitValue(line[Swag.index])
+            if isDigit(line[index]) do
+                return digitValue(line[index])
         }
         return -1
     }
@@ -207,11 +207,11 @@ impl IDigitFinder for WordAwareFinder
 {
     mtd impl findFirst(line: const [..] u8)->s32
     {
-        for line.count
+        for index in line.count
         {
-            if isDigit(line[Swag.index]) do
-                return digitValue(line[Swag.index])
-            let w = spelledDigitAt(line, Swag.index)
+            if isDigit(line[index]) do
+                return digitValue(line[index])
+            let w = spelledDigitAt(line, index)
             if w >= 0 do
                 return w
         }
@@ -252,19 +252,19 @@ func accumulateLine(line: const [..] u8, finder: IDigitFinder, target: *u64)
 func forEachLine(bytes: const [..] u8, stmt: #code(line))
 {
     var lineStart: u64
-    for bytes.count
+    for index in bytes.count
     {
-        if isNewline(bytes[Swag.index]) or Swag.index == bytes.count - 1
+        if isNewline(bytes[index]) or index == bytes.count - 1
         {
-            var lineEnd = Swag.index
-            if !isNewline(bytes[Swag.index]) do
-                lineEnd = Swag.index + 1
+            var lineEnd = index
+            if !isNewline(bytes[index]) do
+                lineEnd = index + 1
             if lineEnd > lineStart
             {
                 let lineLen = lineEnd - lineStart
                 #inject(stmt, line = bytes[lineStart until lineStart + lineLen])
             }
-            lineStart = Swag.index + 1
+            lineStart = index + 1
         }
     }
 }

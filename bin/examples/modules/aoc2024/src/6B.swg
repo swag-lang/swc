@@ -180,13 +180,13 @@ func day6B()
     discard test(&arr0, sx, sy, true)
 
     var total = 0
-    for v in arr0
+    for v, index in arr0
     {
         if v != 'O' do
             continue
 
         var arr1 = arr0
-        arr1[Swag.index] = '#'
+        arr1[index] = '#'
 
         if test(&arr1, sx, sy, false) do
             total += 1

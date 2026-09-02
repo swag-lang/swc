@@ -287,6 +287,33 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ---
 
+## Tests
+
+### std.pixel.021 — The stroke parity test fails in release, and its readback answers garbage
+
+- Area: std.pixel
+- Found while: running `tests.swgs dm --all-cfg` for an unrelated language change, which stops
+  there every time.
+- Observation: `render.parity.stroke.cpu-ogl`
+  ([render.parity.test.swg:547](../bin/std/modules/pixel/src/tests/render.parity.test.swg#L547))
+  fails in the `release` configuration, where the `#test` runs under the JIT. The OpenGL side
+  comes back empty — the whole 192x128 image, first pixel produced 0 against an expected
+  4279243288 — while the CPU reference is correct. The same test passes in `devmode`.
+- Evidence: reproduced on master at 15007f36f with a compiler built from that commit,
+  `swc tools/std.swgs dm test pixel -bc release --test-file render.parity.test.swg`: 14 passed,
+  1 did not pass. Identical result from an unrelated branch, so the failure belongs to the test
+  and the release path, not to any change under review.
+- The readback also does not report a lost context. Under memory pressure the same assertion
+  produced three different images across three runs: an empty one, the scene of the neighbouring
+  `render.parity.cpu-ogl` test, and a capture of the desktop behind the window. `renderOgl` builds
+  a real window and an OpenGL context, and whatever the driver hands back is compared as if it
+  were a render.
+- Next step: two separate things. Find why the context produces nothing when the test runs under
+  the JIT — a window created from inside the compiler process is the suspect. Then make the
+  readback prove it read the render target, by checking framebuffer status after
+  `renderer.begin` and stamping one known pixel before reading back, so a lost context reports
+  itself instead of arriving as a parity difference a reader has to attribute.
+
 ## Out of scope
 
 **Image codecs.** Decoding, encoding, metadata, multi-image containers, and SVG input are tracked

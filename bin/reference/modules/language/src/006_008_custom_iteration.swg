@@ -45,7 +45,8 @@ impl MyStruct
 # Destructuring Visit Values
 
 The bindings after 'for' are positional. '?' discards one position, consistently
-with other destructuring forms.
+with other destructuring forms, and it can stand in any of them: a loop that wants
+only the last value discards the ones before it rather than naming them.
 */
 #test
 {
@@ -58,7 +59,10 @@ with other destructuring forms.
     for ?, doubled in values do
         total += doubled
 
-    Swag.assert(total == 303)
+    for ?, ?, index in values do
+        total += cast(s32) index
+
+    Swag.assert(total == 306)
 }
 
 #[Swag.Opaque]
@@ -151,15 +155,21 @@ into the loop binding.
 
 Collections expose traversal policies as regular methods. For example,
 '.pairs()' visits adjacent elements and '.reversed()' visits in reverse order.
-Both return constant-size, zero-allocation views.
+Both return constant-size, zero-allocation views, and each names the positions it
+hands out: '.pairs()' adds the position of the left element after the two values.
 */
 #test
 {
     let values: [4] s32 = [2, 4, 6, 8]
     var code:   s32
+    var steps:  u64
 
-    for left, right in values.pairs() do
-        code = code * 100 + left * 10 + right
+    for left, right, index in values.pairs()
+    {
+        code  = code * 100 + left * 10 + right
+        steps += index
+    }
 
     Swag.assert(code == 244668)
+    Swag.assert(steps == 0 + 1 + 2)
 }

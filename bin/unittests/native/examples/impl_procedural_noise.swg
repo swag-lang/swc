@@ -132,9 +132,9 @@ func fractalNoise(x, y: f32, seed: s32)->f32
     var sum:        f32
     var normalizer: f32
 
-    for 4
+    for index in 4
     {
-        let octaveSeed = seed + cast(s32) Swag.index * 131
+        let octaveSeed = seed + cast(s32) index * 131
         sum        += valueNoise(x * frequency, y * frequency, octaveSeed) * amplitude
         normalizer += amplitude
         amplitude  *= 0.55'f32

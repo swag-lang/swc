@@ -1,11 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenLoopHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -14,11 +11,9 @@ namespace
 {
     struct LoopStmtCodeGenPayload
     {
-        MicroLabelRef   bodyLabel      = MicroLabelRef::invalid();
-        MicroLabelRef   continueLabel  = MicroLabelRef::invalid();
-        MicroLabelRef   doneLabel      = MicroLabelRef::invalid();
-        SymbolVariable* indexStateSym  = nullptr;
-        bool            usesIndexState = false;
+        MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
+        MicroLabelRef continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
     };
 
     LoopStmtCodeGenPayload* loopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -37,10 +32,6 @@ namespace
         if (payload)
             *payload = {};
     }
-
-    using CodeGenLoopHelpers::emitAdvanceLoopIndexState;
-    using CodeGenLoopHelpers::emitInitializeLoopIndexState;
-    using CodeGenLoopHelpers::emitLoadLoopIndexState;
 }
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
@@ -122,17 +113,11 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&                  builder = codeGen.builder();
-    LoopStmtCodeGenPayload         loopState;
-    const SemaNodeView             symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
-    const std::span<Symbol* const> symbols     = symbolsView.symList();
-    loopState.bodyLabel                        = builder.createLabel();
-    loopState.continueLabel                    = builder.createLabel();
-    loopState.doneLabel                        = builder.createLabel();
-    if (const auto* indexUsage = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef()))
-        loopState.usesIndexState = indexUsage->usesLoopIndex;
-    if (!symbols.empty())
-        loopState.indexStateSym = &symbols.back()->cast<SymbolVariable>();
+    MicroBuilder&          builder = codeGen.builder();
+    LoopStmtCodeGenPayload loopState;
+    loopState.bodyLabel     = builder.createLabel();
+    loopState.continueLabel = builder.createLabel();
+    loopState.doneLabel     = builder.createLabel();
     setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -146,23 +131,12 @@ Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     SWC_ASSERT(loopState != nullptr);
 
     MicroBuilder& builder = codeGen.builder();
-    if (loopState->usesIndexState)
-    {
-        SWC_ASSERT(loopState->indexStateSym != nullptr);
-        emitInitializeLoopIndexState(codeGen, *loopState->indexStateSym);
-    }
     builder.placeLabel(loopState->bodyLabel);
 
     CodeGenFrame frame = codeGen.frame();
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
-    frame.setCurrentLoopContinueLabel(loopState->usesIndexState ? loopState->continueLabel : loopState->bodyLabel);
+    frame.setCurrentLoopContinueLabel(loopState->bodyLabel);
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    if (loopState->usesIndexState)
-    {
-        SWC_ASSERT(loopState->indexStateSym != nullptr);
-        const MicroReg currentIndexReg = emitLoadLoopIndexState(codeGen, *loopState->indexStateSym);
-        frame.setCurrentLoopIndex(currentIndexReg, codeGen.typeMgr().typeU64());
-    }
     codeGen.pushFrame(frame);
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
@@ -179,17 +153,7 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     SWC_RESULT(codeGen.popDeferScope());
     MicroBuilder&           builder = codeGen.builder();
     const ScopedDebugNoStep noStep(builder, true);
-    if (loopState->usesIndexState)
-    {
-        SWC_ASSERT(loopState->indexStateSym != nullptr);
-        builder.placeLabel(loopState->continueLabel);
-        emitAdvanceLoopIndexState(codeGen, *loopState->indexStateSym);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
-    }
-    else
-    {
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
-    }
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
     codeGen.popFrame();
     return Result::Continue;
 }

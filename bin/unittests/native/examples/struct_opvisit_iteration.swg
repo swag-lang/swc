@@ -62,7 +62,7 @@ impl ShelfBins
                 case 3: visitItem = me.evening
                 }
 
-                #inject(stmt, item = visitItem, index = Swag.index)
+                #inject(stmt, item = visitItem, index = idx)
             }
         }
     }
@@ -83,7 +83,7 @@ impl ShelfBins
             default: visitItem = me.evening
             }
 
-            #inject(stmt, item = visitItem, index = Swag.index)
+            #inject(stmt, item = visitItem, index = idx)
         }
     }
 }

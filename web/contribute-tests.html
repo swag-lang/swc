@@ -57,6 +57,7 @@
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SCst">Expected</span>)
 }</span></div>
 <p>During iteration, <span class="code-inline">--test-file &lt;substring&gt;</span> keeps the whole module available but executes only the <span class="code-inline">#test</span> functions declared in matching source paths. Repeat the option to select several test files. Do not use <span class="code-inline">--file-filter</span> for a module test: it removes non-matching implementation files from the compiler input.</p>
+<p>Use <span class="code-inline">#[Swag.TestTag("golden")]</span> on every <span class="code-inline">#test</span> that records or compares a text or image golden. <span class="code-inline">--test-tag golden</span> selects that category independently of filenames and assertion helpers. Repeated tags form a union; combining <span class="code-inline">--test-file</span> and <span class="code-inline">--test-tag</span> requires both to match.</p>
 <p>The default <span class="code-inline">test</span> command runs <span class="code-inline">#test</span> functions through both the JIT and native backend. A layer runner narrows those paths when the layer itself is the subject.</p>
 <h2 id="Match_an_expected_diagnostic">Match an expected diagnostic</h2>
 <p>Put rejected programs under the matching <span class="code-inline">bin/unittests/errors</span> stage. Match the stable diagnostic identifier at the source location that proves the error:</p>
@@ -77,13 +78,14 @@ swc tools\tests.swgs dm --all-cfg</span></div>
 <li>Keep every individual test below 40 seconds, excluding compiler build time.</li>
 <li>Avoid external services, user-specific paths, timing assumptions, and random input without a recorded seed.</li>
 <li>Keep passing tests silent; use temporary <span class="code-inline">Swag.print</span> calls only while debugging.</li>
+<li>After a change that can affect shared rendering output, run <span class="code-inline">swc tools\goldens.swgs dm test</span>; it runs every golden-tagged test and reports all generated <span class="code-inline">.actual.txt</span> and <span class="code-inline">.actual.png</span> files without accepting them.</li>
 <li>Review any <span class="code-inline">*.actual.txt</span> snapshot before accepting it with <span class="code-inline">swc tools\goldens.swgs</span>.</li>
 <li>Retain a regression test after the compiler fix lands.</li>
 </ul>
 <p>The executable <a href="language.html">language reference</a> is also a regression suite, but it should teach supported behavior. Put edge cases and rejected forms in <span class="code-inline">bin/unittests</span> unless they materially improve the explanation.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.294</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.317</div>
 </footer>
 </section>
 </main>

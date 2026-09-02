@@ -23,55 +23,60 @@ This expression must yield a **positive integer**.
 }
 
 /**
-# Using 'Swag.index'
+# Naming the Loop Index
 
-Within a `for`, the compiler provides the built-in `Swag.index`, representing the current iteration (starting from 0).
+Bind the loop index by naming it before `in`. In a counted loop that name is the current
+iteration, starting from 0. A loop that never reads its index does not have to name one.
 */
 #test
 {
     var cpt = 0'u64
-    for 5
+
+    for index in 5
     {
-        cpt += Swag.index
+        cpt += index
     }
 
     Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
 }
 
 /**
-# Naming the Loop Index
-
-You can bind the loop index by naming it before `in`. In a counted loop, that name
-always denotes the current index, while `Swag.index` remains accessible.
+Each loop names its own index, so a nested loop reads the one it named rather than the
+nearest one.
 */
 #test
 {
-    var cpt  = 0
-    var cpt1 = 0
+    var pairs = 0'u64
 
-    for i in 5
+    for row in 3
     {
-        cpt  += i
-        cpt1 += Swag.index
+        for column in 2 do
+            pairs += row * 10 + column
     }
 
-    Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
-    Swag.assert(cpt1 == cpt)
+    Swag.assert(pairs == 63)
 }
 
 /**
 # Looping Over Arrays and Slices
 
-The `for` construct can iterate over any type supporting `.count`, such as arrays, slices, or strings.
+The `for` construct counts the elements of any type supporting `.count`, such as arrays,
+slices, or strings. Naming a binding over the collection itself visits its **elements**
+instead, so a loop that indexes back into the collection counts `.count`.
 */
 #test
 {
     var arr = [10, 20, 30, 40]
     #assert(arr.count == 4)
 
-    var cpt = 0
+    var turns = 0
     for arr do
-        cpt += arr[Swag.index]
+        turns += 1
+    Swag.assert(turns == 4)
+
+    var cpt = 0
+    for index in arr.count do
+        cpt += arr[index]
     Swag.assert(cpt == 10 + 20 + 30 + 40)
 }
 
@@ -256,15 +261,21 @@ Construct a range view, then compose it with `.reversed()`.
 # Infinite Loop
 
 A `for` without an expression creates an infinite loop, similar to `while true {}`.
-Use `break` to exit.
+Use `break` to exit. There is no index to name here, so a loop that counts its own
+turns keeps an ordinary variable.
 */
 #test
 {
+    var turns = 0
+
     for
     {
-        if Swag.index == 4 do
+        if turns == 4 do
             break
+        turns += 1
     }
+
+    Swag.assert(turns == 4)
 }
 
 /**
@@ -399,22 +410,18 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
 }
 
 /**
-# Accessing Loop Index with 'Swag.index'
+# The Counter Of A C-like 'for'
 
-In all `for` variants, `Swag.index` provides the current iteration index.
+The variable declared in the initialization section is the only counter this form has,
+and the loop is free to start it anywhere and step it by anything.
 */
 #test
 {
-    var cpt = 0'u64
+    var cpt = 0'u32
 
     for var i: u32 = 10; i < 15; i += 1 do
-        cpt += Swag.index
-    Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
-
-    var cpt1 = 0'u64
-    for var i = 10; i < 15; i += 1 do
-        cpt1 += Swag.index
-    Swag.assert(cpt1 == 0 + 1 + 2 + 3 + 4)
+        cpt += i
+    Swag.assert(cpt == 10 + 11 + 12 + 13 + 14)
 }
 
 /**
@@ -449,21 +456,22 @@ In all `for` variants, `Swag.index` provides the current iteration index.
 /**
 # Nested 'for' Loops
 
-Swag supports nested loops. In nested contexts, `Swag.index` refers to the current innermost loop.
+Swag supports nested loops. Each level names its own counter, so an inner body can read
+both.
 */
 #test
 {
-    var result = 0'u64
+    var result = 0
 
     for var i = 0; i < 5; i += 1
     {
         for var j = 0; j < 5; j += 1
         {
-            result += Swag.index
+            result += i * j
         }
     }
 
-    Swag.assert(result == 10 * 5)
+    Swag.assert(result == 100)
 }
 
 /**

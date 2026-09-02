@@ -19,12 +19,12 @@ func day1B()
     // A blank line separates two elves; it carries no number, and parsing one is an error.
     var count: [3] u64
     var one:   u64
-    for l in lines
+    for l, index in lines
     {
         if !l.isEmpty() do
             one += expect StrConv.toU64(l[])
 
-        if l.isEmpty() or Swag.index == lines.count - 1
+        if l.isEmpty() or index == lines.count - 1
         {
             switch
             {

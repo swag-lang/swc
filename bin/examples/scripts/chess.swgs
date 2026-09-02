@@ -163,14 +163,14 @@ func computeMoves()
     let contentToTreat = g_Game.whiteTurn ? ContentEnum.White : ContentEnum.Black
     g_Game.possibleMoves.clear()
 
-    for cell in g_Board
+    for cell, index in g_Board
     {
         if cell.content != contentToTreat do
             continue
 
         var moves: Array's8
 
-        let i = cast(s8) Swag.index
+        let i = cast(s8) index
         switch cell.piece
         {
         case .Pawn:

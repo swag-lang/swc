@@ -68,9 +68,9 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         Swag.assert(lineWidth(layout[rowIndex]) == width)
 
         let row = cast(const [..] u8) layout[rowIndex]
-        for width
+        for idx in width
         {
-            let x     = cast(u32) Swag.index
+            let x     = cast(u32) idx
             let src   = row[x]
             let index = cellIndex(x, cast(u32) rowIndex, width)
 
@@ -145,12 +145,12 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         result.successfulPushes += 1
     }
 
-    for totalCells
+    for idx in totalCells
     {
-        if cells[Swag.index] == 'O'u8
+        if cells[idx] == 'O'u8
         {
-            let x = cast(u64) (Swag.index % width)
-            let y = cast(u64) (Swag.index / width)
+            let x = cast(u64) (idx % width)
+            let y = cast(u64) (idx / width)
             result.gpsSum += y * 100'u64 + x
         }
     }

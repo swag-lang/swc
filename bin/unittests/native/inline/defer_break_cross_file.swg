@@ -4,7 +4,7 @@
 {
     var resource = false
 
-    for 10
+    for index in 10
     {
         resource = true
         defer
@@ -13,7 +13,7 @@
             resource = false
         }
 
-        if Swag.index == 2 do
+        if index == 2 do
             break
     }
 

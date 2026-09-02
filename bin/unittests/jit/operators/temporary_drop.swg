@@ -91,7 +91,7 @@ impl TemporaryVisits
     {
         for idx in 2
         {
-            #inject(stmt, item = cast(s32) Swag.index, index = Swag.index)
+            #inject(stmt, item = cast(s32) idx, index = idx)
         }
     }
 }

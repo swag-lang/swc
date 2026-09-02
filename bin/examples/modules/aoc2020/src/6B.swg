@@ -51,7 +51,7 @@ func day6B0()
     var count:      [26] s32
     var total, num: u64
 
-    for l in lines
+    for l, index in lines
     {
         if l.length do
             num += 1
@@ -59,7 +59,7 @@ func day6B0()
         for c in l.bytes() do
             count[c - 'a'] += 1
 
-        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].length == 0
         {
             for c in count where c == num do
                 total += 1
@@ -83,7 +83,7 @@ func day6B1()
     var lineVal:  u32
     var interVal: u32 = ~0'u32
 
-    for l in lines
+    for l, index in lines
     {
         if l.length
         {
@@ -93,7 +93,7 @@ func day6B1()
             interVal &= lineVal
         }
 
-        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].length == 0
         {
             total    += Math.countOnes(interVal)
             interVal = ~0'u32

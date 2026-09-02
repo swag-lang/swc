@@ -247,18 +247,17 @@ namespace
         if (tokNames.size() <= 2)
             return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{node.srcViewRef(), tokNames[2]});
+        const TokenRef errorTokRef = tokNames[2].isValid() ? tokNames[2] : node.tokRef();
+        auto           diag         = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{node.srcViewRef(), errorTokRef});
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(tokNames.size()));
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    void pushLoopFrame(Sema& sema, AstNodeRef loopRef, TypeRef indexTypeRef, const SymbolVariable* iterationRoot = nullptr, AstNodeRef iterationSourceRef = AstNodeRef::invalid(), AstNodeRef iterationBodyRef = AstNodeRef::invalid())
+    void pushLoopFrame(Sema& sema, AstNodeRef loopRef, const SymbolVariable* iterationRoot = nullptr, AstNodeRef iterationSourceRef = AstNodeRef::invalid(), AstNodeRef iterationBodyRef = AstNodeRef::invalid())
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(loopRef, SemaFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopIndexTypeRef(indexTypeRef);
-        frame.setCurrentLoopIndexOwnerRef(loopRef);
         if (iterationBodyRef.isValid())
             SemaHelpers::killNarrowFactsForLoopBody(sema, iterationBodyRef, frame);
         // A collection iterated by this loop: a structural mutation of that same storage
@@ -291,9 +290,10 @@ namespace
         SmallVector<TokenRef> tokNames;
         sema.ast().appendTokens(tokNames, node.spanNamesRef);
 
-        const bool   indexOnly = node.hasFlag(AstForeachStmtFlagsE::IndexOnly);
-        const size_t count     = std::min<size_t>(tokNames.size(), 2);
-        size_t       index     = 0;
+        // Position zero is the element and position one the index; a discarded position
+        // carries no token and declares nothing.
+        const size_t count = std::min<size_t>(tokNames.size(), 2);
+        size_t       index = 0;
         for (size_t i = 0; i < count; ++i)
         {
             const TokenRef tokNameRef = tokNames[i];
@@ -301,7 +301,7 @@ namespace
                 continue;
 
             auto&         symVar         = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return registerLoopScopeSymbol<SymbolVariable>(sema, node, tokNameRef); });
-            const TypeRef bindingTypeRef = indexOnly || i == 1 ? indexTypeRef : valueTypeRef;
+            const TypeRef bindingTypeRef = i == 1 ? indexTypeRef : valueTypeRef;
             SWC_RESULT(ensureLoopLocalStorage(sema, symVar, bindingTypeRef));
             outSymbols.push_back(&symVar);
             index += 1;
@@ -427,20 +427,13 @@ namespace
 Result AstForCStyleStmt::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
-    const auto& forNode = sema.curNode().cast<AstForCStyleStmt>();
-
-    SmallVector<Symbol*> symbols;
-    auto&                stateSym = registerUniqueLoopScopeSymbol<SymbolVariable>(sema, forNode, "for_index_state");
-    SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
-    symbols.push_back(&stateSym);
-    sema.setSymbolList(sema.curNodeRef(), symbols.span());
     return Result::Continue;
 }
 
 Result AstForCStyleStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodePostStmtRef || (childRef == nodeBodyRef && nodePostStmtRef.isInvalid()))
-        pushLoopFrame(sema, sema.curNodeRef(), sema.typeMgr().typeU64());
+        pushLoopFrame(sema, sema.curNodeRef());
 
     if (childRef == nodeBodyRef)
         sema.pushEscapeBranch();
@@ -498,7 +491,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         // Track the iterated storage so a structural mutation of it inside the body is
         // flagged (iterator invalidation). Null for ranges/temporaries with no storage root.
         const SymbolVariable* iterationRoot = SemaEscape::iterationSourceRoot(sema, nodeExprRef);
-        pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef, iterationRoot, nodeExprRef, nodeBodyRef);
+        pushLoopFrame(sema, sema.curNodeRef(), iterationRoot, nodeExprRef, nodeBodyRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
@@ -623,7 +616,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         TypeRef indexTypeRef = TypeRef::invalid();
         SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexTypeRef, sema.curNodeRef(), *this));
 
-        pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef);
+        pushLoopFrame(sema, sema.curNodeRef());
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
         // Create a variable
@@ -759,18 +752,9 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
-        frame.setCurrentLoopIndexTypeRef(sema.typeMgr().typeU64());
-        frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
         SemaHelpers::killNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
-
-        SmallVector<Symbol*> symbols;
-        auto&                stateSym = registerUniqueLoopScopeSymbol<SymbolVariable>(sema, *this, "for_index_state");
-        SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
-        symbols.push_back(&stateSym);
-        sema.setSymbolList(sema.curNodeRef(), symbols.span());
-
         sema.pushEscapeBranch();
     }
 

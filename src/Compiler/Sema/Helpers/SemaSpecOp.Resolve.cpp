@@ -857,11 +857,25 @@ namespace
         if (foreachNames.empty())
             return false;
 
-        const SourceView& srcView = sema.srcView(node.srcViewRef());
-        for (uint32_t tokIndex = node.tokRef().get(); tokIndex < foreachNames.front().get(); ++tokIndex)
+        // A discarded position holds no token, so scan up to the first one that does.
+        TokenRef firstNameRef = TokenRef::invalid();
+        for (const TokenRef tokNameRef : foreachNames)
         {
-            if (srcView.token(TokenRef{tokIndex}).id == TokenId::SymAmpersand)
-                return true;
+            if (tokNameRef.isValid())
+            {
+                firstNameRef = tokNameRef;
+                break;
+            }
+        }
+
+        if (firstNameRef.isValid())
+        {
+            const SourceView& srcView = sema.srcView(node.srcViewRef());
+            for (uint32_t tokIndex = node.tokRef().get(); tokIndex < firstNameRef.get(); ++tokIndex)
+            {
+                if (srcView.token(TokenRef{tokIndex}).id == TokenId::SymAmpersand)
+                    return true;
+            }
         }
 
         const SourceCodeRange codeRange = node.codeRangeWithChildren(sema.ctx(), sema.ast());

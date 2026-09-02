@@ -181,13 +181,13 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval
 
-    for &it in typeStruct.fields
+    for &it, idx in typeStruct.fields
     {
         // Test normal name (field)
         if isSameName(it.name orelse "", name)
         {
             result.field = it
-            result.index = Swag.index
+            result.index = idx
             return result
         }
 
@@ -196,7 +196,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
         if aliasName != null and isSameName(aliasName orelse "", name)
         {
             result.field = it
-            result.index = Swag.index
+            result.index = idx
             return result
         }
     }

@@ -193,10 +193,6 @@ public:
         currentErrorScope_       = nodeRef;
         currentErrorContextMode_ = mode;
     }
-    TypeRef         currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
-    void            setCurrentLoopIndexTypeRef(TypeRef typeRef) { currentLoopIndexTypeRef_ = typeRef; }
-    AstNodeRef      currentLoopIndexOwnerRef() const { return currentLoopIndexOwnerRef_; }
-    void            setCurrentLoopIndexOwnerRef(AstNodeRef nodeRef) { currentLoopIndexOwnerRef_ = nodeRef; }
     AstNodeRef      currentSwitch() const { return currentSwitch_; }
     void            setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef      currentSwitchCase() const { return currentSwitchCase_; }
@@ -268,8 +264,6 @@ private:
     AstNodeRef                          compilerScope_            = AstNodeRef::invalid();
     AstNodeRef                          currentErrorScope_        = AstNodeRef::invalid();
     ErrorContextMode                    currentErrorContextMode_  = ErrorContextMode::None;
-    TypeRef                             currentLoopIndexTypeRef_  = TypeRef::invalid();
-    AstNodeRef                          currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
     AstNodeRef                          currentSwitch_            = AstNodeRef::invalid();
     AstNodeRef                          currentSwitchCase_        = AstNodeRef::invalid();
     AstNodeRef                          runtimeStorageNodeRef_    = AstNodeRef::invalid();

@@ -81,9 +81,9 @@ func warehouseInit()->Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
     wh.cells = cast(#null [*] Tile) testAlloc(size)
     let cells = wh.cells!
-    for MaxDim * MaxDim
+    for index in MaxDim * MaxDim
     {
-        cells[Swag.index] = Tile.Empty
+        cells[index] = Tile.Empty
     }
     return wh
 }

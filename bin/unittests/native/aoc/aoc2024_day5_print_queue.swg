@@ -115,9 +115,9 @@ const TieBreakScenario: PrintQueueScenario =
 func clearUpdate(result: *Update)
 {
     result.count = 0'u32
-    for MaxUpdatePages
+    for index in MaxUpdatePages
     {
-        result.pages[cast(u32) Swag.index] = 0
+        result.pages[cast(u32) index] = 0
     }
 }
 
@@ -131,9 +131,9 @@ func copyUpdate(result: *Update, source: Update)
     clearUpdate(result)
     result.count = source.count
 
-    for source.count
+    for idx in source.count
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         writePage(&result.pages[index], source[index])
     }
 }
@@ -142,9 +142,9 @@ func findPageIndex(result: *u32, update: Update, page: s32)->bool
 {
     result[] = 0'u32
 
-    for update.count
+    for idx in update.count
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         if update[index] == page
         {
             result[] = index
@@ -157,9 +157,9 @@ func findPageIndex(result: *u32, update: Update, page: s32)->bool
 
 func hasRule(scenario: PrintQueueScenario, before, after: s32)->bool
 {
-    for scenario.ruleCount
+    for index in scenario.ruleCount
     {
-        let rule = &scenario.rules[cast(u32) Swag.index]
+        let rule = &scenario.rules[cast(u32) index]
         if rule.before == before and rule.after == after do
             return true
     }
@@ -169,9 +169,9 @@ func hasRule(scenario: PrintQueueScenario, before, after: s32)->bool
 
 func isOrderedUpdate(scenario: PrintQueueScenario, update: Update)->bool
 {
-    for scenario.ruleCount
+    for index in scenario.ruleCount
     {
-        let rule = &scenario.rules[cast(u32) Swag.index]
+        let rule = &scenario.rules[cast(u32) index]
 
         var beforeIndex: u32
         var afterIndex:  u32
@@ -189,9 +189,9 @@ func hasIncomingRule(scenario: PrintQueueScenario, source: Update, used: [MaxUpd
 {
     let candidatePage = source[candidateIndex]
 
-    for source.count
+    for index in source.count
     {
-        let otherIndex = cast(u32) Swag.index
+        let otherIndex = cast(u32) index
         if used[otherIndex] or otherIndex == candidateIndex do
             continue
 
@@ -238,9 +238,9 @@ func sameUpdate(lhs, rhs: Update)->bool
     if lhs.count != rhs.count do
         return false
 
-    for lhs.count
+    for idx in lhs.count
     {
-        let index = cast(u32) Swag.index
+        let index = cast(u32) idx
         if lhs[index] != rhs[index] do
             return false
     }
@@ -252,9 +252,9 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 {
     result.updateCount = scenario.updateCount
 
-    for scenario.updateCount
+    for index in scenario.updateCount
     {
-        let update = &scenario.updates[cast(u32) Swag.index]
+        let update = &scenario.updates[cast(u32) index]
 
         if isOrderedUpdate(scenario, update)
         {

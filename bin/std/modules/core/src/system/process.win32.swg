@@ -104,9 +104,9 @@ func quoteArgument(value: string)->String
 func joinArguments(arguments: const [..] string)->String
 {
     var result: retval
-    for argument in arguments
+    for argument, index in arguments
     {
-        if Swag.index != 0 do
+        if index != 0 do
             result.append(" ")
         appendQuoted(&result, argument)
     }

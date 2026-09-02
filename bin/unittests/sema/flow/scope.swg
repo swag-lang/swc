@@ -36,11 +36,11 @@ func semaTest003()
 // A '#scope' is transparent to the bare statements: both reach the enclosing loop.
 func semaTest004()
 {
-    for 10
+    for index in 10
     {
         #scope(Grouped)
         {
-            if Swag.index == 3 do
+            if index == 3 do
                 continue
             break
         }
@@ -50,11 +50,11 @@ func semaTest004()
 // The same holds when a switch is the nearest enclosing breakable construct.
 func semaTest005()
 {
-    for 10
+    for index in 10
     {
         #scope(Grouped)
         {
-            switch Swag.index
+            switch index
             {
             case 0:
                 break

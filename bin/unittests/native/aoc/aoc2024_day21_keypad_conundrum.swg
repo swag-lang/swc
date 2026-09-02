@@ -98,7 +98,7 @@ func memoInit()->Memo
     m.vals  = cast(#null [*] u64) testAlloc(cast(u64) MapCap * #sizeof(u64))
     m.alive = cast(#null [*] bool) testAlloc(cast(u64) MapCap * #sizeof(bool))
     let alive = m.alive!
-    for MapCap { alive[Swag.index] = false }
+    for index in MapCap { alive[index] = false }
     return m
 }
 

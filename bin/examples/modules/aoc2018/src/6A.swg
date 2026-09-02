@@ -108,8 +108,8 @@ func day6A()
     }
 
     var total = 0
-    for v in count do
-        if !borders[Swag.index] do
+    for v, index in count do
+        if !borders[index] do
             total = Math.max(v, total)
 
     // Console.print("total: ", total)

@@ -22,9 +22,9 @@ struct InvoiceTotals
 #[Swag.Macro]
 func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line, lineTotalCents: s32))
 {
-    for lines.count
+    for index in lines.count
     {
-        #inject(stmt, line = lines[Swag.index], lineTotalCents = lines[Swag.index].quantity * lines[Swag.index].unitPriceCents)
+        #inject(stmt, line = lines[index], lineTotalCents = lines[index].quantity * lines[index].unitPriceCents)
     }
 }
 

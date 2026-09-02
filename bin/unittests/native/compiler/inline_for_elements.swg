@@ -15,7 +15,7 @@ struct ReturnVisits
 impl ReturnVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
+    mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where !ptr
     {
         if !(.values).count do
@@ -27,7 +27,7 @@ impl ReturnVisits
         {
             #scope(Down)
             {
-                #inject(stmt, item = me.values[idx], break = break to Up, continue = break to Down)
+                #inject(stmt, item = me.values[idx], index = idx, break = break to Up, continue = break to Down)
             }
 
             remain -= 1
@@ -77,10 +77,10 @@ func findValue(target: s32)->bool
 func indexOfValue(target: s32)->s32
 {
     var values = ReturnVisits{}
-    for value in values
+    for value, index in values
     {
         if value == target do
-            return cast(s32) Swag.index
+            return cast(s32) index
     }
     return -1
 }

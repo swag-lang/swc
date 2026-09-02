@@ -200,10 +200,8 @@ impl HashTable
         let table  = .constTablePtr()
         var remain = .count
         #scope(Up)
-        for .capacity
+        for tableIndex in .capacity
         {
-            let tableIndex = Swag.index
-
             if table[tableIndex].hash < HashTable.HASH_FIRST do
                 continue
 
@@ -650,10 +648,12 @@ impl StrConv.IConvert for HashTable
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
+        var first = true
         for k, v in me
         {
-            if Swag.index do
+            if !first do
                 buf.addBytes(", ")
+            first = false
 
             buf.addBytes("key = ")
             StrConv.convert'K(buf, k, convFmt, strFormat)

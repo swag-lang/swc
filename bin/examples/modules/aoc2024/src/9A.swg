@@ -58,10 +58,10 @@ func day9A()
 
     var map: Array'{ what, num: s64 }
     var cpt: s64
-    for t in line
+    for t, index in line
     {
         let r = t - '0'
-        if Swag.index & 1 do
+        if index & 1 do
             map.add({-1, r})
         else
         {

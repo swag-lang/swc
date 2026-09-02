@@ -333,7 +333,7 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
         var left = Math.Simd.splat(0's16)
         while offset + 8 <= count
         {
-            let up        = loadPixelLanes(previous + offset)
+            let up        = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(previous + offset))
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, (left + up) >> 1)
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -363,7 +363,7 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
         var upLeft = Math.Simd.splat(0's16)
         while offset + 8 <= count
         {
-            let up        = loadPixelLanes(previous + offset)
+            let up        = cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(Math.Simd.load(previous + offset))
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, paethPredict(left, up, upLeft))
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -449,10 +449,12 @@ impl Decoder
             dest += rowStrideOut * (height - 1)
 
         // A temporary line "before" the first one, if filter needs one
+        // Sixteen bytes of slack: the lane loops read the previous row through a
+        // sixteen-byte load whose tail is ignored.
         var tmpRow: Array'u8
-        tmpRow.resize(rowStrideOut)
+        tmpRow.resize(rowStrideOut + 16)
         let tmpRowBuffer = tmpRow.buffer!
-        Memory.clear(tmpRowBuffer, rowStrideOut)
+        Memory.clear(tmpRowBuffer, rowStrideOut + 16)
         var up = tmpRowBuffer
 
         // PNG filtering references the previous byte of the same pixel. Packed
@@ -513,7 +515,7 @@ impl Decoder
                 continue
 
             let pixelBytes = cast(u64) .inChannels * (.header.bitDepth == 16 ? 2 : 1)
-            tmpArr.resize(cast(u64) (x * y) * pixelBytes)
+            tmpArr.resize(cast(u64) (x * y) * pixelBytes + 16)
             let tmpBuffer = tmpArr.buffer!
             Memory.clear(tmpBuffer, tmpArr.count)
 

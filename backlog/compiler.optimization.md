@@ -714,3 +714,29 @@ cmov-to-branch back-conversion, and profile-gated passes.
   `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
   the `render.parity.stroke.cpu-ogl` golden stays green.
 - Related: compiler.optimization.003.
+
+### compiler.optimization.027 — Binding a fallible call's result deep-copies instead of adopting the temporary
+
+- Evidence (2026-09-02, PNG campaign): `let z = catch produce()` on a struct with lifecycle
+  hooks runs `opPostCopy` once — the call's sret result lands in an `ErrorManagementExpr`
+  runtime temporary, and the variable initializer copies it. For `Image.decode` that was one
+  full pixel-buffer copy (about 1.1 ms per 6 MB) on every `try`/`catch`/`expect` call whose
+  result initializes a variable. A non-fallible `let z = produce2()` binds the slot and copies
+  nothing. Probe: a fallible `produce()->Payload fail` returning a 20-byte struct, called as
+  `let z = catch produce()`, counts exactly one `opPostCopy`; the same chain without `fail`
+  counts zero.
+- The codegen side already anticipates the fix: `initPayloadAliasesSymbolStorage`
+  (CodeGen.Identifier.cpp) accepts an init whose payload storage IS the declared variable when
+  the init node is an `ErrorManagementExpr`. What is missing is the sema side binding the
+  declared variable as the runtime storage of a fallible-call initializer, the way
+  `AstSingleVarDecl::semaPostNodeChild` (Sema.Var.cpp) already does for arrays, closures, and
+  `retval` — including the inferred-type shape, which never enters that type-child hook.
+- Fallback shape if the binding is unreachable for inferred types: at
+  `emitVarInitPostCopy`, an init from an `ErrorManagementExpr`-owned unique temporary could run
+  `opPostMove` and reset the temporary instead of copying, but that requires knowing how the
+  temporary's scope drop is registered so the adoption does not double-drop.
+- Next: bind the declared variable as the fallible initializer's runtime storage in sema for
+  both the typed and the inferred shape, then assert zero `opPostCopy` in a native-suite case
+  shaped like `lifecycle_return_move.swg`.
+- Complete when: `let x = try/catch/expect call()` initializes a lifecycle struct with no
+  `opPostCopy` and no extra drop, with a native-suite regression guarding it.

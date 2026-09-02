@@ -27,8 +27,8 @@ const AllocatorPagePathAlignment = 16'u32
 
 // Bounds of the committed cache of freed header-path blocks.
 const AllocatorBlockCacheMinBytes = 512'u64 * 1024
-const AllocatorBlockCacheMaxBytes = 64'u64 * 1024 * 1024
-const AllocatorBlockCacheMaxCount = 8'u64
+const AllocatorBlockCacheMaxBytes = 96'u64 * 1024 * 1024
+const AllocatorBlockCacheMaxCount = 12'u64
 
 private const AllocatorInvalidFlsId = 0xFFFF_FFFF'u64
 

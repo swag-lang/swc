@@ -874,6 +874,10 @@ impl LibraryWnd
 
     mtd updateMetadata(file: String, tags: #null const *Array'String = null, favorite: #null const *bool = null, rating: #null const *u8 = null)
     {
+        // The edited capture autosaves in the background; make sure this load reads
+        // the latest landed version of the file.
+        .main.flushCaptureSave(file)
+
         let loaded: #null *Capture = catch Capture.load(file) as err
         if err != null
         {
@@ -969,6 +973,9 @@ impl LibraryWnd
 
     mtd exportCapture(file: String, folder: String) fail
     {
+        // The exported image must include edits a background save is still writing.
+        .main.flushCaptureSave(file)
+
         let capture = (try Capture.load(file))!
         defer Memory.delete(capture)
 

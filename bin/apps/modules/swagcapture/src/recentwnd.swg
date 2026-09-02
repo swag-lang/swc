@@ -103,6 +103,11 @@ impl RecentView
 
         // Select new recent item
         let item = .items[idx]!
+
+        // A background save of this same file may still be writing; loading now would
+        // read the previous version.
+        .main.flushCaptureSave(item.file)
+
         let capture: #null *Capture = catch Capture.load(item.file)
         if capture do
             .selectLoaded(idx, capture)
@@ -311,6 +316,10 @@ impl IWnd for RecentWnd
             .app().removeTimer(.timer)
         if .loadTimer do
             .app().removeTimer(.loadTimer)
+
+        // The automatic save owns no window: land it before the strip that schedules
+        // and collects it goes away.
+        discard g_CaptureSaves.flush()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -329,34 +338,45 @@ impl IWnd for RecentWnd
             return
         }
 
+        // The one-second timer drives the deferred save, which now lands in the
+        // background. Keep the timer alive while a save is still writing, then surface
+        // its outcome before scheduling the next one.
+        if g_CaptureSaves.busy() do
+            return
+        let failedSave = g_CaptureSaves.collect()
+        if !failedSave.isEmpty() do
+            MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
+
         let maybeCapture = .main.editWnd.getCapture()
         if maybeCapture
         {
             let capture = maybeCapture
-            if !capture.changed do
-                return
-
-            // Rebuilding the preview and saving the capture deflates the whole
-            // background image on the interface thread. The one-second arm can predate
-            // a drag, so fired now it would freeze the gesture mid-move; the timer
-            // repeats, so just try again on the next tick.
-            if capture.interactiveMove or capture.mouseMode != .None do
-                return
-
-            // The 1s save timer isn't cancelled when the selection is cleared
-            // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
-            // into a valid recent item to avoid indexing out of range.
-            if .recentView.selected != Swag.U64.Max and .recentView.selected < .recentView.items.count
+            if capture.changed
             {
-                capture.computePreview()
-                let item = .recentView.items[.recentView.selected]!
-                .app().renderer.removeTexture(&item.preview)
-                item.preview = .app().renderer.addImage(capture.preview)
-                .invalidate()
+                // The one-second arm can predate a drag; rebuilding the preview now
+                // would freeze the gesture mid-move, so just try again on the next tick.
+                if capture.interactiveMove or capture.mouseMode != .None do
+                    return
 
-                .main.libWnd.view.updateRecent(capture)
+                // The 1s save timer isn't cancelled when the selection is cleared
+                // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
+                // into a valid recent item to avoid indexing out of range.
+                if .recentView.selected != Swag.U64.Max and .recentView.selected < .recentView.items.count
+                {
+                    capture.computePreview()
+                    let item = .recentView.items[.recentView.selected]!
+                    .app().renderer.removeTexture(&item.preview)
+                    item.preview = .app().renderer.addImage(capture.preview)
+                    .invalidate()
 
-                .main.saveCapture(capture)
+                    .main.libWnd.view.updateRecent(capture)
+
+                    // The snapshot happens now; a worker produces the file and
+                    // atomically replaces it, and the next tick collects the outcome.
+                    catch capture.scheduleSave() else do
+                        MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+                    return
+                }
             }
         }
 

@@ -223,6 +223,83 @@ struct Capture
     }
 }
 
+// Everything one save writes, snapshotted from the capture so a job worker can
+// produce the container while the user keeps editing.
+struct CaptureSaveJob
+{
+    job:        Jobs.Job         // Scheduler slot; borrowed by the job workers until collected.
+    file:       String           // Destination path, atomically replaced when the write lands.
+    manifest:   Scc.Manifest
+    modelBytes: Array'u8         // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
+    backImg:    Image            // Owned pixel copies, because a later crop or flatten must not race the encoder.
+    backOrig:   Image
+    preview:    Image
+    failed:     bool             // Set by the worker when producing or replacing the file failed.
+}
+
+// The one automatic save in flight. A single slot is deliberate: the automatic save
+// always targets the edited capture, and every other reader or writer of a capture
+// file flushes this slot first, which keeps one writer per file at all times.
+struct CaptureSaveQueue
+{
+    pending: #null *CaptureSaveJob
+}
+
+var g_CaptureSaves: CaptureSaveQueue
+
+impl CaptureSaveQueue
+{
+    // True while a scheduled save is still producing its file.
+    mtd busy()->bool
+    {
+        if !.pending do
+            return false
+        let job = .pending!
+        return !Jobs.isDone(&job.job)
+    }
+
+    // Hands one snapshot to the job workers. The caller collected or flushed the
+    // previous save first; the job's lambda and data are already set.
+    mtd schedule(job: *CaptureSaveJob)
+    {
+        Debug.assert(!.pending)
+        .pending = job
+        Jobs.schedule(&job.job)
+    }
+
+    // Frees a finished save and returns the file it failed to write, empty on success
+    // or when nothing finished. A save still running is left alone.
+    mtd collect()->String
+    {
+        if !.pending do
+            return ""
+        let job = .pending!
+        if !Jobs.isDone(&job.job) do
+            return ""
+
+        var result: retval
+        if job.failed do
+            result = job.file
+        .pending = null
+        Memory.delete(job)
+        return result
+    }
+
+    // Waits for the save in flight when it targets `file` (any file when null), then
+    // returns the file it failed to write, empty otherwise. Every other reader or
+    // writer of a capture file goes through here before touching it.
+    mtd flush(file: #null string = null)->String
+    {
+        if !.pending do
+            return ""
+        let job = .pending!
+        if file != null and job.file != file do
+            return ""
+        Jobs.wait(&job.job)
+        return .collect()
+    }
+}
+
 // Visit the forms listed in 'selection' (an array of slots in capture.forms) that
 // match T; 'BaseForm' matches every form. The injected block sees the typed form as
 // 'form', its interface as 'itf', and a visit counter as 'idx'. 'continue' skips a
@@ -736,19 +813,72 @@ impl Capture
         if !.changed do
             return
 
-        var metadata = .libraryMetadata()
-        var model    = .fileModel()
-        var manifest: Scc.Manifest
-        manifest.profileVersion = CaptureProfileVersion
-        manifest.name           = .title
-        manifest.createdAt      = .capturedAt
-        manifest.modifiedAt     = Time.DateTime.now()
-        manifest.tags           = .tags
-        manifest.profileData    = try encodeValue(&metadata)
+        // A scheduled save may still be writing this same file; land it first so the
+        // two writes cannot interleave. Its outcome is superseded by this save.
+        discard g_CaptureSaves.flush(.file)
 
+        let job = try .snapshotSave()
+        defer Memory.delete(job)
+        try writeScc(job)
+        .changed = false
+    }
+
+    // Schedules the automatic save. The snapshot is taken here, on the interface
+    // thread, then a job worker produces the container and atomically replaces the
+    // file, so editing never waits on compression or disk.
+    mtd scheduleSave() fail
+    {
+        Debug.assert(!g_CaptureSaves.pending)
+        let job = try .snapshotSave()
+        job.job.lambda = &saveJobEntry
+        job.job.data   = job
+        g_CaptureSaves.schedule(job)
+        .changed = false
+    }
+
+    // Job-worker entry of the automatic save.
+    private func saveJobEntry(data: #null *void)
+    {
+        let job = cast(*CaptureSaveJob) data!
+        catch writeScc(job) else do
+            job.failed = true
+    }
+
+    // Captures everything a save writes, so the file can be produced without reading
+    // the live capture again. Runs on the interface thread: the document model is
+    // encoded now because the forms may change under a worker, and the images are
+    // copied because a later crop or flatten may replace them while a job still encodes.
+    private mtd snapshotSave()->*CaptureSaveJob fail
+    {
+        var metadata     = .libraryMetadata()
+        var model        = .fileModel()
+        var profileBytes = try encodeValue(&metadata)
+        var modelBytes   = try encodeValue(&model)
+
+        let job = Memory.new'CaptureSaveJob()
+        job.file                    = .file
+        job.manifest.profileVersion = CaptureProfileVersion
+        job.manifest.name           = .title
+        job.manifest.createdAt      = .capturedAt
+        job.manifest.modifiedAt     = Time.DateTime.now()
+        job.manifest.tags           = .tags
+        job.manifest.profileData    = #move profileBytes
+        job.modelBytes              = #move modelBytes
+        job.backImg                 = .backImg
+        job.backOrig                = .backImgOriginal
+        job.preview                 = .preview
+        return job
+    }
+
+    // Produces the SCC container from a snapshot and atomically replaces the target
+    // file. Runs on a job worker for the automatic save, inline for a synchronous
+    // one; it must only touch the snapshot, never the live capture.
+    private func writeScc(job: *CaptureSaveJob) fail
+    {
         var writer: Scc.Writer
         writer.initialize(containerKind())
-        writer.manifest()[] = #move manifest
+        writer.manifest()[] = #move job.manifest
+
         let typeTagBin     = tagBinType()
         let typePng        = pngType()
         let roleModel      = modelRole()
@@ -756,38 +886,36 @@ impl Capture
         let roleOriginal   = originalRole()
         let rolePreview    = previewRole()
         let codecDeflate   = Scc.deflateCodecId()
-        var modelBytes     = try encodeValue(&model)
-        let modelId        = try writer.addChunk(modelBytes.toSlice(), {typeId: typeTagBin, roleId: roleModel, codecId: codecDeflate, flags: .Required | .Metadata})
+        let modelId        = try writer.addChunk(job.modelBytes.toSlice(), {typeId: typeTagBin, roleId: roleModel, codecId: codecDeflate, flags: .Required | .Metadata})
 
         var variants: Array'Guid128
-        if .backImg.isValid()
+        if job.backImg.isValid()
         {
-            var bytes = try encodeValue(&.backImg)
+            var bytes = try encodeValue(&job.backImg)
             variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleBackground, codecId: codecDeflate, flags: .Required}))
         }
 
-        if .backImgOriginal.isValid()
+        if job.backOrig.isValid()
         {
-            var bytes = try encodeValue(&.backImgOriginal)
+            var bytes = try encodeValue(&job.backOrig)
             variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleOriginal, codecId: codecDeflate}))
         }
 
-        if .preview.isValid()
+        if job.preview.isValid()
         {
-            var bytes = try .preview.encodeToBytes("preview.png")
+            var bytes = try job.preview.encodeToBytes("preview.png")
             variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typePng, roleId: rolePreview, flags: .Streamable}))
         }
 
         var entry: Scc.Entry
         entry.id            = Guid128.random()
         entry.kind          = .File
-        entry.name          = String.from(Path.fileName(.file) orelse "")
-        entry.tags          = .tags
+        entry.name          = String.from(Path.fileName(job.file) orelse "")
+        entry.tags          = writer.manifest().tags
         entry.primaryChunk  = modelId
         entry.variantChunks = #move variants
         writer.manifest().entries.add(#move entry)
-        writer.saveAtomic(.file)
-        .changed = false
+        writer.saveAtomic(job.file)
     }
 
     private func loadScc(file: String, preview: bool, deferPreviewDecode: bool)->*Capture fail

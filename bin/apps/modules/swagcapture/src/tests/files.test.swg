@@ -51,6 +51,33 @@ func testPrepareRecentLibrary(main: *MainWnd)
         main.recentWnd = RecentWnd.create(main, main)
 }
 
+// The automatic save snapshots on the interface thread and lands on a job worker:
+// scheduling clears the dirty flag immediately, an edit made after scheduling must
+// not leak into the file being written, and the flush waits for the atomic replace.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    f.capture.title = "Scheduled title"
+    let path = testPrepareSavedCapture(f.capture)
+
+    f.capture.changed = true
+    expect f.capture.scheduleSave()
+    Swag.assert(!f.capture.changed)
+
+    // The scheduled write only reads its snapshot, never the live capture.
+    f.capture.title = "Mutated after scheduling"
+
+    Swag.assert(g_CaptureSaves.flush().isEmpty())
+    Swag.assert(g_CaptureSaves.pending == null)
+
+    let saved = expect Capture.load(path)!
+    defer Memory.delete(saved)
+    Swag.assert(saved.title == "Scheduled title")
+}
+
 // New Image uses its real modal dialog, then creates and persists a new capture.
 #test
 {

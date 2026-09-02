@@ -59,6 +59,14 @@ impl IActionUI for ActionGlobal
 
         case .Exit:
             main.saveAppState()
+
+            // A deferred save that hasn't fired yet, and a background save still
+            // writing, must both land before the process goes away.
+            let capture = main.editWnd.getCapture()
+            if capture and capture.changed do
+                main.saveCapture(capture)
+            main.flushCaptureSave()
+
             if Swag.isSet(main.libWnd) do
                 main.libWnd.requestClose()
             main.postQuitEvent()

@@ -135,6 +135,10 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.assert(f.main.recentWnd.timer != null)
     f.gui.fireTimer(f.main.recentWnd.timer)
 
+    // The timer schedules the save on a job worker; wait for the atomic replace
+    // before reading the file back.
+    Swag.assert(g_CaptureSaves.flush().isEmpty())
+
     let saved = expect Capture.load(path)!
     Swag.assert(saved.title == "Persisted scenario")
     Swag.assert(saved.forms.count == 1)

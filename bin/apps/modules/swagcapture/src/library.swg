@@ -185,6 +185,10 @@ impl Library
         if !Capture.isFile(stableName) do
             return
 
+        // A background save may still be writing this capture; if the move happened
+        // first, the save would land its temporary right back at the removed path.
+        discard g_CaptureSaves.flush(stableName)
+
         for fi, idx in .files
         {
             if fi.fullname == stableName

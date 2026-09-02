@@ -363,8 +363,20 @@ impl MainWnd
 
     mtd saveCapture(capture: *Capture)
     {
+        // An automatic save may still be writing; land it first so its outcome is
+        // reported and the two writes cannot interleave.
+        .flushCaptureSave()
         catch capture.save() else do
             MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+    }
+
+    // Waits for the background save targeting `file` (any when null) and reports its
+    // failure, which the timer that scheduled it can no longer do.
+    mtd flushCaptureSave(file: #null string = null)
+    {
+        let failed = g_CaptureSaves.flush(file)
+        if !failed.isEmpty() do
+            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failed))
     }
 
     // Change the user-defined name of a capture and persist it. The library shows
@@ -382,6 +394,10 @@ impl MainWnd
         }
         else
         {
+            // The edited capture autosaves in the background; make sure this load
+            // reads the latest landed version of the file.
+            .flushCaptureSave(file)
+
             let full: #null *Capture = catch Capture.load(file) as err
             if err != null
             {
@@ -412,6 +428,7 @@ impl MainWnd
     mtd copyLibraryImage(file: String)
     {
         Cursor.activateWait()
+        .flushCaptureSave(file)
         let full: #null *Capture = catch Capture.load(file) as err
         if err != null
         {

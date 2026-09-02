@@ -19,9 +19,14 @@ const Expand4LowMask   = cast(Math.Simd.U8x16) [0'u8, 15, 0, 15, 0, 15, 0, 15, 0
 const Expand1Bytes     = cast(Math.Simd.U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
 const Expand1Bits      = cast(Math.Simd.U8x16) [128'u8, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1]
 const Expand2Bytes     = cast(Math.Simd.U8x16) [0'u8, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15]
+const ShiftBytes1      = cast(Math.Simd.U8x16) [0x80'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 const ShiftBytes2      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+const ShiftBytes3      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 const ShiftBytes4      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+const ShiftBytes6      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 const ShiftBytes8      = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7]
+const ShiftBytes12     = cast(Math.Simd.U8x16) [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3]
+const CarryBytes3      = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0]
 
 #[Swag.Inline]
 func expand4Half(value, table: Math.Simd.U8x16, multiplier: u8)->Math.Simd.U8x16
@@ -185,6 +190,19 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
 
     switch bytesPerPixel
     {
+    case 1:
+        while count - offset >= 16
+        {
+            var values = Math.Simd.load(source + offset)
+            values += Math.Simd.shuffle(values, ShiftBytes1)
+            values += Math.Simd.shuffle(values, ShiftBytes2)
+            values += Math.Simd.shuffle(values, ShiftBytes4)
+            values += Math.Simd.shuffle(values, ShiftBytes8)
+            values += Math.Simd.splat(destination[offset - 1])
+            Math.Simd.store(destination + offset, values)
+            offset += 16
+        }
+
     case 2:
         while count - offset >= 16
         {
@@ -196,6 +214,22 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
             values += cast #bit(Math.Simd.U8x16) Math.Simd.splat(carry)
             Math.Simd.store(destination + offset, values)
             offset += 16
+        }
+
+    case 3:
+        // The prefix sum with strides three, six, and twelve reaches back twenty-one
+        // bytes, so fifteen bytes — five whole pixels — resolve per step; the sixteenth
+        // stored byte is a partial sum the next step or the scalar tail rewrites.
+        while count - offset >= 16
+        {
+            var values = Math.Simd.load(source + offset)
+            values += Math.Simd.shuffle(values, ShiftBytes3)
+            values += Math.Simd.shuffle(values, ShiftBytes6)
+            values += Math.Simd.shuffle(values, ShiftBytes12)
+            let carry = cast #bit(Math.Simd.U8x16) Math.Simd.splat((cast(const [*] u64) (destination + offset - 3))[0])
+            values += Math.Simd.shuffle(carry, CarryBytes3)
+            Math.Simd.store(destination + offset, values)
+            offset += 15
         }
 
     case 4:
@@ -292,7 +326,6 @@ func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
 func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     var offset = 0'u64
-    if bytesPerPixel >= 2
     {
         var left = Math.Simd.splat(0's16)
         while offset + 8 <= count
@@ -322,7 +355,6 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
 func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     var offset = 0'u64
-    if bytesPerPixel >= 2
     {
         var left   = Math.Simd.splat(0's16)
         var upLeft = Math.Simd.splat(0's16)

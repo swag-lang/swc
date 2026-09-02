@@ -578,6 +578,101 @@ SWC_TEST_BEGIN(InstCombine_MaskBeforeRightShift_Kept)
 }
 SWC_TEST_END()
 
+// The shift-legalization clamp `cmp count, 64; cmov value, 0 if ae` dies when the
+// count provably stays below the width: here it reaches the compare through
+// `and count, 0x1F` and a zero-extend.
+SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_ClampErased)
+{
+    constexpr MicroReg count   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count64 = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg zero    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(count, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{0x1F}, 64), MicroOp::And, MicroOpBits::B32);
+    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(value, count, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitClearReg(zero, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(count64, count, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitCmpRegImm(count64, ApInt(uint64_t{64}, 64), MicroOpBits::B64);
+    builder.emitLoadCondRegReg(value, zero, MicroCond::AboveOrEqual, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A mask that does not bound the count below the width keeps the clamp.
+SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_WideMaskKept)
+{
+    constexpr MicroReg count   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count64 = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg zero    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(count, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{0x7F}, 64), MicroOp::And, MicroOpBits::B32);
+    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(value, count, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitClearReg(zero, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(count64, count, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitCmpRegImm(count64, ApInt(uint64_t{64}, 64), MicroOpBits::B64);
+    builder.emitLoadCondRegReg(value, zero, MicroCond::AboveOrEqual, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte-wide source write merges with stale upper bits and proves nothing.
+SWC_TEST_BEGIN(InstCombine_RangeProvedCompare_NarrowWriteKept)
+{
+    constexpr MicroReg count   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count64 = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg zero    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(count, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{0x1F}, 64), MicroOp::And, MicroOpBits::B8);
+    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(value, count, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitClearReg(zero, MicroOpBits::B64);
+    builder.emitLoadRegReg(count64, count, MicroOpBits::B64);
+    builder.emitCmpRegImm(count64, ApInt(uint64_t{64}, 64), MicroOpBits::B64);
+    builder.emitLoadCondRegReg(value, zero, MicroCond::AboveOrEqual, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

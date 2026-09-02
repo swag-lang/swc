@@ -237,6 +237,9 @@ impl Decoder
 
     mtd doIt(buffer: const [..] u8)->Image fail
     {
+        var swTotal: Time.Stopwatch
+        swTotal.start()
+        defer Console.println("  total us=", swTotal.elapsedMicroseconds())
         .stream.reset(buffer)
 
         var signature: u64 = undefined
@@ -256,6 +259,8 @@ impl Decoder
         var seenIDAT   = false
         var chIsHere   = false
 
+        var swChunks: Time.Stopwatch
+        swChunks.start()
         while !seenIEND
         {
             // Peek a chunk header only if it's not already done
@@ -378,6 +383,7 @@ impl Decoder
             firstChunk = false
         }
 
+        Console.println("  chunks us=", swChunks.elapsedMicroseconds())
         if !seenIDAT do
             fail InvalidFormatError{"missing IDAT chunk"}
         if .header.colorType & .Paletted and !.seenPLTE do
@@ -420,19 +426,26 @@ impl Decoder
         }
 
         // deflate content; hint the expected decompressed size to avoid realloc churn
+        var swTmp: Time.Stopwatch
+        swTmp.start()
         var dec: Compress.ZLib
         let hintSize = (.getStrideIn(.header.width) + 1) * .header.height
         .dcmpBuf = dec.decompress(iDataBuf.toSlice(), hintSize)
+        Console.println("  inflate us=", swTmp.elapsedMicroseconds())
 
         // defilter content
+        swTmp.restart()
         .defilter()
+        Console.println("  defilter us=", swTmp.elapsedMicroseconds())
 
         // Channels match: result.pixels was already populated directly by defilter
         if .header.bitDepth == 8 and .inChannels == .outChannels do
             return result
 
+        swTmp.restart()
         result.allocPixels()
         .convert(&result)
+        Console.println("  convert us=", swTmp.elapsedMicroseconds())
         return result
     }
 }

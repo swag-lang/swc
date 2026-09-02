@@ -157,6 +157,21 @@ private func testPhaseCompiled(output, module: string)->bool
     return false
 }
 
+// Reports whether `output` states the artifact `name` as reused.
+//
+// The compiler separates its status fields with a bullet, or with '*' under '--log-ascii', so
+// the check matches the two words on one line rather than pinning the glyph between them.
+private func artifactReportedUpToDate(output, name: string)->bool
+{
+    for line in Tokenize.splitLines(output)
+    {
+        if Utf8.contains(line, "up-to-date") and Utf8.contains(line, name) do
+            return true
+    }
+
+    return false
+}
+
 // Counts permanent module report lines for one dependency. Progress frames are absent from captured
 // output, so a repeated line proves that the dependency was reported more than once.
 private func moduleReportCount(output, module: string)->u32
@@ -512,7 +527,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     // An unchanged native-only test must reuse its compiled artifact but still execute it.
     let reusedOutput = try context.captureCompiler(tested)
     Console.print(reusedOutput.toString())
-    if !reusedOutput.contains("up-to-date • consumer_exe.test.exe")
+    if !artifactReportedUpToDate(reusedOutput.toString(), "consumer_exe.test.exe")
     {
         Console.println("Workspace test recompiled its unchanged test artifact.")
         return 1
@@ -571,7 +586,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
-    if !output.contains("up-to-date • consumer_exe.exe")
+    if !artifactReportedUpToDate(output.toString(), "consumer_exe.exe")
     {
         Console.println("Workspace run recompiled its unchanged executable after a test build.")
         return 1
@@ -579,7 +594,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
 
     let reusedAfterRun = try context.captureCompiler(tested)
     Console.print(reusedAfterRun.toString())
-    if !reusedAfterRun.contains("up-to-date • consumer_exe.test.exe")
+    if !artifactReportedUpToDate(reusedAfterRun.toString(), "consumer_exe.test.exe")
     {
         Console.println("Workspace test recompiled its unchanged test artifact after a normal run.")
         return 1

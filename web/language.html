@@ -800,7 +800,7 @@ indent-style = spaces</span></div>
 <span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
 <h3 id="_002_007_keywords_swg_Runtime_and_Compiler_Intrinsics">Runtime and Compiler Intrinsics</h3>
 <p>Intrinsic values:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">args</span>()  <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()  <span class="SNsp">Swag</span>.<span class="SFct">gvtd</span>()  <span class="SNsp">Swag</span>.index  <span class="SNsp">Swag</span>.<span class="SFct">jit</span>()
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">args</span>()  <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()  <span class="SNsp">Swag</span>.<span class="SFct">gvtd</span>()  <span class="SNsp">Swag</span>.<span class="SFct">jit</span>()
 <span class="SNsp">Swag</span>.<span class="SFct">modules</span>()  <span class="SNsp">Swag</span>.<span class="SFct">processInfos</span>()  <span class="SNsp">Swag</span>.<span class="SFct">runtimeFlags</span>()</span></div>
 <p>Type, value, lifecycle, and control intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.typeAs  <span class="SNsp">Swag</span>.assert  <span class="SNsp">Swag</span>.breakpoint  <span class="SNsp">Swag</span>.compilerError  <span class="SNsp">Swag</span>.compilerWarning
@@ -876,7 +876,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <p><span class="code-inline">#assert</span> itself runs during compilation. If its condition is not a constant <span class="code-inline">bool</span>, compilation fails.</p>
 <h3 id="_002_008_sigils_swg_Intrinsic_Values_and_Operations">Intrinsic Values and Operations</h3>
-<p>Intrinsics participate in expressions. Some expose context (<span class="code-inline">Swag.index</span>, <span class="code-inline">Swag.args()</span>, <span class="code-inline">Swag.getContext()</span>), some construct runtime-shaped values (<span class="code-inline">Swag.makeSlice</span>, <span class="code-inline">Swag.makeAny</span>), and some perform primitive operations (<span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.memcpy</span>, <span class="code-inline">Swag.atomadd</span>).</p>
+<p>Intrinsics participate in expressions. Some expose context (<span class="code-inline">Swag.args()</span>, <span class="code-inline">Swag.getContext()</span>), some construct runtime-shaped values (<span class="code-inline">Swag.makeSlice</span>, <span class="code-inline">Swag.makeAny</span>), and some perform primitive operations (<span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.memcpy</span>, <span class="code-inline">Swag.atomadd</span>).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> values: <span class="SKwd">const</span> [..] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>]
@@ -3761,44 +3761,47 @@ indent-style = spaces</span></div>
         cpt += <span class="SNum">1</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">10</span>)
 }</span></div>
-<h3 id="_005_002_for_swg_Using__Swag_index_">Using <span class="code-inline">Swag.index</span></h3>
-<p>Within a <span class="code-inline">for</span>, the compiler provides the built-in <span class="code-inline">Swag.index</span>, representing the current iteration (starting from 0).</p>
+<h3 id="_005_002_for_swg_Naming_the_Loop_Index">Naming the Loop Index</h3>
+<p>Bind the loop index by naming it before <span class="code-inline">in</span>. In a counted loop that name is the current iteration, starting from 0. A loop that never reads its index does not have to name one.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>'<span class="STpe">u64</span>
-    <span class="SLgc">for</span> <span class="SNum">5</span>
+
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">5</span>
     {
-        cpt += <span class="SNsp">Swag</span>.index
+        cpt += index
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">0</span> + <span class="SNum">1</span> + <span class="SNum">2</span> + <span class="SNum">3</span> + <span class="SNum">4</span>)
 }</span></div>
-<h3 id="_005_002_for_swg_Naming_the_Loop_Index">Naming the Loop Index</h3>
-<p>You can bind the loop index by naming it before <span class="code-inline">in</span>. In a counted loop, that name always denotes the current index, while <span class="code-inline">Swag.index</span> remains accessible.</p>
+<p>Each loop names its own index, so a nested loop reads the one it named rather than the nearest one.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> cpt  = <span class="SNum">0</span>
-    <span class="SKwd">var</span> cpt1 = <span class="SNum">0</span>
+    <span class="SKwd">var</span> pairs = <span class="SNum">0</span>'<span class="STpe">u64</span>
 
-    <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">5</span>
+    <span class="SLgc">for</span> row <span class="SLgc">in</span> <span class="SNum">3</span>
     {
-        cpt  += i
-        cpt1 += <span class="SNsp">Swag</span>.index
+        <span class="SLgc">for</span> column <span class="SLgc">in</span> <span class="SNum">2</span> <span class="SLgc">do</span>
+            pairs += row * <span class="SNum">10</span> + column
     }
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">0</span> + <span class="SNum">1</span> + <span class="SNum">2</span> + <span class="SNum">3</span> + <span class="SNum">4</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt1 == cpt)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pairs == <span class="SNum">63</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Looping_Over_Arrays_and_Slices">Looping Over Arrays and Slices</h3>
-<p>The <span class="code-inline">for</span> construct can iterate over any type supporting <span class="code-inline">.count</span>, such as arrays, slices, or strings.</p>
+<p>The <span class="code-inline">for</span> construct counts the elements of any type supporting <span class="code-inline">.count</span>, such as arrays, slices, or strings. Naming a binding over the collection itself visits its <b>elements</b> instead, so a loop that indexes back into the collection counts <span class="code-inline">.count</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> arr = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
     <span class="SCmp">#assert</span>(arr.count == <span class="SNum">4</span>)
 
-    <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
+    <span class="SKwd">var</span> turns = <span class="SNum">0</span>
     <span class="SLgc">for</span> arr <span class="SLgc">do</span>
-        cpt += arr[<span class="SNsp">Swag</span>.index]
+        turns += <span class="SNum">1</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(turns == <span class="SNum">4</span>)
+
+    <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> arr.count <span class="SLgc">do</span>
+        cpt += arr[index]
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">10</span> + <span class="SNum">20</span> + <span class="SNum">30</span> + <span class="SNum">40</span>)
 }</span></div>
 <div class="blockquote blockquote-warning">
@@ -3929,14 +3932,19 @@ indent-style = spaces</span></div>
     <span class="SLgc">for</span> ? <span class="SLgc">in</span> <span class="SFct">range</span>(-<span class="SNum">2</span>, <span class="SNum">2</span>).<span class="SFct">reversed</span>() {}
 }</span></div>
 <h3 id="_005_002_for_swg_Infinite_Loop">Infinite Loop</h3>
-<p>A <span class="code-inline">for</span> without an expression creates an infinite loop, similar to <span class="code-inline">while true {}</span>. Use <span class="code-inline">break</span> to exit.</p>
+<p>A <span class="code-inline">for</span> without an expression creates an infinite loop, similar to <span class="code-inline">while true {}</span>. Use <span class="code-inline">break</span> to exit. There is no index to name here, so a loop that counts its own turns keeps an ordinary variable.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
+    <span class="SKwd">var</span> turns = <span class="SNum">0</span>
+
     <span class="SLgc">for</span>
     {
-        <span class="SLgc">if</span> <span class="SNsp">Swag</span>.index == <span class="SNum">4</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> turns == <span class="SNum">4</span> <span class="SLgc">do</span>
             <span class="SLgc">break</span>
+        turns += <span class="SNum">1</span>
     }
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(turns == <span class="SNum">4</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Using__where__Clause">Using <span class="code-inline">where</span> Clause</h3>
 <p>The <span class="code-inline">where</span> clause filters iterations based on conditions.</p>
@@ -4040,20 +4048,15 @@ indent-style = spaces</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">20</span>)
 }</span></div>
-<h3 id="_005_002_for_swg_Accessing_Loop_Index_with__Swag_index_">Accessing Loop Index with <span class="code-inline">Swag.index</span></h3>
-<p>In all <span class="code-inline">for</span> variants, <span class="code-inline">Swag.index</span> provides the current iteration index.</p>
+<h3 id="_005_002_for_swg_The_Counter_Of_A_C-like__for_">The Counter Of A C-like <span class="code-inline">for</span></h3>
+<p>The variable declared in the initialization section is the only counter this form has, and the loop is free to start it anywhere and step it by anything.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> cpt = <span class="SNum">0</span>'<span class="STpe">u64</span>
+    <span class="SKwd">var</span> cpt = <span class="SNum">0</span>'<span class="STpe">u32</span>
 
     <span class="SLgc">for</span> <span class="SKwd">var</span> i: <span class="STpe">u32</span> = <span class="SNum">10</span>; i &lt; <span class="SNum">15</span>; i += <span class="SNum">1</span> <span class="SLgc">do</span>
-        cpt += <span class="SNsp">Swag</span>.index
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">0</span> + <span class="SNum">1</span> + <span class="SNum">2</span> + <span class="SNum">3</span> + <span class="SNum">4</span>)
-
-    <span class="SKwd">var</span> cpt1 = <span class="SNum">0</span>'<span class="STpe">u64</span>
-    <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">10</span>; i &lt; <span class="SNum">15</span>; i += <span class="SNum">1</span> <span class="SLgc">do</span>
-        cpt1 += <span class="SNsp">Swag</span>.index
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt1 == <span class="SNum">0</span> + <span class="SNum">1</span> + <span class="SNum">2</span> + <span class="SNum">3</span> + <span class="SNum">4</span>)
+        cpt += i
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">10</span> + <span class="SNum">11</span> + <span class="SNum">12</span> + <span class="SNum">13</span> + <span class="SNum">14</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Using__break__and__continue__in__for__Loops">Using <span class="code-inline">break</span> and <span class="code-inline">continue</span> in <span class="code-inline">for</span> Loops</h3>
 <p><span class="code-inline">break</span> exits the loop early, and <span class="code-inline">continue</span> skips to the next iteration.</p>
@@ -4081,20 +4084,20 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(sum == <span class="SNum">1</span> + <span class="SNum">3</span> + <span class="SNum">5</span> + <span class="SNum">7</span> + <span class="SNum">9</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Nested__for__Loops">Nested <span class="code-inline">for</span> Loops</h3>
-<p>Swag supports nested loops. In nested contexts, <span class="code-inline">Swag.index</span> refers to the current innermost loop.</p>
+<p>Swag supports nested loops. Each level names its own counter, so an inner body can read both.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> result = <span class="SNum">0</span>'<span class="STpe">u64</span>
+    <span class="SKwd">var</span> result = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">5</span>; i += <span class="SNum">1</span>
     {
         <span class="SLgc">for</span> <span class="SKwd">var</span> j = <span class="SNum">0</span>; j &lt; <span class="SNum">5</span>; j += <span class="SNum">1</span>
         {
-            result += <span class="SNsp">Swag</span>.index
+            result += i * j
         }
     }
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(result == <span class="SNum">10</span> * <span class="SNum">5</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(result == <span class="SNum">100</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Iterating_Over_Arrays_with__for_">Iterating Over Arrays with <span class="code-inline">for</span></h3>
 <p>You can also use <span class="code-inline">for</span> to iterate over arrays and collections.</p>
@@ -4115,9 +4118,9 @@ indent-style = spaces</span></div>
 <p>Binding a name in a <span class="code-inline">for</span> statement iterates over all elements of a collection (arrays, slices, strings, and even structs), providing a streamlined and efficient way to process each item.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SLgc">for</span> value <span class="SLgc">in</span> <span class="SStr">"ABC"</span>
+    <span class="SLgc">for</span> value, index <span class="SLgc">in</span> <span class="SStr">"ABC"</span>
     {
-        <span class="SKwd">let</span> a = <span class="SNsp">Swag</span>.index
+        <span class="SKwd">let</span> a = index
         <span class="SLgc">switch</span> a
         {
         <span class="SLgc">case</span> <span class="SNum">0</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == '<span class="SFct">A</span>')
@@ -4127,7 +4130,7 @@ indent-style = spaces</span></div>
     }
 }</span></div>
 <h3 id="_005_003_for_elements_swg_Naming_Only_the_Index">Naming Only the Index</h3>
-<p>Use <span class="code-inline">?</span> for the discarded element and put the index in the second binding: <span class="code-inline">for ?, index in collection</span>. A counted loop has no element binding, so it simply uses <span class="code-inline">for index in 3</span>.</p>
+<p>Use <span class="code-inline">?</span> for the discarded element and put the index in the second binding: <span class="code-inline">for ?, index in collection</span>. A counted loop has no element binding, so it simply uses <span class="code-inline">for index in 3</span>. <span class="code-inline">?</span> stands for a <b>position</b>, not for the first one: it discards whichever value sits there, and every position after it keeps its place.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> sum = <span class="SNum">0</span>'<span class="STpe">u64</span>
@@ -4179,7 +4182,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(sum == <span class="SNum">60</span>)
 }</span></div>
 <h3 id="_005_003_for_elements_swg_Reverse_Order_with___reversed___">Reverse Order with <span class="code-inline">.reversed()</span></h3>
-<p>Iterate from the last element to the first through a borrowed reverse view. The second visit value is the index within the original collection; <span class="code-inline">Swag.index</span> is the ordinal within the view.</p>
+<p>Iterate from the last element to the first through a borrowed reverse view. The second visit value is the index within the original collection, which counts down; a loop that needs the position within the view keeps its own counter.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> text = <span class="SKwd">cast</span>(<span class="SKwd">const</span> <span class="STpe">cstring</span>) (<span class="SStr">"ABC"</span>).buffer
@@ -4771,9 +4774,9 @@ indent-style = spaces</span></div>
     <span class="SCmp">#scope</span>(<span class="SCst">Up</span>)
     <span class="SLgc">for</span> <span class="SNum">10</span>
     {
-        <span class="SLgc">for</span> <span class="SNum">10</span>
+        <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">10</span>
         {
-            <span class="SLgc">if</span> <span class="SNsp">Swag</span>.index == <span class="SNum">5</span> <span class="SLgc">do</span>
+            <span class="SLgc">if</span> index == <span class="SNum">5</span> <span class="SLgc">do</span>
                 <span class="SLgc">break</span> <span class="SLgc">to</span> <span class="SCst">Up</span>     <span class="SCmt">// Exit to after the labeled 'for'</span>
         }
 
@@ -5579,7 +5582,7 @@ indent-style = spaces</span></div>
     }
 }</span></div>
 <h3 id="_006_008_custom_iteration_swg_Destructuring_Visit_Values">Destructuring Visit Values</h3>
-<p>The bindings after <span class="code-inline">for</span> are positional. <span class="code-inline">?</span> discards one position, consistently with other destructuring forms.</p>
+<p>The bindings after <span class="code-inline">for</span> are positional. <span class="code-inline">?</span> discards one position, consistently with other destructuring forms, and it can stand in any of them: a loop that wants only the last value discards the ones before it rather than naming them.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> values = <span class="SCst">MyStruct</span>{}
@@ -5591,7 +5594,10 @@ indent-style = spaces</span></div>
     <span class="SLgc">for</span> ?, doubled <span class="SLgc">in</span> values <span class="SLgc">do</span>
         total += doubled
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">303</span>)
+    <span class="SLgc">for</span> ?, ?, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
+        total += <span class="SKwd">cast</span>(<span class="STpe">s32</span>) index
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">306</span>)
 }
 
 <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
@@ -5665,16 +5671,21 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values.buffer[<span class="SNum">4</span>] == <span class="SNum">9</span>)
 }</span></div>
 <h3 id="_006_008_custom_iteration_swg_Standard_Views">Standard Views</h3>
-<p>Collections expose traversal policies as regular methods. For example, <span class="code-inline">.pairs()</span> visits adjacent elements and <span class="code-inline">.reversed()</span> visits in reverse order. Both return constant-size, zero-allocation views.</p>
+<p>Collections expose traversal policies as regular methods. For example, <span class="code-inline">.pairs()</span> visits adjacent elements and <span class="code-inline">.reversed()</span> visits in reverse order. Both return constant-size, zero-allocation views, and each names the positions it hands out: <span class="code-inline">.pairs()</span> adds the position of the left element after the two values.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> values: [<span class="SNum">4</span>] <span class="STpe">s32</span> = [<span class="SNum">2</span>, <span class="SNum">4</span>, <span class="SNum">6</span>, <span class="SNum">8</span>]
     <span class="SKwd">var</span> code:   <span class="STpe">s32</span>
+    <span class="SKwd">var</span> steps:  <span class="STpe">u64</span>
 
-    <span class="SLgc">for</span> left, right <span class="SLgc">in</span> values.<span class="SFct">pairs</span>() <span class="SLgc">do</span>
-        code = code * <span class="SNum">100</span> + left * <span class="SNum">10</span> + right
+    <span class="SLgc">for</span> left, right, index <span class="SLgc">in</span> values.<span class="SFct">pairs</span>()
+    {
+        code  = code * <span class="SNum">100</span> + left * <span class="SNum">10</span> + right
+        steps += index
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(code == <span class="SNum">244668</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(steps == <span class="SNum">0</span> + <span class="SNum">1</span> + <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_006_009_custom_copy_and_move_swg">Custom Copy and Move</h3>
 <p>Swag supports both copy and move semantics for structures. In this example, we demonstrate these concepts using a <span class="code-inline">Vector3</span> struct. Although a <span class="code-inline">Vector3</span> typically wouldn't require move semantics (no heap allocation), this illustrates how these features can be implemented and used in Swag.</p>
@@ -7410,7 +7421,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">func</span> <span class="SFct">isResourceCreated</span>(b: <span class="STpe">bool</span>) =&gt; b
 
     <span class="SKwd">var</span> resource = <span class="SKwd">false</span>
-    <span class="SLgc">for</span> <span class="SNum">10</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">10</span>
     {
         resource = <span class="SFct">createResource</span>()
         <span class="SLgc">defer</span>
@@ -7419,7 +7430,7 @@ indent-style = spaces</span></div>
             <span class="SFct">releaseResource</span>(&amp;resource)
         }
 
-        <span class="SLgc">if</span> <span class="SNsp">Swag</span>.index == <span class="SNum">2</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> index == <span class="SNum">2</span> <span class="SLgc">do</span>
             <span class="SLgc">break</span>     <span class="SCmt">// Defer ensures cleanup even on early exit.</span>
     }
 
@@ -9414,7 +9425,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.315</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.322</div>
 </footer>
 </section>
 </main>
@@ -9954,7 +9965,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|For|_005_002_for_swg|",
 "h|The for Loop|_005_002_for_swg_The__for__Loop|",
 "h|Basic Usage|_005_002_for_swg_Basic_Usage|",
-"h|Using Swag.index|_005_002_for_swg_Using__Swag_index_|",
 "h|Naming the Loop Index|_005_002_for_swg_Naming_the_Loop_Index|",
 "h|Looping Over Arrays and Slices|_005_002_for_swg_Looping_Over_Arrays_and_Slices|",
 "h|Reverse Looping|_005_002_for_swg_Reverse_Looping|",
@@ -9974,7 +9984,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Filtering Ranges with where|_005_002_for_swg_Filtering_Ranges_with__where_|",
 "h|Combining .reversed() and where|_005_002_for_swg_Combining___reversed____and__where_|",
 "h|C-like for|_005_002_for_swg_C-like__for_|",
-"h|Accessing Loop Index with Swag.index|_005_002_for_swg_Accessing_Loop_Index_with__Swag_index_|",
+"h|The Counter Of A C-like for|_005_002_for_swg_The_Counter_Of_A_C-like__for_|",
 "h|Using break and continue in for Loops|_005_002_for_swg_Using__break__and__continue__in__for__Loops|",
 "h|Nested for Loops|_005_002_for_swg_Nested__for__Loops|",
 "h|Iterating Over Arrays with for|_005_002_for_swg_Iterating_Over_Arrays_with__for_|",

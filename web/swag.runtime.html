@@ -414,7 +414,7 @@
 <tr><td class="code-type"><a href="#IterationRange">IterationRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#MemoryFillVector">MemoryFillVector</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#MemoryVector">MemoryVector</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Pairs">Pairs</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Iterates adjacent elements of an immutable slice without allocating pairs.</p>
+<tr><td class="code-type"><a href="#Pairs">Pairs</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Iterates adjacent elements of an immutable slice without allocating pairs. The third</p>
 </td></tr>
 <tr><td class="code-type"><a href="#ReversedCount">ReversedCount</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#ReversedCString">ReversedCString</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
@@ -1353,8 +1353,8 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#MemoryVector">MemoryVector</a></span>     = <span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pairs" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pairs</span> <a class="api-item-permalink" href="#Pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L188">src</a></div>
-<p>Iterates adjacent elements of an immutable slice without allocating pairs.</p>
+<div class="api-item api-item-struct"><span id="Pairs" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pairs</span> <a class="api-item-permalink" href="#Pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L189">src</a></div>
+<p>Iterates adjacent elements of an immutable slice without allocating pairs. The third visit value is the position of the left element.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#Pairs">Pairs</a></span></span></div>
 </section>
@@ -1364,7 +1364,7 @@
 <span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst"><a href="#ReversedCount">ReversedCount</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="ReversedCString" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ReversedCString</span> <a class="api-item-permalink" href="#ReversedCString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L223">src</a></div>
+<div class="api-item api-item-struct"><span id="ReversedCString" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ReversedCString</span> <a class="api-item-permalink" href="#ReversedCString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L224">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#ReversedCString">ReversedCString</a></span></span></div>
 </section>
@@ -3054,7 +3054,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getMessage</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Swag_CompilerMessage">CompilerMessage</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="pairs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">pairs</span> <a class="api-item-permalink" href="#pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L219">src</a></div>
+<div class="api-item api-item-func"><span id="pairs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">pairs</span> <a class="api-item-permalink" href="#pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L220">src</a></div>
 <p>Returns a zero-allocation view over adjacent elements of <span class="code-inline">values</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">pairs</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">Pairs</span>'<span class="SCst">T</span>
@@ -4250,7 +4250,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.315</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.322</div>
 </footer>
 </section>
 </main>
@@ -4520,7 +4520,7 @@
 "s|BootstrapAllocationHeader|BootstrapAllocationHeader|",
 "s|ConstReversedSlice|ConstReversedSlice|",
 "s|IterationRange|IterationRange|",
-"s|Pairs|Pairs|Iterates adjacent elements of an immutable slice without allocating pairs.",
+"s|Pairs|Pairs|Iterates adjacent elements of an immutable slice without allocating pairs. The third",
 "s|ReversedCount|ReversedCount|",
 "s|ReversedCString|ReversedCString|",
 "s|ReversedRange|ReversedRange|",

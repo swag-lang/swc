@@ -7,7 +7,6 @@
 #include "Compiler/SourceFile.h"
 #include "Doc/DocGenerator.h"
 #include "Format/FormatJob.h"
-#include "Format/FormatOptionsLoader.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandPrint.h"
@@ -147,31 +146,15 @@ namespace
 
         outPreview.enabled = true;
 
-        constexpr ParserJobOptions parserOptions = {
-            .emitTrivia                 = true,
-            .ignoreGlobalCompilerIfSkip = true,
-        };
+        const Global&     global       = ctx.global();
+        JobManager&       jobMgr       = global.jobMgr();
+        const JobClientId clientId     = compiler.jobClientId();
+        const uint64_t    errorsBefore = Stats::getNumErrors();
 
-        const Global&           global       = ctx.global();
-        JobManager&             jobMgr       = global.jobMgr();
-        const JobClientId       clientId     = compiler.jobClientId();
-        const uint64_t          errorsBefore = Stats::getNumErrors();
-        FormatOptionsLoader     optionsLoader(ctx, ctx.cmdLine().formatStyle);
+        // The preview runs the real command's selection so its counts cannot drift from what
+        // `format` would do; FormatJob itself suppresses the disk write under --dry-run.
         std::vector<FormatJob*> jobs;
-        jobs.reserve(compiler.files().size());
-
-        for (SourceFile* file : compiler.files())
-        {
-            if (!file)
-                continue;
-
-            FormatOptions formatOptions;
-            SWC_RESULT(optionsLoader.resolve(file->path(), formatOptions));
-
-            auto* job = compiler.makeJob<FormatJob>(ctx, file, formatOptions, parserOptions);
-            jobs.push_back(job);
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-        }
+        SWC_RESULT(Command::enqueueFormatJobs(ctx, compiler, jobs));
 
         jobMgr.waitAll(clientId);
         if (Stats::getNumErrors() != errorsBefore)
@@ -265,7 +248,11 @@ namespace
             case CommandKind::Format:
                 if (formatPreview.enabled)
                 {
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", inputCount));
+                    // The preview counts come from the real command's selection, which excludes
+                    // implicit runtime inputs and generated caches; say so when inputs were dropped.
+                    if (inputSummary.totalFiles > formatPreview.totalFiles)
+                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(inputSummary.totalFiles - formatPreview.totalFiles, " outside the format selection (runtime or generated)")));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", formatFileCountWithSuffix(formatPreview.totalFiles, "")));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("rewrite {}", formatFileCountWithSuffix(formatPreview.rewrittenFiles, " whose formatted output differs")));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("skip {}", formatFileCountWithSuffix(formatPreview.unchangedFiles, " because formatted output is unchanged")));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedFmtFiles, " marked format-skipped")));

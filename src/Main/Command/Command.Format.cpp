@@ -86,6 +86,47 @@ namespace
 
 namespace Command
 {
+    Result enqueueFormatJobs(TaskContext& ctx, const CompilerInstance& compiler, std::vector<FormatJob*>& outJobs)
+    {
+        // Reserved `__` identifiers are legal in runtime sources and must not
+        // prevent the formatter from parsing them.
+        constexpr ParserJobOptions parserOptions = {
+            .emitTrivia                 = true,
+            .ignoreGlobalCompilerIfSkip = true,
+            .allowReservedIdentifiers   = true,
+        };
+
+        JobManager&         jobMgr   = ctx.global().jobMgr();
+        const JobClientId   clientId = compiler.jobClientId();
+        FormatOptionsLoader optionsLoader(ctx, ctx.cmdLine().formatStyle);
+        outJobs.reserve(compiler.files().size());
+
+        for (SourceFile* file : compiler.files())
+        {
+            if (!file)
+                continue;
+
+            // The runtime bootstrap is always part of the input set, but it is a compiler
+            // resource and must never be rewritten by a user `format` invocation.
+            if (file->isRuntime())
+                continue;
+
+            // Generated caches (`.dep`, ...) hold compiler-produced sources
+            // that must never be reformatted.
+            if (!isVisibleFormatPath(ctx.cmdLine(), file->path()))
+                continue;
+
+            FormatOptions formatOptions;
+            SWC_RESULT(optionsLoader.resolve(file->path(), formatOptions));
+
+            auto* job = compiler.makeJob<FormatJob>(ctx, file, formatOptions, parserOptions);
+            outJobs.push_back(job);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        }
+
+        return Result::Continue;
+    }
+
     void format(CompilerInstance& compiler)
     {
         TaskContext ctx(compiler);
@@ -104,41 +145,9 @@ namespace Command
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        // Reserved `__` identifiers are legal in runtime sources and must not
-        // prevent the formatter from parsing them.
-        constexpr ParserJobOptions parserOptions = {
-            .emitTrivia                 = true,
-            .ignoreGlobalCompilerIfSkip = true,
-            .allowReservedIdentifiers   = true,
-        };
-
-        FormatOptionsLoader     optionsLoader(ctx, ctx.cmdLine().formatStyle);
         std::vector<FormatJob*> jobs;
-        jobs.reserve(compiler.files().size());
-
-        for (SourceFile* file : compiler.files())
-        {
-            if (!file)
-                continue;
-
-            // The runtime bootstrap is always part of the input set, but it is a compiler
-            // resource and must never be rewritten by a user `format` invocation.
-            if (file->isRuntime())
-                continue;
-
-            // Generated caches (`.dep`, ...) hold compiler-produced sources
-            // that must never be reformatted.
-            if (!isVisibleFormatPath(ctx.cmdLine(), file->path()))
-                continue;
-
-            FormatOptions formatOptions;
-            if (optionsLoader.resolve(file->path(), formatOptions) != Result::Continue)
-                return;
-
-            auto* job = compiler.makeJob<FormatJob>(ctx, file, formatOptions, parserOptions);
-            jobs.push_back(job);
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-        }
+        if (enqueueFormatJobs(ctx, compiler, jobs) != Result::Continue)
+            return;
 
         jobMgr.waitAll(clientId);
 

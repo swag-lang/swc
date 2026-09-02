@@ -42,9 +42,6 @@ JobResult FormatJob::exec()
     Formatter formatter(formatOptions_);
     formatter.prepare(*file_);
     skippedFmt_ = formatter.skipped();
-    if (skippedFmt_)
-    {
-    }
 
     auto writeResult = Result::Continue;
     if (!jobCtx.cmdLine().dryRun)

@@ -48,6 +48,14 @@ func renderOgl(className, title: string, width, height: s32, scene: RenderParity
 {
     var window = try Env.createWindow({identifier: className, title: title, width: width, height: height})
 
+    // Realize the window before creating the GL context. A never-shown, never-pumped window has
+    // no fully realized drawable, and its device context then yields a context whose framebuffer
+    // reads back empty at random on this platform: the render target is filled correctly but the
+    // read returns zeros. Showing the window and draining its queue is exactly what a real
+    // application does before its first frame, and it makes the readback deterministic.
+    try window.show()
+    discard Env.processWindowMessages()
+
     var ogl:      RenderOgl
     let renderer: IRenderer = &ogl
     var context             = try renderer.createContext(window.nativeRenderHandle(), width, height)

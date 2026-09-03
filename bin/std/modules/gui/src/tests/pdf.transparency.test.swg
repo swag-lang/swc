@@ -41,6 +41,25 @@ private func markedPixels(frame: const *Image)->u64
     return result
 }
 
+// A text-only decode reads the text a soft mask covers without building the mask, and reads it
+// exactly as the complete decode indexes it.
+#test
+{
+    let fileName = Testing.tempFilePath("gui-pdf-masked-text-", ".pdf")
+    defer discard catch File.delete(fileName)
+    let objects = luminosityMaskObjects()
+    let content = "/GS0 gs BT /F0 24 Tf 10 40 Td (Masked words) Tj ET 1 0 0 rg 0 0 50 50 re f"
+    let bytes   = singlePagePdf("/ExtGState << /GS0 5 0 R >> /Font << /F0 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>", cast(const [..] u8) content, objects.toSlice())
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var reader = expect Reader.open(fileName.toString())
+    var page   = expect reader.loadPage(0)
+    Swag.assert(page.items.count == 2)
+    let index = TextIndex.build(&page)
+    Swag.assert(index.text == "Masked words")
+    Swag.assert((expect reader.loadPageText(0)) == index.text)
+}
+
 // Constant alpha modulates the fill and the stroke independently.
 #test
 {

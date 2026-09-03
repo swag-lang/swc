@@ -269,7 +269,7 @@ private func writeZipFixture()->String
 
     var matches: Array'Viewer.SearchMatch
     let session = &window.instances[window.activeChoiceIndex]
-    session.collectMatches!(viewer, "readme", {}, &matches)
+    collectViewerMatches(session.collectMatches!, viewer, "readme", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
     Swag.assert(session.revealMatch!(viewer, matches[0], "readme"))
     var bounds: Math.Rectangle

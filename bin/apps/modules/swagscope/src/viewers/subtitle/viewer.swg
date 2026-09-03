@@ -258,7 +258,12 @@ func createSubtitleViewer(host: Viewer.Host)
     host.attachView(view!)
     host.setDetails(subtitleFormatText(track.sourceFormat()))
     host.setSearch({
-        collectMatches: func(wnd, text, options, matches) { (cast(*SubtitleViewer) wnd).collectMatches(text, options, matches) },
+        collectMatches: func(wnd, text, options, progress, matches)->bool
+    {
+        discard progress
+        (cast(*SubtitleViewer) wnd).collectMatches(text, options, matches)
+        return true
+    },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text

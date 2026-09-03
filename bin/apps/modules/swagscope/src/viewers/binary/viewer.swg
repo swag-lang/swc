@@ -1201,7 +1201,12 @@ func createBinaryViewer(host: Viewer.Host)
         presentation.filterToolTip     = binStrings().ui_FilterTip
     },
         filter: func(wnd, text, options) { (cast(*BinaryViewer) wnd).applyFilter(text, options) },
-        collectMatches: func(wnd, text, options, matches) { (cast(*BinaryViewer) wnd).collectMatches(text, options, matches) },
+        collectMatches: func(wnd, text, options, progress, matches)->bool
+    {
+        discard progress
+        (cast(*BinaryViewer) wnd).collectMatches(text, options, matches)
+        return true
+    },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text

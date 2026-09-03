@@ -26,6 +26,7 @@ struct Reader
     internal
     {
         documentMetadata: Metadata
+        sourceFileName:   String
         region:           File.MappedRegion
         parser:           PdfParser
         sources:          Array'PageSource
@@ -43,11 +44,15 @@ impl Reader
     {
         var file = #move try File.MappedFile.open(fileName)
         var result: retval
-        result.region       = #move try file.mapAll()
-        result.parser.bytes = result.region.bytes()
+        result.sourceFileName = fileName
+        result.region         = #move try file.mapAll()
+        result.parser.bytes   = result.region.bytes()
         try indexDocument(&result.parser, &result.documentMetadata, &result.sources)
         return result
     }
+
+    // Returns the path the document was opened from.
+    mtd const fileName()->string => .sourceFileName.toString()
 
     // Returns the document's descriptive fields.
     mtd const metadata()->Metadata => .documentMetadata
@@ -64,7 +69,25 @@ impl Reader
         if index >= .sources.count do
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
         let source = .sources[index]
-        var result = #move try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
+        var result = #move try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate, .Complete)
         return #move result
+    }
+
+    // Returns the text of the page at zero-based `index`, in reading order.
+    //
+    // Lines run from top to bottom and words from left to right, one space per word gap and one
+    // line feed per line break, whatever order the file painted them in: the shape a search or a
+    // copy expects. Only the text is decoded, with no image, path, or mask, so a page costs a
+    // fraction of [[Gui.Pdf.Reader.loadPage]]; and the result is byte for byte the text that
+    // page indexes once displayed, so an offset found here locates the same characters there.
+    // An out-of-range index reports [[Core.Errors.BadParameterError]].
+    mtd loadPageText(index: u64)->String fail
+    {
+        if index >= .sources.count do
+            fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
+        let source = .sources[index]
+        var page   = #move try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate, .TextOnly)
+        var text   = TextIndex.build(&page)
+        return #move text.text
     }
 }

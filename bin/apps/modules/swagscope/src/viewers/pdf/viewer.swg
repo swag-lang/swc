@@ -151,15 +151,19 @@ private impl PdfViewer
         return true
     }
 
-    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    // Appends the matches of the pages whose text the view has extracted so far, and reports
+    // whether the whole document has been searched.
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, progress: *u64, result: *Array'Viewer.SearchMatch)->bool
     {
         var pdfOptions: PdfTextSearchOptions
         pdfOptions.comparison        = options.matchCase ? .Latin1 : .Latin1NoCase
         pdfOptions.wholeWord         = options.wholeWord
         pdfOptions.regularExpression = options.regularExpression
-        let matches = .pdfView.findTextMatches(text, pdfOptions)
+        var matches: Array'PdfTextMatch
+        let complete = .pdfView.collectTextMatches(text, pdfOptions, progress, &matches)
         for match in matches do
             result.add({match.pageIndex, 0, match.byteOffset, match.byteLength})
+        return complete
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
@@ -342,10 +346,11 @@ func createPdfViewer(host: Viewer.Host)
     let view = PdfViewer.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
 
-    // PDF text lives compressed inside the file, so the viewer indexes every page and hands the
-    // host stable logical matches for counting and bidirectional navigation.
+    // PDF text lives compressed inside the file, so the viewer extracts every page's text and
+    // hands the host stable logical matches for counting and bidirectional navigation, a page at
+    // a time as the extraction progresses on its worker.
     host.setSearch({
-        collectMatches: func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) },
+        collectMatches: func(wnd, text, options, progress, matches)->bool { return (cast(*PdfViewer) wnd).collectMatches(text, options, progress, matches) },
         revealMatch: func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) },
         matchBounds: func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) },
         clear: func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }})

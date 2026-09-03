@@ -237,19 +237,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier C — What a reader cannot say about a document
 
-### std.gui.pdf.016 — A page's text cannot be extracted in reading order
-
-- Intent: `Item.textValue` returns one show-string at a time, in paint order, with no geometry
-  beyond the item transform. There is no way to get a page's text as text, to find a string in it,
-  or to know where a match sits on the page. For a file viewer, "find in document" is the first
-  thing asked of a PDF after it displays, and the information needed to build it — per-code
-  advances and the text matrix — is already retained on every item and then thrown away at the
-  API boundary.
-- Complete when: a page yields its text with words and lines assembled from the item geometry
-  rather than from the order the writer emitted, a search returns the page-space rectangles of
-  each match, and each character maps back to a position so a selection can be drawn.
-- Related: std.gui.pdf.017
-
 ### std.gui.pdf.017 — Outline, destinations, and link targets are not read
 
 - Intent: the catalog's `/Outlines`, its `/Names` destination tree and the `/Dest` or `/A` of a
@@ -258,7 +245,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: the outline is exposed as a tree of titles and targets, a named or explicit
   destination resolves to a page index and a page-space position, and a link annotation reports
   its target — an internal destination, a URI, or neither.
-- Related: std.gui.pdf.003, std.gui.pdf.016
+- Related: std.gui.pdf.003
 
 ### std.gui.pdf.018 — Page labels, dates, and XMP metadata are not read
 
@@ -367,6 +354,27 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   takes rather than the decode itself.
 - Complete when: the corpus decodes within twice MuPDF, measured the same way.
 - Related: std.gui.pdf.026
+
+### std.gui.pdf.034 — Turning a page decodes it on the GUI thread
+
+- Intent: `PdfView.showPage` decodes the page it is asked for, images included, before it
+  returns, and only then does the frame paint it. A reader turning pages waits for that decode
+  every time, and a search revealing a hit on another page pays it too: the document's text is
+  now read on a worker, so the search itself never waits, but showing the page it found still
+  does.
+- Evidence: a 90 MB, 95-page document with 1 073 images, release configuration, measured through
+  `Reader.loadPage` in one run: 30.8 s for the whole document, 324 ms per page on average and
+  2.8 s for the worst page, against 651 ms for the whole document — 6.9 ms per page, 23 ms at
+  worst — through `Reader.loadPageText`. The difference is the images, which the text never
+  needed and the page turn still does.
+- Next: decode the requested page on a worker and publish it the way the application's viewer
+  publishes the first page, keeping the previous page shown until the next one is ready; then
+  keep a small number of decoded pages around so the page a search or a back-step returns to
+  costs nothing. Measure the same document afterwards on the time between the request and the
+  first frame that shows the new page.
+- Complete when: turning a page never blocks the GUI thread for longer than a frame, whatever the
+  page holds, and returning to a page just left costs no decode.
+- Related: std.gui.pdf.025, std.gui.pdf.032
 
 ### std.gui.pdf.026 — An image is copied once per page item that shows it
 

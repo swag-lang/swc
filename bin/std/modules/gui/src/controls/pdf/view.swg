@@ -40,7 +40,9 @@ struct PdfTextMatch
 //
 // The page's text can be worked with: a drag over words selects them, a double click takes the
 // word, `Ctrl+C` and the right-click menu copy the selection, and [[Gui.PdfView.findText]]
-// searches the whole document and reveals what it finds.
+// searches the whole document and reveals what it finds. A search reads the document's text,
+// which is extracted once per document on a worker, text alone and none of the images a page
+// carries, so it never waits for the whole document to decode on the GUI thread.
 //
 // ```swag
 // let view = PdfView.create(parent)
@@ -99,6 +101,10 @@ struct PdfView
     searchQuery:  String
     searchPage:   u64
     searchOffset: u64
+
+    // The text of every page, extracted on a worker the first time a search asks for it and
+    // kept until the document closes.
+    documentText: Pdf.DocumentText
 }
 
 private impl PdfView
@@ -189,6 +195,67 @@ private impl PdfView
             return
         .textIndex    = Pdf.TextIndex.build(&.page)
         .hasTextIndex = true
+    }
+
+    // Starts extracting the document's text for search, once per document.
+    mtd ensureDocumentText()
+    {
+        if .documentText.started or !.hasPage do
+            return
+        .documentText.start(.reader.fileName(), .reader.pageCount())
+    }
+
+    // Reports whether a match is bounded by non-word characters on both sides.
+    func isWholeWord(source: string, offset, length: u64)->bool
+    {
+        if offset
+        {
+            let {c, ?} = Utf8.decodeLastRune(source[0 until offset])
+            if Unicode.isWord(c) do
+                return false
+        }
+
+        let end = offset + length
+        if end < source.count
+        {
+            let {c, ?} = Utf8.decodeRune(source[end to])
+            if Unicode.isWord(c) do
+                return false
+        }
+
+        return true
+    }
+
+    // Appends every non-overlapping match in one page's text, in text order.
+    func appendPageMatches(result: *Array'PdfTextMatch, source: string, pageIndex: u64, text: string, options: PdfTextSearchOptions, expression: #null *Parser.RegExp)
+    {
+        if expression
+        {
+            let sourceData = source.buffer
+            for value in expression!.grepAll(source)
+            {
+                // A zero-width occurrence is meaningful to a parser, but there is no span on the
+                // page to select or outline.
+                if !value.count do
+                    continue
+                let found = cast(u64) cast(s64) (value.buffer - sourceData)
+                if !options.wholeWord or isWholeWord(source, found, value.count) do
+                    result.add({pageIndex, found, value.count})
+            }
+
+            return
+        }
+
+        var from = 0'u64
+        while from < source.count
+        {
+            let found = Utf8.indexOf(source, text, from, options.comparison)
+            if found == Swag.U64.Max do
+                break
+            if !options.wholeWord or isWholeWord(source, found, text.count) do
+                result.add({pageIndex, found, text.count})
+            from = found + Math.max(text.count, 1)
+        }
     }
 
     // Drops the text index and the selection a page change invalidates.
@@ -304,6 +371,7 @@ impl IWnd for PdfView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        .documentText.stop()
         .releaseTextures()
     }
 
@@ -593,9 +661,11 @@ impl PdfView
         .invalidate()
     }
 
-    // Releases the displayed page, its textures, and its typefaces while keeping the widget alive.
+    // Releases the displayed page, its textures, its typefaces, and the document text extracted
+    // for search, while keeping the widget alive.
     mtd close()
     {
+        .documentText.stop()
         .releaseTextures()
         Swag.drop(&.page, 1)
         Swag.init(&.page, 1)
@@ -722,85 +792,56 @@ impl PdfView
 
     // Finds every non-overlapping text occurrence in page order.
     //
-    // Pages are decoded as needed. The returned value owns stable page and UTF-8 text coordinates;
-    // pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document remains open.
-    // An invalid regular expression returns an empty array.
+    // The document's text is extracted once per document, on a worker, the first time a search
+    // asks for it; this call waits for that extraction, so the first search through a document
+    // pays it and every later one costs the comparison alone. [[Gui.PdfView.collectTextMatches]]
+    // is the same search without the wait. The returned value owns stable page and UTF-8 text
+    // coordinates; pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document
+    // remains open. An invalid regular expression returns an empty array.
     mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
     {
         var result: retval
         if !.hasPage or !text.count do
             return result
 
-        func isWholeWord(source: string, offset, length: u64)->bool
-        {
-            if offset
-            {
-                let {c, ?} = Utf8.decodeLastRune(source[0 until offset])
-                if Unicode.isWord(c) do
-                    return false
-            }
-
-            let end = offset + length
-            if end < source.count
-            {
-                let {c, ?} = Utf8.decodeRune(source[end to])
-                if Unicode.isWord(c) do
-                    return false
-            }
-
-            return true
-        }
-
-        func appendPage(result: *Array'PdfTextMatch, source, text: string, pageIndex: u64, options: PdfTextSearchOptions)
-        {
-            if options.regularExpression
-            {
-                let ignoreCase = options.comparison == .Latin1NoCase
-                var expression = catch Parser.RegExp.create(text, ignoreCase) as expressionError
-                if expressionError != null do
-                    return
-                let sourceData = source.buffer
-                for value in expression.grepAll(source)
-                {
-                    if !value.count do
-                        continue
-                    let found = cast(u64) cast(s64) (value.buffer - sourceData)
-                    if !options.wholeWord or isWholeWord(source, found, value.count) do
-                        result.add({pageIndex, found, value.count})
-                }
-
-                return
-            }
-
-            var from = 0'u64
-            while from < source.count
-            {
-                let found = Utf8.indexOf(source, text, from, options.comparison)
-                if found == Swag.U64.Max do
-                    break
-                if !options.wholeWord or isWholeWord(source, found, text.count) do
-                    result.add({pageIndex, found, text.count})
-                from = found + Math.max(text.count, 1)
-            }
-        }
-
-        for pageIndex in .reader.pageCount()
-        {
-            if pageIndex == .pageIndex
-            {
-                .ensureTextIndex()
-                appendPage(&result, .textIndex.text.toString(), text, pageIndex, options)
-                continue
-            }
-
-            var page = catch .reader.loadPage(pageIndex) as pageError
-            if pageError != null do
-                continue
-            let index = Pdf.TextIndex.build(&page)
-            appendPage(&result, index.text.toString(), text, pageIndex, options)
-        }
-
+        .ensureDocumentText()
+        .documentText.wait()
+        var page = 0'u64
+        discard .collectTextMatches(text, options, &page, &result)
         return result
+    }
+
+    // Appends the matches of the pages whose text is extracted so far, from page `page[]` on,
+    // and reports whether the whole document has been searched.
+    //
+    // The document's text is extracted on a worker, a page at a time, the first time a search
+    // asks for it. This call never waits for a page: it searches the pages extracted since
+    // `page[]`, moves `page[]` past them, and answers false while pages remain, so a host polls
+    // it with the same query, options, page and array until it answers true. A new search starts
+    // with `page[]` at zero. Matches arrive in page order, then in text order within a page; an
+    // invalid regular expression ends the search with nothing appended.
+    mtd collectTextMatches(text: string, options: PdfTextSearchOptions, page: *u64, result: *Array'PdfTextMatch)->bool
+    {
+        if !.hasPage or !text.count do
+            return true
+
+        var expression: Parser.RegExp
+        if options.regularExpression
+        {
+            catch expression.compile(text, ignoreCase: options.comparison == .Latin1NoCase) as expressionError
+            if expressionError != null do
+                return true
+        }
+
+        .ensureDocumentText()
+        let ready = .documentText.readyCount()
+        while page[] < ready
+        {
+            appendPageMatches(result, .documentText.pageText(page[]), page[], text, options, options.regularExpression ? &expression : null)
+            page[] += 1
+        }
+
+        return .documentText.isComplete()
     }
 
     // Selects and reveals one match returned by [[Gui.PdfView.findTextMatches]].
@@ -904,8 +945,8 @@ impl PdfView
     // wrapping once around the document. The match becomes the selection, so a copy right after
     // a search takes what the search found. Reports whether any page holds the text.
     //
-    // Every page visited between the current one and the match is decoded to extract its text,
-    // so the first search through a large document pays one decode per crossed page.
+    // The document's text is extracted once per document, on a worker, and the first search
+    // waits for it; the one page that is decoded here is the page shown for the match.
     mtd findText(text: string)->bool
     {
         if !.hasPage or !text.count do
@@ -918,6 +959,9 @@ impl PdfView
             .searchOffset = 0
         }
 
+        .ensureDocumentText()
+        .documentText.wait()
+
         // The resume page is visited twice — its tail first, its head after the wrap — so one
         // pass covers the whole document from wherever the previous hit stopped.
         let count = .reader.pageCount()
@@ -928,31 +972,20 @@ impl PdfView
             let from    = visit == 0 ? .searchOffset : 0
             visit += 1
 
-            if pageIdx == .pageIndex
-            {
-                .ensureTextIndex()
-                if from >= .textIndex.text.length do
-                    continue
-                let found = Utf8.indexOf(.textIndex.text.toString(), text, from, .Latin1NoCase)
-                if found == Swag.U64.Max do
-                    continue
-                .revealMatch(pageIdx, found, text.count)
-                return true
-            }
-
-            var page = catch .reader.loadPage(pageIdx) as pageError
-            if pageError != null do
+            let source = .documentText.pageText(pageIdx)
+            if from >= source.count do
                 continue
-            let index = Pdf.TextIndex.build(&page)
-            if from >= index.text.length do
-                continue
-            let found = Utf8.indexOf(index.text.toString(), text, from, .Latin1NoCase)
+            let found = Utf8.indexOf(source, text, from, .Latin1NoCase)
             if found == Swag.U64.Max do
                 continue
 
-            .showPageOrReport(pageIdx)
-            if .pageIndex != pageIdx do
-                return false
+            if pageIdx != .pageIndex
+            {
+                .showPageOrReport(pageIdx)
+                if .pageIndex != pageIdx do
+                    return false
+            }
+
             .revealMatch(pageIdx, found, text.count)
             return true
         }

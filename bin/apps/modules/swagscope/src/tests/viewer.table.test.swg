@@ -51,7 +51,7 @@ using Core, Pixel, Gui
     view.fillLine(&line, 1)
     Swag.assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
     var matches: Array'Viewer.SearchMatch
-    result.collectMatches!(result.view!, "humid", {}, &matches)
+    collectViewerMatches(result.collectMatches!, result.view!, "humid", &matches)
     Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid"))
     Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
     var bounds: Math.Rectangle

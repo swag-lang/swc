@@ -173,14 +173,15 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
 
 ### app.scope.document.016 — PDF text selection, copy, and reading order are not a complete workflow
 
-- Evidence: search can select one matched word, while std.gui.pdf.016 records that page text cannot yet be
-  extracted in reading order. The viewer has no drag selection across runs/pages, copy options,
-  reflow reading, or scanned-page explanation.
-- Next: design viewer selection and copy semantics around the ordered text model from std.gui.pdf.016,
-  preserving glyph/source coordinates for exact and logical forms.
+- Evidence: a page's text is indexed in reading order, a drag selects across the lines of the
+  displayed page, a double click takes a word, and the search finds and selects on any page. The
+  selection still stops at the page, there is no keyboard selection, no choice between logical and
+  visual copy order, no reflow reading, and an image-only page says nothing about why a search
+  finds nothing in it.
+- Next: design selection and copy across page boundaries on the ordered text model, preserving
+  glyph/source coordinates for exact and logical forms.
 - Complete when: text can be selected by pointer and keyboard across lines and pages, copied as
   logical or visual order, search and selection agree, and image-only pages state that OCR is absent.
-- Related: std.gui.pdf.016
 
 ### app.scope.document.017 — PDF annotations, attachments, forms, layers, and signatures are hidden
 

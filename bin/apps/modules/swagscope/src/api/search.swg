@@ -39,8 +39,15 @@ alias SearchMatchBounds = func(*Wnd, SearchMatch, *Math.Rectangle)->bool
 // Removes presentation left by the last revealed match.
 alias ClearSearch = func(*Wnd)
 
-// Collects every logical-text match owned by a viewer.
-alias CollectSearchMatches = func(*Wnd, string, SearchOptions, *Array'SearchMatch)
+// Collects every logical-text match owned by a viewer, and reports whether the collection is
+// complete.
+//
+// The host starts a query with `progress` at zero and an empty array. A viewer whose text is
+// produced in the background appends what it can already answer for, records where it stopped
+// in `progress`, and answers false; the host then calls again, with the same query, options,
+// progress and array, until the viewer answers true. A viewer that has everything at hand
+// appends every match and answers true at once.
+alias CollectSearchMatches = func(*Wnd, string, SearchOptions, *u64, *Array'SearchMatch)->bool
 
 // Applies the shared query as a live visibility filter owned by the viewer.
 alias ApplySearchFilter = func(*Wnd, string, SearchOptions)

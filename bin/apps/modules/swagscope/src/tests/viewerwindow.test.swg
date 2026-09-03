@@ -90,12 +90,16 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
     }
 }
 
+// Runs a search to its end: every streamed chunk, and every poll of a viewer that reads its
+// document in the background.
 func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     var steps = 0'u32
-    while window.searchTimer and steps < 128
+    while window.searchTimer and steps < 4_096
     {
         host.fireTimer(window.searchTimer)
+        if window.searchTimer and !window.searchStream.isOpen() do
+            Threading.Thread.sleep(1'ms)
         steps += 1
     }
 
@@ -1080,6 +1084,47 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard host.render(textView)
     textView.updateEstimatedHeight()
     Swag.assert(textView.editor.scrollableClientRect().height > textView.editor.paddedClientRect().height)
+}
+
+// A viewer that reads its document in the background is polled from the search timer: the
+// query is answered a page at a time, the count settles once the last page is in, and the match
+// is shown on its page.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-search-pdf-", ".pdf")
+    defer discard catch File.delete(fileName)
+    var document = Pdf.Document.create()
+    var first    = Pdf.Page.create(320, 220)
+    first.addText("PDF viewer", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move first)
+    var second = Pdf.Page.create(320, 220)
+    second.addText("Second page", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move second)
+    expect document.save(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    defer host.shutdown()
+    var index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
+    let view = cast(*PdfViewer) window.currentView!
+    Swag.assert(view.loadTimer == null and view.pdfView.pageCount() == 2)
+
+    window.searchBox.setFocus()
+    window.searchBox.setText("second")
+    completeViewerSearch(&host, window)
+    Swag.assert(window.searchComplete and window.searchMatches.count == 1 and window.searchIndex == 0)
+    Swag.assert(window.searchCountLabel.text() == "1/1")
+    Swag.assert(window.searchNext.isEnabled() and window.searchPrevious.isEnabled())
+    Swag.assert(view.pdfView.pageIndex == 1 and view.pdfView.selectedText() == "Second")
+    Swag.assert(window.searchBox.hasFocus())
+
+    window.searchBox.setText("absent")
+    completeViewerSearch(&host, window)
+    Swag.assert(window.searchComplete and window.searchMatches.isEmpty())
+    Swag.assert(window.searchCountLabel.text() == "0/0")
 }
 
 // The shared result set drives counts, wraparound navigation, case matching and whole-word

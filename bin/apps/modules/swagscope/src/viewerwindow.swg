@@ -613,6 +613,7 @@ struct ViewerWindow
     searchCarry:             String
     searchCarryBase:         u64
     searchProcessed:         u64
+    searchProgress:          u64
     searchSpan:              u64
     searchMatches:           Array'Viewer.SearchMatch
     searchIndex:             u64  = Swag.U64.Max
@@ -2566,22 +2567,11 @@ impl ViewerWindow
 
         if instance.collectMatches and instance.view
         {
-            var options = .searchOptions()
-            var expression: Parser.RegExp
-            if options.regularExpression
-            {
-                catch expression.compile(.searchQuery.toString(), ignoreCase: !options.matchCase) as expressionError
-                if expressionError != null
-                {
-                    .finishSearch()
-                    return
-                }
-
-                options.expression = &expression
-            }
-
-            instance.collectMatches!(instance.view!, .searchQuery.toString(), options, &.searchMatches)
-            .finishSearch()
+            .searchProgress = 0
+            if .collectViewerMatches() do
+                .finishSearch()
+            else do
+                .continueViewerSearch()
             return
         }
 
@@ -2607,6 +2597,42 @@ impl ViewerWindow
         .beginSearch()
     }
 
+    // Asks the active viewer for the matches it can answer for now, and reports whether it has
+    // answered for the whole document.
+    //
+    // A viewer that extracts its text in the background answers a page at a time. Its first match
+    // is revealed as soon as it exists rather than once the last page has been read, and the rest
+    // of the document keeps being read behind it.
+    private mtd collectViewerMatches()->bool
+    {
+        let instance = &.instances[.activeChoiceIndex]
+        var options  = .searchOptions()
+        var expression: Parser.RegExp
+        if options.regularExpression
+        {
+            catch expression.compile(.searchQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+            if expressionError != null do
+                return true
+            options.expression = &expression
+        }
+
+        let complete = instance.collectMatches!(instance.view!, .searchQuery.toString(), options, &.searchProgress, &.searchMatches)
+        if !complete and !.searchSelectLast and .searchIndex >= .searchMatches.count and !.searchMatches.isEmpty()
+        {
+            .searchIndex = 0
+            .revealCurrentSearchMatch()
+        }
+
+        return complete
+    }
+
+    // Comes back to a viewer still reading its document from the search timer.
+    private mtd continueViewerSearch()
+    {
+        .searchTimer = .addTimer(Viewer.BackgroundPollInterval)
+        .refreshSearchReadout()
+    }
+
     private mtd navigateSearch(direction: s32)
     {
         if !.searchBox.isEnabled() or !(.searchBox.text()).count do
@@ -2617,7 +2643,7 @@ impl ViewerWindow
             return
         }
 
-        if !.searchComplete or .searchMatches.isEmpty() do
+        if .searchMatches.isEmpty() do
             return
 
         if direction < 0 do
@@ -2656,7 +2682,11 @@ impl ViewerWindow
         }
         elif !.searchComplete
         {
-            .searchCountLabel.setText("…")
+            // A viewer still reading its document counts what it has found so far.
+            if .searchIndex < .searchMatches.count do
+                .searchCountLabel.setText(Format.toString("%/%…", .searchIndex + 1, .searchMatches.count))
+            else do
+                .searchCountLabel.setText("…")
             .searchCountLabel.toolTip = appStrings().ui_Searching
         }
         elif .searchMatches.isEmpty()
@@ -2670,7 +2700,7 @@ impl ViewerWindow
             .searchCountLabel.toolTip = .searchCountLabel.text()
         }
 
-        let canNavigate = .searchComplete and !.searchMatches.isEmpty()
+        let canNavigate = !.searchMatches.isEmpty()
         .searchPrevious.enable(canNavigate)
         .searchNext.enable(canNavigate)
         .searchBox.toolTip = .searchError.isEmpty() ? .searchToolTip.toString() : .searchError.toString()
@@ -2744,7 +2774,7 @@ impl ViewerWindow
     {
         .stopSearch(clearPresentation: false)
         .searchComplete = true
-        if !.searchMatches.isEmpty()
+        if .searchIndex >= .searchMatches.count and !.searchMatches.isEmpty()
         {
             .searchIndex = .searchSelectLast ? .searchMatches.count - 1 : 0
             .revealCurrentSearchMatch()
@@ -2923,6 +2953,15 @@ impl ViewerWindow
 
     mtd searchStep()
     {
+        if .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].collectMatches and .instances[.activeChoiceIndex].view
+        {
+            if .collectViewerMatches() do
+                .finishSearch()
+            else do
+                .continueViewerSearch()
+            return
+        }
+
         if !.searchStream.isOpen() do
             return
 

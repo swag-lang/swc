@@ -400,6 +400,52 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let expressionMatches = view.findTextMatches(#raw "Sec.nd", expression)
     Swag.assert(expressionMatches.count == 1 and expressionMatches[0].pageIndex == 1 and expressionMatches[0].byteLength == 6)
     Swag.assert(view.findTextMatches("(", expression).isEmpty())
+
+    // The progressive form answers the same matches a page at a time and never waits for one;
+    // an invalid expression ends it at once.
+    var collected: Array'PdfTextMatch
+    var page = 0'u64
+    while !view.collectTextMatches("second", {}, &page, &collected) do
+        Threading.Thread.sleep(1'ms)
+    Swag.assert(page == 2 and collected.count == 1 and collected[0].pageIndex == 1 and collected[0].byteOffset == 0 and collected[0].byteLength == 6)
+    page = 0
+    collected.clear()
+    Swag.assert(view.collectTextMatches("(", expression, &page, &collected) and collected.isEmpty())
+}
+
+// The document's text is extracted on a worker the first time a search asks for it, once per
+// document: closing the document stops the worker wherever it is, and the next document starts
+// its own extraction.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
+    Swag.assert(!view.documentText.started)
+
+    var matches: Array'PdfTextMatch
+    var page = 0'u64
+    discard view.collectTextMatches("polly", {}, &page, &matches)
+    Swag.assert(view.documentText.started)
+    view.close()
+    Swag.assert(!view.documentText.started and view.pageCount() == 0)
+
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+    expect view.open(fileName.toString())
+    Swag.assert(!view.documentText.started)
+    let found = view.findTextMatches("page")
+    Swag.assert(view.documentText.started and view.documentText.isComplete())
+    Swag.assert(found.count == 1 and found[0].pageIndex == 1 and found[0].byteOffset == 7)
+    Swag.assert(view.findText("viewer") and view.pageIndex == 0 and view.selectedText() == "viewer")
+
+    // Showing another page keeps the extracted text: the second search costs no decode.
+    expect view.showPage(1)
+    Swag.assert(view.documentText.started)
+    Swag.assert(view.findTextMatches("PDF").count == 1)
 }
 
 // The context menu reaches the same selection commands the keyboard binds.

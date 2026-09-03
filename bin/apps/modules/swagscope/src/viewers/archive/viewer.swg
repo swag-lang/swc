@@ -539,7 +539,12 @@ func createArchiveViewer(host: Viewer.Host)
     let view = ArchiveViewer.create(host)
     host.attachView(view)
     host.setSearch({
-        collectMatches: func(wnd, text, options, matches) { (cast(*ArchiveViewer) wnd).collectMatches(text, options, matches) },
+        collectMatches: func(wnd, text, options, progress, matches)->bool
+    {
+        discard progress
+        (cast(*ArchiveViewer) wnd).collectMatches(text, options, matches)
+        return true
+    },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text

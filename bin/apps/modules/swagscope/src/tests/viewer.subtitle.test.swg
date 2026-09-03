@@ -47,7 +47,7 @@ func subtitleViewerFixturePath()->String
     Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 
     var matches: Array'Viewer.SearchMatch
-    result.collectMatches!(result.view!, "second", {}, &matches)
+    collectViewerMatches(result.collectMatches!, result.view!, "second", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
     Swag.assert(result.revealMatch!(result.view!, matches[0], "second"))
     var bounds: Math.Rectangle

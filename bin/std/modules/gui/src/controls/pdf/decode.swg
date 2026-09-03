@@ -2,6 +2,19 @@
 
 using Core, Core.Errors, Core.Math, Pixel
 
+// What a page decode keeps of its content stream.
+//
+// A display needs every mark. A search or a copy reads the text alone, and reading it must not
+// cost the images, the paths, the clips and the masks around it: on this corpus an image costs
+// what a thousand text runs cost. A text-only decode produces the same text items, in the same
+// order and with the same geometry, as a complete one, so the text a search finds on a page is
+// byte for byte the text the displayed page indexes.
+internal enum PageDecode
+{
+    Complete     // Every mark: what a display paints.
+    TextOnly     // The text runs alone, with their geometry: what a search or a copy reads.
+}
+
 // Everything a content stream can set before it paints.
 //
 // `q` and `Q` push and pop a whole value of this type, which is why it owns its color
@@ -286,12 +299,12 @@ private func clipFillType(evenOdd: bool)->Clipper.PolyFillType => evenOdd ? Clip
 // exactly. Any other shape narrows the rectangle to its bounds and is kept as a shape of its
 // own, so the marks painted through it are cut where the author cut them; a shape established
 // inside another intersects with it.
-private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePathList, evenOdd: bool, pending: *bool)
+private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePathList, evenOdd: bool, pending: *bool, decode: PageDecode)
 {
     if !pending[] do
         return
     pending[] = false
-    if !path.count() do
+    if decode == .TextOnly or !path.count() do
         return
 
     state.intersectClip(path.controlBounds())
@@ -313,16 +326,16 @@ private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePat
     state.clipPath = page.addClipPath(#move shape, false)
 }
 
-private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, depth: u32, evenOdd = false)
+private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, depth: u32, decode: PageDecode, evenOdd = false)
 {
     if !path.count() do
         return
 
     // A paint operation whose color space could not be reduced paints nothing rather than a
-    // color of this module's own choosing.
+    // color of this module's own choosing, and a text extraction keeps no path at all.
     let paintFill   = fill and !state.fillSpace.unsupported
     let paintStroke = stroke and !state.strokeSpace.unsupported
-    if !paintFill and !paintStroke
+    if decode == .TextOnly or (!paintFill and !paintStroke)
     {
         path.clear()
         return
@@ -347,7 +360,7 @@ private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList
     item.clip        = state.clip
     item.hasClip     = state.hasClip
     item.clipPath    = state.clipPath
-    appendPaintedItem(parser, page, state, #move item, depth)
+    appendPaintedItem(parser, page, state, #move item, depth, decode)
     Swag.init(path, 1)
 }
 
@@ -384,7 +397,7 @@ private func moveTextLine(state: *GraphicsState, x, y: f32)
     state.textMatrix = moved
 }
 
-private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string, depth: u32)
+private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string, depth: u32, decode: PageDecode)
 {
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
@@ -427,7 +440,7 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
         item.clipPath  = state.clipPath
         if font and font.hasStandard do
             item.standardFont = font.standard
-        appendPaintedItem(parser, page, state, #move item, depth)
+        appendPaintedItem(parser, page, state, #move item, depth, decode)
     }
 
     advanceText(state, advance * state.horizScale)
@@ -455,7 +468,7 @@ private func appendImageItem(parser: *PdfParser, page: *Page, state: const *Grap
     // An image carries no colour of its own to dim, so the constant alpha travels as the tint the
     // painter modulates its texture by.
     item.fillColor = dimmed(Color.fromArgb(Argb.White), state.fillAlpha)
-    appendPaintedItem(parser, page, state, #move item, depth)
+    appendPaintedItem(parser, page, state, #move item, depth, .Complete)
 }
 
 // How deep one form XObject may nest inside another before the page is refused.
@@ -465,7 +478,7 @@ const MaxFormDepth = 32'u32
 //
 // `resourcesId` is what the form inherits when it declares no resources of its own; a form
 // reached outside a content stream, such as the group behind a soft mask, inherits nothing.
-private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, formId: u32, depth: u32) fail
+private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, formId: u32, depth: u32, decode: PageDecode) fail
 {
     if depth >= MaxFormDepth do
         fail UnsupportedFormatError{"PDF form nesting exceeds the supported depth"}
@@ -517,12 +530,12 @@ private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state
         try decodeFonts(parser, page, resources)
     let bytes = #move try parser.decodeStream(formId)
     let first = page.items.count
-    try parseContent(parser, page, resources, bytes.toSlice(), &formState, depth + 1)
-    if isGroup and (outerMask.isActive() or outerAlpha < 1) do
+    try parseContent(parser, page, resources, bytes.toSlice(), decode, &formState, depth + 1)
+    if decode == .Complete and isGroup and (outerMask.isActive() or outerAlpha < 1) do
         applyGroupTransparency(parser, page, first, &outerMask, outerAlpha, depth)
 }
 
-private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, name: string, depth: u32) fail
+private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, name: string, depth: u32, decode: PageDecode) fail
 {
     let xobjects = parser.dict(resourcesId, "XObject")
     if xobjects == InvalidNode do
@@ -535,11 +548,11 @@ private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, st
     let subtype = parser.name(parser.dict(id, "Subtype"))
     if subtype == "Form"
     {
-        try appendForm(parser, page, resourcesId, state, id, depth)
+        try appendForm(parser, page, resourcesId, state, id, depth, decode)
         return
     }
 
-    if subtype != "Image" do
+    if subtype != "Image" or decode == .TextOnly do
         return
     try appendImageItem(parser, page, state, id, resourcesId, depth)
 }
@@ -568,7 +581,7 @@ private func inlineImageKey(key: string)->string
 //
 // The dictionary is rebuilt inside the document parser so a named color space still
 // resolves through the page resources, and so the image decoder sees one representation.
-private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, depth: u32) fail
+private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, depth: u32, decode: PageDecode) fail
 {
     var node: Node
     node.kind = .Dictionary
@@ -618,6 +631,8 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
     parser.nodes[imageId].stream = Swag.makeSlice(content.bytes.buffer + start, end - start)
     content.pos = end
     discard content.consumeWord("EI")
+    if decode == .TextOnly do
+        return
     try appendImageItem(parser, page, state, imageId, resourcesId, depth)
 }
 
@@ -757,7 +772,7 @@ private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *S
 
     var groupState: GraphicsState
     groupState.ctm = mask.ctm
-    try appendForm(parser, &group.page, InvalidNode, &groupState, mask.groupId, depth + 1)
+    try appendForm(parser, &group.page, InvalidNode, &groupState, mask.groupId, depth + 1, .Complete)
 
     parser.softMaskCache.add(key, #move group)
     return &parser.softMaskCache.tryFind(key)!.value
@@ -869,10 +884,10 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
 //
 // Constant alpha reaches the mark through its own colour, a blend mode travels to the painter,
 // and a soft mask becomes the coverage the mark is multiplied by.
-private func appendPaintedItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, item: #move Item, depth: u32)
+private func appendPaintedItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, item: #move Item, depth: u32, decode: PageDecode)
 {
     item.blend = state.blend
-    if state.softMask.isActive() do
+    if decode == .Complete and state.softMask.isActive() do
         maskItem(parser, page, &state.softMask, &item, depth)
     page.appendItem(#move item)
 }
@@ -902,7 +917,7 @@ private func applyGroupTransparency(parser: *PdfParser, page: *Page, first: u64,
     }
 }
 
-private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, bytes: const [..] u8, initialState: #null const *GraphicsState = null, depth = 0'u32) fail
+private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, bytes: const [..] u8, decode: PageDecode, initialState: #null const *GraphicsState = null, depth = 0'u32) fail
 {
     var content = PdfParser{bytes: bytes}
     var operands: Array'ContentOperand
@@ -1223,34 +1238,34 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             pendingClipEvenOdd = op == "W*"
 
         case "S":
-            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
-            appendPathItem(parser, page, &path, &state, false, true, false, depth)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip, decode)
+            appendPathItem(parser, page, &path, &state, false, true, false, depth, decode)
             current = null
 
         case "s":
-            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
-            appendPathItem(parser, page, &path, &state, false, true, true, depth)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip, decode)
+            appendPathItem(parser, page, &path, &state, false, true, true, depth, decode)
             current = null
 
         // A star names the alternating rule, under which two overlapping contours cancel
         // instead of merging; without it a ring drawn as two circles fills solid.
         case "f", "F", "f*":
-            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
-            appendPathItem(parser, page, &path, &state, true, false, false, depth, op == "f*")
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip, decode)
+            appendPathItem(parser, page, &path, &state, true, false, false, depth, decode, op == "f*")
             current = null
 
         case "B", "B*":
-            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
-            appendPathItem(parser, page, &path, &state, true, true, false, depth, op == "B*")
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip, decode)
+            appendPathItem(parser, page, &path, &state, true, true, false, depth, decode, op == "B*")
             current = null
 
         case "b", "b*":
-            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
-            appendPathItem(parser, page, &path, &state, true, true, true, depth, op == "b*")
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip, decode)
+            appendPathItem(parser, page, &path, &state, true, true, true, depth, decode, op == "b*")
             current = null
 
         case "n":
-            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip, decode)
             path.clear()
             current = null
 
@@ -1314,13 +1329,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "Tj":
             if ops.count do
-                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth)
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth, decode)
 
         case "'":
             if ops.count
             {
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth)
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth, decode)
             }
 
         case "\"":
@@ -1329,7 +1344,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 state.wordSpacing = operandNumber(&content, ops, ops.count - 3)
                 state.charSpacing = operandNumber(&content, ops, ops.count - 2)
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth)
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth, decode)
             }
 
         case "TJ":
@@ -1342,7 +1357,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                     {
                         let id = content.resolve(value)
                         if id != InvalidNode and content.nodes[id].kind == .String do
-                            appendText(parser, page, resourcesId, &state, content.nodes[id].text.toString(), depth)
+                            appendText(parser, page, resourcesId, &state, content.nodes[id].text.toString(), depth, decode)
                         elif id != InvalidNode do
                             advanceText(&state, -cast(f32) content.number(id) * state.fontSize * state.horizScale / 1000.0)
                     }
@@ -1351,10 +1366,10 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "Do":
             if ops.count do
-                try appendXObject(parser, page, resourcesId, &state, content.name(ops[ops.count - 1].node), depth)
+                try appendXObject(parser, page, resourcesId, &state, content.name(ops[ops.count - 1].node), depth, decode)
 
         case "BI":
-            try appendInlineImage(parser, &content, page, resourcesId, &state, depth)
+            try appendInlineImage(parser, &content, page, resourcesId, &state, depth, decode)
 
         default:
             break
@@ -1418,7 +1433,7 @@ private func boxRectangle(parser: *PdfParser, boxId: u32)->Math.Rectangle
     return {Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)}
 }
 
-internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, rotate: s64)->Page fail
+internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, rotate: s64, decode: PageDecode)->Page fail
 {
     let mediaId = parser.dict(pageId, "MediaBox")
     let media   = mediaId != InvalidNode ? mediaId : inheritedMediaBox
@@ -1485,7 +1500,7 @@ internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inherit
         default:  break
         }
 
-        try parseContent(parser, &result, resources, contentBytes.toSlice(), &pageState)
+        try parseContent(parser, &result, resources, contentBytes.toSlice(), decode, &pageState)
     }
 
     return result
@@ -1626,7 +1641,7 @@ func decodeDocument(bytes: const [..] u8)->Document fail
     try indexDocument(&parser, &result.metadata, &sources)
     for source in sources
     {
-        var page = #move try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
+        var page = #move try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate, .Complete)
         result.addPage(#move page)
     }
 

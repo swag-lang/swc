@@ -42,6 +42,14 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
     return result
 }
 
+// Collects every match a viewer answers for, polling one that reads its document in the background.
+func collectViewerMatches(collect: Viewer.CollectSearchMatches, view: *Wnd, text: string, matches: *Array'Viewer.SearchMatch)
+{
+    var progress = 0'u64
+    while !collect(view, text, {}, &progress, matches) do
+        Threading.Thread.sleep(1'ms)
+}
+
 // Completes a viewer worker deterministically, then lets the headless GUI publish its result.
 func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation, timer: #null *Timer)
 {

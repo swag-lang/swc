@@ -250,6 +250,7 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
 - Complete when: every supported page has a clearly sourced visual rendering, navigation preserves
   page identity and loading state, absent or stale preview data is named plainly, and no native
   object is executed to render the document.
+- Related: app.scope.indesign.002, app.scope.indesign.012, app.scope.indesign.018
 
 ## Developer documents
 

@@ -35,6 +35,7 @@ command uses `compiler.command.doc`. A deliberately cross-cutting domain can rem
 | [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer |
 | [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer |
+| [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers |

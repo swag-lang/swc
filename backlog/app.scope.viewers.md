@@ -83,7 +83,7 @@ proves it.
 | Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
 | HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md#html-reading) |
 | Image | 4 / 1 | pan, zoom, fit, rotation, mirroring, animated frames | Gwenview-class color/metadata plus histogram, pixel probe, comparison; [app.scope.image.md](app.scope.image.md) |
-| InDesign | 6 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [app.scope.document.023](app.scope.document.md) |
+| InDesign | 6 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [InDesign roadmap](app.scope.indesign.md) |
 | Markdown | 7 / 2 | rendered themes, reading measures, progressive layout, search | VS Code-class outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md#markdown-reading) |
 | MIDI | 3 / 1 | parsed tracks, notes, tempo/meter/key and piano roll | MuseScore-class playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
 | OpenDocument | 11 / 3 | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |

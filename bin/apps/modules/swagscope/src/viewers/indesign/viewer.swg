@@ -881,6 +881,35 @@ private impl IndesignViewer
         }
     }
 
+    // IDML pages have a real local text scene. Search those page sources rather than scanning the
+    // ZIP bytes, which keeps matches on selectable document text and makes page navigation exact.
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    {
+        if !.isMarkup() do
+            return
+        for page, index in .markupPages do
+            Viewer.collectTextMatches(page.html().toString(), text, options, index, 0, 0, result)
+    }
+
+    mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
+    {
+        if !.isMarkup() or match.major >= .markupPages.count do
+            return false
+        .selectMarkupPage(match.major)
+        return .htmlView!.revealFileOffset(match.offset, text)
+    }
+
+    mtd searchBounds(result: *Math.Rectangle)->bool
+    {
+        return .isMarkup() and .htmlView and .htmlView!.searchMatchRect(result)
+    }
+
+    mtd clearSearch()
+    {
+        if .isMarkup() and .htmlView do
+            .htmlView!.clearSearch()
+    }
+
     mtd retire()->bool
     {
         if !.load.retire() do
@@ -1156,6 +1185,20 @@ func createIndesignViewer(host: Viewer.Host)
 {
     let view = IndesignViewer.create(host)
     host.attachView(view)
+    host.setSearch({
+        collectMatches: func(wnd, text, options, progress, matches)->bool
+    {
+        discard progress
+        (cast(*IndesignViewer) wnd).collectMatches(text, options, matches)
+        return true
+    },
+        revealMatch: func(wnd, match, text)->bool { return (cast(*IndesignViewer) wnd).revealMatch(match, text) },
+        matchBounds: func(wnd, match, bounds)->bool
+    {
+        discard match
+        return (cast(*IndesignViewer) wnd).searchBounds(bounds)
+    },
+        clear: func(wnd) { (cast(*IndesignViewer) wnd).clearSearch() }})
     host.setLifecycle({
         isLoading: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null },
         needsLoadingOverlay: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and !view.hasPreviewContent) },

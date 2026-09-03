@@ -48,11 +48,20 @@ private struct IdmlItem
 
 private struct IdmlTextStyle
 {
-    fontSize:  f32
-    fill:      String
-    alignment: String
-    serif:     bool
-    cjk:       bool
+    fontSize:      f32
+    autoLeading:   f32
+    spaceBefore:   f32
+    spaceAfter:    f32
+    leftIndent:    f32
+    rightIndent:   f32
+    firstLineIndent: f32
+    fill:          String
+    alignment:     String
+    serif:         bool
+    cjk:           bool
+    bold:          bool
+    italic:        bool
+    bullet:        bool
 }
 
 struct IdmlPage
@@ -638,6 +647,16 @@ private func idmlTextAlignment(value: string)->string
     return "left"
 }
 
+private func idmlFontStyleBold(value: string)->bool
+{
+    return Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
+}
+
+private func idmlFontStyleItalic(value: string)->bool
+{
+    return Utf8.contains(value, "Italic") or Utf8.contains(value, "italic") or Utf8.contains(value, "Oblique") or Utf8.contains(value, "oblique")
+}
+
 private func idmlContainsCjk(text: string)->bool
 {
     var cursor = 0'u64
@@ -662,10 +681,27 @@ private func idmlTextStyleCss(style: const *IdmlTextStyle)->String
     var result: retval
     if style.fontSize > 0 do
         result += Format.toString("font-size:%em;", style.fontSize / 12)
+    if style.autoLeading > 0 do
+        result += Format.toString("line-height:%;", style.autoLeading / 100)
+    let scale = style.fontSize > 0 ? style.fontSize : 12
+    if style.spaceBefore != 0 do
+        result += Format.toString("margin-top:%em;", style.spaceBefore / scale)
+    if style.spaceAfter != 0 do
+        result += Format.toString("margin-bottom:%em;", style.spaceAfter / scale)
+    if style.leftIndent != 0 do
+        result += Format.toString("padding-left:%em;", style.leftIndent / scale)
+    if style.rightIndent != 0 do
+        result += Format.toString("padding-right:%em;", style.rightIndent / scale)
+    if style.firstLineIndent != 0 do
+        result += Format.toString("text-indent:%em;", style.firstLineIndent / scale)
     if !style.fill.isEmpty() do
         result += Format.toString("color:%;", style.fill)
     if !style.alignment.isEmpty() do
         result += Format.toString("text-align:%;", style.alignment)
+    if style.bold do
+        result += "font-weight:bold;"
+    if style.italic do
+        result += "font-style:italic;"
     result += style.cjk ? "font-family:cjk;" : style.serif ? "font-family:serif;" : "font-family:sans-serif;"
     return result
 }
@@ -679,8 +715,24 @@ private func idmlCharacterStyleCss(tag: string, colors: const *HashTable'(String
     let color = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
     if color.count do
         result += Format.toString("color:%;", color)
+    let fontStyle = idmlAttribute(tag, "FontStyle")
+    if idmlFontStyleBold(fontStyle) do
+        result += "font-weight:bold;"
+    if idmlFontStyleItalic(fontStyle) do
+        result += "font-style:italic;"
     if idmlAttribute(tag, "Capitalization") == "AllCaps" do
         result += "text-transform:uppercase;"
+    if idmlAttribute(tag, "Underline") == "true" do
+        result += "text-decoration:underline;"
+    if idmlAttribute(tag, "StrikeThru") == "true" do
+        result += "text-decoration:line-through;"
+    let tracking = idmlNumber(idmlAttribute(tag, "Tracking")).value
+    if tracking != 0 do
+        result += Format.toString("letter-spacing:%em;", tracking / 1_000)
+    if idmlAttribute(tag, "Position") == "Superscript" do
+        result += "vertical-align:super;"
+    if idmlAttribute(tag, "Position") == "Subscript" do
+        result += "vertical-align:sub;"
     return result
 }
 
@@ -731,6 +783,8 @@ private func idmlStoryHtml(source: string, styles: const *HashTable'(String, Idm
         if idmlContainsCjk(content) do
             result += "font-family:cjk;"
         result += "\">"
+        if style and style!.value.bullet do
+            result += "&#x2022;&nbsp;"
         result += idmlCharacterRangeHtml(content, colors)
         result += "</div>"
         cursor = close + ("</ParagraphStyleRange>").count
@@ -884,10 +938,19 @@ private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, co
         if self.count and !result.tryFind(self)
         {
             var style: IdmlTextStyle
-            style.fontSize  = idmlNumber(idmlAttribute(tag, "PointSize")).value
-            style.fill      = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
-            style.alignment = idmlTextAlignment(idmlAttribute(tag, "Justification"))
-            style.cjk       = idmlAttribute(tag, "AppliedLanguage") == "$ID/Japanese"
+            style.fontSize        = idmlNumber(idmlAttribute(tag, "PointSize")).value
+            style.autoLeading     = idmlNumber(idmlAttribute(tag, "AutoLeading")).value
+            style.spaceBefore     = idmlNumber(idmlAttribute(tag, "SpaceBefore")).value
+            style.spaceAfter      = idmlNumber(idmlAttribute(tag, "SpaceAfter")).value
+            style.leftIndent      = idmlNumber(idmlAttribute(tag, "LeftIndent")).value
+            style.rightIndent     = idmlNumber(idmlAttribute(tag, "RightIndent")).value
+            style.firstLineIndent = idmlNumber(idmlAttribute(tag, "FirstLineIndent")).value
+            style.fill            = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
+            style.alignment       = idmlTextAlignment(idmlAttribute(tag, "Justification"))
+            style.cjk             = idmlAttribute(tag, "AppliedLanguage") == "$ID/Japanese"
+            style.bold            = idmlFontStyleBold(idmlAttribute(tag, "FontStyle"))
+            style.italic          = idmlFontStyleItalic(idmlAttribute(tag, "FontStyle"))
+            style.bullet          = idmlAttribute(tag, "BulletsAndNumberingListType") == "BulletList"
             let fontStart   = Utf8.indexOf(source.toString(), "<AppliedFont", openEnd + 1)
             if fontStart != Swag.U64.Max and fontStart < bodyEnd
             {

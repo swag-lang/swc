@@ -99,7 +99,13 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(linkedImages == 2)
     Swag.assert(flowedArticleFrames == 4)
     Swag.assert(flowedArticleBytes > 4_000 and flowedArticleBytes < 80_000)
-    Swag.assert(Utf8.contains(document.pages[0].html(1).toString(), "font-family:cjk"))
+    var rendered: String
+    for page in document.pages do
+        rendered += page.html(1)
+    Swag.assert(Utf8.contains(rendered.toString(), "font-family:cjk"))
+    Swag.assert(Utf8.contains(rendered.toString(), "font-weight:bold;"))
+    Swag.assert(Utf8.contains(rendered.toString(), "line-height:"))
+    Swag.assert(Utf8.contains(rendered.toString(), "padding-left:"))
 }
 
 // Opening an external editorial source must reach its first usable page promptly, then retain the

@@ -606,6 +606,9 @@ internal struct IndesignViewer
     previewUseSerial      = 1'u64
     hasPreviewContent:    bool
     previewIndex:         u64
+    markupZoom:           f32 = 1
+    markupFit:            bool = true
+    markupRenderedScale:  f32 = 1
     requestedPreviewIndex = IndesignNoPreview
     loadingPreviewIndex   = IndesignNoPreview
     load:                 Viewer.BackgroundLoad'IndesignViewerDocument
@@ -670,26 +673,70 @@ private impl IndesignViewer
 
     mtd refreshZoom()
     {
-        if .isMarkup() do
+        if .isMarkup()
+        {
+            .zoomLabel.setText(.markupFit ? indesignStrings().ui_Fit : Format.toString("% %", cast(u32) Math.round(.markupPageScale(.previewIndex) * 100), "%"))
+            if .reportChromeChanged do
+                .reportChromeChanged!(me)
             return
+        }
         .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.imageView.effectiveZoom() * 100), "%"))
         if .reportChromeChanged do
             .reportChromeChanged!(me)
     }
 
+    mtd markupFitScale(index: u64)->f32
+    {
+        let page   = &.markupPages[index]
+        let client = .clientRect()
+        if client.width <= 0 or client.height <= 0 do
+            return 1
+        let width  = Math.max(client.width - 48, 1)
+        let height = Math.max(client.height - 48, 1)
+        return Math.clamp(Math.min(width / page.bounds.width, height / page.bounds.height), 0.25, 3)
+    }
+
+    mtd markupPageScale(index: u64)->f32 => .markupFit ? .markupFitScale(index) : .markupZoom
+
+    mtd setMarkupZoom(percent: u32)
+    {
+        .markupFit  = false
+        .markupZoom = cast(f32) Math.clamp(percent, 25'u32, 300'u32) / 100
+        .selectMarkupPage(.previewIndex)
+    }
+
+    mtd fitMarkupPage()
+    {
+        .markupFit = true
+        .selectMarkupPage(.previewIndex)
+    }
+
     mtd showZoomMenu()
     {
-        if .isMarkup() do
-            return
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("50%", "scope.indesign.zoom50")
-        menu.addItem(indesignStrings().ui_Actual, "scope.indesign.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
+        if !.isMarkup() do
+            menu.addItem(indesignStrings().ui_Actual, "scope.indesign.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
         menu.addItem("125%", "scope.indesign.zoom125")
         menu.addItem("150%", "scope.indesign.zoom150")
         menu.addItem("200%", "scope.indesign.zoom200")
         menu.addSeparator()
         menu.addItem(indesignStrings().ui_Fit, "scope.indesign.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
-        switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
+        let chosen = menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
+        if .isMarkup()
+        {
+            switch chosen
+            {
+            case "scope.indesign.zoom50":  .setMarkupZoom(50)
+            case "scope.indesign.zoom125": .setMarkupZoom(125)
+            case "scope.indesign.zoom150": .setMarkupZoom(150)
+            case "scope.indesign.zoom200": .setMarkupZoom(200)
+            case "scope.indesign.zoomFit": .fitMarkupPage()
+            }
+            return
+        }
+
+        switch chosen
         {
         case "scope.indesign.zoom50":     .imageView.setZoom(0.5)
         case "scope.indesign.zoomActual": .imageView.actualSize()
@@ -801,13 +848,15 @@ private impl IndesignViewer
         Debug.assert(index < .markupPages.count)
         .previewIndex = index
         .htmlView?.destroy()
-        .htmlView = HtmlView.createText(me, .markupPages[index].html().toString())
+        .markupRenderedScale = .markupPageScale(index)
+        .htmlView = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
         .htmlView!.dockStyle       = .Center
         .htmlView!.backgroundStyle = .View
         .imageView.hide()
         .hasPreviewContent = true
         .details = Format.toString(indesignStrings().ui_MarkupDetails, index + 1, .markupPages.count, .markupPages[index].textFrameCount)
         .refreshPageCommands()
+        .refreshZoom()
         .reportCurrentDetails()
         .applyLayout()
         .setInitialFocus(.htmlView!)
@@ -820,7 +869,8 @@ private impl IndesignViewer
         {
             .fileName    = #move document.markup.fileName
             .markupPages = #move document.markup.pages
-            .zoomLabel.hide()
+            .markupFit = true
+            .zoomLabel.show()
             .selectMarkupPage(0)
         }
         else
@@ -888,7 +938,7 @@ private impl IndesignViewer
         if !.isMarkup() do
             return
         for page, index in .markupPages do
-            Viewer.collectTextMatches(page.html().toString(), text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(page.html(1).toString(), text, options, index, 0, 0, result)
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, text: string)->bool
@@ -933,6 +983,17 @@ private impl IndesignViewer
 
 private impl IWnd for IndesignViewer
 {
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        discard evt
+        if .isMarkup() and .markupFit and .htmlView
+        {
+            let scale = .markupFitScale(.previewIndex)
+            if Math.abs(scale - .markupRenderedScale) >= 0.01 do
+                .selectMarkupPage(.previewIndex)
+        }
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer == .loadTimer
@@ -1010,17 +1071,26 @@ private impl IWnd for IndesignViewer
 
         switch evt.key
         {
-        case .Add, .OemPlus where !.isMarkup():
-            .imageView.zoomIn()
+        case .Add, .OemPlus:
+            if .isMarkup() do
+                .setMarkupZoom(cast(u32) Math.round(.markupPageScale(.previewIndex) * 100) + 25)
+            else do
+                .imageView.zoomIn()
 
-        case .Subtract, .OemMinus where !.isMarkup():
-            .imageView.zoomOut()
+        case .Subtract, .OemMinus:
+            if .isMarkup() do
+                .setMarkupZoom(Math.max(cast(u32) Math.round(.markupPageScale(.previewIndex) * 100), 50) - 25)
+            else do
+                .imageView.zoomOut()
 
         case .D0 where !.isMarkup() and evt.modifiers.has(.Control):
             .imageView.actualSize()
 
-        case .F where !.isMarkup() and evt.modifiers == .None:
-            .imageView.zoomToFit()
+        case .F where evt.modifiers == .None:
+            if .isMarkup() do
+                .fitMarkupPage()
+            else do
+                .imageView.zoomToFit()
 
         case .Left, .PageUp where evt.modifiers == .None:
             if .previewIndex do

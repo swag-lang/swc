@@ -177,6 +177,7 @@ public enum HtmlFontFamilyKind
     Sans
     Serif
     Mono
+    Cjk
 }
 
 #[Swag.EnumFlags, Swag.NoDoc]
@@ -884,6 +885,11 @@ impl HtmlComputedStyle
             case "sans-serif", "ui-sans-serif", "system-ui", "-apple-system", "segoe ui", "roboto",
                  "arial", "helvetica", "helvetica neue", "inter", "noto sans":
                 result.kind    = .Sans
+                result.matched = true
+                return result
+
+            case "cjk", "cjk-sans", "yu gothic", "yu gothic ui", "meiryo", "hiragino sans", "hiragino kaku gothic":
+                result.kind    = .Cjk
                 result.matched = true
                 return result
             }

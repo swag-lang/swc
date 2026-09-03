@@ -5,6 +5,7 @@ using Core, Pixel, Gui
 
 // The fixed 4 KiB master-page unit is the file-level contract this fixture records.
 private const IndesignFixtureHeaderSize = 4096'u64
+private const LinkedIdmlInteractiveBudgetMs = 1_000'u64
 
 // Returns the minimal dual-header document fixture shared by this viewer and the smoke run.
 private func indesignFixturePath()->String
@@ -24,11 +25,17 @@ private func nativeFixturePath()->String
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "publicdomain.indd")
 }
 
+private func linkedIdmlFixturePath()->String
+{
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "iosdc-2025-indesign-template.idml")
+}
+
 #test
 {
     let image = "<Image ImageTypeName=\"$ID/PNG\"><Contents><![CDATA[QUJD]]></Contents></Image>"
     Swag.assert(idmlEmbeddedGraphicDataUri(image) == "data:image/png;base64,QUJD")
     Swag.assert(idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/EPS\"><Contents><![CDATA[QUJD]]></Contents></Image>").isEmpty())
+    Swag.assert(idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/PNG\"><MetadataPacketPreference><Contents><![CDATA[<?xpacket begin=\"\"?>]]></Contents></MetadataPacketPreference></Image>").isEmpty())
 }
 
 #test
@@ -53,7 +60,7 @@ private func nativeFixturePath()->String
     Swag.assert(document.pages[0].bounds.width > 400 and document.pages[0].bounds.height > 500)
     Swag.assert(document.pages[0].textFrameCount >= 19)
     Swag.assert(document.pages[0].items.count >= document.pages[0].textFrameCount)
-    Swag.assert(Utf8.contains(document.pages[0].html().toString(), "idml-page"))
+    Swag.assert(Utf8.contains(document.pages[0].html(1).toString(), "idml-page"))
     var tintedItems: u64
     var arrowLines: u64
     for item in document.pages[0].items where item.fill == "rgb(51, 51, 51)" do
@@ -66,6 +73,124 @@ private func nativeFixturePath()->String
     }
     Swag.assert(tintedItems >= 42)
     Swag.assert(arrowLines >= 1)
+}
+
+// This MIT-licensed editorial source has absolute links saved by InDesign. The bundled title
+// graphic exercises the same-folder recovery that keeps a moved document renderable offline.
+#test
+{
+    let document = expect loadIdmlDocument(linkedIdmlFixturePath().toString())
+    Swag.assert(document.pages.count >= 2)
+    var linkedImages: u64
+    var flowedArticleFrames: u64
+    var flowedArticleBytes: u64
+    for page in document.pages
+    {
+        for item in page.items where item.imageFrame and Path.fileName(item.image.toString()) == "title.png" do
+            linkedImages += 1
+        for item in page.items where item.imageFrame and Path.fileName(item.image.toString()) == "qrcode.png" do
+            linkedImages += 1
+        for item in page.items where item.story == "u113" and item.text.count
+        {
+            flowedArticleFrames += 1
+            flowedArticleBytes += item.text.count
+        }
+    }
+    Swag.assert(linkedImages == 2)
+    Swag.assert(flowedArticleFrames == 4)
+    Swag.assert(flowedArticleBytes > 4_000 and flowedArticleBytes < 80_000)
+    Swag.assert(Utf8.contains(document.pages[0].html(1).toString(), "font-family:cjk"))
+}
+
+// Opening an external editorial source must reach its first usable page promptly, then retain the
+// resolved local image sources through navigation and painting.
+#[Swag.TestTag("linked")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 520)
+    defer host.shutdown()
+
+    var opening: Time.Stopwatch
+    opening.start()
+    var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: &host.root)
+    let viewer = cast(*IndesignViewer) result.view!
+    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    opening.stop()
+    Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
+    Swag.assert(opening.elapsedMilliseconds() < LinkedIdmlInteractiveBudgetMs)
+    viewer.setMarkupZoom(125)
+    Swag.assert(viewer.zoomLabel.text() == "125 %")
+    viewer.fitMarkupPage()
+    Swag.assert(viewer.zoomLabel.text() == indesignStrings().ui_Fit)
+    var qrcodePage = Swag.U64.Max
+    for page, index in viewer.markupPages
+    {
+        for item in page.items where Path.fileName(item.image.toString()) == "qrcode.png" do
+            qrcodePage = index
+    }
+    Swag.assert(qrcodePage != Swag.U64.Max)
+    var pageRender: Time.Stopwatch
+    pageRender.start()
+    viewer.selectMarkupPage(qrcodePage)
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+    pageRender.stop()
+    Testing.assertContentFits(viewer)
+    let image = host.render(&host.root)
+    Swag.assert(image.isValid())
+    Swag.assert(pageRender.elapsedMilliseconds() < LinkedIdmlInteractiveBudgetMs)
+}
+
+// The linked editorial source must remain a painted document surface, including its two supplied
+// PNG assets, rather than degrading into a metadata or image-decoder-only view.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 520)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    commandBar.dockStyle       = .Bottom
+    commandBar.backgroundStyle = .Window
+    commandBar.padding         = {16, 8, 16, 8}
+    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    infoBar.dockStyle       = .Bottom
+    infoBar.backgroundStyle = .InformationBar
+    infoBar.padding         = {16, 4, 16, 4}
+
+    var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: commandBar, infoParent: infoBar)
+    commandBar.centerGroup = result.commands
+    infoBar.centerGroup    = result.info
+    let viewer = cast(*IndesignViewer) result.view!
+    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    viewer.dockStyle          = .Center
+    viewer.commands.dockStyle = .None
+    viewer.info.dockStyle     = .None
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+    Testing.assertContentFits(viewer)
+    var firstPage = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&firstPage, "viewer.indesign.idml.linked.page1")
+
+    var qrcodePage = Swag.U64.Max
+    for page, index in viewer.markupPages
+    {
+        for item in page.items where Path.fileName(item.image.toString()) == "qrcode.png" do
+            qrcodePage = index
+    }
+    Swag.assert(qrcodePage != Swag.U64.Max)
+    viewer.selectMarkupPage(qrcodePage)
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+    Testing.assertContentFits(viewer)
+    var qrcode = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&qrcode, "viewer.indesign.idml.linked.qrcode")
 }
 
 // A real native document validates the binary header path separately from the synthetic fixture.
@@ -107,7 +232,7 @@ private func nativeFixturePath()->String
     let viewer = cast(*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and !viewer.imageView.isVisible())
-    Swag.assert(viewer.zoomLabel.isVisible() == false)
+    Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
     Swag.assert(Utf8.contains(viewer.details.toString(), "InDesign Markup page"))
     Swag.assert(viewer.pageLabel.toolTip == "Choose page")
     var matches: Array'Viewer.SearchMatch

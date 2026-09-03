@@ -56,6 +56,10 @@ private const ResFontFsBoldName       = "theme/robotomono-bold.ttf"
 private const ResFontFsBoldItalicName = "theme/robotomono-bolditalic.ttf"
 private const ResFontFsItalicName     = "theme/robotomono-italic.ttf"
 
+// System font file names preferred for CJK document text. The first available face is optional:
+// applications still have the embedded theme face on minimal installations.
+private const CjkFontCandidates: [5] string = ["YuGothR.ttc", "msgothic.ttc", "meiryo.ttc", "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf"]
+
 private var g_DefaultThemeImages: DefaultThemeImages
 
 // Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
@@ -105,6 +109,18 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
     }
 
     return try defaultTypeFace(name, embedded)
+}
+
+private func systemCjkTypeFace()->#null *TypeFace fail
+{
+    for name in CjkFontCandidates
+    {
+        if !TypeFace.exists(name) do
+            continue
+        return try TypeFace.load(name)
+    }
+
+    return null
 }
 
 private func defaultThemeImages()->*DefaultThemeImages
@@ -176,6 +192,12 @@ struct ThemeResources
 
         fontDefault:   FontFamily     // Font default associated with this value.
         fontDefaultFs: FontFamily     // Font default fs associated with this value.
+    }
+
+    internal
+    {
+        cjkTypeFace:         #null *TypeFace
+        cjkTypeFaceResolved: bool
     }
 }
 
@@ -479,6 +501,34 @@ impl Theme
         case .Bold:       return .fonts.createFont(.res.defaultFsTypeFaceB, size)
         case .Italic:     return .fonts.createFont(.res.defaultFsTypeFaceI, size)
         case .BoldItalic: return .fonts.createFont(.res.defaultFsTypeFaceBI, size)
+        }
+
+        unreachable
+    }
+
+    // Creates a document font with CJK coverage when the platform supplies one.
+    //
+    // The optional face keeps ordinary application chrome on the embedded theme font while
+    // allowing document readers to render Japanese, Chinese, and Korean source text. A minimal
+    // installation falls back to the default face instead of making opening a document fail.
+    internal mtd createCjkFont(size: u32, style = FontFamilyStyle.Regular)->*Font
+    {
+        if !.res.cjkTypeFaceResolved
+        {
+            .res.cjkTypeFaceResolved = true
+            let face = catch systemCjkTypeFace() as loadError
+            if loadError == null do
+                .res.cjkTypeFace = face
+        }
+        if !.res.cjkTypeFace do
+            return .createDefaultFont(size, style)
+
+        switch #complete style
+        {
+        case .Regular:    return .fonts.createFont(.res.cjkTypeFace!, size)
+        case .Bold:       return .fonts.createFont(.res.cjkTypeFace!, size, forceBold: true)
+        case .Italic:     return .fonts.createFont(.res.cjkTypeFace!, size, forceItalic: true)
+        case .BoldItalic: return .fonts.createFont(.res.cjkTypeFace!, size, forceBold: true, forceItalic: true)
         }
 
         unreachable

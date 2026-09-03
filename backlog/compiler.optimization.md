@@ -34,6 +34,7 @@ the shared backlog conventions.
 - Next: re-measure chacha with `K_MAX_TRIPS = 16` on a quiet machine, and only then ask whether
   the SLP pass sees the sixteen `[frame + K]` loads it now has.
 - Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
+
 ## Register allocation and frame-slot promotion
 
 ### compiler.optimization.003 — Folding copy-then-operate before register allocation miscompiles
@@ -219,26 +220,30 @@ the shared backlog conventions.
   which already computes the spans, the benefits and the concrete-claim positions a splitting
   allocator needs.
 
-### compiler.optimization.008 — Integer selects written as early returns still lower to branches
+### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
 
 - Area: compiler
 - Found while: std.video.001, profiling the H.264 decoder on a 1080p30 Main stream in release.
 - Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
   compare and a conditional move: the ternary diamond converts when both arms are short, pure
   and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
-  through the single-arm conversion beside it. What still compiles to compare-and-branch is the
-  select written as a statement — the `if v < lo do return lo` / `if v > hi do return hi` chain,
-  and an `if`/`else` whose arms do more than produce one value — and every such branch is an
-  allocation boundary, so the loop's live set flushes around it.
-- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on a three-way early-return clamp: two
-  `jump_cond`, three `ret`, 26 instructions; the same clamp as a nested ternary: 11 instructions
-  and two `cmov`. The decoder's conversion stage went from 1495 ms to about 470 ms over 59 frames
-  when its clamps were rewritten branch-free by hand (3.2x, byte-identical output; the sign-bit
-  forms in `decode/h264/transform.swg`), which is the gain the statement form still leaves where
-  it is used.
-- Next step: if-convert the early-return chain — a triangle whose body is a `ret` of a pure value
-  — into a select feeding one `ret`, then re-measure the decoder's deblock and conversion loops
-  against the hand-written sign-bit forms and retire those if the select matches them.
+  through the single-arm conversion beside it. The select written as a statement — the
+  `if v < lo do return lo` / `if v > hi do return hi` chain — now converts too (2026-09-03,
+  `convertEarlyReturnsToSelects`): each statement is a triangle whose body leaves the function,
+  so the innermost pair folds into one return fed by a conditional move, and the fixed point
+  folds the chain from the bottom, under the diamond's rules (pure, short, one value leaving
+  each path, the compare re-issued when a path wrote the flags). What still compiles to a branch
+  is an `if`/`else` whose arms do more than produce one value.
+- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on the three-way early-return clamp:
+  15 instructions with two `jump_cond` and three `ret` before, 12 with two `cmov` and one `ret`
+  after; the nested ternary is 10. The decoder's conversion stage went from 1495 ms to about
+  470 ms over 59 frames when its clamps were rewritten branch-free by hand (3.2x, byte-identical
+  output; the sign-bit forms in `decode/h264/transform.swg`).
+- Next: re-measure the decoder's deblock and conversion loops with the clamps written as
+  statements against the hand-written sign-bit forms, and retire those if the select matches
+  them.
+- Complete when: the decoder's conversion stage measures the same with statement clamps as with
+  the sign-bit forms, and the sign-bit forms are gone.
 
 ### compiler.optimization.010 — A short branching function spills with the whole register file free
 

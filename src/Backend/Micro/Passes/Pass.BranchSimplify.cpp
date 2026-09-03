@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -1536,9 +1537,11 @@ namespace
         return MicroPassHelpers::areCpuFlagsDeadAfter(*scan.storage, *scan.operands, diamond.joinLabelRef);
     }
 
-    bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    // The label reference counts and the relocated instructions every
+    // if-conversion consults. False when a computed jump makes the counts
+    // meaningless.
+    bool prepareDiamondScan(DiamondScan& scan, MicroStorage& storage, MicroOperandStorage& operands, const MicroPassContext& context)
     {
-        DiamondScan scan;
         scan.storage  = &storage;
         scan.operands = &operands;
 
@@ -1563,6 +1566,15 @@ namespace
                     scan.relocated.insert(reloc.instructionRef.get());
             }
         }
+
+        return true;
+    }
+
+    bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
 
         std::vector<Diamond> diamonds;
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
@@ -1632,6 +1644,325 @@ namespace
         }
 
         return true;
+    }
+
+    // Speculative if-conversion of an early return:
+    //
+    //     cmp   X, Y                    cmp   X, Y
+    //     jcc   CC, .Lrest              A'...               ; every def of A renamed
+    //     A...                          Ta = <A's value>
+    //     RET = <A's value>       ->    B...
+    //     ret                           Tb = <B's value>
+    //   .Lrest:                         [cmp X, Y]          ; re-issued when a path wrote the flags
+    //     B...                          cmov(!CC) Tb, Ta
+    //     RET = <B's value>             RET = Tb
+    //     ret                           ret
+    //
+    // The `if v < lo do return lo` chain of a clamp or an absolute value written
+    // as statements lowers to this shape: each statement is a triangle whose
+    // body leaves the function, so the diamond conversion above never sees a
+    // join. Folding the innermost pair leaves one straight-line return for the
+    // statement above it, and the fixed point folds the chain from the bottom.
+    // Both paths run and the condition picks the value, under the diamond's
+    // rules - pure, short, nothing leaving a path but its result - with the
+    // result the instruction that writes the ABI's integer return register
+    // right before the epilogue.
+    struct ReturnPath
+    {
+        SmallVector<MicroInstrRef, 8> refs;
+        MicroInstrRef                 valueRef        = MicroInstrRef::invalid();
+        MicroInstrRef                 epilogueRef     = MicroInstrRef::invalid();
+        MicroInstrRef                 retRef          = MicroInstrRef::invalid();
+        MicroOpBits                   valueBits       = MicroOpBits::Zero;
+        bool                          definesFlags    = false;
+        bool                          readsEntryFlags = false;
+    };
+
+    struct EarlyReturn
+    {
+        MicroInstrRef flagsRef    = MicroInstrRef::invalid();
+        MicroInstrRef jumpRef     = MicroInstrRef::invalid();
+        MicroInstrRef labelRef    = MicroInstrRef::invalid();
+        ReturnPath    arm;
+        ReturnPath    tail;
+        MicroCond     moveCond    = MicroCond::Unconditional;
+        MicroOpBits   moveBits    = MicroOpBits::B64;
+        bool          sinkCompare = false;
+    };
+
+    bool isStackRestore(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackPointer)
+    {
+        return inst.op == MicroInstrOpcode::OpBinaryRegImm && ops && ops[0].reg == stackPointer && ops[2].microOp == MicroOp::Add;
+    }
+
+    // The straight line from `fromRef` to a `ret`: speculatable instructions
+    // writing virtual registers, the one that materializes the result in the
+    // return register, and at most the epilogue's stack restore after it.
+    bool collectReturnPath(ReturnPath& out, const DiamondScan& scan, const CallConv& conv, const MicroInstrRef fromRef)
+    {
+        bool definedFlagsSoFar = false;
+        for (MicroInstrRef cur = scan.storage->findNextInstructionRef(fromRef); cur.isValid(); cur = scan.storage->findNextInstructionRef(cur))
+        {
+            if (scan.relocated.contains(cur.get()))
+                return false;
+
+            const MicroInstr*        inst = scan.storage->ptr(cur);
+            const MicroInstrOperand* ops  = inst ? inst->ops(*scan.operands) : nullptr;
+            if (!inst)
+                return false;
+
+            if (inst->op == MicroInstrOpcode::Ret)
+            {
+                out.retRef = cur;
+                return out.valueRef.isValid();
+            }
+
+            if (out.valueRef.isValid())
+            {
+                if (out.epilogueRef.isValid() || !isStackRestore(*inst, ops, conv.stackPointer))
+                    return false;
+                out.epilogueRef = cur;
+                continue;
+            }
+
+            if (!isSpeculatableArmInstruction(*inst, ops))
+                return false;
+
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags) && !definedFlagsSoFar)
+                out.readsEntryFlags = true;
+            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            {
+                out.definesFlags  = true;
+                definedFlagsSoFar = true;
+            }
+
+            const MicroOpBits writeBits = armInstructionWriteBits(*inst, ops);
+            if (writeBits != MicroOpBits::Zero && ops[0].reg == conv.intReturn)
+            {
+                out.valueRef  = cur;
+                out.valueBits = writeBits;
+                continue;
+            }
+
+            const MicroInstrUseDef useDef = inst->collectUseDef(*scan.operands, nullptr);
+            for (const MicroReg def : useDef.defs)
+            {
+                if (!def.isVirtualInt())
+                    return false;
+            }
+            if (out.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR)
+                return false;
+            out.refs.push_back(cur);
+        }
+
+        return false;
+    }
+
+    bool pathDefinesRegister(const ReturnPath& path, const DiamondScan& scan, const MicroReg reg)
+    {
+        for (const MicroInstrRef ref : path.refs)
+        {
+            const MicroInstrUseDef useDef = scan.storage->ptr(ref)->collectUseDef(*scan.operands, nullptr);
+            if (std::ranges::find(useDef.defs, reg) != useDef.defs.end())
+                return true;
+        }
+        return false;
+    }
+
+    bool tryMatchEarlyReturn(EarlyReturn& out, const DiamondScan& scan, const CallConv& conv, const MicroInstrRef jumpRef, const MicroInstr& jumpInst, const MicroInstrOperand* jumpOps)
+    {
+        uint32_t labelId = 0;
+        if (!tryGetJumpTargetLabelId(labelId, jumpInst, jumpOps))
+            return false;
+        if (!invertBranchCondition(jumpOps[0].cpuCond, out.moveCond) || !conditionSupportsConditionalMove(out.moveCond))
+            return false;
+
+        out.jumpRef = jumpRef;
+        if (!collectReturnPath(out.arm, scan, conv, jumpRef))
+            return false;
+
+        // The rest starts at the jump's label, right after the early return,
+        // and nothing else lands there.
+        out.labelRef = scan.storage->findNextInstructionRef(out.arm.retRef);
+        if (!out.labelRef.isValid() || scan.relocated.contains(out.labelRef.get()))
+            return false;
+        const MicroInstr* labelInst    = scan.storage->ptr(out.labelRef);
+        uint32_t          foundLabelId = 0;
+        if (!tryGetLabelId(foundLabelId, *labelInst, labelInst->ops(*scan.operands)) || foundLabelId != labelId)
+            return false;
+        const auto referenceIt = scan.labelReferences.find(labelId);
+        if (referenceIt == scan.labelReferences.end() || referenceIt->second != 1)
+            return false;
+
+        if (!collectReturnPath(out.tail, scan, conv, out.labelRef))
+            return false;
+
+        // One epilogue serves both: they restore the same frame or none.
+        if (out.arm.epilogueRef.isValid() != out.tail.epilogueRef.isValid())
+            return false;
+        if (out.arm.epilogueRef.isValid())
+        {
+            const MicroInstrOperand* armOps  = scan.storage->ptr(out.arm.epilogueRef)->ops(*scan.operands);
+            const MicroInstrOperand* tailOps = scan.storage->ptr(out.tail.epilogueRef)->ops(*scan.operands);
+            if (armOps[1].opBits != tailOps[1].opBits || armOps[3].valueU64 != tailOps[3].valueU64)
+                return false;
+        }
+
+        // cmov exists for 32/64-bit registers only, and a 32-bit write
+        // zero-extends, so the wider of the two results is the move's width.
+        const uint32_t armBits  = getNumBits(out.arm.valueBits);
+        const uint32_t tailBits = getNumBits(out.tail.valueBits);
+        if (armBits < 32 || tailBits < 32)
+            return false;
+        out.moveBits = armBits == 64 || tailBits == 64 ? MicroOpBits::B64 : MicroOpBits::B32;
+
+        // The rest used to run straight after the compare. When either path
+        // writes the flags, the compare is re-issued before the move, which
+        // needs it pure and its inputs untouched by the rest; the early path
+        // cannot touch them, every register it writes is renamed.
+        out.sinkCompare = out.arm.definesFlags || out.tail.definesFlags;
+        if (!out.sinkCompare)
+            return true;
+        if (out.arm.readsEntryFlags || out.tail.readsEntryFlags)
+            return false;
+
+        out.flagsRef = scan.storage->findPreviousInstructionRef(jumpRef);
+        if (!out.flagsRef.isValid() || scan.relocated.contains(out.flagsRef.get()))
+            return false;
+        const MicroInstr* flagsInst = scan.storage->ptr(out.flagsRef);
+        if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const MicroInstrUseDef flagsUseDef = flagsInst->collectUseDef(*scan.operands, nullptr);
+        for (const MicroReg use : flagsUseDef.uses)
+        {
+            if (pathDefinesRegister(out.tail, scan, use))
+                return false;
+        }
+
+        return true;
+    }
+
+    // Rename every virtual register the early path writes, so the rest of
+    // the function - which used to run instead of it - still reads what it
+    // read before, and route the path's result into `valueReg`. False when a
+    // read-modify-write touches a register the path never wrote first: its
+    // read needs the old value and its write the new name.
+    bool renameEarlyPath(const ReturnPath& path, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder, const MicroReg returnReg, const MicroReg valueReg, uint32_t& nextVirtualIntRegIndex)
+    {
+        std::unordered_map<MicroReg, MicroReg> renamed;
+        SmallVector<MicroInstrRegOperandRef>   regOperands;
+        SmallVector<MicroInstrRef, 8>          refs = path.refs;
+        refs.push_back(path.valueRef);
+
+        for (const MicroInstrRef ref : refs)
+        {
+            regOperands.clear();
+            storage.ptr(ref)->collectRegOperands(operands, regOperands, encoder);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                MicroReg& reg = *regOperand.reg;
+                if (regOperand.def && ref == path.valueRef && reg == returnReg)
+                {
+                    reg = valueReg;
+                    continue;
+                }
+
+                const auto it = renamed.find(reg);
+                if (it != renamed.end())
+                {
+                    reg = it->second;
+                    continue;
+                }
+                if (!regOperand.def || !reg.isVirtualInt())
+                    continue;
+                if (regOperand.use)
+                    return false;
+
+                const MicroReg fresh = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                renamed.emplace(reg, fresh);
+                reg = fresh;
+            }
+        }
+
+        return true;
+    }
+
+    bool convertEarlyReturnsToSelects(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        if (!conv.intReturn.isValid())
+            return false;
+
+        std::vector<EarlyReturn> candidates;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& jumpInst = *it;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            EarlyReturn candidate;
+            if (tryMatchEarlyReturn(candidate, scan, conv, it.current, jumpInst, jumpOps))
+                candidates.push_back(std::move(candidate));
+        }
+
+        if (candidates.empty())
+            return false;
+
+        bool     changed                 = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (const EarlyReturn& earlyReturn : candidates)
+        {
+            const MicroReg armValue  = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg tailValue = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            if (!renameEarlyPath(earlyReturn.arm, storage, operands, context.encoder, conv.intReturn, armValue, nextVirtualIntRegIndex))
+                continue;
+
+            MicroInstrOperand* tailValueOps = storage.ptr(earlyReturn.tail.valueRef)->ops(operands);
+            tailValueOps[0].reg             = tailValue;
+
+            const MicroInstrRef insertBefore = earlyReturn.tail.epilogueRef.isValid() ? earlyReturn.tail.epilogueRef : earlyReturn.tail.retRef;
+            if (earlyReturn.sinkCompare)
+            {
+                const MicroInstr*        flagsInst = storage.ptr(earlyReturn.flagsRef);
+                const MicroInstrOperand* flagsOps  = flagsInst->ops(operands);
+                MicroInstrOperand        sunkOps[3];
+                SWC_ASSERT(flagsInst->numOperands <= 3);
+                for (uint32_t i = 0; i < flagsInst->numOperands; ++i)
+                    sunkOps[i] = flagsOps[i];
+                storage.insertDerivedBefore(operands, insertBefore, flagsInst->op, std::span<const MicroInstrOperand>(sunkOps, flagsInst->numOperands));
+                storage.erase(earlyReturn.flagsRef);
+            }
+
+            MicroInstrOperand movOps[4];
+            movOps[0].reg     = tailValue;
+            movOps[1].reg     = armValue;
+            movOps[2].cpuCond = earlyReturn.moveCond;
+            movOps[3].opBits  = earlyReturn.moveBits;
+            storage.insertDerivedBefore(operands, insertBefore, MicroInstrOpcode::LoadCondRegReg, movOps);
+
+            MicroInstrOperand retOps[3];
+            retOps[0].reg    = conv.intReturn;
+            retOps[1].reg    = tailValue;
+            retOps[2].opBits = earlyReturn.moveBits;
+            storage.insertDerivedBefore(operands, insertBefore, MicroInstrOpcode::LoadRegReg, retOps);
+
+            storage.erase(earlyReturn.jumpRef);
+            if (earlyReturn.arm.epilogueRef.isValid())
+                storage.erase(earlyReturn.arm.epilogueRef);
+            storage.erase(earlyReturn.arm.retRef);
+            storage.erase(earlyReturn.labelRef);
+            changed = true;
+        }
+
+        return changed;
     }
 
     bool instructionHasNoFallthrough(const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -1809,6 +2140,13 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         localSsaState.invalidate();
     }
     if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
+    {
+        changed = true;
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
+
+    if (convertEarlyReturnsToSelects(storage, operands, context))
     {
         changed = true;
         if (context.builder)

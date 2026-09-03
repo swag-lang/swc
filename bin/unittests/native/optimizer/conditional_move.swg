@@ -35,6 +35,31 @@ func clampLoop(dst: [*] u8, src: [*] s32, n: u64)
     }
 }
 
+// The same selects written as early returns: each `if … do return` is a
+// triangle whose body ends the function, and the chain folds into one
+// return fed by conditional moves.
+#[Swag.Optimize(true)]
+func clampEarly(v, lo, hi: s32)->s32
+{
+    if v < lo do return lo
+    if v > hi do return hi
+    return v
+}
+
+#[Swag.Optimize(true)]
+func absEarly(v: s32)->s32
+{
+    if v < 0 do return -v
+    return v
+}
+
+#[Swag.Optimize(true)]
+func selectEarlyConstant(count: u64)->u64
+{
+    if count == 0 do return 1
+    return count * 2
+}
+
 #[Swag.Optimize(true)]
 func absDiffSum(a, b: [*] s32, n: u64)->s64
 {
@@ -74,4 +99,14 @@ func absDiffSum(a, b: [*] s32, n: u64)->s64
     var a: [4] s32 = [1, 9, -3, 4]
     var b: [4] s32 = [4, 2, 3, 4]
     Swag.assert(absDiffSum(&a[0], &b[0], 4) == 3 + 7 + 6 + 0)
+
+    Swag.assert(clampEarly(-5, 0, 10) == 0)
+    Swag.assert(clampEarly(50, 0, 10) == 10)
+    Swag.assert(clampEarly(5, 0, 10) == 5)
+    Swag.assert(clampEarly(-2147483648, -10, 10) == -10)
+    Swag.assert(absEarly(-3) == 3)
+    Swag.assert(absEarly(4) == 4)
+    Swag.assert(absEarly(0) == 0)
+    Swag.assert(selectEarlyConstant(0) == 1)
+    Swag.assert(selectEarlyConstant(21) == 42)
 }

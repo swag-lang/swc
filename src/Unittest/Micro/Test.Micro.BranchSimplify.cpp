@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -768,6 +769,148 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsByteDiamond)
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
 
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // `if v < lo do return lo` followed by `return v`, the way the lowering
+    // writes it: a compare, a jump over the early return, each return
+    // materializing its value in the ABI's return register.
+    void emitEarlyReturn(MicroBuilder& builder, const MicroReg v, const MicroReg lo, const MicroReg returnReg)
+    {
+        const MicroLabelRef restLabel = builder.createLabel();
+        builder.emitCmpRegReg(v, lo, MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, restLabel);
+        builder.emitLoadRegReg(returnReg, lo, MicroOpBits::B32);
+        builder.emitRet();
+        builder.placeLabel(restLabel);
+    }
+}
+
+// The early return and the final return fold into one return fed by a move
+// taken when the jump would not have been.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsEarlyReturnToCmov)
+{
+    const MicroReg returnReg = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg v         = MicroReg::virtualIntReg(10);
+    const MicroReg lo        = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    emitEarlyReturn(builder, v, lo, returnReg);
+    builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalMoves(builder, MicroCond::Less) != 1)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Ret) != 1)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Label) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A chain of two early returns folds from the bottom, one per sweep.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsEarlyReturnChainToCmovs)
+{
+    const MicroReg returnReg = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg v         = MicroReg::virtualIntReg(10);
+    const MicroReg lo        = MicroReg::virtualIntReg(11);
+    const MicroReg hi        = MicroReg::virtualIntReg(12);
+    MicroBuilder   builder(ctx);
+
+    emitEarlyReturn(builder, v, lo, returnReg);
+    emitEarlyReturn(builder, hi, v, returnReg);
+    builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalMoves(builder, MicroCond::Less) != 2)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Ret) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The early return's value comes from memory the condition guards: the branch
+// stays, or the load would run on the path that never reached it.
+SWC_TEST_BEGIN(BranchSimplify_KeepsEarlyReturnWithGuardedLoad)
+{
+    const MicroReg      returnReg = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg      v         = MicroReg::virtualIntReg(10);
+    const MicroReg      lo        = MicroReg::virtualIntReg(11);
+    const MicroReg      table     = MicroReg::virtualIntReg(12);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef restLabel = builder.createLabel();
+
+    builder.emitCmpRegReg(v, lo, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, restLabel);
+    builder.emitLoadRegMem(returnReg, table, 8, MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(restLabel);
+    builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::Ret) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The early path negates its value, which writes the flags: the compare is
+// re-issued before the move.
+SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingEarlyReturn)
+{
+    const MicroReg      returnReg = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg      v         = MicroReg::virtualIntReg(10);
+    const MicroReg      negated   = MicroReg::virtualIntReg(11);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef restLabel = builder.createLabel();
+
+    builder.emitCmpRegImm(v, ApInt(uint64_t{0}, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, restLabel);
+    builder.emitLoadRegReg(negated, v, MicroOpBits::B32);
+    builder.emitOpUnaryReg(negated, MicroOp::Negate, MicroOpBits::B32);
+    builder.emitLoadRegReg(returnReg, negated, MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(restLabel);
+    builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalMoves(builder, MicroCond::Less) != 1)
+        return Result::Error;
+    if (countInstructionsWithOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
+        return Result::Error;
+
+    // The compare now sits right before the move, after the negation.
+    bool seenNegate = false;
+    bool compareAfterNegate = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpUnaryReg)
+            seenNegate = true;
+        if (inst.op == MicroInstrOpcode::CmpRegImm && seenNegate)
+            compareAfterNegate = true;
+    }
+    if (!compareAfterNegate)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

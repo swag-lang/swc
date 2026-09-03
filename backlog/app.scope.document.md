@@ -234,6 +234,20 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   the reading column in order.
 - Related: app.scope.binary.010
 
+## Native InDesign documents
+
+### app.scope.document.023 — Native InDesign rendering needs native page composition
+
+- Evidence: Swag Scope validates the duplicated master-page header, indexes every saved XMP JPEG
+  page preview, and decodes selected pages on demand through a bounded LRU cache. The visual result
+  is no longer a metadata substitute, but a preview is optional, may be stale, and does not expose
+  the native page-layout object graph, text selection, links, or output fidelity.
+- Next: add a preview-thumbnail navigator over the on-demand cache, then identify the native page
+  composition records that can be interpreted in Swag for documents with no saved preview pixels.
+- Complete when: every supported page has a clearly sourced visual rendering, navigation preserves
+  page identity and loading state, absent or stale preview data is named plainly, and no native
+  object is executed to render the document.
+
 ## Developer documents
 
 ### app.scope.document.022 — Jupyter notebooks have no document reader

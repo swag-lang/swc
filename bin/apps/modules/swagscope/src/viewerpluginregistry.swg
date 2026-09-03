@@ -29,6 +29,7 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
     expect result.register(imageViewerPlugin())
     expect result.register(videoViewerPlugin())
     expect result.register(pdfViewerPlugin())
+    expect result.register(indesignViewerPlugin())
     expect result.register(soundViewerPlugin())
     expect result.register(fontViewerPlugin())
     expect result.register(midiViewerPlugin())

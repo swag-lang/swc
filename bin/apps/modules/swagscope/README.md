@@ -93,6 +93,11 @@ alternative instead of guessing an encoding.
   tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
   view, and provides horizontal zoom through the common information-band control without
   synthesizing or executing file content.
+- `InDesign` validates the duplicated master-page headers of a native `.indd` document, indexes
+  every saved XMP JPEG page preview, and decodes only selected pages into a bounded cache. Its
+  zoomable, pannable document surface and compact page controls keep large preview-bearing
+  documents usable without loading all page pixels. Native layout objects, pages without saved
+  preview pixels, and output-faithful composition remain outside this rendering milestone.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   as a real hierarchical file browser. Selecting an entry prepares a bounded temporary copy,
   verifies its declared size and CRC-32, and hosts that copy through the ordinary viewer registry

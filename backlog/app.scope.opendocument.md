@@ -130,7 +130,7 @@ layout engine or a complete package model.
 - Complete when: local media appears at its intended place with intrinsic and declared dimensions,
   every resource has source and media-type provenance, and no URI causes a network, filesystem, or
   application launch.
-- Related: app.scope.image.002, std.pixel.image.001, app.scope.viewers.011
+- Related: app.scope.image.002, app.scope.viewers.011
 
 ### app.scope.opendocument.011 — ODG pages render drawing primitives, groups, layers, and connectors
 
@@ -141,7 +141,7 @@ layout engine or a complete package model.
   and text painting without treating embedded scripts or objects as drawable content.
 - Complete when: a drawing page preserves page size, object bounds, transforms, grouping, layer
   visibility, stacking order, connectors, and selectable text; unsupported primitives are named.
-- Related: std.pixel.image.012, app.scope.image.004
+- Related: app.scope.image.004
 
 ### app.scope.opendocument.012 — ODP slides retain master layouts, notes, objects, and show structure
 

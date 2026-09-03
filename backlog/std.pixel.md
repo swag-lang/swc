@@ -295,6 +295,22 @@ output, path measurement and effects, and the modern renderer choice tracked by
   to be.
 - Related: std.pixel.008
 
+### std.pixel.021 — A boolean operation keeps intersections it could not order
+
+- Evidence: `Transform.processIntersections` in `poly/clipper.swg` calls `processIntersectList`
+  only when the list holds one node or `fixupIntersectionOrder` succeeds. The reference library
+  raises on the remaining case and disposes the nodes; this port silently returns with the list
+  still populated. Nothing else empties it, so those nodes are never released, the next scanbeam
+  appends to them, and a later scanbeam that does order its own intersections replays edge pairs
+  from a beam that is already behind it.
+- Next: decide what a port with no exceptions owes here — dispose the nodes and carry on, or
+  report the operation as failed — then write the fixture that reaches it. The ordering failure
+  needs three or more edges meeting so closely that no adjacent pair remains, which the union of
+  near-coincident contours produces; the fixture is what is missing, not the diagnosis.
+- Complete when: the unordered case releases its nodes, no later scanbeam can read them, and a
+  test pins whichever outcome is chosen.
+- Related: std.pixel.011
+
 ## Out of scope
 
 **Image codecs.** Decoding, encoding, metadata, multi-image containers, and SVG input are tracked

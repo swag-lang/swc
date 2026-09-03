@@ -129,7 +129,7 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   not represent in localized text beside it rather than as a raw module error, and keeps page
   navigation working across a page it could only partly decode.
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
-- Related: std.gui.pdf.002, std.gui.pdf.016
+- Related: std.gui.pdf.002
 
 ### app.scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
 

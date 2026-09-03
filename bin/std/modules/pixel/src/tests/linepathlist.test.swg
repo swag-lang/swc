@@ -270,3 +270,47 @@ func square(x, y, size: f32)->LinePathList
     shape.intersect(&far)
     Swag.assert(shape.count() == 0)
 }
+
+// One cell of a table, by its corners in page units.
+struct Cell
+{
+    left, top, right, bottom: f32
+}
+
+// A table whose column boundary is authored at 44.815002 on one side and 44.814999 on the other.
+// The solver works in integers, so the two land one unit apart: the cells touch along horizontal
+// runs it has to stitch, with a sliver between the columns. Two such runs meeting head on used to
+// be joined back to front, leaving a point whose successor did not name it as its predecessor;
+// tidying that ring never terminated, and a real document froze its viewer on the page that holds
+// this table.
+const TouchingCells: [5] Cell = [
+    {34.894001, 195.505005, 44.815002, 206.843994},
+    {34.894001, 206.843018, 44.815002, 218.182007},
+    {44.814999, 206.843018, 54.736000, 218.182007},
+    {34.894001, 218.182007, 44.815002, 229.520996},
+    {44.814999, 218.182007, 54.736000, 229.520996}]
+
+#test
+{
+    var list: LinePathList
+    for cell in TouchingCells
+    {
+        with let path = list.newPath()
+        {
+            .start(cell.left, cell.top)
+            .lineTo(cell.right, cell.top)
+            .lineTo(cell.right, cell.bottom)
+            .lineTo(cell.left, cell.bottom)
+            .close()
+        }
+    }
+
+    list.flatten()
+    list.clean()
+
+    // The sliver keeps the columns apart, so the union is the stack of three cells on the left
+    // and the pair on its right.
+    Swag.assert(list.count() == 2)
+    Swag.assert(list.minBounds.isEqualEpsilon({34.894, 195.505}, 0.01))
+    Swag.assert(list.maxBounds.isEqualEpsilon({54.736, 229.521}, 0.01))
+}

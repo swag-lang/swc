@@ -1583,7 +1583,14 @@ impl Transform
             }
         }
 
-        if dir1 == .LeftToRight and discardLeft
+        // Each duplicate was inserted on the side the discarded half sits on, so the pair that
+        // closes the join is the pair on that side. When the direction and the discarded side
+        // agree — a left-to-right run discarding its left, or a right-to-left run discarding its
+        // right — the duplicates lead the originals and the join runs backwards through them;
+        // otherwise it runs forwards. Stitching the other pair links a point's successor to a node
+        // that names someone else as its predecessor: the ring stops being a ring, and tidying it
+        // afterwards never ends.
+        if (dir1 == .LeftToRight) == discardLeft
         {
             op1.prev  = op2
             op2.next  = op1

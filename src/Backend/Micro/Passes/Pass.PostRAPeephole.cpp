@@ -36,7 +36,7 @@ namespace
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
-        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoFloatBinary);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseRedundantStoreReload);
         r.add(MicroInstrOpcode::LoadMemReg, tryForwardStoredValueToReload);

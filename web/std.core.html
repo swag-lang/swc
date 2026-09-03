@@ -443,7 +443,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1683</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1684</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1088,6 +1088,7 @@
 <li><a href="#Core_Input_Keyboard_keyToRune">Keyboard.keyToRune</a></li>
 <li><a href="#Core_Input_Keyboard_keyToVirtualKey">Keyboard.keyToVirtualKey</a></li>
 <li><a href="#Core_Input_Keyboard_pressedModifiers">Keyboard.pressedModifiers</a></li>
+<li><a href="#Core_Input_Keyboard_releaseAllKeys">Keyboard.releaseAllKeys</a></li>
 <li><a href="#Core_Input_Keyboard_update">Keyboard.update</a></li>
 <li><a href="#Core_Input_Keyboard_virtualKeyToKey">Keyboard.virtualKeyToKey</a></li>
 <li><a href="#Core_Input_KeyboardState_clear">KeyboardState.clear</a></li>
@@ -3257,7 +3258,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Atomic_exchange">Atomic.exchange</a></td><td><p>Performs the exchange operation.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Atomic_get">Atomic.get</a></td><td><p>Performs the get operation.</p>
+<tr><td class="code-type"><a href="#Core_Atomic_get">Atomic.get</a></td><td><p>Reads the value as one atomic access, without locking the cache line.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Atomic_logicAnd">Atomic.logicAnd</a></td><td><p>Performs the logic and operation.</p>
 </td></tr>
@@ -4376,6 +4377,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_keyToVirtualKey">Keyboard.keyToVirtualKey</a></td><td><p>Performs the key to virtual key operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_pressedModifiers">Keyboard.pressedModifiers</a></td><td><p>Returns the modifier flags active in the latest state.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Input_Keyboard_releaseAllKeys">Keyboard.releaseAllKeys</a></td><td><p>Presents every key of the current state as released.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_update">Keyboard.update</a></td><td><p>Compute current state of the keyboard (all keys)</p>
 </td></tr>
@@ -6634,7 +6637,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Atomic_exchange">Atomic.exchange</a></td><td><p>Performs the exchange operation.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Atomic_get">Atomic.get</a></td><td><p>Performs the get operation.</p>
+<tr><td class="code-type"><a href="#Core_Atomic_get">Atomic.get</a></td><td><p>Reads the value as one atomic access, without locking the cache line.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Atomic_logicAnd">Atomic.logicAnd</a></td><td><p>Performs the logic and operation.</p>
 </td></tr>
@@ -11717,6 +11720,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_keyToVirtualKey">keyToVirtualKey</a></td><td><p>Performs the key to virtual key operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_pressedModifiers">pressedModifiers</a></td><td><p>Returns the modifier flags active in the latest state.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Input_Keyboard_releaseAllKeys">releaseAllKeys</a></td><td><p>Presents every key of the current state as released.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_update">update</a></td><td><p>Compute current state of the keyboard (all keys)</p>
 </td></tr>
@@ -17291,9 +17296,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Atomic_get" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Atomic.get</span> <a class="api-item-permalink" href="#Core_Atomic_get" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/atomic.swg#L80">src</a></div>
-<p>Performs the get operation.</p>
+<p>Reads the value as one atomic access, without locking the cache line.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">get</span>(addr: *<span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span> =&gt; <span class="SNsp">Swag</span>.</span></div>
-<p>Performs the get operation.</p>
+<p>Reads the value as one atomic access, without locking the cache line.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">get</span>(addr: *<span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span> =&gt; <span class="SNsp">Swag</span>.</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">get</span>(addr: *<span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> =&gt; <span class="SNsp">Swag</span>.</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">get</span>(addr: *<span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span> =&gt; <span class="SNsp">Swag</span>.</span></div>
@@ -20426,29 +20431,29 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">NT</span>) <span class="SFct">writeNative</span>(value: <span class="SCst">NT</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.clear</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L81">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.clear</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L91">src</a></div>
 <p>Reset the keyboard state</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L96">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L106">src</a></div>
 <p>Determines whether given key has just been pressed</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyJustPressed</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L108">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L118">src</a></div>
 <p>Determines whether given key has just been released</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyJustReleased</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L90">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L100">src</a></div>
 <p>Determines whether given key is currently being pressed</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyPressed</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns true if the given key is pressed</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isKeyPressed</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L102">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L112">src</a></div>
 <p>Determines whether given key is currently being released</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyReleased</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -20463,12 +20468,18 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">keyToVirtualKey</span>(key: <span class="SCst">Key</span>)-&gt;<span class="SCst"><a href="#Core_Input_VirtualKey">VirtualKey</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_pressedModifiers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.pressedModifiers</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_pressedModifiers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L114">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_pressedModifiers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.pressedModifiers</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_pressedModifiers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L124">src</a></div>
 <p>Returns the modifier flags active in the latest state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pressedModifiers</span>()-&gt;<span class="SCst"><a href="#Core_Input_KeyModifiers">KeyModifiers</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.update</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L41">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_releaseAllKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.releaseAllKeys</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_releaseAllKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L39">src</a></div>
+<p>Presents every key of the current state as released.</p>
+<p>The next [[Input.Keyboard.update]] resumes from the real device, so this quiets exactly one update. Use it when the polled device must not reach the consumer, such as an application whose keyboard belongs to another one for as long as it is not active.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseAllKeys</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.update</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L51">src</a></div>
 <p>Compute current state of the keyboard (all keys)</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>()</span></div>
 </section>
@@ -26591,7 +26602,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.325</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.326</div>
 </footer>
 </section>
 </main>
@@ -28610,6 +28621,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Input.Keyboard.keyToRune|Core_Input_Keyboard_keyToRune|Try to transform the given key to the corresponding rune",
 "f|Core.Input.Keyboard.keyToVirtualKey|Core_Input_Keyboard_keyToVirtualKey|Performs the key to virtual key operation.",
 "f|Core.Input.Keyboard.pressedModifiers|Core_Input_Keyboard_pressedModifiers|Returns the modifier flags active in the latest state.",
+"f|Core.Input.Keyboard.releaseAllKeys|Core_Input_Keyboard_releaseAllKeys|Presents every key of the current state as released.",
 "f|Core.Input.Keyboard.update|Core_Input_Keyboard_update|Compute current state of the keyboard (all keys)",
 "f|Core.Input.Keyboard.virtualKeyToKey|Core_Input_Keyboard_virtualKeyToKey|Performs the virtual key to key operation.",
 "f|Core.Input.KeyboardState.clear|Core_Input_KeyboardState_clear|Reset keyboard state",
@@ -29649,7 +29661,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Atomic.add|Core_Atomic_add|Performs the add operation.",
 "f|Core.Atomic.compareExchange|Core_Atomic_compareExchange|Performs the compare exchange operation.",
 "f|Core.Atomic.exchange|Core_Atomic_exchange|Performs the exchange operation.",
-"f|Core.Atomic.get|Core_Atomic_get|Performs the get operation.",
+"f|Core.Atomic.get|Core_Atomic_get|Reads the value as one atomic access, without locking the cache line.",
 "f|Core.Atomic.logicAnd|Core_Atomic_logicAnd|Performs the logic and operation.",
 "f|Core.Atomic.logicOr|Core_Atomic_logicOr|Performs the logic or operation.",
 "f|Core.Atomic.logicXor|Core_Atomic_logicXor|Performs the logic xor operation.",

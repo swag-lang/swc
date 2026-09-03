@@ -937,6 +937,7 @@ bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& in
     switch (inst.op)
     {
         case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadVolatileRegMem:
         case MicroInstrOpcode::LoadSignedExtRegMem:
         case MicroInstrOpcode::LoadZeroExtRegMem:
         case MicroInstrOpcode::LoadVecRegMem:

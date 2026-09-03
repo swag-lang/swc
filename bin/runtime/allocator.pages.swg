@@ -126,8 +126,8 @@ var g_AllocatorOsCommitCount:   u64
 var g_AllocatorOsDecommitCount: u64
 var g_AllocatorOsReserveCount:  u64
 
-func atomicGet(addr: *u32)->u32 => Swag.atomcmpxchg(addr, 0, 0)
-func atomicGet(addr: *u64)->u64 => Swag.atomcmpxchg(addr, 0, 0)
+func atomicGet(addr: *u32)->u32 => Swag.atomget(addr)
+func atomicGet(addr: *u64)->u64 => Swag.atomget(addr)
 
 func atomicAddU64(addr: *u64, delta: u64)
 {

@@ -358,6 +358,7 @@ SWC_TOKEN_DEF(IntrinsicAtomicOr, "Swag.atomor", TokenIdKindE::Intrinsic | TokenI
 SWC_TOKEN_DEF(IntrinsicAtomicXor, "Swag.atomxor", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicAtomicXchg, "Swag.atomxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicAtomicCmpXchg, "Swag.atomcmpxchg", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicAtomicGet, "Swag.atomget", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - VECTOR
 

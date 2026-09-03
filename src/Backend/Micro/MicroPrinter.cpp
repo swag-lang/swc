@@ -835,6 +835,10 @@ namespace
                 return std::format("{} {} entries", tagInstructionToken("jump_table"), inst.numOperands);
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadVolatileRegMem:
+                return std::format("{} = {} {}", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("volatile"), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::CompareExchangeRegMemReg:
+                return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("cmpxchg"), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), regName(ops[0].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadVecRegMem:
                 return std::format("{} = vec128 {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::StoreVecMemReg:
@@ -1847,8 +1851,17 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVolatileRegMem:
             case MicroInstrOpcode::LoadAddrRegMem:
                 appendRegMemBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::CompareExchangeRegMemReg:
+                appendColored(out, ctx, SyntaxColor::Code, "cmpxchg");
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendMemRegBits(out, ctx, ops, 1, 2, 3, 4, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadSignedExtRegMem:

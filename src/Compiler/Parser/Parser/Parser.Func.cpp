@@ -641,6 +641,7 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                 case TokenId::IntrinsicVecReduceOr:
                 case TokenId::IntrinsicVecReduceXor:
                 case TokenId::IntrinsicVecTruncS32:
+                case TokenId::IntrinsicAtomicGet:
                     numRequiredArgs = 1;
                     break;
 

@@ -227,6 +227,21 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 3,
     })
+// A load the optimizer leaves where it is: never hoisted, merged with another read,
+// dropped, or reordered with a memory access. It carries the memory-writer flag for
+// exactly that reason - every pass that steps around a store steps around it too. What
+// 'Swag.atomget' lowers to: an aligned load is already an atomic acquire on x86-64.
+SWC_MICRO_INSTR_DEF(
+    LoadVolatileRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 1,
+        .memOffsetOperandIndex = 3,
+    })
 SWC_MICRO_INSTR_DEF(
     LoadMemReg,
     MicroInstrDef{
@@ -554,6 +569,20 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 
+// lock cmpxchg [op1 + op4], op2: compares the memory word with op0, stores op2 on a
+// match, and leaves the value it saw in op0 either way. A memory writer whose effect
+// stands whether or not anything reads its result.
+SWC_MICRO_INSTR_DEF(
+    CompareExchangeRegMemReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 1,
+        .memOffsetOperandIndex = 4,
+    })
 SWC_MICRO_INSTR_DEF(
     LoadVecRegMem,
     MicroInstrDef{

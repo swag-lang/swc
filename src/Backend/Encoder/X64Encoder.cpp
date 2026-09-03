@@ -421,6 +421,9 @@ namespace
                op == MicroOp::ShiftArithmeticRight;
     }
 
+    // The exchange stays a memory form: `xchg [mem], reg` is the atomic
+    // instruction 'Swag.atomxchg' asks for, and its register rewrite - a load,
+    // a register exchange and a store - is a plain read-modify-write.
     bool supportsOpBinaryMemReg(MicroOp op)
     {
         return op == MicroOp::Xor ||
@@ -428,6 +431,7 @@ namespace
                op == MicroOp::And ||
                op == MicroOp::Add ||
                op == MicroOp::Subtract ||
+               op == MicroOp::Exchange ||
                op == MicroOp::ShiftLeft ||
                op == MicroOp::ShiftArithmeticLeft ||
                op == MicroOp::ShiftRight ||
@@ -1224,7 +1228,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
 
-        if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || !supportsOpBinaryMemReg(op))
+        if (!ops[0].reg.isAnyInt() || !ops[1].reg.isAnyInt() || !supportsOpBinaryMemReg(op))
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteMemRegToRegReg;
             return true;
@@ -1244,35 +1248,33 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
-    if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
+    if (inst.op == MicroInstrOpcode::CompareExchangeRegMemReg)
     {
-        const MicroOp op = ops[4].microOp;
-        if (op == MicroOp::CompareExchange)
+        // cmpxchg compares against rax and answers in it; the address and the
+        // desired value therefore live anywhere else.
+        const MicroReg raxReg = x64RegToMicroReg(X64Reg::Rax);
+        if (ops[0].reg != raxReg)
         {
-            const MicroReg raxReg = x64RegToMicroReg(X64Reg::Rax);
-            if (ops[0].reg != raxReg)
-            {
-                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
-                outIssue.operandIndex = 0;
-                outIssue.requiredReg  = raxReg;
-                return true;
-            }
+            outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+            outIssue.operandIndex = 0;
+            outIssue.requiredReg  = raxReg;
+            return true;
+        }
 
-            if (ops[1].reg == raxReg)
-            {
-                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
-                outIssue.operandIndex = 1;
-                outIssue.forbiddenReg = raxReg;
-                return true;
-            }
+        if (ops[1].reg == raxReg)
+        {
+            outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
+            outIssue.operandIndex = 1;
+            outIssue.forbiddenReg = raxReg;
+            return true;
+        }
 
-            if (ops[2].reg == raxReg)
-            {
-                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
-                outIssue.operandIndex = 2;
-                outIssue.forbiddenReg = raxReg;
-                return true;
-            }
+        if (ops[2].reg == raxReg)
+        {
+            outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
+            outIssue.operandIndex = 2;
+            outIssue.forbiddenReg = raxReg;
+            return true;
         }
     }
 
@@ -3782,23 +3784,25 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
 
     ///////////////////////////////////////////
 
-    else if (op == MicroOp::CompareExchange)
-    {
-        SWC_ASSERT(microRegToX64Reg(reg0) == X64Reg::Rax);
-
-        emitCpuOp(store_, 0xF0);
-        emitRex(store_, opBits, reg2, reg1);
-        emitCpuOp(store_, 0x0F);
-        emitSpecCpuOp(store_, 0xB1, opBits);
-        emitModRm(store_, 0, reg2, reg1);
-    }
-
-    ///////////////////////////////////////////
-
     else
     {
         SWC_INTERNAL_ERROR();
     }
+}
+
+void X64Encoder::encodeCompareExchangeRegMemReg(MicroReg reg0, MicroReg memReg, uint64_t memOffset, MicroReg reg2, MicroOpBits opBits)
+{
+    // lock cmpxchg [mem], reg2 compares the memory word with rax, stores reg2
+    // on a match, and leaves the value it saw in rax either way.
+    SWC_ASSERT(microRegToX64Reg(reg0) == X64Reg::Rax);
+    SWC_ASSERT(!memReg.isFloat() && !reg2.isFloat());
+    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+
+    emitCpuOp(store_, 0xF0);
+    emitRex(store_, opBits, reg2, memReg);
+    emitCpuOp(store_, 0x0F);
+    emitSpecCpuOp(store_, 0xB1, opBits);
+    emitModRm(store_, memOffset, reg2, memReg);
 }
 
 void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits)

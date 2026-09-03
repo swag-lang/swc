@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -573,6 +574,274 @@ SWC_TEST_BEGIN(InstCombine_MaskBeforeRightShift_Kept)
     SWC_RESULT(runInstCombinePass(builder));
 
     if (countBinaryMicroOp(builder, MicroOp::And) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // Width of the first binary operation of this kind, whether its source
+    // stayed in a register or was folded into a memory operand.
+    bool firstBinaryBits(const MicroBuilder& builder, MicroOp op, MicroOpBits& outBits)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegReg && inst.op != MicroInstrOpcode::OpBinaryRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops || ops[3].microOp != op)
+                continue;
+            outBits = ops[2].opBits;
+            return true;
+        }
+        return false;
+    }
+}
+
+// A 32-bit load already clears the upper half of its register, so widening
+// its result to 64 bits is a plain copy.
+SWC_TEST_BEGIN(InstCombine_ZeroExtendOfDwordLoad_BecomesCopy)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 8, MicroOpBits::B32);
+    builder.emitLoadZeroExtendRegReg(v2, v1, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 16, v2, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A 64-bit definition says nothing about its upper half: the extend stays.
+SWC_TEST_BEGIN(InstCombine_ZeroExtendOfQwordLoad_Kept)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 8, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(v2, v1, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 16, v2, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The `(u64(a) + u64(b)) & 0xFFFFFFFF` idiom: both widenings become copies and
+// the masked 64-bit addition narrows to the 32-bit one it computes.
+SWC_TEST_BEGIN(InstCombine_MaskedAddOfZeroExtendedWords_NarrowsToDword)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg v3   = MicroReg::virtualIntReg(4);
+    constexpr MicroReg v4   = MicroReg::virtualIntReg(5);
+    constexpr MicroReg v5   = MicroReg::virtualIntReg(6);
+    constexpr MicroReg v6   = MicroReg::virtualIntReg(7);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B32);
+    builder.emitLoadRegMem(v2, base, 4, MicroOpBits::B32);
+    builder.emitLoadZeroExtendRegReg(v3, v1, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadZeroExtendRegReg(v4, v2, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadRegReg(v5, v3, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(v5, v4, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(v6, v5, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 8, v6, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 0)
+        return Result::Error;
+    MicroOpBits addBits = MicroOpBits::Zero;
+    if (!firstBinaryBits(builder, MicroOp::Add, addBits) || addBits != MicroOpBits::B32)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The sum has a second reader that wants all 64 bits: the addition keeps its
+// width and the mask its extend.
+SWC_TEST_BEGIN(InstCombine_MaskedAddWithQwordReader_Kept)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg v3   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(v2, base, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(v1, v2, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(v3, v1, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 16, v3, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 24, v1, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    MicroOpBits addBits = MicroOpBits::Zero;
+    if (!firstBinaryBits(builder, MicroOp::Add, addBits) || addBits != MicroOpBits::B64)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A shift count is masked differently at each width, so a masked 64-bit shift
+// is not the 32-bit shift.
+SWC_TEST_BEGIN(InstCombine_MaskedShift_Kept)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg v3   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(v2, base, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(v1, v2, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(v3, v1, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 16, v3, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    MicroOpBits shiftBits = MicroOpBits::Zero;
+    if (!firstBinaryBits(builder, MicroOp::ShiftLeft, shiftBits) || shiftBits != MicroOpBits::B64)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A load/modify/store round trip inside a loop body: the temporary flows into
+// a phi at the header that nothing reads, which must not count as a second
+// consumer.
+SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_InsideLoop)
+{
+    constexpr MicroReg rcx   = MicroReg::intReg(2);
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count = MicroReg::virtualIntReg(2);
+    constexpr MicroReg key   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef loopLabel = builder.createLabel();
+    builder.emitLoadRegReg(base, rcx, MicroOpBits::B64);
+    builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(key, ApInt(uint64_t{0x5A}, 64), MicroOpBits::B32);
+    builder.placeLabel(loopLabel);
+    builder.emitLoadRegMem(word, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(word, key, MicroOp::Xor, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 0, word, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(base, ApInt(uint64_t{4}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(count, ApInt(uint64_t{16}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loopLabel);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The same round trip on a frame slot stays scalar: inside a loop that slot
+// is slot promotion's and the vectorizer's to take.
+SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_LeavesLoopFrameSlot)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count = MicroReg::virtualIntReg(2);
+    constexpr MicroReg key   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef loopLabel = builder.createLabel();
+    builder.emitLoadAddressRegMem(base, stack, 16, MicroOpBits::B64);
+    builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(key, ApInt(uint64_t{0x5A}, 64), MicroOpBits::B32);
+    builder.placeLabel(loopLabel);
+    builder.emitLoadRegMem(word, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(word, key, MicroOp::Xor, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 0, word, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(count, ApInt(uint64_t{16}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loopLabel);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A loop-carried 32-bit accumulator: every input of its phi is a 32-bit write,
+// so the widening at the top of the body is a copy, and the masked addition
+// that feeds the back edge narrows.
+SWC_TEST_BEGIN(InstCombine_ZeroExtendOfDwordPhi_BecomesCopy)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg acc   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg count = MicroReg::virtualIntReg(3);
+    constexpr MicroReg wide  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(5);
+    constexpr MicroReg sum   = MicroReg::virtualIntReg(6);
+    constexpr MicroReg next  = MicroReg::virtualIntReg(7);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef loopLabel = builder.createLabel();
+    builder.emitLoadRegImm(acc, ApInt(uint64_t{0}, 64), MicroOpBits::B32);
+    builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.placeLabel(loopLabel);
+    builder.emitLoadZeroExtendRegReg(wide, acc, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadRegMem(word, base, 0, MicroOpBits::B32);
+    builder.emitLoadRegReg(sum, wide, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(sum, word, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegReg(next, sum, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadRegReg(acc, next, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(count, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loopLabel);
+    builder.emitLoadMemReg(base, 8, acc, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 0)
+        return Result::Error;
+    MicroOpBits addBits = MicroOpBits::Zero;
+    if (!firstBinaryBits(builder, MicroOp::Add, addBits) || addBits != MicroOpBits::B32)
         return Result::Error;
     return Result::Continue;
 }

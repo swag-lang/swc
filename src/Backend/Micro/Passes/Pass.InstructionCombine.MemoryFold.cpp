@@ -119,6 +119,8 @@ namespace InstructionCombine
         const uint64_t    loadOff  = loadOps[3].valueU64;
         if (!vt.isVirtualInt())
             return false;
+        if (keepAccessScalar(ctx, loadRef, base))
+            return false;
 
         MicroStorage::Iterator walker;
         if (!findAnchorPosition(walker, *ctx.storage, loadRef))

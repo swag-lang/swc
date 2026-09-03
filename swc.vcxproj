@@ -158,6 +158,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.ConstantFolding.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.CopyElimination.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.InstructionCombine.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.MemToReg.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PostRALoopHoist.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PostRAPeephole.cpp"/>
@@ -232,6 +233,7 @@
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.LoadFold.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.ZeroExtend.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.FloatOrderedCompare.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.CommuteConst.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp"/>

@@ -575,15 +575,20 @@ namespace
         context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::CmpMemReg, ops);
     }
 
-    void insertTernaryRegRegReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
+    // Re-emits a three-register form with new registers and the rest of its
+    // operands as they were: the ternary's width and operation, or the
+    // compare-exchange's width and displacement.
+    void insertThreeRegisterForm(const MicroPassContext& context, MicroInstrRef instRef, MicroInstrOpcode opcode, const MicroInstrOperand& tail3, const MicroInstrOperand& tail4, MicroReg reg0, MicroReg reg1, MicroReg reg2)
     {
+        SWC_ASSERT(opcode == MicroInstrOpcode::OpTernaryRegRegReg || opcode == MicroInstrOpcode::CompareExchangeRegMemReg);
+
         std::array<MicroInstrOperand, 5> ops;
-        ops[0].reg     = reg0;
-        ops[1].reg     = reg1;
-        ops[2].reg     = reg2;
-        ops[3].opBits  = opBits;
-        ops[4].microOp = op;
-        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpTernaryRegRegReg, ops);
+        ops[0].reg = reg0;
+        ops[1].reg = reg1;
+        ops[2].reg = reg2;
+        ops[3]     = tail3;
+        ops[4]     = tail4;
+        context.instructions->insertDerivedBefore(*context.operands, instRef, opcode, ops);
     }
 
     void insertLoadRegImm(const MicroPassContext& context, MicroInstrRef instRef, MicroReg dstReg, MicroOpBits opBits, const MicroInstrOperand& immOperand)
@@ -660,7 +665,7 @@ namespace
         const uint64_t    memOffset = ops[4].valueU64;
 
         MicroReg scratchReg = MicroReg::invalid();
-        if (srcReg.isFloat())
+        if (srcReg.isAnyFloat())
             scratchReg = allocateVirtualFloatReg(context, nextVirtualFloatRegIndex);
         else
             scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
@@ -837,15 +842,19 @@ namespace
     void applyRewriteTernaryOperandToFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::OpTernaryRegRegReg);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::CompareExchangeRegMemReg);
         SWC_ASSERT(issue.operandIndex == 0);
 
-        const MicroReg    originalReg0   = ops[0].reg;
-        const MicroReg    originalReg1   = ops[1].reg;
-        const MicroReg    originalReg2   = ops[2].reg;
-        const MicroOpBits opBits         = ops[3].opBits;
-        const MicroOp     op             = ops[4].microOp;
-        const MicroReg    requiredReg    = issue.requiredReg;
+        // The instruction and its operand block may move when the rewrite
+        // inserts instructions, so everything it needs is read first.
+        const MicroInstrOpcode  opcode         = inst.op;
+        const MicroReg          originalReg0   = ops[0].reg;
+        const MicroReg          originalReg1   = ops[1].reg;
+        const MicroReg          originalReg2   = ops[2].reg;
+        const MicroOpBits       opBits         = ops[3].opBits;
+        const MicroInstrOperand tail3          = ops[3];
+        const MicroInstrOperand tail4          = ops[4];
+        const MicroReg          requiredReg    = issue.requiredReg;
         const bool        mustPreserve   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         const bool        shouldPreserve = mustPreserve && requiredReg != originalReg0;
         SWC_ASSERT(requiredReg.isValid());
@@ -902,7 +911,7 @@ namespace
             insertMoveRegReg(context, instRef, requiredReg, originalReg0, MicroOpBits::B64);
         }
 
-        insertTernaryRegRegReg(context, instRef, requiredReg, rewrittenReg1, rewrittenReg2, op, opBits);
+        insertThreeRegisterForm(context, instRef, opcode, tail3, tail4, requiredReg, rewrittenReg1, rewrittenReg2);
         if (originalReg0 != requiredReg)
             insertMoveRegReg(context, instRef, originalReg0, requiredReg, opBits);
 
@@ -947,15 +956,19 @@ namespace
     void applyRewriteTernaryOperandAwayFromFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::OpTernaryRegRegReg);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::CompareExchangeRegMemReg);
         SWC_ASSERT(issue.operandIndex <= 2);
 
-        const MicroReg    originalReg0 = ops[0].reg;
-        const MicroReg    originalReg1 = ops[1].reg;
-        const MicroReg    originalReg2 = ops[2].reg;
-        const MicroOpBits opBits       = ops[3].opBits;
-        const MicroOp     op           = ops[4].microOp;
-        const MicroReg    forbiddenReg = issue.forbiddenReg;
+        // The instruction and its operand block may move when the rewrite
+        // inserts instructions, so everything it needs is read first.
+        const MicroInstrOpcode  opcode       = inst.op;
+        const MicroReg          originalReg0 = ops[0].reg;
+        const MicroReg          originalReg1 = ops[1].reg;
+        const MicroReg          originalReg2 = ops[2].reg;
+        const MicroOpBits       opBits       = ops[3].opBits;
+        const MicroInstrOperand tail3        = ops[3];
+        const MicroInstrOperand tail4        = ops[4];
+        const MicroReg          forbiddenReg = issue.forbiddenReg;
         const MicroReg    scratchReg   = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
         SWC_ASSERT(forbiddenReg.isValid());
         SWC_ASSERT(scratchReg.isValid());
@@ -978,7 +991,7 @@ namespace
         else
             rewrittenReg2 = scratchReg;
 
-        insertTernaryRegRegReg(context, instRef, rewrittenReg0, rewrittenReg1, rewrittenReg2, op, opBits);
+        insertThreeRegisterForm(context, instRef, opcode, tail3, tail4, rewrittenReg0, rewrittenReg1, rewrittenReg2);
         if (rewrittenReg0 != originalReg0)
             insertMoveRegReg(context, instRef, originalReg0, rewrittenReg0, opBits);
 
@@ -1021,7 +1034,7 @@ namespace
                     applyRewriteRegMemOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
                     applyRewriteMemRegOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
-                else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
+                else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::CompareExchangeRegMemReg)
                     applyRewriteTernaryOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else
                     SWC_UNREACHABLE();
@@ -1029,7 +1042,7 @@ namespace
             case MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg:
                 if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
                     applyRewriteRegRegOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
-                else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
+                else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::CompareExchangeRegMemReg)
                     applyRewriteTernaryOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else
                     SWC_UNREACHABLE();

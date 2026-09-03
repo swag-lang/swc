@@ -46,6 +46,22 @@ exchange.
 }
 
 /**
+# Atomic Read
+
+'Swag.atomget' reads an integer through a pointer as one atomic access. It is a plain
+load on x86-64, so it takes no bus lock, and the compiler never hoists, merges, or drops
+it: a loop polling a value that another thread publishes reads memory on every iteration.
+*/
+#test
+{
+    var flag = 0'u32
+    Swag.assert(Swag.atomget(&flag) == 0)
+
+    discard Swag.atomxchg(&flag, 1)
+    Swag.assert(Swag.atomget(&flag) == 1)
+}
+
+/**
 > WARNING:
 > Raw memory operations bypass 'opPostCopy', 'opPostMove', and 'opDrop'. Do not
 > use them to copy or relocate lifecycle-bearing values unless the type's

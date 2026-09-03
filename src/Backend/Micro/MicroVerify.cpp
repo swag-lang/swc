@@ -220,6 +220,7 @@ namespace
                 return 3;
 
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVolatileRegMem:
             case MicroInstrOpcode::LoadMemReg:
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::LoadSignedExtRegReg:
@@ -244,6 +245,7 @@ namespace
             case MicroInstrOpcode::OpBinaryMemReg:
             case MicroInstrOpcode::OpBinaryMemImm:
             case MicroInstrOpcode::OpTernaryRegRegReg:
+            case MicroInstrOpcode::CompareExchangeRegMemReg:
             case MicroInstrOpcode::OpBinaryRegRegReg:
                 return 5;
 

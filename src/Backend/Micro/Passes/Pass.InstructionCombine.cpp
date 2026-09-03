@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -41,8 +42,11 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
-        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
+        // The address computation folds into the load before the load folds
+        // into its consumer: an indexed access has no memory-operand form, and
+        // a plain one gets both folds across two sweeps.
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoSignExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoZeroExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoCompare);
@@ -70,6 +74,8 @@ namespace
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryDropRedundantZeroExtend);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
         return r;
     }
@@ -114,10 +120,11 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsa);
 
     Context ctx;
-    ctx.storage  = context.instructions;
-    ctx.operands = context.operands;
-    ctx.ssa      = ssa;
-    ctx.builder  = context.builder;
+    ctx.storage      = context.instructions;
+    ctx.operands     = context.operands;
+    ctx.ssa          = ssa;
+    ctx.builder      = context.builder;
+    ctx.stackPointer = CallConv::get(context.callConvKind).stackPointer;
     if (ctx.builder)
     {
         ctx.relocated.reserve(ctx.builder->codeRelocations().size());

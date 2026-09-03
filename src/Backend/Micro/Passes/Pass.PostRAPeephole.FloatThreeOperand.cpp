@@ -48,16 +48,71 @@ namespace PostRaPeephole
                 return isVecMicroOp(op);
             return (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64) && hasThreeOperandForm(op);
         }
+
+        // The integer operations whose two-operand form reads its source from
+        // memory. The forms that name a fixed register - a multiply through
+        // rax, a shift by cl, the one-operand byte multiply - would hand the
+        // encoder a legalization nothing runs any more, so they keep the load.
+        bool hasIntegerMemoryOperandForm(const MicroOp op, const MicroOpBits opBits)
+        {
+            switch (op)
+            {
+                case MicroOp::Add:
+                case MicroOp::Subtract:
+                case MicroOp::And:
+                case MicroOp::Or:
+                case MicroOp::Xor:
+                    return true;
+                case MicroOp::MultiplySigned:
+                    return opBits != MicroOpBits::B8;
+                default:
+                    return false;
+            }
+        }
+
+        bool isStandardIntBits(const MicroOpBits opBits)
+        {
+            return opBits == MicroOpBits::B8 || opBits == MicroOpBits::B16 || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64;
+        }
+
+        // Whether the encoder takes the rewritten form as it stands. The
+        // legalization sweep already ran, so a form it would have to rewrite
+        // again has nobody left to rewrite it.
+        bool encoderAcceptsAsIs(const Context& ctx, const MicroInstrOpcode op, std::span<const MicroInstrOperand> ops)
+        {
+            MicroInstr probe;
+            probe.op          = op;
+            probe.numOperands = static_cast<uint8_t>(ops.size());
+
+            MicroConformanceIssue issue;
+            return !ctx.encoder->queryConformanceIssue(issue, probe, ops.data());
+        }
+
+        // The consumer a reload folds into: a binary operation reading the
+        // loaded register as its source, or a compare reading it on the left,
+        // which is the side `cmp [mem], reg` names.
+        bool isFoldableConsumer(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg loaded, const bool isFloat)
+        {
+            if (!ops)
+                return false;
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
+                return ops[1].reg == loaded && ops[0].reg != loaded;
+            if (!isFloat && inst.op == MicroInstrOpcode::CmpRegReg && inst.numOperands >= 3)
+                return ops[0].reg == loaded && ops[1].reg != loaded;
+            return false;
+        }
     }
 
-    // Fold a float operand's reload into the operation that consumes it.
+    // Fold an operand's reload into the operation that consumes it.
     //
-    // x86 float arithmetic can read one operand straight from memory, but the
+    // x86 arithmetic can read one operand straight from memory, but the
     // encoder only ever built the register form, so every value coming out of a
     // spill slot cost a separate load. raytrace's inner loop reloads twenty-two
     // times; each fold turns two instructions into one and frees the scratch
-    // register the value was staged in.
-    bool tryFoldLoadIntoFloatBinary(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    // register the value was staged in. The integer side covers the same
+    // shape for the operations x64 reads from memory, and a compare whose
+    // left operand is the reload.
+    bool tryFoldLoadIntoBinary(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
         if (loadInst.op != MicroInstrOpcode::LoadRegMem || loadInst.numOperands < 4)
             return false;
@@ -66,9 +121,10 @@ namespace PostRaPeephole
         if (!loadOps)
             return false;
 
-        const MicroReg loaded = loadOps[0].reg;
-        const MicroReg base   = loadOps[1].reg;
-        if (!loaded.isFloat() || base.isFloat() || !base.isValid())
+        const MicroReg loaded  = loadOps[0].reg;
+        const MicroReg base    = loadOps[1].reg;
+        const bool     isFloat = loaded.isFloat();
+        if ((!isFloat && !loaded.isAnyInt()) || base.isFloat() || !base.isValid())
             return false;
 
         // An instruction-pointer-relative load reads a constant through a
@@ -79,8 +135,12 @@ namespace PostRaPeephole
         if (base.isInstructionPointer())
             return false;
 
+        // The integer rewrite is probed against the encoder before it lands.
+        if (!isFloat && !ctx.encoder)
+            return false;
+
         const MicroOpBits opBits = loadOps[2].opBits;
-        if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
+        if (isFloat ? (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) : !isStandardIntBits(opBits))
             return false;
 
         constexpr uint32_t kMaxScan = 12;
@@ -93,14 +153,10 @@ namespace PostRaPeephole
             if (!candidate)
                 return false;
 
-            if (candidate->op == MicroInstrOpcode::OpBinaryRegReg && candidate->numOperands >= 4)
+            if (isFoldableConsumer(*candidate, ctx.operandsFor(opRef), loaded, isFloat))
             {
-                const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
-                if (candidateOps && candidateOps[1].reg == loaded && candidateOps[0].reg != loaded)
-                {
-                    opInst = candidate;
-                    break;
-                }
+                opInst = candidate;
+                break;
             }
 
             if (candidate->op == MicroInstrOpcode::Label)
@@ -136,10 +192,8 @@ namespace PostRaPeephole
         if (!opInst)
             return false;
 
-        const MicroInstrOperand* binOps = ctx.operandsFor(opRef);
-        if (!binOps || binOps[2].opBits != opBits || !hasThreeOperandForm(binOps[3].microOp))
-            return false;
-        if (!binOps[0].reg.isFloat())
+        const MicroInstrOperand* consumerOps = ctx.operandsFor(opRef);
+        if (!consumerOps)
             return false;
 
         // The register only existed to carry the loaded value across; if anything
@@ -147,15 +201,42 @@ namespace PostRaPeephole
         if (!regIsDeadAfter(ctx, opRef, loaded))
             return false;
 
-        if (!ctx.claimAll({loadRef, opRef}))
+        if (opInst->op == MicroInstrOpcode::CmpRegReg)
+        {
+            if (consumerOps[2].opBits != opBits || !consumerOps[1].reg.isAnyInt())
+                return false;
+
+            MicroInstrOperand newOps[4] = {};
+            newOps[0].reg               = base;
+            newOps[1].reg               = consumerOps[1].reg;
+            newOps[2].opBits            = opBits;
+            newOps[3].valueU64          = loadOps[3].valueU64;
+            if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::CmpMemReg, std::span{newOps, 4}))
+                return false;
+            if (!ctx.claimAll({loadRef, opRef}))
+                return false;
+
+            ctx.emitRewrite(opRef, MicroInstrOpcode::CmpMemReg, std::span{newOps, 4}, true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
+
+        const MicroOp op = consumerOps[3].microOp;
+        if (consumerOps[2].opBits != opBits)
+            return false;
+        if (isFloat ? (!hasThreeOperandForm(op) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        newOps[0].reg               = binOps[0].reg;
+        newOps[0].reg               = consumerOps[0].reg;
         newOps[1].reg               = base;
         newOps[2].opBits            = opBits;
-        newOps[3].microOp           = binOps[3].microOp;
+        newOps[3].microOp           = op;
         newOps[4].valueU64          = loadOps[3].valueU64;
+        if (!isFloat && !encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpBinaryRegMem, std::span{newOps, 5}))
+            return false;
+        if (!ctx.claimAll({loadRef, opRef}))
+            return false;
 
         ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegMem, std::span{newOps, 5}, true);
         ctx.emitErase(loadRef);

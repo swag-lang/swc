@@ -8,32 +8,32 @@ the shared backlog conventions.
 
 ## Loop vectorization
 
-### compiler.optimization.002 — Unrolling the key-stream loop no longer loses its constant offsets, and still does not pay
+### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
 
 - Area: compiler/backend
 - Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
 - Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
-  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. The first attempt at raising it
-  to 16 unrolled the loop and bought nothing, because the indexed accesses survived as `Amc`
-  forms; that part is fixed — `tryFoldConstIndexAmc` (2026-08-04) turns each copy's `state[i]`
-  and `initial[i]` into `[frame + K]`, and the lea-into-index fold gives `data[offset + i]` its
-  constant displacement. What survives in the unrolled body is what a constant cannot remove.
-- Evidence: measured again 2026-08-22 with `K_MAX_TRIPS = 16` (static census, release): chacha
-  main 627 -> 763 instructions, sha256 725 -> 878 (its sixteen-trip schedule loops unroll too),
-  every other task unchanged. Per element the unrolled body reads `[rbx + 0xAC]` and
-  `[rbx + 0x58]` directly, but still spends three instructions on the data word — `lea r9,
-  [rdi + rsi*4 + K]`, `load [r9]`, `store [r9]` — where clang writes one `xor dword ptr
-  [rdi + rsi*4 + K], reg`, and three zero-extensions on the two u32 adds — `load b32; zext
-  b64<-b32` although a 32-bit load already zero-extends, and `add b64; zext b64<-b32` for the
-  `& M32`, which a 32-bit add would do in one. Reverted: no dynamic measurement yet shows the
-  sixteen copies winning over the loop, and the change reaches every counted loop of up to
-  sixteen trips.
-- Next step: two peepholes come first, because they pay whether or not the loop unrolls — drop
-  the zero-extension that follows a 32-bit load or a 32-bit-masked 64-bit add of two
-  zero-extended words, and fold a `lea; load; op; store` round trip on the same address into a
-  memory-destination op. Then re-measure chacha with the limit at 16 on a quiet machine, and
-  only then ask whether the SLP pass sees the sixteen `[frame + K]` loads it now has.
-
+  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. Raising it to 16 unrolled the
+  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
+  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
+  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
+  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
+  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
+  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
+  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
+  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
+  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
+  legalization rewrote every memory-destination form back into registers because it read a
+  virtual register as "not an integer". The folds now leave a frame slot or a global alone
+  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
+  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
+- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
+  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
+  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
+  instructions against 28.
+- Next: re-measure chacha with `K_MAX_TRIPS = 16` on a quiet machine, and only then ask whether
+  the SLP pass sees the sixteen `[frame + K]` loads it now has.
+- Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
 ## Register allocation and frame-slot promotion
 
 ### compiler.optimization.003 — Folding copy-then-operate before register allocation miscompiles
@@ -239,28 +239,6 @@ the shared backlog conventions.
 - Next step: if-convert the early-return chain — a triangle whose body is a `ret` of a pure value
   — into a select feeding one `ret`, then re-measure the decoder's deblock and conversion loops
   against the hand-written sign-bit forms and retire those if the select matches them.
-
-### compiler.optimization.009 — An atomic read is a locked read-modify-write
-
-- Area: optimization
-- Found while: std.video.001, giving the H.264 decoder per-row reference progress so pictures overlap.
-- Observation: `Core.Atomic.get` is written as `Swag.atomcmpxchg(addr, 0, 0)`, so every atomic read
-  compiles to a `LOCK CMPXCHG`. That takes the cache line exclusively, writes it, and orders the
-  whole pipeline, for what is only a read. On x86-64 an aligned load of that width is already
-  atomic and already carries acquire ordering, so the locked form buys nothing and costs the line
-  to every other reader.
-- Evidence: reconstruction consulted a per-picture progress counter before each predicted block.
-  With sixteen frame threads reading the same counter it turned a read-mostly value into a
-  contended write, and the reconstruction of one 3840x2160 picture measured about 42 ms instead of
-  the 22 ms the same work takes without it. The decoder now caches the last value it observed per
-  reference picture, so the locked read happens about once per macroblock row rather than several
-  times per macroblock, and the time came back. Every other spin in the repository still pays it:
-  `Jobs.isDone`, `Jobs.wait`, the deblocking wavefront, `Frame.heldByCaller`, and the frame-pool
-  scan in `startPicture` all poll through `Atomic.get`.
-- Next step: add a relaxed atomic load to the language — a `Swag.atomget` intrinsic lowering to a
-  plain `MOV` on x86-64, with the same acquire guarantee the current form provides — and make
-  `Atomic.get` use it. Measure `tools/unittests.swgs dm cpp` for the intrinsic itself, then the
-  `Jobs` scheduler and the deblocking wavefront before and after; both spin on it today.
 
 ### compiler.optimization.010 — A short branching function spills with the whole register file free
 
@@ -599,29 +577,6 @@ cmov-to-branch back-conversion, and profile-gated passes.
   green. A parked prototype with all three fixes exists (session scratchpad,
   `dse-parked`).
 - Related: compiler.optimization.010. The machine-dependent lane-count assertion that failed the prototype's validation run (h264.test.swg, fixed 2026-08-27) is gone, so the parked prototype can be retried as-is.
-
-### compiler.optimization.019 — Integer reloads fold into their consumers' memory operands
-
-- Intent: the post-RA peephole folds an integer reload from a private frame slot into its
-  arithmetic consumer - `add rax, [rsp+X]` instead of a `mov` plus a register - the way
-  `tryFoldLoadIntoFloatBinary` already does for floats and LLVM's fold tables do wholesale,
-  covering `OpBinaryRegReg` (add, sub, and, or, xor, signed multiply) and
-  `CmpRegReg`-to-`CmpMemReg`.
-- Next: take the integer fold as a cheap sweep when the post-RA peephole is next opened;
-  not worth a lot of its own.
-- Complete when: the integer rule ships with the float rule's guards (claiming, dst-dead-after,
-  encoder conformance probe, `spillAreaLo/Hi` alias guarantee), a spill-heavy hot function
-  shows the folds in its dump, and the suites stay green.
-- Measured 2026-08-27: the single-reader-then-dead shape the fold needs occurs 3 times in
-  `filterLumaEdge`, 11 in `interpolateLuma`, 3 in the deblock probe kernel - about 6% of their
-  frame reloads. Real but small; the fold removes the instruction, not the load micro-op. Worth
-  taking as a cheap sweep someday, not as a lot of its own. The same simulation ran a full
-  forward availability dataflow (register still holds the slot - LLVM's
-  `InlineSpiller::eliminateRedundantSpills` shape) over the corpus: 1-2 deletable accesses per
-  hot function out of 167-288 - between a boundary store and its reload the register really is
-  reused, so post-RA cleanup cannot remove the traffic. The demapping decision itself is the
-  target (compiler.optimization.013).
-- Related: compiler.optimization.018.
 
 ### compiler.optimization.020 — One alias oracle serves every pre-RA memory optimization
 

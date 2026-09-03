@@ -3357,6 +3357,7 @@ void MicroRegisterAllocationPass::collectDestructiveLoadConstraints(SmallVector<
     switch (inst.op)
     {
         case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadVolatileRegMem:
         case MicroInstrOpcode::LoadSignedExtRegMem:
         case MicroInstrOpcode::LoadZeroExtRegMem:
             recordDestructiveAlias(liveBases, concreteAliases, instOps[0].reg, instOps[1].reg, stamp, true);

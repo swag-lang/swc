@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -144,16 +146,139 @@ namespace InstructionCombine
         }
     }
 
+    // Counted through phis nothing reads: a value defined in a loop body
+    // flows into a phi at the header whether or not the next iteration reads
+    // it, and that phi kept every single-consumer fold out of loops.
     bool valueHasSingleUse(const MicroSsaState& ssa, MicroReg reg, MicroInstrRef defInstRef)
     {
         uint32_t valueId = 0;
         if (!ssa.defValue(reg, defInstRef, valueId))
             return false;
+        return ssa.transitiveInstructionUseCount(valueId, 2) == 1;
+    }
+
+    MicroInstrRef singleDirectInstructionUse(const MicroSsaState& ssa, uint32_t valueId)
+    {
+        if (ssa.transitiveInstructionUseCount(valueId, 2) != 1)
+            return MicroInstrRef::invalid();
         const auto* info = ssa.valueInfo(valueId);
-        return info && info->uses.size() == 1;
+        if (!info)
+            return MicroInstrRef::invalid();
+        MicroInstrRef found = MicroInstrRef::invalid();
+        for (const auto& use : info->uses)
+        {
+            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+                continue;
+            if (found.isValid())
+                return MicroInstrRef::invalid();
+            found = use.instRef;
+        }
+        return found;
+    }
+
+    bool isFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+    {
+        constexpr uint32_t K_MAX_ADDRESS_CHAIN = 8;
+
+        for (uint32_t depth = 0; depth < K_MAX_ADDRESS_CHAIN; ++depth)
+        {
+            if (!reg.isValid())
+                return false;
+            if (reg == ctx.stackPointer)
+                return true;
+            if (!reg.isVirtualInt() || !ctx.ssa)
+                return false;
+
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid() || def.isPhi || !def.inst)
+                return false;
+
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (!ops)
+                return false;
+
+            switch (def.inst->op)
+            {
+                case MicroInstrOpcode::LoadRegReg:
+                case MicroInstrOpcode::LoadAddrRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    reg   = ops[1].reg;
+                    atRef = def.instRef;
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    bool isRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+    {
+        constexpr uint32_t K_MAX_COPY_CHAIN = 4;
+
+        for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
+        {
+            if (!reg.isVirtualInt() || !ctx.ssa)
+                return false;
+
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid() || def.isPhi || !def.inst)
+                return false;
+            if (def.inst->op == MicroInstrOpcode::LoadRegPtrReloc)
+                return true;
+            if (def.inst->op != MicroInstrOpcode::LoadRegReg)
+                return false;
+
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (!ops)
+                return false;
+            reg   = ops[1].reg;
+            atRef = def.instRef;
+        }
+
+        return false;
+    }
+
+    bool keepAccessScalar(Context& ctx, MicroInstrRef ref, MicroReg base)
+    {
+        if (!isFrameDerivedAddress(ctx, base, ref) && !isRelocatedAddress(ctx, base, ref))
+            return false;
+        return ctx.isInsideLoop(ref);
     }
 
     //===-- Context methods -------------------------------------------------===//
+
+    bool Context::isInsideLoop(const MicroInstrRef ref)
+    {
+        if (!loopSlotsReady)
+        {
+            loopSlotsReady = true;
+            loopSlotsAll   = true;
+            if (builder)
+            {
+                const MicroControlFlowGraph& cfg   = builder->controlFlowGraph();
+                const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+                if (entry != MicroPassHelpers::MicroDomTree::K_INVALID_NODE && !cfg.hasUnsupportedControlFlowForCfgLiveness())
+                {
+                    const MicroPassHelpers::MicroDomTree dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+                    const auto                           loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
+                    const auto                           refs  = cfg.instructionRefs();
+                    for (const auto& loop : loops | std::views::values)
+                    {
+                        for (uint32_t i = 0; i < loop.inBody.size() && i < refs.size(); ++i)
+                        {
+                            if (loop.inBody[i])
+                                loopSlots.insert(refs[i].get());
+                        }
+                    }
+                    loopSlotsAll = false;
+                }
+            }
+        }
+
+        return loopSlotsAll || loopSlots.contains(ref.get());
+    }
 
     bool Context::claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated)
     {

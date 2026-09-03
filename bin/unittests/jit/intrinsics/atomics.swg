@@ -26,6 +26,15 @@ alias AtomicStrictU32 = u32
     func atomOrStrictU32(ptr: *u32, value: AtomicStrictU32)->AtomicStrictU32 => Swag.atomor(ptr, value)
     #[Swag.NoInline]
     func atomCmpXchgStrictS32(ptr: *s32, compareTo, exchangeWith: AtomicStrictS32)->AtomicStrictS32 => Swag.atomcmpxchg(ptr, compareTo, exchangeWith)
+    #[Swag.NoInline]
+    func atomGetU32(ptr: *u32)->u32 => Swag.atomget(ptr)
+
+    // The result is discarded on purpose: the exchange is the effect.
+    #[Swag.NoInline]
+    func publishIfZero(ptr: *u32, value: u32)
+    {
+        discard Swag.atomcmpxchg(ptr, 0, value)
+    }
 
     #[Swag.NoInline]
     func runAtomAdd()->bool
@@ -98,6 +107,17 @@ alias AtomicStrictU32 = u32
         return a == cast(AtomicStrictS32) 0 and b == cast(AtomicStrictS32) 2 and sx == 5 and c == cast(AtomicStrictU32) 1 and ux == 5
     }
 
+    #[Swag.NoInline]
+    func runAtomGet()->bool
+    {
+        var x = 0'u32
+        publishIfZero(&x, 5)
+        let a = atomGetU32(&x)
+        publishIfZero(&x, 9)
+        let b = atomGetU32(&x)
+        return a == 5 and b == 5 and x == 5
+    }
+
     const A = #run runAtomAdd()
     const B = #run runAtomAnd()
     const C = #run runAtomOr()
@@ -105,6 +125,7 @@ alias AtomicStrictU32 = u32
     const E = #run runAtomXchg()
     const F = #run runAtomCmpXchg()
     const G = #run runAtomStrictAlias()
+    const H = #run runAtomGet()
 
     #assert(A)
     #assert(B)
@@ -113,4 +134,5 @@ alias AtomicStrictU32 = u32
     #assert(E)
     #assert(F)
     #assert(G)
+    #assert(H)
 }

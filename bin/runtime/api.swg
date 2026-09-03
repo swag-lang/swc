@@ -1292,6 +1292,20 @@ func memcmp(dst, src: #null const [*] void, size: u64)->s32
     func atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64
 }
 
+// Reads the value at `addr` as one atomic access.
+//
+// It is a plain load on x86-64, so it takes no bus lock, and the compiler never hoists,
+// merges, or drops it: a loop polling a value another thread publishes reads memory on
+// every iteration.
+func atomget(addr: *s8)->s8
+func atomget(addr: *s16)->s16
+func atomget(addr: *s32)->s32
+func atomget(addr: *s64)->s64
+func atomget(addr: *u8)->u8
+func atomget(addr: *u16)->u16
+func atomget(addr: *u32)->u32
+func atomget(addr: *u64)->u64
+
 // Constant intrinsics
 #[Swag.ConstExpr]
 {

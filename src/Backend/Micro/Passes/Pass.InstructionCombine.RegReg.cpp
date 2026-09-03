@@ -33,24 +33,6 @@ namespace InstructionCombine
         // are redefined before use). Returns invalid if the value has zero or more
         // than one real instruction use, or if its only real use is reached
         // indirectly through a phi rather than as a direct operand.
-        MicroInstrRef singleDirectInstructionUse(const MicroSsaState& ssa, uint32_t valueId)
-        {
-            if (ssa.transitiveInstructionUseCount(valueId, 2) != 1)
-                return MicroInstrRef::invalid();
-            const auto* info = ssa.valueInfo(valueId);
-            if (!info)
-                return MicroInstrRef::invalid();
-            MicroInstrRef found = MicroInstrRef::invalid();
-            for (const auto& use : info->uses)
-            {
-                if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
-                    continue;
-                if (found.isValid())
-                    return MicroInstrRef::invalid();
-                found = use.instRef;
-            }
-            return found;
-        }
     }
 
     // Collapse the in-place-update copy round-trip that `acc op= x` lowers to once

@@ -81,6 +81,8 @@ namespace InstructionCombine
         // address register, which folding would then misuse.
         if (!vt.isVirtualInt() || base == vt)
             return false;
+        if (keepAccessScalar(ctx, loadRef, base))
+            return false;
 
         // The load value must flow into exactly one consumer for the move to
         // be sound; otherwise the other uses would lose their definition.

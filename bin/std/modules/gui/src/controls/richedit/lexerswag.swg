@@ -289,6 +289,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("Swag.atomadd", State.Builtin)
         .mapWords.add("Swag.atomand", State.Builtin)
         .mapWords.add("Swag.atomcmpxchg", State.Builtin)
+        .mapWords.add("Swag.atomget", State.Builtin)
         .mapWords.add("Swag.atomor", State.Builtin)
         .mapWords.add("Swag.atomxchg", State.Builtin)
         .mapWords.add("Swag.atomxor", State.Builtin)

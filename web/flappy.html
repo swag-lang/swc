@@ -398,14 +398,10 @@
     dataPath = <span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flappy"</span>)
 
     <span class="SCmt">// Load all sounds.</span>
-    <span class="SCmt">// 'with' makes Audio.SoundFile the implicit namespace inside the block.</span>
-    <span class="SKwd">with</span> <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>
-    {
-        g_SoundDie   = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"die.wav"</span>))
-        g_SoundScore = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"point.wav"</span>))
-        g_SoundHit   = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"hit.wav"</span>))
-        g_SoundFlap  = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flap.wav"</span>))
-    }
+    g_SoundDie   = <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>.<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"die.wav"</span>))
+    g_SoundScore = <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>.<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"point.wav"</span>))
+    g_SoundHit   = <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>.<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"hit.wav"</span>))
+    g_SoundFlap  = <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>.<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flap.wav"</span>))
 
     <span class="SCmt">// Load all textures through the application's selected renderer.</span>
     g_BirdTexture[<span class="SNum">0</span>] = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-upflap.png"</span>))
@@ -425,7 +421,7 @@
 }</span></div>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.325</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.326</div>
 </footer>
 </section>
 </main>

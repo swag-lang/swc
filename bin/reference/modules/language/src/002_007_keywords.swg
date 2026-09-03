@@ -124,7 +124,7 @@ Swag.rol  Swag.ror  Swag.round  Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.t
 Memory, atomic, and C variadic intrinsics:
 
 ```swag
-Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomor  Swag.atomxchg  Swag.atomxor
+Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomget  Swag.atomor  Swag.atomxchg  Swag.atomxor
 Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset
 ```
 

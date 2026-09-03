@@ -301,6 +301,51 @@ SWC_TEST_BEGIN(Legalize_RewritesB8SignedMultiplyRegMemToRax)
 }
 SWC_TEST_END()
 
+// A memory-destination operation on virtual registers reaches the encoder as
+// it is: legalization used to read a virtual register as "not an integer" and
+// rewrite every such form back into a load, a register operation and a store.
+SWC_TEST_BEGIN(Legalize_KeepsMemoryDestinationAdd)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryMemReg(base, 8, value, MicroOp::Add, MicroOpBits::B32);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The atomic exchange in particular: its register rewrite is a plain
+// read-modify-write, so it must stay `xchg [mem], reg`.
+SWC_TEST_BEGIN(Legalize_KeepsMemoryExchange)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryMemReg(base, 0, value, MicroOp::Exchange, MicroOpBits::B32);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardB8SignedMultiplyImmediate)
 {
     constexpr MicroReg rax = MicroReg::intReg(0);
@@ -316,6 +361,108 @@ SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardB8SignedMultiplyImmediate)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An integer reload consumed once by an addition folds into the addition's
+// memory operand, the way float reloads already do.
+SWC_TEST_BEGIN(PostRAPeephole_FoldsIntegerReloadIntoBinary)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax   = MicroReg::intReg(0);
+    constexpr MicroReg r8    = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(r8, stack, 16, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(rax, r8, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The reloaded register is read again after the consumer: the load stays.
+SWC_TEST_BEGIN(PostRAPeephole_KeepsIntegerReloadReadAfterConsumer)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax   = MicroReg::intReg(0);
+    constexpr MicroReg r8    = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(r8, stack, 16, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(rax, r8, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(stack, 24, r8, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A reload compared on the left folds into `cmp [mem], reg`.
+SWC_TEST_BEGIN(PostRAPeephole_FoldsIntegerReloadIntoCompare)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax   = MicroReg::intReg(0);
+    constexpr MicroReg rcx   = MicroReg::intReg(2);
+    constexpr MicroReg r8    = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(r8, stack, 16, MicroOpBits::B32);
+    builder.emitCmpRegReg(r8, rax, MicroOpBits::B32);
+    builder.emitSetCondReg(rcx, MicroCond::Below);
+    builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemReg) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The byte multiply reads memory through rax alone; the fold would only hand
+// the encoder a legalization nothing runs any more.
+SWC_TEST_BEGIN(PostRAPeephole_KeepsByteMultiplyReload)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax   = MicroReg::intReg(0);
+    constexpr MicroReg r8    = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(r8, stack, 16, MicroOpBits::B8);
+    builder.emitOpBinaryRegReg(rax, r8, MicroOp::MultiplySigned, MicroOpBits::B8);
+    builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
     return Result::Continue;
 }

@@ -75,15 +75,15 @@
     func compareExchange(addr: *u32, compareTo, exchangeWith: u32)->u32 => Swag.atomcmpxchg(addr, compareTo, exchangeWith)
     func compareExchange(addr: *u64, compareTo, exchangeWith: u64)->u64 => Swag.atomcmpxchg(addr, compareTo, exchangeWith)
 
-    // Performs the get operation.
-    func get(addr: *s8)->s8 => Swag.atomcmpxchg(addr, 0, 0)
+    // Reads the value as one atomic access, without locking the cache line.
+    func get(addr: *s8)->s8 => Swag.atomget(addr)
 
-    // Performs the get operation.
-    func get(addr: *s16)->s16 => Swag.atomcmpxchg(addr, 0, 0)
-    func get(addr: *s32)->s32 => Swag.atomcmpxchg(addr, 0, 0)
-    func get(addr: *s64)->s64 => Swag.atomcmpxchg(addr, 0, 0)
-    func get(addr: *u8)->u8   => Swag.atomcmpxchg(addr, 0, 0)
-    func get(addr: *u16)->u16 => Swag.atomcmpxchg(addr, 0, 0)
-    func get(addr: *u32)->u32 => Swag.atomcmpxchg(addr, 0, 0)
-    func get(addr: *u64)->u64 => Swag.atomcmpxchg(addr, 0, 0)
+    // Reads the value as one atomic access, without locking the cache line.
+    func get(addr: *s16)->s16 => Swag.atomget(addr)
+    func get(addr: *s32)->s32 => Swag.atomget(addr)
+    func get(addr: *s64)->s64 => Swag.atomget(addr)
+    func get(addr: *u8)->u8   => Swag.atomget(addr)
+    func get(addr: *u16)->u16 => Swag.atomget(addr)
+    func get(addr: *u32)->u32 => Swag.atomget(addr)
+    func get(addr: *u64)->u64 => Swag.atomget(addr)
 }

@@ -53,6 +53,12 @@ struct MicroInstrDef
     uint8_t                          memOffsetOperandIndex = 0;
 };
 
+// Register width contract, inherited from x86-64: an integer instruction with
+// a 32-bit operand size writes its whole 64-bit destination and clears the
+// upper half, while 8- and 16-bit writes leave the rest of the register as it
+// was. Passes may rely on it - a value defined at 32 bits reads as its own
+// zero-extension at 64 - and every rewrite that changes an operand size has to
+// keep it: widening a 32-bit definition to 64 bits changes what its readers see.
 enum class MicroInstrOpcode : uint8_t
 {
 #define SWC_MICRO_INSTR_DEF(__enum, ...) __enum,

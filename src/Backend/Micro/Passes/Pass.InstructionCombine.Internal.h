@@ -45,6 +45,19 @@ namespace InstructionCombine
 
         bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
 
+        // The stack pointer of the calling convention, which every frame
+        // address derives from.
+        MicroReg stackPointer = MicroReg::invalid();
+
+        // Whether the instruction sits inside a natural loop. The loop bodies
+        // are collected on the first question, since only the memory folds
+        // ask; a CFG the loop analysis cannot read answers yes for everything.
+        bool isInsideLoop(MicroInstrRef ref);
+
+        bool                         loopSlotsReady = false;
+        bool                         loopSlotsAll   = false;
+        std::unordered_set<uint32_t> loopSlots;
+
         // Claim every ref atomically: returns false without side-effects if
         // any was already claimed, or if one carries a relocation the caller
         // did not take responsibility for.
@@ -67,6 +80,30 @@ namespace InstructionCombine
     MicroOpBits useReadBits(const MicroInstr& useInst, const MicroInstrOperand* useOps, MicroReg reg);
     bool        valueHasSingleUse(const MicroSsaState& ssa, MicroReg reg, MicroInstrRef defInstRef);
 
+    // The one instruction that reads the value, looking through phis nothing
+    // reads: a value defined in a loop body flows into a phi at the header
+    // whether or not the next iteration reads it. Invalid when the value has
+    // no reader, several, or a phi with readers of its own.
+    MicroInstrRef singleDirectInstructionUse(const MicroSsaState& ssa, uint32_t valueId);
+
+    // Whether `reg` holds a frame address where `atRef` reads it: the stack
+    // pointer, or a chain of copies and constant-offset address computations
+    // from it, followed through reaching definitions.
+    bool isFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef);
+
+    // Whether `reg` holds the address of a global or a constant where `atRef`
+    // reads it: a relocated address materialization, possibly copied.
+    bool isRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef);
+
+    // Whether a memory access inside a loop is better left as a separate
+    // load or store than folded into an operation's memory operand. A frame
+    // slot there belongs to slot promotion and to the vectorizer, which look
+    // for the scalar access and would find the value pinned in memory. A
+    // global there is read and written instruction-pointer-relative, and a
+    // folded form would keep its address in a register across the loop
+    // instead.
+    bool keepAccessScalar(Context& ctx, MicroInstrRef ref, MicroReg base);
+
     //===-- Patterns (one per file) -----------------------------------------===//
 
     bool tryOpBinaryRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -86,6 +123,8 @@ namespace InstructionCombine
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryNarrowMaskedArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);

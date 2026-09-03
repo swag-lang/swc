@@ -449,6 +449,16 @@ void MicroBuilder::emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
     ops[3].valueU64         = memOffset;
 }
 
+void MicroBuilder::emitLoadVolatileRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::LoadVolatileRegMem, 4);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].reg              = memReg;
+    ops[2].opBits           = opBits;
+    ops[3].valueU64         = memOffset;
+}
+
 void MicroBuilder::emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadVecRegMem, 4);
@@ -863,6 +873,17 @@ void MicroBuilder::emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     ops[2].reg              = reg2;
     ops[3].opBits           = opBits;
     ops[4].microOp          = op;
+}
+
+void MicroBuilder::emitCompareExchangeRegMemReg(MicroReg reg0, MicroReg memReg, uint64_t memOffset, MicroReg reg2, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::CompareExchangeRegMemReg, 5);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg0;
+    ops[1].reg              = memReg;
+    ops[2].reg              = reg2;
+    ops[3].opBits           = opBits;
+    ops[4].valueU64         = memOffset;
 }
 
 void MicroBuilder::emitOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)

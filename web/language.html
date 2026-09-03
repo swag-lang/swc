@@ -815,7 +815,7 @@ indent-style = spaces</span></div>
 <span class="SNsp">Swag</span>.floor  <span class="SNsp">Swag</span>.log  <span class="SNsp">Swag</span>.log10  <span class="SNsp">Swag</span>.log2  <span class="SNsp">Swag</span>.max  <span class="SNsp">Swag</span>.min  <span class="SNsp">Swag</span>.muladd  <span class="SNsp">Swag</span>.pow
 <span class="SNsp">Swag</span>.rol  <span class="SNsp">Swag</span>.ror  <span class="SNsp">Swag</span>.round  <span class="SNsp">Swag</span>.sin  <span class="SNsp">Swag</span>.sinh  <span class="SNsp">Swag</span>.sqrt  <span class="SNsp">Swag</span>.tan  <span class="SNsp">Swag</span>.tanh  <span class="SNsp">Swag</span>.trunc</span></div>
 <p>Memory, atomic, and C variadic intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.atomadd  <span class="SNsp">Swag</span>.atomand  <span class="SNsp">Swag</span>.atomcmpxchg  <span class="SNsp">Swag</span>.atomor  <span class="SNsp">Swag</span>.atomxchg  <span class="SNsp">Swag</span>.atomxor
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.atomadd  <span class="SNsp">Swag</span>.atomand  <span class="SNsp">Swag</span>.atomcmpxchg  <span class="SNsp">Swag</span>.atomget  <span class="SNsp">Swag</span>.atomor  <span class="SNsp">Swag</span>.atomxchg  <span class="SNsp">Swag</span>.atomxor
 <span class="SNsp">Swag</span>.memcmp  <span class="SNsp">Swag</span>.memcpy  <span class="SNsp">Swag</span>.memmove  <span class="SNsp">Swag</span>.memset</span></div>
 <p>Packed vector intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecalign  <span class="SNsp">Swag</span>.vecall  <span class="SNsp">Swag</span>.vecany  <span class="SNsp">Swag</span>.vecavgr  <span class="SNsp">Swag</span>.vecgather  <span class="SNsp">Swag</span>.vecinterleavehi
@@ -6857,6 +6857,16 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> beforeCompareExchange = <span class="SNsp">Swag</span>.<span class="SFct">atomcmpxchg</span>(&amp;counter, <span class="SNum">20</span>, <span class="SNum">30</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(beforeCompareExchange == <span class="SNum">20</span> <span class="SLgc">and</span> counter == <span class="SNum">30</span>)
 }</span></div>
+<h3 id="_008_005_memory_and_atomic_intrinsics_swg_Atomic_Read">Atomic Read</h3>
+<p><span class="code-inline">Swag.atomget</span> reads an integer through a pointer as one atomic access. It is a plain load on x86-64, so it takes no bus lock, and the compiler never hoists, merges, or drops it: a loop polling a value that another thread publishes reads memory on every iteration.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> flag = <span class="SNum">0</span>'<span class="STpe">u32</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomget</span>(&amp;flag) == <span class="SNum">0</span>)
+
+    <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomxchg</span>(&amp;flag, <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomget</span>(&amp;flag) == <span class="SNum">1</span>)
+}</span></div>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Raw memory operations bypass <span class="code-inline">opPostCopy</span>, <span class="code-inline">opPostMove</span>, and <span class="code-inline">opDrop</span>. Do not use them to copy or relocate lifecycle-bearing values unless the type's invariants explicitly permit it.</p>
@@ -9543,7 +9553,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.325</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.326</div>
 </footer>
 </section>
 </main>
@@ -10276,6 +10286,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Memory and Atomic Intrinsics|_008_005_memory_and_atomic_intrinsics_swg|",
 "h|Raw Memory|_008_005_memory_and_atomic_intrinsics_swg_Raw_Memory|",
 "h|Atomic Read-Modify-Write|_008_005_memory_and_atomic_intrinsics_swg_Atomic_Read-Modify-Write|",
+"h|Atomic Read|_008_005_memory_and_atomic_intrinsics_swg_Atomic_Read|",
 "h|Generics|_009_000_generics_swg|",
 "h|Functions|_009_001_functions_swg|",
 "h|Generic Functions|_009_001_functions_swg_Generic_Functions|",

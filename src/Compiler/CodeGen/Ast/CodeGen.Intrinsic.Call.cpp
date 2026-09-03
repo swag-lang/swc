@@ -634,7 +634,7 @@ namespace
 
         const MicroReg observedReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(observedReg, expectedReg, opBits);
-        builder.emitOpTernaryRegRegReg(observedReg, ptrReg, desiredReg, MicroOp::CompareExchange, opBits);
+        builder.emitCompareExchangeRegMemReg(observedReg, ptrReg, 0, desiredReg, opBits);
         builder.emitCmpRegReg(observedReg, expectedReg, opBits);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
         builder.emitLoadRegReg(expectedReg, observedReg, opBits);
@@ -706,10 +706,38 @@ namespace
         MicroReg exchangeReg = MicroReg::invalid();
         materializeIntrinsicNumericOperand(compareReg, codeGen, comparePayload, compareTypeRef, resultTypeRef);
         materializeIntrinsicNumericOperand(exchangeReg, codeGen, exchangePayload, exchangeTypeRef, resultTypeRef);
-        builder.emitOpTernaryRegRegReg(compareReg, ptrReg, exchangeReg, MicroOp::CompareExchange, opBits);
+        builder.emitCompareExchangeRegMemReg(compareReg, ptrReg, 0, exchangeReg, opBits);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = compareReg;
+        return Result::Continue;
+    }
+
+    // 'Swag.atomget' is one plain load the optimizer never hoists, merges, or drops: an
+    // aligned load is already an atomic acquire on x86-64, so the locked read-modify-write
+    // the compare-exchange form paid for is not needed to read a value another thread writes.
+    Result codeGenAtomicLoad(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          ptrRef               = children[0];
+        const CodeGenNodePayload& ptrPayload           = codeGen.payload(ptrRef);
+        const TypeRef             resultTypeRef        = codeGen.curViewType().typeRef();
+        const TypeRef             resultStorageTypeRef = intrinsicNumericStorageTypeRef(codeGen, resultTypeRef);
+        const TypeInfo&           resultTypeInfo       = codeGen.typeMgr().get(resultStorageTypeRef);
+        const MicroOpBits         opBits               = CodeGenTypeHelpers::numericBits(resultTypeInfo);
+
+        SWC_ASSERT(resultTypeInfo.isIntLike());
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+        const MicroReg ptrReg   = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+        const MicroReg valueReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadVolatileRegMem(valueReg, ptrReg, 0, opBits);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = valueReg;
         return Result::Continue;
     }
 
@@ -2669,6 +2697,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenAtomicExchange(codeGen, *this);
         case TokenId::IntrinsicAtomicCmpXchg:
             return codeGenAtomicCompareExchange(codeGen, *this);
+        case TokenId::IntrinsicAtomicGet:
+            return codeGenAtomicLoad(codeGen, *this);
 
         case TokenId::IntrinsicGetContext:
             return codeGenGetContext(codeGen);

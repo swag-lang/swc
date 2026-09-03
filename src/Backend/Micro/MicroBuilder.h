@@ -113,6 +113,7 @@ public:
     void emitLoadLabelAddress(MicroReg reg, MicroLabelRef labelRef);
     void emitJumpTableData(std::span<const MicroLabelRef> targetLabels);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
+    void emitLoadVolatileRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits);
     void emitVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint8_t control, MicroOpBits opBits);
@@ -148,6 +149,7 @@ public:
     void emitOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOp op, MicroOpBits opBits);
     void emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits);
+    void emitCompareExchangeRegMemReg(MicroReg reg0, MicroReg memReg, uint64_t memOffset, MicroReg reg2, MicroOpBits opBits);
     void emitOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, const ApInt& value, MicroOp op, MicroOpBits opBits);
     void emitVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits);

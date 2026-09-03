@@ -1829,7 +1829,12 @@ Result CodeGen::postNode(AstNode& node)
                 if (inlineCtx.resultStorageReg.isValid())
                     inlineNodePayload.reg = inlineCtx.resultStorageReg;
                 else
-                    inlineNodePayload.reg = resolveLocalStackPayload(*resultStorageSym).reg;
+                {
+                    // The result temporary is declared nowhere, so a cached address would be
+                    // the one materialized by whichever 'return' ran first - inside its own
+                    // branch, which does not dominate the others or this join.
+                    inlineNodePayload.reg = resolveLocalStackPayload(*resultStorageSym, false).reg;
+                }
             }
         }
         else if (frame().hasCurrentInlineContext() && frame().currentInlineContext().noOuterDoneLabel)

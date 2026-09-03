@@ -642,7 +642,11 @@ namespace
         SWC_ASSERT(inlineCtx.payload == &inlinePayload);
         if (inlineCtx.resultStorageReg.isValid())
             return inlineCtx.resultStorageReg;
-        return codeGen.resolveLocalStackPayload(inlineResultStorageSymbol(codeGen, inlinePayload)).reg;
+
+        // A fresh address every time: the result temporary is declared nowhere, so a cached
+        // one would come from whichever 'return' ran first, inside a branch the next one
+        // does not share.
+        return codeGen.resolveLocalStackPayload(inlineResultStorageSymbol(codeGen, inlinePayload), false).reg;
     }
 
     bool tryEmitInlineDirectCallResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)

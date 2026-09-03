@@ -1340,7 +1340,11 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
             if (inlineCtx->resultStorageReg.isValid())
                 outStorageReg = inlineCtx->resultStorageReg;
             else
-                outStorageReg = codeGen.resolveLocalStackPayload(*outStorageSym).reg;
+            {
+                // Materialized here rather than taken from the cache: the result temporary
+                // is declared nowhere, and a 'return' in another branch may have filled it.
+                outStorageReg = codeGen.resolveLocalStackPayload(*outStorageSym, false).reg;
+            }
             return outStorageReg.isValid();
         }
 

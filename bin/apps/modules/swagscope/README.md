@@ -71,7 +71,8 @@ alternative instead of guessing an encoding.
   and named styles
   from `styles.xml`, through the offline HTML reader. Bounded local package images are embedded as
   data URIs and their bounded frame dimensions; remote image references remain inactive. Spreadsheet cells retain cached source values
-  but formulas never execute. Text documents and presentations provide the standard zoom control and
+  but formulas never execute. The bounded title, subject, and creator from `meta.xml` remain available to the reader, and the title appears in its document details.
+  Text documents and presentations provide the standard zoom control and
   keyboard shortcuts. Repeated table content is capped at 100,000 rows and 1,000,000 cells per sheet.
   Each spreadsheet sheet uses the same virtual table surface as CSV, and each presentation slide or drawing page is
   an isolated reading surface. A compact selector appears when needed; Left/Right, Page Up/Page Down,

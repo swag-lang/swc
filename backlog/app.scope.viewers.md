@@ -69,10 +69,10 @@ bounded, non-modifying role:
 
 ## Registered viewer audit map
 
-`createViewerPluginRegistry` registers fifteen viewers. The September 2026 audit found one focused
-test file per viewer, 123 tests in those files, and 25 viewer-specific PNG goldens. Tests elsewhere
-in the application add host search, replacement, streaming, and lifecycle coverage. The counts are
-an audit snapshot, not a target: new behavior must add the state or interaction that proves it.
+`createViewerPluginRegistry` registers seventeen viewers. Each has a focused test file; tests
+elsewhere in the application add host search, replacement, streaming, and lifecycle coverage. The
+counts are an audit snapshot, not a target: new behavior must add the state or interaction that
+proves it.
 
 | Viewer | Tests / goldens | Current core | Professional frontier and owner |
 | --- | ---: | --- | --- |
@@ -83,8 +83,10 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
 | HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md#html-reading) |
 | Image | 4 / 1 | pan, zoom, fit, rotation, mirroring, animated frames | Gwenview-class color/metadata plus histogram, pixel probe, comparison; [app.scope.image.md](app.scope.image.md) |
+| InDesign | 6 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [app.scope.document.023](app.scope.document.md) |
 | Markdown | 7 / 2 | rendered themes, reading measures, progressive layout, search | VS Code-class outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md#markdown-reading) |
 | MIDI | 3 / 1 | parsed tracks, notes, tempo/meter/key and piano roll | MuseScore-class playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
+| OpenDocument | 11 / 3 | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |
 | PDF | 5 / 2 | page rendering, search, page jump, fit and zoom | Acrobat-class thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md#pdf-presentation) |
 | Sound | 9 / 1 | streamed playback, seek, volume/mute and bounded waveform | Audacity-class ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
 | Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | Subtitle Edit-class current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md#timed-text) |
@@ -271,7 +273,7 @@ an audit snapshot, not a target: new behavior must add the state or interaction 
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB; no raw text | raw text, bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md), [app.scope.text.025](app.scope.text.md) |
 | PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
-| OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
+| OpenDocument | `.odt` `.ott` `.fodt` `.ods` `.ots` `.fods` `.odp` `.otp` `.fodp` `.odg` `.otg` `.fodg` | readable text, sheets, slides, and drawing pages | layout, semantics, inspection, and fidelity | [OpenDocument roadmap](app.scope.opendocument.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
 | RTF | `.rtf` | signature | raw text or a safe document renderer | [app.scope.text.025](app.scope.text.md) |

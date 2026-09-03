@@ -269,20 +269,3 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   suppressed rich output is named and available as source; large output is collapsed and bounded;
   and opening a notebook never starts a kernel, executes code, or fetches a resource.
 - Related: app.scope.document.003, app.scope.text.024, app.scope.text.025, app.scope.viewers.011
-
-## OpenDocument reading
-
-### app.scope.document.023 — OpenDocument reading retains content but not document layout
-
-- Evidence: the OpenDocument reader exposes ODT reading text, every ODS sheet, each ODP
-  slide, and each ODG drawing page. It retains common automatic and named text emphasis, but deliberately drops complete style inheritance,
-  colors, number formats, merged cells, row and column dimensions, graphical drawing primitives beyond readable text and bounded local
-  raster images, charts, annotations, notes, and slide transitions. The shared HTML renderer also
-  cannot lay out table spans, so emitting ODF merged cells would visibly corrupt a document.
-- Next: define a bounded read-only visual model shared by ODT, ODS, ODP, and ODG. Extend the basic text
-  emphasis with complete style inheritance, spreadsheet spans and dimensions, and safe local media
-  beyond bounded raster images; never evaluate formulas or load external resources.
-- Complete when: readable documents retain their hierarchy, emphasis, table spans, dimensions,
-  and safe local media; unsupported visual content is identified rather than silently treated as
-  document text.
-- Related: std.gui.html.002, std.gui.html.019, app.scope.document.003

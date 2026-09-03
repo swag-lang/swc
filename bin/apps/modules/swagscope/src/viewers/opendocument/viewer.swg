@@ -26,6 +26,8 @@ private const OpenDocumentTextStyleLimit    = 4_096'u64
 private const OpenDocumentImageLimit        = 16 * 1024 * 1024'u64
 private const OpenDocumentImageCountLimit   = 256'u64
 private const OpenDocumentImageDimensionLimit = 4_096.0
+private const OpenDocumentMetadataLimit     = 256 * 1024'u64
+private const OpenDocumentMetadataValueLimit = 512'u64
 private const OpenDocumentApostrophe        = 39'u8
 private const OpenDocumentPageComboWidth    = 224.0
 
@@ -93,13 +95,22 @@ private struct OpenDocumentImageSize
     height: String
 }
 
+// Preserves the display-safe document properties without treating metadata as executable content.
+internal struct OpenDocumentMetadata
+{
+    title:   String
+    subject: String
+    creator: String
+}
+
 // One decoded document, ready for the reader surface appropriate to its kind.
 internal struct OpenDocumentContent
 {
-    kind:   OpenDocumentKind
-    html:   String
-    sheets: Array'OpenDocumentSheet
-    slides: Array'OpenDocumentSlide
+    kind:     OpenDocumentKind
+    metadata: OpenDocumentMetadata
+    html:     String
+    sheets:   Array'OpenDocumentSheet
+    slides:   Array'OpenDocumentSlide
 }
 
 private struct OpenDocumentTag
@@ -217,6 +228,214 @@ private func openDocumentAttribute(attributes, wanted: string)->String
     }
 
     return {}
+}
+
+private enum OpenDocumentMetadataField
+{
+    None
+    Title
+    Subject
+    Creator
+}
+
+// Decodes the XML character references legal in document properties without accepting markup.
+private func openDocumentDecodeXmlText(source: string)->String
+{
+    var result: retval
+    var at = 0'u64
+    while at < source.count
+    {
+        if source[at] != '&'
+        {
+            result += source[at until at + 1]
+            at += 1
+            continue
+        }
+
+        var close = at + 1
+        while close < source.count and close - at <= 16 and source[close] != ';' do
+            close += 1
+        if close == source.count or close - at > 16 or source[close] != ';'
+        {
+            result += "&"
+            at += 1
+            continue
+        }
+
+        let entity = source[at + 1 until close]
+        switch entity
+        {
+        case "amp":  result += "&"
+        case "apos": result += "'"
+        case "gt":   result += ">"
+        case "lt":   result += "<"
+        case "quot": result += "\""
+        default:
+            if entity.count > 1 and entity[0] == '#'
+            {
+                let hexadecimal = entity.count > 2 and (entity[1] == 'x' or entity[1] == 'X')
+                let digits      = hexadecimal ? entity[2 to] : entity[1 to]
+                if hexadecimal
+                {
+                    let parsed = catch StrConv.parseX64(digits) as parseError
+                    if parseError == null and !parsed.ovf and parsed.eat == digits.count and parsed.value
+                    {
+                        let character = cast(rune) parsed.value
+                        if Utf8.isValidRune(character)
+                        {
+                            result.append(character)
+                            at = close + 1
+                            continue
+                        }
+                    }
+                }
+                else
+                {
+                    let parsed = catch StrConv.parseU64(digits) as parseError
+                    if parseError == null and parsed.eat == digits.count and parsed.value
+                    {
+                        let character = cast(rune) parsed.value
+                        if Utf8.isValidRune(character)
+                        {
+                            result.append(character)
+                            at = close + 1
+                            continue
+                        }
+                    }
+                }
+            }
+            result += source[at until close + 1]
+        }
+        at = close + 1
+    }
+
+    return result
+}
+
+// Collapses metadata whitespace after XML entity decoding, keeping a title suitable for window chrome.
+private func openDocumentMetadataValue(source: string)->String
+{
+    let decoded = openDocumentDecodeXmlText(source)
+    var result: retval
+    var pendingSpace: bool
+    for character in decoded
+    {
+        if character == ' ' or character == '\t' or character == '\r' or character == '\n'
+        {
+            if !result.isEmpty() do
+                pendingSpace = true
+            continue
+        }
+
+        if pendingSpace
+        {
+            result.append(cast(rune) ' ')
+            pendingSpace = false
+        }
+        result.append(character)
+        if result.count >= OpenDocumentMetadataValueLimit do
+            return result
+    }
+
+    return result
+}
+
+// Collects the small display-safe property set that applies to every OpenDocument family.
+private struct OpenDocumentMetadataReader
+{
+    metadata: OpenDocumentMetadata
+    field:    OpenDocumentMetadataField
+    depth:    u64
+    text:     String
+}
+
+private impl OpenDocumentMetadataReader
+{
+    mtd startTag(tag: const *OpenDocumentTag)
+    {
+        if .field != .None
+        {
+            .depth += 1
+            return
+        }
+
+        switch tag.name.toString()
+        {
+        case "dc:title":   .field = .Title
+        case "dc:subject": .field = .Subject
+        case "dc:creator": .field = .Creator
+        default: return
+        }
+        .depth = 1
+        .text.clear()
+    }
+
+    mtd appendText(text: string)
+    {
+        if .field == .None or .text.count >= OpenDocumentMetadataValueLimit do
+            return
+        let count = Math.min(text.count, OpenDocumentMetadataValueLimit - .text.count)
+        .text += text[0 until count]
+    }
+
+    mtd endTag(tag: const *OpenDocumentTag)
+    {
+        discard tag
+        if .field == .None do
+            return
+        .depth -= 1
+        if .depth do
+            return
+
+        let value = openDocumentMetadataValue(.text.toString())
+        switch .field
+        {
+        case .Title where .metadata.title.isEmpty():     .metadata.title = #move value
+        case .Subject where .metadata.subject.isEmpty(): .metadata.subject = #move value
+        case .Creator where .metadata.creator.isEmpty(): .metadata.creator = #move value
+        default: discard value
+        }
+        .field = .None
+    }
+}
+
+// Reads an optional `meta.xml` payload with the same tag boundary checks as document content.
+private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fail
+{
+    var reader: OpenDocumentMetadataReader
+    var textStart = 0'u64
+    var at        = 0'u64
+    while at < source.count
+    {
+        if source[at] != '<'
+        {
+            at += 1
+            continue
+        }
+
+        if at > textStart do
+            reader.appendText(source[textStart until at])
+        let end = try openDocumentTagEnd(source, at)
+        let tag = parseOpenDocumentTag(source[at + 1 until end])
+        if !tag.name.isEmpty()
+        {
+            if tag.closing do
+                reader.endTag(&tag)
+            else
+            {
+                reader.startTag(&tag)
+                if tag.selfClosing do
+                    reader.endTag(&tag)
+            }
+        }
+
+        at        = end + 1
+        textStart = at
+    }
+
+    if textStart < source.count do
+        reader.appendText(source[textStart to])
+    return #move reader.metadata
 }
 
 private func openDocumentPositiveAttribute(attributes, name: string, maximum: u64)->u64
@@ -339,8 +558,9 @@ private func openDocumentFontSize(attributes: string)->String
 // Turns one ODF body into reading HTML, one virtual table model per sheet, or isolated slide markup.
 private struct OpenDocumentReader
 {
-    kind: OpenDocumentKind
-    html: String
+    kind:     OpenDocumentKind
+    metadata: OpenDocumentMetadata
+    html:     String
 
     inBody:          bool
     sawBody:         bool
@@ -862,6 +1082,7 @@ private impl OpenDocumentReader
 
         var result: retval
         result.kind = .kind
+        result.metadata = #move .metadata
         if .kind == .Presentation or .kind == .Drawing
         {
             if .slideActive do
@@ -893,7 +1114,8 @@ private impl OpenDocumentReader
 internal func parseOpenDocumentContent(source: string, kind: OpenDocumentKind)->OpenDocumentContent fail
 {
     var images: Array'OpenDocumentImage
-    return try parseOpenDocumentContentWithImages(source, "", kind, #move images)
+    let metadata = try parseOpenDocumentMetadata(source)
+    return try parseOpenDocumentContentWithImages(source, "", kind, #move images, #move metadata)
 }
 
 private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) fail
@@ -933,11 +1155,12 @@ private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) 
 }
 
 // Parses ODF XML after package-resident images have been reduced to safe data URIs.
-private func parseOpenDocumentContentWithImages(source, styles: string, kind: OpenDocumentKind, images: Array'OpenDocumentImage)->OpenDocumentContent fail
+private func parseOpenDocumentContentWithImages(source, styles: string, kind: OpenDocumentKind, images: Array'OpenDocumentImage, metadata: OpenDocumentMetadata)->OpenDocumentContent fail
 {
     var reader: OpenDocumentReader
-    reader.kind   = kind
-    reader.images = #move images
+    reader.kind     = kind
+    reader.images   = #move images
+    reader.metadata = #move metadata
     if styles.count do
         try appendOpenDocumentXml(&reader, styles)
     try appendOpenDocumentXml(&reader, source)
@@ -1036,6 +1259,7 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
     var mime:    #null *ZipEntry
     var content: #null *ZipEntry
     var styles:  #null *ZipEntry
+    var meta:    #null *ZipEntry
     for &entry in archive.entries
     {
         if entry.path == "mimetype" do
@@ -1044,6 +1268,8 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
             content = entry
         elif entry.path == "styles.xml" do
             styles = entry
+        elif entry.path == "meta.xml" do
+            meta = entry
     }
 
     if mime == null do
@@ -1068,7 +1294,14 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
             styleSource = String.from(cast(string) styleBytes.toSlice())
     }
-    return try parseOpenDocumentContentWithImages(cast(string) bytes.toSlice(), styleSource.toString(), kind, #move images)
+    var metadata: OpenDocumentMetadata
+    if meta != null and meta!.uncompressedSize <= OpenDocumentMetadataLimit
+    {
+        let metadataBytes = catch loadZipEntry(fileName, meta!) as metadataError
+        if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
+            metadata = catch parseOpenDocumentMetadata(cast(string) metadataBytes.toSlice()) as metadataParseError
+    }
+    return try parseOpenDocumentContentWithImages(cast(string) bytes.toSlice(), styleSource.toString(), kind, #move images, #move metadata)
 }
 
 // Hosts the format reader while its ZIP payload is decoded away from the GUI thread.
@@ -1223,23 +1456,30 @@ private impl OpenDocumentViewer
         }
     }
 
+    mtd documentDetails(details: string)->String
+    {
+        if .document.metadata.title.isEmpty() do
+            return String.from(details)
+        return Format.toString("% · %", details, .document.metadata.title)
+    }
+
     mtd reportDocumentDetails()
     {
         if !.reportDetails do
             return
         if .document.kind == .Spreadsheet and .sheetIndex < .document.sheets.count
         {
-            .reportDetails!(me, Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex)).toString())
+            .reportDetails!(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex)).toString()))
             return
         }
         if (.document.kind == .Presentation or .document.kind == .Drawing) and .slideIndex < .document.slides.count
         {
             let details = .document.kind == .Presentation ? openDocumentStrings().ui_DetailsSlide : openDocumentStrings().ui_DetailsPage
-            .reportDetails!(me, Format.toString(details, .slideName(.slideIndex)).toString())
+            .reportDetails!(me, .documentDetails(Format.toString(details, .slideName(.slideIndex)).toString()))
             return
         }
 
-        .reportDetails!(me, Format.toString(openDocumentStrings().ui_Details, .kindName()).toString())
+        .reportDetails!(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName()).toString()))
     }
 
     mtd sheetName(index: u64)->String
@@ -1610,7 +1850,12 @@ func createOpenDocumentViewer(host: Viewer.Host)
     host.attachView(view)
     host.setDetails(openDocumentStrings().ui_Name)
     host.setSearch({
-        collectMatches: func(wnd, text, options, matches) { (cast(*OpenDocumentViewer) wnd).collectMatches(text, options, matches) },
+        collectMatches: func(wnd, text, options, progress, matches)->bool
+    {
+        discard progress
+        (cast(*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
+        return true
+    },
         revealMatch: func(wnd, match, text)->bool { return (cast(*OpenDocumentViewer) wnd).revealMatch(match, text) },
         matchBounds: func(wnd, match, bounds)->bool
     {

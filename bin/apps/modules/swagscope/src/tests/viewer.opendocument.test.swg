@@ -6,6 +6,7 @@ using Core, Pixel, Gui
 private var openDocumentReportedDetails: String
 private const OpenDocumentFixtureImage = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
 private const OpenDocumentFixtureStyles = "<?xml version='1.0' encoding='UTF-8'?><office:document-styles xmlns:office='urn:o' xmlns:style='urn:style' xmlns:fo='urn:fo'><office:styles><style:style style:name='ExternalEmphasis' style:family='paragraph'><style:paragraph-properties fo:text-align='center'/><style:text-properties fo:font-weight='bold'/></style:style></office:styles></office:document-styles>"
+private const OpenDocumentFixtureMetadata = "<?xml version='1.0' encoding='UTF-8'?><office:document-meta xmlns:office='urn:o' xmlns:dc='urn:dc'><office:meta><dc:title>  Quarterly &amp; review  </dc:title><dc:subject>Reader &#x72;egression</dc:subject><dc:creator>Swag Scope tests</dc:creator></office:meta></office:document-meta>"
 
 private func openDocumentFixturePath(name: string)->String
 {
@@ -80,7 +81,7 @@ private func openDocumentMimeType(kind: OpenDocumentKind, template = false)->str
 
 private func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, template = false)->Array'u8
 {
-    var entries: [4] OpenDocumentFixtureEntry
+    var entries: [5] OpenDocumentFixtureEntry
     entries[0].name = "mimetype"
     entries[0].plain.add(openDocumentMimeType(kind, template))
     entries[0].crc32 = Hash.Crc32.compute(entries[0].plain.toSlice())
@@ -93,6 +94,9 @@ private func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, t
     entries[3].name = "styles.xml"
     entries[3].plain.add(OpenDocumentFixtureStyles)
     entries[3].crc32 = Hash.Crc32.compute(entries[3].plain.toSlice())
+    entries[4].name = "meta.xml"
+    entries[4].plain.add(OpenDocumentFixtureMetadata)
+    entries[4].crc32 = Hash.Crc32.compute(entries[4].plain.toSlice())
 
     var result: retval
     for &entry in entries do
@@ -298,7 +302,7 @@ private func drawingOpenDocumentXml()->String
     flatView.sendEvent(&last)
     Swag.assert(last.accepted and flatView.slideIndex == 1)
     var matches: Array'Viewer.SearchMatch
-    flatResult.collectMatches!(flatResult.view!, "Read-only drawing page", {}, &matches)
+    collectViewerMatches(flatResult.collectMatches!, flatResult.view!, "Read-only drawing page", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 0 and flatResult.revealMatch!(flatResult.view!, matches[0], "Read-only drawing page"))
     Swag.assert(flatView.slideIndex == 0)
 
@@ -319,10 +323,12 @@ private func drawingOpenDocumentXml()->String
     let fileName = writeOpenDocumentFixture(".odt", .Text, textOpenDocumentXml().toString())
     defer discard catch File.delete(fileName)
 
+    openDocumentReportedDetails.clear()
+
     var host: Testing.HeadlessHost
     host.setup(820, 560)
     defer host.shutdown()
-    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString())
+    var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     Swag.assert(result.view != null and result.isLoading != null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null)
 
     let view = cast(*OpenDocumentViewer) result.view!
@@ -331,7 +337,8 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(result.info != null)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
-    Swag.assert(Utf8.contains(result.details.toString(), "OpenDocument"))
+    Swag.assert(view.document.metadata.title == "Quarterly & review" and view.document.metadata.subject == "Reader regression" and view.document.metadata.creator == "Swag Scope tests")
+    Swag.assert(Utf8.contains(openDocumentReportedDetails.toString(), "OpenDocument") and Utf8.contains(openDocumentReportedDetails.toString(), "Quarterly & review"))
     Swag.assert(Utf8.contains(view.document.html.toString(), "data:image/png;base64,") and Utf8.contains(view.document.html.toString(), "width=\"") and Utf8.contains(view.document.html.toString(), "height=\"") and Utf8.contains(view.document.html.toString(), "<p align=\"center\"><strong>Style from styles.xml</strong></p>") and !Utf8.contains(view.document.html.toString(), "example.com"))
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
@@ -342,7 +349,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(resetZoom.accepted and view.zoomPercent == 100 and view.html.documentStyle.bodyFontSize == 16)
 
     var matches: Array'Viewer.SearchMatch
-    result.collectMatches!(result.view!, "Berlin", {}, &matches)
+    collectViewerMatches(result.collectMatches!, result.view!, "Berlin", &matches)
     Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "Berlin"))
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
@@ -367,6 +374,8 @@ private func drawingOpenDocumentXml()->String
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    host.root.applyLayout()
+    discard host.render(&host.root)
     Swag.assert(Swag.isSet(view.table) and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
     Swag.assert(result.info != null and result.info!.isHidden())
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSheet)
@@ -377,7 +386,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(view.sheetIndex == 0 and view.table.document.rows.count == 2 and view.table.document.rows[1].cells[0] == "Berlin")
 
     var matches: Array'Viewer.SearchMatch
-    result.collectMatches!(result.view!, "Lyon", {}, &matches)
+    collectViewerMatches(result.collectMatches!, result.view!, "Lyon", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Lyon"))
     Swag.assert(view.sheetIndex == 1 and view.table.document.rows[0].cells[0] == "Lyon")
     var bounds: Math.Rectangle
@@ -419,7 +428,7 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(view.slideIndex == 0 and Utf8.contains(view.document.slides[view.slideIndex].html.toString(), "Prepare the offline review"))
 
     var matches: Array'Viewer.SearchMatch
-    result.collectMatches!(result.view!, "Offline review is ready", {}, &matches)
+    collectViewerMatches(result.collectMatches!, result.view!, "Offline review is ready", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Offline review is ready"))
     Swag.assert(view.slideIndex == 1)
     var bounds: Math.Rectangle

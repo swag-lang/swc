@@ -46,6 +46,10 @@ private func nativeFixturePath()->String
     Swag.assert(document.pages[0].textFrameCount >= 19)
     Swag.assert(document.pages[0].items.count >= document.pages[0].textFrameCount)
     Swag.assert(Utf8.contains(document.pages[0].html().toString(), "idml-page"))
+    var tintedItems: u64
+    for item in document.pages[0].items where item.fill == "rgb(51, 51, 51)" do
+        tintedItems += 1
+    Swag.assert(tintedItems >= 42)
 }
 
 // A real native document validates the binary header path separately from the synthetic fixture.

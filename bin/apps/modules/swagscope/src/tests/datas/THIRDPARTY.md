@@ -52,3 +52,17 @@ outside this repository.
 - SHA-256: `748243eb93cdff8ae791277e717a69e77a33b5fa1cf0e993f3b9f3d12e5ce797`
 - License: CC BY 4.0. Attribute Creative Commons and the original uploader, SooHyun Pae; preserve
   the rights notice carried by the source record.
+
+`odf-cc0-tables.odt`, `odf-cc0-1000rows.ods`, and `odf-cc0-10slides.odp` are unmodified external
+OpenDocument fixtures downloaded on 2026-09-03 from Files Sample. They exercise a document archive,
+a 1,000-row spreadsheet, and a ten-slide presentation produced outside this repository. The source
+pages declare each download CC0 1.0 (Public Domain).
+
+- Sources: `https://files-sample.com/download/odt-tables`,
+  `https://files-sample.com/download/ods-1000rows`, and
+  `https://files-sample.com/download/odp-10slides`.
+- SHA-256: `b009b16ea8b0f2a59e928850118f24c0877fafee7fb58af8b190ad099a8c0b10` (ODT),
+  `b15163503033e6618ee6263379b071ef2ecf4055299724d48f240af6adb6f2bc` (ODS), and
+  `3e6eaedf731c850c53881f818e6c857ba299fd8b836046117fcf14b4601a6e49` (ODP).
+- License: CC0 1.0 Universal (Public Domain). The source pages say the files may be used
+  commercially without attribution.

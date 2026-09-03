@@ -112,6 +112,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(registry.choices("movie.mkv")[0].key == "video")
     Swag.assert(registry.choices("score.mid")[0].key == "midi")
     Swag.assert(registry.choices("dialogue.srt")[0].key == "subtitle")
+    let openDocumentChoices = registry.choices("budget.ods")
+    Swag.assert(openDocumentChoices[0].key == "opendocument" and openDocumentChoices[1].key == "archive" and openDocumentChoices[2].key == "binary" and openDocumentChoices[3].key == "hex")
+    Swag.assert(registry.choices("letter.ott")[0].key == "opendocument" and registry.choices("budget.fods")[0].key == "opendocument" and registry.choices("slides.fodp")[0].key == "opendocument")
+    Swag.assert(registry.choices("diagram.odg")[0].key == "opendocument" and registry.choices("diagram.otg")[0].key == "opendocument" and registry.choices("diagram.fodg")[0].key == "opendocument")
     Swag.assert(registry.choices("bundle.zip")[0].key == "archive")
 
     let indesignChoices = registry.choices("layout.indd")

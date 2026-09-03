@@ -219,12 +219,15 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
 
 ## Packaged documents
 
-### app.scope.document.020 — Office and OpenDocument files stop at the ZIP structure
+### app.scope.document.020 — Office Open XML files stop at the ZIP structure
 
-- Intent: `.docx` and `.odt` show a list of parts, which is right for an archive and useless for a
-  document. Full fidelity is not the target; readable content is.
-- Complete when: paragraphs, headings, lists and tables come out as a readable document through the
-  existing reading column, and a spreadsheet's cells come out through the table view.
+- Intent: `.docx`, `.xlsx`, and `.pptx` still show a list of parts. OpenDocument files now have
+  their own reader, but the Microsoft Office family needs the same readable-content boundary.
+- Next: identify the shared document structure that can read paragraphs, headings, lists, tables,
+  and spreadsheet cells without expanding the OpenDocument decoder into an Office compatibility
+  layer.
+- Complete when: Office Open XML documents open through readable document and table surfaces rather
+  than only their ZIP hierarchy.
 - Related: app.scope.text.015, app.scope.binary.010
 
 ### app.scope.document.021 — EPUB stops at the ZIP structure
@@ -266,3 +269,20 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   suppressed rich output is named and available as source; large output is collapsed and bounded;
   and opening a notebook never starts a kernel, executes code, or fetches a resource.
 - Related: app.scope.document.003, app.scope.text.024, app.scope.text.025, app.scope.viewers.011
+
+## OpenDocument reading
+
+### app.scope.document.023 — OpenDocument reading retains content but not document layout
+
+- Evidence: the OpenDocument reader exposes ODT reading text, every ODS sheet, each ODP
+  slide, and each ODG drawing page. It retains common automatic and named text emphasis, but deliberately drops complete style inheritance,
+  colors, number formats, merged cells, row and column dimensions, graphical drawing primitives beyond readable text and bounded local
+  raster images, charts, annotations, notes, and slide transitions. The shared HTML renderer also
+  cannot lay out table spans, so emitting ODF merged cells would visibly corrupt a document.
+- Next: define a bounded read-only visual model shared by ODT, ODS, ODP, and ODG. Extend the basic text
+  emphasis with complete style inheritance, spreadsheet spans and dimensions, and safe local media
+  beyond bounded raster images; never evaluate formulas or load external resources.
+- Complete when: readable documents retain their hierarchy, emphasis, table spans, dimensions,
+  and safe local media; unsupported visual content is identified rather than silently treated as
+  document text.
+- Related: std.gui.html.002, std.gui.html.019, app.scope.document.003

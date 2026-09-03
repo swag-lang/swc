@@ -96,4 +96,10 @@
     <line x1="8" y1="11.5" x2="16" y2="11.5" stroke-linecap="round"/>
     <line x1="8" y1="15.5" x2="16" y2="15.5" stroke-linecap="round"/>
   </g>
+  <g id="OpenDocument" transform="translate(96 48)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round">
+    <path d="M5 3 H14 L19 8 V21 H5 Z"/>
+    <polyline points="14,3 14,8 19,8"/>
+    <line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/>
+    <line x1="8" y1="16" x2="16" y2="16" stroke-linecap="round"/>
+  </g>
 </svg>

@@ -316,9 +316,11 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     return result
 }
 
-// Materializes one checked ZIP entry in memory. Consumers that interpret a packaged document keep
-// the bytes local to their parser instead of round-tripping trusted archive members through a
-// temporary file.
+// Reads and validates one bounded archive entry without materializing a temporary file.
+//
+// Archive previews write this result to a disposable path, while container readers such as ODF
+// consume trusted XML in memory. Both paths therefore share the same size, compression, and CRC
+// boundary.
 func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
 {
     if entry.isDirectory do
@@ -373,6 +375,7 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
     return #move plain
 }
 
+// Extracts one validated archive entry for an embedded file viewer.
 func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
 {
     let plain = try loadZipEntry(archiveFileName, entry)

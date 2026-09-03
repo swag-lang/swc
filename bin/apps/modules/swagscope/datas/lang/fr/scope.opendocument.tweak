@@ -1,0 +1,31 @@
+# French strings of the Swag Scope OpenDocument viewer.
+
+ui_Name         OpenDocument
+ui_ZoomMenu     Options de zoom du document
+ui_Details      OpenDocument · %
+ui_Text         document texte
+ui_Spreadsheet  feuille de calcul
+ui_Presentation présentation
+ui_Sheet        Feuille %
+ui_TipSheet     Choisir une feuille de calcul
+ui_Drawing      dessin
+ui_Slide        Diapositive %
+ui_TipSlide     Choisir une diapositive
+ui_Page         Page %
+ui_TipPage      Choisir une page de dessin
+ui_DetailsPage  OpenDocument dessin · %
+ui_DetailsSlide OpenDocument · présentation · %
+ui_DetailsSheet OpenDocument · feuille de calcul · %
+ui_Column       Colonne %
+err_MimeType    l'archive n'identifie pas un format OpenDocument
+err_Content     l'archive OpenDocument ne contient pas d'entrée content.xml
+err_TooLarge    la visionneuse OpenDocument accepte un XML de document jusqu'à 32 Mio
+err_Encoding    le XML OpenDocument n'est pas en UTF-8
+err_Xml         le XML OpenDocument a une balise XML non terminée
+err_Body        le XML OpenDocument ne contient pas de corps de document office
+err_Sheet       la feuille de calcul ne contient pas de tableau
+err_Slide       la présentation ne contient pas de diapositive
+err_Page        le dessin ne contient aucune page
+err_Columns     la feuille de calcul contient plus de 256 colonnes
+err_Rows        la feuille de calcul contient plus de 100 000 lignes
+err_Cells       la feuille de calcul contient plus de 1 000 000 cellules

@@ -152,6 +152,8 @@ public:
         AstNodeRef               rootNodeRef      = AstNodeRef::invalid();
         const SemaInlinePayload* payload          = nullptr;
         MicroLabelRef            doneLabel        = MicroLabelRef::invalid();
+        MicroReg                 resultStorageReg = MicroReg::invalid();
+        SymbolVariable*          resultStorageSym = nullptr;
         bool                     noOuterDoneLabel = false; // true when in local-function context
     };
 

@@ -1206,27 +1206,102 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
     }
 }
 
-bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg)
+// Directly initialize `var x = expr` into x's storage. Calls use this for their hidden
+// return pointer, and inline expansions use it instead of creating a second result slot.
+bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
 {
     outStorageReg = MicroReg::invalid();
-    if (!codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
-        return false;
-
-    // A 'return' inside an inlined body leaves the expansion, not the enclosing function:
-    // AstReturnStmt::codeGenPostNode routes it to the inline result slot. Building the value
-    // straight into the enclosing function's indirect return slot would write the callee's
-    // result over the caller's, whose type is unrelated. A '#[CalleeReturn]' callee is the one
-    // whose 'return' really does return from the caller, so it keeps the direct storage.
-    if (codeGen.frame().hasCurrentInlineContext())
-    {
-        const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
-        SWC_ASSERT(inlineCtx.payload != nullptr);
-        if (!inlineCtx.payload->returnsToCallerSite())
-            return false;
-    }
+    outStorageSym = nullptr;
 
     const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
-    if (!resolvedNodeRef.isValid())
+    if (!resolvedNodeRef.isValid() || !typeRef.isValid())
+        return false;
+
+    const TypeInfo& valueType          = codeGen.typeMgr().get(typeRef);
+    const TypeRef   unwrappedValueType = valueType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    const TypeRef   storageValueType   = unwrappedValueType.isValid() ? unwrappedValueType : typeRef;
+
+    for (size_t parentIndex = 0;; ++parentIndex)
+    {
+        const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
+        if (parentRef.isInvalid())
+            return false;
+
+        const AstNode& parent             = codeGen.node(parentRef);
+        const bool     isTransparentParent = (SemaHelpers::isTransparentExprNode(parent) && parent.isNot(AstNodeId::AsCastExpr)) ||
+                                             parent.is(AstNodeId::InitializerExpr) ||
+                                             parent.is(AstNodeId::ErrorManagementExpr);
+        if (isTransparentParent)
+            continue;
+
+        if (parent.isNot(AstNodeId::SingleVarDecl))
+            return false;
+
+        const auto& varDecl = parent.cast<AstSingleVarDecl>();
+        if (varDecl.nodeInitRef.isInvalid())
+            return false;
+
+        Symbol* symbol = codeGen.viewSymbol(parentRef).sym();
+        if (!symbol || !symbol->isVariable())
+            return false;
+
+        auto& symVar = symbol->cast<SymbolVariable>();
+        if (!symVar.typeRef().isValid())
+            return false;
+
+        const TypeInfo& storageType          = codeGen.typeMgr().get(symVar.typeRef());
+        const TypeRef   unwrappedStorageType = storageType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias);
+        const TypeRef   storageTypeRef       = unwrappedStorageType.isValid() ? unwrappedStorageType : symVar.typeRef();
+        if (storageTypeRef != storageValueType)
+            return false;
+
+        if (usesCallerReturnStorage(codeGen, symVar))
+        {
+            // Another named 'retval' local denotes this same slot, so the expression could
+            // read it while constructing the result. Keep an intermediate in that case.
+            if (SemaHelpers::functionExposesReturnSlot(codeGen.function(), &symVar))
+                return false;
+
+            const CodeGenNodePayload storagePayload = resolveCallerReturnStoragePayload(codeGen, symVar);
+            SWC_ASSERT(storagePayload.isAddress());
+            outStorageReg = storagePayload.reg;
+            outStorageSym = &symVar;
+            return outStorageReg.isValid();
+        }
+
+        if (!codeGen.localStackBaseReg().isValid() || !symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return false;
+
+        const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar);
+        SWC_ASSERT(storagePayload.isAddress());
+        outStorageReg = storagePayload.reg;
+        outStorageSym = &symVar;
+        return outStorageReg.isValid();
+    }
+}
+
+// A directly returned expression can build into the ABI return slot, or into the result
+// storage selected for an ordinary inline expansion. Error-management wrappers do not
+// change that destination.
+bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
+{
+    outStorageReg = MicroReg::invalid();
+    outStorageSym = nullptr;
+
+    const CodeGenFrame::InlineContext* inlineCtx = nullptr;
+    if (codeGen.frame().hasCurrentInlineContext())
+    {
+        const CodeGenFrame::InlineContext& currentInlineCtx = codeGen.frame().currentInlineContext();
+        SWC_ASSERT(currentInlineCtx.payload != nullptr);
+        if (!currentInlineCtx.payload->returnsToCallerSite())
+            inlineCtx = &currentInlineCtx;
+    }
+
+    if (!inlineCtx && !codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
+        return false;
+
+    AstNodeRef directExprRef = codeGen.viewZero(nodeRef).nodeRef();
+    if (!directExprRef.isValid())
         return false;
 
     for (size_t parentIndex = 0;; ++parentIndex)
@@ -1239,13 +1314,35 @@ bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(Cod
         if (parent.is(AstNodeId::CastExpr) || parent.is(AstNodeId::AutoCastExpr) || parent.is(AstNodeId::ParenExpr))
             continue;
 
+        if (parent.is(AstNodeId::ErrorManagementExpr))
+        {
+            const auto&      errorManagement   = parent.cast<AstErrorManagementExpr>();
+            const AstNodeRef resolvedManagedRef = codeGen.viewZero(errorManagement.nodeExprRef).nodeRef();
+            if (resolvedManagedRef != directExprRef)
+                return false;
+
+            directExprRef = codeGen.viewZero(parentRef).nodeRef();
+            continue;
+        }
+
         if (parent.isNot(AstNodeId::ReturnStmt))
             return false;
 
         const auto&      returnNode        = parent.cast<AstReturnStmt>();
         const AstNodeRef resolvedReturnRef = codeGen.viewZero(returnNode.nodeExprRef).nodeRef();
-        if (resolvedReturnRef != resolvedNodeRef)
+        if (resolvedReturnRef != directExprRef)
             return false;
+
+        if (inlineCtx)
+        {
+            SWC_ASSERT(inlineCtx->payload->resultVar != nullptr);
+            outStorageSym = inlineCtx->resultStorageSym ? inlineCtx->resultStorageSym : inlineCtx->payload->resultVar;
+            if (inlineCtx->resultStorageReg.isValid())
+                outStorageReg = inlineCtx->resultStorageReg;
+            else
+                outStorageReg = codeGen.resolveLocalStackPayload(*outStorageSym).reg;
+            return outStorageReg.isValid();
+        }
 
         outStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(codeGen.function().callConvKind());
         return true;

@@ -667,87 +667,6 @@ namespace
         return true;
     }
 
-    bool isTransparentCallResultParent(const AstNode& parent)
-    {
-        return (SemaHelpers::isTransparentExprNode(parent) && parent.isNot(AstNodeId::AsCastExpr)) ||
-               parent.is(AstNodeId::InitializerExpr);
-    }
-
-    bool tryUseVarInitStorageForDirectCallResult(CodeGen& codeGen, AstNodeRef callRef, TypeRef returnTypeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
-    {
-        outStorageReg = MicroReg::invalid();
-        outStorageSym = nullptr;
-
-        // Directly initialize `var x = call()` into x's storage when the return ABI is
-        // indirect. This avoids a temporary buffer and keeps lifetime/debug metadata
-        // attached to the user variable.
-        const AstNodeRef resolvedCallRef = codeGen.viewZero(callRef).nodeRef();
-        if (resolvedCallRef.isInvalid())
-            return false;
-        if (!returnTypeRef.isValid())
-            return false;
-
-        const TypeInfo& returnType          = codeGen.typeMgr().get(returnTypeRef);
-        const TypeRef   unwrappedReturnType = returnType.unwrap(codeGen.ctx(), returnTypeRef, TypeExpandE::Alias);
-        const TypeRef   storageReturnType   = unwrappedReturnType.isValid() ? unwrappedReturnType : returnTypeRef;
-
-        for (size_t parentIndex = 0;; ++parentIndex)
-        {
-            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                return false;
-
-            const AstNode& parent = codeGen.node(parentRef);
-            if (isTransparentCallResultParent(parent))
-                continue;
-
-            if (parent.isNot(AstNodeId::SingleVarDecl))
-                return false;
-
-            const auto& varDecl = parent.cast<AstSingleVarDecl>();
-            if (varDecl.nodeInitRef.isInvalid())
-                return false;
-
-            Symbol* symbol = codeGen.viewSymbol(parentRef).sym();
-            if (!symbol || !symbol->isVariable())
-                return false;
-
-            auto& symVar = symbol->cast<SymbolVariable>();
-            if (!symVar.typeRef().isValid())
-                return false;
-
-            const TypeInfo& storageType          = codeGen.typeMgr().get(symVar.typeRef());
-            const TypeRef   unwrappedStorageType = storageType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias);
-            const TypeRef   storageTypeRef       = unwrappedStorageType.isValid() ? unwrappedStorageType : symVar.typeRef();
-            if (storageTypeRef != storageReturnType)
-                return false;
-
-            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
-            {
-                // Another named 'retval' local denotes this same slot, so the callee could be
-                // reading it through an argument while writing its result into it. Fall back to
-                // a temporary: the callee is allowed to build its return value in place.
-                if (SemaHelpers::functionExposesReturnSlot(codeGen.function(), &symVar))
-                    return false;
-
-                const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
-                SWC_ASSERT(storagePayload.isAddress());
-                outStorageReg = storagePayload.reg;
-                outStorageSym = &symVar;
-                return outStorageReg.isValid();
-            }
-
-            if (!codeGen.localStackBaseReg().isValid() || !symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-                return false;
-
-            const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar);
-            SWC_ASSERT(storagePayload.isAddress());
-            outStorageReg = storagePayload.reg;
-            outStorageSym = &symVar;
-            return outStorageReg.isValid();
-        }
-    }
-
     void materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
     {
         if (!normalizedArg.isIndirect || !normalizedArg.needsIndirectCopy)
@@ -1770,18 +1689,19 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     SWC_RESULT(buildPreparedABIArguments(preparedArgs, codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs.args);
-    MicroReg        hiddenRetStorageReg              = MicroReg::invalid();
-    SymbolVariable* directVarInitStorageSym          = nullptr;
-    bool            usesCurrentFunctionReturnStorage = false;
+    MicroReg        hiddenRetStorageReg     = MicroReg::invalid();
+    SymbolVariable* directVarInitStorageSym = nullptr;
+    SymbolVariable* directReturnStorageSym  = nullptr;
+    bool            usesDirectReturnStorage = false;
     if (normalizedRet.isIndirect)
     {
         // Reuse the destination variable storage for indirect direct-call results whenever possible.
         // Otherwise the ABI helper falls back to compiler-segment scratch storage, which the native
         // backend cannot serialize into object-file relocations.
-        tryUseVarInitStorageForDirectCallResult(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
+        CodeGenFunctionHelpers::tryUseDirectVarInitStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
 
         if (!hiddenRetStorageReg.isValid())
-            usesCurrentFunctionReturnStorage = CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
+            usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg, directReturnStorageSym);
 
         const CodeGenNodePayload* nodePayload = codeGen.safePayload(codeGen.curNodeRef());
         if (!hiddenRetStorageReg.isValid() &&
@@ -1802,8 +1722,8 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         nodePayload.reg = normalizedRet.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
     if (directVarInitStorageSym)
         nodePayload.setRuntimeStorageSymbol(directVarInitStorageSym);
-    else if (usesCurrentFunctionReturnStorage)
-        nodePayload.setRuntimeStorageSymbol(nullptr);
+    else if (usesDirectReturnStorage)
+        nodePayload.setRuntimeStorageSymbol(directReturnStorageSym);
     emitFunctionCall(codeGen, *calledFunction, preparedCall, callTargetReg);
     if (preparedArgs.transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(preparedArgs.transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
@@ -1811,7 +1731,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
 
-    const bool ownsTemporaryResult = normalizedRet.isIndirect && directVarInitStorageSym == nullptr && !usesCurrentFunctionReturnStorage;
+    const bool ownsTemporaryResult = normalizedRet.isIndirect && directVarInitStorageSym == nullptr && !usesDirectReturnStorage;
     if (ownsTemporaryResult && codeGen.hasLifecycle(calledFunction->returnTypeRef(), CodeGenLifecycleKind::Drop))
     {
         const SymbolVariable* storageSym = codeGen.runtimeStorageSymbol(codeGen.curNodeRef());

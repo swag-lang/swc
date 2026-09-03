@@ -556,16 +556,25 @@ namespace
 
     // A call result held in a compiler temporary owns its value: the return transfers
     // it with 'opPostMove' instead of deep-copying it, and nothing drops the abandoned
-    // temporary. Caller-owned return storages ('retval') stay outside this rule, and so
-    // does a reference-returning call: its address is a borrowed referee, not a temp.
+    // temporary. Error-management expressions preserve that ownership. Caller-owned
+    // return storages ('retval') stay outside this rule, and so does a reference-returning
+    // call: its address is a borrowed referee, not a temp.
     bool returnSourceIsOwnedTemporary(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (exprRef.isInvalid() || !exprPayload.isAddress())
             return false;
+        if (exprPayload.runtimeStorageOverridden && exprPayload.runtimeStorageSym == nullptr)
+            return false;
         if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
             return false;
 
-        const AstNodeRef resolvedExprRef = codeGen.viewZero(exprRef).nodeRef();
+        AstNodeRef resolvedExprRef = codeGen.viewZero(exprRef).nodeRef();
+        while (resolvedExprRef.isValid() && codeGen.node(resolvedExprRef).is(AstNodeId::ErrorManagementExpr))
+        {
+            const auto& errorManagement = codeGen.node(resolvedExprRef).cast<AstErrorManagementExpr>();
+            resolvedExprRef             = codeGen.viewZero(errorManagement.nodeExprRef).nodeRef();
+        }
+
         if (resolvedExprRef.isInvalid() || codeGen.node(resolvedExprRef).isNot(AstNodeId::CallExpr))
             return false;
 
@@ -619,11 +628,21 @@ namespace
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
     }
 
-    MicroReg inlineResultAddressReg(CodeGen& codeGen, const SymbolVariable& symVar)
+    const SymbolVariable& inlineResultStorageSymbol(CodeGen& codeGen, const SemaInlinePayload& inlinePayload)
     {
-        SWC_ASSERT(symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-        return codeGen.offsetAddressReg(codeGen.localStackBaseReg(), symVar.offset());
+        SWC_ASSERT(inlinePayload.resultVar != nullptr);
+        const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
+        SWC_ASSERT(inlineCtx.payload == &inlinePayload);
+        return inlineCtx.resultStorageSym ? *inlineCtx.resultStorageSym : *inlinePayload.resultVar;
+    }
+
+    MicroReg inlineResultAddressReg(CodeGen& codeGen, const SemaInlinePayload& inlinePayload)
+    {
+        const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
+        SWC_ASSERT(inlineCtx.payload == &inlinePayload);
+        if (inlineCtx.resultStorageReg.isValid())
+            return inlineCtx.resultStorageReg;
+        return codeGen.resolveLocalStackPayload(inlineResultStorageSymbol(codeGen, inlinePayload)).reg;
     }
 
     bool tryEmitInlineDirectCallResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
@@ -651,7 +670,7 @@ namespace
         if (normalizedRet.isVoid || normalizedRet.isIndirect)
             return false;
 
-        const MicroReg resultAddr = inlineResultAddressReg(codeGen, *inlinePayload.resultVar);
+        const MicroReg resultAddr = inlineResultAddressReg(codeGen, inlinePayload);
         ABICall::storeReturnRegsToReturnBuffer(codeGen.builder(), callConvKind, resultAddr, normalizedRet);
         return true;
     }
@@ -661,8 +680,8 @@ namespace
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
 
-        const SymbolVariable& resultVar  = *inlinePayload.resultVar;
-        const MicroReg        resultAddr = inlineResultAddressReg(codeGen, resultVar);
+        const SymbolVariable& resultStorage = inlineResultStorageSymbol(codeGen, inlinePayload);
+        const MicroReg        resultAddr    = inlineResultAddressReg(codeGen, inlinePayload);
         if (tryEmitInlineDirectCallResultStore(codeGen, inlinePayload, exprRef))
             return Result::Continue;
 
@@ -671,17 +690,17 @@ namespace
             payloadExprRef = exprRef;
 
         const CodeGenNodePayload& exprPayload = codeGen.payload(payloadExprRef);
-        // The value was built straight in the result local, so storing it there would copy the
-        // local onto itself. As in the return-slot case, the storage symbol is what proves the
-        // aliasing: both sides derive their own register from the same local.
-        if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultVar)
+        // The value was built straight in the selected result storage, so storing it there
+        // would copy the slot onto itself. The storage symbol proves the alias even when the
+        // expression and return path materialize different address registers.
+        if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultStorage)
             return Result::Continue;
 
         SWC_RESULT(emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef));
 
-        // The inline result temporary must own its value, like a real return slot: a
-        // moved-out local or an owned call temporary transfers with 'opPostMove'; any
-        // other lifecycle source is deep-copied so the store does not alias a live value.
+        // The selected inline result storage must own its value, like a real return slot: a
+        // moved-out local or an owned call temporary transfers with 'opPostMove'; any other
+        // lifecycle source is deep-copied so the store does not alias a live value.
         if (codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
             return Result::Continue;
         const bool movesOwnership     = moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
@@ -856,7 +875,9 @@ namespace
         const AstNodeRef storageNodeRef = resolveClosureExprStorageNodeRef(codeGen, nodeRef);
         MicroBuilder&    builder        = codeGen.builder();
         MicroReg         dstReg         = MicroReg::invalid();
-        if (!CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, storageNodeRef, dstReg))
+        SymbolVariable*  directReturnStorageSym = nullptr;
+        const bool       usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, storageNodeRef, dstReg, directReturnStorageSym);
+        if (!usesDirectReturnStorage)
             dstReg = codeGen.runtimeStorageAddressReg(storageNodeRef);
         constexpr auto dstSize = static_cast<uint32_t>(sizeof(Runtime::ClosureValue));
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, dstSize);
@@ -876,9 +897,15 @@ namespace
         }
 
         codeGen.function().addCallDependency(&symFunc);
-        codeGen.setPayloadAddressReg(nodeRef, dstReg, typeRef);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadAddressReg(nodeRef, dstReg, typeRef);
+        if (usesDirectReturnStorage)
+            nodePayload.setRuntimeStorageSymbol(directReturnStorageSym);
         if (storageNodeRef != nodeRef)
-            codeGen.setPayloadAddressReg(storageNodeRef, dstReg, typeRef);
+        {
+            CodeGenNodePayload& storagePayload = codeGen.setPayloadAddressReg(storageNodeRef, dstReg, typeRef);
+            if (usesDirectReturnStorage)
+                storagePayload.setRuntimeStorageSymbol(directReturnStorageSym);
+        }
         return Result::Continue;
     }
 
@@ -916,6 +943,8 @@ namespace
     {
         if (!exprPayload.isAddress())
             return false;
+        if (exprPayload.runtimeStorageOverridden && exprPayload.runtimeStorageSym == nullptr)
+            return true;
         if (exprPayload.runtimeStorageSym != nullptr && CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *exprPayload.runtimeStorageSym))
             return true;
 
@@ -1216,7 +1245,7 @@ namespace
         };
     }
 
-    Result emitFunctionLikeReturnNoDefers(CodeGen& codeGen, const SymbolFunction& symbolFunc, const CodeGenNodePayload* exprPayload)
+    Result emitFallibleFailureReturnNoDefers(CodeGen& codeGen, const SymbolFunction& symbolFunc, const CodeGenNodePayload* exprPayload)
     {
         MicroBuilder&                          builder                            = codeGen.builder();
         const CallConvKind                     callConvKind                       = symbolFunc.callConvKind();
@@ -1237,15 +1266,9 @@ namespace
                     if (needsPersistentCompilerBlockReturn)
                         CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                     else if (exprPayload->isAddress())
-                    {
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                        SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
-                    }
                     else
-                    {
                         emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                        SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
-                    }
                 }
                 else
                 {
@@ -1276,15 +1299,9 @@ namespace
             if (needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (exprPayload->isAddress())
-            {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
-            }
             else
-            {
                 emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
-            }
 
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
@@ -1315,7 +1332,7 @@ namespace
         const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
         if (normalizedRet.isVoid)
-            return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, nullptr);
+            return emitFallibleFailureReturnNoDefers(codeGen, symbolFunc, nullptr);
 
         ConstantRef zeroCstRef = ConstantRef::invalid();
         SWC_RESULT(makeZeroConstantRefForType(codeGen, zeroCstRef, symbolFunc.returnTypeRef()));
@@ -1324,7 +1341,10 @@ namespace
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, symbolFunc.returnTypeRef(), zeroCstRef))
             return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized fallible error return payload");
 
-        return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
+        // A failed call has no live result to copy. The zero payload only keeps the ABI return
+        // bytes deterministic; running 'opPostCopy' here would manufacture ownership for a
+        // value that the error path immediately discards.
+        return emitFallibleFailureReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
     }
 
     Result emitFallibleDeferredActions(CodeGen& codeGen, const FallibleTarget& target)

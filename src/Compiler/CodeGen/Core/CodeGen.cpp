@@ -22,10 +22,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroLabelRef findMatchingInlineDoneLabel(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
+    const CodeGenFrame::InlineContext* findMatchingInlineContext(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
     {
         if (!payload || rootNodeRef.isInvalid())
-            return MicroLabelRef::invalid();
+            return nullptr;
 
         for (size_t frameIndex = frames.size(); frameIndex != 0; --frameIndex)
         {
@@ -35,10 +35,10 @@ namespace
 
             const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
             if (inlineCtx.rootNodeRef == rootNodeRef && inlineCtx.payload == payload)
-                return inlineCtx.doneLabel;
+                return &inlineCtx;
         }
 
-        return MicroLabelRef::invalid();
+        return nullptr;
     }
 
     bool hasMatchingInlineFrame(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
@@ -455,6 +455,7 @@ void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind k
 
 void CodeGenFrame::setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel)
 {
+    inlineContext_             = {};
     inlineContext_.rootNodeRef = rootNodeRef;
     inlineContext_.payload     = payload;
     inlineContext_.doneLabel   = doneLabel;
@@ -1743,6 +1744,16 @@ Result CodeGen::preNode(AstNode& node)
     {
         CodeGenFrame frame = this->frame();
         frame.setCurrentInlineContext(currentNodeRef, inlinePayload, MicroLabelRef::invalid());
+        if (inlinePayload->resultVar && inlinePayload->returnTypeRef.isValid())
+        {
+            MicroReg        resultStorageReg = MicroReg::invalid();
+            SymbolVariable* resultStorageSym = nullptr;
+            if (CodeGenFunctionHelpers::tryUseDirectVarInitStorage(*this, currentNodeRef, inlinePayload->returnTypeRef, resultStorageReg, resultStorageSym))
+            {
+                frame.currentInlineContextRef().resultStorageReg = resultStorageReg;
+                frame.currentInlineContextRef().resultStorageSym = resultStorageSym;
+            }
+        }
         pushFrame(frame);
     }
     else if (const auto* inlineOverride = sema().inlineContextOverride<SemaInlineContextOverride>(currentNodeRef))
@@ -1750,8 +1761,14 @@ Result CodeGen::preNode(AstNode& node)
         CodeGenFrame frame = this->frame();
         if (const SemaInlinePayload* targetInlinePayload = inlineOverride->targetInlinePayload)
         {
-            const MicroLabelRef doneLabel = findMatchingInlineDoneLabel(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
+            const CodeGenFrame::InlineContext* matchingInlineCtx = findMatchingInlineContext(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
+            const MicroLabelRef                doneLabel         = matchingInlineCtx ? matchingInlineCtx->doneLabel : MicroLabelRef::invalid();
             frame.setCurrentInlineContext(targetInlinePayload->inlineRootRef, targetInlinePayload, doneLabel);
+            if (matchingInlineCtx)
+            {
+                frame.currentInlineContextRef().resultStorageReg = matchingInlineCtx->resultStorageReg;
+                frame.currentInlineContextRef().resultStorageSym = matchingInlineCtx->resultStorageSym;
+            }
             // When no matching frame is found in the frame stack, we are inside a locally
             // compiled function (e.g., a local function inside a macro expansion). In that
             // case, any doneLabel created by emitInlineReturn must be placed at this boundary
@@ -1806,12 +1823,13 @@ Result CodeGen::postNode(AstNode& node)
             if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
             {
                 SWC_ASSERT(inlineCtx.payload->resultVar != nullptr);
-                const SymbolVariable& resultVar = *inlineCtx.payload->resultVar;
-                SWC_ASSERT(resultVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-                SWC_ASSERT(localStackBaseReg().isValid());
-
+                SymbolVariable* resultStorageSym = inlineCtx.resultStorageSym ? inlineCtx.resultStorageSym : inlineCtx.payload->resultVar;
                 inlineNodePayload.setIsAddress();
-                inlineNodePayload.reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
+                inlineNodePayload.setRuntimeStorageSymbol(resultStorageSym);
+                if (inlineCtx.resultStorageReg.isValid())
+                    inlineNodePayload.reg = inlineCtx.resultStorageReg;
+                else
+                    inlineNodePayload.reg = resolveLocalStackPayload(*resultStorageSym).reg;
             }
         }
         else if (frame().hasCurrentInlineContext() && frame().currentInlineContext().noOuterDoneLabel)

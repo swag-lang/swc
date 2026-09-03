@@ -62,20 +62,50 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 
     var line: FormLine
     line.borderSize = 5
+    line.outlineSize = 3
     line.startSize  = 4
     line.endSize    = 20
     line.endCap     = .RoundAnchor
     let lineItf: IForm = &line
-    Swag.assert(BaseForm.paintOverdraw(lineItf, false) == 52)
+    Swag.assert(BaseForm.paintOverdraw(lineItf, false) == 112)
 
     // FormArrow embeds FormLine but has its own runtime type. Its arrowhead must reserve the
     // same layer margin instead of falling back to the ordinary-stroke extent.
     var arrow: FormArrow
     arrow.borderSize = 5
+    arrow.outlineSize = 3
     arrow.endSize    = 8
     arrow.endCap     = .ArrowAnchor
     let arrowItf: IForm = &arrow
-    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 22)
+    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 46)
+}
+
+// Stroke contours participate in both painting and hit testing; a point outside the core must
+// become selectable once its outer contour reaches it.
+#test
+{
+    var line: FormLine
+    line.xa = 10
+    line.ya = 10
+    line.xb = 100
+    line.yb = 10
+    line.borderSize  = 4
+    let lineCore = line.IForm.hitTest({50, 14}, 1)
+    Swag.assert(!lineCore)
+    line.outlineSize = 4
+    let lineOutline = line.IForm.hitTest({50, 14}, 1)
+    Swag.assert(lineOutline)
+
+    var draw: FormDraw
+    draw.points.add({10, 10})
+    draw.points.add({100, 10})
+    draw.borderSize = 4
+    let drawCore = draw.IForm.hitTest({50, 14}, 1)
+    Swag.assert(!drawCore)
+    draw.outlineSize = 4
+    let drawOutline = draw.IForm.hitTest({50, 14}, 1)
+    Swag.assert(drawOutline)
+    Gui.Testing.assertRect(draw.IForm.boundRect(), 4, 4, 102, 12)
 }
 
 // Rectangle-like forms normalize negative sizes and keep their base geometry coherent.
@@ -332,6 +362,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Swag.assert(!step.IForm.isSame(&stepCopy))
 
     let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
+    line.outlineSize = 3
+    line.outlineColor = ColorBlue
     line.dashCap     = .Round
     line.bezier      = true
     line.paintShadow = false
@@ -339,6 +371,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     line.IForm.copy(&lineCopy, line)
     Swag.assert(lineCopy.subKind == .PixSel)
     Swag.assert(lineCopy.paintShadow == false)
+    Swag.assert(lineCopy.outlineSize == 3 and lineCopy.outlineColor == ColorBlue)
     Swag.assert(line.IForm.isSame(&lineCopy))
     lineCopy.subKind = .Highlight
     Swag.assert(!line.IForm.isSame(&lineCopy))
@@ -360,11 +393,14 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Swag.assert(!polygon.IForm.isSame(&polygonCopy))
 
     let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
+    draw.outlineSize = 3
+    draw.outlineColor = ColorBlue
     draw.paintShadow = false
     var drawCopy: FormDraw
     draw.IForm.copy(&drawCopy, draw)
     Swag.assert(drawCopy.subKind == .PixSel)
     Swag.assert(drawCopy.paintShadow == false)
+    Swag.assert(drawCopy.outlineSize == 3 and drawCopy.outlineColor == ColorBlue)
     Swag.assert(draw.IForm.isSame(&drawCopy))
     drawCopy.paintShadow = true
     Swag.assert(!draw.IForm.isSame(&drawCopy))

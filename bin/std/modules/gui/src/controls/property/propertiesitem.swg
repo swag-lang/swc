@@ -119,8 +119,6 @@ struct PropertiesItem
 
     aniFocusBk: BlendColor
 
-    aniFocusBorder: BlendColor
-
     level: u32
 
     numChilds: u32

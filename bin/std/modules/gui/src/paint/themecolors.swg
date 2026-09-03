@@ -447,9 +447,9 @@ struct ThemeColors
         embInfo_MessageText:     Color     // Text of a neutral status notice.
 
         prop_FocusBk:     Color     // Ground of the focused row of a property grid.
-        prop_FocusBorder: Color     // Outline of the focused row of a property grid.
+        prop_FocusBorder: Color     // Legacy outline color for a property-related selection.
         prop_HotBk:       Color     // Ground of the row under the pointer.
-        prop_HotBorder:   Color     // Outline of the row under the pointer.
+        prop_HotBorder:   Color     // Legacy outline color for a property-related hot state.
         prop_GridBorder:  Color     // Outline of a property grid.
         prop_GridColumn:  Color     // Rule between the name column and the value column.
         prop_SectionBk:   Color     // Ground of a section head.

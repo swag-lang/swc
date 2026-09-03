@@ -137,8 +137,9 @@ func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
     {
         let line  = cast(*FormLine) itf.buffer
         let sizes = line.paintSizes(cxt)
-        let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
-        let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
+        let stroke = sizes.stroke + 2 * line.paintOutlineSize(cxt)
+        let beg    = Painter.capStyleExtent(line.beginCap, stroke, sizes.begScale)
+        let end    = Painter.capStyleExtent(line.endCap, stroke, sizes.endScale)
         let room  = Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l))
 
         // The sample runs corner to corner, so what stands across it lands on both axes at
@@ -146,7 +147,10 @@ func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
         return room * Math.ConstF32.OneBySqrt2
     }
 
-    return BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
+    var inset = BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
+    if type == FormDraw do
+        inset += (cast(*FormDraw) itf.buffer).paintOutlineSize(cxt)
+    return inset
 }
 
 func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm

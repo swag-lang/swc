@@ -811,7 +811,6 @@ impl LibraryWnd
             .addItems([ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images])
             .addSeparator()
             .addItem(ActionLibFilter.FavoritesOnly)
-            .addItems([ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5])
 
             with let apps = MenuCtrl.createPopup(menu, owner: me)
             {
@@ -839,6 +838,8 @@ impl LibraryWnd
                 menu.addPopup(appStrings().act_Tags, tagMenu)
             }
 
+            .addSeparator()
+            .addItems([ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5])
             .addSeparator()
             .addItem(ActionLibFilter.UpToDateLinkedImage)
             .addItem(ActionLibFilter.UnSavedLinkedImage)

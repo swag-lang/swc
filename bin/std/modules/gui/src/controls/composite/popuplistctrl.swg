@@ -7,8 +7,14 @@ struct PopupListCtrlItem
 {
     public
     {
-        using base:  Item     // Embedded label, icon, identifier, and user data.
-        isSeparator: bool     // Whether this entry separates groups and cannot be selected.
+        using base:      Item     // Embedded label, icon, identifier, and user data.
+        isSeparator:     bool     // Whether this entry separates groups and cannot be selected.
+
+        // Optional content painter, called inside this entry's selection ground instead of its
+        // icon and wording. It receives Checked for the stored selection and Hot for the row
+        // under the pointer, so a visual preset keeps the same interaction language as a text
+        // entry without becoming a grid of buttons.
+        contentPainter: #null func||(*PopupListCtrlItem, *PaintContext, Math.Rectangle, PaintItemFlags)
     }
 }
 
@@ -26,6 +32,10 @@ struct PopupListCtrl
         maximumHeight:   f32 = 300     // Maximum popup height in logical units.
         fitHorizontally: bool          // Whether fitting may mirror horizontal placement around the owner.
         fitVertically:   bool          // Whether fitting may mirror vertical placement around the owner.
+
+        // Reserves a permanent trailing column for the selected-item check mark. Use for visual
+        // presets when their painted sample must keep identical bounds while selection changes.
+        reserveSelectionMark: bool
 
         // Emitted when the popup closes; the index is U32.Max when the action was canceled.
         sigClosed: #null func||(*PopupListCtrl, u32)
@@ -188,51 +198,64 @@ internal impl IWnd for PopupListView
             var colorSel: Color
             var colorCheck = colors.popupList_CheckMark
             let isHot      = .hotIdx == idx
+            var paintFlags: PaintItemFlags = .None
+            if idx == .list.selectedIndex do
+                paintFlags.add(.Checked)
             if isHot
             {
                 colorSel   = colors.popupList_HotBk
                 colorText  = colors.popupList_HotText
                 colorCheck = colors.popupList_HotCheckMark
+                paintFlags.add(.Hot)
             }
 
             theme.drawSubRect(painter, labelPos, &rects.selectionBox_Bk, colorSel)
             labelPos.moveLeft(metrics.popupList_Padding)
 
+            let fntHeight = .font().regular!.height
+            let reserveCheckMark = .list.reserveSelectionMark or idx == .list.selectedIndex
+            if reserveCheckMark do
+                labelPos.setRight(labelPos.right() - fntHeight - metrics.popupList_IconTextMargin)
+
             // Icon, plainly centered, because the entry beside it is centered on its capitals: a
             // drop-down shows the very entries the field above it shows, so the two have to place
             // them by the same rule or the list steps away from the field as it opens.
-            if it.icon.isValid()
+            if it.contentPainter
             {
-                let iconColor = it.icon.color.a ? it.icon.color : colorText
-                var icon      = it.icon
-                if .list.iconSize != 0 do
-                    icon.sizeX, icon.sizeY = .list.iconSize
-                icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, iconColor)
+                it.contentPainter(it, evt.paintContext, labelPos, paintFlags)
             }
+            else
+            {
+                if it.icon.isValid()
+                {
+                    let iconColor = it.icon.color.a ? it.icon.color : colorText
+                    var icon      = it.icon
+                    if .list.iconSize != 0 do
+                        icon.sizeX, icon.sizeY = .list.iconSize
+                    icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, iconColor)
+                }
 
-            if .list.maxIconSize do
-                labelPos.moveLeft(.list.maxIconSize + metrics.popupList_IconTextMargin)
+                if .list.maxIconSize do
+                    labelPos.moveLeft(.list.maxIconSize + metrics.popupList_IconTextMargin)
 
-            let fntHeight = .font().regular!.height
-            if idx == .list.selectedIndex do
-                labelPos.setRight(labelPos.right() - fntHeight - metrics.popupList_IconTextMargin)
-
-            // Text
-            theme.setTextColors(&format, colorText)
-            format.horzAlignment = .Left
-            format.vertAlignment = .OpticalCenter
-            format.flags         = .Clip
-            format.font          = .font()
-            painter.drawRichString(labelPos, &it.name, format)
+                // Text
+                theme.setTextColors(&format, colorText)
+                format.horzAlignment = .Left
+                format.vertAlignment = .OpticalCenter
+                format.flags         = .Clip
+                format.font          = .font()
+                painter.drawRichString(labelPos, &it.name, format)
+            }
 
             // Check mark
             if idx == .list.selectedIndex
             {
-                labelPos.x      = labelPos.right()
-                labelPos.y      = labelPos.vertCenter() - fntHeight * 0.5
-                labelPos.width  = fntHeight
-                labelPos.height = fntHeight
-                theme.drawSubRect(painter, labelPos, &rects.btnCheck_CheckedMark, colorCheck)
+                var checkPos = labelPos
+                checkPos.x      = checkPos.right()
+                checkPos.y      = checkPos.vertCenter() - fntHeight * 0.5
+                checkPos.width  = fntHeight
+                checkPos.height = fntHeight
+                theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, colorCheck)
             }
 
             y += .list.itemHeight

@@ -1,5 +1,7 @@
 const MinBorderSize     = 1.0
 const MaxBorderSize     = 100.0
+const MinOutlineSize    = 0.0
+const MaxOutlineSize    = 20.0
 const MinTextBorderSize = 1.0
 const MaxTextBorderSize = 20.0
 const MinCapSize        = 1.0

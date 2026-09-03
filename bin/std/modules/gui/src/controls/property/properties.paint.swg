@@ -23,23 +23,20 @@ internal impl Properties
         if item.flags.has(.Spacer) do
             return
 
-        var colBkBk, colBk, colBorder: Color
+        var colBkBk, colBk: Color
 
         let theme  = .wnd.theme()
         let colors = .wnd.themeColors()
         if item == .selItem
         {
-            colBk     = colors.prop_FocusBk
-            colBorder = colors.prop_FocusBorder
+            colBk = colors.prop_FocusBk
         }
         elif .hotItem == item and .hotItem!.line.isEnabled()
         {
-            colBk     = colors.prop_HotBk
-            colBorder = colors.prop_HotBorder
+            colBk = colors.prop_HotBk
         }
 
         item.aniFocusBk.apply(wndItem, colBk)
-        item.aniFocusBorder.apply(wndItem, colBorder)
 
         var r = wndItem.clientRect()
         r.moveTop(wndItem.children.front().position.y)
@@ -101,13 +98,9 @@ internal impl Properties
             painter.fillRect(rect, .aniBar.cur())
         }
 
-        // The selected row is a short accent mark in a reserved edge lane, not another box.
-        let focusRail = Math.Rectangle{r.x, r.y + 5, 2, Math.max(r.height - 10, 4.0)}
-        painter.fillRect(focusRail, item.aniFocusBorder.cur())
-
         // List rows: a field whose value differs from its declared default gets a small neutral
-        // square in the reserved edge lane. Selection owns the accent rail; giving both states
-        // the same rail made a changed value read as selected. Grid keeps its revert-arrow column.
+        // square in the reserved edge lane. Selection and hover own their ground, as they do in
+        // a list; the marker therefore stays neutral. Grid keeps its revert-arrow column.
         if !.isGridLike() and item.isModified and .revertButtonsVisible
         {
             const MarkerSize = 4'f32

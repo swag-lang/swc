@@ -9,7 +9,7 @@ const StyleCellSize  = 48.0
 const StyleGlyphSize = 26.0
 const StyleCellGap   = 12.0
 
-const CapSize  = 6.0
+const CapPreviewSize = 10.0
 const DashSize = 6.0
 
 // Geometry of the popups the style cells open. A popup is sized from what it lists, so a
@@ -34,6 +34,31 @@ func popupExtent(count, size: f32)->f32
 // slot of the widget; these two helpers keep the double cast in one place.
 func(T) enumToUserData(value: T)->*void        => cast(*void) cast(u64) value
 func(T) enumFromUserData(data: #null *void)->T => cast(T) cast(u64) data
+
+// Paints a line-end sample while keeping the cap itself inside `pos`. The same painter feeds the
+// closed style cell and its list row, so both always show the value the line actually stores.
+func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.Rectangle, color: Color, size: f32 = CapPreviewSize)
+{
+    var rect = pos
+    rect.inflate(-5, -5)
+    var pen = Pen.createSolid(color, size)
+    if begin
+    {
+        pen.begCapStyle = cap
+        pen.endCapStyle = .None
+        let {?, l0} = Painter.capStyleExtent(cap, size, pen.capBegScaleX)
+        rect.moveLeft(l0)
+    }
+    else
+    {
+        pen.begCapStyle = .None
+        pen.endCapStyle = cap
+        let {?, l0} = Painter.capStyleExtent(cap, size, pen.capEndScaleX)
+        rect.moveRight(-l0)
+    }
+
+    painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
+}
 
 // The ellipse/rectangle/round-rectangle glyph painted by the shape and step
 // buttons and by their popups.
@@ -83,6 +108,10 @@ struct PropWnd
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
     needRebuild: bool
+
+    // The line-end chooser is a temporary list attached to the panel's top view. It does not
+    // become a button grid just because its entries are visual samples.
+    capPopup: #null *PopupListCtrl
 }
 
 impl PropWnd
@@ -269,76 +298,60 @@ impl PropWnd
     // and mirrors the sample stroke accordingly.
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {
-        let frame  = btn.createAnchorPopup(120, popupExtent(cast(f32) LineCapStyle.count, PopupCapRowHeight))
-        let layout = StackLayoutCtrl.create(frame, .Top)
-        frame.setView(layout)
+        if .capPopup
+        {
+            .capPopup!.cancel()
+            return
+        }
+
+        let popup = PopupListCtrl.create(cast(*Wnd) btn)
+        .capPopup           = popup
+        popup.itemHeight    = PopupCapRowHeight
+        popup.minimumWidth  = 120
+        popup.fitVertically = true
+        popup.reserveSelectionMark = true
 
         let fieldName = begin ? #nameof(FormLine.beginCap) : #nameof(FormLine.endCap)
 
         func selectedCap(prop: *PropWnd, begin: bool)->LineCapStyle
         {
-            let curSel = prop.getSelectedForm'FormLine()
-            if !curSel do
-                return LineCapStyle.None
+            let type = prop.getSelectedFormType()
+            if type != FormLine and type != FormArrow do
+                return .None
+            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
             return begin ? curSel.beginCap : curSel.endCap
-        }
-
-        func updateBtnState(prop: *PropWnd, layout: *Wnd, begin: bool)
-        {
-            let cur = selectedCap(prop, begin)
-            for c in layout.children
-            {
-                let btn = cast(*IconButton) c
-                let cap = enumFromUserData'LineCapStyle(btn.userData)
-                btn.setChecked(cur == cap)
-                btn.invalidate()
-            }
         }
 
         let cur = selectedCap(me, begin)
         for i in LineCapStyle
         {
-            let btn0 = IconButton.create(layout, {}, {0, 0, 0, PopupCapRowHeight})
-            btn0.userData = enumToUserData(i)
-            btn0.setForm(.Rectangle)
-            btn0.updateFlags(.Radio)
-            btn0.setChecked(cur == i)
-
-            btn0.iconPainter = func|begin|(btn, bc, pos, flags)
+            let item = popup.addItem("")
+            item.userData0 = enumToUserData(i)
+            item.contentPainter = func|begin, btn|(item, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
-                var rect = pos
-                rect.inflate(-9, -9)
-                let cap   = enumFromUserData'LineCapStyle(btn.userData)
-                let color = flags & .Checked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
-                var pen   = Pen.createSolid(color, CapSize)
-                if begin
-                {
-                    pen.begCapStyle = cap
-                    pen.endCapStyle = .None
-                    let {?, l0} = Painter.capStyleExtent(cap, CapSize, pen.capBegScaleX)
-                    rect.moveLeft(l0)
-                }
-                else
-                {
-                    pen.begCapStyle = .None
-                    pen.endCapStyle = cap
-                    let {?, l0} = Painter.capStyleExtent(cap, CapSize, pen.capEndScaleX)
-                    rect.moveRight(-l0)
-                }
-
-                bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
-            }
-
-            btn0.sigPressed += func|prop = me, layout, fieldName, begin|(btn)
-            {
-                let kind = enumFromUserData'u64(btn.userData)
-                prop.pushTypedValue(cast() kind, FormLine, fieldName, true)
-                updateBtnState(prop, layout, begin)
+                let cap   = enumFromUserData'LineCapStyle(item.userData0)
+                let color = flags & .Hot ? btn.themeColors().popupList_HotText : btn.themeColors().popupList_Text
+                drawCapGlyph(bc.painter, cap, begin, pos, color)
             }
         }
 
-        layout.computeLayout()
+        popup.setSelectedIndex(cast(u32) cur)
+        popup.sigClosed = func|prop = me, btn, fieldName|(list, idx)
+        {
+            if idx != Swag.U32.Max
+            {
+                let cap = enumFromUserData'LineCapStyle(list.items[idx]!.userData0)
+                prop.pushTypedValue(cast(u32) cap, FormLine, fieldName, true)
+            }
+
+            prop.capPopup = null
+            btn.setChecked(false)
+            list.destroy()
+        }
+
+        let rect = btn.surfaceRect()
+        popup.show(rect.x, rect.bottom(), 120)
     }
 
     mtd createPopupDashStyle(btn: *IconButton)
@@ -439,6 +452,70 @@ impl PropWnd
             picker.sigColorChanged += func|prop, btn, var first = true|(pk)
             {
                 prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.borderColor), first, true)
+                first = false
+                btn.invalidate()
+            }
+        }
+    }
+
+    // Returns the outer contour color of a stroke form. Filled forms and text already use the
+    // shared BaseForm outline, while these three forms need a second stroke around their core.
+    mtd strokeOutlineColor()->Color
+    {
+        let curSel = .getSelectedBaseForm()
+        switch .getSelectedFormType()
+        {
+        case FormLine:  return (cast(*FormLine) curSel).outlineColor
+        case FormArrow: return (cast(*FormArrow) curSel).outlineColor
+        case FormDraw:  return (cast(*FormDraw) curSel).outlineColor
+        }
+
+        return Argb.Black
+    }
+
+    // Records the contour color against the concrete storage type, including FormLine inside
+    // FormArrow. A stale color-picker callback can run after a selection change, so ignore a
+    // selection that no longer has a stroke contour rather than reinterpret its bytes.
+    mtd setStrokeOutlineColor(color: Color, first: bool)
+    {
+        switch .getSelectedFormType()
+        {
+        case FormLine, FormArrow:
+            .pushTypedValue(color.argb, FormLine, #nameof(FormLine.outlineColor), first)
+
+        case FormDraw:
+            .pushTypedValue(color.argb, FormDraw, #nameof(FormDraw.outlineColor), first)
+        }
+    }
+
+    mtd propStrokeOutlineColor(stack: *Wnd)
+    {
+        let curSel  = .getSelectedBaseForm()
+        let formType = .getSelectedFormType()
+        if curSel.subKind == .PixSel or
+           (formType != FormLine and formType != FormArrow and formType != FormDraw) do
+            return
+
+        let btn = createStyleButton(stack, appStrings().ui_PropOutline)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
+        {
+            bc.painter.setParams(.Antialiased)
+            let color = prop.strokeOutlineColor()
+            var rect  = pos
+            rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.width, rect.height = StyleGlyphSize
+            if !color.isOpaque() do
+                bc.painter.drawRect(rect, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
+            bc.painter.drawRect(rect, color, 5)
+        }
+
+        btn.sigPopupRequested += func|prop = me|(btn)
+        {
+            let picker = createColorPicker(btn, prop.strokeOutlineColor())
+            picker.sigColorChanged += func|prop, btn, var first = true|(pk)
+            {
+                prop.setStrokeOutlineColor(pk.color(), first)
                 first = false
                 btn.invalidate()
             }
@@ -559,19 +636,11 @@ impl PropWnd
 
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
-            let curSel = prop.getSelectedForm'FormLine()
-            if !curSel do
+            if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            var rect = pos
-            rect.inflate(-9, -9)
-            var pen = Pen.createSolid(btn.themeColors().btnIcon_Icon, CapSize)
-            pen.begCapStyle = curSel.beginCap
-            pen.endCapStyle = .None
-            let {?, l0} = Painter.capStyleExtent(curSel.beginCap, CapSize, pen.capBegScaleX)
-            rect.moveLeft(l0)
-
+            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
             bc.painter.setParams(.Antialiased)
-            bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
+            drawCapGlyph(bc.painter, curSel.beginCap, true, pos, btn.themeColors().btnIcon_Icon)
         }
 
         btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupCapStyle(btn, begin: true) }
@@ -586,19 +655,11 @@ impl PropWnd
         let btn = createStyleButton(stack, appStrings().ui_PropEnd)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
-            let curSel = prop.getSelectedForm'FormLine()
-            if !curSel do
+            if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            var rect = pos
-            rect.inflate(-9, -9)
-            var pen = Pen.createSolid(btn.themeColors().btnIcon_Icon, CapSize)
-            pen.begCapStyle = .None
-            pen.endCapStyle = curSel.endCap
-            let {?, l0} = Painter.capStyleExtent(curSel.endCap, CapSize, pen.capEndScaleX)
-            rect.moveRight(-l0)
-
+            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
             bc.painter.setParams(.Antialiased)
-            bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
+            drawCapGlyph(bc.painter, curSel.endCap, false, pos, btn.themeColors().btnIcon_Icon)
         }
 
         btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupCapStyle(btn, begin: false) }
@@ -918,6 +979,9 @@ impl PropWnd
 
     mtd selectionHasChanged()
     {
+        if .capPopup do
+            .capPopup!.cancel()
+
         for it in .topLayout.children do
             it.destroy()
         .grid.clear()
@@ -929,6 +993,7 @@ impl PropWnd
         stack0.spacing = StyleCellGap
         .propBackColor(stack0)
         .propBorderColor(stack0)
+        .propStrokeOutlineColor(stack0)
         .propCalloutText(stack0)
         .propShape(stack0)
         .propStep(stack0)
@@ -1019,6 +1084,10 @@ impl IPropertyNotify for PropWnd
         {
         case #nameof(BaseForm.borderSize):
             return .gridBindType != FormStep and base.subKind != .PixSel
+
+        case #nameof(FormLine.outlineSize):
+            return (.gridBindType == FormLine or .gridBindType == FormArrow or .gridBindType == FormDraw) and
+                   base.subKind != .PixSel
 
         case #nameof(BaseForm.joinStyle):
             return (.gridBindType == FormText or .gridBindType == FormPolygon) and

@@ -46,6 +46,34 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     return 0
 }
 
+func testHasStyleTip(prop: *PropWnd, tip: string)->bool
+{
+    for row in prop.topLayout.children
+    {
+        for child in row.children
+        {
+            if child.toolTip == tip do
+                return true
+        }
+    }
+
+    return false
+}
+
+func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
+{
+    for row in prop.topLayout.children
+    {
+        for child in row.children
+        {
+            if child.toolTip == tip do
+                return cast(*IconButton) child
+        }
+    }
+
+    return null
+}
+
 // Replacing the editor document from history retargets the panel after the old capture
 // is released. With no form selected, the controls edit the live tool model.
 #test
@@ -89,6 +117,88 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     let border = testFindItem(prop, #nameof(BaseForm.borderSize))!
     border.sliderBox.setValue(12)
     Swag.assert(Math.isEqualEpsilon(f.main.mdlFormShape.borderSize, 12, 0.001))
+}
+
+// Lines, arrows and freehand paths expose the same adjustable outer contour. It is hidden for
+// pixel selections, whose rendering is prescribed by the selection tool rather than its form.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    let line = testAddLine(f.capture, 10, 10, 100, 10)
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let outline = testFindItem(prop, #nameof(FormLine.outlineSize))!
+    Swag.assert(Swag.isSet(outline.sliderBox))
+    Swag.assert(outline.sliderBox.label.name == "Outline")
+    Swag.assert(outline.sliderBox.slider.minimum() == MinOutlineSize)
+    Swag.assert(outline.sliderBox.slider.maximum() == MaxOutlineSize)
+    outline.sliderBox.setValue(4)
+    Swag.assert(Math.isEqualEpsilon(line.outlineSize, 4, 0.001))
+    Swag.assert(testHasStyleTip(prop, appStrings().ui_PropColor))
+    Swag.assert(testHasStyleTip(prop, appStrings().ui_PropOutline))
+
+    f.capture.selection.clear()
+    let arrow = testAddArrow(f.capture, 10, 30, 100, 30)
+    f.capture.selection.add(1)
+    prop.selectionHasChanged()
+    f.gui.pump()
+    testFindItem(prop, #nameof(FormLine.outlineSize))!.sliderBox.setValue(5)
+    Swag.assert(Math.isEqualEpsilon(arrow.outlineSize, 5, 0.001))
+
+    f.capture.selection.clear()
+    var points: Array'Math.Vector2
+    points.add({10, 50})
+    points.add({100, 50})
+    let draw = testAddDraw(f.capture, points.toSlice())
+    f.capture.selection.add(2)
+    prop.selectionHasChanged()
+    f.gui.pump()
+    testFindItem(prop, #nameof(FormDraw.outlineSize))!.sliderBox.setValue(6)
+    Swag.assert(Math.isEqualEpsilon(draw.outlineSize, 6, 0.001))
+
+    draw.subKind = .PixSel
+    prop.selectionHasChanged()
+    f.gui.pump()
+    Swag.assert(!testFindItem(prop, #nameof(FormDraw.outlineSize))!.line.isVisible())
+}
+
+// FormArrow embeds FormLine, so the start/end samples and their list must read and write the
+// embedded caps rather than treating the arrow as an unrelated form type.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    let arrow = testAddArrow(f.capture, 10, 30, 100, 30)
+    arrow.beginCap = .SquareAnchor
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let startButton = testFindStyleButton(prop, appStrings().ui_PropStart)!
+    prop.createPopupCapStyle(startButton, begin: true)
+    let popup = prop.capPopup!
+    Swag.assert(popup.selectedIndex == cast(u32) LineCapStyle.SquareAnchor)
+    Swag.assert(popup.items.count == LineCapStyle.count)
+    Swag.assert(popup.reserveSelectionMark)
+    Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
+
+    let view = popup.scrollWnd.view!
+    let local = Math.Point{12, cast(f32) LineCapStyle.ArrowAnchor * popup.itemHeight + popup.itemHeight * 0.5}
+    var pt    = view.localToSurface(local)
+    view.surface!.surfaceToScreen(&pt)
+    f.gui.click(pt)
+    f.gui.pump()
+    Swag.assert(prop.capPopup == null)
+    Swag.assert(arrow.beginCap == .ArrowAnchor)
 }
 
 // A selected text form generates the full grid: retargeted outline slider, joins combo

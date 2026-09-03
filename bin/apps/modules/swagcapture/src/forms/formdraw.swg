@@ -1,7 +1,11 @@
+#[Swag.Using(Properties)]
 #[Serialization.TypeKey("swag.capture.form.draw")]
 struct FormDraw
 {
     using base: BaseForm
+    #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize)]
+    outlineSize: f32
+    outlineColor: Color = Argb.Black
     points:     Array'Math.Vector2
     anchorSize: f32 = 12
 }
@@ -16,18 +20,30 @@ impl FormDraw
         .points.add({34, 28})
         .points.add({0, 48})
     }
+
+    mtd paintOutlineSize(cxt: FormPaintContext)->f32
+    {
+        return BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
+    }
 }
 
 impl IForm for FormDraw
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        return .isSameBase(ptr)
+        let other = cast(*FormDraw) ptr
+        return .isSameBase(ptr) and
+               .outlineSize == other.outlineSize and
+               .outlineColor == other.outlineColor
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
+        let dstf = cast(*FormDraw) dst
+        let srcf = cast(*FormDraw) src
+        dstf.outlineSize = srcf.outlineSize
+        dstf.outlineColor = srcf.outlineColor
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -73,7 +89,7 @@ impl IForm for FormDraw
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
         var bound = .boundRect()
-        bound.inflate(-.borderSize * 0.5)
+        bound.inflate(-(.borderSize * 0.5 + .outlineSize))
         scalePointsTo(&.points, bound, newPosX, newPosY, newSizeX, newSizeY)
     }
 
@@ -92,7 +108,7 @@ impl IForm for FormDraw
     {
         if !.points.count do
             .setDefaultShape()
-        return boundOfPoints(&.points, .borderSize * 0.5)
+        return boundOfPoints(&.points, .borderSize * 0.5 + .outlineSize)
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
@@ -132,6 +148,7 @@ impl IForm for FormDraw
         var dash  = .dashStyle
         var bSize = BaseForm.adaptSize(.borderSize, MinBorderSize, MaxBorderSize, cxt)
         bSize = Math.max(bSize, 2)
+        let outlineSize = .paintOutlineSize(cxt)
 
         let z = cxt.z
         var pl: LinePath
@@ -149,6 +166,13 @@ impl IForm for FormDraw
 
         var pen = Pen.createDash(dash, .borderColor, bSize)
         pen.joinStyle = .Round
+
+        if .subKind != .PixSel and outlineSize and .outlineColor.a
+        {
+            var outlinePen = Pen.createDash(dash, .outlineColor, bSize + 2 * outlineSize)
+            outlinePen.joinStyle = .Round
+            painter.drawPath(&pl, outlinePen)
+        }
 
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight
         {

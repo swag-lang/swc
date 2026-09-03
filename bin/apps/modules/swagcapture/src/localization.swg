@@ -292,6 +292,7 @@ struct AppStrings
     prop_Kind:      string = "Kind"           // Label of the image-form kind.
     prop_Line:      string = "Line"           // Label of the straight-or-curved choice.
     prop_Opacity:   string = "Opacity"        // Label of the opacity slider.
+    prop_Outline:   string = "Outline"        // Label of the outer contour slider.
     prop_Place:     string = "Place"          // Label of the image placement.
     prop_Rotate:    string = "Rotate"         // Label of the rotation slider.
     prop_Round:     string = "Round"          // Corner-rounding slider, and the join style using a circular arc.

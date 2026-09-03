@@ -116,9 +116,16 @@ impl BaseForm
         if type == FormLine or type == FormArrow
         {
             let line = cast(*FormLine) base
-            let beg  = Painter.capStyleExtent(line.beginCap, base.borderSize, line.startSize)
-            let end  = Painter.capStyleExtent(line.endCap, base.borderSize, line.endSize)
+            let stroke = base.borderSize + 2 * line.outlineSize
+            let beg    = Painter.capStyleExtent(line.beginCap, stroke, line.startSize)
+            let end    = Painter.capStyleExtent(line.endCap, stroke, line.endSize)
+            extent = stroke * 1.5
             extent = Math.max(extent, Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l)))
+        }
+        elif type == FormDraw
+        {
+            let draw = cast(*FormDraw) base
+            extent = (base.borderSize + 2 * draw.outlineSize) * 1.5
         }
 
         return Math.ceil(extent + 2)

@@ -107,6 +107,10 @@ glyph, another app's icon, or a letter tile.
   one per group: three parallel accent bars accent nothing and read as scaffolding. Never place
   Voltage text on a light ground — the theme's own mark is already a deepened Voltage there, so
   take `hilight` and never the raw brand color.
+- **Lists, menus, popups, and property rows select with their ground.** Hover uses the same
+  vocabulary, and a stored value may add a check mark. Do not add an accent rail or hot rule to
+  those rows: it turns a transient pointer state into a mode. Rails stay for a tab selection and
+  a compact tool rail, where the reader is choosing a persistent mode.
 - **When a second color is genuinely needed, it is the theme's second tone and nothing else.**
   A page the reader can leave to, a link, a mode that is not the work of the surface: those take
   the alternate tone — `PushButtonForm.Alternate` for a filled action, `theme.palette.alternate`

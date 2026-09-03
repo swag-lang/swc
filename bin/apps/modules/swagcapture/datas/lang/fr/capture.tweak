@@ -279,6 +279,7 @@ prop_Joins                 Jointures
 prop_Kind                  Type
 prop_Line                  Ligne
 prop_Opacity               Opacité
+prop_Outline               Contour
 prop_Place                 Placement
 prop_Rotate                Rotation
 prop_Round                 Arrondi

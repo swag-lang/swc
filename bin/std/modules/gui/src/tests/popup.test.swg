@@ -6,12 +6,23 @@ using Swag, Core
 const PopupHeadless_Item2 = "PopupHeadless.Item2"
 
 var PopupHeadlessChangedCount: u32
+var PopupListContentPaintCount: u32
+var PopupListContentPaintFlags: PaintItemFlags
 
 func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     discard combo
     discard idx
     PopupHeadlessChangedCount += 1
+}
+
+func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect: Math.Rectangle, flags: PaintItemFlags)
+{
+    discard item
+    discard cxt
+    discard rect
+    PopupListContentPaintCount += 1
+    PopupListContentPaintFlags = flags
 }
 
 // Clicking a (select) combobox opens its popup; selecting an item closes it
@@ -94,6 +105,31 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     Swag.assert(popup.scrollWnd.scrollSize.y == 68)
     host.app.setMouseCaptureRaw(null)
 
+    popup.destroy()
+    host.pump()
+}
+
+// A visual preset remains a popup-list row: it gets the list's checked and hot state instead of
+// borrowing an icon-button rail for a piece of custom content.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 200)
+    defer host.shutdown()
+    PopupListContentPaintCount = 0
+    PopupListContentPaintFlags = .None
+
+    let popup = PopupListCtrl.create(&host.root)
+    let item  = popup.addItem("")
+    item.contentPainter = &popupListContentPainter
+    popup.setSelectedIndex(0)
+    popup.show(20, 20, 100)
+    discard host.render()
+
+    Swag.assert(PopupListContentPaintCount == 1)
+    Swag.assert(PopupListContentPaintFlags.has(.Checked))
+
+    host.app.setMouseCaptureRaw(null)
     popup.destroy()
     host.pump()
 }

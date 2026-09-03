@@ -647,9 +647,9 @@ impl MenuCtrl
             anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
         .drawPopupBarAnchorRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
-        // The body's rounded corner does not reach its vertical edge until one radius below the
-        // top. When the anchor shares that outer edge, continue its hairline through the overlap;
-        // otherwise the two independently rounded tiles leave a visible break at the junction.
+        // The popup body's rounded corner leaves its outside edge transparent until the radius
+        // reaches the straight side. Where an anchor continues that exact edge, complete the
+        // hairline only across the overlap: this is uncovered space, not a second outline.
         if Math.abs(anchorRect.x - bodyRect.x) < metrics.wnd_BorderSize
         {
             let y   = .popupButtonOpensUp ? bodyRect.bottom() - metrics.menuPopup_BarItemOverlap : bodyRect.y

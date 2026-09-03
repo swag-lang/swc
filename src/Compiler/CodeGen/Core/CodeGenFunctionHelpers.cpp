@@ -1283,10 +1283,12 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
 // A directly returned expression can build into the ABI return slot, or into the result
 // storage selected for an ordinary inline expansion. Error-management wrappers do not
 // change that destination.
-bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
+bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
 {
     outStorageReg = MicroReg::invalid();
     outStorageSym = nullptr;
+    if (!typeRef.isValid())
+        return false;
 
     const CodeGenFrame::InlineContext* inlineCtx = nullptr;
     if (codeGen.frame().hasCurrentInlineContext())
@@ -1298,6 +1300,20 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     }
 
     if (!inlineCtx && !codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
+        return false;
+
+    // The value has to be the returned type itself. A call whose result the return
+    // converts - a 'string' becoming a 'String' - builds its own temporary through the
+    // conversion; writing the call's bytes into the return slot would leave the slot
+    // holding a value of another type, and the conversion's result never copied there.
+    const TypeRef returnTypeRef = inlineCtx ? inlineCtx->payload->returnTypeRef : codeGen.function().returnTypeRef();
+    if (!returnTypeRef.isValid())
+        return false;
+    const TypeInfo& valueType          = codeGen.typeMgr().get(typeRef);
+    const TypeRef   unwrappedValueType = valueType.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    const TypeInfo& returnType         = codeGen.typeMgr().get(returnTypeRef);
+    const TypeRef   unwrappedReturnRef = returnType.unwrap(codeGen.ctx(), returnTypeRef, TypeExpandE::Alias);
+    if ((unwrappedValueType.isValid() ? unwrappedValueType : typeRef) != (unwrappedReturnRef.isValid() ? unwrappedReturnRef : returnTypeRef))
         return false;
 
     AstNodeRef directExprRef = codeGen.viewZero(nodeRef).nodeRef();

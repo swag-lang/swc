@@ -880,7 +880,7 @@ namespace
         MicroBuilder&    builder        = codeGen.builder();
         MicroReg         dstReg         = MicroReg::invalid();
         SymbolVariable*  directReturnStorageSym = nullptr;
-        const bool       usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, storageNodeRef, dstReg, directReturnStorageSym);
+        const bool       usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, storageNodeRef, typeRef, dstReg, directReturnStorageSym);
         if (!usesDirectReturnStorage)
             dstReg = codeGen.runtimeStorageAddressReg(storageNodeRef);
         constexpr auto dstSize = static_cast<uint32_t>(sizeof(Runtime::ClosureValue));

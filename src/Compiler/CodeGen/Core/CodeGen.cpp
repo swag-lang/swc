@@ -761,6 +761,20 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
     return *nodePayload;
 }
 
+// A call sema evaluated at compile time keeps its value when a cast later substitutes the
+// node: the live view then shows the cast, but the stored payload still holds the folded
+// constant. The node must stay a constant, not become runtime code again: sema gave the
+// folded call no result storage, so a real call would borrow the cast's own storage and
+// write its result where the conversion builds its value.
+bool CodeGen::keepsFoldedConstant(AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid() || resolvedNodeRef(nodeRef) == nodeRef)
+        return false;
+    if (!sema().isFoldedTypedConstStored(nodeRef))
+        return false;
+    return sema().viewStored(nodeRef, SemaNodeViewPartE::Constant).hasConstant();
+}
+
 CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 {
     const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
@@ -1784,7 +1798,7 @@ Result CodeGen::preNode(AstNode& node)
         pushFrame(frame);
     }
 
-    if (curViewConstant().hasConstant())
+    if (curViewConstant().hasConstant() || keepsFoldedConstant(currentNodeRef))
         return Result::SkipChildren;
 
     return Result::Continue;
@@ -1794,7 +1808,7 @@ Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
     auto result = Result::Continue;
-    if (curViewConstant().hasConstant())
+    if (curViewConstant().hasConstant() || keepsFoldedConstant(curNodeRef()))
     {
         result = emitConstant(curNodeRef());
     }

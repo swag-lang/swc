@@ -910,7 +910,9 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (existingPayload && existingPayload->reg.isValid())
         return Result::Continue;
 
-    const SemaNodeView view = viewTypeConstant(nodeRef);
+    SemaNodeView view = viewTypeConstant(nodeRef);
+    if (view.cstRef().isInvalid() && keepsFoldedConstant(nodeRef))
+        view = sema().viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     if (view.cstRef().isInvalid())
         return Result::Continue;
 

@@ -1701,7 +1701,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         CodeGenFunctionHelpers::tryUseDirectVarInitStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
 
         if (!hiddenRetStorageReg.isValid())
-            usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg, directReturnStorageSym);
+            usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directReturnStorageSym);
 
         const CodeGenNodePayload* nodePayload = codeGen.safePayload(codeGen.curNodeRef());
         if (!hiddenRetStorageReg.isValid() &&

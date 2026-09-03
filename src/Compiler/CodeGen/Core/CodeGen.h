@@ -387,6 +387,7 @@ public:
 
     CodeGenNodePayload&       payload(AstNodeRef nodeRef);
     CodeGenNodePayload*       safePayload(AstNodeRef nodeRef);
+    bool                      keepsFoldedConstant(AstNodeRef nodeRef);
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
     void                      setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }

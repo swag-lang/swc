@@ -85,6 +85,7 @@ private func linkedIdmlFixturePath()->String
     var flowedArticleFrames: u64
     var flowedArticleBytes: u64
     var roundedFrames: u64
+    var multiColumnFrames: u64
     for page in document.pages
     {
         for item in page.items where item.imageFrame
@@ -103,11 +104,14 @@ private func linkedIdmlFixturePath()->String
         }
         for item in page.items where item.cornerTopLeft > 0 or item.cornerTopRight > 0 or item.cornerBottomRight > 0 or item.cornerBottomLeft > 0 do
             roundedFrames += 1
+        for item in page.items where item.textColumns > 1 do
+            multiColumnFrames += 1
     }
     Swag.assert(linkedImages == 2)
     Swag.assert(flowedArticleFrames == 4)
     Swag.assert(flowedArticleBytes > 4_000 and flowedArticleBytes < 80_000)
     Swag.assert(roundedFrames >= 4)
+    Swag.assert(multiColumnFrames >= 2)
     var rendered: String
     for page in document.pages do
         rendered += page.html(1)
@@ -116,6 +120,7 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(Utf8.contains(rendered.toString(), "line-height:"))
     Swag.assert(Utf8.contains(rendered.toString(), "padding-left:"))
     Swag.assert(Utf8.contains(rendered.toString(), "border-radius:"))
+    Swag.assert(Utf8.contains(rendered.toString(), "idml-text-column"))
 }
 
 // Opening an external editorial source must reach its first usable page promptly, then retain the

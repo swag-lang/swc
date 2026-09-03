@@ -12,6 +12,7 @@ private const IdmlEmbeddedGraphicDataLimit = 24 * 1024 * 1024'u64
 private const IdmlLinkedGraphicDataLimit   = 8 * 1024 * 1024'u64
 private const IdmlLinkedGraphicsDataLimit  = 24 * 1024 * 1024'u64
 private const IdmlGraphicSourcePixelLimit  = 16 * 1024 * 1024'u64
+private const IdmlTextColumnLimit          = 16'u32
 
 private struct IdmlBounds
 {
@@ -47,6 +48,14 @@ private struct IdmlItem
     cornerTopRight:    f32
     cornerBottomRight: f32
     cornerBottomLeft:  f32
+    hasTextFrameLayout: bool
+    textColumns:        u32 = 1
+    textColumnGutter:   f32
+    textColumnWidth:    f32
+    textInsetTop:       f32
+    textInsetRight:     f32
+    textInsetBottom:    f32
+    textInsetLeft:      f32
     clipPath:   String
     image:      String
     imageBounds: IdmlBounds
@@ -95,11 +104,11 @@ impl IdmlPage
         let factor   = Math.clamp(scale, 0.25, 3)
         let itemFont = 12 * factor
         let inset    = 2 * factor
-        result += Format.toString("<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:%px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;font:%px/1.25 sans-serif;padding:%px}.idml-image{position:absolute;display:block}.idml-missing-image{display:block;width:100%%;height:100%%;background:#e5e5e5;color:#777;font:%px sans-serif;text-align:center;padding-top:%px}</style>", 24 * factor, itemFont, inset, 18 * factor, 8 * factor)
+        result += Format.toString("<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:%px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;font:%px/1.25 sans-serif;padding:%px}.idml-text-column{position:absolute;box-sizing:border-box;overflow:hidden}.idml-image{position:absolute;display:block}.idml-missing-image{display:block;width:100%%;height:100%%;background:#e5e5e5;color:#777;font:%px sans-serif;text-align:center;padding-top:%px}</style>", 24 * factor, itemFont, inset, 18 * factor, 8 * factor)
         result += Format.toString("<div class=\"idml-page\" style=\"width:%px;height:%px\">", .bounds.width * factor, .bounds.height * factor)
         for item in .items
         {
-            result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%;%;%\">",
+            result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%;%;%;%\">",
                                       item.bounds.left * factor,
                                       item.bounds.top * factor,
                                       item.bounds.width * factor,
@@ -109,7 +118,8 @@ impl IdmlPage
                                       item.stroke.isEmpty() ? "transparent" : item.stroke.toString(),
                                       item.oval ? "border-radius:50%" : idmlCornerCss(item, factor).toString(),
                                       item.clipPath,
-                                      item.imageFrame ? "padding:0" : "")
+                                      item.imageFrame ? "padding:0" : "",
+                                      idmlTextFramePaddingCss(item, factor).toString())
             if item.image.count
             {
                 let imageBounds = item.imageHasBounds ? &item.imageBounds : &item.bounds
@@ -124,7 +134,7 @@ impl IdmlPage
                 result += "<span class=\"idml-missing-image\">×</span>"
             // Text is escaped while the IDML story is converted to local paragraph markup. It is
             // deliberately not a document-supplied HTML fragment.
-            result += item.text
+            idmlAppendTextColumns(&result, item, factor)
             result += "</div>"
         }
 
@@ -140,6 +150,63 @@ private func idmlCornerCss(item: const *IdmlItem, factor: f32)->String
     if item.cornerTopLeft <= 0 and item.cornerTopRight <= 0 and item.cornerBottomRight <= 0 and item.cornerBottomLeft <= 0 do
         return {}
     return Format.toString("border-radius:%px %px %px %px", item.cornerTopLeft * factor, item.cornerTopRight * factor, item.cornerBottomRight * factor, item.cornerBottomLeft * factor)
+}
+
+private func idmlTextFramePaddingCss(item: const *IdmlItem, factor: f32)->String
+{
+    if !item.hasTextFrameLayout do
+        return {}
+    if item.textColumns > 1 do
+        return "padding:0"
+    return Format.toString("padding:%px %px %px %px", item.textInsetTop * factor, item.textInsetRight * factor, item.textInsetBottom * factor, item.textInsetLeft * factor)
+}
+
+// The HTML painter does not make arbitrary text into columns. Preserve the IDML geometry with
+// sibling clipping rectangles and allocate complete paragraph blocks to each one, so a malformed
+// story never leaves unmatched markup in the page scene.
+private func idmlAppendTextColumns(html: *String, item: const *IdmlItem, factor: f32)
+{
+    if !item.text.count do
+        return
+    if !item.hasTextFrameLayout or item.textColumns <= 1
+    {
+        html[] += item.text
+        return
+    }
+
+    let columns = Math.clamp(item.textColumns, 1'u32, IdmlTextColumnLimit)
+    let left    = item.textInsetLeft * factor
+    let top     = item.textInsetTop * factor
+    let width   = Math.max(item.bounds.width * factor - left - item.textInsetRight * factor, 1)
+    let height  = Math.max(item.bounds.height * factor - top - item.textInsetBottom * factor, 1)
+    var gap     = Math.max(item.textColumnGutter * factor, 0)
+    if !gap and item.textColumnWidth > 0 and columns > 1 do
+        gap = Math.max((width - item.textColumnWidth * factor * columns) / (columns - 1), 0)
+    let columnWidth = item.textColumnWidth > 0 ? item.textColumnWidth * factor : Math.max((width - gap * (columns - 1)) / columns, 1)
+    var cursor = 0'u64
+    for column in columns
+    {
+        if cursor >= item.text.count do
+            break
+        let remainingColumns = columns - column
+        let target            = (item.text.count - cursor) / remainingColumns
+        var end               = cursor
+        while end < item.text.count
+        {
+            let next = idmlStoryBlockEnd(item.text.toString(), end)
+            if end != cursor and next - cursor > target do
+                break
+            end = next
+            if end - cursor >= target do
+                break
+        }
+        if end == cursor do
+            end = idmlStoryBlockEnd(item.text.toString(), cursor)
+        html[] += Format.toString("<div class=\"idml-text-column\" style=\"left:%px;top:%px;width:%px;height:%px\">", left + column * (columnWidth + gap), top, columnWidth, height)
+        html[] += item.text[cursor until end]
+        html[] += "</div>"
+        cursor = end
+    }
 }
 
 struct IdmlDocument
@@ -209,6 +276,94 @@ private func idmlRoundedCornerRadius(tag, corner: string)->f32
         return 0
     let radius = idmlNumber(idmlAttribute(tag, "CornerRadius"))
     return radius.valid ? Math.max(radius.value, 0) : 0
+}
+
+private func idmlFirstOpenTag(source, name: string)->String
+{
+    var marker: String
+    marker += '<'rune
+    marker += name
+    let start = Utf8.indexOf(source, marker.toString())
+    if start == Swag.U64.Max do
+        return {}
+    let end = Utf8.indexOf(source, '>'rune, start)
+    return end == Swag.U64.Max ? {} : String.from(source[start until end + 1])
+}
+
+private func idmlElementContents(source, name: string)->String
+{
+    let opening = idmlFirstOpenTag(source, name)
+    if !opening.count do
+        return {}
+    let start = Utf8.indexOf(source, opening.toString())
+    let body  = start + opening.count
+    var close: String
+    close += "</"
+    close += name
+    close += '>'rune
+    let end = Utf8.indexOf(source, close.toString(), body)
+    return end == Swag.U64.Max ? {} : String.from(source[body until end])
+}
+
+private func idmlTextFrameInsets(preference: string, item: *IdmlItem)
+{
+    let insetTag = idmlFirstOpenTag(preference, "InsetSpacing")
+    let contents = idmlElementContents(preference, "InsetSpacing")
+    if !insetTag.count or !contents.count do
+        return
+    if idmlAttribute(insetTag.toString(), "type") == "unit"
+    {
+        let inset = idmlNumber(contents.toString())
+        if inset.valid
+        {
+            item.textInsetTop    = Math.max(inset.value, 0)
+            item.textInsetRight  = item.textInsetTop
+            item.textInsetBottom = item.textInsetTop
+            item.textInsetLeft   = item.textInsetTop
+        }
+        return
+    }
+
+    var values: Array'f32
+    var cursor = 0'u64
+    while cursor < contents.count and values.count < 4
+    {
+        let start = Utf8.indexOf(contents.toString(), "<ListItem", cursor)
+        let open  = start == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(contents.toString(), '>'rune, start)
+        let end   = open == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(contents.toString(), "</ListItem>", open + 1)
+        if end == Swag.U64.Max do
+            break
+        let value = idmlNumber(contents[open + 1 until end])
+        if value.valid do
+            values.add(Math.max(value.value, 0))
+        cursor = end + ("</ListItem>").count
+    }
+    if values.count == 4
+    {
+        // IDML stores frame insets clockwise from the top: top, left, bottom, right.
+        item.textInsetTop    = values[0]
+        item.textInsetLeft   = values[1]
+        item.textInsetBottom = values[2]
+        item.textInsetRight  = values[3]
+    }
+}
+
+private func idmlTextFrameLayout(content: string, item: *IdmlItem)
+{
+    let preference = idmlFirstOpenTag(content, "TextFramePreference")
+    if !preference.count do
+        return
+    item.hasTextFrameLayout = true
+    let columns = idmlNumber(idmlAttribute(preference.toString(), "TextColumnCount"))
+    if columns.valid and columns.value >= 1 do
+        item.textColumns = Math.clamp(cast(u32) columns.value, 1'u32, IdmlTextColumnLimit)
+    let gutter = idmlNumber(idmlAttribute(preference.toString(), "TextColumnGutter"))
+    if gutter.valid do
+        item.textColumnGutter = Math.max(gutter.value, 0)
+    let width = idmlNumber(idmlAttribute(preference.toString(), "TextColumnFixedWidth"))
+    if width.valid do
+        item.textColumnWidth = Math.max(width.value, 0)
+    idmlTextFrameInsets(content, item)
 }
 
 private func idmlNumbers(text: string, result: *Array'f32)->bool
@@ -1202,6 +1357,7 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                     item.story         = idmlAttribute(tag, "ParentStory")
                     item.previousFrame = idmlAttribute(tag, "PreviousTextFrame")
                     item.nextFrame     = idmlAttribute(tag, "NextTextFrame")
+                    idmlTextFrameLayout(content, &item)
                     pages[pageIndex].textFrameCount += 1
                 }
 
@@ -1261,7 +1417,9 @@ private func idmlStoryBlockEnd(source: string, start: u64)->u64
 // does not place the same amount of prose into a caption-sized frame and a body-sized frame.
 private func idmlTextFrameCapacity(frame: const *IdmlItem)->f32
 {
-    return Math.max(frame.bounds.width, 1) * Math.max(frame.bounds.height, 1)
+    let width  = frame.bounds.width - frame.textInsetLeft - frame.textInsetRight
+    let height = frame.bounds.height - frame.textInsetTop - frame.textInsetBottom
+    return Math.max(width, 1) * Math.max(height, 1)
 }
 
 private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)

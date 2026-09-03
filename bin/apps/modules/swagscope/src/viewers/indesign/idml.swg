@@ -8,6 +8,7 @@ private const IdmlDocumentByteLimit = 128 * 1024 * 1024'u64
 private const IdmlPageLimit         = 2_000'u64
 private const IdmlSpreadLimit       = 1_000'u64
 private const IdmlFrameLimit        = 100_000'u64
+private const IdmlEmbeddedGraphicDataLimit = 24 * 1024 * 1024'u64
 
 private struct IdmlBounds
 {
@@ -31,7 +32,9 @@ private struct IdmlItem
     strokeSize: f32
     oval:       bool
     line:       bool
+    imageFrame: bool
     clipPath:   String
+    image:      String
 }
 
 private struct IdmlTextStyle
@@ -64,7 +67,7 @@ impl IdmlPage
     mtd html()->String
     {
         var result: retval
-        result += "<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:24px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;white-space:pre-wrap;font:12px/1.25 sans-serif;padding:2px}</style>"
+        result += "<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:24px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;white-space:pre-wrap;font:12px/1.25 sans-serif;padding:2px}.idml-image{display:block;width:100%;height:100%}.idml-missing-image{display:block;width:100%;height:100%;background:#e5e5e5;color:#777;font:18px sans-serif;text-align:center;padding-top:8px}</style>"
         result += Format.toString("<div class=\"idml-page\" style=\"width:%px;height:%px\">", .bounds.width, .bounds.height)
         for item in .items
         {
@@ -78,6 +81,10 @@ impl IdmlPage
                                       item.stroke.isEmpty() ? "transparent" : item.stroke.toString(),
                                       item.oval ? "border-radius:50%" : "",
                                       item.clipPath)
+            if item.image.count do
+                result += Format.toString("<img class=\"idml-image\" src=\"%\">", item.image)
+            elif item.imageFrame do
+                result += "<span class=\"idml-missing-image\">×</span>"
             // Text is escaped while the IDML story is converted to local paragraph markup. It is
             // deliberately not a document-supplied HTML fragment.
             result += item.text
@@ -272,6 +279,58 @@ private func idmlPolygonClipPath(item: string, transform: const *IdmlTransform)-
         return {}
     result += ");"
     return result
+}
+
+// Returns an image data URI only for pixels embedded in the IDML package. External links are
+// deliberately left unresolved: opening a document must neither access arbitrary local paths nor
+// cause a network request.
+internal func idmlEmbeddedGraphicDataUri(item: string)->String
+{
+    let imageStart = Utf8.indexOf(item, "<Image ")
+    if imageStart == Swag.U64.Max do
+        return {}
+    let imageOpenEnd = Utf8.indexOf(item, '>'rune, imageStart)
+    let imageEnd     = imageOpenEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, "</Image>", imageOpenEnd + 1)
+    if imageEnd == Swag.U64.Max do
+        return {}
+
+    var type = idmlAttribute(item[imageStart until imageOpenEnd + 1], "ImageTypeName")
+    if !type.count
+    {
+        let linkStart = Utf8.indexOf(item, "<Link ", imageOpenEnd + 1)
+        let linkEnd   = linkStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, '>'rune, linkStart)
+        if linkEnd != Swag.U64.Max and linkEnd < imageEnd do
+            type = idmlAttribute(item[linkStart until linkEnd + 1], "LinkResourceFormat")
+    }
+    let mime = Utf8.contains(type, "JPEG") ? "image/jpeg" : Utf8.contains(type, "PNG") ? "image/png" : ""
+    if !mime.count do
+        return {}
+
+    let contentsStart   = Utf8.indexOf(item, "<Contents", imageOpenEnd + 1)
+    let contentsOpenEnd = contentsStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, '>'rune, contentsStart)
+    let contentsEnd     = contentsOpenEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, "</Contents>", contentsOpenEnd + 1)
+    if contentsEnd == Swag.U64.Max or contentsEnd > imageEnd do
+        return {}
+
+    var payload: String
+    var cursor = contentsOpenEnd + 1
+    while cursor < contentsEnd
+    {
+        let start = Utf8.indexOf(item, "<![CDATA[", cursor)
+        if start == Swag.U64.Max or start >= contentsEnd do
+            break
+        let contentStart = start + ("<![CDATA[").count
+        let end = Utf8.indexOf(item, "]]>", contentStart)
+        if end == Swag.U64.Max or end > contentsEnd do
+            return {}
+        if payload.count + end - contentStart > IdmlEmbeddedGraphicDataLimit do
+            return {}
+        payload += item[contentStart until end]
+        cursor = end + ("]]>").count
+    }
+    if payload.isEmpty() do
+        return {}
+    return Format.toString("data:%;base64,%", mime, payload)
 }
 
 private func idmlEntity(text: string)->rune
@@ -747,8 +806,11 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
                 item.strokeSize = idmlNumber(idmlAttribute(tag, "StrokeWeight")).value
                 item.oval       = oval
                 item.line       = line
+                item.imageFrame = Utf8.indexOf(content, "<Image ") != Swag.U64.Max
                 if polygon do
                     item.clipPath = idmlPolygonClipPath(content, &transform)
+                if item.imageFrame do
+                    item.image = idmlEmbeddedGraphicDataUri(content)
                 if textItem
                 {
                     let story = stories.tryFind(idmlAttribute(tag, "ParentStory"))

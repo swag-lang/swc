@@ -113,3 +113,21 @@ func expectRect(actual, expected: Math.Rectangle)
     let quarter = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
     expectRect(quarter.transformBounds(Source), {-60, 10, 40, 30})
 }
+
+// The inverse undoes a general affine transform, and a singular one answers the identity.
+#test
+{
+    let transform = Math.Transform2{2, 1, -0.5, 3, 10, -7}
+    let point     = Math.Vector2{3, 5}
+    expectVec2(transform.inverse().transformPoint(transform.transformPoint(point)), point)
+
+    var composed = transform.inverse()
+    composed.multiply(transform)
+    expectTransform(composed, Math.Transform2.Identity)
+
+    expectTransform(Math.Transform2.Identity.inverse(), Math.Transform2.Identity)
+    expectTransform(Math.Transform2.createTranslation(4, -9).inverse(), Math.Transform2.createTranslation(-4, 9))
+
+    // A transform that collapses the plane onto a line cannot be undone.
+    expectTransform(Math.Transform2{1, 2, 2, 4, 5, 6}.inverse(), Math.Transform2.Identity)
+}

@@ -256,9 +256,11 @@ output, path measurement and effects, and the modern renderer choice tracked by
 ### std.pixel.011 — Painter paths cannot use polygon boolean operations
 
 - Evidence: `poly/` has boolean operations, but `LinePathList` callers have no supported conversion
-  with a shared tolerance, fill rule, scale, and failure contract.
-- Next: define conversion in both directions and expose union, intersection, difference, and xor at
-  the painter-path boundary.
+  with a shared tolerance, fill rule, scale, and failure contract. `LinePathList.intersect` is the
+  one operation exposed so far, for the PDF decoder's nested clips: it takes two already-flattened
+  lists and a fill rule for each, and answers a normalized polygonal list.
+- Next: define conversion in both directions and expose union, difference, and xor beside the
+  intersection at the painter-path boundary.
 - Complete when: curved, holed, touching, self-intersecting, empty, and large-coordinate fixtures
   state their approximation and fill behavior and no caller reimplements flattening.
 - Related: std.pixel.008, std.pixel.009

@@ -204,6 +204,17 @@ impl LinePathList
         }
     }
 
+    // Maps every path through an affine transform, in place.
+    //
+    // Each segment maps the way [[Pixel.LinePath.transform]] describes. The combined bounds are
+    // derived again by the next flattening.
+    mtd transform(transform: Math.Transform2)
+    {
+        for p in .paths do
+            p.transform(transform)
+        .setBounds({}, {})
+    }
+
     // Offsets every already-flattened polygon using its winding direction.
     mtd offset(value: f32)
     {
@@ -374,9 +385,15 @@ impl LinePathList
 
         .clear()
         .paths = #move newList.paths
+        .refreshBounds()
+    }
 
-        // An empty result has no bounds. Reporting the bounds of the shape that was cleaned
-        // away would describe geometry that is gone.
+    // Derives the combined bounds from the paths' own, after a boolean operation rebuilt them.
+    //
+    // An empty result has no bounds. Reporting the bounds of the shape that was operated away
+    // would describe geometry that is gone.
+    private mtd refreshBounds()
+    {
         if .paths.isEmpty()
         {
             .setBounds({}, {})
@@ -392,6 +409,52 @@ impl LinePathList
         }
 
         .setBounds(minimum, maximum)
+    }
+
+    // Keeps the regions of this already-flattened list that also lie inside `clip`.
+    //
+    // `rule` says which regions of this list count as interior and `clipRule` says the same for
+    // `clip`, so a ring authored under the alternating rule clips as a ring. Both lists must be
+    // flattened first, the way [[Pixel.LinePathList.clean]] requires, and the result is
+    // normalized the same way: outer contours clockwise, each followed by its own holes. A clip
+    // that shares no region with the list leaves it empty.
+    //
+    // ```swag
+    // shape.flatten(.High)
+    // frame.flatten(.High)
+    // shape.intersect(&frame)
+    // ```
+    mtd intersect(clip: *LinePathList, rule = Clipper.PolyFillType.NonZero, clipRule = Clipper.PolyFillType.NonZero)
+    {
+        var trf: Clipper.Transform
+        for p in .paths
+        {
+            var path: Clipper.ClipperPath
+            p.polygon.appendClipperPath(&path)
+            trf.addPath(&path, .Subject)
+        }
+
+        for p in clip.paths
+        {
+            var path: Clipper.ClipperPath
+            p.polygon.appendClipperPath(&path)
+            trf.addPath(&path, .Clip)
+        }
+
+        var res: Clipper.ClipperPaths
+        trf.execute(.Intersection, &res, rule, clipRule)
+
+        var solved: LinePathList
+        for path in res
+        {
+            let np = solved.newPath()
+            np.polygon.storeClipperResult(path)
+            np.polygon.setupGeneratedPath(np)
+        }
+
+        .clear()
+        .appendGroupedByContainment(&solved)
+        .refreshBounds()
     }
 
     // Reports whether the fill cache still describes the current contours.

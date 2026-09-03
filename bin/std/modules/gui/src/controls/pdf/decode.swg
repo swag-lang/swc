@@ -45,6 +45,10 @@ private struct GraphicsState
     // and never removes one the page meant to show.
     clip:    Math.Rectangle
     hasClip: bool
+
+    // Shape the clip has beyond its rectangle, as the page records it, once a `W` has marked a
+    // path that is not an axis-aligned rectangle.
+    clipPath: u32 = InvalidClipPath
 }
 
 impl GraphicsState
@@ -220,8 +224,69 @@ private func currentPath(path: *LinePathList, current: *#null *LinePath, start: 
     return result
 }
 
-// Narrows the graphics state to the path a `W` operator marked as the next clip.
-private func applyPendingClip(state: *GraphicsState, path: const *LinePathList, pending: *bool)
+// How finely two clip shapes are flattened before they intersect.
+//
+// The intersection is polygonal, and it is stated in page points, so at this density its
+// facets stay far below what any zoom of a page can show.
+private const ClipIntersectionScale = 20.0'f32
+
+// Largest distance between two coordinates that still reads as the same edge of a rectangle.
+private const RectangleEpsilon = 0.001'f32
+
+// Reports whether a path is one closed axis-aligned rectangle, the shape almost every clip is.
+private func isAxisAlignedRectangle(path: const *LinePathList)->bool
+{
+    if path.count() != 1 do
+        return false
+
+    // Four corners: the start and three lines, or four lines when the last returns to the start.
+    let contour = path.toSlice()[0]
+    var corners: [5] Vector2
+    corners[0] = contour.startPoint
+    var count = 1'u64
+    for elem in contour.elements
+    {
+        if elem.type != .Line or count >= corners.count do
+            return false
+        corners[count] = elem.position
+        count          += 1
+    }
+
+    if count == 5
+    {
+        if !corners[4].isEqualEpsilon(corners[0], RectangleEpsilon) do
+            return false
+        count = 4
+    }
+
+    if count != 4 do
+        return false
+
+    // Every edge runs along one axis and none is a point, which is what makes four of them a
+    // rectangle once they close.
+    for i in 4'u64
+    {
+        let a          = corners[i]
+        let b          = corners[(i + 1) % 4]
+        let horizontal = Math.isEqualEpsilon(a.y, b.y, RectangleEpsilon)
+        let vertical   = Math.isEqualEpsilon(a.x, b.x, RectangleEpsilon)
+        if horizontal == vertical do
+            return false
+    }
+
+    return true
+}
+
+// Returns the fill rule a clip operator named, as the boolean solver states it.
+private func clipFillType(evenOdd: bool)->Clipper.PolyFillType => evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero
+
+// Narrows the graphics state to the path a `W` or `W*` operator marked as the next clip.
+//
+// An axis-aligned rectangle, which nearly every clip is, narrows the rectangle alone and
+// exactly. Any other shape narrows the rectangle to its bounds and is kept as a shape of its
+// own, so the marks painted through it are cut where the author cut them; a shape established
+// inside another intersects with it.
+private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePathList, evenOdd: bool, pending: *bool)
 {
     if !pending[] do
         return
@@ -230,6 +295,22 @@ private func applyPendingClip(state: *GraphicsState, path: const *LinePathList, 
         return
 
     state.intersectClip(path.controlBounds())
+    if isAxisAlignedRectangle(path) do
+        return
+
+    var shape: LinePathList = path[]
+    if state.clipPath == InvalidClipPath
+    {
+        state.clipPath = page.addClipPath(#move shape, evenOdd)
+        return
+    }
+
+    let outer               = page.clipPaths[state.clipPath]!
+    var frame: LinePathList = outer.path
+    frame.flatten(.High, ClipIntersectionScale)
+    shape.flatten(.High, ClipIntersectionScale)
+    shape.intersect(&frame, clipFillType(evenOdd), clipFillType(outer.evenOdd))
+    state.clipPath = page.addClipPath(#move shape, false)
 }
 
 private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, depth: u32, evenOdd = false)
@@ -265,6 +346,7 @@ private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList
     item.strokeStyle = state.strokeStyle
     item.clip        = state.clip
     item.hasClip     = state.hasClip
+    item.clipPath    = state.clipPath
     appendPaintedItem(parser, page, state, #move item, depth)
     Swag.init(path, 1)
 }
@@ -342,6 +424,7 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
         item.transform = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
         item.clip      = state.clip
         item.hasClip   = state.hasClip
+        item.clipPath  = state.clipPath
         if font and font.hasStandard do
             item.standardFont = font.standard
         appendPaintedItem(parser, page, state, #move item, depth)
@@ -360,6 +443,14 @@ private func appendImageItem(parser: *PdfParser, page: *Page, state: const *Grap
     item.transform = Transform2{right.x - top.x, right.y - top.y, bottom.x - top.x, bottom.y - top.y, top.x, top.y}
     item.clip      = state.clip
     item.hasClip   = state.hasClip
+    item.clipPath  = state.clipPath
+    if state.clipPath != InvalidClipPath
+    {
+        // The shape is restated in the image's own unit square, so drawing the shape filled with
+        // the texture puts every sample exactly where drawing the rectangle would have.
+        item.imageClip = page.clipPaths[state.clipPath]!.path
+        item.imageClip.transform(item.transform.inverse())
+    }
 
     // An image carries no colour of its own to dim, so the constant alpha travels as the tint the
     // painter modulates its texture by.
@@ -822,8 +913,9 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
     // A `W` operator names the path under construction as the next clip, and the painting
     // operator that ends the path is what puts it into effect.
-    var pendingClip: bool
-    var values:      [8] f32
+    var pendingClip:        bool
+    var pendingClipEvenOdd: bool
+    var values:             [8] f32
 
     while content.pos < bytes.count
     {
@@ -1127,37 +1219,38 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
             // The operator only marks the path as the next clip; the painting operator that
             // follows is what ends the path and puts the clip into effect.
-            pendingClip = true
+            pendingClip        = true
+            pendingClipEvenOdd = op == "W*"
 
         case "S":
-            applyPendingClip(&state, &path, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
             appendPathItem(parser, page, &path, &state, false, true, false, depth)
             current = null
 
         case "s":
-            applyPendingClip(&state, &path, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
             appendPathItem(parser, page, &path, &state, false, true, true, depth)
             current = null
 
         // A star names the alternating rule, under which two overlapping contours cancel
         // instead of merging; without it a ring drawn as two circles fills solid.
         case "f", "F", "f*":
-            applyPendingClip(&state, &path, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
             appendPathItem(parser, page, &path, &state, true, false, false, depth, op == "f*")
             current = null
 
         case "B", "B*":
-            applyPendingClip(&state, &path, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
             appendPathItem(parser, page, &path, &state, true, true, false, depth, op == "B*")
             current = null
 
         case "b", "b*":
-            applyPendingClip(&state, &path, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
             appendPathItem(parser, page, &path, &state, true, true, true, depth, op == "b*")
             current = null
 
         case "n":
-            applyPendingClip(&state, &path, &pendingClip)
+            applyPendingClip(page, &state, &path, pendingClipEvenOdd, &pendingClip)
             path.clear()
             current = null
 

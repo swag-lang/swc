@@ -148,6 +148,7 @@ struct RenderOgl
         curRT:                 #null *RenderTarget           // Active off-screen target, if any.
         curShader:             #null *ShaderBase             // Active shader, or the default shader.
         overlapMode:           bool                          // Whether overlap-safe alpha drawing is active.
+        alphaReplay:           bool                          // Whether commands are being replayed to rebuild a target's alpha plane.
         contentScale:          f32 = 1                       // Device pixels per unit of the painter stream being drawn.
         nativeContext:         #null const *void             // Shared native OpenGL context owned by interface-created drawables.
         contextCount:          u32                           // Number of live interface-created drawables.
@@ -634,6 +635,31 @@ impl RenderOgl
     {
         let {w, h} = .targetSizeImpl()
         return {0, 0, cast(f32) w, cast(f32) h}
+    }
+
+    // Sets the destination alpha to one where a batch bounded by `bbMin`/`bbMax` can reach.
+    //
+    // The clear is confined to the batch the way the overlap-safe scratch clear is, so a page of
+    // blended marks costs their own area rather than the whole clip once per mark.
+    private mtd makeBackdropOpaque(bbMin, bbMax: Math.Vector2)
+    {
+        let savedOn  = .scissorOn
+        let savedBox = .scissorBox
+        let narrowed = .narrowScissorToBatch(bbMin, bbMax)
+
+        .prepareFramebufferTouch()
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE)
+        glClearColor(0, 0, 0, 1)
+        glClear(GL_COLOR_BUFFER_BIT)
+        .setColorMask(.colorMask)
+
+        if narrowed
+        {
+            if savedOn do
+                .applyScissor(savedBox)
+            else do
+                .clearScissor()
+        }
     }
 
     // Adds one overlap-safe batch to the scratch-clear counters.
@@ -1206,6 +1232,17 @@ impl RenderOgl
             glUniformMatrix4fv(cast(GLint) curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
         case .StartClippingRegion:
+
+            // A region starts empty: what the previous start/end pair wrote must not leak into
+            // it. The scissor is lifted for the reset, because the old region can extend past
+            // the clip in force now.
+            if .scissorOn do
+                glDisable(GL_SCISSOR_TEST)
+            .prepareFramebufferTouch()
+            glClearStencil(0)
+            glClear(GL_STENCIL_BUFFER_BIT)
+            if .scissorOn do
+                glEnable(GL_SCISSOR_TEST)
             glEnable(GL_STENCIL_TEST)
             glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
             glStencilFunc(GL_ALWAYS, 1, 0xFF)
@@ -1255,6 +1292,15 @@ impl RenderOgl
             let params = &cmd.drawTriangles
             if !.overlapMode
             {
+                // An advanced equation weighs the backdrop by the destination alpha. When the
+                // painter is not writing alpha, that plane is scratch — the window's is never
+                // written at all — and a backdrop read as transparent lets the source replace it:
+                // a black shadow multiplied onto a page came out as an opaque black block. The
+                // stored colour is the backdrop, opaque by definition, so its alpha is set to one
+                // where this batch can reach before the equation reads it.
+                if .blendingMode.usesAdvancedBlending() and !.colorMask.a and !.alphaReplay do
+                    .makeBackdropOpaque(params.bbMin, params.bbMax)
+
                 if .advancedBarrierActive
                 {
                     // A non-coherent pass may touch each sample only once, including through
@@ -1588,6 +1634,7 @@ impl RenderOgl
                 glBlendFunc(GL_SRC_ALPHA, GL_ZERO)
                 glBlendEquation(GL_MAX)
 
+                .alphaReplay = true
                 for var i = curRT.paintAlphaIdx; i < cmdIdx; i += 1
                 {
                     let cmd1 = dc.commandBuffer[i]
@@ -1597,6 +1644,7 @@ impl RenderOgl
                     }
                 }
 
+                .alphaReplay = false
                 .setColorMask(.colorMask)
             }
 

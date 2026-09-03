@@ -219,6 +219,41 @@ public impl LinePath
         .endPoint = newEndPoint
     }
 
+    // Maps every point of the path through an affine transform, in place.
+    //
+    // Lines and Bézier segments map exactly. An arc does not survive an affine map — a rotation
+    // or a skew turns it into an elliptical arc this representation cannot express — so an arc
+    // is first rewritten as the cubic Bézier segments that trace it, and those are mapped. The
+    // flattened geometry is discarded; the path flattens again the next time it is painted.
+    //
+    // ```swag
+    // clip.transform(placement.inverse())
+    // ```
+    mtd transform(transform: Math.Transform2)
+    {
+        .rewriteArcsAsBeziers()
+        .startPoint = transform.transformPoint(.startPoint)
+        .endPoint   = transform.transformPoint(.endPoint)
+        for &elem in .elements
+        {
+            elem.position = transform.transformPoint(elem.position)
+            switch #complete elem.type
+            {
+            case .Bezier1:
+                elem.p1 = transform.transformPoint(elem.p1)
+
+            case .Bezier2:
+                elem.p1 = transform.transformPoint(elem.p1)
+                elem.p2 = transform.transformPoint(elem.p2)
+
+            case .Line, .Curve, .Arc:
+                break
+            }
+        }
+
+        .clearCache()
+    }
+
     // Returns the rectangle enclosing every point that defines this path.
     //
     // A Bézier is contained by its control polygon and an arc by its centre and radii, so
@@ -544,6 +579,82 @@ impl LinePath
         }
 
         return minDist
+    }
+
+    // Returns the point of an arc at `angle`, as [[Pixel.LinePath.arcTo]] parameterizes it.
+    private func arcPoint(center, radii: Vector2, angle: f32)->Vector2 => {center.x + Math.sin(angle) * radii.x, center.y - Math.cos(angle) * radii.y}
+
+    // Returns the direction an arc travels at `angle`, per radian.
+    private func arcTangent(radii: Vector2, angle: f32)->Vector2 => {Math.cos(angle) * radii.x, Math.sin(angle) * radii.y}
+
+    // Appends the cubic Bézier segments tracing one arc element, from the path's current point.
+    //
+    // A straight segment reaches the arc's first point when the current point is elsewhere, the
+    // way flattening joins them. Each quarter turn or less then becomes one cubic whose control
+    // points follow the tangents at its ends, which keeps the curve within a fraction of a
+    // percent of the true arc.
+    private func appendArcBeziers(target: *Array'Element, current: Vector2, arc: Element)
+    {
+        let center = arc.position
+        let radii  = arc.p2
+        let first  = arcPoint(center, radii, arc.p1.x)
+        if !first.isEqualEpsilon(current)
+        {
+            var line: Element = undefined
+            line.type     = .Line
+            line.position = first
+            target.add(line)
+        }
+
+        let span  = arc.p1.y - arc.p1.x
+        let count = Math.max(1'u32, cast(u32) Math.ceil(Math.abs(span) / Math.ConstF32.PiBy2))
+        let step  = span / cast(f32) count
+        let k     = 4.0 / 3.0 * Math.tan(step / 4)
+        for i in count
+        {
+            let a0 = arc.p1.x + step * cast(f32) i
+            let a1 = a0 + step
+            let p0 = arcPoint(center, radii, a0)
+            let p3 = arcPoint(center, radii, a1)
+            let t0 = arcTangent(radii, a0)
+            let t1 = arcTangent(radii, a1)
+
+            var cubic: Element = undefined
+            cubic.type     = .Bezier2
+            cubic.position = p3
+            cubic.p1       = {p0.x + t0.x * k, p0.y + t0.y * k}
+            cubic.p2       = {p3.x - t1.x * k, p3.y - t1.y * k}
+            target.add(cubic)
+        }
+    }
+
+    // Replaces every arc by the cubic Bézier segments that trace it, so that every segment
+    // maps exactly under an affine transform.
+    private mtd rewriteArcsAsBeziers()
+    {
+        var hasArc = false
+        for elem in .elements where elem.type == .Arc
+        {
+            hasArc = true
+            break
+        }
+
+        if !hasArc do
+            return
+
+        var rewritten: Array'Element
+        rewritten.reserve(.elements.count + 8)
+        var current = .startPoint
+        for elem in .elements
+        {
+            if elem.type == .Arc do
+                appendArcBeziers(&rewritten, current, elem[])
+            else do
+                rewritten.add(elem[])
+            current = rewritten.back().position
+        }
+
+        .elements = #move rewritten
     }
 
     mtd flattenLine(pos: Vector2)

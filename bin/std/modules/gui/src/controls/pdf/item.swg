@@ -75,6 +75,16 @@ struct Item
         clip:    Math.Rectangle
         hasClip: bool
 
+        // Shape this item is confined to beyond `clip`, as an index into the page's clip
+        // shapes, or `InvalidClipPath` when the rectangle is the whole clip. A path or a text
+        // run is painted through the shape as a clipping region. An image is not: it is drawn as
+        // the shape filled with its texture, so `imageClip` holds that same shape in the image's
+        // own unit square, where its edge stays antialiased and it moves with the image.
+        //
+        // The default is spelled out because it is part of the exported layout.
+        clipPath:  u32 = Swag.U32.Max
+        imageClip: LinePathList
+
         // How this item's marks combine with what is already on the page. A document states it
         // through `/BM`, and every mode it can name is one the painter composites natively.
         blend: BlendingMode = .Alpha

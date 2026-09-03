@@ -762,3 +762,139 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420
     Testing.assertImagesNear(&expected, &image, "render.parity.planar.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
     assertPlanarCornersUpright(&image, &picture)
 }
+
+// Two clipping regions in a row. The second starts from an empty plane rather than from what
+// the first wrote, and a texture filled through a region lands where the region is.
+private func renderClipRegionParityScene(renderer: IRenderer)->Image
+{
+    var texture = makeRenderParityTexture(renderer)
+    defer renderer.removeTexture(&texture)
+    var target = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(Argb.White))
+    painter.setBlendingMode(.Alpha)
+
+    // A texture through a circle on the left.
+    painter.setAntialiased(false)
+    painter.startClippingRegion(.Set)
+    painter.fillCircle(48, 64, 40, Color.fromArgb(Argb.White))
+    painter.endClippingRegion()
+    painter.setAntialiased(true)
+    var brush = Brush.createTexture(texture)
+    brush.mapOver({8, 24, 80, 80})
+    painter.fillRect({0, 0, 96, RenderParityHeight}, brush)
+    painter.resetClippingRegion()
+
+    // A solid fill over the whole target through a circle on the right: it must reach only that
+    // circle, never the one the first region wrote.
+    painter.setAntialiased(false)
+    painter.startClippingRegion(.Set)
+    painter.fillCircle(144, 64, 40, Color.fromArgb(Argb.White))
+    painter.endClippingRegion()
+    painter.setAntialiased(true)
+    painter.fillRect({0, 0, RenderParityWidth, RenderParityHeight}, Color.fromArgb(Argb.DodgerBlue))
+    painter.resetClippingRegion()
+
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+    return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
+}
+
+// A clipping region starts empty, on the CPU reference and on OpenGL alike.
+#test
+{
+    let expected = renderCpu(&renderClipRegionParityScene)
+    let blue     = Color.fromArgb(Argb.DodgerBlue)
+    let white    = Color.fromArgb(Argb.White)
+    Swag.assert(expected.pixelColor(144, 64) == blue)
+    Swag.assert(expected.pixelColor(48, 64) != blue and expected.pixelColor(48, 64) != white)
+    Swag.assert(expected.pixelColor(96, 8) == white)
+
+    let actual = expect renderOglStable("SWAG_PIXEL_CLIP_PARITY", "Pixel clip region parity", RenderParityWidth, RenderParityHeight, &renderClipRegionParityScene, &expected)
+    Testing.assertImagesNear(&expected, &actual, "render.parity.clipregion.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
+}
+
+// Every artistic mode over a backdrop whose alpha plane is not being written. The upper row is
+// drawn over a colour stored with zero alpha, the lower row over the same colour stored opaque;
+// with alpha excluded from the colour mask the plane is scratch, so the two rows must agree.
+private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
+{
+    var target = renderer.createRenderTarget(RenderBlendWidth, RenderBlendHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    const ClearDst  = Color.fromArgb(0'u8, 64'u8, 128'u8, 192'u8)
+    const OpaqueDst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
+    const Src       = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(ClearDst)
+    painter.fillRect({0, 24, RenderBlendWidth, 24}, OpaqueDst)
+    painter.setColorMaskColor()
+
+    for mode, idx in ArtisticBlendModes
+    {
+        let x = cast(f32) idx * 12.0
+        painter.setBlendingMode(mode)
+        painter.fillRect(x, 0, 12, 24, Src)
+        painter.fillRect(x, 24, 12, 24, Src)
+    }
+
+    painter.setBlendingMode(.Alpha)
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+    return renderer.readRenderTarget(&target, 0, 0, RenderBlendWidth, RenderBlendHeight)
+}
+
+// A backdrop whose alpha is not written is opaque: the effect reads its stored colour, on the
+// CPU reference and on OpenGL alike.
+#test
+{
+    let expected = renderCpu(&renderOpaqueBackdropParityScene)
+    for idx in ArtisticBlendModes.count
+    {
+        let x       = cast(s32) idx * 12 + 6
+        let scratch = expected.pixelColor(x, 12)
+        let opaque  = expected.pixelColor(x, 36)
+        Swag.assert(Math.abs(cast(s32) scratch.r - cast(s32) opaque.r) <= 1)
+        Swag.assert(Math.abs(cast(s32) scratch.g - cast(s32) opaque.g) <= 1)
+        Swag.assert(Math.abs(cast(s32) scratch.b - cast(s32) opaque.b) <= 1)
+    }
+
+    // Alpha is excluded from what is drawn, so only the colour is compared: OpenGL leaves the
+    // scratch plane opaque over the batch it made opaque, the CPU leaves it untouched.
+    let actual = expect renderOglStable("SWAG_PIXEL_BACKDROP_PARITY", "Pixel opaque backdrop parity", RenderBlendWidth, RenderBlendHeight, &renderOpaqueBackdropParityScene, &expected, true)
+    if !actual.isValid() do
+        return
+    let expectedColor = colorOnly(&expected)
+    let actualColor   = colorOnly(&actual)
+    Testing.assertImagesNear(&expectedColor, &actualColor, "render.parity.backdrop.cpu-ogl", {maxChannelDelta: 3})
+}
+
+// Returns a copy of `image` with an opaque alpha plane, so a comparison reads its colour alone.
+private func colorOnly(image: const *Image)->Image
+{
+    var result = #move image.convertedTo(.RGBA8)
+    for y in cast(u64) result.height
+    {
+        var pixel = result.pixels.buffer! + y * cast(u64) result.rowStride
+        for cast(u64) result.width
+        {
+            pixel[3] = 255
+            pixel    += 4
+        }
+    }
+
+    return #move result
+}

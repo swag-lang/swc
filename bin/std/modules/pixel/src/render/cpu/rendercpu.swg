@@ -673,8 +673,13 @@ private impl RenderCpu
         var outColor = Math.Vector3{blendChannel(srcColor.x, dstColor.x, sa, da, .blendingMode),
                                     blendChannel(srcColor.y, dstColor.y, sa, da, .blendingMode),
                                     blendChannel(srcColor.z, dstColor.z, sa, da, .blendingMode)}
+
+        // An advanced equation weighs the backdrop by the destination alpha. When alpha is not
+        // being written, that plane is scratch — the window's is never written at all — and a
+        // backdrop read as transparent would lose the effect: the stored colour is the backdrop,
+        // and it is opaque by definition.
         if .blendingMode.usesAdvancedBlending() do
-            outColor = blendAdvanced(srcColor, dstColor, sa, da, .blendingMode)
+            outColor = blendAdvanced(srcColor, dstColor, sa, .colorMask.a ? da : 1.0, .blendingMode)
 
         var out = Color.fromArgbF32(outA, outColor.x, outColor.y, outColor.z)
 
@@ -2170,6 +2175,13 @@ private impl RenderCpu
             .modelTransform = cmd.transform.tr
 
         case .StartClippingRegion:
+
+            // A region starts empty: what the previous start/end pair wrote must not leak into
+            // it. The whole plane is reset rather than the scissor box, because the old region
+            // can extend past the clip in force now.
+            let stencil = .currentStencil()
+            if stencil.count do
+                Memory.clear(stencil.buffer!, stencil.count)
             .stencilOn    = true
             .stencilWrite = true
             .stencilMode  = cmd.clippingRegion.mode

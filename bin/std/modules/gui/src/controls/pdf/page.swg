@@ -52,8 +52,32 @@ struct Page
         readonly items: Array'Item     // Page content in paint order.
     }
 
-    internal fonts: Array'FontResource
+    internal
+    {
+        fonts: Array'FontResource
+
+        // Clip shapes the content stream established beyond a rectangle, in page coordinates.
+        //
+        // An item names its shape by index, so consecutive items painted through one shape share
+        // it, a `q`/`Q` pair copies a number rather than a path, and a frame writes each shape
+        // into the painter's clipping region once.
+        clipPaths: ArrayPtr'ClipPath
+    }
 }
+
+// One clip shape a content stream established, beyond the rectangle every item carries.
+//
+// The type identity is part of the exported page layout, so it is public, but it carries
+// no public contract of its own.
+#[Swag.NoDoc]
+public struct ClipPath
+{
+    path:    LinePathList     // The shape, in page coordinates.
+    evenOdd: bool             // Whether `W*` chose the alternating rule over the winding count.
+}
+
+// Marks an item confined by its rectangle alone.
+internal const InvalidClipPath = Swag.U32.Max
 
 impl Page
 {
@@ -208,6 +232,7 @@ impl Page
     {
         .items.clear()
         .fonts.clear()
+        .clipPaths.clear()
     }
 
     // Renders the complete page to an owned Pixel image.
@@ -235,6 +260,15 @@ internal impl Page
         if item.hasClip and item.clip.contains(item.paintBounds()) do
             item.hasClip = false
         .items.add(#move item)
+    }
+
+    // Records one clip shape and returns the index items name it by.
+    mtd addClipPath(path: #move LinePathList, evenOdd: bool)->u32
+    {
+        let clip = .clipPaths.addNew()
+        clip.path    = #move path
+        clip.evenOdd = evenOdd
+        return cast(u32) (.clipPaths.count - 1)
     }
 
     // Returns the item at `index` for a decoder that has to revise a mark it already recorded.

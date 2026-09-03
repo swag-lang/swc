@@ -184,3 +184,89 @@ func nestedSquares()->LinePathList
     path.flatten(.Normal, 1.0 / 32)
     Swag.assert(path.polygon.points.count == expected)
 }
+
+// A closed square whose corners are `(x, y)` and `(x + size, y + size)`.
+func square(x, y, size: f32)->LinePathList
+{
+    var result: retval
+    with let path = result.newPath()
+    {
+        .start(x, y)
+        .lineTo(x + size, y)
+        .lineTo(x + size, y + size)
+        .lineTo(x, y + size)
+        .close()
+    }
+
+    return result
+}
+
+// A transform maps every segment kind, and an arc is rewritten so that it maps exactly.
+#test
+{
+    var list        = square(0, 0, 10)
+    with let curved = list.newPath()
+    {
+        .start(20, 0)
+        .bezierTo(30, 10, 20, 10)
+        .bezierTo(40, 0, 35, 10, 40, 10)
+    }
+
+    var placement = Math.Transform2.createScale(2, 3, 0, 0)
+    placement.multiply(Math.Transform2.createTranslation(5, 7))
+    list.transform(placement)
+
+    let bounds = list.controlBounds()
+    Swag.assert(Math.isEqualEpsilon(bounds.x, 5, 0.001) and Math.isEqualEpsilon(bounds.y, 7, 0.001))
+    Swag.assert(Math.isEqualEpsilon(bounds.width, 80, 0.001) and Math.isEqualEpsilon(bounds.height, 30, 0.001))
+    Swag.assert(list.paths[1].startPoint.isEqualEpsilon({45, 7}, 0.001))
+    Swag.assert(list.paths[1].endPoint.isEqualEpsilon({85, 7}, 0.001))
+
+    // A half circle of radius 10 about (10, 10) becomes a half ellipse about (25, 37) with radii
+    // 20 and 30: every flattened point lies on it.
+    var arc: LinePathList
+    with let path = arc.newPath()
+    {
+        .start(10, 0)
+        .arcTo(10, 10, 10, 10, 0.0'deg, 180.0'deg)
+    }
+
+    arc.transform(placement)
+    arc.flatten(.High)
+    let polygon = arc.paths[0].flattenedPolygon(.High)
+    Swag.assert(polygon.points.count > 8)
+    for i in polygon.points.count
+    {
+        let pt = polygon.points[i]
+        let dx = (pt.x - 25) / 20
+        let dy = (pt.y - 37) / 30
+        Swag.assert(Math.isEqualEpsilon(dx * dx + dy * dy, 1, 0.01))
+    }
+}
+
+// An intersection keeps the region two lists share, honours each list's rule, and leaves
+// nothing when they share no region.
+#test
+{
+    var shape = square(0, 0, 100)
+    var clip  = square(50, 50, 100)
+    shape.flatten(.Normal)
+    clip.flatten(.Normal)
+    shape.intersect(&clip)
+    Swag.assert(shape.count() == 1)
+    Swag.assert(shape.minBounds.isEqualEpsilon({50, 50}, 0.01))
+    Swag.assert(shape.maxBounds.isEqualEpsilon({100, 100}, 0.01))
+
+    // A ring under the alternating rule clips as a ring: its hole lets nothing through.
+    var ring = nestedSquares()
+    var full = square(0, 0, 100)
+    ring.flatten(.Normal)
+    full.flatten(.Normal)
+    full.intersect(&ring, .NonZero, .EvenOdd)
+    Swag.assert(full.count() == 2)
+
+    var far = square(500, 500, 10)
+    far.flatten(.Normal)
+    shape.intersect(&far)
+    Swag.assert(shape.count() == 0)
+}

@@ -171,21 +171,22 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   visible, marked-content sections and XObjects belonging to a hidden group are skipped, and the
   group list is exposed so a caller can override the configuration.
 
-### std.gui.pdf.009 — A clip is only ever its bounding box
+### std.gui.pdf.009 — A shaped clip cuts a path or a text run with an aliased edge
 
-- Intent: `applyPendingClip` reduces the clip path to `controlBounds()`, which for a bezier
-  includes its control points. The module documents this as deliberately conservative, and it is —
-  but a page that clips an image to a circle, a map to a country outline, or a chart to a wedge
-  shows the corners the author removed, and the bezier hull makes even a rectangle-adjacent clip
-  larger than it should be. `Painter` already has clipping regions with set operations, so the
-  capability exists one layer down.
-- Complete when: a non-rectangular clip path is carried to the painter as a region rather than a
-  rectangle, nesting intersects regions, and the even-odd form of `W*` is distinguished from `W`.
-- Note: a clip that cannot cut the item it bounds is already dropped when the page is decoded, and
-  consecutive items sharing one clip push it once. That is what made a page of per-glyph form
-  XObjects both correct and affordable; the region work below is about clips that do decide
-  something.
-- Related: std.gui.pdf.010
+- Intent: a clip that is not an axis-aligned rectangle now reaches the painter. An image is drawn
+  as its clip shape filled with its own texture, so a photograph in a rounded frame has the smooth
+  corner the author drew; a path or a text run is painted through the painter's stencil clipping
+  region instead, and that region is one bit per pixel. The same curve that is smooth around an
+  image is therefore a staircase around a filled shape or a line of text cut by it, and the more a
+  page is magnified the wider the steps.
+- Complete when: a path or a text run cut by a shaped clip has an antialiased edge — by
+  intersecting the fill geometry with the clip, which the boolean solver already does for nested
+  clips, or by a coverage-carrying region in `pixel` — at every zoom the viewer offers.
+- Note: nested shapes compose through the boolean solver when the page is decoded, flattened at a
+  fiftieth of a point, so their intersection is polygonal; a single shape keeps its curves and
+  flattens at the zoom it is painted at. Text render modes 4 through 7 still contribute nothing to
+  the clip; that is std.gui.pdf.010.
+- Related: std.gui.pdf.010, std.pixel.011
 
 ### std.gui.pdf.010 — Text render modes other than fill and invisible are drawn filled
 

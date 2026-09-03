@@ -137,6 +137,32 @@ impl Transform2
         return Rectangle{min.x, min.y, max.x - min.x, max.y - min.y}
     }
 
+    // Returns the transform that maps every transformed point back to where it came from.
+    //
+    // A singular transform — one that flattens the plane onto a line or a point — has no
+    // inverse. The identity is returned for it rather than a matrix of infinities, so a caller
+    // mapping through the result still gets finite coordinates.
+    //
+    // ```swag
+    // let local = placement.inverse().transformPoint(pagePoint)
+    // ```
+    mtd const inverse()->Transform2
+    {
+        let det = .m11 * .m22 - .m12 * .m21
+        if isZeroEpsilon(det) do
+            return Identity
+
+        let scale = 1.0 / det
+        var result: retval
+        result.m11 = .m22 * scale
+        result.m12 = -.m12 * scale
+        result.m21 = -.m21 * scale
+        result.m22 = .m11 * scale
+        result.tx  = -(.tx * result.m11 + .ty * result.m21)
+        result.ty  = -(.tx * result.m12 + .ty * result.m22)
+        return result
+    }
+
     // Multiplies the current transform by another transformation matrix
     mtd multiply(matrix2: Transform2)
     {

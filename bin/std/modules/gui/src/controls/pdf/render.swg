@@ -411,6 +411,35 @@ private func pathPen(item: const *Item, scale: f32)->Pen
     return result
 }
 
+// Returns the rule a clip shape is filled under.
+private func clipFillRule(clip: const *ClipPath)->PathFillRule => clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero
+
+// Returns how many page points the longer side of an image's unit square spans.
+private func unitSquareScale(transform: Transform2)->f32
+{
+    let width  = Math.sqrt(transform.m11 * transform.m11 + transform.m12 * transform.m12)
+    let height = Math.sqrt(transform.m21 * transform.m21 + transform.m22 * transform.m22)
+    return Math.max(width, height)
+}
+
+// Writes one clip shape into the painter's clipping region, in page coordinates.
+//
+// The region is binary, so the shape is filled without antialiasing: a fringe would let every
+// mark through on each pixel the edge merely touches, and the shape would read a pixel wider than
+// the author drew it.
+private func writeClipRegion(painter: *Painter, clip: *ClipPath, pageToSurface: Transform2)
+{
+    if painter.transform() != pageToSurface do
+        painter.setTransform(pageToSurface)
+
+    let params = painter.params()
+    painter.setAntialiased(false)
+    painter.startClippingRegion(.Set)
+    painter.fillPath(&clip.path, Color.fromArgb(Argb.White), clipFillRule(clip))
+    painter.endClippingRegion()
+    painter.setAntialiased(params.has(.Antialiased))
+}
+
 // Draws the decoded items of a page through a painter, in paint order.
 //
 // This is the one drawing path: [[Pdf.Page.render]] runs it against an offline CPU target,
@@ -455,6 +484,12 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     defer if hasActiveClip do
         painter.popClippingRect()
 
+    // A shaped clip is a clipping region, and consecutive items usually share one the same way
+    // they share a rectangle, so it is written when the shape changes and held across the run.
+    var activeRegion = InvalidClipPath
+    defer if activeRegion != InvalidClipPath do
+        painter.resetClippingRegion()
+
     // What is being repainted, in the painter's own space. A page holds thousands of marks and a
     // frame usually shows a band of it, so a mark that cannot land in that band is worth naming
     // here rather than tessellating it and letting the renderer clip it away.
@@ -478,6 +513,25 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
                     textureIndex += 1
                 continue
             }
+        }
+
+        // An image is cut by its own shape rather than through a region, so it names none here.
+        // The region is written with no rectangle in force: two items sharing a shape need not
+        // share a rectangle, and a region cut to the first item's rectangle would cut the second.
+        let region = item.kind == .Image ? InvalidClipPath : item.clipPath
+        if region != activeRegion
+        {
+            if hasActiveClip
+            {
+                painter.popClippingRect()
+                hasActiveClip = false
+            }
+
+            if activeRegion != InvalidClipPath do
+                painter.resetClippingRegion()
+            if region != InvalidClipPath do
+                writeClipRegion(painter, page.clipPaths[region]!, pageToSurface)
+            activeRegion = region
         }
 
         // Almost every mark of a page is stated in page coordinates and shares one transform with
@@ -566,8 +620,25 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             }
 
         case .Image:
-            if textures[textureIndex].isValid() do
+            if !textures[textureIndex].isValid() do
+                break
+            if item.clipPath == InvalidClipPath
+            {
                 painter.drawTexture(0, 0, 1, 1, textures[textureIndex], item.fillColor)
+                break
+            }
+
+            // The image is drawn as its clip shape filled with its texture: the fill a rectangle
+            // gets, over the shape the author cut, with an antialiased edge. The shape lives in the
+            // image's unit square, where a segment is as many times shorter than on the page as
+            // the image is wide in points, so the flattening tolerance follows the image's scale.
+            var brush = Brush.createTexture(textures[textureIndex])
+            brush.mapOver({0, 0, 1, 1})
+            brush.setTint(item.fillColor)
+            let clip = page.clipPaths[item.clipPath]!
+            painter.setFlattenScale(devicePerPoint * unitSquareScale(item.transform))
+            painter.fillPath(&item.imageClip, brush, clipFillRule(clip))
+            painter.setFlattenScale(devicePerPoint)
         }
 
         if item.kind == .Image or item.hasMask do

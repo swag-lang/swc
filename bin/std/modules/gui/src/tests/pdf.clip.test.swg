@@ -20,6 +20,23 @@ private func isRed(color: Color)->bool   => color.r > 200 and color.g < 60 and c
 private func isBlue(color: Color)->bool  => color.b > 200 and color.r < 60 and color.g < 60
 private func isWhite(color: Color)->bool => color.r > 240 and color.g > 240 and color.b > 240
 
+// Reports whether a pixel of the window around `(x, y)` is a mix of blue and white: the mark of
+// an antialiased edge, which a clip reduced to whole pixels never leaves.
+private func hasSoftBlueEdge(image: const *Image, x, y: s32)->bool
+{
+    for dy in -1 to 1
+    {
+        for dx in -1 to 1
+        {
+            let color = image.pixelColor(x + dx, y + dy)
+            if color.b > 200 and color.r > 20 and color.r < 235 do
+                return true
+        }
+    }
+
+    return false
+}
+
 // A circle about `(cx, cy)` of radius `r`, as the four Béziers a content stream writes it with.
 private func circlePath(cx, cy, r: f32)->String
 {
@@ -78,6 +95,9 @@ private func circlePath(cx, cy, r: f32)->String
     Swag.assert(isBlue(image.pixelColor(50, 50)))
     Swag.assert(isWhite(image.pixelColor(13, 87)))
     Swag.assert(isWhite(image.pixelColor(150, 50)))
+
+    // The edge of the cut, where the circle runs diagonally, is antialiased.
+    Swag.assert(hasSoftBlueEdge(&image, 78, 22))
 }
 
 // `W*` clips under the alternating rule: two nested squares leave a ring.

@@ -171,23 +171,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   visible, marked-content sections and XObjects belonging to a hidden group are skipped, and the
   group list is exposed so a caller can override the configuration.
 
-### std.gui.pdf.009 — A shaped clip cuts a path or a text run with an aliased edge
-
-- Intent: a clip that is not an axis-aligned rectangle now reaches the painter. An image is drawn
-  as its clip shape filled with its own texture, so a photograph in a rounded frame has the smooth
-  corner the author drew; a path or a text run is painted through the painter's stencil clipping
-  region instead, and that region is one bit per pixel. The same curve that is smooth around an
-  image is therefore a staircase around a filled shape or a line of text cut by it, and the more a
-  page is magnified the wider the steps.
-- Complete when: a path or a text run cut by a shaped clip has an antialiased edge — by
-  intersecting the fill geometry with the clip, which the boolean solver already does for nested
-  clips, or by a coverage-carrying region in `pixel` — at every zoom the viewer offers.
-- Note: nested shapes compose through the boolean solver when the page is decoded, flattened at a
-  fiftieth of a point, so their intersection is polygonal; a single shape keeps its curves and
-  flattens at the zoom it is painted at. Text render modes 4 through 7 still contribute nothing to
-  the clip; that is std.gui.pdf.010.
-- Related: std.gui.pdf.010, std.pixel.011
-
 ### std.gui.pdf.010 — Text render modes other than fill and invisible are drawn filled
 
 - Intent: `Tr` is stored and then only consulted to detect the invisible modes 3 and 7. Mode 1
@@ -197,7 +180,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   renders as flat letters.
 - Complete when: an item carries its render mode, stroke and fill-and-stroke modes paint with the
   stroke color and width, and the clipping modes contribute the run's outline to the clip.
-- Related: std.gui.pdf.009
 
 ---
 

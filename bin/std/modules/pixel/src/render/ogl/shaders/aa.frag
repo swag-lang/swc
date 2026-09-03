@@ -8,7 +8,6 @@ in vec2     vpaintPos;
 in float    vcov;
 
 uniform sampler2D   inTexture1;
-uniform bool        copyMode;
 
 out vec4 color;
 

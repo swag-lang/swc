@@ -19,6 +19,13 @@ uniform vec4  gradientColors[8];
 uniform sampler2D gradientTexture;
 uniform bool gradientTextureEnabled;
 uniform bool  premultiplyBlendSource;
+uniform bool  copyMode;
+
+// The clipping region, as coverage per device pixel of the target: 0 leaves the region
+// alone, 1 cuts every fragment by it, 2 writes the fragment's own coverage into it.
+uniform int       clipMaskMode;
+uniform sampler2D clipMask;
+uniform vec2      clipMaskSize;
 
 float gradientOffsetAt(int index)
 {
@@ -36,6 +43,27 @@ vec4 gradientColorAt(int index)
 
 void applyBlendingMode(inout vec4 value)
 {
+    // Writing a clipping region: the fragment's coverage is what joins the mask.
+    if(clipMaskMode == 2)
+    {
+        value = vec4(value.w);
+        return;
+    }
+
+    // Painting through one: the region cuts the coverage. A copy has no coverage to cut,
+    // so the region decides alone whether the pixel is written.
+    if(clipMaskMode == 1)
+    {
+        float clip = texture(clipMask, gl_FragCoord.xy / clipMaskSize).r;
+        if(copyMode)
+        {
+            if(clip < 0.5)
+                discard;
+        }
+        else
+            value.w *= clip;
+    }
+
     if(premultiplyBlendSource)
         value.rgb *= value.a;
 }

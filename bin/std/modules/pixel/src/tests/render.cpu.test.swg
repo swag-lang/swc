@@ -524,3 +524,65 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
             Swag.assert(serial.pixelColor(x, y) == banded.pixelColor(x, y))
     }
 }
+
+// A circle about (50, 50) of radius 40, walked clockwise or anticlockwise in page space.
+func circlePathList(anticlockwise: bool)->LinePathList
+{
+    var result: retval
+    with let path = result.newPath()
+    {
+        .start(90, 50)
+        if anticlockwise
+        {
+            .bezierTo(50, 10, 90, 27.908, 72.092, 10)
+            .bezierTo(10, 50, 27.908, 10, 10, 27.908)
+            .bezierTo(50, 90, 10, 72.092, 27.908, 90)
+            .bezierTo(90, 50, 72.092, 90, 90, 72.092)
+        }
+        else
+        {
+            .bezierTo(50, 90, 90, 72.092, 72.092, 90)
+            .bezierTo(10, 50, 27.908, 90, 10, 72.092)
+            .bezierTo(50, 10, 10, 27.908, 27.908, 10)
+            .bezierTo(90, 50, 72.092, 10, 90, 27.908)
+        }
+
+        .close()
+    }
+
+    return result
+}
+
+// A ruled fill does not depend on the direction its contour runs: a lone anticlockwise contour
+// gets the same antialiased edge as the clockwise one, not a hard edge a band further out.
+#test
+{
+    var images: [2] Image
+    for anticlockwise, index in [false, true]
+    {
+        var circle = circlePathList(anticlockwise)
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.White))
+        painter.fillPath(&circle, Color.fromArgb(Argb.Blue), PathFillRule.NonZero)
+        painter.end()
+        images[index] = renderCpu(100, 100, &painter)
+    }
+
+    // The edge, where the circle runs diagonally, is a ramp on both.
+    var soft = 0
+    for y in 21 to 23
+    {
+        for x in 77 to 79
+        {
+            let clockwise     = images[0].pixelColor(x, y)
+            let anticlockwise = images[1].pixelColor(x, y)
+            Swag.assert(Math.abs(cast(s32) clockwise.r - cast(s32) anticlockwise.r) <= 1)
+            if anticlockwise.r > 20 and anticlockwise.r < 235 do
+                soft += 1
+        }
+    }
+
+    Swag.assert(soft >= 2)
+}

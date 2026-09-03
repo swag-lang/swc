@@ -43,10 +43,14 @@ struct RenderCpu
         paintOn:       bool
         program:       u8
 
+        // The clipping region is a coverage plane, one byte per device pixel of the target: a
+        // region cut along a curve keeps the fraction of each pixel its edge covers, so what is
+        // painted through it keeps a smooth edge.
         surfaceStencil: Array'u8
         stencilOn:      bool
         stencilWrite:   bool
         stencilMode:    ClippingMode = Set
+        stackStencilOn: Array'bool     // Regions suspended by the render targets bound inside them.
 
         font:           #null *Font
         fontAtlasIndex: s32 = -1
@@ -1396,32 +1400,6 @@ private impl RenderCpu
         let dx2 = p1.x - p0.x
         let dy2 = p1.y - p0.y
 
-        // A stencil write shades nothing: the loop only stamps the mask over the covered pixels.
-        if .stencilWrite
-        {
-            let stencilValue: u8 = .stencilMode == .Set ? 1 : 0
-            for var y = minY; y <= maxY; y += 1
-            {
-                let sy         = cast(f32) y + 0.5
-                let rowDy0     = sy - p1.y
-                let rowDy1     = sy - p2.y
-                let rowDy2     = sy - p0.y
-                let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
-                for var x = minX; x <= maxX; x += 1
-                {
-                    let sx = cast(f32) x + 0.5
-                    let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
-                    let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
-                    let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
-                    if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
-                        continue
-                    rowStencil[x] = stencilValue
-                }
-            }
-
-            return
-        }
-
         let dcDx     = (v0.cov * (p1.y - p2.y) + v1.cov * (p2.y - p0.y) + v2.cov * (p0.y - p1.y)) * invArea
         let dcDy     = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
         let covWidth = Math.max(Math.abs(dcDx) + Math.abs(dcDy), 0.00001)
@@ -1462,7 +1440,9 @@ private impl RenderCpu
                 constShade = false
         }
 
-        if constShade and plainBgra8
+        // Writing a region shades nothing and takes the general loop below, which is the one that
+        // computes the coverage each pixel contributes to it.
+        if constShade and plainBgra8 and !.stencilWrite
         {
             // Multiplying the destination by an opaque coverage returns every channel's own
             // byte, masked or not, so the whole triangle leaves the target untouched.
@@ -1539,25 +1519,51 @@ private impl RenderCpu
                             if !(coverage & (1'u32 << lane)) do
                                 continue
                             let pixelX = x + cast(s32) lane
-                            if stencilTest and rowStencil[pixelX] != 1 do
-                                continue
+
+                            // The region cuts the coverage. A copy has no coverage to cut, so the
+                            // region decides alone whether the pixel is written.
+                            var laneColor = constColor
+                            if stencilTest
+                            {
+                                let clip = rowStencil[pixelX]
+                                if clip == 0 do
+                                    continue
+                                if clip != 255
+                                {
+                                    if .blendingMode == .Copy
+                                    {
+                                        if clip < 128 do
+                                            continue
+                                    }
+                                    else
+                                    {
+                                        laneColor.a = cast(u8) ((cast(u32) laneColor.a * clip) / 255)
+                                        if laneColor.a == 0 do
+                                            continue
+                                    }
+                                }
+                            }
 
                             let lanePixel = rowPixels + cast(u64) pixelX * 4
                             if fastAlpha
                             {
-                                blendAlphaBgra8(lanePixel, constColor)
+                                blendAlphaBgra8(lanePixel, laneColor)
                             }
                             elif alphaMaskStore
                             {
-                                lanePixel[3] = constColor.a
+                                // A cut alpha no longer stores as it is: it composites.
+                                if laneColor.a == constColor.a do
+                                    lanePixel[3] = laneColor.a
+                                else do
+                                    .blendPixel(image, pixelX, y, laneColor)
                             }
                             else
                             {
-                                lanePixel[0] = constColor.b
-                                lanePixel[1] = constColor.g
-                                lanePixel[2] = constColor.r
+                                lanePixel[0] = laneColor.b
+                                lanePixel[1] = laneColor.g
+                                lanePixel[2] = laneColor.r
                                 if copyAll do
-                                    lanePixel[3] = constColor.a
+                                    lanePixel[3] = laneColor.a
                             }
                         }
 
@@ -1680,8 +1686,14 @@ private impl RenderCpu
                 let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
                 if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
                     continue
-                if stencilTest and rowStencil[x] != 1 do
-                    continue
+
+                var clip = 255'u8
+                if stencilTest
+                {
+                    clip = rowStencil[x]
+                    if clip == 0 and !.stencilWrite do
+                        continue
+                }
 
                 let w0          = e0 * invArea
                 let w1          = e1 * invArea
@@ -1693,7 +1705,32 @@ private impl RenderCpu
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                                          (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
                 let cov = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
-                let src = .shadeBatch(batch, paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov)
+                var src = .shadeBatch(batch, paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov)
+
+                // Writing the region: the fragment's coverage — its antialiased edge, the alpha of
+                // its texture, the transparency of its colour — joins the mask and shades nothing.
+                if .stencilWrite
+                {
+                    if .stencilMode == .Set do
+                        rowStencil[x] = Math.max(rowStencil[x], src.a)
+                    else do
+                        rowStencil[x] = cast(u8) ((cast(u32) rowStencil[x] * (255 - cast(u32) src.a)) / 255)
+                    continue
+                }
+
+                // Painting through one: the region cuts the coverage. A copy has no coverage to
+                // cut, so the region decides alone whether the pixel is written.
+                if clip != 255
+                {
+                    if .blendingMode == .Copy
+                    {
+                        if clip < 128 do
+                            continue
+                    }
+                    else do
+                        src.a = cast(u8) ((cast(u32) src.a * clip) / 255)
+                }
+
                 if fastAlpha
                 {
                     // The zero-alpha skip mirrors the general blend's coverage early-out.
@@ -2110,6 +2147,7 @@ private impl RenderCpu
         .stencilOn      = false
         .stencilWrite   = false
         .stencilMode    = .Set
+        .stackStencilOn.clear()
         .font           = null
         .fontAtlasIndex = -1
         .fontEffect     = {}
@@ -2260,11 +2298,19 @@ private impl RenderCpu
             target.paintAlpha    = cmd.renderTgt.paintAlpha
             target.paintAlphaIdx = cmdIdx
 
+            // A layer has a space of its own: the region in force around it cuts the layer when
+            // it is drawn, not the marks inside it.
+            .stackStencilOn.add(.stencilOn)
+            .stencilOn    = false
+            .stencilWrite = false
+
         case .UnbindRenderTarget:
             let target = .curRT!
             if target.paintAlpha do
                 .replayTargetAlpha(painter, target.paintAlphaIdx, cmdIdx)
             .unbindRenderTargetImpl()
+            if .stackStencilOn.count do
+                .stencilOn = .stackStencilOn.popBack()
 
         case .ReleaseRenderTarget:
             .releaseRenderTargetImpl(cmd.renderTgt.tgt)

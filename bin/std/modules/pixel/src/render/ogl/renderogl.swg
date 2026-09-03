@@ -71,6 +71,18 @@ struct ChromaPlanes
     }
 }
 
+// A clipping region drawn as coverage: one channel per device pixel of the target it serves.
+//
+// Dependency-visible backing type required by the concrete [[Pixel.RenderOgl]] layout.
+#[Swag.Opaque, Swag.NoDoc]
+public struct ClipMask
+{
+    framebuffer: GLuint
+    texture:     GLuint
+    width:       s32
+    height:      s32
+}
+
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
 // render targets. Create it as an [[Pixel.IRenderer]], create a
 // [[Pixel.RenderContext]], call `init`, then bracket frames with `begin` and `end`.
@@ -143,17 +155,26 @@ struct RenderOgl
         colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
         curRC:                   RenderContext                                // Active drawable and viewport.
 
-        stackReleasedRT:       Array'#null *RenderTarget     // Targets queued for deferred release.
-        stackRT:               Array'#null *RenderTarget     // Nested bound render targets.
-        curRT:                 #null *RenderTarget           // Active off-screen target, if any.
-        curShader:             #null *ShaderBase             // Active shader, or the default shader.
-        overlapMode:           bool                          // Whether overlap-safe alpha drawing is active.
-        alphaReplay:           bool                          // Whether commands are being replayed to rebuild a target's alpha plane.
-        contentScale:          f32 = 1                       // Device pixels per unit of the painter stream being drawn.
-        nativeContext:         #null const *void             // Shared native OpenGL context owned by interface-created drawables.
-        contextCount:          u32                           // Number of live interface-created drawables.
-        advancedBlending:      u8                            // Advanced blend-equation family supplied by the current context.
-        advancedBarrierActive: bool                          // Whether this context must keep later framebuffer touches in separate passes.
+        stackReleasedRT: Array'#null *RenderTarget     // Targets queued for deferred release.
+        stackRT:         Array'#null *RenderTarget     // Nested bound render targets.
+        curRT:           #null *RenderTarget           // Active off-screen target, if any.
+        curShader:       #null *ShaderBase             // Active shader, or the default shader.
+        overlapMode:     bool                          // Whether overlap-safe alpha drawing is active.
+        alphaReplay:     bool                          // Whether commands are being replayed to rebuild a target's alpha plane.
+        contentScale:    f32 = 1                       // Device pixels per unit of the painter stream being drawn.
+
+        // The clipping region, rendered as coverage into a texture the size of the target and read
+        // by every fragment at its device position. The hardware stencil holds one bit per pixel,
+        // and a region cut along a curve needs the fraction of each pixel its edge covers.
+        clipMasks:             Array'ClipMask        // One mask per target size a region was drawn for.
+        clipMaskIndex:         s32 = -1              // Mask of the region in force, or none yet.
+        clipMaskOn:            bool                  // Whether fragments are cut by the region.
+        clipMaskWriting:       bool                  // Whether fragments are writing the region.
+        stackClipMaskOn:       Array'bool            // Regions suspended by the render targets bound inside them.
+        nativeContext:         #null const *void     // Shared native OpenGL context owned by interface-created drawables.
+        contextCount:          u32                   // Number of live interface-created drawables.
+        advancedBlending:      u8                    // Advanced blend-equation family supplied by the current context.
+        advancedBarrierActive: bool                  // Whether this context must keep later framebuffer touches in separate passes.
     }
 }
 
@@ -1233,33 +1254,46 @@ impl RenderOgl
 
         case .StartClippingRegion:
 
-            // A region starts empty: what the previous start/end pair wrote must not leak into
-            // it. The scissor is lifted for the reset, because the old region can extend past
-            // the clip in force now.
+            // A region is coverage, so it is drawn into a mask the size of the target rather than
+            // into the one-bit stencil, and it starts empty: what the previous start/end pair
+            // wrote must not leak into it. The mask shares the target's projection and scissor,
+            // so a fragment lands on the same device pixel in both; the scissor is lifted for the
+            // reset alone, because the old region can extend past the clip in force now.
+            let {width, height} = .targetSizeImpl()
+            .clipMaskIndex   = .clipMaskFor(width, height)
+            .clipMaskWriting = true
+            .clipMaskOn      = false
+            let mask = .clipMasks[cast(u64) .clipMaskIndex]
+            glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
+            glViewport(0, 0, width, height)
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
             if .scissorOn do
                 glDisable(GL_SCISSOR_TEST)
-            .prepareFramebufferTouch()
-            glClearStencil(0)
-            glClear(GL_STENCIL_BUFFER_BIT)
+            glClearColor(0, 0, 0, 0)
+            glClear(GL_COLOR_BUFFER_BIT)
             if .scissorOn do
                 glEnable(GL_SCISSOR_TEST)
-            glEnable(GL_STENCIL_TEST)
-            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
-            glStencilFunc(GL_ALWAYS, 1, 0xFF)
-            fallthrough
+            .applyClipMaskMode(cmd.clippingRegion.mode)
+            .uploadClipMaskState()
 
         case .SetClippingRegionMode:
-            let params = &cmd.clippingRegion
-            let mode   = params.mode == .Set ? GL_REPLACE : cast(GLenum) GL_ZERO
-            glStencilOp(mode, mode, mode)
+            .applyClipMaskMode(cmd.clippingRegion.mode)
 
         case .EndClippingRegion:
+            .clipMaskWriting = false
+            .clipMaskOn      = true
+            .rebindCurrentTarget()
             .setColorMask(.colorMask)
-            glStencilFunc(GL_EQUAL, 1, 0xFF)
-            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+            .setBlendingMode(.blendingMode)
+            let mask = .clipMasks[cast(u64) .clipMaskIndex]
+            glActiveTexture(GL_TEXTURE5)
+            glBindTexture(GL_TEXTURE_2D, mask.texture)
+            glActiveTexture(GL_TEXTURE0)
+            .uploadClipMaskState()
 
         case .ResetClippingRegion:
-            glDisable(GL_STENCIL_TEST)
+            .clipMaskOn = false
+            .uploadClipMaskState()
 
         case .SetClippingRect:
             let params = &cmd.clippingRect
@@ -1620,6 +1654,12 @@ impl RenderOgl
             let curShader = .curShader!
             .computeMatrices(curShader.mvp, curShader.mdl)
 
+            // A layer has a space of its own: the region in force around it cuts the layer when
+            // it is drawn, not the marks inside it.
+            .stackClipMaskOn.add(.clipMaskOn)
+            .clipMaskOn = false
+            .uploadClipMaskState()
+
         case .UnbindRenderTarget:
             Debug.assert(.curRT != null)
 
@@ -1651,6 +1691,11 @@ impl RenderOgl
             .unbindRenderTargetImpl()
             let curShader = .curShader!
             .computeMatrices(curShader.mvp, curShader.mdl)
+            if .stackClipMaskOn.count
+            {
+                .clipMaskOn = .stackClipMaskOn.popBack()
+                .uploadClipMaskState()
+            }
 
         case .ReleaseRenderTarget:
             .releaseRenderTargetImpl(cmd.renderTgt.tgt)
@@ -1746,6 +1791,10 @@ impl RenderOgl
 
         // Default state
         .clearScissor()
+        .clipMaskOn      = false
+        .clipMaskWriting = false
+        .stackClipMaskOn.clear()
+        .uploadClipMaskState()
         glDisable(GL_STENCIL_TEST)
         glDisable(GL_DEPTH_TEST)
         glClearStencil(0)
@@ -1780,6 +1829,85 @@ impl RenderOgl
         // earlier frame, so realign it with the current blending mode; see setBlendingMode.
         glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
         glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.usesKhrAdvancedBlending() and .blendingMode.usesAdvancedBlending()))
+        .uploadClipMaskState()
+    }
+
+    // Returns the clipping mask matching a target size, creating it the first time.
+    //
+    // A mask is one coverage channel per device pixel, drawn under the target's own projection,
+    // so it has to be exactly the target's size; a window and the layers inside it each get one.
+    private mtd clipMaskFor(width, height: s32)->s32
+    {
+        for mask, index in .clipMasks where mask.width == width and mask.height == height do
+            return cast(s32) index
+
+        // The texture is created on the mask's own unit, so the paint texture bound on unit zero
+        // stays what the next batch expects to sample.
+        var mask: ClipMask
+        mask.width  = width
+        mask.height = height
+        glActiveTexture(GL_TEXTURE5)
+        mask.texture = .createPlaneTexture(width, height)
+        glActiveTexture(GL_TEXTURE0)
+        glGenFramebuffers(1, &mask.framebuffer)
+        glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mask.texture, 0)
+        .clipMasks.add(mask)
+        return cast(s32) (.clipMasks.count - 1)
+    }
+
+    // Binds the framebuffer of the target in force again, after a detour through a mask.
+    private mtd rebindCurrentTarget()
+    {
+        if .curRT
+        {
+            let curRT = .curRT!
+            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
+            glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
+            return
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glViewport(0, 0, .curRC.width, .curRC.height)
+    }
+
+    // Sets the blend that folds newly drawn coverage into the mask under `mode`.
+    //
+    // The fragment program writes its coverage in every channel while a region is being written,
+    // so adding keeps the most covered of overlapping shapes and clearing keeps what they leave.
+    private mtd applyClipMaskMode(mode: ClippingMode)
+    {
+        glEnable(GL_BLEND)
+        switch #complete mode
+        {
+        case .Set:
+            glBlendFunc(GL_ONE, GL_ONE)
+            glBlendEquation(GL_MAX)
+
+        case .Clear:
+            glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_COLOR)
+            glBlendEquation(GL_FUNC_ADD)
+        }
+    }
+
+    // Uploads the region state to the active program, which holds it per program.
+    private mtd uploadClipMaskState()
+    {
+        if !.curShader do
+            return
+        let curShader = .curShader!
+
+        var mode = 0
+        if .clipMaskWriting do
+            mode = 2
+        elif .clipMaskOn do
+            mode = 1
+        glUniform1i(cast(GLint) curShader.clipMaskMode, cast(GLint) mode)
+        if .clipMaskIndex >= 0
+        {
+            let mask = .clipMasks[cast(u64) .clipMaskIndex]
+            glUniform2f(cast(GLint) curShader.clipMaskSize, cast(GLfloat) mask.width, cast(GLfloat) mask.height)
+        }
     }
 
     // Acquires a pooled render target at least as large as the requested size.
@@ -1885,5 +2013,13 @@ impl RenderOgl
         base.gradientTexture        = cast() glGetUniformLocation(progID, ("gradientTexture").buffer)
         base.gradientTextureEnabled = cast() glGetUniformLocation(progID, ("gradientTextureEnabled").buffer)
         base.premultiplyBlendSource = cast() glGetUniformLocation(progID, ("premultiplyBlendSource").buffer)
+        base.clipMaskMode           = cast() glGetUniformLocation(progID, ("clipMaskMode").buffer)
+        base.clipMaskSize           = cast() glGetUniformLocation(progID, ("clipMaskSize").buffer)
+
+        // The clipping mask has a texture unit of its own, above the paint, font, gradient and
+        // chroma units, so binding it never displaces what a program is sampling.
+        let clipMask = glGetUniformLocation(progID, ("clipMask").buffer)
+        glUseProgram(progID)
+        glUniform1i(clipMask, 5)
     }
 }

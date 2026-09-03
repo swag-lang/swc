@@ -424,20 +424,16 @@ private func unitSquareScale(transform: Transform2)->f32
 
 // Writes one clip shape into the painter's clipping region, in page coordinates.
 //
-// The region is binary, so the shape is filled without antialiasing: a fringe would let every
-// mark through on each pixel the edge merely touches, and the shape would read a pixel wider than
-// the author drew it.
+// The region carries coverage, so the shape is filled the way any shape is: its antialiased
+// edge becomes the edge of every mark cut by it.
 private func writeClipRegion(painter: *Painter, clip: *ClipPath, pageToSurface: Transform2)
 {
     if painter.transform() != pageToSurface do
         painter.setTransform(pageToSurface)
 
-    let params = painter.params()
-    painter.setAntialiased(false)
     painter.startClippingRegion(.Set)
     painter.fillPath(&clip.path, Color.fromArgb(Argb.White), clipFillRule(clip))
     painter.endClippingRegion()
-    painter.setAntialiased(params.has(.Antialiased))
 }
 
 // Draws the decoded items of a page through a painter, in paint order.

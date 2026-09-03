@@ -781,11 +781,9 @@ private func renderClipRegionParityScene(renderer: IRenderer)->Image
     painter.setBlendingMode(.Alpha)
 
     // A texture through a circle on the left.
-    painter.setAntialiased(false)
     painter.startClippingRegion(.Set)
     painter.fillCircle(48, 64, 40, Color.fromArgb(Argb.White))
     painter.endClippingRegion()
-    painter.setAntialiased(true)
     var brush = Brush.createTexture(texture)
     brush.mapOver({8, 24, 80, 80})
     painter.fillRect({0, 0, 96, RenderParityHeight}, brush)
@@ -793,11 +791,9 @@ private func renderClipRegionParityScene(renderer: IRenderer)->Image
 
     // A solid fill over the whole target through a circle on the right: it must reach only that
     // circle, never the one the first region wrote.
-    painter.setAntialiased(false)
     painter.startClippingRegion(.Set)
     painter.fillCircle(144, 64, 40, Color.fromArgb(Argb.White))
     painter.endClippingRegion()
-    painter.setAntialiased(true)
     painter.fillRect({0, 0, RenderParityWidth, RenderParityHeight}, Color.fromArgb(Argb.DodgerBlue))
     painter.resetClippingRegion()
 
@@ -807,7 +803,24 @@ private func renderClipRegionParityScene(renderer: IRenderer)->Image
     return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
 }
 
-// A clipping region starts empty, on the CPU reference and on OpenGL alike.
+// Reports whether a pixel of the window around `(x, y)` is neither white nor the fill: the
+// mark of an antialiased edge, which a one-bit region can never produce.
+private func hasSoftEdge(image: const *Image, x, y: s32, fill: Color)->bool
+{
+    for dy in -1 to 1
+    {
+        for dx in -1 to 1
+        {
+            let color = image.pixelColor(x + dx, y + dy)
+            if color.r > fill.r + 20 and color.r < 235 do
+                return true
+        }
+    }
+
+    return false
+}
+
+// A clipping region starts empty and carries coverage, on the CPU reference and on OpenGL alike.
 #test
 {
     let expected = renderCpu(&renderClipRegionParityScene)
@@ -816,6 +829,9 @@ private func renderClipRegionParityScene(renderer: IRenderer)->Image
     Swag.assert(expected.pixelColor(144, 64) == blue)
     Swag.assert(expected.pixelColor(48, 64) != blue and expected.pixelColor(48, 64) != white)
     Swag.assert(expected.pixelColor(96, 8) == white)
+
+    // The circle's edge, where it runs diagonally, is a ramp rather than a staircase.
+    Swag.assert(hasSoftEdge(&expected, 172, 36, blue))
 
     let actual = expect renderOglStable("SWAG_PIXEL_CLIP_PARITY", "Pixel clip region parity", RenderParityWidth, RenderParityHeight, &renderClipRegionParityScene, &expected)
     Testing.assertImagesNear(&expected, &actual, "render.parity.clipregion.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})

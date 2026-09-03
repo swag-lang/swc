@@ -41,6 +41,8 @@ struct ShaderBase
     gradientTexture:        ShaderParamHandle = InvalidShaderParamHandle
     gradientTextureEnabled: ShaderParamHandle = InvalidShaderParamHandle
     premultiplyBlendSource: ShaderParamHandle = InvalidShaderParamHandle
+    clipMaskMode:           ShaderParamHandle = InvalidShaderParamHandle
+    clipMaskSize:           ShaderParamHandle = InvalidShaderParamHandle
 }
 
 // Uses the standard shader without antialiasing coverage.

@@ -1393,27 +1393,42 @@ impl Painter
         return .curState.clippingRectOn and .curState.clippingRect.isEmpty()
     }
 
-    // Start painting in the clipping buffer
+    // Starts drawing a clipping region, which begins empty.
+    //
+    // Until [[Pixel.Painter.endClippingRegion]], what is drawn shades nothing: its coverage —
+    // the antialiased edge, the alpha of a texture, the transparency of a colour — joins the
+    // region under `mode` instead. Everything painted after that, up to
+    // [[Pixel.Painter.resetClippingRegion]], is cut by the region's coverage per device pixel,
+    // so a shape cut along a curve keeps a smooth edge. A render target bound inside a region
+    // is not cut while it is being painted; the region applies to the layer when it is drawn.
+    //
+    // ```swag
+    // painter.startClippingRegion()
+    // painter.fillRoundRect(frame, 12, 12, Argb.White)
+    // painter.endClippingRegion()
+    // painter.drawTexture(frame, photo)
+    // painter.resetClippingRegion()
+    // ```
     mtd startClippingRegion(mode = ClippingMode.Set)
     {
         let cmd = .newCommand(.StartClippingRegion, true)
         cmd.clippingRegion.mode = mode
     }
 
-    // Set the clipping region mode
+    // Changes how what is drawn next joins the region being written.
     mtd setClippingRegionMode(mode: ClippingMode)
     {
         let cmd = .newCommand(.SetClippingRegionMode, true)
         cmd.clippingRegion.mode = mode
     }
 
-    // Stop painting in the clipping buffer. Back to normal.
+    // Finishes the region and puts it into effect.
     mtd endClippingRegion()
     {
         discard .newCommand(.EndClippingRegion, true)
     }
 
-    // Reset clipping buffer to its default value (no more clipping)
+    // Lifts the clipping region.
     mtd resetClippingRegion()
     {
         discard .newCommand(.ResetClippingRegion, true)

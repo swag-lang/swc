@@ -31,7 +31,7 @@ public impl Painter
     // that decided otherwise — keeps a zero direction and stays where it is. The lookup reuses the
     // painter's own table: a page of vector glyphs tessellates thousands of regions, and a fresh
     // table for each of them is a page's worth of allocation for nothing.
-    private mtd buildTriangleOffsets(p: *LinePath, island: const [..] *LinePath)
+    private mtd buildTriangleOffsets(p: *LinePath, island: const [..] *LinePath, outward: f32)
     {
         p.triangleOffsets.clear()
         p.triangleOffsets.resize(p.triangles.vertices.count)
@@ -46,7 +46,7 @@ public impl Painter
             // The first direction filed under a position is the one that stands, which is what
             // asking the table before writing used to express in two probes instead of one.
             for i in contour.polygon.points.count do
-                .sharedDirections.add(contourPointKey(points[i]), dirs[i], updateValue: false)
+                .sharedDirections.add(contourPointKey(points[i]), dirs[i] * outward, updateValue: false)
         }
 
         for i in p.triangles.vertices.count
@@ -95,10 +95,18 @@ public impl Painter
         }
     }
 
-    private mtd fillPathTriangulated(t: #null *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush, island: const [..] *LinePath)
+    private mtd fillPathTriangulated(t: #null *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush, island: const [..] *LinePath, ruled: bool)
     {
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()
+
+        // A contour's offset directions point away from the region it bounds only when the list
+        // follows the convention: outers clockwise, holes anticlockwise. A ruled fill of a lone
+        // simple contour is the one case that reaches here unnormalized, because the rule makes
+        // the direction irrelevant to the region; when that contour runs anticlockwise its
+        // directions point inward, and both the inset and the band below would place the edge a
+        // band outside the contour, as hard as the solid.
+        let outward = ruled and island.count == 1 and !island[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
 
         // Triangulation
         if p.triangles.vertices.isEmpty()
@@ -107,7 +115,7 @@ public impl Painter
             tess.triangulate()
             p.triangles = tess.takeResult()
             tess.clear()
-            .buildTriangleOffsets(p, island)
+            .buildTriangleOffsets(p, island, outward)
         }
 
         // The solid stops half a band short of the contour and the band, centered on the
@@ -139,7 +147,7 @@ public impl Painter
         if .curState.paintParams & .Antialiased
         {
             for contour in island do
-                .fillContourAA(&contour.polygon, brush.color, -aa, aa)
+                .fillContourAA(&contour.polygon, brush.color, -aa * outward, aa * outward)
         }
     }
 
@@ -245,7 +253,7 @@ public impl Painter
         // enough: holes can cross or meet the outer ring or one another. The list caches both
         // the verdict and the normalized copy, so an unchanged list — a document painted once
         // per frame — decides and normalizes once, not once per fill.
-        .fillPreparedPathList(pathList.normalizedFill(.NonZero, byDirection: true), brush)
+        .fillPreparedPathList(pathList.normalizedFill(.NonZero, byDirection: true), brush, false)
     }
 
     // Fills a list of paths under an explicitly named fill rule.
@@ -272,7 +280,7 @@ public impl Painter
         // normalized under the rule. The list caches the normalized copy against its contours'
         // revisions, so a glyph-like path with holes pays the boolean solver once, not once per
         // fill, and the copy keeps its tessellation from one frame to the next.
-        .fillPreparedPathList(pathList.normalizedFill(rule == .EvenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, byDirection: false), brush)
+        .fillPreparedPathList(pathList.normalizedFill(rule == .EvenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, byDirection: false), brush, true)
     }
 
     // Fills a list of paths under an explicitly named fill rule with a solid color.
@@ -281,7 +289,9 @@ public impl Painter
         .fillPath(pathList, Brush.createSolid(color), rule)
     }
 
-    private mtd fillPreparedPathList(pathList: *LinePathList, brush: Brush)
+    // `ruled` says the list was prepared for a fill rule rather than for the winding direction,
+    // which decides how a lone contour that runs anticlockwise is read.
+    private mtd fillPreparedPathList(pathList: *LinePathList, brush: Brush, ruled: bool)
     {
         var flush: #null *LinePath
 
@@ -321,7 +331,7 @@ public impl Painter
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
                 serial = p.serial
-                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice())
+                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice(), ruled)
                 .sharedIsland.clear()
                 flush = null
             }
@@ -336,7 +346,7 @@ public impl Painter
         }
 
         if flush do
-            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice())
+            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice(), ruled)
         .sharedIsland.clear()
     }
 

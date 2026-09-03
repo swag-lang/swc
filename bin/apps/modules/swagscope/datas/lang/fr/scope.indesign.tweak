@@ -9,6 +9,7 @@ ui_PageMenuEntry     Page %
 ui_ZoomMenu          Choisir le zoom
 ui_Actual            Taille réelle
 ui_Fit               Ajuster la page
+ui_FitWidth          Ajuster à la largeur
 ui_PreviousPage      Aperçu enregistré précédent
 ui_NextPage          Aperçu enregistré suivant
 ui_ChoosePage        Choisir un aperçu enregistré

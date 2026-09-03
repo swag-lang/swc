@@ -14,6 +14,7 @@ struct IndesignStrings
     ui_ZoomMenu:     string = "Choose zoom"                                                // Tooltip for the zoom selector.
     ui_Actual:       string = "Actual size"                                                // Zoom menu action that maps one image pixel to one screen pixel.
     ui_Fit:          string = "Fit page"                                                   // Zoom menu action that fits the whole saved preview.
+    ui_FitWidth:     string = "Fit width"                                                  // Zoom menu action that fits an IDML page width to its viewport.
     ui_PreviousPage: string = "Previous saved preview"                                     // Tooltip for the preceding saved-preview action.
     ui_NextPage:     string = "Next saved preview"                                         // Tooltip for the following saved-preview action.
     ui_ChoosePage:   string = "Choose saved preview"                                       // Tooltip for the saved-preview selector.

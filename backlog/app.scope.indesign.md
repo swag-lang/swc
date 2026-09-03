@@ -69,10 +69,11 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.005 — IDML page geometry omits image fitting, transforms, masks, and effects
 
-- Evidence: image frames resolve bounded embedded or local linked pixels and render in their frame,
-  while path bounds, simple polygons, lines and oval frames have a local scene representation.
-  Inner image transforms, crop/fitting policy, rotation/shear, clipping paths, opacity, blend modes,
-  drop shadows, feathering, and content-aware fitting are not preserved.
+- Evidence: image frames resolve bounded embedded or local linked pixels. Axis-aligned inner image
+  transforms and `GraphicBounds` preserve the tested crop rectangle, while path bounds, simple
+  polygons, lines and oval frames have a local scene representation. Rotation/shear/reflection,
+  clipping paths, opacity, blend modes, drop shadows, feathering, and content-aware fitting are not
+  preserved.
 - Next: retain frame and graphic transforms separately, add fit/crop/clip semantics before effects,
   and expose unsupported effects as item diagnostics rather than baking or hiding them.
 - Complete when: a corpus of fitted, cropped, transformed and transparent images agrees with an
@@ -82,9 +83,10 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.006 — Vector, paint, and stroke fidelity stops at simple solid shapes
 
-- Evidence: rectangles, ovals, polygon clips, simple lines, solid fills, strokes and triangle
-  arrowheads render locally. Gradients, patterns, compound paths, corner treatments, dashes, end
-  caps, joins, miter policy, arrows beyond triangles, transparency groups, and overprint are absent.
+- Evidence: rectangles, ovals, rounded corners, polygon clips, simple lines, solid fills, strokes
+  and triangle arrowheads render locally. Gradients, patterns, compound paths, non-rounded corner
+  treatments, dashes, end caps, joins, miter policy, arrows beyond triangles, transparency groups,
+  and overprint are absent.
 - Next: introduce one scene paint model with solid, gradient, pattern, stroke and group opacity
   primitives, mapping each IDML construct at a time and retaining an unsupported-item warning.
 - Complete when: supported vectors remain resolution independent at every zoom, the scene matches
@@ -121,10 +123,10 @@ whether a JPEG preview decoded.
 ### app.scope.indesign.009 — Typography retains only a subset of InDesign composition controls
 
 - Evidence: the IDML renderer carries family class, CJK fallback, size, fill, alignment, weight,
-  italic, auto-leading, indents, paragraph spacing, bullets, capitalization, tracking, underline,
-  strike-through, superscript and subscript. It does not retain style inheritance, glyph scaling,
-  kerning, ligatures, baseline grids, hyphenation/kinsoku, drop caps, paragraph rules/shading,
-  numbering, or exact font substitution.
+  italic, auto-leading, indents, paragraph spacing, frame insets, fixed text columns and gutters,
+  bullets, capitalization, tracking, underline, strike-through, superscript and subscript. It does
+  not retain style inheritance, glyph scaling, kerning, ligatures, baseline grids,
+  hyphenation/kinsoku, drop caps, paragraph rules/shading, numbering, or exact font substitution.
 - Next: normalize inherited paragraph/character/object styles into a resolved typography record and
   add controls in descending visible impact, starting with list numbering, paragraph rules/shading,
   hyphenation/kinsoku and baseline shift.
@@ -184,13 +186,13 @@ whether a JPEG preview decoded.
   fetches a resource or mutates the package.
 - Related: app.scope.viewers.006, app.scope.indesign.015
 
-### app.scope.indesign.014 — Reader modes and state are limited to one fitted page and transient zoom
+### app.scope.indesign.014 — Reader modes and state stop at one page, fit modes, and transient zoom
 
-- Evidence: the viewer offers page choice, fit page, explicit zoom and page-local search. It has no
-  fit width, continuous/facing/spread layout, presentation mode, page rotation, history, restore of
+- Evidence: the viewer offers page choice, fit page, fit width, explicit zoom and page-local search.
+  It has no continuous/facing/spread layout, presentation mode, page rotation, history, restore of
   page/zoom, or per-page annotations of decoding status.
-- Next: separate reading layout, zoom and page identity, then add fit width and continuous pages
-  before facing/spread and presentation modes.
+- Next: separate reading layout, zoom and page identity, then add continuous pages before
+  facing/spread and presentation modes.
 - Complete when: all reading modes share selection/search/history, page position and zoom restore
   safely through file identity, adjacent-page cache policy is bounded, and rotation/geometry apply
   consistently where a page scene supports them.

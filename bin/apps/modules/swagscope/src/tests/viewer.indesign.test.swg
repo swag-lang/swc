@@ -142,8 +142,10 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(opening.elapsedMilliseconds() < LinkedIdmlInteractiveBudgetMs)
     viewer.setMarkupZoom(125)
     Swag.assert(viewer.zoomLabel.text() == "125 %")
+    viewer.fitMarkupWidth()
+    Swag.assert(viewer.markupFit and viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_FitWidth)
     viewer.fitMarkupPage()
-    Swag.assert(viewer.zoomLabel.text() == indesignStrings().ui_Fit)
+    Swag.assert(viewer.markupFit and !viewer.markupFitWidth and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
     var qrcodePage = Swag.U64.Max
     for page, index in viewer.markupPages
     {
@@ -198,6 +200,14 @@ private func linkedIdmlFixturePath()->String
     Testing.assertContentFits(viewer)
     var firstPage = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&firstPage, "viewer.indesign.idml.linked.page1")
+
+    viewer.fitMarkupWidth()
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+    Testing.assertContentFits(viewer)
+    var fitWidth = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&fitWidth, "viewer.indesign.idml.linked.fitwidth")
+    viewer.fitMarkupPage()
 
     var qrcodePage = Swag.U64.Max
     for page, index in viewer.markupPages

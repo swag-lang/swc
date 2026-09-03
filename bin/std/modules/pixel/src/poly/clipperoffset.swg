@@ -1,5 +1,5 @@
 // @LICENCE: BSL-1.0
-// @ORIGIN: Clipper by Angus Johnson, https://www.angusj.com/clipper2/Docs/Overview.htm
+// @ORIGIN: Clipper 6.4.2 by Angus Johnson, https://sourceforge.net/projects/polyclipping/
 // @MODIFIED: Ported and modified for Swag.
 // @NOTICE: /bin/THIRDPARTY.md#clipper
 
@@ -58,9 +58,13 @@ impl Offset
     // Removes duplicate points and tracks the bottommost point for orientation determination.
     mtd addPath(path: ClipperPath, joinType: JoinType)
     {
-        var highI = path.count - 1
-        if highI < 0 do
+        // A closed contour needs three distinct corners to enclose anything, and the strip below
+        // reads the first point unconditionally. The count is unsigned, so a shorter path has to
+        // be turned away here rather than by a negative index.
+        if path.count < 3 do
             return
+
+        var highI   = path.count - 1
         let pathBuf = path.buffer!
         while highI > 0 and pathBuf[0].x == pathBuf[highI].x and pathBuf[0].y == pathBuf[highI].y do
             highI -= 1

@@ -3,60 +3,49 @@
 
 using Core, Core.Math, Pixel.Clipper
 
-// Signed area of one closed contour, positive for one winding direction and negative for the
-// other, so a solution's holes subtract themselves from its outers.
-func contourArea(contour: ClipperPath)->f64
+// How one operation is set up: the two fill rules and whether self-touching contours are split.
+struct Rules
 {
-    let count = contour.count
-    if count < 3 do
-        return 0
-
-    var total = 0.0'f64
-    var prev  = count - 1
-    for i in count
-    {
-        total += cast(f64) (contour[prev].x + contour[i].x) * cast(f64) (contour[prev].y - contour[i].y)
-        prev  = i
-    }
-
-    return total * 0.5
+    subject:      PolyFillType = NonZero
+    clip:         PolyFillType = NonZero
+    strictSimple: bool
 }
 
-// Area of the region a solution covers, whatever orientation the solver gave its contours.
-func solutionArea(paths: ClipperPaths)->f64
-{
-    var total = 0.0'f64
-    for path in paths do
-        total += contourArea(path)
-    return Math.abs(total)
-}
-
-// Runs one boolean operation over two path sets under the nonzero rule.
-func runOp(subject, clip: *ClipperPaths, op: ClipType)->ClipperPaths
+// Runs one boolean operation over two path sets.
+func runOp(subject, clip: *ClipperPaths, op: ClipType, rules: Rules)->ClipperPaths
 {
     var result: retval
 
     var trf: Transform
+    trf.strictSimple = rules.strictSimple
     for &path in subject do
         trf.addPath(path, .Subject)
     for &path in clip do
         trf.addPath(path, .Clip)
-    trf.execute(op, &result, .NonZero, .NonZero)
+    trf.execute(op, &result, rules.subject, rules.clip)
 
     return result
 }
 
-// Area of the region one set covers on its own, which is the union of the set with nothing.
-func selfArea(paths: *ClipperPaths)->f64
+// Area of the region one set covers on its own, which is the union of the set with nothing under
+// that set's own rule.
+func selfArea(paths: *ClipperPaths, rule: PolyFillType, strictSimple: bool)->f64
 {
     var none: ClipperPaths
-    return solutionArea(runOp(paths, &none, .Union))
+    return solutionArea(runOp(paths, &none, .Union, {rule, rule, strictSimple}))
+}
+
+// The shapes a generator can draw. Each stresses a different part of the solver.
+enum Shape
+{
+    Star     // Smooth outlines that cross each other at general angles.
+    Grid     // Axis-aligned cells on a coarse lattice: shared edges, long horizontal runs.
+    Comb     // A spiky outline whose teeth touch and overlap along vertical walls.
 }
 
 // A star-shaped contour around a centre: its vertices sit at increasing angles, so the contour
-// never crosses itself whatever radii the generator draws, and every contour of a set winds the
-// same way.
-func randomContour(rng: *Random.Generator, cx, cy: f64, count: u32)->ClipperPath
+// never crosses itself whatever radii the generator draws.
+func starContour(rng: *Random.Generator, cx, cy: f64, count: u32)->ClipperPath
 {
     var result: retval
     result.reserve(count)
@@ -71,78 +60,184 @@ func randomContour(rng: *Random.Generator, cx, cy: f64, count: u32)->ClipperPath
     return result
 }
 
-// A set of one to three star contours scattered over a region wide enough that they sometimes
-// miss each other and often overlap.
-func randomSet(rng: *Random.Generator)->ClipperPaths
+// A rectangle whose corners land on a coarse lattice, then slide by at most one unit. Neighbours
+// share whole edges, meet exactly at a corner, or miss by a thousandth of a cell — the three
+// arrangements a horizontal join has to tell apart, and the one that froze a real document.
+func gridContour(rng: *Random.Generator)->ClipperPath
+{
+    const Cell = 20_000'f64
+
+    var result: retval
+    let col = cast(f64) rng.nextS32(-3, 3)
+    let row = cast(f64) rng.nextS32(-3, 3)
+    let x0  = cast(s64) (col * Cell) + cast(s64) rng.nextS32(-1, 1)
+    let y0  = cast(s64) (row * Cell) + cast(s64) rng.nextS32(-1, 1)
+    let x1  = x0 + cast(s64) (Cell * cast(f64) rng.nextU32(1, 3))
+    let y1  = y0 + cast(s64) (Cell * cast(f64) rng.nextU32(1, 3))
+
+    result.add(IntPoint{x0, y0})
+    result.add(IntPoint{x1, y0})
+    result.add(IntPoint{x1, y1})
+    result.add(IntPoint{x0, y1})
+    return result
+}
+
+// A row of teeth of random height standing on a common base, so consecutive contours overlap
+// along vertical walls and share their base exactly.
+func combContour(rng: *Random.Generator, teeth: u32)->ClipperPath
 {
     var result: retval
 
-    for rng.nextU32(1, 3)
+    let x0   = cast(s64) rng.nextS32(-60_000, 60_000)
+    let y0   = cast(s64) rng.nextS32(-60_000, 60_000)
+    let step = cast(s64) rng.nextS32(4_000, 12_000)
+
+    for i in teeth
     {
-        let cx = rng.nextF64(-60_000, 60_000)
-        let cy = rng.nextF64(-60_000, 60_000)
-        result.add(randomContour(rng, cx, cy, rng.nextU32(3, 24)))
+        let x = x0 + cast(s64) i * step
+        result.add(IntPoint{x, y0})
+        result.add(IntPoint{x, y0 + cast(s64) rng.nextS32(5_000, 40_000)})
+        result.add(IntPoint{x + step / 2, y0 + cast(s64) rng.nextS32(5_000, 40_000)})
+    }
+
+    result.add(IntPoint{x0 + cast(s64) teeth * step, y0})
+    return result
+}
+
+// A set of one to four contours of the requested shape.
+func randomSet(rng: *Random.Generator, shape: Shape)->ClipperPaths
+{
+    var result: retval
+
+    for rng.nextU32(1, 4)
+    {
+        switch shape
+        {
+        case .Star:
+            let cx = rng.nextF64(-60_000, 60_000)
+            let cy = rng.nextF64(-60_000, 60_000)
+            result.add(starContour(rng, cx, cy, rng.nextU32(3, 24)))
+
+        case .Grid:
+            result.add(gridContour(rng))
+
+        case .Comb:
+            result.add(combContour(rng, rng.nextU32(2, 8)))
+        }
     }
 
     return result
 }
 
-// The four boolean operations cover and partition the same plane, so their areas satisfy the
-// algebra of a union and an intersection.
+// Checks that the four operations over one pair of sets satisfy the algebra of areas.
 //
 // The exactness is bounded: the solver rounds a computed crossing to the integer grid by
 // rounding its Y and then reading X back off the edge, which slides a nearly horizontal edge's
-// crossing along itself by half its slope. That is what the tolerance below covers, and it
-// stays two orders of magnitude under what a defect costs — a mis-ordered intersection or an
-// overlap test that always answers yes moves an area by a region, not by a boundary.
-#test
+// crossing along itself by half its slope. That is what the tolerance covers, and it stays two
+// orders of magnitude under what a defect costs — a mis-ordered intersection or an overlap test
+// that always answers yes moves an area by a region, not by a boundary.
+func assertBooleanAlgebra(subject, clip: *ClipperPaths, rules: Rules)
 {
-    var rng: Random.Generator
-    rng.seedU32(20260903)
+    let areaSubject = selfArea(subject, rules.subject, rules.strictSimple)
+    let areaClip    = selfArea(clip, rules.clip, rules.strictSimple)
 
-    for 200
+    let merged    = solutionArea(runOp(subject, clip, .Union, rules))
+    let shared    = solutionArea(runOp(subject, clip, .Intersection, rules))
+    let remainder = solutionArea(runOp(subject, clip, .Difference, rules))
+    let either    = solutionArea(runOp(subject, clip, .Xor, rules))
+
+    let tolerance = 3e-5 * (areaSubject + areaClip) + 1.0
+    Swag.assert(Math.abs(merged + shared - areaSubject - areaClip) <= tolerance)
+    Swag.assert(Math.abs(remainder - (areaSubject - shared)) <= tolerance)
+    Swag.assert(Math.abs(either - (merged - shared)) <= tolerance)
+}
+
+// Checks that every operation over one pair of sets returns contours that bound regions which do
+// not overlap.
+//
+// Unioning a solution with nothing has to give back exactly the same area, because that operation
+// finds no crossing to round. A solution whose contours do cross each other is what a join
+// stitched to the wrong partner leaves behind, and its covered area is then strictly less than the
+// sum of its signed areas. This is the sharp form of the check: the tolerance is a rounding
+// epsilon, not a margin.
+func assertSolutionsAreSimple(subject, clip: *ClipperPaths, rules: Rules)
+{
+    const Operations: [4] ClipType = [.Union, .Intersection, .Difference, .Xor]
+
+    for op in Operations
     {
-        var subject = randomSet(&rng)
-        var clip    = randomSet(&rng)
-
-        let areaSubject = selfArea(&subject)
-        let areaClip    = selfArea(&clip)
-
-        let merged    = solutionArea(runOp(&subject, &clip, .Union))
-        let shared    = solutionArea(runOp(&subject, &clip, .Intersection))
-        let remainder = solutionArea(runOp(&subject, &clip, .Difference))
-        let either    = solutionArea(runOp(&subject, &clip, .Xor))
-
-        let tolerance = 1e-5 * (areaSubject + areaClip) + 1.0
-        Swag.assert(Math.abs(merged + shared - areaSubject - areaClip) <= tolerance)
-        Swag.assert(Math.abs(remainder - (areaSubject - shared)) <= tolerance)
-        Swag.assert(Math.abs(either - (merged - shared)) <= tolerance)
+        var solution = runOp(subject, clip, op, rules)
+        let area     = solutionArea(solution)
+        Swag.assert(Math.abs(selfArea(&solution, .NonZero, rules.strictSimple) - area) <= 1e-9 * area + 1.0)
     }
 }
 
-// A solution is a set of contours bounding regions that do not overlap, so unioning it with
-// nothing gives back exactly the same area — the operation finds no crossing to round.
-//
-// A solution whose contours do cross each other is what a join stitched to the wrong partner
-// leaves behind, and its covered area is then strictly less than the sum of its signed areas.
-// This is the sharp form of that check: the tolerance is a rounding epsilon, not a margin.
+// The boolean algebra holds over smooth outlines that cross at general angles, over axis-aligned
+// cells that share their edges, and over combs whose teeth overlap along vertical walls — under
+// every fill rule, and whether or not self-touching contours are split.
 #test
 {
+    const Shapes: [3] Shape        = [.Star, .Grid, .Comb]
+    const Fills:  [4] PolyFillType = [.NonZero, .EvenOdd, .Positive, .Negative]
+
+    var rng: Random.Generator
+    rng.seedU32(20260903)
+
+    for shape in Shapes
+    {
+        for fill in Fills
+        {
+            for round in 24
+            {
+                var subject = randomSet(&rng, shape)
+                var clip    = randomSet(&rng, shape)
+                assertBooleanAlgebra(&subject, &clip, {fill, fill, strictSimple: (round & 1) == 1})
+            }
+        }
+    }
+}
+
+// Every operation returns simple, non-overlapping contours, over the same shapes and rules.
+#test
+{
+    const Shapes: [3] Shape        = [.Star, .Grid, .Comb]
+    const Fills:  [4] PolyFillType = [.NonZero, .EvenOdd, .Positive, .Negative]
+
     var rng: Random.Generator
     rng.seedU32(981)
 
-    const Operations: [4] ClipType = [.Union, .Intersection, .Difference, .Xor]
-
-    for 200
+    for shape in Shapes
     {
-        var subject = randomSet(&rng)
-        var clip    = randomSet(&rng)
-
-        for op in Operations
+        for fill in Fills
         {
-            var solution = runOp(&subject, &clip, op)
-            let area     = solutionArea(solution)
-            Swag.assert(Math.abs(selfArea(&solution) - area) <= 1e-9 * area + 1.0)
+            for round in 24
+            {
+                var subject = randomSet(&rng, shape)
+                var clip    = randomSet(&rng, shape)
+                assertSolutionsAreSimple(&subject, &clip, {fill, fill, strictSimple: (round & 1) == 1})
+            }
         }
+    }
+}
+
+// Coordinates above the low range switch the slope tests onto 128-bit products. Nothing in this
+// repository scales that far — a page of a document reaches about a million units — so the
+// algebra is checked there explicitly rather than by accident.
+#test
+{
+    var rng: Random.Generator
+    rng.seedU32(77)
+
+    // Just past 0x3FFFFFFF, where `rangeTest` gives up on 64-bit products.
+    const Origin = 2_000_000_000'f64
+
+    for 12
+    {
+        var subject: ClipperPaths
+        var clip:    ClipperPaths
+        subject.add(starContour(&rng, Origin, Origin, rng.nextU32(3, 12)))
+        clip.add(starContour(&rng, Origin, Origin, rng.nextU32(3, 12)))
+        assertBooleanAlgebra(&subject, &clip, {})
+        assertSolutionsAreSimple(&subject, &clip, {})
     }
 }

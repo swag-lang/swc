@@ -65,3 +65,27 @@ being compiled by it.
 - Complete when: a relaunched tool is marked as such and never relaunches again, proven by the
   four-condition reproducer above running once.
 
+
+### repo.tooling.005 — Fifteen recorded goldens do not match what master renders
+
+- Area: tooling
+- Found while: attributing the golden campaign for a change to `pixel/src/poly/clipper.swg`
+  (2026-09-03).
+- Observation: `swc tools/goldens.swgs dm test` on a pristine worktree at `62182ab0c`, with no
+  local change at all, reports fifteen failures: the four `properties.*` snapshots in
+  `std/gui`, the ten `main.menu.*` / `library.menu.*` snapshots in `apps/swagcapture`, and
+  `about` in `apps/swagscope`. Everything else is green — 91 in `std/pixel`, 46 in `std/gui`,
+  33 in `apps/swagscope`, 1 in `apps/swagvault`.
+- Evidence: the same fifteen were dismissed on 2026-09-03 as another agent's in-flight work in a
+  shared checkout. They are not: a `git worktree add --detach` of `62182ab0c` with nothing but
+  the two compiler executables copied in reproduces every one of them. The shapes differ:
+  `properties.*` moves 28 to 82 pixels by up to 194 of one channel, always starting at `x == 0`;
+  the swagcapture menus move exactly 2 pixels by 1 to 48; `about` moves 4895 by up to 152, which
+  reads as text rather than as a widget.
+- The cost is not the red: it is that every campaign has to re-run a pristine base to tell these
+  apart from its own change, which is two extra module builds per validation.
+- Next: record one of them from the pristine tree and diff the recorded PNG against the promoted
+  one to see whether the difference is a machine's fonts and display scale or a real drift; the
+  three groups may not have the same answer. `about` moving text is the one to read first.
+- Complete when: `swc tools/goldens.swgs dm test` is green on master, or each surviving snapshot
+  names what makes it machine-dependent.

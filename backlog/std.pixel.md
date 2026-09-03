@@ -309,6 +309,84 @@ output, path measurement and effects, and the modern renderer choice tracked by
   solution, or the branch is shown to be unreachable and says so.
 - Related: std.pixel.011
 
+### std.pixel.022 — The clipper is Clipper 6.4.2 and the state of the art is a different engine
+
+- What this is: `poly/clipper.swg` transcribes Clipper 6.4.2, the last of the Vatti-based line.
+  Being a faithful transcription is what makes the reference an oracle — three mis-ported
+  predicates have now been found by reading the two side by side, and all three lived in the same
+  place. Clipper2 (2022 onward) is a rewrite, not a version: what it changed says what this port
+  is worth changing.
+- **Joins are the weak part, and Clipper2 deleted them.** Clipper 1 defers "these two output
+  points belong stitched together" to a list, and settles it after the sweep in
+  `joinCommonEdges` / `joinPoints` / `joinHorz` / `getOverlap` / `fixupFirstLefts*`. Every defect
+  found in this file so far is in that post-pass: the ring-corrupting `joinHorz` condition
+  (`d2f7ec754`), the overlap test that compared its two output pointers instead of the values, and
+  the intersection order that was sorted by address. Clipper2 has no join list: a horizontal
+  overlap is merged as the sweep passes it, and two collinear hot edges are joined on the spot by
+  `CheckJoinLeft` / `CheckJoinRight`. Porting that is the change with the highest expected value
+  here, and it is also the largest.
+- **Its merge sort would be a pessimization here, and this is measured.** Clipper2 replaced the
+  bubble sort that discovers a scanbeam's intersections with a bottom-up merge sort, which is
+  `O(n log n)` instead of `O(n * passes)`. But bubble sort on an almost-sorted list costs one pass
+  plus the inversions, and a scanbeam's active edge list is almost always almost sorted. Counted
+  exactly over the three workloads below: 1.16 passes per scanbeam when offsetting glyph outlines,
+  2.65 over forty overlapping 40-gons — where a merge sort would cost about `log2(125) = 7`
+  comparisons per active edge, 2.6 times more. What Clipper2 buys is the worst case, one edge
+  crossing a whole beam, which turns the bubble sort quadratic; nothing in this repository has
+  produced one. Do not port it without an input that shows the quadratic case.
+- **`RectClip` is not needed.** Clipper2 adds a dedicated rectangular clipper, which would matter
+  for the one consumer of `LinePathList.intersect` — the PDF decoder's nested clips. It already
+  short-circuits: `applyPendingClip` returns early on `isAxisAlignedRectangle`, so the general
+  engine only ever sees a shaped clip.
+- Other differences, none of them currently paid for: Clipper2 creates an `Active` edge when one
+  enters the sweep instead of one `TEdge` per input vertex up front; it drops `StrictlySimple` and
+  removes self-intersections while building the output instead of by the `O(ring²)` scan in
+  `doSimplePolygons`; it drops the outer-rectangle-and-negative-fill trick this port still uses for
+  a negative offset; and it works to ±2^53 rather than switching to 128-bit slope products past
+  `0x3FFFFFFF`.
+- Measured cost, so the next attempt has a baseline (devmode, exact counters; wall-clock on this
+  machine spreads 18 % to 45 % between runs and is not evidence on its own):
+
+  | workload | executes | scanbeams | AEL visits | SEL comparisons | intersections | output points |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | union of 83 glyph contours (18302 points) | 52 | 17644 | 69861 | 52317 | 0 | 18285 |
+  | offsetting the same by 2 px, round joins | 53 | 43624 | 605302 | 703632 | 6885 | 28990 |
+  | union of 40 random 40-gons | 1 | 1552 | 194058 | 513287 | 12670 | 273 |
+
+  The sweep is where the time is, and inside it `processEdgesAtTopOfScanbeam` and
+  `processIntersections` are the two halves — both of which walk the active edge list once or twice
+  per scanbeam over a 136-byte `Edge`. Clipper2's structure is the same size, so the gain from
+  porting it is in doing less, not in touching less.
+- Next: reproduce a scanbeam whose bubble sort goes quadratic, or conclude it cannot happen for
+  filled vector art; that decides whether the intersection discovery is worth touching at all.
+  Independently, cost the join post-pass: instrument `joinCommonEdges` over a real document page
+  and see what fraction of a boolean operation it is before deciding whether to port Clipper2's
+  in-sweep joining.
+- Complete when: each of the four differences above is either ported, or has a measured reason in
+  this entry not to be.
+- Related: std.pixel.011, std.pixel.021, std.pixel.023
+
+### std.pixel.023 — A third of the clipper cannot run
+
+- Evidence: `poly/clipper.swg` keeps the reference's open-path and `PolyTree` machinery, and
+  `Transform` can reach neither. `addPath` has no `closed` parameter, so `Skip` is never assigned
+  and every `outIdx == Skip` test is constant; `windDelta` is `±1` for every edge that enters the
+  active list, so `OutRec.isOpen` is always false and `fixupOutPolyline` never runs; `usingPolyTree`
+  is assigned `false` in `execute` and nowhere else, so `fixupFirstLefts1`, `fixupFirstLefts2` and
+  `fixupFirstLefts3` are unreachable. That is roughly 150 lines.
+- It is not inert. `fixupFirstLefts*` open with `parseFirstLeft(nnOutRec(outRec.firstLeft))`, and
+  `firstLeft` is null for every contour that is not inside another — the assertion would fire on
+  the first call in a guarded configuration. The code is only correct because it is dead.
+- The argument against removing it is real: the file's value is that it reads line for line
+  against Clipper 6.4.2, which is how its defects have been found. Deleting branches makes the
+  next comparison harder.
+- Next: decide between the two, once. Either delete the unreachable branches and say so in the
+  file header — the reference stays the oracle for what remains — or keep them and make them
+  correct, starting with the null `firstLeft`.
+- Complete when: no branch of `poly/clipper.swg` is both unreachable and wrong, and the file says
+  which of the reference's features it does not carry.
+- Related: std.pixel.022
+
 ## Out of scope
 
 **Image codecs.** Decoding, encoding, metadata, multi-image containers, and SVG input are tracked

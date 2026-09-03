@@ -81,3 +81,31 @@ func assertPixel(img: Image, x, y: s32, argb: u32)
 {
     assertPixel(img, x, y, Color.fromArgb(argb))
 }
+
+// Signed area of one closed clipping contour, positive for one winding direction and negative for
+// the other, so a solution's holes subtract themselves from its outers.
+func contourArea(contour: Pixel.Clipper.ClipperPath)->f64
+{
+    let count = contour.count
+    if count < 3 do
+        return 0
+
+    var total = 0.0'f64
+    var prev  = count - 1
+    for i in count
+    {
+        total += cast(f64) (contour[prev].x + contour[i].x) * cast(f64) (contour[prev].y - contour[i].y)
+        prev  = i
+    }
+
+    return total * 0.5
+}
+
+// Area of the region a clipping solution covers, whatever orientation the solver gave its contours.
+func solutionArea(paths: Pixel.Clipper.ClipperPaths)->f64
+{
+    var total = 0.0'f64
+    for path in paths do
+        total += contourArea(path)
+    return Math.abs(total)
+}

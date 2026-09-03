@@ -1,5 +1,5 @@
 // @LICENCE: BSL-1.0
-// @ORIGIN: Clipper by Angus Johnson, https://www.angusj.com/clipper2/Docs/Overview.htm
+// @ORIGIN: Clipper 6.4.2 by Angus Johnson, https://sourceforge.net/projects/polyclipping/
 // @MODIFIED: Ported and modified for Swag.
 // @NOTICE: /bin/THIRDPARTY.md#clipper
 

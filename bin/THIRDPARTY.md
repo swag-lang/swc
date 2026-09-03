@@ -101,7 +101,7 @@ Some redistributions are documented closer to the files they cover:
 
 - Licence: BSL-1.0
 - Author: Angus Johnson.
-- Origin: <https://www.angusj.com/clipper2/Docs/Overview.htm>
+- Origin: Clipper 6.4.2, <https://sourceforge.net/projects/polyclipping/>
 - Used by: polygon clipping and offsetting in Pixel.
 
 ## Geometric Tools

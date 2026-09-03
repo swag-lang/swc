@@ -43,6 +43,10 @@ private struct IdmlItem
     lineEndArrow:   bool
     imageFrame: bool
     imageHasBounds: bool
+    cornerTopLeft:     f32
+    cornerTopRight:    f32
+    cornerBottomRight: f32
+    cornerBottomLeft:  f32
     clipPath:   String
     image:      String
     imageBounds: IdmlBounds
@@ -103,7 +107,7 @@ impl IdmlPage
                                       item.line ? (item.stroke.isEmpty() ? "transparent" : item.stroke.toString()) : (item.fill.isEmpty() ? "transparent" : item.fill.toString()),
                                       item.line ? 0 : item.strokeSize * factor,
                                       item.stroke.isEmpty() ? "transparent" : item.stroke.toString(),
-                                      item.oval ? "border-radius:50%" : "",
+                                      item.oval ? "border-radius:50%" : idmlCornerCss(item, factor).toString(),
                                       item.clipPath,
                                       item.imageFrame ? "padding:0" : "")
             if item.image.count
@@ -127,6 +131,15 @@ impl IdmlPage
         result += "</div>"
         return result
     }
+}
+
+// InDesign may give each corner a different treatment. Rounded corners are directly representable
+// by the local painter, so retain the four radii rather than flattening a visibly rounded frame.
+private func idmlCornerCss(item: const *IdmlItem, factor: f32)->String
+{
+    if item.cornerTopLeft <= 0 and item.cornerTopRight <= 0 and item.cornerBottomRight <= 0 and item.cornerBottomLeft <= 0 do
+        return {}
+    return Format.toString("border-radius:%px %px %px %px", item.cornerTopLeft * factor, item.cornerTopRight * factor, item.cornerBottomRight * factor, item.cornerBottomLeft * factor)
 }
 
 struct IdmlDocument
@@ -177,6 +190,25 @@ private func idmlNumber(text: string)->{ value: f32, valid: bool }
     if parseError != null or parsed.eat != trimmed.count or parsed.ovf do
         return {}
     return {parsed.value, true}
+}
+
+// A per-corner declaration overrides the legacy all-corners value. Do not round a corner whose
+// explicit option is not RoundedCorner: bevelled and inverse corners need path rendering instead.
+private func idmlRoundedCornerRadius(tag, corner: string)->f32
+{
+    let cornerOption = idmlAttribute(tag, Format.toString("%CornerOption", corner).toString())
+    if cornerOption.count
+    {
+        if cornerOption != "RoundedCorner" do
+            return 0
+        let radius = idmlNumber(idmlAttribute(tag, Format.toString("%CornerRadius", corner).toString()))
+        return radius.valid ? Math.max(radius.value, 0) : 0
+    }
+
+    if idmlAttribute(tag, "CornerOption") != "RoundedCorner" do
+        return 0
+    let radius = idmlNumber(idmlAttribute(tag, "CornerRadius"))
+    return radius.valid ? Math.max(radius.value, 0) : 0
 }
 
 private func idmlNumbers(text: string, result: *Array'f32)->bool
@@ -1136,6 +1168,10 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                 item.oval       = oval
                 item.line       = line
                 item.imageFrame = Utf8.indexOf(content, "<Image ") != Swag.U64.Max
+                item.cornerTopLeft     = idmlRoundedCornerRadius(tag, "TopLeft")
+                item.cornerTopRight    = idmlRoundedCornerRadius(tag, "TopRight")
+                item.cornerBottomRight = idmlRoundedCornerRadius(tag, "BottomRight")
+                item.cornerBottomLeft  = idmlRoundedCornerRadius(tag, "BottomLeft")
                 if line
                 {
                     item.lineStartArrow = idmlAttribute(tag, "LeftLineEnd") == "TriangleArrowHead"

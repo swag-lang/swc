@@ -34,6 +34,11 @@ struct SearchMatch
 alias RevealSearchMatch = func(*Wnd, SearchMatch, string)->bool
 
 // Returns the rendered bounds of one revealed match in surface coordinates.
+//
+// Report the band the view itself paints over the occurrence, exactly. The application draws one
+// marker around what it is given, so a band that is not the one being framed leaves two
+// rectangles of different sizes over one word. Report the wording rather than the line, the row
+// or the cell that carries it, so the marker is the size of what was found in every viewer.
 alias SearchMatchBounds = func(*Wnd, SearchMatch, *Math.Rectangle)->bool
 
 // Removes presentation left by the last revealed match.
@@ -186,6 +191,10 @@ func patternIsValid(query: string, options: SearchOptions)->bool
 }
 
 // Selects an exact UTF-8 byte range in a rich editor whose text came from `source`.
+//
+// `source` is the text as it was handed to the editor, so a byte offset in it names an authored
+// line and a rune inside it. The editor is asked to turn that pair into a cursor, because word
+// wrap has since split those lines and an authored index is not a display index.
 func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length: u64)
 {
     func cursorAt(source: string, byteOffset: u64)->RichEditCursor
@@ -214,36 +223,19 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
 
     let first = cursorAt(source, start)
     let last  = cursorAt(source, Math.min(start + length, source.count))
-    editor.setSelection(first, last)
+    editor.setSelection(editor.cursorFromLogicalPosition(first.lineIndex, first.charPosInLine),
+                        editor.cursorFromLogicalPosition(last.lineIndex, last.charPosInLine))
     editor.ensureCaretIsVisible(center: true)
     editor.invalidate()
 }
 
 // Reports the visible selection of a rich editor in surface coordinates.
+//
+// It is the band the editor fills behind the selected run, so the marker drawn around it frames
+// that band instead of sitting across it.
 func richEditMatchBounds(editor: *RichEditCtrl, result: *Math.Rectangle)->bool
 {
-    if editor.isSelectionEmpty() do
-        return false
-
-    let first  = editor.selectionStart()
-    let last   = editor.selectionEnd()
-    let height = editor.xGlyphSize().y
-    let start  = editor.cursorDisplayPosition(first)
-    let end    = editor.cursorDisplayPosition(last)
-    let view   = editor.view
-
-    var local: Math.Rectangle
-    if first.lineIndex == last.lineIndex
-    {
-        local = {start.x, start.y - height, Math.max(end.x - start.x, 2), height}
-    }
-    else
-    {
-        local = {view.clientRect().x, start.y - height, view.clientRect().width, Math.max(end.y - start.y + height, height)}
-    }
-
-    local.offset(-view.scrollPos.x, -view.scrollPos.y)
-    result[] = view.localToSurface(local)
+    result[] = editor.selectionRect()
     return !result.isEmpty()
 }
 
@@ -254,17 +246,35 @@ func clearRichEditMatch(editor: *RichEditCtrl)
     editor.invalidate()
 }
 
-// Reports one list row in surface coordinates.
+// Reports where the matched part of one cell's text is drawn, in surface coordinates.
 //
-// Structured and tabular viewers still provide the semantic row; the application gives that
-// geometry the same current-occurrence treatment as an exact glyph range.
-func listRowBounds(list: *ListCtrl, index: u32, result: *Math.Rectangle)->bool
+// `text` is what the cell displays and `offset`/`length` the part of it that matched, so a row
+// in a table, a tree and a report is marked on its wording exactly as a word in a document is.
+// A whole row, which is what these viewers used to report, put a band the width of the window
+// beside markers that hug five letters. The band is the height of the list's font, centered in
+// the row: a row carries leading the way a line of text does.
+//
+// False when the row is not laid out or the range falls outside the text. The rectangle is not
+// clipped to the viewport, as no reported band is: the host intersects every one of them with the
+// view it is drawing over, and decides there whether to follow the result or hide the marker.
+func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string, offset, length: u64, result: *Math.Rectangle)->bool
 {
-    if index >= list.lineCount() do
+    if offset + length > text.count do
         return false
-    let view       = list.listView
-    let lineHeight = list.lineHeight()
-    let local      = Math.Rectangle{view.clientRect().x, cast(f32) index * lineHeight - view.scrollPos.y, view.clientRect().width, lineHeight}
-    result[] = view.localToSurface(local)
+
+    let slot = list.cellTextRect(index, column)
+    if slot.isEmpty() do
+        return false
+
+    let font   = list.font().regular!
+    let prefix = Painter.measureString(text[0 until offset], font).width
+    let width  = Painter.measureString(text[offset until offset + length], font).width
+
+    var local = Math.Rectangle{slot.x + prefix, slot.y + (slot.height - font.height) * 0.5, Math.max(width, 2), font.height}
+    local.intersect(slot)
+    if local.isEmpty() do
+        return false
+
+    result[] = list.listView.localToSurface(local)
     return !result.isEmpty()
 }

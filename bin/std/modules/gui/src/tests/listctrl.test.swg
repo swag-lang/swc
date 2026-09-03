@@ -172,6 +172,77 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     Swag.assert(list.lineCount() == 1)
 }
 
+// A cell reports where its text is drawn, which is what a marker drawn over the list points at.
+// The rectangle starts after everything the row puts before its wording, and it is the same walk
+// painting makes: the column, the row's margins, its hierarchy indent, its disclosure mark and
+// its icon each take their share of the leading edge.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 320)
+    defer host.shutdown()
+
+    let list = ListCtrl.createMultiColumns(&host.root, {0, 0, 400, 300})
+    list.addColumn("Name", 200)
+    list.addColumn("Kind", 180)
+    host.root.applyLayout()
+
+    let first = list.createLine("alpha")
+    first.setItem(1, "one")
+    let second = list.createLine("beta")
+    second.setItem(1, "two")
+
+    let name = list.cellTextRect(1, 0)
+    let kind = list.cellTextRect(1, 1)
+    Swag.assert(!name.isEmpty() and !kind.isEmpty())
+
+    // The second row sits one row height down, and the second column starts after the first.
+    Swag.assert(Math.isEqualEpsilon(name.y, list.lineHeight(), 0.5))
+    Swag.assert(Math.isEqualEpsilon(name.height, list.lineHeight(), 0.5))
+    Swag.assert(kind.x >= 200 and kind.x > name.x)
+
+    // A row keeps its wording clear of its own leading edge, and of the icon space it reserves.
+    Swag.assert(name.x > 0)
+
+    // A nested row starts its wording one indent further in than a row at the root, whatever
+    // disclosure mark its parent had to reserve beside it. A child takes its icon margin from
+    // its parent, so the parent states it to compare like with like.
+    first.iconMargin = true
+    discard list.createLine("gamma", parentLine: first)
+    list.expand(first)
+    let childText = list.cellTextRect(1, 0)
+    let rootText  = list.cellTextRect(2, 0)
+    Swag.assert(Math.isEqualEpsilon(childText.x - rootText.x, list.indentWidth, 0.5))
+
+    // Nothing is laid out beyond the rows, and no column beyond the header.
+    Swag.assert(list.cellTextRect(list.lineCount(), 0).isEmpty())
+    Swag.assert(list.cellTextRect(0, 7).isEmpty())
+}
+
+// A virtual list has no row object to measure, so the geometry asks the owner to fill one, the
+// same way painting does.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 320)
+    defer host.shutdown()
+
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 400, 300})
+    list.onFillVirtualLine = func(owner, line, index)
+    {
+        discard owner
+        if line do
+            discard line.setItem(0, Format.toString("row %", index).toString())
+    }
+
+    list.setVirtualCount(4)
+    host.root.applyLayout()
+
+    let row = list.cellTextRect(2, 0)
+    Swag.assert(!row.isEmpty())
+    Swag.assert(Math.isEqualEpsilon(row.y, 2 * list.lineHeight(), 0.5))
+}
+
 // Expanding/collapsing a parent line changes the visible line count.
 #test
 {

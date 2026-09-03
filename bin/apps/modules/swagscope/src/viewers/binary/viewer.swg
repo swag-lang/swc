@@ -434,45 +434,8 @@ internal impl BinaryViewer
     {
         if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or !.rowLines[.searchRow] do
             return false
-
         let source = .cellText(.searchRow, .searchColumn)
-        if .searchOffset + .searchLength > source.length do
-            return false
-
-        let view       = .list.listView
-        let line       = .rowLines[.searchRow]!
-        let column     = cast(u32) .searchColumn
-        let lineHeight = .list.lineHeight()
-        let rowY       = cast(f32) .searchVisibleIndex * lineHeight - view.scrollPos.y
-        let font       = .list.font().regular!
-
-        var columnX = .list.header.itemPositionForColumn(column)
-        columnX += .list.header.surfaceRect().x - view.surfaceRect().x
-        columnX -= view.scrollPos.x
-
-        var textX = columnX + .list.leftTextMargin + line.leftTextMargin
-        if column == cast(u32) BinaryColumn.Field
-        {
-            textX += line.level * .list.indentWidth
-            if line.canExpand() or .list.listFlags.has(.ReserveExpandMargin) do
-                textX += .themeMetrics().list_ExpandSize
-        }
-
-        textX += .list.header.itemPadding
-
-        let text        = source.toString()
-        let prefixWidth = Painter.measureString(text[0 until .searchOffset], font).width
-        let matchWidth  = Painter.measureString(text[.searchOffset until .searchOffset + .searchLength], font).width
-        let textHeight  = font.height
-        var local       = Math.Rectangle{textX + prefixWidth, rowY + (lineHeight - textHeight) * 0.5, Math.max(matchWidth, 2), textHeight}
-        let cell        = Math.Rectangle{columnX, rowY, .list.header.itemWidthForColumn(column), lineHeight}
-        local.intersect(cell)
-        local.intersect(view.clientRect())
-        if local.isEmpty() do
-            return false
-
-        result[] = view.localToSurface(local)
-        return true
+        return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32) .searchColumn, source.toString(), .searchOffset, .searchLength, result)
     }
 
     mtd clearSearch()

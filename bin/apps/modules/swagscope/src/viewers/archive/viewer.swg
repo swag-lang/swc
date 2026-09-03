@@ -391,11 +391,17 @@ private impl ArchiveViewer
         return false
     }
 
+    // The mark belongs to the name the row shows. A query matches an entry's whole path, and
+    // what the reader can see of that path is the name in the tree.
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
         if .list.focusIndex >= .list.lineCount() do
             return false
-        return Viewer.listRowBounds(.list, .list.focusIndex, result)
+        let line = .list.lineAt(.list.focusIndex)
+        if !line or line!.items.isEmpty() do
+            return false
+        let name = Pixel.RichString.plainText(line!.items[0]!.name.raw.toString())
+        return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name.toString(), 0, name.length, result)
     }
 
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)

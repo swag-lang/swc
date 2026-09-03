@@ -125,6 +125,18 @@ impl RichEditCtrl
             i += 1
         }
 
+        // A cursor below the joined block keeps the place it points at: the display lines removed
+        // above it move it up by as many. Without this a selection revealed on a later line drifts
+        // toward the top of the document every time a line above it stops being wrapped.
+        let removed = i - lineIndex - 1
+        if removed
+        {
+            if .cursorPos.lineIndex >= i do
+                .cursorPos.lineIndex -= removed
+            if .selBeg.lineIndex >= i do
+                .selBeg.lineIndex -= removed
+        }
+
         // Remove current wrapped lines
         while i != lineIndex + 1
         {
@@ -169,13 +181,21 @@ impl RichEditCtrl
                     if cutAti and cutAti == i + 1 do
                         cutAti -= 1
 
-                    if .cursorPos.lineIndex == curLine and .cursorPos.charPosInLine >= cutAti
+                    // A cursor below the line being split keeps the place it points at, one display
+                    // line further down; one on the split line follows the runes it sits among.
+                    // Leaving the first case out is what made a search reveal land on whatever
+                    // sentence happened to carry the same index once a line above it wrapped.
+                    if .cursorPos.lineIndex > curLine do
+                        .cursorPos.lineIndex += 1
+                    elif .cursorPos.lineIndex == curLine and .cursorPos.charPosInLine >= cutAti
                     {
                         .cursorPos.lineIndex     += 1
                         .cursorPos.charPosInLine -= cutAti
                     }
 
-                    if .selBeg.lineIndex == curLine and .selBeg.charPosInLine >= cutAti
+                    if .selBeg.lineIndex > curLine do
+                        .selBeg.lineIndex += 1
+                    elif .selBeg.lineIndex == curLine and .selBeg.charPosInLine >= cutAti
                     {
                         .selBeg.lineIndex     += 1
                         .selBeg.charPosInLine -= cutAti

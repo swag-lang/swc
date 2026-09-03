@@ -161,6 +161,44 @@ impl RichEditCtrl
         return .selBeg
     }
 
+    // Returns the band the editor fills behind the current selection, in surface coordinates.
+    //
+    // It is the rectangle the view paints, so a caller drawing over the editor — a search marker,
+    // a callout — lands on the wording rather than beside it. A selection spanning several lines
+    // answers the block that encloses them. The rectangle is empty when nothing is selected, and
+    // it is not clipped to the viewport: a selection scrolled out of sight answers where it would
+    // be, which is what lets a caller decide between following it and hiding.
+    //
+    // The geometry belongs here because only the control knows which of its windows draws the
+    // text. Its outer view is the scrolling frame, inset by that frame's own padding and holding
+    // none of the scroll; measuring against it puts every mark a padding away from the words.
+    mtd selectionRect()->Math.Rectangle
+    {
+        var result: retval
+        if .isSelectionEmpty() do
+            return result
+
+        let first  = .selectionStart()
+        let last   = .selectionEnd()
+        let height = .xGlyphSize().y
+        let start  = .cursorDisplayPosition(first)
+        let end    = .cursorDisplayPosition(last)
+        let view   = .edView
+
+        if first.lineIndex == last.lineIndex
+        {
+            result = {start.x, start.y - height, Math.max(end.x - start.x, 2), height}
+        }
+        else
+        {
+            result = {view.clientRect().x, start.y - height, view.clientRect().width, Math.max(end.y - start.y + height, height)}
+        }
+
+        result.offset(-view.scrollPos.x, -view.scrollPos.y)
+        result = view.localToSurface(result)
+        return result
+    }
+
     // Normalizes selection endpoints and refreshes selection geometry.
     mtd checkSelection()
     {

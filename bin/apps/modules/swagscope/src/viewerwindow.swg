@@ -21,9 +21,14 @@ const ViewerLoadingSpinnerMinRadius           = 15.0
 const ViewerLoadingSpinnerMaxRadius           = 21.0
 const ViewerLoadingSpinnerMinSweep            = 58.0
 const ViewerLoadingSpinnerMaxSweep            = 232.0
-const ViewerSearchGlowInset                   = 7.0
-const ViewerSearchTextMargin                  = 3.0
-const ViewerSearchOverlayInset                = ViewerSearchGlowInset + ViewerSearchTextMargin
+const ViewerSearchMarkPadX                    = 5.0
+const ViewerSearchMarkPadY                    = 2.0
+const ViewerSearchMarkRadius                  = 4.0
+const ViewerSearchMarkEdge                    = 1.0
+const ViewerSearchGlowReach                   = 5.0
+const ViewerSearchGlowSteps                   = 4'u32
+const ViewerSearchOverlayInsetX               = ViewerSearchMarkPadX + ViewerSearchGlowReach
+const ViewerSearchOverlayInsetY               = ViewerSearchMarkPadY + ViewerSearchGlowReach
 const ViewerSearchGlowPeriod:   f32           = 1.35
 const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
 const ViewerSmokeStepLimit                    = 300'u32
@@ -257,9 +262,14 @@ struct ViewerLoadingOverlay
     spinner: *ViewerLoadingSpinner
 }
 
-// One application-owned marker for every current occurrence. Viewers report only the surface
-// bounds of what they revealed; this layer supplies the themed band, crisp edge and quiet electric
-// pulse, so PDF text and a byte in the hexadecimal view speak exactly the same visual language.
+// One application-owned marker for every current occurrence. Viewers report the band they painted
+// over what they revealed and nothing else; this layer supplies the air around it, the corner, the
+// themed wash, its own edge and a quiet electric pulse, so PDF text and a byte in the hexadecimal
+// view speak exactly the same visual language.
+//
+// The band takes the corner a selected row already takes, and its edge is drawn inside its
+// outline rather than across it: a rule sitting half outside a translucent wash reads as a frame
+// with something faint behind it instead of as one marked word.
 struct ViewerSearchOverlay
 {
     using wnd: Wnd
@@ -273,20 +283,33 @@ impl IWnd for ViewerSearchOverlay
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let pulse   = 0.5'f32 + 0.5'f32 * Math.sin(.phase * Math.ConstF32.TwoPi)
-        let rect    = .clientRect()
-        var marked  = rect
-        marked.applyPadding({ViewerSearchGlowInset, ViewerSearchGlowInset, ViewerSearchGlowInset, ViewerSearchGlowInset})
 
-        var glow = colors.searchMatch_Glow
-        glow.a = cast(u8) (cast(f32) glow.a * (0.45 + pulse * 0.55))
+        // The band, and around it the room the halo falls off in.
+        var mark = .clientRect()
+        mark.applyPadding({ViewerSearchGlowReach, ViewerSearchGlowReach, ViewerSearchGlowReach, ViewerSearchGlowReach})
+        if mark.isEmpty() do
+            return
 
-        // Crisp pixel-aligned strokes avoid the renderer's antialiased no-overlap scratch pass on
-        // this translucent top layer; that pass is appropriate for opaque silhouettes, but here
-        // it can leave cleared-alpha seams while the pulse changes intensity.
-        painter.setAntialiased(false)
-        painter.drawRect(marked, glow, 5)
-        painter.fillRect(marked, colors.searchMatch_Bk)
-        painter.drawRect(marked, colors.searchMatch_Border, 2)
+        // The halo is a stack of filled rounded rectangles, drawn from the outermost inward: each
+        // one covers those inside it, so their alphas add up toward the band while the outermost
+        // ring stays a breath. Filling rather than stroking also keeps the whole marker off the
+        // renderer's antialiased no-overlap pass, which clears alpha on a translucent top layer
+        // and leaves seams as the pulse changes intensity.
+        let glowStrength = (0.35'f32 + pulse * 0.65) / cast(f32) ViewerSearchGlowSteps
+        let glow         = colors.searchMatch_Glow.withAlpha(cast(u8) (cast(f32) colors.searchMatch_Glow.a * glowStrength))
+        for step in ViewerSearchGlowSteps
+        {
+            let reach = ViewerSearchGlowReach * cast(f32) (ViewerSearchGlowSteps - step) / cast(f32) ViewerSearchGlowSteps
+            var ring  = mark
+            ring.inflate(reach)
+            painter.fillRoundRect(ring, ViewerSearchMarkRadius + reach, ViewerSearchMarkRadius + reach, glow)
+        }
+
+        painter.fillRoundRect(mark, ViewerSearchMarkRadius, ViewerSearchMarkRadius, colors.searchMatch_Bk)
+
+        var pen = Pen.createSolid(colors.searchMatch_Border, ViewerSearchMarkEdge)
+        pen.borderPos = .Inside
+        painter.drawRoundRect(mark, ViewerSearchMarkRadius, ViewerSearchMarkRadius, pen)
     }
 }
 
@@ -302,12 +325,15 @@ impl ViewerSearchOverlay
     }
 
     // Follows a surface-coordinate match without entering the viewer's own layout or hit testing.
+    //
+    // `bounds` is the band the view painted; the air is added here, wider than it is tall because
+    // a line's leading is what bounds the marker vertically while nothing bounds it horizontally.
     mtd showMatch(bounds: Math.Rectangle)
     {
         let parent  = .parent!
         let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
-        .setPosition({topLeft.x - ViewerSearchOverlayInset, topLeft.y - ViewerSearchOverlayInset,
-                      bounds.width + ViewerSearchOverlayInset * 2, bounds.height + ViewerSearchOverlayInset * 2},
+        .setPosition({topLeft.x - ViewerSearchOverlayInsetX, topLeft.y - ViewerSearchOverlayInsetY,
+                      bounds.width + ViewerSearchOverlayInsetX * 2, bounds.height + ViewerSearchOverlayInsetY * 2},
                      computeLayout: false)
         .show()
         .bringToFront()

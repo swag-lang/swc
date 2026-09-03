@@ -432,11 +432,29 @@ impl TableViewer
         return true
     }
 
+    // A cell shows a window of its value, with an ellipsis on each side it had to cut, so the
+    // mark is placed in the text the reader can actually see rather than in the stored value.
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if .searchRow >= .document.rows.count do
+        if .searchRow >= .document.rows.count or .searchColumn >= .document.rows[.searchRow].cells.count do
             return false
-        return Viewer.listRowBounds(.list, cast(u32) .searchRow, result)
+
+        let value = .document.rows[.searchRow].cells[.searchColumn].toString()
+        if .searchOffset + .searchLength > value.count do
+            return false
+
+        let range       = tableCellPreviewRange(value, .searchOffset)
+        let markedStart = Math.max(.searchOffset, range.start)
+        let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
+        if markedEnd <= markedStart do
+            return false
+
+        var shown: String
+        if range.start do
+            shown += "\u2026"
+        let lead = shown.length
+        shown += value[range.start until range.end]
+        return Viewer.listCellMatchBounds(.list, cast(u32) .searchRow, cast(u32) .searchColumn, shown.toString(), lead + markedStart - range.start, markedEnd - markedStart, result)
     }
 
     mtd clearSearch()

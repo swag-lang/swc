@@ -1156,8 +1156,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(basic.editor.selectedText() == "Cat")
     var matchBounds: Math.Rectangle
     Swag.assert(textSearchBounds(basic, window.searchMatches[window.searchIndex], &matchBounds))
-    Swag.assert(window.searchOverlay.position.width == Math.round(matchBounds.width + ViewerSearchOverlayInset * 2))
-    Swag.assert(window.searchOverlay.position.height == Math.round(matchBounds.height + ViewerSearchOverlayInset * 2))
+    Swag.assert(window.searchOverlay.position.width == Math.round(matchBounds.width + ViewerSearchOverlayInsetX * 2))
+    Swag.assert(window.searchOverlay.position.height == Math.round(matchBounds.height + ViewerSearchOverlayInsetY * 2))
     window.searchOverlay.phase = 0.25
     let firstPulse = host.render(window)
     window.searchOverlay.invalidate()

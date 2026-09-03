@@ -557,7 +557,9 @@ impl HtmlPainter
     }
 
     // Reports the union of the laid-out runs covered by the current search range, in canvas
-    // coordinates. Presentation stays outside the HTML engine; this only exports its geometry.
+    // coordinates. It is exactly the band `paintSearchHit` fills, so a marker drawn over the view
+    // frames what the view highlighted rather than a second rectangle beside it. Presentation
+    // stays outside the HTML engine; this only exports its geometry.
     mtd searchMatchRect(result: *Math.Rectangle)->bool
     {
         if .searchNode == HtmlNoNode or .searchEnd <= .searchStart do

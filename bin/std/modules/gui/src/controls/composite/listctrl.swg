@@ -663,8 +663,97 @@ impl IWnd for ListView
     }
 }
 
+// Where the parts of one cell land, in the coordinates of the list's view.
+//
+// A row is drawn by taking shares off one rectangle's leading edge: the column gives its extent,
+// then the row's margins, its hierarchy indent, its disclosure mark, its check box and its icon
+// each take theirs.
+private struct ListCellLayout
+{
+    cell:    Math.Rectangle     // What the cell's own background and clipping cover.
+    expand:  Math.Rectangle     // Slot reserved for the disclosure mark; empty when the row reserves none.
+    check:   Math.Rectangle     // Slot reserved for the check box; empty when the row reserves none.
+    content: Math.Rectangle     // What is left for the icon and the label together.
+    text:    Math.Rectangle     // What is left for the label alone, once the icon has taken its lead.
+    icon:    Icon               // The row's icon at the size it is drawn.
+}
+
 private impl ListView
 {
+    // Walks one cell's rectangle inward and reports where each of its parts lands.
+    //
+    // Painting and every caller that has to point at a cell — a search marker above all — read
+    // that walk from here instead of repeating it.
+    mtd cellLayout(line: *ListLine, item: *ListItem, itemIndex: u64, row: Math.Rectangle, reserveCheckMargin: bool)->ListCellLayout
+    {
+        let metrics = .themeMetrics()
+
+        var result: retval
+        var pos = row
+
+        if Swag.isSet(.list.header)
+        {
+            pos.x     = .columnPosition(item.column)
+            pos.width = .list.header.itemWidthForColumn(item.column)
+        }
+
+        pos.x -= .scrollPos.x
+        pos.x += .list.leftTextMargin + line.leftTextMargin
+
+        // A row keeps its content clear of its own leading edge. A list with a header takes that
+        // air from the header's own column inset instead; adding it here as well would slide
+        // every cell out from under its title.
+        if !Swag.isSet(.list.header) do
+            pos.moveLeft(metrics.list_Padding)
+
+        if itemIndex == 0
+        {
+            pos.moveLeft(line.level * .list.indentWidth)
+            if line.canExpand() or .list.listFlags.has(.ReserveExpandMargin)
+            {
+                result.expand = {pos.x, pos.y, metrics.list_ExpandSize, pos.height}
+                pos.moveLeft(metrics.list_ExpandSize)
+            }
+        }
+
+        result.cell = pos
+
+        if itemIndex == 0 and reserveCheckMargin
+        {
+            let widthCheck = Math.min(metrics.btnCheck_Size, .list.lineHeight())
+            result.check = {pos.x, pos.y, widthCheck, pos.height}
+            pos.moveLeft(widthCheck + 4)
+        }
+
+        // Take care of header item margin
+        if Swag.isSet(.list.header) do
+            pos.moveLeft(.list.header.itemPadding)
+
+        // Left margin, or icon
+        result.icon = item.icon
+        if .list.iconSize > 0
+        {
+            if result.icon.isValid() do
+                result.icon.sizeX, result.icon.sizeY = .list.iconSize
+            else
+            {
+                var iconMargin = .list.iconMarginFirstCol
+                if !itemIndex and line.parent do
+                    iconMargin = line.parent.iconMargin
+                elif itemIndex do
+                    iconMargin = .list.header.itemAt(cast(u32) itemIndex).reservesIconSpace
+                if iconMargin do
+                    pos.moveLeft(.list.iconSize + metrics.iconText_Margin)
+            }
+        }
+
+        result.content = pos
+        result.text    = pos
+        if result.icon.isValid() do
+            result.text.moveLeft(result.icon.sizeX + metrics.iconText_Margin)
+        return result
+    }
+
     // Draws where a drop hovering the list would land.
     //
     // An insertion is a rule in the gap with a cap at each end, the way a file manager draws one,
@@ -784,115 +873,56 @@ private impl ListView
                 format.flags.add(.Ellipsis)
             format.font = .list.font()
 
-            var labelPos = rect
+            let layout = .cellLayout(line, item, idxItem, rect, reserveCheckMargin)
 
-            // Right
-            if Swag.isSet(.list.header)
+            // Expand/collapse mark, centered in the slot the row reserves for it so the marker
+            // keeps the same air on both sides whatever size the theme gives the chevron.
+            if !layout.expand.isEmpty() and line.canExpand()
             {
-                labelPos.x     = .columnPosition(item.column)
-                labelPos.width = .list.header.itemWidthForColumn(item.column)
-            }
+                let expand  = theme.icon(line.expanded ? .ChevronDown : .ChevronRight, metrics.chevron_Size)
+                let expandX = layout.expand.x + Math.max(layout.expand.width - expand.sizeX, 0.0) * 0.5
 
-            labelPos.x -= .scrollPos.x
-            labelPos.x += .list.leftTextMargin + line.leftTextMargin
-
-            // A row keeps its content clear of its own leading edge. A list with a header takes
-            // that air from the header's own column inset instead; adding it here as well would
-            // slide every cell out from under its title.
-            if !Swag.isSet(.list.header) do
-                labelPos.moveLeft(metrics.list_Padding)
-
-            if idxItem == 0
-            {
-                // Ident level
-                labelPos.moveLeft(line.level * .list.indentWidth)
-
-                // Expand/collapse mark
-                let canExpand = line.canExpand()
-                if canExpand or .list.listFlags.has(.ReserveExpandMargin)
-                {
-                    if canExpand
-                    {
-                        // Centered in the column the row reserves for it, so the marker keeps the
-                        // same air on both sides whatever size the theme gives the chevron.
-                        let expand  = theme.icon(line.expanded ? .ChevronDown : .ChevronRight, metrics.chevron_Size)
-                        let expandX = labelPos.x + Math.max(metrics.list_ExpandSize - expand.sizeX, 0.0) * 0.5
-
-                        // A triangular disclosure mark carries more visual weight toward its
-                        // flat edge than its point. One logical pixel below the typographic
-                        // center keeps the shape level with the wording beside it.
-                        expand.paint(painter, expandX, opticalTop(.font(), labelPos.vertCenter(), expand.sizeY) + 1, colorExpand)
-                    }
-
-                    labelPos.moveLeft(metrics.list_ExpandSize)
-                }
+                // A triangular disclosure mark carries more visual weight toward its flat edge
+                // than its point. One logical pixel below the typographic center keeps the shape
+                // level with the wording beside it.
+                expand.paint(painter, expandX, opticalTop(.font(), layout.expand.vertCenter(), expand.sizeY) + 1, colorExpand)
             }
 
             // Background color ?
             if item.colorBk.a and !isSelected
             {
-                var rectPos = labelPos
+                var rectPos = layout.cell
                 rectPos.width += metrics.header_Separator * 0.5
                 painter.fillRect(rectPos, item.colorBk)
             }
 
-            painter.pushClippingRect(labelPos)
+            painter.pushClippingRect(layout.cell)
             defer painter.popClippingRect()
 
             // Checkbox
-            if idxItem == 0 and reserveCheckMargin
+            if !layout.check.isEmpty() and line.canCheck
             {
-                let widthCheck = Math.min(metrics.btnCheck_Size, .list.lineHeight())
-                if line.canCheck
-                {
-                    var subRectBorder: *ThemeImageRect = &rects.btnCheck_NormalBorder
+                var subRectBorder: *ThemeImageRect = &rects.btnCheck_NormalBorder
 
-                    let idxLine = .list.isVirtual ? idx : line.index
-                    let checked = .list.checkModel.isSelected(idxLine)
+                let idxLine = .list.isVirtual ? idx : line.index
+                let checked = .list.checkModel.isSelected(idxLine)
 
-                    let colorBorder = colorFg
-                    let colorMark   = colorFg
+                let colorBorder = colorFg
+                let colorMark   = colorFg
 
-                    if checked
-                    {
-                        subRectBorder = &rects.btnCheck_CheckedBorder
-                    }
+                if checked do
+                    subRectBorder = &rects.btnCheck_CheckedBorder
 
-                    var posBox = labelPos
-                    posBox.height = widthCheck
-                    posBox.y      = opticalTop(.font(), labelPos.vertCenter(), posBox.height)
-                    posBox.width  = posBox.height
-                    if checked do
-                        theme.drawSubRect(painter, posBox, &rects.btnCheck_CheckedMark, colorMark)
-                    theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
-                }
-
-                labelPos.moveLeft(widthCheck + 4)
+                var posBox = layout.check
+                posBox.height = layout.check.width
+                posBox.y      = opticalTop(.font(), layout.check.vertCenter(), posBox.height)
+                posBox.width  = posBox.height
+                if checked do
+                    theme.drawSubRect(painter, posBox, &rects.btnCheck_CheckedMark, colorMark)
+                theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
             }
 
-            // Take care of header item margin
-            if Swag.isSet(.list.header) do
-                labelPos.moveLeft(.list.header.itemPadding)
-
-            // Left margin, or icon
-            var icon = item.icon
-            if .list.iconSize > 0
-            {
-                if icon.isValid() do
-                    icon.sizeX, icon.sizeY = .list.iconSize
-                else
-                {
-                    var iconMargin = .list.iconMarginFirstCol
-                    if !idxItem and line.parent do
-                        iconMargin = line.parent.iconMargin
-                    elif idxItem do
-                        iconMargin = .list.header.itemAt(cast(u32) idxItem).reservesIconSpace
-                    if iconMargin do
-                        labelPos.moveLeft(.list.iconSize + metrics.iconText_Margin)
-                }
-            }
-
-            Theme.drawIconText(painter, labelPos, icon, &item.name, format, metrics.iconText_Margin)
+            Theme.drawIconText(painter, layout.content, layout.icon, &item.name, format, metrics.iconText_Margin)
         }
     }
 
@@ -1348,6 +1378,47 @@ impl ListCtrl
     mtd lineHeight()->f32
     {
         return .fixedLineHeight != 0 ? .fixedLineHeight : Math.max(24.0, .font().regular!.height + 8)
+    }
+
+    // Returns where one visible row's cell draws its text, in the coordinates of the list's view.
+    //
+    // This is the rectangle the label is laid out in, once the column, the scroll, the row's own
+    // margins, its hierarchy indent, its disclosure mark, its check box and its icon have taken
+    // their share of it: the wording alone, not the row that carries it. A caller that has to
+    // point at what a cell says, such as a search marker, asks for it here rather than repeating
+    // the layout. The rectangle is empty when no such row or column is laid out.
+    mtd cellTextRect(index: u32, column: u32)->Math.Rectangle
+    {
+        var result: retval
+        if index >= .lineCount() do
+            return result
+
+        // A virtual list keeps no row object, so the row is produced the way painting produces
+        // it: the caller's own filler, into storage that lives for this measurement alone.
+        var scratch: ListLine
+        var line:    #null *ListLine = null
+        if .isVirtual
+        {
+            if !.onFillVirtualLine do
+                return result
+            .onFillVirtualLine!(me, &scratch, index)
+            line = &scratch
+        }
+        else do
+            line = .lines[index]
+        if !line do
+            return result
+
+        var row: Math.Rectangle
+        row.width  = .listView.displayWidth()
+        row.height = .lineHeight()
+        row.y      = cast(f32) index * .lineHeight() - .listView.scrollPos.y
+
+        let reserveCheckMargin = .isVirtual ? line!.canCheck : .hasVisibleCheckBoxes()
+        for itemIt, itemIndex in line!.items where itemIt!.column == column do
+            return .listView.cellLayout(line!, itemIt!, itemIndex, row, reserveCheckMargin).text
+
+        return result
     }
 
     // Returns the visible row at `index`.

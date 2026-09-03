@@ -70,6 +70,57 @@ impl RichEditCtrl
         return size
     }
 
+    // Returns the cursor for a position expressed in the lines the author wrote.
+    //
+    // A cursor addresses a display line, and word wrap turns one authored line into several of
+    // them, so a caller that knows a place as "line N of the text, rune M" — a search result, a
+    // diagnostic, a bookmark — cannot use that pair directly: with wrapping on it lands on
+    // whichever display line happens to carry the same index, which is a different sentence
+    // further up the document. Converting here walks the display lines, counting only the ones
+    // that start an authored line and then spending the rune offset across its continuations.
+    //
+    // A line index past the end answers the end of the document, and a rune offset past the end
+    // of its line answers that line's end.
+    mtd cursorFromLogicalPosition(lineIndex, charPosInLine: u64)->RichEditCursor
+    {
+        var result: retval
+        if .lines.isEmpty() do
+            return result
+
+        var index    = Swag.U64.Max
+        var authored = 0'u64
+        for i in .lines.count where !.lines[i]!.wordWrap
+        {
+            if authored == lineIndex
+            {
+                index = i
+                break
+            }
+
+            authored += 1
+        }
+
+        if index == Swag.U64.Max
+        {
+            result.lineIndex     = .lines.count - 1
+            result.charPosInLine = .lines[result.lineIndex]!.length()
+            return result
+        }
+
+        // Wrapping moves runes between display lines without adding or dropping any, so the
+        // authored line is exactly its display lines end to end.
+        var remaining = charPosInLine
+        while remaining > .lines[index]!.length() and index + 1 < .lines.count and .lines[index + 1]!.wordWrap
+        {
+            remaining -= .lines[index]!.length()
+            index     += 1
+        }
+
+        result.lineIndex     = index
+        result.charPosInLine = Math.min(remaining, .lines[index]!.length())
+        return result
+    }
+
     // Returns cursor display pos.
     mtd cursorDisplayPosition(cp: RichEditCursor)->Math.Point
     {

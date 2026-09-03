@@ -13,6 +13,21 @@ private func openDocumentFixturePath(name: string)->String
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 }
 
+private func countOpenDocumentImageTags(html: string)->u64
+{
+    var result = 0'u64
+    var at     = 0'u64
+    while at < html.count
+    {
+        let found = Utf8.indexOf(html, "<img", at)
+        if found == Swag.U64.Max do
+            break
+        result += 1
+        at = found + 4
+    }
+    return result
+}
+
 private func reportOpenDocumentTestDetails(view: *Wnd, details: string)
 {
     discard view
@@ -162,6 +177,17 @@ private func textOpenDocumentXml()->String
     return openDocumentXml("<office:text><text:h text:outline-level='1'>Quarterly report</text:h><text:p>Paris &amp; Berlin <text:span text:style-name='Emphasis'>remain</text:span> <text:a xlink:href='https://www.swag-lang.org/?viewer=odf&amp;kind=text'><text:span text:style-name='Underline'>readable</text:span><text:span text:style-name='Raised'>1</text:span></text:a> <text:span text:style-name='Revision'>outdated</text:span>.</text:p><text:p text:style-name='ExternalEmphasis'>Style from styles.xml</text:p><text:list><text:list-item><text:p>Reviewed</text:p></text:list-item></text:list><text:list text:style-name='Numbered'><text:list-item><text:p>Prioritized</text:p></text:list-item></text:list><table:table table:name=\"Summary\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell><text:p>42</text:p></table:table-cell></table:table-row></table:table><draw:frame svg:width='48px' svg:height='48px'><draw:image xlink:href='Pictures/figure.png'/></draw:frame><draw:frame><draw:image xlink:href='https://example.com/remote.png'/></draw:frame></office:text>", styles)
 }
 
+private func inlineImageOpenDocumentXml()->String
+{
+    var frames: String
+    frames += "<draw:frame><draw:image xlink:href='data:image/svg+xml;base64,PHN2Zy8+'/></draw:frame>"
+    frames += "<draw:frame><draw:image xlink:href='data:image/png;base64,not@base64'/></draw:frame>"
+    frames += Format.toString("<draw:frame><draw:image xlink:href='data:image/PNG;base64,%'/></draw:frame>", OpenDocumentFixtureImage)
+    for 256 do
+        frames += Format.toString("<draw:frame><draw:image xlink:href='data:image/png;base64,%'/></draw:frame>", OpenDocumentFixtureImage)
+    return openDocumentXml(Format.toString("<office:text><text:p>Inline raster images</text:p>%</office:text>", frames.toString()).toString())
+}
+
 private func spreadsheetOpenDocumentXml()->String
 {
     return openDocumentXml("<office:spreadsheet><table:table table:name=\"Budget\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell office:value=\"42\"></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Berlin</text:p></table:table-cell><table:table-cell table:formula=\"of:=SUM([.B2])\" office:value=\"58\"></table:table-cell></table:table-row></table:table><table:table table:name=\"Forecast\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Lyon</text:p></table:table-cell><table:table-cell><text:p>73</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
@@ -188,6 +214,11 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(Utf8.contains(text.html.toString(), "<table>"))
     Swag.assert(Utf8.contains(text.html.toString(), "<ol><li><p>Prioritized</p></li></ol>"))
     Swag.assert(!Utf8.contains(text.html.toString(), "example.com"))
+
+    let inlineImages = expect parseOpenDocumentContent(inlineImageOpenDocumentXml().toString(), .Text)
+    Swag.assert(countOpenDocumentImageTags(inlineImages.html.toString()) == 256)
+    Swag.assert(Utf8.contains(inlineImages.html.toString(), "data:image/PNG;base64,"))
+    Swag.assert(!Utf8.contains(inlineImages.html.toString(), "svg+xml") and !Utf8.contains(inlineImages.html.toString(), "not@base64"))
 
     let spreadsheet = expect parseOpenDocumentContent(spreadsheetOpenDocumentXml().toString(), .Spreadsheet)
     Swag.assert(spreadsheet.sheets.count == 2)

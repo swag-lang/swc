@@ -25,6 +25,7 @@ private const OpenDocumentRepeatedCellLimit = 4_096'u64
 private const OpenDocumentTextStyleLimit    = 4_096'u64
 private const OpenDocumentImageLimit        = 16 * 1024 * 1024'u64
 private const OpenDocumentImageCountLimit   = 256'u64
+private const OpenDocumentInlineImagePayloadLimit = ((OpenDocumentImageLimit + 2) / 3) * 4
 private const OpenDocumentImageDimensionLimit = 4_096.0
 private const OpenDocumentMetadataLimit     = 256 * 1024'u64
 private const OpenDocumentMetadataValueLimit = 512'u64
@@ -81,11 +82,12 @@ private struct OpenDocumentListStyle
     numbered: bool
 }
 
-// An image comes only from a validated local ODF package entry or an inline data URI.
+// An image comes only from a validated local ODF package entry or an inline raster data URI.
 private struct OpenDocumentImage
 {
-    path: String
-    uri:  String
+    path:      String
+    uri:       String
+    byteCount: u64
 }
 
 // Dimensions are reduced to a known safe pixel spelling before becoming generated HTML attributes.
@@ -512,6 +514,19 @@ private func openDocumentImageSize(attributes: string)->OpenDocumentImageSize
     return result
 }
 
+// Accepts only the raster data-URI forms the offline image decoder can render.
+private func openDocumentInlineImageMediaType(uri: string)->string
+{
+    let lowercase = String.from(uri).toLower()
+    for mediaType in ["bmp", "gif", "x-icon", "jpeg", "png", "tiff", "webp"]
+    {
+        let prefix = Format.toString("data:image/%;base64,", mediaType)
+        if Utf8.startsWith(lowercase.toString(), prefix.toString()) do
+            return mediaType
+    }
+    return ""
+}
+
 // Converts common ODF absolute sizes to relative HTML sizes, allowing the reader zoom to scale them.
 private func openDocumentFontSize(attributes: string)->String
 {
@@ -588,6 +603,8 @@ private struct OpenDocumentReader
     listStack:       Array'bool
     imageSizeStack:  Array'OpenDocumentImageSize
     images:          Array'OpenDocumentImage
+    imageByteCount:  u64
+    imageCount:      u64
 }
 
 private impl OpenDocumentReader
@@ -775,11 +792,32 @@ private impl OpenDocumentReader
         }
     }
 
+    // Validates inline images before they cross from XML into generated HTML.
+    mtd inlineImageUri(href: string)->String
+    {
+        let mediaType = openDocumentInlineImageMediaType(href)
+        if mediaType == "" or .imageCount == OpenDocumentImageCountLimit do
+            return {}
+
+        let prefix  = Format.toString("data:image/%;base64,", mediaType)
+        let payload = href[prefix.count to]
+        if payload.count > OpenDocumentInlineImagePayloadLimit do
+            return {}
+
+        let bytes = catch Base64.decode(payload) as decodeError
+        if decodeError != null or bytes.isEmpty() or bytes.count > OpenDocumentImageLimit or bytes.count > OpenDocumentImageLimit - .imageByteCount do
+            return {}
+
+        .imageCount += 1
+        .imageByteCount += bytes.count
+        return String.from(href)
+    }
+
     mtd imageUri(attributes: string)->String
     {
         let href = openDocumentAttribute(attributes, "xlink:href")
-        if Utf8.startsWith(href.toString(), "data:image/") do
-            return href
+        if Utf8.startsWith(href.toString(), "data:image/", .Latin1NoCase) do
+            return .inlineImageUri(href.toString())
         for image in .images where image.path == href do
             return image.uri
         return {}
@@ -1161,6 +1199,11 @@ private func parseOpenDocumentContentWithImages(source, styles: string, kind: Op
     reader.kind     = kind
     reader.images   = #move images
     reader.metadata = #move metadata
+    for image in reader.images
+    {
+        reader.imageCount += 1
+        reader.imageByteCount += image.byteCount
+    }
     if styles.count do
         try appendOpenDocumentXml(&reader, styles)
     try appendOpenDocumentXml(&reader, source)
@@ -1240,8 +1283,9 @@ private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive
             continue
 
         var image: OpenDocumentImage
-        image.path = entry.path
-        image.uri  = Format.toString("data:image/%;base64,%", mediaType, Base64.encode(bytes.toSlice()).toString())
+        image.path      = entry.path
+        image.uri       = Format.toString("data:image/%;base64,%", mediaType, Base64.encode(bytes.toSlice()).toString())
+        image.byteCount = bytes.count
         result.add(#move image)
         total += bytes.count
     }

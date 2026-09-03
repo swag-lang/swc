@@ -121,9 +121,10 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.010 — Local media resolves through a safe ODF resource model
 
-- Evidence: a bounded count and size of package raster images becomes data URIs; vector images,
-  thumbnails, media objects, image maps, binary blobs, unsupported codecs, and manifest media-type
-  checks are absent. Remote references remain inert but are not shown as such.
+- Evidence: a bounded cumulative count and size of package or base64 raster data-URI images becomes
+  safe local HTML; vector images, thumbnails, media objects, image maps, binary blobs, unsupported
+  codecs, and manifest media-type checks are absent. Remote references remain inert but are not shown
+  as such.
 - Next: resolve each local resource against the manifest, decode supported raster and vector forms
   under explicit byte and pixel limits, and report every blocked external or unsupported reference.
 - Complete when: local media appears at its intended place with intrinsic and declared dimensions,

@@ -1102,6 +1102,14 @@ private func idmlStoryBlockEnd(source: string, start: u64)->u64
     return close == Swag.U64.Max ? source.count : close + ("</div>").count
 }
 
+// The local HTML renderer owns line breaking, but a text frame's area is a reliable first-order
+// capacity signal. Weight paragraph blocks by that area so an editorial chain with unequal columns
+// does not place the same amount of prose into a caption-sized frame and a body-sized frame.
+private func idmlTextFrameCapacity(frame: const *IdmlItem)->f32
+{
+    return Math.max(frame.bounds.width, 1) * Math.max(frame.bounds.height, 1)
+}
+
 private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
 {
     if !frames.count or !source.count do
@@ -1115,12 +1123,23 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
         blockCount += 1
     }
 
-    cursor = 0
+    var totalCapacity: f32
+    for frame in frames do
+        totalCapacity += idmlTextFrameCapacity(frame!)
+
+    cursor             = 0
+    var allocatedBlocks: u64
     var remainingBlocks = blockCount
+    var consumedCapacity: f32
     for frame, index in frames
     {
         let remainingFrames = frames.count - index
-        let take            = (remainingBlocks + remainingFrames - 1) / remainingFrames
+        consumedCapacity += idmlTextFrameCapacity(frame!)
+        let target          = cast(u64) Math.round(cast(f32) blockCount * consumedCapacity / totalCapacity)
+        let minimum         = remainingBlocks >= remainingFrames ? 1 : 0
+        let maximum         = remainingBlocks - (remainingBlocks >= remainingFrames ? remainingFrames - 1 : 0)
+        let desired         = target > allocatedBlocks ? target - allocatedBlocks : 0
+        let take            = Math.clamp(desired, minimum, maximum)
         var text: String
         for take
         {
@@ -1128,6 +1147,7 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
             text += source[cursor until end]
             cursor = end
         }
+        allocatedBlocks += take
         remainingBlocks -= take
         frame!.text = #move text
     }

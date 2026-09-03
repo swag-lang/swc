@@ -53,6 +53,19 @@ outside this repository.
 - License: CC BY 4.0. Attribute Creative Commons and the original uploader, SooHyun Pae; preserve
   the rights notice carried by the source record.
 
+`iosdc-2025-indesign-template.idml`, `title.png`, and `qrcode.png` are unmodified copies from the
+InDesign layout sample published for the iOSDC Japan 2025 pamphlet article. The source IDML holds
+absolute local file links; the two colocated images exercise Swag Scope's offline same-folder link
+recovery without reaching the network.
+
+- Source: `https://github.com/kotetuco/iOSDC-Japan-2025-Pamphlet-Sample/tree/main/AffinityPublisher`
+  and `https://github.com/kotetuco/iOSDC-Japan-2025-Pamphlet-Sample/tree/main/images`
+- Retrieved: 2026-09-03
+- SHA-256: `cee21317225fd5e3bd5921a636190d3a197e4653b22191cb970ad8fdfd86ffc37` (IDML),
+  `2f3d5a98266f217c56e9d2c279274f5367e2f8d50201f1bd48a6a1e072cf408a` (title), and
+  `a4e4ee6c8b36785bfcbcaf70c307ca8a7ffd0bb14eba0458623367f908e263a0` (QR graphic).
+- License: MIT. The upstream repository carries the complete license notice.
+
 `odf-cc0-tables.odt`, `odf-cc0-1000rows.ods`, and `odf-cc0-10slides.odp` are unmodified external
 OpenDocument fixtures downloaded on 2026-09-03 from Files Sample. They exercise a document archive,
 a 1,000-row spreadsheet, and a ten-slide presentation produced outside this repository. The source

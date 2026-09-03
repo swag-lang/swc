@@ -118,7 +118,9 @@ impl HtmlLayout
         elif style.italic do
             face = .Italic
 
-        let result = style.fontFamily == .Mono ? .theme.createDefaultFontFS(size, face) : .theme.createDefaultFont(size, face)
+        let result = style.fontFamily == .Mono ? .theme.createDefaultFontFS(size, face) :
+                     style.fontFamily == .Cjk ? .theme.createCjkFont(size, face) :
+                     .theme.createDefaultFont(size, face)
         if .fontCache.count < .styles.count do
             .fontCache.resize(.styles.count)
         if styleIndex < .fontCache.count do

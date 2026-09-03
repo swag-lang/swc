@@ -969,6 +969,8 @@ private impl OpenDocumentReader
             .appendHtml(">")
             .appendTextStyleStart(tag.attributes.toString())
         case "text:span":                .appendTextStyleStart(tag.attributes.toString())
+        case "text:note-citation":       .appendHtml("<sup>")
+        case "text:note-body":           .appendHtml("<blockquote>")
         case "text:a":
             .appendHtml("<a")
             let href = .linkHref(tag.attributes.toString())
@@ -1022,6 +1024,8 @@ private impl OpenDocumentReader
             .appendTextStyleEnd()
             .appendHtml("</p>")
         case "text:span":                .appendTextStyleEnd()
+        case "text:note-citation":       .appendHtml("</sup>")
+        case "text:note-body":           .appendHtml("</blockquote>")
         case "text:a":                   .appendHtml("</a>")
         case "text:list":
             var numbered = false

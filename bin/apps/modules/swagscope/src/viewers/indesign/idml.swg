@@ -294,14 +294,7 @@ internal func idmlEmbeddedGraphicDataUri(item: string)->String
     if imageEnd == Swag.U64.Max do
         return {}
 
-    var type = idmlAttribute(item[imageStart until imageOpenEnd + 1], "ImageTypeName")
-    if !type.count
-    {
-        let linkStart = Utf8.indexOf(item, "<Link ", imageOpenEnd + 1)
-        let linkEnd   = linkStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, '>'rune, linkStart)
-        if linkEnd != Swag.U64.Max and linkEnd < imageEnd do
-            type = idmlAttribute(item[linkStart until linkEnd + 1], "LinkResourceFormat")
-    }
+    let type = idmlAttribute(item[imageStart until imageOpenEnd + 1], "ImageTypeName")
     let mime = Utf8.contains(type, "JPEG") ? "image/jpeg" : Utf8.contains(type, "PNG") ? "image/png" : ""
     if !mime.count do
         return {}

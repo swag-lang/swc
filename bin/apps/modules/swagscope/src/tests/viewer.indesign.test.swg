@@ -28,8 +28,6 @@ private func nativeFixturePath()->String
 {
     let image = "<Image ImageTypeName=\"$ID/PNG\"><Contents><![CDATA[QUJD]]></Contents></Image>"
     Swag.assert(idmlEmbeddedGraphicDataUri(image) == "data:image/png;base64,QUJD")
-    let linkedType = "<Image><Link LinkResourceFormat=\"$ID/JPEG\"/><Contents><![CDATA[QUJD]]></Contents></Image>"
-    Swag.assert(idmlEmbeddedGraphicDataUri(linkedType) == "data:image/jpeg;base64,QUJD")
     Swag.assert(idmlEmbeddedGraphicDataUri("<Image ImageTypeName=\"$ID/EPS\"><Contents><![CDATA[QUJD]]></Contents></Image>").isEmpty())
 }
 

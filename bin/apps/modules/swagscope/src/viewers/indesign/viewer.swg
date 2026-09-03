@@ -71,6 +71,21 @@ struct IndesignDocument
     previews:      Array'IndesignPreview
 }
 
+private enum IndesignDocumentKind
+{
+    NativePreview,
+    Markup,
+}
+
+// The viewer keeps native saved pixels and IDML page scenes behind one asynchronous opening
+// operation. A selected source decides the rendering path before a window is attached.
+private struct IndesignViewerDocument
+{
+    kind:   IndesignDocumentKind
+    native: IndesignDocument
+    markup: IdmlDocument
+}
+
 private func indesignHas(bytes: const [..] u8, offset, count: u64)->bool
 {
     return offset <= bytes.count and count <= bytes.count - offset
@@ -445,6 +460,24 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
     return #move result
 }
 
+private func loadIndesignViewerDocument(fileName: string)->IndesignViewerDocument fail
+{
+    var result: retval
+    let extension = Path.extension(fileName) orelse ""
+    if Utf8.compare(extension, ".idml", .Latin1NoCase) == 0
+    {
+        result.kind   = .Markup
+        result.markup = try loadIdmlDocument(fileName)
+    }
+    else
+    {
+        result.kind   = .NativePreview
+        result.native = try loadIndesignDocument(fileName)
+    }
+
+    return result
+}
+
 // Describes the visual InDesign preview reader to the host.
 func indesignViewerPlugin()->Viewer.Plugin
 {
@@ -455,8 +488,8 @@ func indesignViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Indesign
     result.create       = &createIndesignViewer
-    result.smokeFixture = "viewer.indd"
-    result.addSelectors(".indd")
+    result.smokeFixture = "uni-halle-52a.idml"
+    result.addSelectors(".indd;.idml")
     return result
 }
 
@@ -475,7 +508,9 @@ internal struct IndesignViewer
 
     details:              String
     fileName:             String
+    kind:                 IndesignDocumentKind
     previews:             Array'IndesignPreview
+    markupPages:          Array'IdmlPage
     cachedPreviews:       Array'IndesignCachedPreview
     cachedPixels:         u64
     previewUseSerial      = 1'u64
@@ -483,7 +518,7 @@ internal struct IndesignViewer
     previewIndex:         u64
     requestedPreviewIndex = IndesignNoPreview
     loadingPreviewIndex   = IndesignNoPreview
-    load:                 Viewer.BackgroundLoad'IndesignDocument
+    load:                 Viewer.BackgroundLoad'IndesignViewerDocument
     loadTimer:            #null *Timer
     previewLoad:          IndesignPreviewLoad
     previewLoadTimer:     #null *Timer
@@ -504,10 +539,23 @@ internal struct IndesignViewer
         zoomLabel:      *IconButton
         imageView:      *ImageView
     }
+
+    htmlView: #null *HtmlView
 }
 
 private impl IndesignViewer
 {
+    mtd pageCount()->u64 => .kind == .Markup ? .markupPages.count : .previews.count
+
+    mtd isMarkup()->bool => .kind == .Markup
+
+    mtd pageName(index: u64)->String
+    {
+        if .kind == .Markup do
+            return .markupPages[index].name
+        return Format.toString("%", .previews[index].page)
+    }
+
     mtd nextPreviewUse()->u64
     {
         if .previewUseSerial == Swag.U64.Max
@@ -524,13 +572,16 @@ private impl IndesignViewer
 
     mtd refreshPageCommands()
     {
+        let pageCount = .pageCount()
         .previousButton.enable(.previewIndex != 0)
-        .nextButton.enable(.previewIndex + 1 < .previews.count)
-        .pageLabel.setText(Format.toString(indesignStrings().ui_Page, .previewIndex + 1, .previews.count).toString())
+        .nextButton.enable(.previewIndex + 1 < pageCount)
+        .pageLabel.setText(Format.toString(indesignStrings().ui_Page, .previewIndex + 1, pageCount).toString())
     }
 
     mtd refreshZoom()
     {
+        if .isMarkup() do
+            return
         .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.imageView.effectiveZoom() * 100), "%"))
         if .reportChromeChanged do
             .reportChromeChanged!(me)
@@ -538,6 +589,8 @@ private impl IndesignViewer
 
     mtd showZoomMenu()
     {
+        if .isMarkup() do
+            return
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("50%", "scope.indesign.zoom50")
         menu.addItem(indesignStrings().ui_Actual, "scope.indesign.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
@@ -632,7 +685,13 @@ private impl IndesignViewer
 
     mtd selectPreview(index: u64)
     {
-        Debug.assert(index < .previews.count)
+        Debug.assert(index < .pageCount())
+        if .isMarkup()
+        {
+            .selectMarkupPage(index)
+            return
+        }
+
         .previewIndex = index
         .refreshPageCommands()
         if .showCachedPreview(index)
@@ -647,26 +706,61 @@ private impl IndesignViewer
         .startRequestedPreview()
     }
 
-    mtd publishDocument(document: *IndesignDocument)
+    mtd selectMarkupPage(index: u64)
     {
-        .fileName = #move document.fileName
-        .previews = #move document.previews
-        .selectPreview(0)
+        Debug.assert(index < .markupPages.count)
+        .previewIndex = index
+        .htmlView?.destroy()
+        .htmlView = HtmlView.createText(me, .markupPages[index].html().toString())
+        .htmlView!.dockStyle       = .Center
+        .htmlView!.backgroundStyle = .View
+        .imageView.hide()
+        .hasPreviewContent = true
+        .details = Format.toString(indesignStrings().ui_MarkupDetails, index + 1, .markupPages.count, .markupPages[index].textFrameCount)
+        .refreshPageCommands()
+        .reportCurrentDetails()
         .applyLayout()
-        .setInitialFocus(.imageView)
+        .setInitialFocus(.htmlView!)
+    }
+
+    mtd publishDocument(document: *IndesignViewerDocument)
+    {
+        .kind = document.kind
+        if .isMarkup()
+        {
+            .fileName    = #move document.markup.fileName
+            .markupPages = #move document.markup.pages
+            .zoomLabel.hide()
+            .selectMarkupPage(0)
+        }
+        else
+        {
+            .fileName = #move document.native.fileName
+            .previews = #move document.native.previews
+            .selectPreview(0)
+            .applyLayout()
+            .setInitialFocus(.imageView)
+        }
+
+        .retranslate()
     }
 
     mtd retranslate()
     {
-        .previousButton.toolTip = indesignStrings().ui_PreviousPage
-        .nextButton.toolTip     = indesignStrings().ui_NextPage
-        .pageLabel.toolTip      = indesignStrings().ui_ChoosePage
+        .previousButton.toolTip = .isMarkup() ? indesignStrings().ui_PreviousDocumentPage : indesignStrings().ui_PreviousPage
+        .nextButton.toolTip     = .isMarkup() ? indesignStrings().ui_NextDocumentPage : indesignStrings().ui_NextPage
+        .pageLabel.toolTip      = .isMarkup() ? indesignStrings().ui_ChooseDocumentPage : indesignStrings().ui_ChoosePage
         .zoomLabel.toolTip      = indesignStrings().ui_ZoomMenu
         .refreshZoom()
-        if !.loadTimer and !.previews.isEmpty()
+        if !.loadTimer and .pageCount()
         {
             .refreshPageCommands()
-            if !.showCachedPreview(.previewIndex)
+            if .isMarkup()
+            {
+                .details = Format.toString(indesignStrings().ui_MarkupDetails, .previewIndex + 1, .markupPages.count, .markupPages[.previewIndex].textFrameCount)
+                .reportCurrentDetails()
+            }
+            elif !.showCachedPreview(.previewIndex)
             {
                 .details = Format.toString(indesignStrings().ui_LoadingDetails, .previewIndex + 1, .previews.count)
                 .reportCurrentDetails()
@@ -680,11 +774,11 @@ private impl IndesignViewer
         let strings = indesignStrings()
         let menu    = MenuCtrl.createPopup(me, owner: me)
         var commands: Array'String
-        commands.reserve(.previews.count)
-        for preview, index in .previews
+        commands.reserve(.pageCount())
+        for index in .pageCount()
         {
             commands.add(Format.toString("scope.indesign.page.%", index))
-            menu.addItem(Format.toString(strings.ui_PageMenuEntry, preview.page).toString(), commands[index].toString(), checked: index == .previewIndex)
+            menu.addItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)).toString(), commands[index].toString(), checked: index == .previewIndex)
         }
 
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)
@@ -729,7 +823,7 @@ private impl IWnd for IndesignViewer
 
             .removeTimer(evt.timer)
             .loadTimer = null
-            var document: IndesignDocument
+            var document: IndesignViewerDocument
             .failureReason = .load.finish(&document)
             if !.failureReason.isEmpty()
             {
@@ -789,7 +883,7 @@ private impl IWnd for IndesignViewer
             evt.accepted = false
             return
         }
-        if .previews.isEmpty()
+        if !.pageCount()
         {
             evt.accepted = false
             return
@@ -797,16 +891,16 @@ private impl IWnd for IndesignViewer
 
         switch evt.key
         {
-        case .Add, .OemPlus:
+        case .Add, .OemPlus where !.isMarkup():
             .imageView.zoomIn()
 
-        case .Subtract, .OemMinus:
+        case .Subtract, .OemMinus where !.isMarkup():
             .imageView.zoomOut()
 
-        case .D0 where evt.modifiers.has(.Control):
+        case .D0 where !.isMarkup() and evt.modifiers.has(.Control):
             .imageView.actualSize()
 
-        case .F where evt.modifiers == .None:
+        case .F where !.isMarkup() and evt.modifiers == .None:
             .imageView.zoomToFit()
 
         case .Left, .PageUp where evt.modifiers == .None:
@@ -816,7 +910,7 @@ private impl IWnd for IndesignViewer
                 evt.accepted = false
 
         case .Right, .PageDown where evt.modifiers == .None:
-            if .previewIndex + 1 < .previews.count do
+            if .previewIndex + 1 < .pageCount() do
                 .selectPreview(.previewIndex + 1)
             else do
                 evt.accepted = false
@@ -825,7 +919,7 @@ private impl IWnd for IndesignViewer
             .selectPreview(0)
 
         case .End where evt.modifiers == .None:
-            .selectPreview(.previews.count - 1)
+            .selectPreview(.pageCount() - 1)
 
         default:
             evt.accepted = false
@@ -877,7 +971,7 @@ internal impl IndesignViewer
             .sigPressed += func|view = result|(button)
             {
                 discard button
-                if view.previewIndex + 1 < view.previews.count do
+                if view.previewIndex + 1 < view.pageCount() do
                     view.selectPreview(view.previewIndex + 1)
             }
         }
@@ -921,10 +1015,47 @@ internal impl IndesignViewer
             discard imageView
             view.refreshZoom()
         }
+        result.hookOnChildEvent = func|view = result|(wnd, evt)
+        {
+            discard wnd
+            switch evt
+            {
+            case KeyEvent as keyEvt where view.isMarkup() and keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
+                switch keyEvt.key
+                {
+                case .Left, .PageUp:
+                    if view.previewIndex
+                    {
+                        view.selectPreview(view.previewIndex - 1)
+                        return true
+                    }
+
+                case .Right, .PageDown:
+                    if view.previewIndex + 1 < view.pageCount()
+                    {
+                        view.selectPreview(view.previewIndex + 1)
+                        return true
+                    }
+
+                case .Home:
+                    view.selectPreview(0)
+                    return true
+
+                case .End:
+                    view.selectPreview(view.pageCount() - 1)
+                    return true
+                }
+
+            default:
+                discard evt
+            }
+
+            return false
+        }
 
         result.applyLayout()
         result.refreshZoom()
-        result.load.start(host.fileName(), &loadIndesignDocument)
+        result.load.start(host.fileName(), &loadIndesignViewerDocument)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }

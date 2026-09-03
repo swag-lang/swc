@@ -31,3 +31,24 @@ Swag PDF writer and covers a PDF 1.4 classic cross-reference table with a Flate 
 - SHA-256: `a31f3b5fc79e6ae2703f9d2817af088f29aef4937e370b173512d820a9972c35`
 - License: Apache License 2.0. The complete upstream provenance and license notice are reproduced
   in `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+
+`uni-halle-52a.idml` is the unmodified `52a_Infografiken_blanko.idml` layout published by the
+Martin Luther University Halle-Wittenberg. It is a real InDesign Markup Language package with
+positioned graphic and text content, downloaded from the university's CC BY 3.0 DE material.
+
+- Source: `https://wiki.llz.uni-halle.de/images/0/03/52a_Infografiken_Layoutdatei.zip`
+- Retrieved: 2026-09-03
+- SHA-256: `2fbc022e22c0456aff5dafdbb4f4e06b4b726013edd209e91d917e6bdb401fb7`
+- License: CC BY 3.0 DE. Attribute the Centre for Multimedia Teaching and Learning at Martin
+  Luther University Halle-Wittenberg; the source package carries the required Creative Commons notice.
+
+`publicdomain.indd` is an unmodified native InDesign document published by the Creative Commons
+wiki. It provides a real binary `.indd` document with a separately saved page preview, produced
+outside this repository.
+
+- Source: `https://wiki.creativecommons.org/images/8/81/Publicdomain.indd`
+- Source record: `https://wiki.creativecommons.org/wiki/File:Publicdomain.indd`
+- Retrieved: 2026-09-03
+- SHA-256: `748243eb93cdff8ae791277e717a69e77a33b5fa1cf0e993f3b9f3d12e5ce797`
+- License: CC BY 4.0. Attribute Creative Commons and the original uploader, SooHyun Pae; preserve
+  the rights notice carried by the source record.

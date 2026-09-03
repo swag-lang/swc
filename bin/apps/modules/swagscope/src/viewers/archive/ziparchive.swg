@@ -316,7 +316,10 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     return result
 }
 
-func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
+// Materializes one checked ZIP entry in memory. Consumers that interpret a packaged document keep
+// the bytes local to their parser instead of round-tripping trusted archive members through a
+// temporary file.
+func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
 {
     if entry.isDirectory do
         fail Errors.BadParameterError{"a ZIP directory has no file content"}
@@ -353,7 +356,7 @@ func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destinatio
     if entry.compressedSize and !(try stream.readExactAt(dataOffset, packed.toSlice())) do
         fail Errors.InvalidFormatError{"ZIP entry payload is truncated"}
 
-    var plain: Array'u8
+    var plain: retval
     if entry.method == 0 do
         plain = #move packed
     else
@@ -367,6 +370,12 @@ func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destinatio
         fail Errors.InvalidFormatError{"ZIP entry expands to a different size than its directory declares"}
     if Hash.Crc32.compute(plain.toSlice()) != entry.crc32 do
         fail Errors.InvalidFormatError{"ZIP entry checksum does not match its directory"}
+    return #move plain
+}
+
+func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
+{
+    let plain = try loadZipEntry(archiveFileName, entry)
     if try File.writeAllBytes(destination, plain.toSlice()) != plain.count do
         fail Swag.SystemError{"temporary preview file was not written completely"}
 }

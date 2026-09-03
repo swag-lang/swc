@@ -151,11 +151,12 @@ whether a JPEG preview decoded.
 
 ## Reader and inspection workflow
 
-### app.scope.indesign.011 — InDesign text cannot be selected, copied, or revealed exactly
+### app.scope.indesign.011 — InDesign text selection stops at the rendered page scene
 
-- Evidence: search indexes generated local HTML and switches page, but there is no text range,
-  selection paint, keyboard extension, clipboard contract, story/frame locator, or distinction
-  between visual and logical copy order.
+- Evidence: each local HTML page supports pointer selection, Ctrl+A, Ctrl+C, selection paint and
+  plain-text visual copy without document-supplied markup. Search switches to the rendered page,
+  but no selection spans frames/pages, no story/frame locator exists, and visual versus logical copy
+  order is not distinguished.
 - Next: retain story run and frame coordinates through layout and expose a read-only selection model
   shared by pointer, keyboard, search and Copy.
 - Complete when: selection crosses supported frames/pages in logical order, visual copy is an

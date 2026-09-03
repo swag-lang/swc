@@ -276,6 +276,9 @@ private func linkedIdmlFixturePath()->String
     var searchBounds: Math.Rectangle
     Swag.assert(viewer.searchBounds(&searchBounds))
     viewer.clearSearch()
+    viewer.htmlView!.selectAll()
+    Swag.assert(viewer.htmlView!.hasSelection() and Utf8.contains(viewer.htmlView!.selectedText().toString(), "Schriftwerke"))
+    viewer.htmlView!.clearSelection()
     viewer.htmlView!.setFocus()
     host.keyPress(.Home)
     viewer.dockStyle          = .Center

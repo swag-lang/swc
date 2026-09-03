@@ -31,7 +31,9 @@ namespace
 
     // Value-producing opcodes that never touch CPU flags, never write memory,
     // and never call. Hoisting one only relocates the computation of its single
-    // destination register.
+    // destination register. The vector forms are the three-operand ones that
+    // write a destination they do not read: a lane broadcast, a shuffle, a
+    // packed operation on invariant inputs.
     bool isEligibleOpcode(MicroInstrOpcode op)
     {
         switch (op)
@@ -47,6 +49,34 @@ namespace
             case MicroInstrOpcode::LoadZeroExtRegMem:
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadVecRegMem:
+            case MicroInstrOpcode::VecShuffleRegRegImm:
+            case MicroInstrOpcode::VecUnaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A hoisted value that pays for its register even with a single reader:
+    // rebuilding a vector from invariant inputs costs a lane broadcast or a
+    // packed operation per iteration, where an integer copy or an address
+    // computation costs one instruction the allocator may fold away.
+    bool isVectorMaterialization(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops || !ops[0].reg.isVirtualFloat())
+            return false;
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                return ops[1].reg.isAnyInt();
+            case MicroInstrOpcode::VecShuffleRegRegImm:
+            case MicroInstrOpcode::VecUnaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+            case MicroInstrOpcode::OpBinaryRegRegReg:
                 return true;
             default:
                 return false;
@@ -74,6 +104,7 @@ namespace
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
                 return true;
             default:
                 return false;
@@ -98,7 +129,8 @@ namespace
         return op == MicroInstrOpcode::LoadRegMem ||
                op == MicroInstrOpcode::LoadAddrRegMem ||
                op == MicroInstrOpcode::LoadSignedExtRegMem ||
-               op == MicroInstrOpcode::LoadZeroExtRegMem;
+               op == MicroInstrOpcode::LoadZeroExtRegMem ||
+               op == MicroInstrOpcode::LoadVecRegMem;
     }
 
     // A `mov`/`lea` that merely re-points an address. Returns the source whose
@@ -123,6 +155,7 @@ namespace
             case MicroInstrOpcode::OpBinaryMemReg:
             case MicroInstrOpcode::OpBinaryMemImm:
             case MicroInstrOpcode::OpUnaryMem:
+            case MicroInstrOpcode::StoreVecMemReg:
                 return true;
             default:
                 return false;
@@ -738,7 +771,7 @@ namespace
                             continue;
                         const auto uc           = inLoopUse.find(ud->defs[0]);
                         const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
-                        if (opcodeReadsMemory(inst->op) || multiplyUsed)
+                        if (opcodeReadsMemory(inst->op) || multiplyUsed || isVectorMaterialization(*inst, inst->ops(operands)))
                         {
                             if (keep.insert(i).second)
                                 worklist.push_back(i);

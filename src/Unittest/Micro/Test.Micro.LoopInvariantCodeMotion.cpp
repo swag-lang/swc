@@ -83,6 +83,51 @@ SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
 }
 SWC_TEST_END()
 
+// A scalar broadcast into a vector register, from a value the loop never
+// writes, moves to the preheader even with one reader: rebuilding it costs a
+// lane move and a shuffle per iteration.
+SWC_TEST_BEGIN(LICM_HoistsSingleUseLaneBroadcast)
+{
+    constexpr MicroReg rcx   = MicroReg::intReg(2);
+    constexpr MicroReg rdx   = MicroReg::intReg(3);
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count = MicroReg::virtualIntReg(2);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg lane  = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg lanes = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg row   = MicroReg::virtualFloatReg(3);
+    constexpr MicroReg sum   = MicroReg::virtualFloatReg(4);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef loopLabel = builder.createLabel();
+    builder.emitLoadRegReg(base, rcx, MicroOpBits::B64);
+    builder.emitLoadRegReg(word, rdx, MicroOpBits::B32);
+    builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.placeLabel(loopLabel);
+    builder.emitLoadVecRegMem(row, base, 0, MicroOpBits::B128);
+    builder.emitLoadRegReg(lane, word, MicroOpBits::B32);
+    builder.emitVecShuffleRegRegImm(lanes, lane, 0, MicroOpBits::B128);
+    builder.emitOpBinaryRegRegReg(sum, row, lanes, MicroOp::VecAdd32, MicroOpBits::B128);
+    builder.emitStoreVecMemReg(base, 0, sum, MicroOpBits::B128);
+    builder.emitOpBinaryRegImm(base, ApInt(uint64_t{16}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(count, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loopLabel);
+    builder.emitRet();
+
+    SWC_RESULT(runLicmPass(builder));
+
+    const uint32_t labelPosition = firstPositionOf(builder, MicroInstrOpcode::Label);
+    if (firstPositionOf(builder, MicroInstrOpcode::VecShuffleRegRegImm) > labelPosition)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != 1)
+        return Result::Error;
+    if (firstPositionOf(builder, MicroInstrOpcode::LoadVecRegMem) < labelPosition)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A volatile load reads memory on every iteration: the same loop keeps it.
 SWC_TEST_BEGIN(LICM_KeepsVolatileLoadInLoop)
 {

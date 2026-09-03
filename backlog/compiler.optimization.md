@@ -351,28 +351,30 @@ the shared backlog conventions.
   per-segment measurements after that allocator can split live ranges; do not extend the post-RA
   hoist unless one of these dumps first shows an invariant value with a reusable destination.
 
-### compiler.optimization.012 — Loop-invariant code motion stops at a lane broadcast
+### compiler.optimization.012 — A lane broadcast now leaves the loop with the replication that feeds it
 
 - Area: compiler/backend
 - Found while: std.video.001, reading the chroma interpolation loop of the H.264 decoder after the
   vector temporaries stopped round-tripping through the frame.
-- Observation: the loop rebuilds the same four lane broadcasts on every row. Each is `movd`
-  from an integer register followed by `pshufd`, and both operands are loop-invariant: the
-  replication that feeds them (`zero_extend` then `imul 0x10001`) is already in the preheader,
-  so the pass is running and hoisting from this very loop. It just stops one instruction short.
-- Evidence: `#[Swag.PrintMicro("pre-legalize")]` on `Video.H264.mcChroma`, release. The four
-  `imul 0x10001` sit between the loop guard and the header label; the four `LoadRegReg` /
-  `VecShuffleRegRegImm` pairs that consume them sit inside the body. Adding
-  `OpBinaryRegRegReg`, `OpBinaryRegRegImm`, `VecShuffleRegRegImm`, `VecUnaryRegReg` and
-  `LoadVecRegMem` to `isEligibleOpcode` — none of them touches memory, the flags or the stack,
-  and all write a destination they do not read — changed nothing: `pixel.dll` came out byte for
-  byte identical, and the loop kept its broadcasts. So the opcode filter is not what refuses
-  them, and that change was reverted rather than shipped dead.
-- Next step: instrument the candidate loop of `hoistRound` for one function — print, per body
-  instruction, which of `isEligibleOpcode`, `defCount`, `allInvariant` and the memory guards
-  turned it away. The `movd` is `LoadRegReg` with a float destination and an integer source,
-  which is already eligible today, so the answer is in one of the other four tests and the
-  trace names it in one run.
+- Observation: the loop rebuilt the same four lane broadcasts on every row, each a `movd` from an
+  integer register followed by `pshufd`, while the replication feeding them (`zero_extend` then
+  `imul 0x10001`) already sat in the preheader. The opcode filter was only half of the refusal:
+  `VecShuffleRegRegImm`, `VecUnaryRegReg`, `OpBinaryRegRegImm`, `OpBinaryRegRegReg` and
+  `LoadVecRegMem` were ineligible, but making them eligible changed nothing because the profit
+  filter behind it keeps a hoist only when the instruction reads memory or feeds more than one
+  consumer, and each broadcast feeds exactly one multiply. Since 2026-09-03 the filter also keeps
+  a vector materialization (`isVectorMaterialization`, `Pass.LoopInvariantCodeMotion`): the
+  `movd` of an integer into a float register, a shuffle, or a three-operand vector op whose
+  inputs are invariant. A vector built from a scalar is cheap to keep live, and rebuilding it is
+  an integer-to-float move on every trip.
+- Evidence: `#[Swag.PrintMicro("post-licm")]` in release on an eight-lane `u16` row scaling:
+  the `zero_extend`, `imul 0x10001`, `movd` and `pshufd` all sit between the loop guard and the
+  header label, and the body multiplies straight from the hoisted register
+  (`LICM_HoistsSingleUseLaneBroadcast`).
+- Next: read `Video.H264.mcChroma` again in release and confirm its four broadcasts left the row
+  loop.
+- Complete when: the chroma interpolation loop shows no `movd` or `pshufd` in its body.
+
 ### compiler.optimization.013 — A loop header drops every mapping, and the register to fix it is already spoken for
 
 - Area: compiler/backend

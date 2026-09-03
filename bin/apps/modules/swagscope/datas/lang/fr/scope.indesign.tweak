@@ -2,6 +2,7 @@
 
 ui_Name              InDesign
 ui_Details           InDesign · page % sur % · aperçu enregistré % × %
+ui_MarkupDetails     InDesign Markup page % sur % : % blocs de texte
 ui_LoadingDetails    InDesign page % sur % : chargement de l'aperçu enregistré
 ui_Page              Page % / %
 ui_PageMenuEntry     Page %
@@ -11,6 +12,9 @@ ui_Fit               Ajuster la page
 ui_PreviousPage      Aperçu enregistré précédent
 ui_NextPage          Aperçu enregistré suivant
 ui_ChoosePage        Choisir un aperçu enregistré
+ui_PreviousDocumentPage Page précédente
+ui_NextDocumentPage  Page suivante
+ui_ChooseDocumentPage Choisir une page
 ui_PageEntry         Page % · % × %
 err_Header           le fichier ne contient pas d'en-tête de document InDesign valide
 err_Preview          le document ne contient pas d'aperçu enregistré de page lisible

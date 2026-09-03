@@ -116,6 +116,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let indesignChoices = registry.choices("layout.indd")
     Swag.assert(indesignChoices[0].key == "indesign" and indesignChoices[1].key == "binary" and indesignChoices[2].key == "hex")
+    let idmlChoices = registry.choices("layout.idml")
+    Swag.assert(idmlChoices[0].key == "indesign" and idmlChoices[1].key == "binary" and idmlChoices[2].key == "hex")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do

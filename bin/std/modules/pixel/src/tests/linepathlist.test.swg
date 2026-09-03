@@ -278,11 +278,11 @@ struct Cell
 }
 
 // A table whose column boundary is authored at 44.815002 on one side and 44.814999 on the other.
-// The solver works in integers, so the two land one unit apart: the cells touch along horizontal
-// runs it has to stitch, with a sliver between the columns. Two such runs meeting head on used to
-// be joined back to front, leaving a point whose successor did not name it as its predecessor;
-// tidying that ring never terminated, and a real document froze its viewer on the page that holds
-// this table.
+// The solver works in integers, so the two land one unit apart and the columns overlap along a
+// strip a thousandth of a pixel wide: the cells touch along horizontal runs it has to stitch.
+// Two such runs meeting head on used to be joined back to front, leaving a point whose successor
+// did not name it as its predecessor; tidying that ring never terminated, and a real document
+// froze its viewer on the page that holds this table.
 const TouchingCells: [5] Cell = [
     {34.894001, 195.505005, 44.815002, 206.843994},
     {34.894001, 206.843018, 44.815002, 218.182007},
@@ -308,9 +308,16 @@ const TouchingCells: [5] Cell = [
     list.flatten()
     list.clean()
 
-    // The sliver keeps the columns apart, so the union is the stack of three cells on the left
-    // and the pair on its right.
-    Swag.assert(list.count() == 2)
+    // The strip joins the two columns, so the union is one contour: the full left column with
+    // the right column's pair of cells attached below its own top edge.
+    Swag.assert(list.count() == 1)
     Swag.assert(list.minBounds.isEqualEpsilon({34.894, 195.505}, 0.01))
     Swag.assert(list.maxBounds.isEqualEpsilon({54.736, 229.521}, 0.01))
+
+    // Six corners, because the step from the left column's top down to the right column's is the
+    // only place the outline turns away from its bounding box.
+    let outline = list.paths[0].polygon.points
+    Swag.assert(outline.count == 7 and outline[0] == outline[6])
+    Swag.assert(outline[3].isEqualEpsilon({44.815, 195.505}, 0.01))
+    Swag.assert(outline[4].isEqualEpsilon({44.815, 206.843}, 0.01))
 }

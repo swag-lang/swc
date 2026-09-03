@@ -313,6 +313,14 @@ impl Transform
         .outRecBlock, .outRecInBlock = 0
     }
 
+    // Runs one boolean operation over the paths added so far and replaces `solution` with its
+    // contours.
+    //
+    // A sweep that cannot order the intersections of one scanbeam is abandoned and the solution
+    // comes back empty, which is what the reference library reports as a failed operation. That
+    // needs three or more edges meeting so closely that no adjacent pair remains, and nothing has
+    // yet produced one; the alternative — finishing the sweep on a beam that was never applied —
+    // would hand back geometry no caller could tell apart from a good result.
     mtd execute(clipT: ClipType, solution: *ClipperPaths, subjFillT, clipFillT: PolyFillType)
     {
         .subjFillType  = subjFillT
@@ -320,8 +328,9 @@ impl Transform
         .clipType      = clipT
         .usingPolyTree = false
 
-        .executeInternal()
-        .buildResult(solution)
+        solution.clear()
+        if .executeInternal() do
+            .buildResult(solution)
         .disposeAllOutRecs()
     }
 
@@ -1172,56 +1181,68 @@ impl Transform
         .ghostJoinList.clear()
     }
 
-    mtd executeInternal()
+    // Sweeps the scanbeams and stitches the output records. Reports whether every scanbeam was
+    // applied; nothing having to be swept at all is not a failure.
+    mtd executeInternal()->bool
     {
         .reset()
         .maximaList.clear()
         .sortedEdges = null
 
+        var succeeded = true
         var botY, topY: CInt
         if !.popScanbeam(&botY) do
-            return
+            return succeeded
 
         .insertLocalMinimaIntoAEL(botY)
         while .popScanbeam(&topY) or .localMinimaPending()
         {
             .processHorizontals()
             .clearGhostJoins()
-            .processIntersections(topY)
+            if !.processIntersections(topY)
+            {
+                succeeded = false
+                break
+            }
+
             .processEdgesAtTopOfScanbeam(topY)
             botY = topY
             .insertLocalMinimaIntoAEL(botY)
         }
 
-        // Fix orientations
-        for outRecIt in .polyOuts
+        if succeeded
         {
-            let outRec = nnOutRec(outRecIt)
-            if !outRec.pts or outRec.isOpen do
-                continue
-            if (outRec.isHole != .reverseOutput) == (area(nnOutPt(outRec.pts)) > 0) do
-                reversePolyPtLinks(nnOutPt(outRec.pts))
+            // Fix orientations
+            for outRecIt in .polyOuts
+            {
+                let outRec = nnOutRec(outRecIt)
+                if !outRec.pts or outRec.isOpen do
+                    continue
+                if (outRec.isHole != .reverseOutput) == (area(nnOutPt(outRec.pts)) > 0) do
+                    reversePolyPtLinks(nnOutPt(outRec.pts))
+            }
+
+            if .joinList.count do
+                .joinCommonEdges()
+
+            for outRecIt in .polyOuts
+            {
+                let outRec = nnOutRec(outRecIt)
+                if !outRec.pts do
+                    continue
+                if outRec.isOpen do
+                    fixupOutPolyline(outRec)
+                else do
+                    .fixupOutPolygon(outRec)
+            }
+
+            if .strictSimple do
+                .doSimplePolygons()
         }
-
-        if .joinList.count do
-            .joinCommonEdges()
-
-        for outRecIt in .polyOuts
-        {
-            let outRec = nnOutRec(outRecIt)
-            if !outRec.pts do
-                continue
-            if outRec.isOpen do
-                fixupOutPolyline(outRec)
-            else do
-                .fixupOutPolygon(outRec)
-        }
-
-        if .strictSimple do
-            .doSimplePolygons()
 
         .clearJoins()
         .clearGhostJoins()
+        return succeeded
     }
 
     mtd doSimplePolygons()
@@ -1637,7 +1658,7 @@ impl Transform
             }
         }
 
-        return left < right
+        return left[] < right[]
     }
 
     mtd dupOutPt(outPt: *OutPt, insertAfter: bool)->*OutPt
@@ -2030,18 +2051,39 @@ impl Transform
         }
     }
 
-    mtd processIntersections(topY: CInt)
+    // Applies every intersection of the scanbeam ending at `topY`, and reports whether it could.
+    //
+    // The nodes are owned by this list until one of the two exits releases them: leaving them
+    // behind would let the next scanbeam append to a list that still names edge pairs from a beam
+    // already behind it, and replay them.
+    mtd processIntersections(topY: CInt)->bool
     {
         if !.activeEdges do
-            return
+            return true
 
         .buildIntersectList(topY)
         let ilSize = .intersectList.count
         if ilSize == 0 do
-            return
-        if ilSize == 1 or .fixupIntersectionOrder() do
-            .processIntersectList()
+            return true
+
+        if ilSize != 1 and !.fixupIntersectionOrder()
+        {
+            .disposeIntersectNodes()
+            .sortedEdges = null
+            return false
+        }
+
+        .processIntersectList()
         .sortedEdges = null
+        return true
+    }
+
+    // Releases the intersections of a scanbeam that will not be applied.
+    mtd disposeIntersectNodes()
+    {
+        for node in .intersectList do
+            Memory.delete(node)
+        .intersectList.clear()
     }
 
     mtd buildIntersectList(topY: CInt)
@@ -2112,8 +2154,11 @@ impl Transform
 
     mtd fixupIntersectionOrder()->bool
     {
+        // Bottom-most first. The list comes out of the bubble sort in the order the swaps were
+        // discovered, which is not the order the intersections have to be applied in; the loop
+        // below only repairs adjacency, and it takes the vertical order as given.
         .copyAELToSEL()
-        .intersectList.sort()
+        .intersectList.sort(func||(left, right) { return right!.pt.y <=> left!.pt.y })
         for i in (.intersectList).count
         {
             if !edgesAdjacent(nnIntersect(.intersectList[i]))

@@ -295,20 +295,18 @@ output, path measurement and effects, and the modern renderer choice tracked by
   to be.
 - Related: std.pixel.008
 
-### std.pixel.021 — A boolean operation keeps intersections it could not order
+### std.pixel.021 — Nothing reaches the unordered-intersection path
 
-- Evidence: `Transform.processIntersections` in `poly/clipper.swg` calls `processIntersectList`
-  only when the list holds one node or `fixupIntersectionOrder` succeeds. The reference library
-  raises on the remaining case and disposes the nodes; this port silently returns with the list
-  still populated. Nothing else empties it, so those nodes are never released, the next scanbeam
-  appends to them, and a later scanbeam that does order its own intersections replays edge pairs
-  from a beam that is already behind it.
-- Next: decide what a port with no exceptions owes here — dispose the nodes and carry on, or
-  report the operation as failed — then write the fixture that reaches it. The ordering failure
-  needs three or more edges meeting so closely that no adjacent pair remains, which the union of
-  near-coincident contours produces; the fixture is what is missing, not the diagnosis.
-- Complete when: the unordered case releases its nodes, no later scanbeam can read them, and a
-  test pins whichever outcome is chosen.
+- Evidence: `Transform.processIntersections` in `poly/clipper.swg` now releases the nodes of a
+  scanbeam whose intersections cannot be ordered, abandons the sweep, and returns an empty
+  solution, which is what the reference library reports as a failed operation. No fixture reaches
+  that branch, so the choice is argued rather than pinned, and neither the release nor the
+  abandonment is covered.
+- Next: build the input. The ordering failure needs three or more edges meeting so closely that
+  no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
+  produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
+- Complete when: a test in `poly.clipper.test.swg` reaches the branch and pins the empty
+  solution, or the branch is shown to be unreachable and says so.
 - Related: std.pixel.011
 
 ## Out of scope

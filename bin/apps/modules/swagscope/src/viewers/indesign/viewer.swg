@@ -12,6 +12,9 @@ private const IndesignFormatVersionOffset     = 29'u64
 private const IndesignSequenceOffset          = 264'u64
 private const IndesignStoragePageCountOffset  = 280'u64
 private const IndesignHeaderMinimumSize       = IndesignStoragePageCountOffset + 4
+private const IndesignContiguousMarkerSize    = 32'u64
+private const IndesignContiguousHeader: [16] u8 = [0xDE, 0x39, 0x39, 0x79, 0x51, 0x88, 0x4B, 0x6C, 0x8E, 0x63, 0xEE, 0xF8, 0xAE, 0xE0, 0xDD, 0x38]
+private const IndesignContiguousTrailer: [16] u8 = [0xFD, 0xCE, 0xDB, 0x70, 0xF7, 0x86, 0x4B, 0x4F, 0xA4, 0xD3, 0xC7, 0x28, 0xB3, 0x41, 0x71, 0x06]
 private const IndesignPreviewItemOpen         = "<rdf:li"
 private const IndesignPreviewItemClose        = "</rdf:li>"
 private const IndesignPreviewImageOpen        = "<xmpGImg:image>"
@@ -68,6 +71,7 @@ struct IndesignDocument
     fileName:      String
     fileSize:      u64
     declaredBytes: u64
+    xmpObjectStreams: u64
     previews:      Array'IndesignPreview
 }
 
@@ -96,6 +100,15 @@ private func indesignMatches(bytes: const [..] u8, offset: u64, text: string)->b
     if !indesignHas(bytes, offset, text.count) do
         return false
     for index in text.count where bytes[offset + index] != text[index] do
+        return false
+    return true
+}
+
+private func indesignMatchesContiguousMarker(bytes: const [..] u8, offset: u64, trailer = false)->bool
+{
+    if !indesignHas(bytes, offset, IndesignContiguousHeader.count) do
+        return false
+    for index in IndesignContiguousHeader.count where bytes[offset + index] != (trailer ? IndesignContiguousTrailer[index] : IndesignContiguousHeader[index]) do
         return false
     return true
 }
@@ -285,20 +298,20 @@ private func indesignJpegGeometry(bytes: const [..] u8, result: *IndesignPreview
 
 // Finds every saved JPEG page preview without decoding their pixels. A document can retain several
 // XMP generations, so the last usable reference for a physical page wins.
-private func indexIndesignPreviews(bytes: const [..] u8)->Array'IndesignPreview fail
+private func indexIndesignPreviews(bytes: const [..] u8, start, end: u64)->Array'IndesignPreview
 {
     var result: retval
     var fallbackPage = 1'u32
-    var cursor       = 0'u64
+    var cursor       = start
 
-    while cursor < bytes.count
+    while cursor < end
     {
-        let itemStart = indesignFind(bytes, IndesignPreviewItemOpen, cursor, bytes.count)
+        let itemStart = indesignFind(bytes, IndesignPreviewItemOpen, cursor, end)
         if itemStart == Swag.U64.Max do
             break
 
-        let itemContentStart = indesignFind(bytes, ">", itemStart, bytes.count)
-        let itemEnd          = indesignFind(bytes, IndesignPreviewItemClose, itemStart, bytes.count)
+        let itemContentStart = indesignFind(bytes, ">", itemStart, end)
+        let itemEnd          = indesignFind(bytes, IndesignPreviewItemClose, itemStart, end)
         if itemContentStart == Swag.U64.Max or itemEnd == Swag.U64.Max or itemContentStart >= itemEnd do
             break
 
@@ -338,9 +351,76 @@ private func indexIndesignPreviews(bytes: const [..] u8)->Array'IndesignPreview 
         cursor = itemEnd + IndesignPreviewItemClose.count
     }
 
-    if result.isEmpty() do
-        fail InvalidFormatError{indesignStrings().err_Preview}
     return #move result
+}
+
+private func indesignAppendPreviews(result: *Array'IndesignPreview, source: const *Array'IndesignPreview)
+{
+    for preview in source
+    {
+        var existing = IndesignNoPreview
+        for saved, index in result where saved.page == preview.page
+        {
+            existing = index
+            break
+        }
+        if existing == IndesignNoPreview do
+            result.add(preview[])
+        else do
+            result[existing] = preview[]
+    }
+}
+
+// Locates XMP only inside complete InDesign continuous object streams following the declared
+// database pages. The matching trailer makes a byte sequence inside arbitrary document data unable
+// to impersonate an attached XMP packet.
+private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, streamCount: *u64)->Array'IndesignPreview
+{
+    var result: retval
+    var cursor = start
+    while cursor + IndesignContiguousMarkerSize <= end
+    {
+        if !indesignMatchesContiguousMarker(bytes, cursor)
+        {
+            cursor += 1
+            continue
+        }
+
+        let payloadStart = cursor + IndesignContiguousMarkerSize
+        let length       = cast(u64) indesignU32(bytes, cursor + 24, false)
+        if length > end - payloadStart - IndesignContiguousMarkerSize
+        {
+            cursor += 1
+            continue
+        }
+        let trailer = payloadStart + length
+        if !indesignMatchesContiguousMarker(bytes, trailer, true)
+        {
+            cursor += 1
+            continue
+        }
+        var sameMarker = true
+        for index in 16'u64 until IndesignContiguousMarkerSize where bytes[cursor + index] != bytes[trailer + index]
+        {
+            sameMarker = false
+            break
+        }
+        if !sameMarker
+        {
+            cursor += 1
+            continue
+        }
+
+        let previews = indexIndesignPreviews(bytes, payloadStart, trailer)
+        if !previews.isEmpty()
+        {
+            indesignAppendPreviews(&result, &previews)
+            streamCount[] += 1
+        }
+        cursor = trailer + IndesignContiguousMarkerSize
+    }
+
+    return result
 }
 
 // Decodes one indexed JPEG preview on a worker. Encoded-payload and pixel bounds make opening a
@@ -428,34 +508,44 @@ private impl IndesignPreviewLoad
     }
 }
 
-// Reads the master-page headers and indexes the saved page previews. The preview loader decodes
-// pixels only after the user selects a page, while the header prevents arbitrary XMP from claiming
-// the `.indd` viewer.
+// Reads the master-page headers and indexes previews from validated continuous XMP object streams.
+// Legacy documents that retained XMP inside their declared pages keep a bounded compatibility path.
 func loadIndesignDocument(fileName: string)->IndesignDocument fail
 {
     var stream = try File.open(fileName, .Open, .Read, .ReadWrite | .Delete)
     let fileSize = try stream.size()
     let headerBytes = Math.min(fileSize, 2 * IndesignHeaderCopySize)
-    var bytes: Array'u8
-    bytes.resize(headerBytes)
-    if !try stream.readExact(bytes.toSlice()) do
+    var headerData: Array'u8
+    headerData.resize(headerBytes)
+    if !try stream.readExact(headerData.toSlice()) do
         fail InvalidFormatError{indesignStrings().err_Header}
 
     var first, second: IndesignHeader
-    let hasFirst  = parseIndesignHeader(bytes.toSlice(), 0, &first)
-    let hasSecond = parseIndesignHeader(bytes.toSlice(), IndesignHeaderCopySize, &second)
+    let hasFirst  = parseIndesignHeader(headerData.toSlice(), 0, &first)
+    let hasSecond = parseIndesignHeader(headerData.toSlice(), IndesignHeaderCopySize, &second)
     if !hasFirst and !hasSecond do
         fail InvalidFormatError{indesignStrings().err_Header}
 
     var file    = try File.MappedFile.open(fileName)
     let region  = try file.mapAll()
-    var previews = try indexIndesignPreviews(region.bytes())
+    let header  = hasSecond and (!hasFirst or second.sequence > first.sequence) ? second : first
+    let declaredBytes = cast(u64) header.storagePages * IndesignHeaderCopySize
+    if declaredBytes > fileSize do
+        fail InvalidFormatError{indesignStrings().err_Header}
+    let bytes = region.bytes()
+    var xmpObjectStreams: u64
+    var previews = indexIndesignObjectPreviews(bytes, declaredBytes, bytes.count, &xmpObjectStreams)
+    if previews.isEmpty() do
+        previews = indexIndesignPreviews(bytes, 0, declaredBytes)
+    if previews.isEmpty() do
+        fail InvalidFormatError{indesignStrings().err_Preview}
 
     var result: retval
-    result.header        = hasSecond and (!hasFirst or second.sequence > first.sequence) ? second : first
+    result.header        = header
     result.fileName      = fileName
     result.fileSize      = fileSize
-    result.declaredBytes = cast(u64) result.header.storagePages * IndesignHeaderCopySize
+    result.declaredBytes = declaredBytes
+    result.xmpObjectStreams = xmpObjectStreams
     result.previews      = #move previews
     return #move result
 }

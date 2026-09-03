@@ -22,6 +22,8 @@ struct IndesignStrings
     ui_NextDocumentPage: string = "Next page"                                              // Tooltip for following composed IDML page.
     ui_ChooseDocumentPage: string = "Choose page"                                          // Tooltip for composed IDML page selector.
     ui_PageEntry:    string = "Page % · % × %"                                             // One saved-preview entry in the page selector.
+    ui_GoToPage:     string = "Go to page"                                                 // Title and action for direct page navigation.
+    ui_PageRange:     string = "Page number from 1 to %."                                  // Direct page-navigation prompt.
     err_Header:      string = "the file does not contain a valid InDesign document header" // Error for a malformed or truncated header.
     err_Preview:     string = "the document does not contain a readable saved page preview" // Error when no visual page preview can be decoded.
 }

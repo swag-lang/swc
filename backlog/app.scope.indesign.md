@@ -165,8 +165,9 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.012 — Pages have no thumbnail, outline, spread, layer, or object navigator
 
-- Evidence: the page readout has previous/next and direct page selection only. A reader cannot scan
-  thumbnails, document sections, masters, layers, links, stories, or page-size/bleed information.
+- Evidence: the page readout has previous/next, a page menu, and bounded direct numeric navigation.
+  A reader cannot scan thumbnails, document sections, masters, layers, links, stories, or
+  page-size/bleed information.
 - Next: define a virtualized document navigator with page thumbnails first, then outline, spreads,
   layers and object filters over stable scene identities.
 - Complete when: long documents navigate without eager full-resolution rendering, each entry reveals

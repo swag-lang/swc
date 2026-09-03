@@ -924,10 +924,35 @@ private impl IndesignViewer
         }
     }
 
+    mtd goToTypedPage(text: string)->bool
+    {
+        let parsed = catch StrConv.parseU64(text) as parseError
+        if parseError != null or parsed.eat != text.count or parsed.ovf or !parsed.value or parsed.value > .pageCount() do
+            return false
+        .selectPreview(parsed.value - 1)
+        return true
+    }
+
+    mtd promptGoToPage()
+    {
+        if !.surface or !.pageCount() do
+            return
+        var options: EditDlgOptions
+        options.title   = indesignStrings().ui_GoToPage
+        options.message = Format.toString(indesignStrings().ui_PageRange, .pageCount()).toString()
+        options.text    = Format.toString("%", .previewIndex + 1).toString()
+        let dialog = EditDlg.createSingleLine(.surface!, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        discard .goToTypedPage(dialog.text().toString())
+    }
+
     mtd showPageMenu()
     {
         let strings = indesignStrings()
         let menu    = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(strings.ui_GoToPage, "scope.indesign.goToPage", rightName: "Ctrl+G")
+        menu.addSeparator()
         var commands: Array'String
         commands.reserve(.pageCount())
         for index in .pageCount()
@@ -939,6 +964,11 @@ private impl IndesignViewer
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)
         if !chosen do
             return
+        if chosen! == "scope.indesign.goToPage"
+        {
+            .promptGoToPage()
+            return
+        }
         for command, index in commands where chosen! == command.toString()
         {
             .selectPreview(index)
@@ -1086,6 +1116,9 @@ private impl IWnd for IndesignViewer
 
         switch evt.key
         {
+        case .G where evt.modifiers == .Control:
+            .promptGoToPage()
+
         case .Add, .OemPlus:
             if .isMarkup() do
                 .setMarkupZoom(cast(u32) Math.round(.markupPageScale(.previewIndex) * 100) + 25)
@@ -1227,6 +1260,10 @@ internal impl IndesignViewer
             discard wnd
             switch evt
             {
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .G and keyEvt.modifiers == .Control:
+                view.promptGoToPage()
+                return true
+
             case KeyEvent as keyEvt where view.isMarkup() and keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
                 switch keyEvt.key
                 {

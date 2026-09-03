@@ -23,6 +23,8 @@ private struct IdmlItem
     stroke:     String
     strokeSize: f32
     oval:       bool
+    line:       bool
+    clipPath:   String
 }
 
 private struct IdmlTextStyle
@@ -59,15 +61,16 @@ impl IdmlPage
         result += Format.toString("<div class=\"idml-page\" style=\"width:%px;height:%px\">", .bounds.width, .bounds.height)
         for item in .items
         {
-            result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%\">",
+            result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%;%\">",
                                       item.bounds.left,
                                       item.bounds.top,
                                       item.bounds.width,
                                       item.bounds.height,
-                                      item.fill.isEmpty() ? "transparent" : item.fill.toString(),
-                                      item.strokeSize,
+                                      item.line ? (item.stroke.isEmpty() ? "transparent" : item.stroke.toString()) : (item.fill.isEmpty() ? "transparent" : item.fill.toString()),
+                                      item.line ? 0 : item.strokeSize,
                                       item.stroke.isEmpty() ? "transparent" : item.stroke.toString(),
-                                      item.oval ? "border-radius:50%" : "")
+                                      item.oval ? "border-radius:50%" : "",
+                                      item.clipPath)
             // Text is escaped while the IDML story is converted to local paragraph markup. It is
             // deliberately not a document-supplied HTML fragment.
             result += item.text
@@ -166,7 +169,7 @@ private func idmlTranslation(tag: string)->{ x, y: f32 }
     return {numbers[4], numbers[5]}
 }
 
-private func idmlBoundsFromPath(item: string, result: *IdmlBounds)->bool
+private func idmlBoundsFromPath(item: string, result: *IdmlBounds, allowLine = false)->bool
 {
     var left = Swag.F32.Max
     var top  = Swag.F32.Max
@@ -195,13 +198,50 @@ private func idmlBoundsFromPath(item: string, result: *IdmlBounds)->bool
         cursor = pointEnd + 1
     }
 
-    if points < 2 or right <= left or bottom <= top do
+    if points < 2 or (!allowLine and (right <= left or bottom <= top)) do
         return false
     result.left   = left
     result.top    = top
-    result.width  = right - left
-    result.height = bottom - top
+    result.width  = allowLine ? Math.max(right - left, 1) : right - left
+    result.height = allowLine ? Math.max(bottom - top, 1) : bottom - top
     return true
+}
+
+private func idmlPolygonClipPath(item: string)->String
+{
+    var bounds: IdmlBounds
+    if !idmlBoundsFromPath(item, &bounds) do
+        return {}
+
+    var result: retval
+    result += "clip-path:polygon("
+    var cursor = 0'u64
+    var points: u64
+    while true
+    {
+        let pointStart = Utf8.indexOf(item, "<PathPointType", cursor)
+        if pointStart == Swag.U64.Max do
+            break
+        let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
+        if pointEnd == Swag.U64.Max do
+            return {}
+        var values: Array'f32
+        if !idmlNumbers(idmlAttribute(item[pointStart until pointEnd + 1], "Anchor"), &values) or values.count != 2 do
+            return {}
+        if points do
+            result += ","
+        result += Format.toString("%", 100 * (values[0] - bounds.left) / bounds.width)
+        result += "% "
+        result += Format.toString("%", 100 * (values[1] - bounds.top) / bounds.height)
+        result += "%"
+        points += 1
+        cursor = pointEnd + 1
+    }
+
+    if points < 3 do
+        return {}
+    result += ");"
+    return result
 }
 
 private func idmlEntity(text: string)->rune
@@ -579,14 +619,18 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
         let textStart  = Utf8.indexOf(source, "<TextFrame ", cursor)
         let rectStart  = Utf8.indexOf(source, "<Rectangle ", cursor)
         let ovalStart  = Utf8.indexOf(source, "<Oval ", cursor)
-        let shapeStart = Math.min(rectStart, ovalStart)
+        let polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
+        let lineStart    = Utf8.indexOf(source, "<GraphicLine ", cursor)
+        let shapeStart   = Math.min(Math.min(rectStart, ovalStart), Math.min(polygonStart, lineStart))
         let start      = Math.min(textStart, shapeStart)
         if start == Swag.U64.Max do
             break
 
         let textItem = start == textStart
         let oval     = start == ovalStart
-        let closing  = textItem ? "</TextFrame>" : oval ? "</Oval>" : "</Rectangle>"
+        let polygon  = start == polygonStart
+        let line     = start == lineStart
+        let closing  = textItem ? "</TextFrame>" : oval ? "</Oval>" : polygon ? "</Polygon>" : line ? "</GraphicLine>" : "</Rectangle>"
         let openEnd  = Utf8.indexOf(source, '>'rune, start)
         let close    = openEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, closing, openEnd + 1)
         if close == Swag.U64.Max do
@@ -594,7 +638,7 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
         let tag     = source[start until openEnd + 1]
         let content = source[start until close + closing.count]
         var bounds: IdmlBounds
-        if idmlBoundsFromPath(content, &bounds)
+        if idmlBoundsFromPath(content, &bounds, line)
         {
             let position = idmlTranslation(tag)
             bounds.left += position.x
@@ -613,6 +657,9 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
                 item.stroke     = idmlColor(colors, idmlAttribute(tag, "StrokeColor"))
                 item.strokeSize = idmlNumber(idmlAttribute(tag, "StrokeWeight")).value
                 item.oval       = oval
+                item.line       = line
+                if polygon do
+                    item.clipPath = idmlPolygonClipPath(content)
                 if textItem
                 {
                     let story = stories.tryFind(idmlAttribute(tag, "ParentStory"))

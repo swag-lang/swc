@@ -38,6 +38,7 @@ private func nativeFixturePath()->String
     Swag.assert(!document.header.bigEndian and document.header.formatVersion == 7)
     Swag.assert(document.header.sequence == 2)
     Swag.assert(document.declaredBytes == document.fileSize and document.declaredBytes == cast(u64) document.header.storagePages * IndesignFixtureHeaderSize)
+    Swag.assert(document.xmpObjectStreams == 0)
     Swag.assert(document.previews.count == 2)
     Swag.assert(document.previews[0].page == 1 and document.previews[0].payloadStart < document.previews[0].payloadEnd)
     Swag.assert(document.previews[1].page == 2 and document.previews[1].payloadStart < document.previews[1].payloadEnd)
@@ -65,6 +66,7 @@ private func nativeFixturePath()->String
     let document = expect loadIndesignDocument(nativeFixturePath().toString())
     Swag.assert(document.fileSize > 2 * 1024 * 1024)
     Swag.assert(document.header.storagePages > 0)
+    Swag.assert(document.xmpObjectStreams == 1)
     Swag.assert(!document.previews.isEmpty())
 }
 

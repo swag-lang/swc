@@ -96,6 +96,14 @@ private struct IdmlMaster
 
 impl IdmlPage
 {
+    mtd const missingImageCount()->u64
+    {
+        var result: retval
+        for item in .items where item.imageFrame and item.image.isEmpty() do
+            result += 1
+        return result
+    }
+
     // Builds one offline page scene from positioned IDML items. The HTML engine is used solely as
     // the local paint and text-layout backend; all package parsing and scene construction are Swag.
     mtd const html(scale: f32)->String

@@ -178,9 +178,10 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.013 — Links, fonts, swatches, styles, metadata, and warnings are not inspectable
 
-- Evidence: linked image recovery is bounded and offline, but its resolution path, image metadata,
-  missing resources, style inheritance, swatches, fonts, XMP, package version, page warnings and
-  unsupported constructs have no application panel.
+- Evidence: linked image recovery is bounded and offline, and the page summary names its count of
+  missing image resources. Its resolution path, image metadata, individual missing resources, style
+  inheritance, swatches, fonts, XMP, package version, page warnings and unsupported constructs have
+  no application panel.
 - Next: expose a read-only resource and document-facts ledger with origin, size, hash-on-demand,
   resolution result, visual bounds, style/font use, and decoder warning source links.
 - Complete when: every placed resource and unsupported scene item can be located and explained;

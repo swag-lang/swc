@@ -2,7 +2,7 @@
 
 ui_Name              InDesign
 ui_Details           InDesign · page % sur % · aperçu enregistré % × %
-ui_MarkupDetails     InDesign Markup page % sur % : % blocs de texte
+ui_MarkupDetails     InDesign Markup page % sur % : % blocs de texte, % images manquantes
 ui_LoadingDetails    InDesign page % sur % : chargement de l'aperçu enregistré
 ui_Page              Page % / %
 ui_PageMenuEntry     Page %

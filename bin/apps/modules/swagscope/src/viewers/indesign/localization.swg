@@ -7,7 +7,7 @@ struct IndesignStrings
 {
     ui_Name:         string = "InDesign"                                                    // Name of this viewer in the viewer selector.
     ui_Details:      string = "InDesign · page % of % · saved preview % × %"              // Short visual-preview summary in the information band.
-    ui_MarkupDetails: string = "InDesign Markup page % of %: % text frames"                 // Summary for a page composed from IDML objects.
+    ui_MarkupDetails: string = "InDesign Markup page % of %: % text frames, % missing images" // Summary for a page composed from IDML objects.
     ui_LoadingDetails: string = "InDesign page % of %: loading saved preview"              // Summary while the selected preview decodes.
     ui_Page:         string = "Page % / %"                                                 // Current saved-preview position in the compact command group.
     ui_PageMenuEntry: string = "Page %"                                                    // One saved-preview entry in the page selector.

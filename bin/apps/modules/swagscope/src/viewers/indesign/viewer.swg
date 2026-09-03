@@ -650,6 +650,12 @@ private impl IndesignViewer
         return Format.toString("%", .previews[index].page)
     }
 
+    mtd markupDetails(index: u64)->String
+    {
+        let page = &.markupPages[index]
+        return Format.toString(indesignStrings().ui_MarkupDetails, index + 1, .markupPages.count, page.textFrameCount, page.missingImageCount())
+    }
+
     mtd nextPreviewUse()->u64
     {
         if .previewUseSerial == Swag.U64.Max
@@ -868,7 +874,7 @@ private impl IndesignViewer
         .htmlView!.backgroundStyle = .View
         .imageView.hide()
         .hasPreviewContent = true
-        .details = Format.toString(indesignStrings().ui_MarkupDetails, index + 1, .markupPages.count, .markupPages[index].textFrameCount)
+        .details = .markupDetails(index)
         .refreshPageCommands()
         .refreshZoom()
         .reportCurrentDetails()
@@ -912,7 +918,7 @@ private impl IndesignViewer
             .refreshPageCommands()
             if .isMarkup()
             {
-                .details = Format.toString(indesignStrings().ui_MarkupDetails, .previewIndex + 1, .markupPages.count, .markupPages[.previewIndex].textFrameCount)
+                .details = .markupDetails(.previewIndex)
                 .reportCurrentDetails()
             }
             elif !.showCachedPreview(.previewIndex)

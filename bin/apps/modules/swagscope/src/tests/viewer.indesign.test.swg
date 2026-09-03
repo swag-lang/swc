@@ -86,6 +86,7 @@ private func linkedIdmlFixturePath()->String
     var flowedArticleBytes: u64
     var roundedFrames: u64
     var multiColumnFrames: u64
+    var missingLinkedImages: u64
     for page in document.pages
     {
         for item in page.items where item.imageFrame
@@ -106,12 +107,14 @@ private func linkedIdmlFixturePath()->String
             roundedFrames += 1
         for item in page.items where item.textColumns > 1 do
             multiColumnFrames += 1
+        missingLinkedImages += page.missingImageCount()
     }
     Swag.assert(linkedImages == 2)
     Swag.assert(flowedArticleFrames == 4)
     Swag.assert(flowedArticleBytes > 4_000 and flowedArticleBytes < 80_000)
     Swag.assert(roundedFrames >= 4)
     Swag.assert(multiColumnFrames >= 2)
+    Swag.assert(missingLinkedImages >= 1)
     var rendered: String
     for page in document.pages do
         rendered += page.html(1)
@@ -267,7 +270,7 @@ private func linkedIdmlFixturePath()->String
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and !viewer.imageView.isVisible())
     Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
-    Swag.assert(Utf8.contains(viewer.details.toString(), "InDesign Markup page"))
+    Swag.assert(Utf8.contains(viewer.details.toString(), "InDesign Markup page") and Utf8.contains(viewer.details.toString(), "missing images"))
     Swag.assert(viewer.pageLabel.toolTip == "Choose page")
     var matches: Array'Viewer.SearchMatch
     viewer.collectMatches("Schriftwerke", {}, &matches)

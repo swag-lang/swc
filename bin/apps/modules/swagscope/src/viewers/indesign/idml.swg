@@ -15,6 +15,13 @@ private struct IdmlBounds
     width, height: f32
 }
 
+private struct IdmlTransform
+{
+    a, d: f32 = 1
+    b, c: f32
+    x, y: f32
+}
+
 private struct IdmlItem
 {
     bounds:     IdmlBounds
@@ -158,18 +165,37 @@ private func idmlBoundsFromGeometric(value: string, result: *IdmlBounds)->bool
     return result.width > 0 and result.height > 0
 }
 
-private func idmlTranslation(tag: string)->{ x, y: f32 }
+private func idmlTransform(tag: string)->IdmlTransform
 {
+    var result: retval
     let transform = idmlAttribute(tag, "ItemTransform")
     if !transform.count do
-        return {}
+        return result
     var numbers: Array'f32
     if !idmlNumbers(transform, &numbers) or numbers.count != 6 do
-        return {}
-    return {numbers[4], numbers[5]}
+        return result
+    result.a = numbers[0]
+    result.b = numbers[1]
+    result.c = numbers[2]
+    result.d = numbers[3]
+    result.x = numbers[4]
+    result.y = numbers[5]
+    return result
 }
 
-private func idmlBoundsFromPath(item: string, result: *IdmlBounds, allowLine = false)->bool
+private func idmlComposeTransform(parent, child: const *IdmlTransform)->IdmlTransform
+{
+    var result: retval
+    result.a = parent.a * child.a + parent.c * child.b
+    result.b = parent.b * child.a + parent.d * child.b
+    result.c = parent.a * child.c + parent.c * child.d
+    result.d = parent.b * child.c + parent.d * child.d
+    result.x = parent.a * child.x + parent.c * child.y + parent.x
+    result.y = parent.b * child.x + parent.d * child.y + parent.y
+    return result
+}
+
+private func idmlBoundsFromPath(item: string, transform: const *IdmlTransform, result: *IdmlBounds, allowLine = false)->bool
 {
     var left = Swag.F32.Max
     var top  = Swag.F32.Max
@@ -190,10 +216,12 @@ private func idmlBoundsFromPath(item: string, result: *IdmlBounds, allowLine = f
         var values: Array'f32
         if !idmlNumbers(anchor, &values) or values.count != 2 do
             return false
-        left   = Math.min(left, values[0])
-        right  = Math.max(right, values[0])
-        top    = Math.min(top, values[1])
-        bottom = Math.max(bottom, values[1])
+        let x = transform.a * values[0] + transform.c * values[1] + transform.x
+        let y = transform.b * values[0] + transform.d * values[1] + transform.y
+        left   = Math.min(left, x)
+        right  = Math.max(right, x)
+        top    = Math.min(top, y)
+        bottom = Math.max(bottom, y)
         points += 1
         cursor = pointEnd + 1
     }
@@ -207,10 +235,10 @@ private func idmlBoundsFromPath(item: string, result: *IdmlBounds, allowLine = f
     return true
 }
 
-private func idmlPolygonClipPath(item: string)->String
+private func idmlPolygonClipPath(item: string, transform: const *IdmlTransform)->String
 {
     var bounds: IdmlBounds
-    if !idmlBoundsFromPath(item, &bounds) do
+    if !idmlBoundsFromPath(item, transform, &bounds) do
         return {}
 
     var result: retval
@@ -230,9 +258,11 @@ private func idmlPolygonClipPath(item: string)->String
             return {}
         if points do
             result += ","
-        result += Format.toString("%", 100 * (values[0] - bounds.left) / bounds.width)
+        let x = transform.a * values[0] + transform.c * values[1] + transform.x
+        let y = transform.b * values[0] + transform.d * values[1] + transform.y
+        result += Format.toString("%", 100 * (x - bounds.left) / bounds.width)
         result += "% "
-        result += Format.toString("%", 100 * (values[1] - bounds.top) / bounds.height)
+        result += Format.toString("%", 100 * (y - bounds.top) / bounds.height)
         result += "%"
         points += 1
         cursor = pointEnd + 1
@@ -582,9 +612,9 @@ private func idmlAppendPages(source: string, pages: *Array'IdmlPage)
         var bounds: IdmlBounds
         if idmlBoundsFromGeometric(idmlAttribute(tag, "GeometricBounds"), &bounds)
         {
-            let position = idmlTranslation(tag)
-            bounds.left += position.x
-            bounds.top  += position.y
+            let transform = idmlTransform(tag)
+            bounds.left += transform.x
+            bounds.top  += transform.y
             var page: IdmlPage
             page.name   = idmlAttribute(tag, "Name")
             page.master = idmlAttribute(tag, "AppliedMaster")
@@ -613,6 +643,8 @@ private func idmlPageIndex(pages: const *Array'IdmlPage, bounds: const *IdmlBoun
 private func idmlAppendItems(source: string, stories: const *HashTable'(String, String), colors: const *HashTable'(String, String), pages: *Array'IdmlPage)
 {
     var cursor = 0'u64
+    var groupCursor: u64
+    var groupTransforms: Array'IdmlTransform
     var itemCount: u64
     while itemCount < IdmlFrameLimit
     {
@@ -626,6 +658,33 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
         if start == Swag.U64.Max do
             break
 
+        // Group items carry a transform inherited by each child. Consume their open and close
+        // tags in document order before locating the next drawable item.
+        while groupCursor < start
+        {
+            let open  = Utf8.indexOf(source, "<Group ", groupCursor)
+            let close = Utf8.indexOf(source, "</Group>", groupCursor)
+            if open == Swag.U64.Max and close == Swag.U64.Max do
+                break
+            if open < close and open < start
+            {
+                let end = Utf8.indexOf(source, '>'rune, open)
+                if end == Swag.U64.Max or end >= start do
+                    break
+                groupTransforms.add(idmlTransform(source[open until end + 1]))
+                groupCursor = end + 1
+                continue
+            }
+            if close < start
+            {
+                if groupTransforms.count do
+                    discard groupTransforms.popBack()
+                groupCursor = close + ("</Group>").count
+                continue
+            }
+            break
+        }
+
         let textItem = start == textStart
         let oval     = start == ovalStart
         let polygon  = start == polygonStart
@@ -637,12 +696,14 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
             break
         let tag     = source[start until openEnd + 1]
         let content = source[start until close + closing.count]
+        var transform = idmlTransform(tag)
+        var inherited: IdmlTransform
+        for groupTransform in groupTransforms do
+            inherited = idmlComposeTransform(&inherited, groupTransform)
+        transform = idmlComposeTransform(&inherited, &transform)
         var bounds: IdmlBounds
-        if idmlBoundsFromPath(content, &bounds, line)
+        if idmlBoundsFromPath(content, &transform, &bounds, line)
         {
-            let position = idmlTranslation(tag)
-            bounds.left += position.x
-            bounds.top  += position.y
             let pageIndex = idmlPageIndex(pages, &bounds)
             if pageIndex != Swag.U64.Max
             {
@@ -659,7 +720,7 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
                 item.oval       = oval
                 item.line       = line
                 if polygon do
-                    item.clipPath = idmlPolygonClipPath(content)
+                    item.clipPath = idmlPolygonClipPath(content, &transform)
                 if textItem
                 {
                     let story = stories.tryFind(idmlAttribute(tag, "ParentStory"))

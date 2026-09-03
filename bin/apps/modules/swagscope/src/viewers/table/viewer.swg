@@ -382,6 +382,32 @@ private impl TableViewer
         }
     }
 
+    func createBase(parent: *Wnd)->*TableViewer
+    {
+        let result = Wnd.create'TableViewer(parent, "scope.table")
+        result.backgroundStyle = .View
+
+        with result.list = ListCtrl.createMultiColumns(result)
+        {
+            .dockStyle = .Center
+            .style.setFont(result.theme().createDefaultFontfamilyFS(result.themeMetrics().defaultFixedFontSize))
+            .setSelectionMode(.Single)
+            .setFirstColumnIconMargin(false)
+            .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
+            .header.form       = .Transparent
+            .onFillVirtualLine = &fillTableVirtualLine
+        }
+
+        result.applyLayout()
+        result.setInitialFocus(result.list)
+        return result
+    }
+}
+
+// These operations let another format supply an already parsed table while preserving the same
+// virtual rows, matching, and highlighted result behavior as CSV and TSV files.
+impl TableViewer
+{
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for row, rowIndex in .document.rows
@@ -425,27 +451,21 @@ private impl TableViewer
 
     func create(parent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*TableViewer
     {
-        let result = Wnd.create'TableViewer(parent, "scope.table")
-        result.backgroundStyle      = .View
+        let result = TableViewer.createBase(parent)
         result.reportFailure        = reportFailure
         result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
-
-        with result.list = ListCtrl.createMultiColumns(result)
-        {
-            .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontfamilyFS(result.themeMetrics().defaultFixedFontSize))
-            .setSelectionMode(.Single)
-            .setFirstColumnIconMargin(false)
-            .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
-            .header.form       = .Transparent
-            .onFillVirtualLine = &fillTableVirtualLine
-        }
-
-        result.applyLayout()
-        result.setInitialFocus(result.list)
         result.load.start(fileName, &loadTableDocument)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        return result
+    }
+
+    // Hosts a table decoded by another reader without introducing a temporary CSV file.
+    func createDocument(parent: *Wnd, document: TableDocument)->*TableViewer
+    {
+        let result = TableViewer.createBase(parent)
+        result.document = #move document
+        result.publishDocument()
         return result
     }
 }

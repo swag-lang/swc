@@ -23,6 +23,7 @@ enum ViewerIcons
     Midi         // Piano-roll viewer.
     Subtitle     // Timed subtitle viewer.
     Archive      // Compressed-archive browser.
+    OpenDocument // OpenDocument text, spreadsheet, and presentation viewer.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

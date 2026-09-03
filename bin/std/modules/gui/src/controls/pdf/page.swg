@@ -236,4 +236,10 @@ internal impl Page
             item.hasClip = false
         .items.add(#move item)
     }
+
+    // Returns the item at `index` for a decoder that has to revise a mark it already recorded.
+    //
+    // A transparency group is the case: its marks are recorded as the group's content is read,
+    // and only then does the transparency around the group apply to what they produced.
+    mtd itemAt(index: u64)->*Item => &.items[index]
 }

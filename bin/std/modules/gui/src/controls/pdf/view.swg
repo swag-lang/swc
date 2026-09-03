@@ -266,7 +266,7 @@ private impl PdfView
 
 internal impl PdfView
 {
-    // Uploads the page's images to the application renderer, once per page.
+    // Uploads the page's images and soft mask coverages to the application renderer, once per page.
     //
     // The decoded page keeps the pixels; the textures are the renderer-side copies every
     // subsequent paint reuses, whatever the zoom.
@@ -275,8 +275,14 @@ internal impl PdfView
         if .hasTextures do
             return
         let renderer = .app().renderer
-        for item in .page.items where item.kind == .Image do
-            .imageTextures.add(renderer.addImage(item.image))
+        for item in .page.items
+        {
+            if item.kind == .Image do
+                .imageTextures.add(renderer.addImage(item.image))
+            elif item.hasMask do
+                .imageTextures.add(renderer.addImage(item.maskImage))
+        }
+
         .hasTextures = true
     }
 

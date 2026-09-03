@@ -25,7 +25,10 @@ and every sample representation a raster can use from one to sixteen bits per co
 the device, calibrated, ICC-based, indexed, Lab, separation and DeviceN spaces, with decode
 arrays, stencil masks, soft masks and color key masks. Group 3 and Group 4 facsimile images
 decode here, and four-component photographs decode through `pixel`, so the two encodings a
-scanned or print-ready office document hides behind both reach the page.
+scanned or print-ready office document hides behind both reach the page. Transparency arrives
+with them: constant alpha, every blend mode the format defines, and the graphics-state soft mask
+a transparency group carries, which is how a drop shadow, a vignette and a gradient fade are all
+written.
 
 Three things stand out.
 
@@ -125,16 +128,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Note: draw appearances only. Never execute an `/AA`, an `/A` action, or embedded JavaScript.
 - Related: std.gui.pdf.017
 
-### std.gui.pdf.004 — Constant alpha and blend modes are ignored
-
-- Intent: `applyExtGState` reads `/LW` and `/Font` and nothing else. `/ca` and `/CA` are dropped,
-  so a watermark set at ten percent is painted opaque and covers the text it was meant to sit
-  behind; `/BM` is dropped, so a multiply overlay replaces what it should darken.
-- Complete when: fill and stroke constant alpha modulate the item's color through the graphics
-  state stack, the separable blend modes the painter can express are honoured, and a blend mode it
-  cannot express is recorded as a limitation rather than silently normalized.
-- Related: std.gui.pdf.002, std.gui.pdf.007
-
 ### std.gui.pdf.005 — Axial and radial shadings are not painted
 
 - Intent: the `sh` operator falls through the content switch and paints nothing, and a shading
@@ -154,14 +147,19 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   the uncolored form taking its color from the `scn` operands.
 - Related: std.gui.pdf.005
 
-### std.gui.pdf.007 — A soft mask named by an ExtGState is ignored
+### std.gui.pdf.007 — A soft-masked text run takes one coverage for the whole run
 
-- Intent: `/SMask` in an `ExtGState` establishes a luminosity or alpha mask from a transparency
-  group and is how a soft-edged vignette, a feathered shadow, or a gradient-masked image is
-  expressed. Image-level `/SMask` is handled; the graphics-state one is not read at all.
-- Complete when: a luminosity or alpha soft mask is rendered from its group and applied to
-  subsequent marks, and `/None` restores the unmasked state.
-- Related: std.gui.pdf.004
+- Intent: a graphics-state `/SMask` now reaches every mark, but a text run cannot take a coverage
+  that varies across it: a run is drawn from the glyph atlas, which is the one texture the painter
+  samples for it, so the mask is folded in as its mean over the run's box. That is exact for the
+  uniform mask a faded layer uses and an approximation for a gradient crossing a line of text.
+- Evidence: `maskItem` in `decode.swg` branches on the item kind — a path takes the coverage as an
+  anchored texture brush, an image takes it in its own alpha channel, and only text averages it.
+- Next: decide where the exact form belongs. Either the painter grows a second texture unit a text
+  run can be modulated by, or a masked run is rasterized into an image item, which costs the run
+  its resolution independence in the viewer.
+- Complete when: a gradient crossing a line of text darkens the letters it crosses rather than the
+  whole run equally, or the entry is rewritten around a decision that says it may not.
 
 ### std.gui.pdf.008 — Optional content is always drawn
 

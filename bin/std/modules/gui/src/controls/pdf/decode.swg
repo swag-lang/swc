@@ -28,6 +28,15 @@ private struct GraphicsState
     textMatrix: Transform2 = Transform2.Identity
     lineMatrix: Transform2 = Transform2.Identity
 
+    // Constant alpha, blend mode, and soft mask, from `/ca`, `/CA`, `/BM` and `/SMask`.
+    //
+    // These are what a document sets a watermark, an overlay, and a feathered shadow with. A mark
+    // painted without them arrives at full strength over what it was meant to let through.
+    fillAlpha:   f32          = 1
+    strokeAlpha: f32          = 1
+    blend:       BlendingMode = .Alpha
+    softMask:    SoftMaskRef
+
     // Region every mark is confined to, in the page's own top-left coordinates.
     //
     // A clip is bounded by its enclosing rectangle, which is exact for the axis-aligned
@@ -223,7 +232,7 @@ private func applyPendingClip(state: *GraphicsState, path: const *LinePathList, 
     state.intersectClip(path.controlBounds())
 }
 
-private func appendPathItem(page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, evenOdd = false)
+private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, depth: u32, evenOdd = false)
 {
     if !path.count() do
         return
@@ -250,13 +259,13 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     item.hasFill     = paintFill
     item.hasStroke   = paintStroke
     item.evenOddFill = evenOdd
-    item.fillColor   = state.fillColor
-    item.strokeColor = state.strokeColor
+    item.fillColor   = dimmed(state.fillColor, state.fillAlpha)
+    item.strokeColor = dimmed(state.strokeColor, state.strokeAlpha)
     item.strokeWidth = state.strokeWidth
     item.strokeStyle = state.strokeStyle
     item.clip        = state.clip
     item.hasClip     = state.hasClip
-    page.appendItem(#move item)
+    appendPaintedItem(parser, page, state, #move item, depth)
     Swag.init(path, 1)
 }
 
@@ -293,7 +302,7 @@ private func moveTextLine(state: *GraphicsState, x, y: f32)
     state.textMatrix = moved
 }
 
-private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string)
+private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string, depth: u32)
 {
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
@@ -328,20 +337,20 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
         }
 
         item.fontSize  = state.fontSize
-        item.fillColor = state.fillColor
+        item.fillColor = dimmed(state.fillColor, state.fillAlpha)
         item.fontIndex = index
         item.transform = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
         item.clip      = state.clip
         item.hasClip   = state.hasClip
         if font and font.hasStandard do
             item.standardFont = font.standard
-        page.appendItem(#move item)
+        appendPaintedItem(parser, page, state, #move item, depth)
     }
 
     advanceText(state, advance * state.horizScale)
 }
 
-private func appendImageItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, imageId, resourcesId: u32) fail
+private func appendImageItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, imageId, resourcesId: u32, depth: u32) fail
 {
     var item = Item.createImage()
     item.image = #move try decodeImage(parser, imageId, resourcesId, state.fillColor)
@@ -351,7 +360,75 @@ private func appendImageItem(parser: *PdfParser, page: *Page, state: const *Grap
     item.transform = Transform2{right.x - top.x, right.y - top.y, bottom.x - top.x, bottom.y - top.y, top.x, top.y}
     item.clip      = state.clip
     item.hasClip   = state.hasClip
-    page.appendItem(#move item)
+
+    // An image carries no colour of its own to dim, so the constant alpha travels as the tint the
+    // painter modulates its texture by.
+    item.fillColor = dimmed(Color.fromArgb(Argb.White), state.fillAlpha)
+    appendPaintedItem(parser, page, state, #move item, depth)
+}
+
+// How deep one form XObject may nest inside another before the page is refused.
+const MaxFormDepth = 32'u32
+
+// Paints one form XObject's content into the page, under its own matrix and bounding box.
+//
+// `resourcesId` is what the form inherits when it declares no resources of its own; a form
+// reached outside a content stream, such as the group behind a soft mask, inherits nothing.
+private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, formId: u32, depth: u32) fail
+{
+    if depth >= MaxFormDepth do
+        fail UnsupportedFormatError{"PDF form nesting exceeds the supported depth"}
+
+    var formState = state[]
+    let matrixId  = parser.dict(formId, "Matrix")
+    if matrixId != InvalidNode and parser.nodes[matrixId].kind == .Array and parser.nodes[matrixId].values.count >= 6
+    {
+        let values = parser.nodes[matrixId].values
+        var matrix = Transform2{nodeNumber(parser, values[0]), nodeNumber(parser, values[1]), nodeNumber(parser, values[2]), nodeNumber(parser, values[3]), nodeNumber(parser, values[4]), nodeNumber(parser, values[5])}
+        matrix.multiply(formState.ctm)
+        formState.ctm = matrix
+    }
+
+    // A form's bounding box is part of what it means, not a hint: the form paints nothing
+    // outside it, and content built to be trimmed by it would otherwise reach the page as
+    // stray marks.
+    let boxId = parser.dict(formId, "BBox")
+    if boxId != InvalidNode and parser.nodes[boxId].kind == .Array and parser.nodes[boxId].values.count >= 4
+    {
+        let box = parser.nodes[boxId].values
+        let x0  = nodeNumber(parser, box[0])
+        let y0  = nodeNumber(parser, box[1])
+        let x1  = nodeNumber(parser, box[2])
+        let y1  = nodeNumber(parser, box[3])
+        formState.intersectClip(transformedBounds(&formState, page, x0, y0, x1, y1))
+    }
+
+    // A transparency group is composited as a unit before it reaches the page, so the constant
+    // alpha and the soft mask around it apply to that result. Inside the group they start
+    // cleared: a group's own content states its marks' transparency, and a `gs` there must not
+    // be able to remove the mask the page put the whole group behind.
+    let group      = parser.dict(formId, "Group")
+    let isGroup    = parser.name(parser.dict(group, "S")) == "Transparency"
+    var outerMask: SoftMaskRef
+    var outerAlpha = 1.0'f32
+    if isGroup
+    {
+        outerMask             = formState.softMask
+        outerAlpha            = formState.fillAlpha
+        formState.softMask    = SoftMaskRef{}
+        formState.fillAlpha   = 1
+        formState.strokeAlpha = 1
+    }
+
+    let ownResources = parser.dict(formId, "Resources")
+    let resources    = ownResources != InvalidNode ? ownResources : resourcesId
+    if resources != InvalidNode do
+        try decodeFonts(parser, page, resources)
+    let bytes = #move try parser.decodeStream(formId)
+    let first = page.items.count
+    try parseContent(parser, page, resources, bytes.toSlice(), &formState, depth + 1)
+    if isGroup and (outerMask.isActive() or outerAlpha < 1) do
+        applyGroupTransparency(parser, page, first, &outerMask, outerAlpha, depth)
 }
 
 private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, name: string, depth: u32) fail
@@ -367,45 +444,13 @@ private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, st
     let subtype = parser.name(parser.dict(id, "Subtype"))
     if subtype == "Form"
     {
-        if depth >= 32 do
-            fail UnsupportedFormatError{"PDF form nesting exceeds the supported depth"}
-
-        var formState = state[]
-        let matrixId  = parser.dict(id, "Matrix")
-        if matrixId != InvalidNode and parser.nodes[matrixId].kind == .Array and parser.nodes[matrixId].values.count >= 6
-        {
-            let values = parser.nodes[matrixId].values
-            var matrix = Transform2{nodeNumber(parser, values[0]), nodeNumber(parser, values[1]), nodeNumber(parser, values[2]), nodeNumber(parser, values[3]), nodeNumber(parser, values[4]), nodeNumber(parser, values[5])}
-            matrix.multiply(formState.ctm)
-            formState.ctm = matrix
-        }
-
-        // A form's bounding box is part of what it means, not a hint: the form paints
-        // nothing outside it, and content built to be trimmed by it would otherwise reach
-        // the page as stray marks.
-        let boxId = parser.dict(id, "BBox")
-        if boxId != InvalidNode and parser.nodes[boxId].kind == .Array and parser.nodes[boxId].values.count >= 4
-        {
-            let box = parser.nodes[boxId].values
-            let x0  = nodeNumber(parser, box[0])
-            let y0  = nodeNumber(parser, box[1])
-            let x1  = nodeNumber(parser, box[2])
-            let y1  = nodeNumber(parser, box[3])
-            formState.intersectClip(transformedBounds(&formState, page, x0, y0, x1, y1))
-        }
-
-        let ownResources = parser.dict(id, "Resources")
-        let resources    = ownResources != InvalidNode ? ownResources : resourcesId
-        if resources != InvalidNode do
-            try decodeFonts(parser, page, resources)
-        let bytes = #move try parser.decodeStream(id)
-        try parseContent(parser, page, resources, bytes.toSlice(), &formState, depth + 1)
+        try appendForm(parser, page, resourcesId, state, id, depth)
         return
     }
 
     if subtype != "Image" do
         return
-    try appendImageItem(parser, page, state, id, resourcesId)
+    try appendImageItem(parser, page, state, id, resourcesId, depth)
 }
 
 // Expands the abbreviated key an inline image dictionary uses.
@@ -432,7 +477,7 @@ private func inlineImageKey(key: string)->string
 //
 // The dictionary is rebuilt inside the document parser so a named color space still
 // resolves through the page resources, and so the image decoder sees one representation.
-private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState) fail
+private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *Page, resourcesId: u32, state: const *GraphicsState, depth: u32) fail
 {
     var node: Node
     node.kind = .Dictionary
@@ -482,7 +527,7 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
     parser.nodes[imageId].stream = Swag.makeSlice(content.bytes.buffer + start, end - start)
     content.pos = end
     discard content.consumeWord("EI")
-    try appendImageItem(parser, page, state, imageId, resourcesId)
+    try appendImageItem(parser, page, state, imageId, resourcesId, depth)
 }
 
 // Finds the `EI` that closes an inline image whose length cannot be computed.
@@ -503,7 +548,39 @@ private func findInlineImageEnd(bytes: const [..] u8, start: u64)->u64
     return Swag.U64.Max
 }
 
+// Returns the painter mode a `/BM` name selects.
+//
+// Every mode the format defines is one the painter composites natively, separable and
+// non-separable alike, so a name is either one of these or not a blend mode at all.
+private func blendingMode(name: string)->{ mode: BlendingMode, found: bool }
+{
+    switch name
+    {
+    case "Normal", "Compatible": return {.Alpha, true}
+    case "Multiply":             return {.Multiply, true}
+    case "Screen":               return {.Screen, true}
+    case "Overlay":              return {.Overlay, true}
+    case "Darken":               return {.Darken, true}
+    case "Lighten":              return {.Lighten, true}
+    case "ColorDodge":           return {.ColorDodge, true}
+    case "ColorBurn":            return {.ColorBurn, true}
+    case "HardLight":            return {.HardLight, true}
+    case "SoftLight":            return {.SoftLight, true}
+    case "Difference":           return {.Difference, true}
+    case "Exclusion":            return {.Exclusion, true}
+    case "Hue":                  return {.Hue, true}
+    case "Saturation":           return {.Saturation, true}
+    case "Color":                return {.Color, true}
+    case "Luminosity":           return {.Luminosity, true}
+    }
+
+    return {.Alpha, false}
+}
+
 // Reads the parts of an ExtGState that change how later operators paint.
+//
+// Every entry is applied only when the dictionary carries it: an ExtGState states the parameters
+// it changes and leaves the rest of the graphics state alone.
 private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: u32, state: *GraphicsState, name: string)
 {
     let states = parser.dict(resourcesId, "ExtGState")
@@ -526,6 +603,211 @@ private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: 
         }
 
         state.fontSize = nodeNumber(parser, parser.nodes[font].values[1])
+    }
+
+    let fillAlpha = parser.dict(entry, "ca")
+    if fillAlpha != InvalidNode do
+        state.fillAlpha = Math.saturate(nodeNumber(parser, fillAlpha))
+
+    let strokeAlpha = parser.dict(entry, "CA")
+    if strokeAlpha != InvalidNode do
+        state.strokeAlpha = Math.saturate(nodeNumber(parser, strokeAlpha))
+
+    // `/BM` may name one mode or an array of them, in which case the first supported name is the
+    // one that applies; a name this module cannot express leaves the mode alone rather than
+    // normalizing an overlay into a replacement.
+    let blend = parser.dict(entry, "BM")
+    if blend != InvalidNode
+    {
+        if parser.nodes[blend].kind == .Array
+        {
+            for value in parser.nodes[blend].values
+            {
+                let picked = blendingMode(parser.name(parser.resolve(value)))
+                if picked.found
+                {
+                    state.blend = picked.mode
+                    break
+                }
+            }
+        }
+        else
+        {
+            let picked = blendingMode(parser.name(blend))
+            if picked.found do
+                state.blend = picked.mode
+        }
+    }
+
+    // The mask is established in the transform in force at this point, not in the one a later
+    // mark happens to be painted under.
+    if parser.dict(entry, "SMask") != InvalidNode do
+        state.softMask = readSoftMask(parser, entry, state.ctm)
+}
+
+// Decodes the transparency group behind a soft mask, once per group and transform.
+//
+// The group's marks are read into a page of the same dimensions as the one being decoded, so its
+// coverage is expressed in the same coordinates as the marks it covers.
+private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, depth: u32)->#null *SoftMaskGroup fail
+{
+    let key    = mask.cacheKey()
+    let cached = parser.softMaskCache.tryFind(key)
+    if cached do
+        return &cached.value
+
+    if depth >= MaxFormDepth do
+        fail UnsupportedFormatError{"PDF soft mask nesting exceeds the supported depth"}
+
+    var group: SoftMaskGroup
+    group.backdrop = mask.backdrop
+    group.kind     = mask.kind
+    group.page     = #move Page.create(page.width, page.height)
+
+    var groupState: GraphicsState
+    groupState.ctm = mask.ctm
+    try appendForm(parser, &group.page, InvalidNode, &groupState, mask.groupId, depth + 1)
+
+    parser.softMaskCache.add(key, #move group)
+    return &parser.softMaskCache.tryFind(key)!.value
+}
+
+// Returns a colour dimmed by a constant alpha.
+//
+// The alpha is rounded the way a sample is, so a half-transparent black is the same 128 a
+// document that stated it as a byte would have produced.
+private func dimmed(color: Color, alpha: f32)->Color => color.withAlpha(componentByte(cast(f32) color.a / 255.0 * alpha))
+
+// Returns the mean coverage of an image whose alpha carries it.
+private func meanCoverage(coverage: const *Image)->f32
+{
+    var total = 0'u64
+    for y in cast(u64) coverage.height
+    {
+        var source = coverage.pixels.buffer! + y * cast(u64) coverage.rowStride
+        for cast(u64) coverage.width
+        {
+            total  += source[3]
+            source += 4
+        }
+    }
+
+    let count = cast(u64) coverage.width * cast(u64) coverage.height
+    if !count do
+        return 1
+    return cast(f32) total / (cast(f32) count * 255.0)
+}
+
+// Multiplies a soft mask's coverage into an image item's own alpha channel.
+//
+// An image is already a raster, so its coverage belongs in its samples: that is exact, needs no
+// second texture, and keeps the item a single draw. The item's transform maps the unit square
+// onto the page, which is what turns a sample position into the page point the coverage is
+// stated at.
+private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.Rectangle)
+{
+    if !item.image.isValid() or !coverage.isValid() do
+        return
+    if item.image.pixelFormat != .RGBA8
+    {
+        var opaque = #move item.image.convertedTo(.RGBA8)
+        item.image = #move opaque
+    }
+
+    let width  = cast(u64) item.image.width
+    let height = cast(u64) item.image.height
+    for row in height
+    {
+        // An image stores its rows bottom-up while its unit square runs top-down.
+        let v      = (cast(f32) (height - row - 1) + 0.5) / cast(f32) height
+        var pixels = item.image.pixels.buffer! + row * cast(u64) item.image.rowStride
+        for column in width
+        {
+            let u     = (cast(f32) column + 0.5) / cast(f32) width
+            let point = item.transform.transformPoint({u, v})
+            let x     = cast(s32) ((point.x - region.x) / region.width * cast(f32) coverage.width)
+            let y     = cast(s32) ((point.y - region.y) / region.height * cast(f32) coverage.height)
+            let alpha = coverage.pixelColor(x, y).a
+            pixels[3] = cast(u8) ((cast(u32) pixels[3] * alpha) / 255)
+            pixels    += 4
+        }
+    }
+}
+
+// Multiplies a soft mask's coverage into one already-built item.
+//
+// A mask that cannot be built leaves the mark at full strength, which is what the page showed
+// before masks were read at all: losing a shadow's softness beats losing the mark under it.
+private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef, item: *Item, depth: u32)
+{
+    let group = catch softMaskGroup(parser, page, mask, depth) as groupError
+    if groupError != null do
+        return
+
+    item.refreshPaintBounds()
+    let region = item.maskRegion()
+    if !region.known do
+        return
+
+    var coverage = catch softMaskCoverage(group!, region.rect) as coverageError
+    if coverageError != null or !coverage.isValid() do
+        return
+
+    switch item.kind
+    {
+    case .Image:
+
+        // An image is already a raster, so its coverage belongs in its own samples: exact, and it
+        // keeps the item a single draw with no second texture.
+        maskImagePixels(item, &coverage, region.rect)
+
+    case .Text:
+
+        // A run is drawn from the glyph atlas, which is the one texture the painter samples for
+        // it, so its coverage cannot vary across the run. The mean over the run's own box is what
+        // remains expressible: exact for the uniform mask a whole faded layer uses, and an
+        // approximation for a gradient crossing a single line of text.
+        item.fillColor = dimmed(item.fillColor, meanCoverage(&coverage))
+
+    case .Path:
+        item.multiplyMask(#move coverage, region.rect)
+    }
+}
+
+// Records one item under the transparency the graphics state establishes.
+//
+// Constant alpha reaches the mark through its own colour, a blend mode travels to the painter,
+// and a soft mask becomes the coverage the mark is multiplied by.
+private func appendPaintedItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, item: #move Item, depth: u32)
+{
+    item.blend = state.blend
+    if state.softMask.isActive() do
+        maskItem(parser, page, &state.softMask, &item, depth)
+    page.appendItem(#move item)
+}
+
+// Applies to a transparency group's result the transparency that was in force around it.
+//
+// A group is composited as a unit and only then combined with the page, so the constant alpha
+// and the soft mask outside it belong to that result — not to the marks inside, which state
+// their own and must not be able to clear the group's. `first` is where the group's items begin.
+//
+// The marks are masked one at a time rather than composited together first, which is the same
+// result whenever they do not overlap, and every drop shadow, vignette and fade a document
+// expresses this way is a single mark under its mask.
+private func applyGroupTransparency(parser: *PdfParser, page: *Page, first: u64, mask: const *SoftMaskRef, alpha: f32, depth: u32)
+{
+    for index in first until page.items.count
+    {
+        let item = page.itemAt(index)
+        if alpha < 1
+        {
+            item.fillColor   = dimmed(item.fillColor, alpha)
+            item.strokeColor = dimmed(item.strokeColor, alpha)
+        }
+
+        if mask.isActive() do
+            maskItem(parser, page, mask, item, depth)
     }
 }
 
@@ -849,29 +1131,29 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "S":
             applyPendingClip(&state, &path, &pendingClip)
-            appendPathItem(page, &path, &state, false, true, false)
+            appendPathItem(parser, page, &path, &state, false, true, false, depth)
             current = null
 
         case "s":
             applyPendingClip(&state, &path, &pendingClip)
-            appendPathItem(page, &path, &state, false, true, true)
+            appendPathItem(parser, page, &path, &state, false, true, true, depth)
             current = null
 
         // A star names the alternating rule, under which two overlapping contours cancel
         // instead of merging; without it a ring drawn as two circles fills solid.
         case "f", "F", "f*":
             applyPendingClip(&state, &path, &pendingClip)
-            appendPathItem(page, &path, &state, true, false, false, op == "f*")
+            appendPathItem(parser, page, &path, &state, true, false, false, depth, op == "f*")
             current = null
 
         case "B", "B*":
             applyPendingClip(&state, &path, &pendingClip)
-            appendPathItem(page, &path, &state, true, true, false, op == "B*")
+            appendPathItem(parser, page, &path, &state, true, true, false, depth, op == "B*")
             current = null
 
         case "b", "b*":
             applyPendingClip(&state, &path, &pendingClip)
-            appendPathItem(page, &path, &state, true, true, true, op == "b*")
+            appendPathItem(parser, page, &path, &state, true, true, true, depth, op == "b*")
             current = null
 
         case "n":
@@ -939,13 +1221,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "Tj":
             if ops.count do
-                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node))
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth)
 
         case "'":
             if ops.count
             {
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node))
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth)
             }
 
         case "\"":
@@ -954,7 +1236,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 state.wordSpacing = operandNumber(&content, ops, ops.count - 3)
                 state.charSpacing = operandNumber(&content, ops, ops.count - 2)
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node))
+                appendText(parser, page, resourcesId, &state, content.stringValue(ops[ops.count - 1].node), depth)
             }
 
         case "TJ":
@@ -967,7 +1249,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                     {
                         let id = content.resolve(value)
                         if id != InvalidNode and content.nodes[id].kind == .String do
-                            appendText(parser, page, resourcesId, &state, content.nodes[id].text.toString())
+                            appendText(parser, page, resourcesId, &state, content.nodes[id].text.toString(), depth)
                         elif id != InvalidNode do
                             advanceText(&state, -cast(f32) content.number(id) * state.fontSize * state.horizScale / 1000.0)
                     }
@@ -979,7 +1261,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 try appendXObject(parser, page, resourcesId, &state, content.name(ops[ops.count - 1].node), depth)
 
         case "BI":
-            try appendInlineImage(parser, &content, page, resourcesId, &state)
+            try appendInlineImage(parser, &content, page, resourcesId, &state, depth)
 
         default:
             break

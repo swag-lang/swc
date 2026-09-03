@@ -104,6 +104,14 @@ struct PdfParser
     // holding its own copy of the bytes: a hundred-page thesis with a four-hundred-kilobyte
     // family carries forty megabytes of duplicated font data.
     fontCache: HashTable'(u32, FontResource)
+
+    // Soft mask groups already decoded, keyed by the group object and the transform it was
+    // established under.
+    //
+    // A drop shadow is one mask group per shadowed object, and a template repeating a shadowed
+    // element pays the group's content parse once per page that shows it otherwise. The transform
+    // is part of the key because the same group placed twice is two different coverages.
+    softMaskCache: HashTable'(u64, SoftMaskGroup)
 }
 
 // How much decoded image data one document keeps.

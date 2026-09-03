@@ -545,6 +545,13 @@ private enum CMapSection
 //
 // Only the sections that describe a code-to-text mapping are interpreted; the PostScript
 // scaffolding around them is skipped as unknown words.
+//
+// Nothing here decides how wide a character code is. That is a property of the font — one byte
+// for a simple font, whatever its encoding CMap declares for a composite one — and it is already
+// settled before this map is read. The map itself is only a table for extracting text, and the
+// writers that produce most documents give a simple font's map the two-byte codespace of an
+// identity encoding while writing its codes one byte wide. Reading a width from it turns every
+// single-byte show string into no text at all, which is a page that silently loses its words.
 private func readToUnicode(font: *FontResource, bytes: const [..] u8)
 {
     var scanner = PdfParser{bytes: bytes}
@@ -612,13 +619,6 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
             section = .Range
 
         case "endcodespacerange":
-            if section == .CodeSpace and pending.count >= 2
-            {
-                let low = scanner.nodes[pending[0]].text.length
-                if low == 1 or low == 2 do
-                    font.codeBytes = cast(u32) low
-            }
-
             pending.clear()
             section = .None
 
@@ -645,8 +645,6 @@ private func applyCMapChars(font: *FontResource, scanner: *PdfParser, pending: c
         let target = &scanner.nodes[pending[i * 2 + 1]]
         if source.kind != .String or target.kind != .String do
             continue
-        if source.text.length == 1 or source.text.length == 2 do
-            font.codeBytes = cast(u32) source.text.length
         var decoded = #move Text.decode(cast(const [..] u8) target.text.toString(), .Utf16Be)
         font.unicode[cmapCode(source.text.toString())] = #move decoded
     }
@@ -661,8 +659,6 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
         let dest = &scanner.nodes[pending[i * 3 + 2]]
         if low.kind != .String or high.kind != .String do
             continue
-        if low.text.length == 1 or low.text.length == 2 do
-            font.codeBytes = cast(u32) low.text.length
 
         let first = cmapCode(low.text.toString())
         let last  = cmapCode(high.text.toString())

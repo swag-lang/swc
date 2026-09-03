@@ -557,10 +557,23 @@ impl Painter
         let cmd    = .newCommand(.BindTexture0, true)
         let params = &cmd.texture0
 
-        params.boundRect.x = bvMin.x
-        params.boundRect.y = bvMin.y
-        params.boundRect.z = bvMax.x
-        params.boundRect.w = bvMax.y
+        // A brush normally covers the shape it fills, which is what a paint source local to the
+        // shape means. A brush that states its own destination is anchored to the coordinate
+        // system instead, so several shapes sample one continuous image: that is what a document
+        // format's soft mask and tiled pattern both are, and neither of them moves when the shape
+        // under it changes size.
+        var min = bvMin
+        var max = bvMax
+        if brush.hasPaintRect
+        {
+            min = {brush.paintRect.x, brush.paintRect.y}
+            max = {brush.paintRect.right(), brush.paintRect.bottom()}
+        }
+
+        params.boundRect.x = min.x
+        params.boundRect.y = min.y
+        params.boundRect.z = max.x
+        params.boundRect.w = max.y
 
         let {wt, ht} = getTextureSize(brush)
         if brush.uvMode == .FillSubRect
@@ -1418,6 +1431,12 @@ impl Painter
         cmd.blendingMode.mode  = mode
         .curState.blendingMode = mode
     }
+
+    // Returns the color blend operation subsequent drawing commands use.
+    //
+    // A caller that changes the mode for part of what it draws reads it first and restores it,
+    // the way it does for the transform and the flattening scale.
+    mtd const blendingMode()->BlendingMode => .curState.blendingMode
 
     // Reports whether painting with `color` cannot change the destination.
     //

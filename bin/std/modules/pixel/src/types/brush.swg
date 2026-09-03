@@ -56,6 +56,13 @@ struct Brush
         uvMode:  UVMode     = Fill                           // Texture coverage mode.
         uvRect:  Math.Rectangle                              // Source texel rectangle used by `.FillSubRect`.
 
+        // Path-space rectangle the paint source covers, when the brush states one.
+        //
+        // Set it with [[Pixel.Brush.mapOver]]. Without it a texture, hatch, or gradient covers the
+        // bounds of the shape being painted, so the same brush lands differently on two shapes.
+        paintRect:    Math.Rectangle
+        hasPaintRect: bool
+
         gradientStart:   Math.Vector2               // Linear start point or radial/sweep center.
         gradientEnd:     Math.Vector2               // Linear end point or secondary radial center.
         gradientRadius0: f32                        // Inner radial radius, in pixels.
@@ -134,6 +141,17 @@ impl Brush
         }
 
         .gradientStops.insertAt(insertAt, GradientStop{clamped, color})
+    }
+
+    // Anchors the paint source over a path-space rectangle instead of the painted shape.
+    //
+    // Two shapes filled with the same anchored brush sample one continuous image, which is what
+    // masking a group of marks through a single coverage image requires; the mask must not
+    // stretch to whatever shape happens to be sampling it.
+    mtd mapOver(rect: Math.Rectangle)
+    {
+        .paintRect    = rect
+        .hasPaintRect = true
     }
 
     // Set the paint color multiplier used by textures, hatches and gradients.

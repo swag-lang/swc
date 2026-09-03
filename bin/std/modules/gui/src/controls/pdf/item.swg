@@ -75,6 +75,21 @@ struct Item
         clip:    Math.Rectangle
         hasClip: bool
 
+        // How this item's marks combine with what is already on the page. A document states it
+        // through `/BM`, and every mode it can name is one the painter composites natively.
+        blend: BlendingMode = .Alpha
+
+        // Coverage the item's marks are multiplied by, from a soft mask in the graphics state,
+        // and the page-space rectangle it covers.
+        //
+        // The coverage is anchored to `maskRect` rather than stretched over the shape sampling
+        // it, so a mask covering several marks stays one continuous image. An image item never
+        // carries one: its coverage is multiplied into its own alpha channel, which is exact and
+        // costs no second texture.
+        maskImage: Image
+        maskRect:  Math.Rectangle
+        hasMask:   bool
+
         // Page-space box this item's marks cannot leave, and whether it is known at all. It is
         // computed when the item joins a page and refreshed by every operation that moves or
         // widens its marks, because a frame asks for it once per item and a path answers it in
@@ -95,6 +110,82 @@ internal impl Item
         if !.paintBoxKnown do
             return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
         return .paintBox
+    }
+
+    // Returns the page-space box a soft mask has to cover for this item's marks.
+    //
+    // A path and an image both answer from their own geometry. A text run cannot: its extent
+    // needs the resolved face, which the page does not hold, so the run is bounded by what the
+    // document itself declared about it — the advance it gave every code, and the size it set —
+    // widened by the room a face needs above and below the em for its ascenders and descenders.
+    mtd const maskRegion()->{ rect: Math.Rectangle, known: bool }
+    {
+        var result: retval
+        if .kind != .Text
+        {
+            result.rect  = .paintBounds()
+            result.known = .paintBoxKnown
+            return result
+        }
+
+        var width = 0.0'f32
+        for advance in .textAdvances do
+            width += advance
+
+        const EmMargin = 0.35'f32
+        var local = Math.Rectangle{0, 0, width, .fontSize}
+        local.applyPadding({-.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin})
+
+        let corners: [4] Vector2 = [
+            .transform.transformPoint({local.x, local.y}),
+            .transform.transformPoint({local.right(), local.y}),
+            .transform.transformPoint({local.right(), local.bottom()}),
+            .transform.transformPoint({local.x, local.bottom()})]
+
+        var min = corners[0]
+        var max = corners[0]
+        for corner in corners
+        {
+            min.x = Math.min(min.x, corner.x)
+            min.y = Math.min(min.y, corner.y)
+            max.x = Math.max(max.x, corner.x)
+            max.y = Math.max(max.y, corner.y)
+        }
+
+        result.rect  = {min.x, min.y, max.x - min.x, max.y - min.y}
+        result.known = result.rect.width > 0 and result.rect.height > 0
+        return result
+    }
+
+    // Multiplies a soft mask's coverage into the one this item already carries.
+    //
+    // Nested transparency groups each contribute a coverage over the same mark, and coverage
+    // composes by multiplication. Both are rasterized over the mark's own box, so they agree on
+    // size and no resampling stands between them.
+    mtd multiplyMask(coverage: #move Image, rect: Math.Rectangle)
+    {
+        if !.hasMask
+        {
+            .maskImage = #move coverage
+            .maskRect  = rect
+            .hasMask   = true
+            return
+        }
+
+        if .maskImage.width != coverage.width or .maskImage.height != coverage.height do
+            return
+
+        for y in cast(u64) .maskImage.height
+        {
+            var target = .maskImage.pixels.buffer! + y * cast(u64) .maskImage.rowStride
+            var source = coverage.pixels.buffer! + y * cast(u64) coverage.rowStride
+            for cast(u64) .maskImage.width
+            {
+                target[3] = cast(u8) ((cast(u32) target[3] * source[3]) / 255)
+                target    += 4
+                source    += 4
+            }
+        }
     }
 
     // Recomputes the box, after the item is built or after something moved or widened its marks.
@@ -207,6 +298,10 @@ internal impl Item
     {
         var result: retval
         result.kind = .Image
+
+        // An image has no colour of its own to fill with: its `fillColor` is the tint its
+        // texture is modulated by, so an untinted image starts opaque white rather than black.
+        result.fillColor = Color.fromArgb(Argb.White)
         return result
     }
 }

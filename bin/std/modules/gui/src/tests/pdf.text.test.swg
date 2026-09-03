@@ -167,6 +167,35 @@ endcmap
     Swag.assert(pageText(document.pages[0]) == "ABabc")
 }
 
+// A simple font keeps its one-byte codes whatever its `/ToUnicode` CMap declares.
+//
+// Writers routinely give a simple font a map with the two-byte codespace of an identity
+// encoding while writing the map's own codes one byte wide, and mix a two-byte entry in among
+// them. The map says how a code spells out as text; it never says how wide a code is.
+#test
+{
+    let cmap = #raw """
+/CIDInit /ProcSet findresource begin
+1 begincodespacerange
+<0000> <FFFF>
+endcodespacerange
+2 beginbfchar
+<42> <0042>
+<0020> <0020>
+endbfchar
+endcmap
+"""
+
+    var objects: Array'u8
+    addObject(&objects, 5, "<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+Calibri-Bold /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>")
+    addStreamObject(&objects, 6, "", cast(const [..] u8) cmap)
+
+    let content  = "BT /F0 10 Tf (B) Tj ET"
+    let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8) content, objects.toSlice()).toSlice())
+    Swag.assert(document.pages[0].fonts[0].codeBytes == 1)
+    Swag.assert(pageText(document.pages[0]) == "B")
+}
+
 // A composite font addresses glyphs with two-byte codes and takes its widths from `/W`.
 #test
 {

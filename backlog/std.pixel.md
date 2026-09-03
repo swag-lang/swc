@@ -169,6 +169,14 @@ output, path measurement and effects, and the modern renderer choice tracked by
 - Evidence: `InterpolationMode` has only `Pixel` and `Linear`; generic textures have no mip chain,
   cubic reconstruction, anisotropic policy, or explicit edge mode. Minified or oblique content
   therefore aliases, while large magnification cannot select a higher-quality reconstruction.
+- Evidence: a document page is where this is worst, because a photograph is placed at whatever size
+  the page chose. A 2382x3071 illustration drawn over 350 points, rendered at 1.5 pixels per point,
+  is a four-and-a-half-to-one minification: bilinear reads four texels of the twenty under each
+  pixel. Against MuPDF over the same page, that page's mean absolute channel difference is 6.6 and
+  0.45% of its pixels differ by more than 96 — visible as a moiré across the fine brushwork, where
+  the pages with no photograph on them differ by antialiasing alone. Selecting `Linear` over the
+  `Pixel` default took that page from 7.4 and 0.73%, so the remaining half of the gap is the
+  missing prefilter rather than the reconstruction.
 - Next: define sampling as a value contract separating reconstruction filter, mip selection, and
   edge behavior; implement one CPU/GPU cubic mode and mipmapped linear minification before
   considering anisotropy.

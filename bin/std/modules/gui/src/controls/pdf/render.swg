@@ -419,12 +419,25 @@ private func pathPen(item: const *Item, scale: f32)->Pen
 // and translate, because item clips are axis-aligned page rectangles. `devicePerPoint` is
 // how many device pixels one PDF point covers on the target; it sizes hairline strokes,
 // never the geometry. `textures` carries one entry per image item in paint order, and an
-// invalid entry skips its image.
+// invalid entry skips its image. An item consumes one entry when it carries an image of its own
+// or a soft mask coverage, which are the two things this drawing needs a texture for.
 //
 // Fills cache their tessellation inside the page items, which is what makes drawing the same
 // page again cheap. The caller owns the painter's transform state and restores it afterwards.
 internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture) fail
 {
+    let previousBlend = painter.blendingMode()
+    defer painter.setBlendingMode(previousBlend)
+
+    // A page's rasters are photographs and scans placed at whatever size the document chose, never
+    // pixel art the reader is meant to see the texels of, so they are sampled smoothly. The
+    // painter defaults to nearest, which is right for an icon and wrong for a picture: it turns
+    // the fine detail of a downscaled illustration into a moiré of the texels that happened to
+    // land under a pixel centre.
+    let previousInterpolation = painter.interpolationMode()
+    painter.setInterpolationMode(.Linear)
+    defer painter.setInterpolationMode(previousInterpolation)
+
     // Curves are flattened in page units, so the zoom has to reach the tolerance for a
     // magnified page to stay smooth; the painter buckets it so the caches re-key rarely.
     let previousFlattenScale = painter.flattenScale()
@@ -461,7 +474,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             mapped.height = local.height * pageToSurface.m22
             if !mapped.intersects(repainted)
             {
-                if item.kind == .Image do
+                if item.kind == .Image or item.hasMask do
                     textureIndex += 1
                 continue
             }
@@ -500,6 +513,26 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             hasActiveClip = true
         }
 
+        // A blend mode is graphics state on the painter, so it is stated when it changes rather
+        // than pushed and popped around every mark; almost every page is one mode throughout.
+        if item.blend != painter.blendingMode() do
+            painter.setBlendingMode(item.blend)
+
+        // A soft mask covers a region of the page, not the shape sampling it, so the coverage is
+        // anchored to the rectangle it was rasterized over. The mark's own colour is the tint, so
+        // the brush produces exactly that colour at the coverage the mask states.
+        //
+        // A brush is anchored in the space the path states its own points in, which the painter's
+        // transform then maps to the surface. For a decoded path that space is the page, so the
+        // mask rectangle travels as it was recorded: mapping it here would move the mask with the
+        // zoom while the shape it covers stayed put.
+        var maskBrush: Brush
+        if item.hasMask and textures[textureIndex].isValid()
+        {
+            maskBrush = Brush.createTexture(textures[textureIndex])
+            maskBrush.mapOver(item.maskRect)
+        }
+
         switch item.kind
         {
         case .Text:
@@ -511,16 +544,34 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
 
             // A page states its fill rule over the winding count, so the fill has to be
             // named rather than left to the winding direction of whatever the writer emitted.
-            if item.hasFill do
-                painter.fillPath(&item.path, item.fillColor, item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero)
-            if item.hasStroke do
-                painter.drawPath(&item.path, pathPen(item, devicePerPoint), .Separate)
+            let rule = item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero
+            if item.hasFill and maskBrush.type == .Texture
+            {
+                maskBrush.setTint(item.fillColor)
+                painter.fillPath(&item.path, maskBrush, rule)
+            }
+            elif item.hasFill do
+                painter.fillPath(&item.path, item.fillColor, rule)
+
+            if item.hasStroke
+            {
+                var pen = pathPen(item, devicePerPoint)
+                if maskBrush.type == .Texture
+                {
+                    maskBrush.setTint(item.strokeColor)
+                    pen.brush = maskBrush
+                }
+
+                painter.drawPath(&item.path, pen, .Separate)
+            }
 
         case .Image:
             if textures[textureIndex].isValid() do
-                painter.drawTexture(0, 0, 1, 1, textures[textureIndex])
-            textureIndex += 1
+                painter.drawTexture(0, 0, 1, 1, textures[textureIndex], item.fillColor)
         }
+
+        if item.kind == .Image or item.hasMask do
+            textureIndex += 1
     }
 }
 
@@ -560,32 +611,41 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     textures.reserve(page.items.count)
     for item in page.items
     {
-        if item.kind != .Image do
+        // A soft mask coverage is already stated over a page-space rectangle; an image states
+        // the unit square its transform maps onto the page.
+        var bounds = item.maskRect
+        if item.kind == .Image
+        {
+            let corners: [4] Vector2 = [
+                item.transform.transformPoint({0, 0}),
+                item.transform.transformPoint({1, 0}),
+                item.transform.transformPoint({1, 1}),
+                item.transform.transformPoint({0, 1})]
+            var minX = corners[0].x
+            var minY = corners[0].y
+            var maxX = corners[0].x
+            var maxY = corners[0].y
+            for corner in corners
+            {
+                minX = Math.min(minX, corner.x)
+                minY = Math.min(minY, corner.y)
+                maxX = Math.max(maxX, corner.x)
+                maxY = Math.max(maxY, corner.y)
+            }
+
+            bounds = {minX, minY, maxX - minX, maxY - minY}
+        }
+        elif !item.hasMask do
             continue
 
-        // A region render leaves the textures of the images it cannot show on the CPU side.
-        let corners: [4] Vector2 = [
-            item.transform.transformPoint({0, 0}),
-            item.transform.transformPoint({1, 0}),
-            item.transform.transformPoint({1, 1}),
-            item.transform.transformPoint({0, 1})]
-        var minX = corners[0].x
-        var minY = corners[0].y
-        var maxX = corners[0].x
-        var maxY = corners[0].y
-        for corner in corners
+        // A region render leaves the textures it cannot show on the CPU side.
+        if !bounds.intersects(region)
         {
-            minX = Math.min(minX, corner.x)
-            minY = Math.min(minY, corner.y)
-            maxX = Math.max(maxX, corner.x)
-            maxY = Math.max(maxY, corner.y)
+            textures.add(Texture{})
+            continue
         }
 
-        let bounds = Math.Rectangle{minX, minY, maxX - minX, maxY - minY}
-        if bounds.intersects(region) do
-            textures.add(renderer.addImage(item.image))
-        else do
-            textures.add(Texture{})
+        textures.add(renderer.addImage(item.kind == .Image ? item.image : item.maskImage))
     }
 
     renderer.end()

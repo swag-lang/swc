@@ -643,6 +643,7 @@ private struct OpenDocumentReader
     listStyles:      Array'OpenDocumentListStyle
     listStack:       Array'bool
     bookmarks:       Array'OpenDocumentBookmark
+    tableHeaderRows: u64
     imageSizeStack:  Array'OpenDocumentImageSize
     images:          Array'OpenDocumentImage
     imageByteCount:  u64
@@ -990,10 +991,14 @@ private impl OpenDocumentReader
             .appendHtml("<section><h2>")
             .appendHtml(name.toString())
             .appendHtml("</h2><table>")
+        case "table:table-header-rows": .tableHeaderRows += 1
         case "table:table-row":          .appendHtml("<tr>")
         case "table:table-cell", "table:covered-table-cell":
             let repeated = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
-            .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
+            if .tableHeaderRows do
+                .appendHtml(repeated == 1 ? "<th>" : Format.toString("<th colspan=\"%\">", repeated))
+            else
+                do .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
             if tag.selfClosing do
                 .appendHtml(openDocumentCellValue(tag.attributes.toString()).toString())
         case "draw:page":
@@ -1025,8 +1030,11 @@ private impl OpenDocumentReader
             .appendHtml(numbered ? "</ol>" : "</ul>")
         case "text:list-item":           .appendHtml("</li>")
         case "table:table":              .appendHtml("</table></section>")
+        case "table:table-header-rows":
+            if .tableHeaderRows do
+                .tableHeaderRows -= 1
         case "table:table-row":          .appendHtml("</tr>")
-        case "table:table-cell", "table:covered-table-cell": .appendHtml("</td>")
+        case "table:table-cell", "table:covered-table-cell": .appendHtml(.tableHeaderRows ? "</th>" : "</td>")
         case "draw:frame" where !.imageSizeStack.isEmpty():   discard .imageSizeStack.popBack()
         case "draw:page":
             if .slideActive

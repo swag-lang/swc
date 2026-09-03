@@ -108,8 +108,8 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.009 — ODF tables preserve spans, dimensions, and repeated structure
 
-- Evidence: sheets and text tables retain basic cells, but merged cells, covered cells, row and
-  column dimensions, repeated styles, header regions, and table layout rules are omitted. The
+- Evidence: sheets and text tables retain basic cells and text-table header rows, but merged cells,
+  covered cells, row and column dimensions, repeated styles, header columns, and table layout rules are omitted. The
   shared HTML renderer cannot lay out `colspan` or `rowspan` safely.
 - Next: complete span placement in the shared HTML table engine, then map ODF table geometry and
   headers into the table and document surfaces with bounded repeated-cell expansion.

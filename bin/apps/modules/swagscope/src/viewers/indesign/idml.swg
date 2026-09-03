@@ -401,7 +401,7 @@ private func idmlCharacterStyleCss(tag: string, colors: const *HashTable'(String
     let fontSize = idmlNumber(idmlAttribute(tag, "PointSize")).value
     if fontSize > 0 do
         result += Format.toString("font-size:%px;", fontSize)
-    let color = idmlColor(colors, idmlAttribute(tag, "FillColor"))
+    let color = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
     if color.count do
         result += Format.toString("color:%;", color)
     if idmlAttribute(tag, "Capitalization") == "AllCaps" do
@@ -544,12 +544,40 @@ private func idmlLoadColors(fileName: string, archive: const *ZipArchive)->HashT
     return result
 }
 
-private func idmlColor(colors: const *HashTable'(String, String), name: string)->string
+private func idmlTintedColor(color, tint: string)->String
+{
+    let percentage = idmlNumber(tint)
+    if !percentage.valid or percentage.value >= 100 do
+        return String.from(color)
+
+    let open  = Utf8.indexOf(color, '('rune)
+    let close = Utf8.indexOf(color, ')'rune, open == Swag.U64.Max ? 0 : open + 1)
+    if open == Swag.U64.Max or close == Swag.U64.Max do
+        return String.from(color)
+    var channels: Array'f32
+    for channel in Tokenize.split(color[open + 1 until close], ','rune)
+    {
+        let value = idmlNumber(Latin1.trim(channel))
+        if !value.valid do
+            return String.from(color)
+        channels.add(value.value)
+    }
+    if channels.count != 3 do
+        return String.from(color)
+
+    let factor = Math.clamp(percentage.value / 100, 0, 1)
+    return Format.toString("rgb(%, %, %)",
+                           cast(u32) Math.round(255 + (channels[0] - 255) * factor),
+                           cast(u32) Math.round(255 + (channels[1] - 255) * factor),
+                           cast(u32) Math.round(255 + (channels[2] - 255) * factor))
+}
+
+private func idmlColor(colors: const *HashTable'(String, String), name: string, tint = "")->String
 {
     if name == "Swatch/None" or !name.count do
         return ""
     let found = colors.tryFind(name)
-    return found ? found!.value.toString() : ""
+    return found ? idmlTintedColor(found!.value.toString(), tint) : ""
 }
 
 private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, colors: const *HashTable'(String, String))->HashTable'(String, IdmlTextStyle)
@@ -579,7 +607,7 @@ private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, co
         {
             var style: IdmlTextStyle
             style.fontSize  = idmlNumber(idmlAttribute(tag, "PointSize")).value
-            style.fill      = idmlColor(colors, idmlAttribute(tag, "FillColor"))
+            style.fill      = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
             style.alignment = idmlTextAlignment(idmlAttribute(tag, "Justification"))
             let fontStart   = Utf8.indexOf(source.toString(), "<AppliedFont", openEnd + 1)
             if fontStart != Swag.U64.Max and fontStart < bodyEnd
@@ -714,8 +742,8 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
                 bounds.top  -= pages[pageIndex].bounds.top
                 var item: IdmlItem
                 item.bounds     = bounds
-                item.fill       = idmlColor(colors, idmlAttribute(tag, "FillColor"))
-                item.stroke     = idmlColor(colors, idmlAttribute(tag, "StrokeColor"))
+                item.fill       = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
+                item.stroke     = idmlColor(colors, idmlAttribute(tag, "StrokeColor"), idmlAttribute(tag, "StrokeTint"))
                 item.strokeSize = idmlNumber(idmlAttribute(tag, "StrokeWeight")).value
                 item.oval       = oval
                 item.line       = line

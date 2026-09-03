@@ -23,6 +23,7 @@ private const OpenDocumentTableRowLimit     = 100_000'u64
 private const OpenDocumentTableCellLimit    = 1_000_000'u64
 private const OpenDocumentRepeatedCellLimit = 4_096'u64
 private const OpenDocumentTextStyleLimit    = 4_096'u64
+private const OpenDocumentBookmarkLimit     = 4_096'u64
 private const OpenDocumentImageLimit        = 16 * 1024 * 1024'u64
 private const OpenDocumentImageCountLimit   = 256'u64
 private const OpenDocumentInlineImagePayloadLimit = ((OpenDocumentImageLimit + 2) / 3) * 4
@@ -80,6 +81,13 @@ private struct OpenDocumentListStyle
 {
     name:     String
     numbered: bool
+}
+
+// Maps a source bookmark name to an HTML-only fragment identifier.
+private struct OpenDocumentBookmark
+{
+    name:   String
+    target: String
 }
 
 // An image comes only from a validated local ODF package entry or an inline raster data URI.
@@ -527,6 +535,39 @@ private func openDocumentInlineImageMediaType(uri: string)->string
     return ""
 }
 
+// Re-encodes XML text as one generated HTML attribute without preserving markup syntax.
+private func openDocumentHtmlAttribute(value: string)->String
+{
+    let decoded = openDocumentDecodeXmlText(value)
+    var result: retval
+    for character in decoded
+    {
+        switch character
+        {
+        case '&':  result += "&amp;"
+        case '<':  result += "&lt;"
+        case '>':  result += "&gt;"
+        case '"':  result += "&quot;"
+        default:   result += character
+        }
+    }
+    return result
+}
+
+// Keeps user-activated outbound links to ordinary web URLs; all other URI schemes stay inert.
+private func openDocumentExternalHref(href: string)->String
+{
+    let decoded = openDocumentDecodeXmlText(href)
+    if !Utf8.startsWith(decoded.toString(), "http://", .Latin1NoCase) and !Utf8.startsWith(decoded.toString(), "https://", .Latin1NoCase) do
+        return {}
+    for character in decoded
+    {
+        if character <= ' ' or character == '"' or character == '<' or character == '>' do
+            return {}
+    }
+    return openDocumentHtmlAttribute(href)
+}
+
 // Converts common ODF absolute sizes to relative HTML sizes, allowing the reader zoom to scale them.
 private func openDocumentFontSize(attributes: string)->String
 {
@@ -601,6 +642,7 @@ private struct OpenDocumentReader
     listStyle:       OpenDocumentListStyle
     listStyles:      Array'OpenDocumentListStyle
     listStack:       Array'bool
+    bookmarks:       Array'OpenDocumentBookmark
     imageSizeStack:  Array'OpenDocumentImageSize
     images:          Array'OpenDocumentImage
     imageByteCount:  u64
@@ -781,6 +823,43 @@ private impl OpenDocumentReader
         return style.numbered
     }
 
+    mtd bookmarkTarget(name: string)->String
+    {
+        if !name.count do
+            return {}
+        for bookmark in .bookmarks where bookmark.name == name do
+            return bookmark.target
+        if .bookmarks.count == OpenDocumentBookmarkLimit do
+            return {}
+
+        let target = Format.toString("odf-bookmark-%", .bookmarks.count + 1)
+        var bookmark: OpenDocumentBookmark
+        bookmark.name   = String.from(name)
+        bookmark.target = target
+        .bookmarks.add(#move bookmark)
+        return target
+    }
+
+    mtd appendBookmark(attributes: string)
+    {
+        let target = .bookmarkTarget(openDocumentAttribute(attributes, "text:name").toString())
+        if !target.isEmpty() do
+            .appendHtml(Format.toString("<span id=\"%\"></span>", target.toString()))
+    }
+
+    mtd linkHref(attributes: string)->String
+    {
+        let href = openDocumentAttribute(attributes, "xlink:href")
+        if href.isEmpty() do
+            return {}
+        if Utf8.startsWith(href.toString(), "#")
+        {
+            let target = .bookmarkTarget(href[1 to])
+            return target.isEmpty() ? "" : Format.toString("#%", target.toString())
+        }
+        return openDocumentExternalHref(href.toString())
+    }
+
     mtd appendParagraphAlignment(attributes: string)
     {
         let alignment = .namedTextStyle(openDocumentAttribute(attributes, "text:style-name").toString()).alignment
@@ -891,14 +970,11 @@ private impl OpenDocumentReader
         case "text:span":                .appendTextStyleStart(tag.attributes.toString())
         case "text:a":
             .appendHtml("<a")
-            let href = openDocumentAttribute(tag.attributes.toString(), "xlink:href")
+            let href = .linkHref(tag.attributes.toString())
             if !href.isEmpty()
-            {
-                var escapedHref = href
-                escapedHref.replace('"'rune, "&quot;")
-                .appendHtml(Format.toString(" href=\"%\"", escapedHref))
-            }
+                do .appendHtml(Format.toString(" href=\"%\"", href.toString()))
             .appendHtml(">")
+        case "text:bookmark", "text:bookmark-start": .appendBookmark(tag.attributes.toString())
         case "text:list":
             let numbered = .listUsesNumbers(tag.attributes.toString())
             .listStack.add(numbered)

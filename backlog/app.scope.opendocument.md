@@ -75,9 +75,9 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.006 — Text semantics retain sections, fields, references, and editorial content
 
-- Evidence: headings, paragraphs, lists, tables, links, and simple spans survive, but sections,
-  bookmarks, reference marks, indexes, fields, variables, footnotes, endnotes, annotations,
-  tracked changes, bibliography, and table-of-contents structure disappear.
+- Evidence: headings, paragraphs, lists, tables, simple spans, HTTP(S) links, and bounded local
+  bookmark fragments survive, but sections, reference marks, indexes, fields, variables, footnotes,
+  endnotes, annotations, tracked changes, bibliography, and table-of-contents structure disappear.
 - Next: define a safe semantic document tree for each textual ODF structure, including visible
   field values and change state without evaluating expressions or updating fields.
 - Complete when: navigation, search, copy, and accessibility distinguish body text from notes,

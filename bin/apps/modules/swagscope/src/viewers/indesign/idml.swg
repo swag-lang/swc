@@ -32,6 +32,8 @@ private struct IdmlItem
     strokeSize: f32
     oval:       bool
     line:       bool
+    lineStartArrow: bool
+    lineEndArrow:   bool
     imageFrame: bool
     clipPath:   String
     image:      String
@@ -277,6 +279,84 @@ private func idmlPolygonClipPath(item: string, transform: const *IdmlTransform)-
 
     if points < 3 do
         return {}
+    result += ");"
+    return result
+}
+
+// A graphic line is an oriented stroke, not its axis-aligned bounding rectangle. Build its
+// painted silhouette in the local page space so the HTML painter retains both direction and
+// triangular InDesign arrowheads without relying on an external SVG implementation.
+private func idmlLineClipPath(item: string, transform: const *IdmlTransform, pageLeft, pageTop: f32, bounds: const *IdmlBounds, strokeSize: f32, startArrow, endArrow: bool)->String
+{
+    var firstX, firstY, secondX, secondY: f32
+    var pointCount = 0'u64
+    var cursor     = 0'u64
+    while pointCount < 3
+    {
+        let pointStart = Utf8.indexOf(item, "<PathPointType", cursor)
+        if pointStart == Swag.U64.Max do
+            break
+        let pointEnd = Utf8.indexOf(item, '>'rune, pointStart)
+        if pointEnd == Swag.U64.Max do
+            return {}
+        var values: Array'f32
+        if !idmlNumbers(idmlAttribute(item[pointStart until pointEnd + 1], "Anchor"), &values) or values.count != 2 do
+            return {}
+        let x = transform.a * values[0] + transform.c * values[1] + transform.x - pageLeft
+        let y = transform.b * values[0] + transform.d * values[1] + transform.y - pageTop
+        if !pointCount
+        {
+            firstX = x
+            firstY = y
+        }
+        else
+        {
+            secondX = x
+            secondY = y
+        }
+        pointCount += 1
+        cursor = pointEnd + 1
+    }
+    if pointCount != 2 or bounds.width <= 0 or bounds.height <= 0 do
+        return {}
+
+    let dx     = secondX - firstX
+    let dy     = secondY - firstY
+    let length = Math.sqrt(dx * dx + dy * dy)
+    if length < 0.01 do
+        return {}
+
+    let halfStroke  = Math.max(strokeSize, 0.75) * 0.5
+    let normalX     = -dy * halfStroke / length
+    let normalY     = dx * halfStroke / length
+    let startInset  = startArrow ? Math.min(length * 0.45, Math.max(6, halfStroke * 8)) : 0
+    let endInset    = endArrow ? Math.min(length * 0.45, Math.max(6, halfStroke * 8)) : 0
+    let startBaseX  = firstX + dx * startInset / length
+    let startBaseY  = firstY + dy * startInset / length
+    let endBaseX    = secondX - dx * endInset / length
+    let endBaseY    = secondY - dy * endInset / length
+
+    var result: retval
+    result += "clip-path:polygon("
+    if startArrow
+    {
+        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (firstX - bounds.left) / bounds.width, 100 * (firstY - bounds.top) / bounds.height)
+        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (startBaseX + normalX - bounds.left) / bounds.width, 100 * (startBaseY + normalY - bounds.top) / bounds.height)
+    }
+    else
+    {
+        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (firstX + normalX - bounds.left) / bounds.width, 100 * (firstY + normalY - bounds.top) / bounds.height)
+    }
+    result += Format.toString("%{f3}%% %{f3}%%,", 100 * (endBaseX + normalX - bounds.left) / bounds.width, 100 * (endBaseY + normalY - bounds.top) / bounds.height)
+    if endArrow do
+        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (secondX - bounds.left) / bounds.width, 100 * (secondY - bounds.top) / bounds.height)
+    else do
+        result += Format.toString("%{f3}%% %{f3}%%,", 100 * (secondX + normalX - bounds.left) / bounds.width, 100 * (secondY + normalY - bounds.top) / bounds.height)
+    result += Format.toString("%{f3}%% %{f3}%%,", 100 * (endBaseX - normalX - bounds.left) / bounds.width, 100 * (endBaseY - normalY - bounds.top) / bounds.height)
+    if startArrow do
+        result += Format.toString("%{f3}%% %{f3}%%", 100 * (startBaseX - normalX - bounds.left) / bounds.width, 100 * (startBaseY - normalY - bounds.top) / bounds.height)
+    else do
+        result += Format.toString("%{f3}%% %{f3}%%", 100 * (firstX - normalX - bounds.left) / bounds.width, 100 * (firstY - normalY - bounds.top) / bounds.height)
     result += ");"
     return result
 }
@@ -800,7 +880,18 @@ private func idmlAppendItems(source: string, stories: const *HashTable'(String, 
                 item.oval       = oval
                 item.line       = line
                 item.imageFrame = Utf8.indexOf(content, "<Image ") != Swag.U64.Max
-                if polygon do
+                if line
+                {
+                    item.lineStartArrow = idmlAttribute(tag, "LeftLineEnd") == "TriangleArrowHead"
+                    item.lineEndArrow   = idmlAttribute(tag, "RightLineEnd") == "TriangleArrowHead"
+                    let padding         = Math.max(item.strokeSize * 2, 4)
+                    item.bounds.left   -= padding
+                    item.bounds.top    -= padding
+                    item.bounds.width  += 2 * padding
+                    item.bounds.height += 2 * padding
+                    item.clipPath = idmlLineClipPath(content, &transform, pages[pageIndex].bounds.left, pages[pageIndex].bounds.top, &item.bounds, item.strokeSize, item.lineStartArrow, item.lineEndArrow)
+                }
+                elif polygon do
                     item.clipPath = idmlPolygonClipPath(content, &transform)
                 if item.imageFrame do
                     item.image = idmlEmbeddedGraphicDataUri(content)

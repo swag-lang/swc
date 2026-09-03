@@ -66,7 +66,7 @@ impl IdmlPage
 {
     // Builds one offline page scene from positioned IDML items. The HTML engine is used solely as
     // the local paint and text-layout backend; all package parsing and scene construction are Swag.
-    mtd html()->String
+    mtd const html()->String
     {
         var result: retval
         result += "<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:24px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;white-space:pre-wrap;font:12px/1.25 sans-serif;padding:2px}.idml-image{display:block;width:100%;height:100%}.idml-missing-image{display:block;width:100%;height:100%;background:#e5e5e5;color:#777;font:18px sans-serif;text-align:center;padding-top:8px}</style>"

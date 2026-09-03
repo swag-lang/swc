@@ -110,6 +110,15 @@ private func nativeFixturePath()->String
     Swag.assert(viewer.zoomLabel.isVisible() == false)
     Swag.assert(Utf8.contains(viewer.details.toString(), "InDesign Markup page"))
     Swag.assert(viewer.pageLabel.toolTip == "Choose page")
+    var matches: Array'Viewer.SearchMatch
+    viewer.collectMatches("Schriftwerke", {}, &matches)
+    Swag.assert(!matches.isEmpty())
+    Swag.assert(viewer.revealMatch(matches[0], "Schriftwerke"))
+    var searchBounds: Math.Rectangle
+    Swag.assert(viewer.searchBounds(&searchBounds))
+    viewer.clearSearch()
+    viewer.htmlView!.setFocus()
+    host.keyPress(.Home)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
     viewer.info.dockStyle     = .None

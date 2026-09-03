@@ -86,10 +86,15 @@ private func linkedIdmlFixturePath()->String
     var flowedArticleBytes: u64
     for page in document.pages
     {
-        for item in page.items where item.imageFrame and Path.fileName(item.image.toString()) == "title.png" do
-            linkedImages += 1
-        for item in page.items where item.imageFrame and Path.fileName(item.image.toString()) == "qrcode.png" do
-            linkedImages += 1
+        for item in page.items where item.imageFrame
+        {
+            let imageName = Path.fileName(item.image.toString())
+            if imageName == "title.png" or imageName == "qrcode.png"
+            {
+                linkedImages += 1
+                Swag.assert(item.imageHasBounds and item.imageBounds.width > 0 and item.imageBounds.height > 0)
+            }
+        }
         for item in page.items where item.story == "u113" and item.text.count
         {
             flowedArticleFrames += 1

@@ -42,8 +42,10 @@ private struct IdmlItem
     lineStartArrow: bool
     lineEndArrow:   bool
     imageFrame: bool
+    imageHasBounds: bool
     clipPath:   String
     image:      String
+    imageBounds: IdmlBounds
 }
 
 private struct IdmlTextStyle
@@ -89,11 +91,11 @@ impl IdmlPage
         let factor   = Math.clamp(scale, 0.25, 3)
         let itemFont = 12 * factor
         let inset    = 2 * factor
-        result += Format.toString("<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:%px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;font:%px/1.25 sans-serif;padding:%px}.idml-image{display:block;width:100%%;height:100%%}.idml-missing-image{display:block;width:100%%;height:100%%;background:#e5e5e5;color:#777;font:%px sans-serif;text-align:center;padding-top:%px}</style>", 24 * factor, itemFont, inset, 18 * factor, 8 * factor)
+        result += Format.toString("<style>html,body{margin:0;padding:0;background:#343438}.idml-page{position:relative;margin:%px auto;background:#fff;color:#101014;box-shadow:0 2px 12px #0008;overflow:hidden}.idml-item{position:absolute;box-sizing:border-box;overflow:hidden;font:%px/1.25 sans-serif;padding:%px}.idml-image{position:absolute;display:block}.idml-missing-image{display:block;width:100%%;height:100%%;background:#e5e5e5;color:#777;font:%px sans-serif;text-align:center;padding-top:%px}</style>", 24 * factor, itemFont, inset, 18 * factor, 8 * factor)
         result += Format.toString("<div class=\"idml-page\" style=\"width:%px;height:%px\">", .bounds.width * factor, .bounds.height * factor)
         for item in .items
         {
-            result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%;%\">",
+            result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%;%;%\">",
                                       item.bounds.left * factor,
                                       item.bounds.top * factor,
                                       item.bounds.width * factor,
@@ -102,9 +104,18 @@ impl IdmlPage
                                       item.line ? 0 : item.strokeSize * factor,
                                       item.stroke.isEmpty() ? "transparent" : item.stroke.toString(),
                                       item.oval ? "border-radius:50%" : "",
-                                      item.clipPath)
-            if item.image.count do
-                result += Format.toString("<img class=\"idml-image\" style=\"width:%px;height:%px\" src=\"%\">", item.bounds.width * factor, item.bounds.height * factor, item.image)
+                                      item.clipPath,
+                                      item.imageFrame ? "padding:0" : "")
+            if item.image.count
+            {
+                let imageBounds = item.imageHasBounds ? &item.imageBounds : &item.bounds
+                result += Format.toString("<img class=\"idml-image\" style=\"left:%px;top:%px;width:%px;height:%px\" src=\"%\">",
+                                          (imageBounds.left - item.bounds.left) * factor,
+                                          (imageBounds.top - item.bounds.top) * factor,
+                                          imageBounds.width * factor,
+                                          imageBounds.height * factor,
+                                          item.image)
+            }
             elif item.imageFrame do
                 result += "<span class=\"idml-missing-image\">×</span>"
             // Text is escaped while the IDML story is converted to local paragraph markup. It is
@@ -262,6 +273,40 @@ private func idmlBoundsFromPath(item: string, transform: const *IdmlTransform, r
     result.width  = allowLine ? Math.max(right - left, 1) : right - left
     result.height = allowLine ? Math.max(bottom - top, 1) : bottom - top
     return true
+}
+
+// An image's transform is independent from its enclosing frame. Keep the axis-aligned cases as a
+// local image rectangle so a crop or proportional fit does not become a stretched frame fill.
+// Rotated, sheared, and reflected images remain on the conservative frame fallback until the scene
+// renderer can preserve their orientation.
+private func idmlBoundsFromGraphic(item: string, parent: const *IdmlTransform, result: *IdmlBounds)->bool
+{
+    let imageStart   = Utf8.indexOf(item, "<Image ")
+    let imageOpenEnd = imageStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, '>'rune, imageStart)
+    let imageEnd     = imageOpenEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, "</Image>", imageOpenEnd + 1)
+    let boundsStart  = imageOpenEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, "<GraphicBounds ", imageOpenEnd + 1)
+    let boundsEnd    = boundsStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(item, '>'rune, boundsStart)
+    if imageEnd == Swag.U64.Max or boundsEnd == Swag.U64.Max or boundsStart > imageEnd do
+        return false
+
+    let boundsTag = item[boundsStart until boundsEnd + 1]
+    let left      = idmlNumber(idmlAttribute(boundsTag, "Left"))
+    let top       = idmlNumber(idmlAttribute(boundsTag, "Top"))
+    let right     = idmlNumber(idmlAttribute(boundsTag, "Right"))
+    let bottom    = idmlNumber(idmlAttribute(boundsTag, "Bottom"))
+    if !left.valid or !top.valid or !right.valid or !bottom.valid or right.value <= left.value or bottom.value <= top.value do
+        return false
+
+    let imageTag       = item[imageStart until imageOpenEnd + 1]
+    let childTransform = idmlTransform(imageTag)
+    let imageTransform = idmlComposeTransform(parent, &childTransform)
+    if Math.abs(imageTransform.b) > 0.0001 or Math.abs(imageTransform.c) > 0.0001 or imageTransform.a <= 0 or imageTransform.d <= 0 do
+        return false
+    result.left   = imageTransform.a * left.value + imageTransform.x
+    result.top    = imageTransform.d * top.value + imageTransform.y
+    result.width  = imageTransform.a * (right.value - left.value)
+    result.height = imageTransform.d * (bottom.value - top.value)
+    return result.width > 0 and result.height > 0
 }
 
 private func idmlPolygonClipPath(item: string, transform: const *IdmlTransform)->String
@@ -1104,8 +1149,18 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                 }
                 elif polygon do
                     item.clipPath = idmlPolygonClipPath(content, &transform)
-                if item.imageFrame do
+                if item.imageFrame
+                {
                     item.image = idmlLinkedGraphicSource(fileName, content, linkedGraphicBytes)
+                    var imageBounds: IdmlBounds
+                    if idmlBoundsFromGraphic(content, &transform, &imageBounds)
+                    {
+                        imageBounds.left -= pages[pageIndex].bounds.left
+                        imageBounds.top  -= pages[pageIndex].bounds.top
+                        item.imageBounds    = imageBounds
+                        item.imageHasBounds = true
+                    }
+                }
                 if textItem
                 {
                     item.story         = idmlAttribute(tag, "ParentStory")

@@ -798,7 +798,7 @@ impl Array
     mtd popBack()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer         = .buffer!
+        let buffer = .buffer!
         var result: retval
         result = #relocate buffer[.count - 1]
         .count -= 1

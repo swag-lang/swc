@@ -241,12 +241,12 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 {
     var result: TriageDecision =
         {
-        queue:                 routeQueue(ticket),
+        queue: routeQueue(ticket),
         responseTargetMinutes: computeResponseTargetMinutes(ticket),
-        escalationLevel:       computeEscalationLevel(ticket),
-        pageOnCall:            false,
+        escalationLevel: computeEscalationLevel(ticket),
+        pageOnCall: false,
         notifyCustomerSuccess: false,
-        sendStatusPageLink:    false
+        sendStatusPageLink: false
         }
 
     switch #complete ticket.priority

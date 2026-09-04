@@ -45,9 +45,9 @@ impl ChannelState
 func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, firstLine: u32)
 {
     var scratch: Granule576
-    var source              = firstLine
-    var band                = cast(u64) firstBand
-    var written             = 0'u64
+    var source  = firstLine
+    var band    = cast(u64) firstBand
+    var written = 0'u64
 
     while band < bands.count
     {
@@ -101,7 +101,7 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
 // thirty-six sample result, before the result overlaps its predecessor.
 func inverseTransform(lines: *Granule576, overlap: *[32, 18] f32, subband: u32, blockType: u32)
 {
-    let base            = cast(u64) subband * 18
+    let base = cast(u64) subband * 18
     var input: [18] f32
     for index in 18'u64 do
         input[index] = lines[][base + index]

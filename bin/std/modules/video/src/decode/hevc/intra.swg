@@ -281,7 +281,7 @@ impl Decoder
         // The main reference runs along the direction the prediction comes from, and is extended
         // backwards through the other edge when the angle is negative.
         var main: [160] u16
-        let origin          = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
+        let origin = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
         for index in size + 1
         {

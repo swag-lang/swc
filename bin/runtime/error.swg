@@ -263,7 +263,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
     // the panic frame on Windows and loses the application caller, which made devmode reports no
     // more useful than release reports. A direct internal call still has a local fallback.
     var fallback: [64] #null *void = cast(#null *void) null
-    var trace                = Swag.makeSlice(&cxt.panicStack[0], cxt.panicStackCount)
+    var trace = Swag.makeSlice(&cxt.panicStack[0], cxt.panicStackCount)
     if !cxt.panicStackCount
     {
         let count = __captureStack(1, fallback)

@@ -460,8 +460,8 @@ impl Decoder
         var gathered:        [MaxRefSide * MaxRefSide] u16
         var reference:       const [*] u16
         var referenceStride: u64
-        let firstX                                         = xInt - 3
-        let firstY                                         = yInt - 3
+        let firstX = xInt - 3
+        let firstY = yInt - 3
 
         // A reference picture is complete before any block predicts from it, and completing it
         // replicates its edges through the whole padding. A window that stays inside that padding
@@ -631,9 +631,9 @@ impl Decoder
         var gathered:        [MaxRefSide * MaxRefSide] u16
         var reference:       const [*] u16
         var referenceStride: u64
-        let firstX                                         = xInt - 1
-        let firstY                                         = yInt - 1
-        let pad                                            = cast(s32) FramePadding
+        let firstX = xInt - 1
+        let firstY = yInt - 1
+        let pad    = cast(s32) FramePadding
         if firstX >= -pad and firstY >= -pad and firstX + cast(s32) width + 3 <= cast(s32) frame.chromaWidth + pad and firstY + cast(s32) height + 3 <= cast(s32) frame.chromaHeight + pad
         {
             let plane = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!

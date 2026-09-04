@@ -282,7 +282,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     bi.bmiHeader.biCompression = BI_RGB
 
     var bits: #null *u8
-    let memBMP          = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
+    let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
     if !memBMP or !bits do
         fail Swag.SystemError{"CreateDIBSection failed"}
     defer catch DeleteObject(cast() memBMP)

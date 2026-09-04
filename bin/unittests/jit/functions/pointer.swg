@@ -63,7 +63,7 @@ func runTransformPointers()->bool
 
 func runVariadicPointers()->bool
 {
-    let reduce:   Reducer   = &sumReducer
+    let reduce:   Reducer     = &sumReducer
     let reducers: [2] Reducer = [reduce, &weightedReducer]
 
     return reduce(1, 2, 3, 4) == 10 and

@@ -317,7 +317,7 @@ impl Codec
     {
         var sizes:  [4] u32
         var counts: [4] u32
-        let shift           = info.scalefacScale + 1
+        let shift = info.scalefacScale + 1
 
         // Long blocks, mixed blocks, and short blocks each partition their scalefactors
         // differently, and the row that says how is the same for both versions.
@@ -363,8 +363,8 @@ impl Codec
             counts[index] = cast(u32) LsfPartitions[partitionRow, partitionAt + index]
 
         var values: [40] u8
-        var at              = 0'u64
-        var share           = info.scfsi
+        var at    = 0'u64
+        var share = info.scfsi
         for partition in 4'u64
         {
             let count = cast(u64) counts[partition]
@@ -839,7 +839,7 @@ impl Codec
             fail InvalidFormatError{"MP3 frame is too short for its side information"}
 
         var granules: [2, 2] GranuleInfo
-        let mainDataBegin                = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
+        let mainDataBegin = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
         at += header.sideInfoBytes
 
         // The main data of this frame continues what the frames before it left in the reservoir.

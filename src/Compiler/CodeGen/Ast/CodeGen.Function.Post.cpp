@@ -876,10 +876,10 @@ namespace
 
     Result emitClosureExprValue(CodeGen& codeGen, AstNodeRef nodeRef, const SymbolFunction& symFunc, TypeRef typeRef)
     {
-        const AstNodeRef storageNodeRef = resolveClosureExprStorageNodeRef(codeGen, nodeRef);
-        MicroBuilder&    builder        = codeGen.builder();
-        MicroReg         dstReg         = MicroReg::invalid();
-        SymbolVariable*  directReturnStorageSym = nullptr;
+        const AstNodeRef storageNodeRef          = resolveClosureExprStorageNodeRef(codeGen, nodeRef);
+        MicroBuilder&    builder                 = codeGen.builder();
+        MicroReg         dstReg                  = MicroReg::invalid();
+        SymbolVariable*  directReturnStorageSym  = nullptr;
         const bool       usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, storageNodeRef, typeRef, dstReg, directReturnStorageSym);
         if (!usesDirectReturnStorage)
             dstReg = codeGen.runtimeStorageAddressReg(storageNodeRef);

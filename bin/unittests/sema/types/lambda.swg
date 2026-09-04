@@ -3,11 +3,11 @@
 #assert(#nameof(#type func(s32)) == "func(s32)")
 #assert(#nameof(#type func(s32, bool)) == "func(s32, bool)")
 #assert(#nameof(#type func(s32, bool)->string) == "func(s32, bool)->string")
-#assert(#nameof(#type func(s32, string)->#null *s32 fail) == "func(s32, string)->#null *s32 fail")
+#assert(#nameof(#type func(s32, string)->#null *s32 fail ) == "func(s32, string)->#null *s32 fail")
 #assert(#nameof(#type func||(s32)) == "func||(s32)")
 #assert(#nameof(#type func||(s32, bool)) == "func||(s32, bool)")
 #assert(#nameof(#type func||(s32, bool)->string) == "func||(s32, bool)->string")
-#assert(#nameof(#type func||(s32, string)->#null *s32 fail) == "func||(s32, string)->#null *s32 fail")
+#assert(#nameof(#type func||(s32, string)->#null *s32 fail ) == "func||(s32, string)->#null *s32 fail")
 
 struct RecursiveFuncField
 {

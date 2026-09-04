@@ -45,7 +45,7 @@ impl Guid64
         initRng()
 
         var result: retval
-        let now            = Time.DateTime.now()
+        let now = Time.DateTime.now()
 
         // Extract components
         let dateTicks = Time.dateToTicks(now.year, now.month, now.day) +
@@ -84,10 +84,10 @@ impl Guid64
         initRng()
 
         var result: retval
-        let nowMs          = Time.monotonicMilliseconds()
-        let nowUs          = Time.monotonicMicroseconds()
-        let pid            = cast(u64) Env.Process.currentProcessId()
-        let tid            = cast(u64) Env.Process.currentThreadId()
+        let nowMs = Time.monotonicMilliseconds()
+        let nowUs = Time.monotonicMicroseconds()
+        let pid   = cast(u64) Env.Process.currentProcessId()
+        let tid   = cast(u64) Env.Process.currentThreadId()
 
         // Mix multiple entropy sources using XOR
         result.value = g_Rng.nextU64()

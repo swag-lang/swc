@@ -667,10 +667,10 @@ impl Image
         Debug.assert(.isValid(), "image is invalid")
         if .alphaMode == .Premultiplied
         {
-            let x             = Math.clamp(pixX, 0, .width - 1)
-            let y             = .height - Math.clamp(pixY, 0, .height - 1) - 1
-            let source        = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
-            let value         = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
+            let x      = Math.clamp(pixX, 0, .width - 1)
+            let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
+            let source = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
+            let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
             var result: Color
             result.r = normalizedToU8(value.r)
             result.g = normalizedToU8(value.g)
@@ -683,10 +683,10 @@ impl Image
         {
         case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
              .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
-            let x             = Math.clamp(pixX, 0, .width - 1)
-            let y             = .height - Math.clamp(pixY, 0, .height - 1) - 1
-            let source        = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
-            let value         = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
+            let x      = Math.clamp(pixX, 0, .width - 1)
+            let y      = .height - Math.clamp(pixY, 0, .height - 1) - 1
+            let source = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
+            let value  = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
             var result: Color
             result.r = normalizedToU8(value.r)
             result.g = normalizedToU8(value.g)

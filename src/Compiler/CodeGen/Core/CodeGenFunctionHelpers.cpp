@@ -1204,10 +1204,10 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
         if (parentRef.isInvalid())
             return false;
 
-        const AstNode& parent             = codeGen.node(parentRef);
+        const AstNode& parent              = codeGen.node(parentRef);
         const bool     isTransparentParent = (SemaHelpers::isTransparentExprNode(parent) && parent.isNot(AstNodeId::AsCastExpr)) ||
-                                             parent.is(AstNodeId::InitializerExpr) ||
-                                             parent.is(AstNodeId::ErrorManagementExpr);
+                                         parent.is(AstNodeId::InitializerExpr) ||
+                                         parent.is(AstNodeId::ErrorManagementExpr);
         if (isTransparentParent)
             continue;
 
@@ -1309,7 +1309,7 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
 
         if (parent.is(AstNodeId::ErrorManagementExpr))
         {
-            const auto&      errorManagement   = parent.cast<AstErrorManagementExpr>();
+            const auto&      errorManagement    = parent.cast<AstErrorManagementExpr>();
             const AstNodeRef resolvedManagedRef = codeGen.viewZero(errorManagement.nodeExprRef).nodeRef();
             if (resolvedManagedRef != directExprRef)
                 return false;

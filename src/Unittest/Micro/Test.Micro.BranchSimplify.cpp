@@ -900,7 +900,7 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingEarlyReturn)
         return Result::Error;
 
     // The compare now sits right before the move, after the negation.
-    bool seenNegate = false;
+    bool seenNegate         = false;
     bool compareAfterNegate = false;
     for (const MicroInstr& inst : builder.instructions().view())
     {

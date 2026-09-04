@@ -16,9 +16,9 @@ public struct Element
     public
     {
         type:     ElementType     // Segment representation.
-        position: Vector2                     // Endpoint, or center for an arc.
-        p1:       Vector2                     // First control point, or arc angle interval.
-        p2:       Vector2                     // Second control point, or arc radii.
+        position: Vector2         // Endpoint, or center for an arc.
+        p1:       Vector2         // First control point, or arc angle interval.
+        p2:       Vector2         // Second control point, or arc radii.
     }
 }
 
@@ -710,7 +710,7 @@ impl LinePath
     mtd flattenCurve(pos: Math.Vector2, i: u64, tolerance: f32)
     {
         var p0, p1, p2, p3: Vector2
-        let lastElem                = .elements.count - 1
+        let lastElem = .elements.count - 1
 
         if lastElem <= 1
         {

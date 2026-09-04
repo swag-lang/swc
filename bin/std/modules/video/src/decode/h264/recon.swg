@@ -369,9 +369,9 @@ impl Slice
 
             for raster in 16's32
             {
-                let bx              = raster & 3
-                let by              = raster >> 2
-                let dc              = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[0, cast(u64) mb.qp, 0] + 32) >> 6
+                let bx = raster & 3
+                let by = raster >> 2
+                let dc = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[0, cast(u64) mb.qp, 0] + 32) >> 6
                 var block: [16] s16
                 .dequant4x4(mb, raster, dc, true, block.buffer)
                 addIdct4x4(frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block.buffer)

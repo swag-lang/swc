@@ -341,16 +341,16 @@ private:
     uint64_t                                  returnsPayloadUnknownProjectionParamsMask_ = 0;
     SmallVector4<ParamField>                  reallocatedParamFields_;
     SmallVector4<ParamField>                  returnedPayloadParamFields_;
-    TypeRef                                   returnType_          = TypeRef::invalid();
-    uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+    TypeRef                                   returnType_                 = TypeRef::invalid();
+    uint8_t                                   rtAttributeBitIndex_        = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     mutable bool                              inferredFullInitialization_ = false;
-    SpecOpKind                                specOpKind_          = SpecOpKind::None;
-    CallConvKind                              callConvKind_        = CallConvKind::Swag;
-    AstNodeRef                                declNodeRef_         = AstNodeRef::invalid();
-    const NodePayload*                        declNodePayloadCtx_  = nullptr;
-    uint32_t                                  interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
-    uint32_t                                  debugStackFrameSize_ = 0;
-    MicroReg                                  debugStackBaseReg_   = MicroReg::invalid();
+    SpecOpKind                                specOpKind_                 = SpecOpKind::None;
+    CallConvKind                              callConvKind_               = CallConvKind::Swag;
+    AstNodeRef                                declNodeRef_                = AstNodeRef::invalid();
+    const NodePayload*                        declNodePayloadCtx_         = nullptr;
+    uint32_t                                  interfaceMethodSlot_        = K_INVALID_INTERFACE_METHOD_SLOT;
+    uint32_t                                  debugStackFrameSize_        = 0;
+    MicroReg                                  debugStackBaseReg_          = MicroReg::invalid();
 
     MicroBuilder                         microInstrBuilder_;
     MachineCode                          loweredMicroCode_;

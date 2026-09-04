@@ -59,7 +59,7 @@ public impl Image
             return
         }
 
-        let bgra          = .pixelFormat == .BGRA8
+        let bgra = .pixelFormat == .BGRA8
         var axis: [8] f32
         axis[0] = cast(f32) (bgra ? ground.b : ground.r)
         axis[1] = cast(f32) ground.g

@@ -674,10 +674,10 @@ private:
     AstVisit                                                                           visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
-    SymbolMap*                              startSymMap_                = nullptr;
-    SemaScope*                              curScope_                   = nullptr;
-    bool                                    declPass_                   = false;
-    bool                                    rootVisitDone_              = false;
+    SymbolMap*                              startSymMap_           = nullptr;
+    SemaScope*                              curScope_              = nullptr;
+    bool                                    declPass_              = false;
+    bool                                    rootVisitDone_         = false;
     bool                                    hasInitFlowCandidates_ = false;
 
     std::vector<SemaFrame> frames_;

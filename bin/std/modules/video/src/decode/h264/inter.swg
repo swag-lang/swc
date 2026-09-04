@@ -289,7 +289,7 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
 
     // Horizontal six-tap sums for every row the vertical filter reads.
     var sums: [21 * 16] s32
-    let sumStride           = cast(u64) width
+    let sumStride = cast(u64) width
     for row in cast(u64) (height + 5)
     {
         let line = src + row * srcStride - 2 * srcStride - 2

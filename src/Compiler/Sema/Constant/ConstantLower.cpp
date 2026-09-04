@@ -757,8 +757,8 @@ namespace
 
     Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
-        const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        const ConstantValue& cst     = sema.cstMgr().get(cstRef);
+        const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
         if (dstType.isAlias())
         {
             const TypeRef unwrappedTypeRef = dstType.unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);

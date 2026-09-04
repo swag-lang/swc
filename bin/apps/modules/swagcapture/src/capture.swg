@@ -227,14 +227,14 @@ struct Capture
 // produce the container while the user keeps editing.
 struct CaptureSaveJob
 {
-    job:        Jobs.Job         // Scheduler slot; borrowed by the job workers until collected.
-    file:       String           // Destination path, atomically replaced when the write lands.
+    job:        Jobs.Job     // Scheduler slot; borrowed by the job workers until collected.
+    file:       String       // Destination path, atomically replaced when the write lands.
     manifest:   Scc.Manifest
-    modelBytes: Array'u8         // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
-    backImg:    Image            // Owned pixel copies, because a later crop or flatten must not race the encoder.
+    modelBytes: Array'u8     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
+    backImg:    Image        // Owned pixel copies, because a later crop or flatten must not race the encoder.
     backOrig:   Image
     preview:    Image
-    failed:     bool             // Set by the worker when producing or replacing the file failed.
+    failed:     bool     // Set by the worker when producing or replacing the file failed.
 }
 
 // The one automatic save in flight. A single slot is deliberate: the automatic save

@@ -700,12 +700,12 @@ impl Slice
 
         // Significance map.
         var indices: [64] u32
-        var count             = 0'u32
-        let sigBase           = CabacSigBase[cat]
-        let lastBase          = CabacLastBase[cat]
-        var scan              = 0'u32
-        var foundLast         = false
-        var arithmetic        = CabacArithmetic{.cabac.low, .cabac.range}
+        var count      = 0'u32
+        let sigBase    = CabacSigBase[cat]
+        let lastBase   = CabacLastBase[cat]
+        var scan       = 0'u32
+        var foundLast  = false
+        var arithmetic = CabacArithmetic{.cabac.low, .cabac.range}
 
         // The 8x8 category maps every scan position through a table while every other category
         // uses the position itself. Choosing once instead of per coefficient keeps the two

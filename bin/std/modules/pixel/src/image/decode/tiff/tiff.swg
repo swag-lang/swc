@@ -214,7 +214,7 @@ internal impl IImageDecoder for Decoder
         checkBuffer(base + ifdOffset, last, cast(u64) 2 + cast(u64) numEntries * 12)
         for i in numEntries
         {
-            let ep       = base + ifdOffset + 2 + cast(u64) i * 12
+            let ep = base + ifdOffset + 2 + cast(u64) i * 12
             var e: Entry
             e.tag     = rd16(ep, le)
             e.type    = rd16(ep + 2, le)

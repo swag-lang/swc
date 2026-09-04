@@ -80,7 +80,7 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     // lp mirrors it for the left edge.
     var tp: [10] s32
     var lp: [6] s32
-    let corner       = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
+    let corner = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
 
     for row in 4'u64 do
         lp[2 + row] = hasLeft ? cast(s32) (dst - 1)[row * stride] : 128
@@ -261,7 +261,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     // Raw references.
     var rawTop:  [16] s32
     var rawLeft: [8] s32
-    let rawCorner         = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
+    let rawCorner = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
     for row in 8'u64 do
         rawLeft[row] = hasLeft ? cast(s32) (dst - 1)[row * stride] : 128
     for column in 8'u64 do
@@ -279,7 +279,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     // Filtered references, with the same two-slot lead-in as the 4x4 arrays.
     var tp: [19] s32
     var lp: [10] s32
-    let corner       = (rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2
+    let corner = (rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2
 
     tp[2] = ((hasTopLeft ? rawCorner : rawTop[0]) + 2 * rawTop[0] + rawTop[1] + 2) >> 2
     for column in 1'u64 until 15 do

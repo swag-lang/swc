@@ -47,8 +47,8 @@ struct SerializationError
 {
     public
     {
-        using base: Swag.BaseError            // Embedded base state.
-        field:      TypeValue     // Can contain the bad field
+        using base: Swag.BaseError     // Embedded base state.
+        field:      TypeValue          // Can contain the bad field
     }
 }
 

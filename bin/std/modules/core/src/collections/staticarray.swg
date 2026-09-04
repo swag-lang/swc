@@ -615,7 +615,7 @@ impl StaticArray
     {
         Debug.assert(.count > 0, "array is empty")
         var result: retval
-        let backIndex      = .count - 1
+        let backIndex = .count - 1
         result = #relocate .buffer[backIndex]
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {

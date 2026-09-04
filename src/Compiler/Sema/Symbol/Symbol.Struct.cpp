@@ -303,7 +303,7 @@ namespace
             return ImplicitDefaultKind::Mixed;
 
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
+        typeRef                  = implicitDefaultStorageTypeRef(sema, typeRef);
 
         if (cst.isEnumValue())
         {

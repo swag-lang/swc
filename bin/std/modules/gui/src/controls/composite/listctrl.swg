@@ -859,7 +859,7 @@ private impl ListView
         var format: RichStringFormat
         for itemIt, idxItem in line.items
         {
-            let item           = itemIt!
+            let item = itemIt!
             var colorFg: Color
             if item.colorFg.a and !isSelected do
                 colorFg = item.colorFg

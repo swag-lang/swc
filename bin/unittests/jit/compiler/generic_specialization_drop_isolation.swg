@@ -301,8 +301,8 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var byString = makeLeakStringTable()
-        var byInt:    LeakTable'(s32, LeakTrackedValue)
-        var byWide:   LeakTable'(LeakWideKey, LeakTrackedValue)
+        var byInt:  LeakTable'(s32, LeakTrackedValue)
+        var byWide: LeakTable'(LeakWideKey, LeakTrackedValue)
 
         byString.put(0, "alpha", 11)
         byInt.put(0, 7, 21)
@@ -352,8 +352,8 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var byString = makeLeakStringTable()
-        var byInt:    LeakTable'(s32, LeakTrackedValue)
-        var byWide:   LeakTable'(LeakWideKey, LeakTrackedValue)
+        var byInt:  LeakTable'(s32, LeakTrackedValue)
+        var byWide: LeakTable'(LeakWideKey, LeakTrackedValue)
 
         byInt.put(0, 1, 41)
         byWide.put(0, makeLeakWideKey(8, 9), 51)
@@ -398,7 +398,7 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var boxedString = makeLeakStringBox()
-        var boxedInt:    LeakBox'(s32, LeakTrackedValue)
+        var boxedInt: LeakBox'(s32, LeakTrackedValue)
 
         boxedString.put(0, "left", 71)
         boxedInt.put(0, 4, 81)
@@ -430,7 +430,7 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var gridString = makeLeakStringGrid()
-        var gridWide:   LeakGrid'(LeakWideKey, LeakTrackedValue)
+        var gridWide: LeakGrid'(LeakWideKey, LeakTrackedValue)
 
         gridString.put(0, 0, "north", 91)
         gridWide.put(0, 0, makeLeakWideKey(12, 13), 101)
@@ -460,7 +460,7 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var byString = makeLeakStringTable()
-        var byInt:    LeakTable'(s32, LeakTrackedValue)
+        var byInt: LeakTable'(s32, LeakTrackedValue)
 
         byString.put(0, "warmup", 111)
         byInt.put(0, 6, 121)

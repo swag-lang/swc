@@ -36,10 +36,10 @@ enum class AstModifierFlagsE : uint32_t
     // the first write after a dead default initialization, so codegen skips the
     // destination drop.
     FirstInit = 1 << 7,
-    Complete      = 1 << 8,
-    Move          = 1 << 10,
-    Relocate      = 1 << 11, // raw relocation: uninitialized target, abandoned source (no reset)
-    Nullable      = 1 << 12,
+    Complete  = 1 << 8,
+    Move      = 1 << 10,
+    Relocate  = 1 << 11, // raw relocation: uninitialized target, abandoned source (no reset)
+    Nullable  = 1 << 12,
     Count,
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;

@@ -68,7 +68,7 @@
 #test
 {
     var a: *s32
-    var v: s32  = 99
+    var v: s32 = 99
     a = &v
     Swag.assert(a[] == 99)
 }

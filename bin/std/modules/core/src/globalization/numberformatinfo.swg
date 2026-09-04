@@ -51,8 +51,8 @@ public impl NumberFormatInfo
     internal mtd const appendUnsigned(result: *String, value: u64, grouped: bool)
     {
         var digits: [20] u8
-        var count           = 0'u64
-        var current         = value
+        var count   = 0'u64
+        var current = value
         while true
         {
             digits[count] = cast(u8) ('0'u8 + current % 10)

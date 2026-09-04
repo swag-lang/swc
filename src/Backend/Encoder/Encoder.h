@@ -147,7 +147,7 @@ protected:
     virtual void encodeOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits)                                                                                    = 0;
     virtual void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOp op, MicroOpBits opBits)                                                             = 0;
     virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)                                                                     = 0;
-    virtual void encodeCompareExchangeRegMemReg(MicroReg reg0, MicroReg memReg, uint64_t memOffset, MicroReg reg2, MicroOpBits opBits)                                                       = 0;
+    virtual void encodeCompareExchangeRegMemReg(MicroReg reg0, MicroReg memReg, uint64_t memOffset, MicroReg reg2, MicroOpBits opBits)                                                     = 0;
     virtual void encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)                                                              = 0;
     virtual void encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, uint64_t value)                                                                 = 0;
     virtual void encodeVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)                                                                                    = 0;

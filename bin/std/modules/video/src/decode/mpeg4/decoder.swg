@@ -875,8 +875,8 @@ impl Decoder
     // Decodes one block and writes its samples, clause 6.3.7.3.
     mtd decodeBlock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32, block: u64, intra, acPred, coded: bool) fail
     {
-        let mbIndex          = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
-        let isLuma           = block < 4
+        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let isLuma  = block < 4
         var levels: [64] s32
         for index in 64'u64 do
             levels[index] = 0

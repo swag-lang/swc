@@ -855,8 +855,8 @@ namespace
         const MicroInstrOperand tail3          = ops[3];
         const MicroInstrOperand tail4          = ops[4];
         const MicroReg          requiredReg    = issue.requiredReg;
-        const bool        mustPreserve   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool        shouldPreserve = mustPreserve && requiredReg != originalReg0;
+        const bool              mustPreserve   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
+        const bool              shouldPreserve = mustPreserve && requiredReg != originalReg0;
         SWC_ASSERT(requiredReg.isValid());
 
         addVirtualForbiddenRegIfNeeded(context, originalReg1, requiredReg);
@@ -969,7 +969,7 @@ namespace
         const MicroInstrOperand tail3        = ops[3];
         const MicroInstrOperand tail4        = ops[4];
         const MicroReg          forbiddenReg = issue.forbiddenReg;
-        const MicroReg    scratchReg   = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+        const MicroReg          scratchReg   = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
         SWC_ASSERT(forbiddenReg.isValid());
         SWC_ASSERT(scratchReg.isValid());
         addVirtualForbiddenReg(context, scratchReg, forbiddenReg);

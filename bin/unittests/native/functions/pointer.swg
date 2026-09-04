@@ -50,7 +50,7 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
     let direct:    Transform = &addTransform
     let alternate: Transform = &scaleTransform
 
-    var holder:      TransformHolder = {cb: &addTransform}
+    var holder:    TransformHolder = {cb: &addTransform}
     let callbacks: [2] Transform   = [&addTransform, alternate]
 
     Swag.assert(direct({base: 10, delta: 2}, 3) == 15)

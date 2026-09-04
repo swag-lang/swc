@@ -14,7 +14,7 @@ struct Pair
 var GScalar: s32
 var GArray:  [3] s32
 var GPair:   Pair
-var GSeeded: s32     = 1
+var GSeeded: s32 = 1
 
 #run
 {

@@ -6,7 +6,7 @@ using Core
 private struct FocusCandidate
 {
     wnd:   *Wnd     // Child being ordered.
-    index: u64                  // Position in the parent's child list, the last tie break.
+    index: u64      // Position in the parent's child list, the last tie break.
 }
 
 // Keyboard traversal stops of one window tree, in the order the eye reads them.

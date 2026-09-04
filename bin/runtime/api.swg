@@ -600,7 +600,7 @@ namespace Swag
             #[Swag.NoDoc]
             runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
             #[Swag.NoDoc]
-            panicStack: [64] #null *void // Native call stack captured before entering a panic hook.
+            panicStack: [64] #null *void     // Native call stack captured before entering a panic hook.
             #[Swag.NoDoc]
             panicStackCount: u32     // Number of valid addresses in panicStack.
         }
@@ -1153,10 +1153,10 @@ namespace Swag
     {
         public
         {
-            moduleName: #null string                    // Name of the module for which the message is sent.
-            name:       #null string                    // Depends on 'kind'
-            type:       #null const *TypeInfo           // Depends on 'kind'
-            kind:       CompilerMsgKind     // Kind of the message
+            moduleName: #null string              // Name of the module for which the message is sent.
+            name:       #null string              // Depends on 'kind'
+            type:       #null const *TypeInfo     // Depends on 'kind'
+            kind:       CompilerMsgKind           // Kind of the message
         }
     }
 

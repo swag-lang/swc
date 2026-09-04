@@ -534,8 +534,8 @@ func freeOne(itf: IAllocator, address: #null *void)
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var blockAddr: #null *void        = null
-        var done:      s32                = 0
+        var blockAddr: #null *void = null
+        var done:      s32         = 0
         var payload:   AllocRetirePayload
         payload.allocator = itf
         payload.out       = &blockAddr
@@ -575,8 +575,8 @@ func freeOne(itf: IAllocator, address: #null *void)
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var blockAddr: #null *void        = null
-        var done:      s32                = 0
+        var blockAddr: #null *void = null
+        var done:      s32         = 0
         var payload:   AllocRetirePayload
         payload.allocator = itf
         payload.out       = &blockAddr

@@ -1680,9 +1680,9 @@ namespace
 
     struct EarlyReturn
     {
-        MicroInstrRef flagsRef    = MicroInstrRef::invalid();
-        MicroInstrRef jumpRef     = MicroInstrRef::invalid();
-        MicroInstrRef labelRef    = MicroInstrRef::invalid();
+        MicroInstrRef flagsRef = MicroInstrRef::invalid();
+        MicroInstrRef jumpRef  = MicroInstrRef::invalid();
+        MicroInstrRef labelRef = MicroInstrRef::invalid();
         ReturnPath    arm;
         ReturnPath    tail;
         MicroCond     moveCond    = MicroCond::Unconditional;
@@ -1916,7 +1916,7 @@ namespace
         if (candidates.empty())
             return false;
 
-        bool     changed                 = false;
+        bool     changed                = false;
         uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         for (const EarlyReturn& earlyReturn : candidates)
         {

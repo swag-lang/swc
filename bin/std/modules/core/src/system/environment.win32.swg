@@ -613,4 +613,15 @@ public impl Window
         ShowWindow(.win32Handle(), SW_SHOW)
         try UpdateWindow(.win32Handle())
     }
+
+    // Far enough from every monitor that no desktop arrangement can bring the window into view.
+    const OffScreenOrigin = -32000
+
+    internal mtd showOffScreenNative() fail
+    {
+        let hWnd = .win32Handle()
+        try SetWindowPos(hWnd, HWND_BOTTOM, OffScreenOrigin, OffScreenOrigin, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+        ShowWindow(hWnd, SW_SHOWNOACTIVATE)
+        try UpdateWindow(hWnd)
+    }
 }

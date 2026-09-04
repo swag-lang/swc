@@ -162,6 +162,26 @@ impl Window
 
         try .showNative()
     }
+
+    // Realizes the window without putting it in front of the user.
+    //
+    // The window is placed outside the visible desktop and shown without taking activation, so
+    // its drawable is complete — which is what a graphics context needs before it can render and
+    // read back — while nothing appears on screen and nothing steals the focus. A headless check
+    // that needs a real drawable asks for this instead of [[Core.Env.Window.show]].
+    mtd showOffScreen() fail
+    {
+        if .isOpen() do
+            .rebindNative()
+        if .callbacks.onResize
+        {
+            let {width, height} = try .clientSizeNative()
+            let onResize        = .callbacks.onResize!
+            onResize(me, width, height)
+        }
+
+        try .showOffScreenNative()
+    }
 }
 
 // Creates and owns a top-level application window.

@@ -188,7 +188,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     let popup = prop.stylePopup!
     Swag.assert(popup.selectedIndex == cast(u32) LineCapStyle.SquareAnchor)
     Swag.assert(popup.items.count == LineCapStyle.count)
-    Swag.assert(popup.reserveSelectionMark)
+    Swag.assert(popup.markSelectionOnly)
     Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
 
     let view  = popup.scrollWnd.view!
@@ -221,7 +221,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     let dashButton = testFindStyleButton(prop, appStrings().ui_PropDash)!
     prop.createPopupDashStyle(dashButton)
     let popup = prop.stylePopup!
-    Swag.assert(popup.reserveSelectionMark)
+    Swag.assert(popup.markSelectionOnly)
 
     // Every style but `Pattern`, which takes its lengths from the pen and has nothing to show.
     Swag.assert(popup.items.count == DashStyle.count - 1)

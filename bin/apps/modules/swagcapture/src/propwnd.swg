@@ -323,10 +323,10 @@ impl PropWnd
 
     // Opens the list a style cell owns, or closes the one already open.
     //
-    // The entries are samples of a stroke, and the selected one is marked in a lane reserved
-    // beside them instead of by filling its row: an accent ground behind a sample that is itself
-    // a horizontal line reads as a second, much louder line, and the row stops showing the value
-    // it exists to show. Answers null when the call closed the open list rather than opening one.
+    // The entries are samples of a stroke, and the current one is said by the mark leading its
+    // row rather than by filling it: an accent ground behind a sample that is itself a horizontal
+    // line reads as a second, much louder line, and the row stops showing the value it exists to
+    // show. Answers null when the call closed the open list rather than opening one.
     mtd createStylePopup(btn: *IconButton, rowHeight, width: f32)->#null *PopupListCtrl
     {
         if .stylePopup
@@ -336,11 +336,11 @@ impl PropWnd
         }
 
         let popup = PopupListCtrl.create(cast(*Wnd) btn)
-        .stylePopup                = popup
-        popup.itemHeight           = rowHeight
-        popup.minimumWidth         = width
-        popup.fitVertically        = true
-        popup.reserveSelectionMark = true
+        .stylePopup             = popup
+        popup.itemHeight        = rowHeight
+        popup.minimumWidth      = width
+        popup.fitVertically     = true
+        popup.markSelectionOnly = true
         return popup
     }
 
@@ -395,9 +395,8 @@ impl PropWnd
         popup.show(rect.x, rect.bottom(), PopupCapWidth)
     }
 
-    // The dash chooser lists one sample of the stroke per style, marked the way the line ends
-    // are: a filled row behind a sample that is itself a dashed line hid the very thing the row
-    // is showing.
+    // The dash chooser lists one sample of the stroke per style, marked the way the line ends are:
+    // a filled row behind a sample that is itself a dashed line hid the very thing the row shows.
     mtd createPopupDashStyle(btn: *IconButton)
     {
         let popup = .createStylePopup(btn, PopupRowHeight, PopupDashWidth)

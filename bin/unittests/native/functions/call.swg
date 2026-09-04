@@ -191,7 +191,7 @@ namespace compiler1661
 
     #test
     {
-        var addr1: *TT?      = null
+        var addr1: *TT?        = null
         var addr:  [1] *(*TT?) = [&addr1]
         var value: TT
 
@@ -964,7 +964,7 @@ namespace compiler310
     {
         g = false; Swag.assert(g == false)
         g = true; Swag.assert(g == true)
-    // Swag.print(g);
+        // Swag.print(g);
     }
 }
 
@@ -979,7 +979,7 @@ namespace compiler322
         var c: *s32 = b
         c = b; Swag.assert(b[] == 666)
         Swag.assert(c[] == 666)
-    /*Swag.assert(a == 1);
+        /*Swag.assert(a == 1);
     	b[0] = 666;
 	Swag.assert(a == 666);*/
     }

@@ -76,7 +76,7 @@ func walkInsideBuffer()->s32
 // the element address cannot silently become a walk.
 func elementAddressIsSingleObject()->s32
 {
-    var values = [10, 20, 30]
+    var values  = [10, 20, 30]
     let pointer = &values[1]
     #assert(#typeof(pointer) == *s32)
     return pointer[]

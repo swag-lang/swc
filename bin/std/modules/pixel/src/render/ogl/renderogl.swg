@@ -739,7 +739,7 @@ impl RenderOgl
 
     internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
     {
-    // Swag.print(cast(cstring) (Message));
+        // Swag.print(cast(cstring) (Message));
     }
 
     // Initializes OpenGL extensions, built-in shaders, buffers, and hatch textures.

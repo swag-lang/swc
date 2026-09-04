@@ -224,8 +224,8 @@ enum class AstVarStorageFlagsE : uint8_t
 // ----------------------------------------------------------------------------
 struct AstVarDeclBase
 {
-    AstNodeRef nodeTypeRef;
-    AstNodeRef nodeInitRef;
+    AstNodeRef                     nodeTypeRef;
+    AstNodeRef                     nodeInitRef;
     EnumFlags<AstVarStorageFlagsE> storageFlags;
 
     bool hasStorageFlag(AstVarStorageFlagsE flag) const { return storageFlags.has(flag); }

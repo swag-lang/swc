@@ -9,7 +9,7 @@ They allow flexibility in cases where the number of arguments is not known in ad
 {
     func myFunction(value: bool, parameters: ...)
     {
-    // This function can accept any number of extra arguments after 'value'.
+        // This function can accept any number of extra arguments after 'value'.
     }
 
     myFunction(true, 4, "true", 5.6)     // Passes extra arguments after 'value'

@@ -83,7 +83,7 @@ AstNodeRef Parser::parseSingleType()
 
         case TokenId::SymLeftParen:
         {
-            const TokenRef openRef = consume();
+            const TokenRef   openRef = consume();
             const AstNodeRef typeRef = parseType();
             if (expectAndConsumeClosing(TokenId::SymRightParen, openRef).isInvalid())
                 return AstNodeRef::invalid();

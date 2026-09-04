@@ -439,7 +439,7 @@ to point somewhere else; `let` is what makes a pointer itself immutable.
     let str            = "string"
     let ptr: const *u8 = str.buffer
     Swag.assert(ptr[] == 's')     // Reading through the pointer is fine,
-// but assigning to 'ptr[]' would be rejected
+    // but assigning to 'ptr[]' would be rejected
 }
 
 /**

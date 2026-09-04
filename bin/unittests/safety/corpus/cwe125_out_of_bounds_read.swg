@@ -30,7 +30,7 @@ func readArray(index: u64)->s32
 #[Swag.Safety(.BoundCheck, true)]
 func readSlice(index: u64)->s32
 {
-    var storage         = [10, 20, 30]
+    var storage        = [10, 20, 30]
     let view: [..] s32 = storage
     return view[index]     // swc-expected-error {{safety_err_runtime}}
 }
@@ -56,7 +56,7 @@ func readString(index: u64)->u8
 #[Swag.Safety(.BoundCheck, true)]
 func sliceBeyondEnd(last: u64)->s32
 {
-    var storage         = [10, 20, 30]
+    var storage        = [10, 20, 30]
     let view: [..] s32 = storage[0 to last]     // swc-expected-error {{safety_err_runtime}}
     return view[0]
 }

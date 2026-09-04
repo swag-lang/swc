@@ -26,7 +26,7 @@ namespace SemaSwitch
     // arm provides it for anything. The payload only records the default of a switch that has
     // an expression, so the expressionless form - a case with neither a match expression nor a
     // 'where' guard - is recognized structurally.
-    bool    alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt);
+    bool alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt);
 }
 
 struct SwitchPayload

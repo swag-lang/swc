@@ -209,8 +209,8 @@ impl Image
             let inv = 1.0 - e
             D[i] = Math.pow(inv, 0.75)
 
-        // or exponential alternative (commented):
-        // D[i] = Math.exp(-EDGE_DIST_SCALE * e)
+            // or exponential alternative (commented):
+            // D[i] = Math.exp(-EDGE_DIST_SCALE * e)
         }
 
         return D

@@ -24,7 +24,7 @@ func readAfterFree()->s32
     let pointer = cast(*s32) heapAlloc(4)
     pointer[] = 1
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return pointer[]     // swc-expected-error {{sanity_err_use_after_free}}
+    return pointer[]         // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -37,7 +37,7 @@ func writeAfterFree()
 {
     let pointer = cast(*s32) heapAlloc(4)
     heapFree(pointer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    pointer[] = 2     // swc-expected-error {{sanity_err_use_after_free}}
+    pointer[] = 2            // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -61,7 +61,7 @@ func readAfterWrappedFree()->s32
 {
     let pointer = cast(*s32) heapAlloc(4)
     releaseWrapper(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return pointer[]     // swc-expected-error {{sanity_err_use_after_free}}
+    return pointer[]            // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -82,9 +82,9 @@ struct Node
 #[Swag.Sanity(.Lifecycle, true)]
 func readFieldAfterFree()->s32
 {
-    let node    = cast(*Node) heapAlloc(8)
+    let node = cast(*Node) heapAlloc(8)
     node.second = 1
-    heapFree(node, 8)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    heapFree(node, 8)      // swc-expected-note {{sanity_note_pointer_released_here}}
     return node.second     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
@@ -128,7 +128,7 @@ func writeElementAfterFree(index: u64)
 {
     let block = cast([*] s32) heapAlloc(16)
     heapFree(block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    block[index] = 1     // swc-expected-error {{sanity_err_use_after_free}}
+    block[index] = 1        // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -143,7 +143,7 @@ func readAfterCastFree(index: u64)->s32
 {
     let block = cast([*] s32) heapAlloc(16)
     heapFree(cast(*void) block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return block[index]     // swc-expected-error {{sanity_err_use_after_free}}
+    return block[index]                 // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -171,7 +171,7 @@ func reassignedAfterFree()->s32
 {
     var pointer = cast(*s32) heapAlloc(4)
     heapFree(pointer, 4)
-    pointer = cast(*s32) heapAlloc(4)
+    pointer   = cast(*s32) heapAlloc(4)
     pointer[] = 7
     let value = pointer[]
     heapFree(pointer, 4)

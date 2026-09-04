@@ -58,7 +58,7 @@ func viewWithOwnCount(index: u64)->u8
 func viewFromSizedValue()->s64
 {
     var storage: [4] u8
-    let view: [..] u8 = storage
+    let view:    [..] u8 = storage
     return view.count
 }
 

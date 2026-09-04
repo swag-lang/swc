@@ -41,7 +41,7 @@ in 'release', where the runtime guard is off.
     var i = 5
     arr[0] = i
 
-// let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)
+    // let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)
 }
 
 /**
@@ -95,8 +95,8 @@ again.
     p[] = 1
     exampleFree(p, 4)
 
-// let x = p[]       // Uncomment: error, use of a freed pointer (proven)
-// exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
+    // let x = p[]       // Uncomment: error, use of a freed pointer (proven)
+    // exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
 }
 
 /**

@@ -87,10 +87,10 @@ func day8A()
         {
             total += screen[x, y] ? 1 : 0
 
-        // Swag.print(screen[x, y] ? "X" : ".")
+            // Swag.print(screen[x, y] ? "X" : ".")
         }
 
-    // Swag.print("\n")
+        // Swag.print("\n")
     }
 
     Swag.assert(total == 116)

@@ -267,10 +267,10 @@ AstNodeRef Parser::parseAggregateDecl()
 
 AstNodeRef Parser::parseAggregateBody()
 {
-    const TokenRef savedAccessModifierRef = aggregateAccessModifierRef_;
-    const TokenRef savedReadOnlyRef       = aggregateReadOnlyRef_;
+    const TokenRef                       savedAccessModifierRef    = aggregateAccessModifierRef_;
+    const TokenRef                       savedReadOnlyRef          = aggregateReadOnlyRef_;
     const EnumFlags<AstVarStorageFlagsE> savedTopLevelStorageFlags = topLevelStorageFlags_;
-    const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = aggregateStorageFlags_;
+    const EnumFlags<AstVarStorageFlagsE> savedStorageFlags         = aggregateStorageFlags_;
     aggregateAccessModifierRef_.setInvalid();
     aggregateReadOnlyRef_.setInvalid();
     topLevelStorageFlags_.clear();

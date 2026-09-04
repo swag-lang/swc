@@ -99,7 +99,7 @@ private:
 
     static PointerOrigin takePointerOrigin(const SanitizerState& state, MicroReg reg);
     static void          applyPointerOrigin(SanitizerState& state, MicroReg reg, const PointerOrigin& origin);
-    bool                           resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const;
+    bool                 resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const;
 
     // Join + propagation.
     void        propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist);

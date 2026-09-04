@@ -55,7 +55,7 @@ struct S
 {
     const Cfg = #run Swag.compiler().getBuildCfg()![]
     #assert(#typeof(Cfg) == Swag.BuildCfg)
-// const toto = #run Swag.compiler().compileString("toto")
+    // const toto = #run Swag.compiler().compileString("toto")
 }
 
 #test

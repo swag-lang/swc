@@ -18,8 +18,8 @@ func addOne(value: s32)->s32 => value + 1
 
 func semaTest001()
 {
-    let fromLambda:   ClosureUnary         = func(value: s32)->s32 { return value + 10 }
-    let fromFunction: ClosureUnary         = &addOne
+    let fromLambda:   ClosureUnary    = func(value: s32)->s32 { return value + 10 }
+    let fromFunction: ClosureUnary    = &addOne
     var nullable:     ClosureNullary? = null
 
     #assert(#typeof(fromLambda) == ClosureUnary)

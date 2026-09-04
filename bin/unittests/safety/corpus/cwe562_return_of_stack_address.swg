@@ -98,7 +98,7 @@ func escapeInnerScope()->s32
     var pointer: *s32?
     {
         var value = 42's32
-        pointer   = &value     // swc-expected-error {{sanity_err_borrow_scope_escape}}
+        pointer = &value     // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
 
     return pointer![]
@@ -140,7 +140,7 @@ impl ViewBag
         if .slots == null do
             .slots = cast([*] (*s32?)) heapAlloc(4 * 8)
         .slots![.count] = pointer
-        .count += 1
+        .count          += 1
     }
 }
 

@@ -32,15 +32,15 @@ const RELEASE = 0
 
 #static if DEBUG
 {
-// Compiled because DEBUG == 1.
+    // Compiled because DEBUG == 1.
 }
 elif RELEASE
 {
-// Would compile if RELEASE were true and DEBUG were false.
+    // Would compile if RELEASE were true and DEBUG were false.
 }
 else
 {
-// Compiled if neither DEBUG nor RELEASE is true.
+    // Compiled if neither DEBUG nor RELEASE is true.
 }
 
 /**

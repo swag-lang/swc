@@ -564,11 +564,11 @@ namespace
 
     struct SemaPostVarDeclArgs
     {
-        const AstNode*              owner;
-        TokenRef                    tokDiag;
-        AstNodeRef                  nodeInitRef;
-        AstNodeRef                  nodeTypeRef;
-        EnumFlags<AstVarDeclFlagsE> flags;
+        const AstNode*                 owner;
+        TokenRef                       tokDiag;
+        AstNodeRef                     nodeInitRef;
+        AstNodeRef                     nodeTypeRef;
+        EnumFlags<AstVarDeclFlagsE>    flags;
         EnumFlags<AstVarStorageFlagsE> storageFlags;
     };
 

@@ -49,7 +49,7 @@ func leakOnOnePath(release: bool)
 func leakByOverwrite()
 {
     var pointer = cast(*s32) heapAlloc(4)
-    pointer     = cast(*s32) heapAlloc(4)
+    pointer = cast(*s32) heapAlloc(4)
     heapFree(pointer, 4)
     // the first block is unreachable and unreleased: not reported
 }
@@ -115,7 +115,7 @@ impl TidyOwner
 func ownerReleasesOnDrop()->s32
 {
     var owner: TidyOwner
-    owner.pointer  = cast(*s32) heapAlloc(4)
+    owner.pointer    = cast(*s32) heapAlloc(4)
     owner.pointer![] = 5
     return owner.pointer![]
 }

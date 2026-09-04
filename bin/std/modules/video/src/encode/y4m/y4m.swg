@@ -56,10 +56,8 @@ impl IEncoder for Encoder
         // be read at the wrong stride and with the wrong channel meaning.
         switch image.pixelFormat
         {
-        case .RGB8, .RGBA8, .BGR8, .BGRA8:
-            break
-        default:
-            fail UnsupportedFormatError{"Y4M frames need an interleaved 8-bit RGB or BGR image"}
+        case .RGB8, .RGBA8, .BGR8, .BGRA8: break
+        default: fail UnsupportedFormatError{"Y4M frames need an interleaved 8-bit RGB or BGR image"}
         }
 
         let planeSize = cast(u64) .info.width * cast(u64) .info.height

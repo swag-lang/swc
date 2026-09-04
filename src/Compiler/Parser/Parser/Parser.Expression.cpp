@@ -995,7 +995,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
             {
                 auto [nullableRef, nullablePtr] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
-                nullablePtr->nodeTypeRef         = nodeRef;
+                nullablePtr->nodeTypeRef        = nodeRef;
                 nullablePtr->addFlag(AstQualifiedTypeFlagsE::Nullable);
                 nodeRef = nullableRef;
             }

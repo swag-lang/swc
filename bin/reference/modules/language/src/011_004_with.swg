@@ -22,7 +22,7 @@ impl Point
     {
         me.x, me.y = 1
 
-    // Set both coordinates to 1 on this Point.
+        // Set both coordinates to 1 on this Point.
     }
 }
 

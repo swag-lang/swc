@@ -112,7 +112,7 @@ impl SmallVec
         // .ptr still references the source's inline storage -- fix it.
         if .isInline() do
             .ptr = cast([*] s32) &.inline[0]
-    // Heap: ptr already points at the heap buffer, nothing to fix.
+        // Heap: ptr already points at the heap buffer, nothing to fix.
     }
 
     // Build from an initializer count: `var v: SmallVec = 3` fills with zeros.
@@ -329,7 +329,7 @@ impl SmallVec
     Swag.assert(e.at(0) == 1)
     Swag.assert(e.at(3) == 4)
 
-// All variables drop at end-of-scope: d frees heap, e frees nothing (inline).
+    // All variables drop at end-of-scope: d frees heap, e frees nothing (inline).
 }
 
 // ---------------------------------------------------------------------------

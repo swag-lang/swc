@@ -68,7 +68,7 @@ func guardedResults()->bool
     ok = ok and opaqueU(10) % opaqueU(3) == 1
     var acc = opaque(100)
     acc /= opaque(7)
-    ok = ok and acc == 14
+    ok  = ok and acc == 14
     return ok
 }
 

@@ -57,8 +57,8 @@ func fieldsStartAtZero()->s32
 {
     var point: Point
     let before = point.x + point.y
-    point.x    = 1
-    point.y    = 2
+    point.x = 1
+    point.y = 2
     return before + point.x + point.y
 }
 

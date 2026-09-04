@@ -42,7 +42,7 @@ func proofDroppedByReassignment(first, second: *Node?)->s32
         return -1
     let before = first.value
     var node   = first
-    node       = second
+    node = second
     return before + node.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 

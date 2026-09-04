@@ -1303,8 +1303,8 @@ namespace
 
                 case AstNodeId::RelationalExpr:
                 {
-                    const auto& relational = node.cast<AstRelationalExpr>();
-                    const TokenId op        = tokenIdOf(node, TokenId::Invalid);
+                    const auto&   relational = node.cast<AstRelationalExpr>();
+                    const TokenId op         = tokenIdOf(node, TokenId::Invalid);
                     if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
                     {
                         // Promotion casts the null literal to its counterpart's type before

@@ -70,7 +70,7 @@ before the code element. Multiple attributes are comma-separated.
 #[AttributeA, AttributeB(0, 0, "string")]
 func function1()
 {
-// Function annotated with multiple attributes
+    // Function annotated with multiple attributes
 }
 
 /**
@@ -87,13 +87,13 @@ attr AttributeD(x: s32)
 #[AttributeD(6)]
 func function2()
 {
-// Function annotated with a multi-usage attribute
+    // Function annotated with a multi-usage attribute
 }
 
 #[AttributeD(150)]
 struct struct1
 {
-// Struct annotated with the same attribute
+    // Struct annotated with the same attribute
 }
 
 /**

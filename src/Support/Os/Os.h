@@ -133,16 +133,16 @@ namespace Os
     // delivered on the very stack that ran out, so a reporter that needs a frame of its own
     // faults again and the process dies with no message at all. Every thread that can run
     // user code has to claim its reserve before it starts.
-    void        reserveFaultHandlerStack();
-    uint32_t    currentProcessId();
-    uint32_t    currentThreadId();
-    uint32_t    captureCallStack(std::span<uintptr_t> outFrames, uint32_t skipFrames = 0);
-    bool        resolveAddress(ResolvedAddress& outAddress, uintptr_t address, const TaskContext* ctx = nullptr);
-    size_t      peakProcessMemoryUsage();
-    void        decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers);
-    void        appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers);
-    void        appendHostCpuContext(Utf8& outMsg, const void* platformExceptionPointers);
-    void        appendHostHandlerStack(Utf8& outMsg, const void* platformExceptionPointers, const TaskContext* ctx = nullptr);
+    void     reserveFaultHandlerStack();
+    uint32_t currentProcessId();
+    uint32_t currentThreadId();
+    uint32_t captureCallStack(std::span<uintptr_t> outFrames, uint32_t skipFrames = 0);
+    bool     resolveAddress(ResolvedAddress& outAddress, uintptr_t address, const TaskContext* ctx = nullptr);
+    size_t   peakProcessMemoryUsage();
+    void     decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers);
+    void     appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers);
+    void     appendHostCpuContext(Utf8& outMsg, const void* platformExceptionPointers);
+    void     appendHostHandlerStack(Utf8& outMsg, const void* platformExceptionPointers, const TaskContext* ctx = nullptr);
 }
 
 #ifdef _WIN32

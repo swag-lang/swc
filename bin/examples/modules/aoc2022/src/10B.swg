@@ -155,7 +155,7 @@ func day10B()
         }
     }
 
-/*var i = 0
+    /*var i = 0
     for 6
     {
         for 40

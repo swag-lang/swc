@@ -50,7 +50,7 @@ func heapReadInRange()->u8
 {
     let block = cast([*] u8) heapAlloc(8)
     let view  = Swag.makeSlice(block, 8)
-    view[0]   = 42
+    view[0] = 42
     let value = view[0]
     heapFree(block, 8)
     return value

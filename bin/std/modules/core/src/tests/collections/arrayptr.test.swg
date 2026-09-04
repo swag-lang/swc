@@ -128,7 +128,7 @@ impl ApTracked
     let c1 = arr[1]!
     Swag.assert(c1.id == 99)
 
-// The 3 remaining elements are deallocated when 'arr' drops at scope end.
+    // The 3 remaining elements are deallocated when 'arr' drops at scope end.
 }
 
 var g_ApTotal: u64

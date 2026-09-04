@@ -71,7 +71,7 @@ namespace compiler1505
     func set(x: string)
     {
         Swag.assert(x == "inside function set")
-    // Swag.print(x)
+        // Swag.print(x)
     }
 
     #test
@@ -91,7 +91,7 @@ namespace compiler1506
     func set(x: string)
     {
         Swag.assert(x == "inside function set")
-    // Swag.print(x)
+        // Swag.print(x)
     }
 
     #test
@@ -141,10 +141,10 @@ namespace compiler1665
         ptr2.x = 100
         Swag.assert(ptr1.x == 456)
 
-    /*Swag.print(Swag.kindOf(x[0]).name); Swag.print("\n")
+        /*Swag.print(Swag.kindOf(x[0]).name); Swag.print("\n")
         Swag.print(#typeof(ptr1).name); Swag.print("\n")
         Swag.print(#typeof(ptr2).name); Swag.print("\n")*/
-    // ptr1.value = 0
+        // ptr1.value = 0
     }
 
     // Variadic cast preserves original struct values
@@ -169,9 +169,9 @@ namespace compiler1667
 
     func C(x: ...)
     {
-    // Swag.print(#typeof(x[0]).name)
-    // var ptr1 = cast(const TT) x[0]
-    // ptr1.value = 456
+        // Swag.print(#typeof(x[0]).name)
+        // var ptr1 = cast(const TT) x[0]
+        // ptr1.value = 456
     }
 
     // Variadic with struct keeps default value

@@ -41,7 +41,7 @@ guards their negative signed counts.
 {
     var x = 255'u8
 
-// x += 1  // Uncomment to see overflow panic
+    // x += 1  // Uncomment to see overflow panic
 }
 
 /**
@@ -129,8 +129,8 @@ Swag panics if a cast from 'any' to another type is invalid.
     let x: any = "1"
     let y      = cast(string) x
 
-// var z = cast(s32) x  // Would panic: underlying type mismatch
-// Swag.assert(z == 0)
+    // var z = cast(s32) x  // Would panic: underlying type mismatch
+    // Swag.assert(z == 0)
 }
 
 /**
@@ -150,7 +150,7 @@ Swag panics if an index is out of range when dereferencing sized values
     var x   = [0, 1, 2]
     var idx = 10
 
-// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
+    // Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
 
 /**
@@ -165,7 +165,7 @@ Indexing a slice is checked for bounds.
     Swag.assert(x[idx] == 1)
     idx += 9
 
-// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
+    // Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
 
 /**
@@ -177,8 +177,8 @@ Slice operations are checked for bounds.
 {
     var x: const [..] s32 = [0, 1, 2]
 
-// var slice = x[1 to 4]   // Would panic: out-of-bounds
-// Swag.assert(slice[0] == 1)
+    // var slice = x[1 to 4]   // Would panic: out-of-bounds
+    // Swag.assert(slice[0] == 1)
 }
 
 #test
@@ -186,8 +186,8 @@ Slice operations are checked for bounds.
     var x   = "string"
     var idx = 10
 
-// var slice = x[0 to idx] // Would panic: out-of-bounds
-// Swag.assert(slice[0] == 's')
+    // var slice = x[0 to idx] // Would panic: out-of-bounds
+    // Swag.assert(slice[0] == 's')
 }
 
 /**
@@ -215,7 +215,7 @@ of the sliced value panics under '.BoundCheck'.
     Swag.assert(sumRange(2, 2) == 0)
     Swag.assert(sumRange(0, 4) == 0 + 1 + 2 + 3)
 
-// Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound
+    // Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound
 }
 
 /**
@@ -240,8 +240,8 @@ no longer provably zero, so whichever layer is enabled is the one that speaks.
     var divisor = 2's32
     Swag.assert(value / divisor == 5)
 
-// divisor = 0
-// Swag.print(value / divisor)  // Would panic: division by zero
+    // divisor = 0
+    // Swag.print(value / divisor)  // Would panic: division by zero
 }
 
 /**
@@ -251,13 +251,13 @@ Swag validates arguments for several math intrinsics and panics if invalid.
 */
 #test
 {
-// Swag.abs(-128)        // Invalid for abs on this target
-// Swag.log(-2'f32)      // Invalid: log of negative
-// Swag.log2(-2'f32)     // Invalid: log2 of negative
-// Swag.log10(2'f64)     // Example: implementation-specific constraints
-// Swag.sqrt(-2'f32)     // Invalid: sqrt of negative
-// Swag.asin(-2'f32)     // Invalid: asin out of range
-// Swag.acos(2'f32)      // Invalid: acos out of range
+    // Swag.abs(-128)        // Invalid for abs on this target
+    // Swag.log(-2'f32)      // Invalid: log of negative
+    // Swag.log2(-2'f32)     // Invalid: log2 of negative
+    // Swag.log10(2'f64)     // Example: implementation-specific constraints
+    // Swag.sqrt(-2'f32)     // Invalid: sqrt of negative
+    // Swag.asin(-2'f32)     // Invalid: asin out of range
+    // Swag.acos(2'f32)      // Invalid: acos out of range
 }
 
 /**
@@ -306,7 +306,7 @@ Swag panics if a 'bool' is not 'true' (1) or 'false' (0).
 {
     var b: u8 = 2
 
-// if b { }  // Would panic: invalid boolean value
+    // if b { }  // Would panic: invalid boolean value
 }
 
 /**

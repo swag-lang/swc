@@ -262,8 +262,8 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         // Remove v from current clique
         state.curSize -= 1
 
-    // Move v from candidates to excluded
-    // (we iterate over a copy, so just add to excluded)
+        // Move v from candidates to excluded
+        // (we iterate over a copy, so just add to excluded)
     }
 }
 

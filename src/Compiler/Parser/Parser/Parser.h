@@ -61,24 +61,24 @@ public:
     static void finalizeAutoInlineCandidates(std::span<Ast* const> moduleAsts);
 
 private:
-    ParserContextFlags contextFlags_                   = ParserContextFlagsE::Zero;
-    TaskContext*       ctx_                            = nullptr;
-    Ast*               ast_                            = nullptr;
-    const Token*       firstToken_                     = nullptr;
-    const Token*       curToken_                       = nullptr;
-    const Token*       lastToken_                      = nullptr;
-    uint32_t           depthParen_                     = 0;
-    uint32_t           depthBracket_                   = 0;
-    uint32_t           depthCurly_                     = 0;
-    uint32_t           closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
-    uint32_t           closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
-    uint32_t           closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
-    TokenRef           lastErrorToken_                 = TokenRef::invalid();
-    TokenRef           topLevelAccessRef_              = TokenRef::invalid();
-    EnumFlags<AstVarStorageFlagsE> topLevelStorageFlags_ = AstVarStorageFlagsE::Zero;
-    TokenRef           aggregateAccessModifierRef_     = TokenRef::invalid();
-    TokenRef           aggregateReadOnlyRef_           = TokenRef::invalid();
-    EnumFlags<AstVarStorageFlagsE> aggregateStorageFlags_ = AstVarStorageFlagsE::Zero;
+    ParserContextFlags             contextFlags_                   = ParserContextFlagsE::Zero;
+    TaskContext*                   ctx_                            = nullptr;
+    Ast*                           ast_                            = nullptr;
+    const Token*                   firstToken_                     = nullptr;
+    const Token*                   curToken_                       = nullptr;
+    const Token*                   lastToken_                      = nullptr;
+    uint32_t                       depthParen_                     = 0;
+    uint32_t                       depthBracket_                   = 0;
+    uint32_t                       depthCurly_                     = 0;
+    uint32_t                       closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
+    uint32_t                       closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
+    uint32_t                       closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
+    TokenRef                       lastErrorToken_                 = TokenRef::invalid();
+    TokenRef                       topLevelAccessRef_              = TokenRef::invalid();
+    EnumFlags<AstVarStorageFlagsE> topLevelStorageFlags_           = AstVarStorageFlagsE::Zero;
+    TokenRef                       aggregateAccessModifierRef_     = TokenRef::invalid();
+    TokenRef                       aggregateReadOnlyRef_           = TokenRef::invalid();
+    EnumFlags<AstVarStorageFlagsE> aggregateStorageFlags_          = AstVarStorageFlagsE::Zero;
 
     FwdParseMode fwdPassMode_     = FwdParseMode::Copy; // variant emitted by the current statement pass
     FwdParseMode fwdCurMode_      = FwdParseMode::Copy; // mode of the innermost '#fwd'-declaring function

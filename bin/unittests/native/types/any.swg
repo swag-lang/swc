@@ -99,5 +99,5 @@ enum A { B = 1 }
     Swag.assert(Swag.kindOf(a) == s32)
     var b = cast(s32) a
     Swag.assert(b == 1)
-// Swag.print(b)
+    // Swag.print(b)
 }

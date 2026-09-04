@@ -54,7 +54,7 @@ impl Bag
         if .count == .capacity do
             .grow()
         .buffer![.count] = value
-        .count += 1
+        .count           += 1
     }
 
     // Hands out a view INTO the payload, which is what goes stale.
@@ -70,9 +70,9 @@ func readViewAfterGrowth()->s32
     var bag: Bag
     bag.add(1)
 
-    let view = bag.view()          // swc-expected-note {{sema_note_borrow_taken_here}}
-    bag.add(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
-    return view[0]                 // swc-expected-note {{sema_note_borrow_read_here}}
+    let view = bag.view()     // swc-expected-note {{sema_note_borrow_taken_here}}
+    bag.add(2)                // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]            // swc-expected-note {{sema_note_borrow_read_here}}
 }
 
 // The same rule inside a loop is iterator invalidation.
@@ -83,8 +83,8 @@ func mutateWhileIterating()->s32
     bag.add(2)
 
     var total = 0's32
-    let view  = bag.view()          // swc-expected-note {{sema_note_borrow_taken_here}}
-    for value in view              // swc-expected-note {{sema_note_borrow_read_here}}
+    let view  = bag.view()     // swc-expected-note {{sema_note_borrow_taken_here}}
+    for value in view          // swc-expected-note {{sema_note_borrow_read_here}}
     {
         total += value
         bag.add(value)     // swc-expected-error {{sanity_err_borrow_invalidated}}

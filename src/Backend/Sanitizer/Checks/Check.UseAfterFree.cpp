@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Checks/Check.UseAfterFree.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Report/Diagnostic.h"
@@ -45,15 +46,16 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         return;
     }
 
-    // Dereferencing a pointer reloaded from a freed slot. Address computations
-    // ('lea') are not dereferences.
-    if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
-        return;
-    if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+    // Dereferencing a pointer reloaded from a freed slot, whatever shape the access takes.
+    // Reading a FIELD of a freed object, or an ELEMENT of a freed buffer, is what a real
+    // use-after-free almost always looks like, and the indexed forms carry no base+offset
+    // flag: asking the table alone would answer only for a plain dereference.
+    uint8_t baseOperandIndex = 0;
+    if (!MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst.op, def))
         return;
 
-    const SanitizerRegInfo* baseInfo = Sanitizer::regInfo(state, ops[def.memBaseOperandIndex].reg);
-    const auto              freed    = baseInfo && baseInfo->hasOriginSlot ? state.freedPtrSlots.find(baseInfo->originSlot) : state.freedPtrSlots.end();
+    const SanitizerRegInfo* baseInfo = Sanitizer::regInfo(state, ops[baseOperandIndex].reg);
+    const auto              freed    = baseInfo && baseInfo->hasPointerOriginSlot ? state.freedPtrSlots.find(baseInfo->pointerOriginSlot) : state.freedPtrSlots.end();
     if (freed != state.freedPtrSlots.end())
         sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
 }

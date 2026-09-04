@@ -71,34 +71,85 @@ func readAfterWrappedFree()->s32
 
 // --- Known misses ---
 
-// GAP compiler.safety.003 - an offset read after the free is not judged: the check only
-// looks at a plain dereference, not at a base+offset or an indexed load. This is the shape
-// almost every real use-after-free has, since a freed object is usually read through a
-// field or an element. Left commented because it really does read released memory.
-//
-// struct Node { first, second: s32 }
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func readFieldAfterFree()->s32
-// {
-//     let node = cast(*Node) heapAlloc(8)
-//     node.second = 1
-//     heapFree(node, 8)
-//     return node.second     // expected: sanity_err_use_after_free
-// }
+// The shape almost every real use-after-free has: the freed object is read through a FIELD
+// rather than dereferenced whole. The address is formed by arithmetic, so what carries the
+// fault is the pointer's provenance rather than the value the register holds.
+struct Node
+{
+    first, second: s32
+}
 
-// GAP compiler.safety.003 - a cast on the freed argument loses the origin slot, so the
-// pointer is not marked at all and the later read is silent.
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func readAfterCastFree()->s32
-// {
-//     let block = cast([*] void) heapAlloc(4)
-//     let value = cast(*s32) block
-//     value[] = 1
-//     heapFree(cast(*void) block, 4)
-//     return value[]     // expected: sanity_err_use_after_free
-// }
+#[Swag.Sanity(.Lifecycle, true)]
+func readFieldAfterFree()->s32
+{
+    let node    = cast(*Node) heapAlloc(8)
+    node.second = 1
+    heapFree(node, 8)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return node.second     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readFieldAfterFree()
+}
+
+// The first field sits at offset zero, and is judged like any other.
+#[Swag.Sanity(.Lifecycle, true)]
+func readFirstFieldAfterFree()->s32
+{
+    let node = cast(*Node) heapAlloc(8)
+    heapFree(node, 8)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return node.first     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readFirstFieldAfterFree()
+}
+
+// An ELEMENT of a freed buffer: the indexed forms address memory through a base and an
+// index, a shape the instruction table cannot describe with a single offset operand.
+#[Swag.Sanity(.Lifecycle, true)]
+func readElementAfterFree(index: u64)->s32
+{
+    let block = cast([*] s32) heapAlloc(16)
+    heapFree(block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return block[index]     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readElementAfterFree(opaqueU64(0))
+}
+
+// Writing through a freed buffer is the same question with the other sink.
+#[Swag.Sanity(.Lifecycle, true)]
+func writeElementAfterFree(index: u64)
+{
+    let block = cast([*] s32) heapAlloc(16)
+    heapFree(block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    block[index] = 1     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    writeElementAfterFree(opaqueU64(0))
+}
+
+// A cast written at the free site does not hide the release: the pointer keeps its
+// provenance through the conversion.
+#[Swag.Sanity(.Lifecycle, true)]
+func readAfterCastFree(index: u64)->s32
+{
+    let block = cast([*] s32) heapAlloc(16)
+    heapFree(cast(*void) block, 16)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return block[index]     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readAfterCastFree(opaqueU64(0))
+}
 
 // --- Sound: documented misses that must stay silent ---
 

@@ -686,4 +686,49 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     return dom;
 }
 
+bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
+{
+    switch (op)
+    {
+        case MicroInstrOpcode::LoadAmcRegMem:
+        case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+        case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+        case MicroInstrOpcode::LoadAddrAmcRegMem:
+            return true;
+        case MicroInstrOpcode::LoadAmcMemReg:
+        case MicroInstrOpcode::LoadAmcMemImm:
+            out.baseIdx  = 0;
+            out.indexIdx = 1;
+            return true;
+        case MicroInstrOpcode::CmpAmcImm:
+            out.baseIdx  = 0;
+            out.indexIdx = 1;
+            out.mulIdx   = 4;
+            out.addIdx   = 5;
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool MicroPassHelpers::dereferenceBaseOperandIndex(uint8_t& outIndex, MicroInstrOpcode op, const MicroInstrDef& def)
+{
+    // Forming an address is not reading through it: one past the end is legal to compute.
+    if (op == MicroInstrOpcode::LoadAddrRegMem || op == MicroInstrOpcode::LoadAddrAmcRegMem)
+        return false;
+
+    AmcLayout layout;
+    if (amcLayoutFor(layout, op))
+    {
+        outIndex = layout.baseIdx;
+        return true;
+    }
+
+    if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+        return false;
+
+    outIndex = def.memBaseOperandIndex;
+    return true;
+}
+
 SWC_END_NAMESPACE();

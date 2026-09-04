@@ -58,7 +58,7 @@ behavior with an assertion, so the change shows up as a test failure when the ru
 | 369 | Integer divide by zero | Proven when constant, **guarded** otherwise |
 | 843 | Type confusion, dynamic half (`any`) | **Guarded** |
 | 672 | Use after move | Proven, plus runtime poison for what it misses |
-| 415, 416 | Double free, use after free | **Partial** — see the gaps in those files |
+| 415, 416 | Double free, use after free | **Proven** through fields, elements, casts and wrappers; aliases and conditional frees are must-analysis misses by design |
 | 843 | Type confusion, static half (pointer cast, union) | **Not judged** — compiler.safety.006 |
 | 122, 124, 787, 806, 823 | Faults through `[*] T` and the raw intrinsics | **Not judged** — compiler.safety.006 |
 | 704 | Integer to enum | **Not judged** — compiler.safety.010 |

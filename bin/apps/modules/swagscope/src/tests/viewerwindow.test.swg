@@ -1040,7 +1040,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.notify(.LanguageChanged)
     Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Ouvrir (Ctrl+O)")
-    Swag.assert(window.fileReceipt.statusLabel.text() == "Ouverture du fichier déposé…")
+    Swag.assert(window.dropHighlight.prompt.text() == "Déposez un fichier pour l'afficher")
     Swag.assert(host.openedSurfaceCount() == 0)
 }
 
@@ -1848,10 +1848,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Pixel.Testing.assertImageGolden(&image, "surface")
 }
 
-// A desktop drop publishes the received file immediately, before worker classification and the
-// first viewer can replace the document. This acknowledgement makes a drag feel accepted rather
-// than silently consumed.
-#[Swag.TestTag("golden")]
+// A desktop file lights the document target before it is released, then uses the usual queued
+// opening path without keeping an acknowledgement on screen.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1867,28 +1865,39 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let file   = viewerFixturePath()
     window.resize(960, 680)
+    window.applyLayout()
 
-    Swag.assert(host.dropFilesOnWnd(window, [file.toString()]) == DropEffect.Copy)
-    Swag.assert(window.pendingFile == file and window.startupTimer != null)
-    Swag.assert(window.fileReceipt.isLocallyVisible())
-    Swag.assert(window.fileReceipt.nameLabel.text() == (Path.fileName(file.toString()) orelse file.toString()))
-    Swag.assert(window.fileReceipt.nameLabel.toolTip == file)
-    Swag.assert(window.fileReceipt.statusLabel.text() == appStrings().ui_DropAccepted)
-    Swag.assert(window.fileReceipt.card.backgroundStyle == .InformationPanel)
-    Swag.assert(window.fileReceipt.iconLabel.icon.isValid())
-    Swag.assert(window.fileReceipt.parent == window.documentPanel)
+    var point = window.documentPanel.surfaceRect().center()
+    window.surface!.surfaceToScreen(&point)
+    Swag.assert(host.dragFilesOver(point, [file.toString()]) == DropEffect.Copy)
+    Swag.assert(window.dropHighlight.isLocallyVisible())
+    Swag.assert(window.dropHighlight.parent == window.documentPanel)
+    Swag.assert(window.dropHighlight.prompt.text() == appStrings().ui_DropTitle)
+    Swag.assert(!window.dropHighlight.prompt.isLocallyVisible())
+    Swag.assert(window.dropHighlight.wndFlags.has(.Disabled))
+    Swag.assert(window.dropHighlight.clientRect().width == window.documentPanel.clientRect().width)
+    Swag.assert(window.dropHighlight.clientRect().height == window.documentPanel.clientRect().height)
+    Swag.assert(window.pendingFile.isEmpty() and window.startupTimer == null)
+
+    host.cancelDrag()
+    Swag.assert(!window.dropHighlight.isLocallyVisible())
+    Swag.assert(window.pendingFile.isEmpty() and window.startupTimer == null)
+
+    Swag.assert(host.dragFilesOver(point, [file.toString()]) == DropEffect.Copy)
+    Swag.assert(window.dropHighlight.isLocallyVisible())
 
     window.applyLayout()
-    Swag.assert(Math.abs(window.fileReceipt.card.position.center().x - window.fileReceipt.clientRect().center().x) <= 1)
     Testing.assertContentFits(window)
-    host.settleAnimations(window, 4)
-    var image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, "drop-receipt")
 
+    Swag.assert(host.dropFiles(point, [file.toString()]) == DropEffect.Copy)
+    Swag.assert(!window.dropHighlight.isLocallyVisible())
+    Swag.assert(window.pendingFile == file and window.startupTimer != null)
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.fileReceipt.isLocallyVisible() and window.fileReceiptTimer != null and window.fileReceiptWaitingToHide)
-    host.fireTimer(window.fileReceiptTimer)
-    Swag.assert(!window.fileReceipt.isLocallyVisible())
+    Swag.assert(window.currentFile == file)
+
+    Swag.assert(host.dragFilesOver(point, [file.toString()]) == DropEffect.Copy)
+    Swag.assert(window.dropHighlight.prompt.isLocallyVisible())
+    host.cancelDrag()
 }
 
 // Pins the open-document composition in Swag dark and neutral light: global navigation and file

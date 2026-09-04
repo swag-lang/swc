@@ -276,6 +276,29 @@ void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegIn
         state.regs[reg.packed] = info;
 }
 
+// Reads the pointer provenance of a register before its destination is rewritten. Writing a
+// value replaces the whole entry, so the fact has to be taken first and put back after.
+Sanitizer::PointerOrigin Sanitizer::takePointerOrigin(const SanitizerState& state, MicroReg reg)
+{
+    const SanitizerRegInfo* info = findReg(state, reg);
+    if (!info || !info->hasPointerOriginSlot)
+        return {};
+    return {.valid = true, .slot = info->pointerOriginSlot};
+}
+
+void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const PointerOrigin& origin)
+{
+    if (!origin.valid || !reg.isValid())
+        return;
+
+    SanitizerRegInfo info;
+    if (const SanitizerRegInfo* existing = findReg(state, reg))
+        info = *existing;
+    info.hasPointerOriginSlot = true;
+    info.pointerOriginSlot    = origin.slot;
+    setReg(state, reg, info);
+}
+
 void Sanitizer::setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
 {
     if (reg.isValid())
@@ -523,6 +546,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         case MicroInstrOpcode::LoadAddrRegMem:
         {
+            // An address formed from a pointer still addresses the same object, so the
+            // pointer provenance travels with it even though the value origin does not: the
+            // result no longer holds what the slot holds. It is carried after the value is
+            // written, because writing a value replaces the whole entry.
+            const PointerOrigin carried = takePointerOrigin(state, ops[1].reg);
+
             const SanitizerValue baseValue = getReg(state, ops[1].reg);
             int64_t              slot      = 0;
             if (resolveStackSlot(state, ops[1].reg, ops[3].valueU64, slot))
@@ -538,11 +567,14 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 setRegValue(state, ops[0].reg, SanitizerValue::makeGlobalAddr());
             else
                 setRegValue(state, ops[0].reg, {});
+            applyPointerOrigin(state, ops[0].reg, carried);
             return;
         }
 
         case MicroInstrOpcode::LoadAddrAmcRegMem:
         {
+            const PointerOrigin carried = takePointerOrigin(state, ops[1].reg);
+
             // ops: [dst, base, mulReg, opBitsDst, opBitsValue, mulValue, addValue].
             // Indexed addressing 'base + index*scale + disp': with a provable constant
             // index the resulting frame offset is exact, and the base keeps the origin.
@@ -558,6 +590,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 setRegValue(state, ops[0].reg, SanitizerValue::makeNonZero());
             else
                 setRegValue(state, ops[0].reg, {});
+            applyPointerOrigin(state, ops[0].reg, carried);
             return;
         }
 
@@ -573,9 +606,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             {
                 const auto       it = state.stack.find(slot);
                 SanitizerRegInfo info;
-                info.value         = it != state.stack.end() ? it->second : SanitizerValue{};
-                info.hasOriginSlot = true;
-                info.originSlot    = slot;
+                info.value                = it != state.stack.end() ? it->second : SanitizerValue{};
+                info.hasOriginSlot        = true;
+                info.originSlot           = slot;
+                info.hasPointerOriginSlot = true;
+                info.pointerOriginSlot    = slot;
 
                 if (info.value.isConstant() && inst.op != MicroInstrOpcode::LoadRegMem)
                 {

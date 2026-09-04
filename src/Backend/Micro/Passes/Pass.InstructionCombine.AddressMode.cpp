@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Report/Assert.h"
 
 // Fold a constant-offset computation into a memory operand's offset:
@@ -206,39 +207,8 @@ namespace InstructionCombine
 
     namespace
     {
-        // The addressing-piece layout shared by the AMC opcode family.
-        struct AmcLayout
-        {
-            uint8_t baseIdx  = 1;
-            uint8_t indexIdx = 2;
-            uint8_t mulIdx   = 5;
-            uint8_t addIdx   = 6;
-        };
-
-        bool amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
-        {
-            switch (op)
-            {
-                case MicroInstrOpcode::LoadAmcRegMem:
-                case MicroInstrOpcode::LoadSignedExtAmcRegMem:
-                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
-                case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    return true;
-                case MicroInstrOpcode::LoadAmcMemReg:
-                case MicroInstrOpcode::LoadAmcMemImm:
-                    out.baseIdx  = 0;
-                    out.indexIdx = 1;
-                    return true;
-                case MicroInstrOpcode::CmpAmcImm:
-                    out.baseIdx  = 0;
-                    out.indexIdx = 1;
-                    out.mulIdx   = 4;
-                    out.addIdx   = 5;
-                    return true;
-                default:
-                    return false;
-            }
-        }
+        using MicroPassHelpers::AmcLayout;
+        using MicroPassHelpers::amcLayoutFor;
 
         // True when `reg` holds the same SSA value at both instructions.
         bool sameValueAt(const Context& ctx, MicroReg reg, MicroInstrRef atA, MicroInstrRef atB)

@@ -153,6 +153,26 @@ namespace MicroPassHelpers
     // labels, branches). Returns the number of uses replaced.
     uint32_t replaceRegInLocalUses(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef afterInstRef, MicroReg fromReg, MicroReg toReg);
 
+    // The addressing-piece layout of the AMC opcode family. These instructions address
+    // memory as base + index * scale + offset, and the table in 'MicroInstr.Def.inc' cannot
+    // describe them the way it describes the base+offset forms: there is no single offset
+    // operand, so they carry no 'HasMemBaseOffsetOperands' flag and every consumer has to
+    // ask for the layout by opcode.
+    struct AmcLayout
+    {
+        uint8_t baseIdx  = 1;
+        uint8_t indexIdx = 2;
+        uint8_t mulIdx   = 5;
+        uint8_t addIdx   = 6;
+    };
+
+    bool amcLayoutFor(AmcLayout& out, MicroInstrOpcode op);
+
+    // The operand holding the base register an instruction reads or writes THROUGH, in
+    // either addressing shape. False when the instruction touches no memory, and false for
+    // the address computations ('lea'), which form an address without dereferencing it.
+    bool dereferenceBaseOperandIndex(uint8_t& outIndex, MicroInstrOpcode op, const MicroInstrDef& def);
+
     // Fold a binary integer operation on two immediate values.
     // Maps MicroOp to Math::FoldBinaryOp and delegates to Math::foldBinaryInt.
     // Returns Math::FoldStatus::Unsupported if the MicroOp has no fold mapping.

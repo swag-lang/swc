@@ -23,10 +23,21 @@ struct SanitizerRegInfo
     int64_t zeroTestSlot       = 0;
     bool    zeroTestTrueIfZero = false;
 
+    // Which slot the POINTER in this register came from, which is a different question from
+    // the one above: 'originSlot' says the register holds the value stored in that slot, and
+    // a guard narrowing it relies on that. A field or an element address is derived by
+    // arithmetic, so it no longer holds the slot's value - and it still addresses the same
+    // object, which is what decides whether reading through it touches released memory.
+    // Reading a field of a freed object is what a use-after-free almost always looks like,
+    // so the two facts have to travel separately.
+    bool    hasPointerOriginSlot = false;
+    int64_t pointerOriginSlot    = 0;
+
     bool operator==(const SanitizerRegInfo& o) const
     {
         return value == o.value && hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot &&
-               hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestTrueIfZero == o.zeroTestTrueIfZero;
+               hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestTrueIfZero == o.zeroTestTrueIfZero &&
+               hasPointerOriginSlot == o.hasPointerOriginSlot && pointerOriginSlot == o.pointerOriginSlot;
     }
 };
 

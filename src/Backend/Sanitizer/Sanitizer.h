@@ -89,6 +89,16 @@ private:
     static const SanitizerRegInfo* findReg(const SanitizerState& state, MicroReg reg);
     static void                    setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info);
     static void                    setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value);
+    // The pointer-provenance fact of one register, taken out before its destination entry is
+    // rewritten and put back afterwards.
+    struct PointerOrigin
+    {
+        bool    valid = false;
+        int64_t slot  = 0;
+    };
+
+    static PointerOrigin takePointerOrigin(const SanitizerState& state, MicroReg reg);
+    static void          applyPointerOrigin(SanitizerState& state, MicroReg reg, const PointerOrigin& origin);
     bool                           resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const;
 
     // Join + propagation.

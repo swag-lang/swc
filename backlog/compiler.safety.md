@@ -50,7 +50,8 @@ is the current scorecard.
   same way. Neither is reported in any configuration.
 - Consequence: `opDrop` is currently a destructor without the rule that makes a destructor safe.
   Every owning type in `bin/` relies on nobody writing the copy, and the analysis that would catch
-  the resulting use-after-free (compiler.safety.003) does not reach these shapes either.
+  the use-after-free proof cannot see a second owner: it tracks one pointer, and here there are
+  two, each released once.
 - Elsewhere: this is the one rule every ownership language shares, whatever else it disagrees on.
   Rust makes `Drop` imply `!Copy` and requires `Clone` to be written; C++ turns it into the rule of
   three and a linter; Swift reference-counts instead; Zig has no destructor at all, so the question
@@ -70,39 +71,11 @@ is the current scorecard.
 - Complete when: copying a value that owns a release is rejected without the type having to say so,
   the reference states the rule next to `opDrop`, and `bin/unittests` covers the inferred case, the
   `opPostCopy` opt-in, the `#move` transfer, and a type that owns through a member.
-- Related: compiler.safety.003 and compiler.safety.004 are the same fault caught later and less
+- Related: compiler.safety.004 is the same fault caught later and less
   reliably; this entry is the one that removes the fault instead. language.design.002 depends on it:
   a tagged union with an owning payload is exactly this shape, and the compiler would be the one
   generating its drop, so shipping one before this rule turns an author's double-free into the
   compiler's.
-
-### compiler.safety.003 — The use-after-free proof does not survive a cast, an offset, or the standard allocator
-
-- Area: compiler/backend, `Sanitizer`, `Check.UseAfterFree`
-- Evidence: the mechanism is sound and fires on exactly the shape its test file pins — a `*T` handed
-  to a function whose `frees` summary covers it, dereferenced afterwards with `p[]`. Three routine
-  variations defeat it, each verified in an isolated probe:
-  - a cast on the freed argument (`Memory.free(cast([*] void) n, size)`) loses the origin slot, so
-    the later read of `n` is not judged;
-  - any load that is not a plain dereference is not judged at all — `p[i]` after freeing `p`, and
-    `n.field` after freeing `n`, are both silent where `p[]` is reported;
-  - `Memory.delete'(T)`, the idiomatic release, is generic and carries no summary, so
-    `let n = Memory.new'Node(); Memory.delete(n); n.v` reads freed memory with nothing said.
-  `Memory.free` itself does carry `#[Swag.BorrowSummary(0, 0, 0, 9, ...)]` across the module
-  boundary and works — through `p[]` only.
-- Consequence: the feature reads as shipped and is inert on the surface every program actually uses.
-  The example in [013_003_sanity.swg](../bin/reference/modules/language/src/013_003_sanity.swg)
-  calls `Swag.IAllocator` directly, which is the only path that reliably fires.
-- Next: three independent fixes, in this order of value — teach the origin-slot tracking to see
-  through a pointer cast; extend the check from the plain-dereference opcode to every base+offset
-  and indexed load, which is where `HasMemBaseOffsetOperands` already points; and give a generic
-  instance its own computed summary so `delete'(T)` inherits `free`'s. Each is independently
-  testable against `bin/unittests/sanity/use_after_free.swg`.
-- Complete when: the three probes above report, the false-positive sweep over `bin/` stays clean,
-  and `use_after_free.swg` covers a cast at the free site, an indexed read, a member read, and a
-  generic release.
-- Related: compiler.safety.002 removes the commonest source of these; compiler.safety.004 covers
-  what the proof will never see.
 
 ### compiler.safety.016 — Compile-time execution is judged against summaries that are still growing
 
@@ -124,8 +97,7 @@ is the current scorecard.
 - Complete when: the two wrapper cases in the corpus are reported through `#run` as well as
   through ordinary code generation, or the reference states which checks a `#run` body does not
   get and the corpus notes say so.
-- Related: compiler.safety.003 lists the three shapes that defeat the same feature for reasons
-  that are about the analysis rather than about when it runs.
+- Related: compiler.safety.004 is what covers the shapes no must-analysis can prove.
 
 ### compiler.safety.017 — Memory leaks are not modelled at all
 
@@ -159,19 +131,20 @@ is the current scorecard.
 - Evidence: `.Lifecycle` poisons storage abandoned by a move or a drop with `0xDD` so hidden
   violations fail loudly, and that half is deliberate and documented. The heap has no equivalent: a
   freed block goes straight back to the allocator's free list, so a read after free returns whatever
-  the next allocation put there. Every probe in compiler.safety.003 read plausible garbage and kept
+  the next allocation put there. The aliasing probes in `cwe416_use_after_free.swg` read garbage and kept
   running; the double-free probe corrupted mimalloc's free list and killed the process inside an
   unrelated allocation, far from the fault.
 - Consequence: aliases and conditional frees are documented misses of the static proof "by design",
-  which is the right call — but the net that is supposed to catch what a must-analysis cannot prove
-  does not exist on the heap side.
+  which is the right call — the proof now reaches fields, elements, casts and the generic release,
+  so what is left for it to miss is exactly what a must-analysis cannot decide. That is the half a
+  runtime net is for, and there is none on the heap side.
 - Next: measure what a devmode-only quarantine costs. mimalloc already ships the pieces
   (`MI_SECURE`, `mi_option_guarded_*`); the question is whether poisoning freed blocks and delaying
   their reuse is affordable in `devmode` on the heaviest consumer in `bin/`, not whether it is
   desirable.
 - Complete when: a freed block read in `devmode` faults or reports at the read, the cost is measured
   on an application workload, and `release` is unaffected.
-- Related: compiler.safety.003.
+- Related: compiler.safety.002.
 
 ### compiler.safety.005 — A pointer into a value survives the move of that value
 

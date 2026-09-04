@@ -253,3 +253,24 @@ whether a JPEG preview decoded.
   sibling, visual and semantic tests identify the reference, performance budgets run reproducibly,
   and unsupported constructs are named in the compatibility report instead of inferred from gaps.
 - Related: app.scope.indesign.001, app.scope.indesign.017, app.scope.viewers.009
+
+### app.scope.indesign.019 — The linked-package budget measures the machine, not the reader
+
+- Area: app/scope
+- Found while: the Release rung of a repository health reset, run immediately after an
+  all-configuration campaign
+- Observation: `viewer.indesign.test.swg:149` asserts that opening the linked IDML package takes
+  under one second of wall clock. On an idle machine the open measures 436 to 585 ms, so the
+  assertion holds with room; run while the machine is still finishing other work, the same binary
+  measures 972 to 2 884 ms and the test fails. A budget in a suite that also runs under load
+  reports how busy the machine was, not whether the reader stayed prompt.
+- Evidence: 2026-09-04. One failure inside `tests.swgs` started seconds after
+  `tests.swgs dm --all-cfg` finished; six consecutive isolated runs on the settled machine
+  afterwards measured 436, 585, 553, 567 and 551 ms. `app.scope.video.017` is the same shape in
+  the video viewer.
+- Next: state what "promptly" defends instead of how long it took — the open resolves the first
+  page's images and not every page's, so assert the work done (pages resolved, images decoded)
+  and leave the clock to a benchmark. Keep a ceiling only as a catastrophe detector, at a value
+  no healthy run can approach.
+- Complete when: the test fails when the reader resolves more than the first page's resources,
+  and passes on a machine that is busy.

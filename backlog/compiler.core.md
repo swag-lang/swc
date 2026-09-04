@@ -482,3 +482,27 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 - Complete when: either a loaded shared library provably shares the host's allocator and context in
   a workspace test that links its dependencies in, or the backlog records why it cannot and the
   compiler diagnoses the combination it can see.
+
+### compiler.core.028 — A generic instance's generated copy calls an `opPostCopy` it does not declare
+
+- Area: compiler/sema, compiler/codegen, generic instantiation
+- Found while: gating `ArrayPtr'T.opPostCopy` on whether `T` can be copied at all
+  (compiler.safety.002), which is the shape a container of exclusively-owned elements needs.
+- Evidence: a `#static if` around a method inside an `impl` compiles, and an instance for which
+  the condition is false really does lack the method. A struct holding such an instance as a
+  field then trips `SWC_ASSERT(params.size() == argRegs.size())` at
+  [CodeGenCallHelpers.Call.cpp:1640](../src/Compiler/CodeGen/Core/CodeGenCallHelpers.Call.cpp#L1640),
+  reported against `Swag.postCopy(&.serializer)` in
+  `bin/std/modules/core/src/serialization/write/encoder.swg`: the generated copy of the holder
+  still emits a call to the field's `opPostCopy`. The lifecycle flags are the suspect - the
+  early branch in `lifecycleFlagsOfTypeRec` answers from `symStruct.opPostCopy()` for a struct
+  that is not sema-completed, which for a generic instance can still be the root's method rather
+  than the instance's.
+- Consequence: a compiler assertion rather than a diagnostic, and it blocks the one shape that
+  lets a generic container decline a copy it cannot perform. That shape is the prerequisite for
+  compiler.safety.002, whose migration cost is otherwise zero.
+- Next: make the lifecycle flags of a generic INSTANCE answer from the instance's own method
+  set, and make a call to a missing lifecycle method a diagnostic rather than an assertion.
+- Complete when: a `#static if`-gated `opPostCopy` compiles inside a struct that holds the
+  gated instance as a field, and `bin/unittests/jit/generics` pins it.
+- Related: compiler.safety.002.

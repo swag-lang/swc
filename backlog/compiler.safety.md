@@ -63,11 +63,33 @@ is the current scorecard.
   inference: a type that declares or contains `opDrop` and does not declare `opPostCopy` is not
   copyable. That is zero annotation at the use site, zero runtime cost, and it closes the whole
   double-free class rather than one shape of it.
-- Next: mark every `opDrop`-without-`opPostCopy` type `#[Swag.NoCopy]` in a throwaway branch and
-  count the copies `bin/` then rejects — that count, and how many of them are real bugs, is what
-  decides whether the rule ships as an inference or as a diagnostic first. 75 files under
-  `bin/std/modules` and `bin/apps` declare `opDrop` without `opPostCopy`, but a type that is never
-  copied costs nothing to migrate.
+- MEASURED. The inference was implemented and swept over the whole repository: a struct that
+  declares `opDrop` and does not declare `opPostCopy` is not copyable, and containing one makes
+  the container non-copyable through the existing field merge. The result is **one** rejected
+  copy in the entire tree — `bin/std/modules/core/src/collections/arrayptr.swg:39`, reached
+  through `ArrayPtr'ConcatBuffer` — and it is a real latent double-free: `ArrayPtr.opPostCopy`
+  deep-copies each element with `newPtr[] = oldPtr[]`, so two `ConcatBuffer` values would end up
+  sharing one heap buffer and each would release it. Every workspace reports the same single
+  site, so the migration cost of the rule is one function.
+- The single site is NOT user code to migrate, and it is not caused by the rule. `ArrayPtr'T`
+  instantiates an `opPostCopy` that deep-copies each element, for every `T`, including a `T`
+  that cannot be copied at all. Writing `#[Swag.NoCopy]` on `ConcatBuffer` by hand, with the
+  inference reverted, produces the identical error at the identical line — so the prerequisite
+  exists today and the rule only reveals it.
+- Three resolutions were tried and each has a measured cost:
+  - `#static if Reflection.canCopy(T)` around the whole `opPostCopy`, so a container of
+    non-copyable elements declares no copy and becomes non-copyable itself. This is the right
+    shape and it is blocked by a compiler assertion: a generated copy still calls the
+    `opPostCopy` the instance no longer has (compiler.core.028).
+  - `#[Swag.NoCopy]` on `ArrayPtr` itself, since it owns its elements exclusively. Rejected:
+    a non-copyable type has its copy overloads discarded at resolution, which breaks
+    `HashTable.add`.
+  - An `opPostCopy` on `ConcatBuffer`. Rejected: it would invent a deep-copy semantic for a
+    bucket chain plus a cursor that nothing in the tree needs, to satisfy a copy that never
+    happens.
+- Next: fix compiler.core.028 first - a method a generic instance does not declare must not be
+  called by its generated copy. The `#static if` gate then works, `ArrayPtr` stops offering a
+  copy it cannot perform, and the rule ships with a migration cost of zero.
 - Complete when: copying a value that owns a release is rejected without the type having to say so,
   the reference states the rule next to `opDrop`, and `bin/unittests` covers the inferred case, the
   `opPostCopy` opt-in, the `#move` transfer, and a type that owns through a member.

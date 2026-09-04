@@ -9,6 +9,7 @@ struct SelfRefPool
 {
     public
     {
+        #[Swag.Late]
         items: [*] SelfRefNode
         count: u64
     }
@@ -18,6 +19,7 @@ struct SelfRefNode
 {
     public
     {
+        #[Swag.Late]
         parent: *SelfRefNode
         pool:   SelfRefPool
     }
@@ -39,6 +41,6 @@ impl SelfRefPool
 func selfRefStore()
 {
     var root: SelfRefNode
-    let child             = root.pool.newPtr()
+    let child = root.pool.newPtr()
     child.parent = &root
 }

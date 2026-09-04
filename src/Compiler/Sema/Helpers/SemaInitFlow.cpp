@@ -40,22 +40,22 @@ namespace
     // type is a single slot (bit 0).
     struct TrackedVar
     {
-        SymbolVariable*       sym         = nullptr;
-        const SymbolStruct*   fieldStruct = nullptr; // set when fields are tracked individually
-        uint32_t              fieldCount  = 0;       // 0 => single slot
-        uint64_t              fullMask    = 1;
-        uint64_t              dropMask    = 0; // bits of fields with a drop lifecycle
-        uint64_t              lateMask    = 0; // bits of 'Swag.Late' fields ('lateOnly' tracking)
-        bool                  typeHasDrop = false;
-        bool                  isRetVal    = false;
-        bool                  lateOnly    = false; // tracked only for its 'Swag.Late' fields: regular zero-initialized storage
-        bool                  defaultInitCandidate = false;
-        bool                  needsDefiniteInit = false;
-        bool                  fullInitReceiver = false;
-        bool                  errored     = false; // one report per variable
+        SymbolVariable*            sym                  = nullptr;
+        const SymbolStruct*        fieldStruct          = nullptr; // set when fields are tracked individually
+        uint32_t                   fieldCount           = 0;       // 0 => single slot
+        uint64_t                   fullMask             = 1;
+        uint64_t                   dropMask             = 0; // bits of fields with a drop lifecycle
+        uint64_t                   lateMask             = 0; // bits of 'Swag.Late' fields ('lateOnly' tracking)
+        bool                       typeHasDrop          = false;
+        bool                       isRetVal             = false;
+        bool                       lateOnly             = false; // tracked only for its 'Swag.Late' fields: regular zero-initialized storage
+        bool                       defaultInitCandidate = false;
+        bool                       needsDefiniteInit    = false;
+        bool                       fullInitReceiver     = false;
+        bool                       errored              = false; // one report per variable
         SmallVector<AstNodeRef, 4> firstInitAssignRefs;
-        uint32_t              blockDepth  = 0;
-        uint32_t              loopDepth   = 0;
+        uint32_t                   blockDepth = 0;
+        uint32_t                   loopDepth  = 0;
     };
 
     // Per-path init state: two bitsets per tracked var, parallel to the tracked list.
@@ -199,15 +199,15 @@ namespace
         std::vector<TrackedVar> vars_;
         std::vector<BreakCtx*>  breakables_;
         SmallVector<int32_t, 4> withTargets_; // tracked index or -1, innermost last
-        uint32_t                blockDepth_   = 0;
-        uint32_t                loopDepth_    = 0;
-        uint32_t                deferDepth_   = 0;
-        uint32_t                handledDepth_ = 0; // catch/expect wrappers
-        uint32_t                inlineDepth_  = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
-        uint32_t                nodeCount_    = 0;
-        uint32_t                errorCount_   = 0;
-        bool                    aborted_      = false;
-        bool                    hadError_     = false;
+        uint32_t                blockDepth_            = 0;
+        uint32_t                loopDepth_             = 0;
+        uint32_t                deferDepth_            = 0;
+        uint32_t                handledDepth_          = 0; // catch/expect wrappers
+        uint32_t                inlineDepth_           = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
+        uint32_t                nodeCount_             = 0;
+        uint32_t                errorCount_            = 0;
+        bool                    aborted_               = false;
+        bool                    hadError_              = false;
         int32_t                 fullInitReceiverIndex_ = -1;
         // '#null' return contract tracking.
         bool returnContract_ = false;
@@ -436,7 +436,7 @@ namespace
                         // or to the receiver of an opSet being analyzed.
                         if (withTargets_.empty() && fullInitReceiverIndex_ < 0)
                             return false;
-                        out.varIndex                  = withTargets_.empty() ? fullInitReceiverIndex_ : withTargets_.back();
+                        out.varIndex = withTargets_.empty() ? fullInitReceiverIndex_ : withTargets_.back();
                         if (out.varIndex < 0)
                             return false;
                         const auto&        autoMember = node.cast<AstAutoMemberAccessExpr>();
@@ -501,7 +501,7 @@ namespace
             errorCount_++;
             hadError_ = true;
 
-            const DiagnosticId id = fieldIndex >= 0 ? DiagnosticId::sema_err_definite_init_field_use : DiagnosticId::sema_err_definite_init_use;
+            const DiagnosticId id   = fieldIndex >= 0 ? DiagnosticId::sema_err_definite_init_field_use : DiagnosticId::sema_err_definite_init_use;
             auto               diag = SemaError::report(*sema_, id, atRef);
             SemaError::setReportArguments(*sema_, diag, var.sym);
             if (fieldIndex >= 0 && var.fieldStruct)
@@ -530,7 +530,7 @@ namespace
 
         void disqualifyDefaultInitElision(FlowState& state, const uint32_t varIndex)
         {
-            TrackedVar& var = vars_[varIndex];
+            TrackedVar& var          = vars_[varIndex];
             var.defaultInitCandidate = false;
             state.set(varIndex, var.fullMask, var.fullMask);
         }
@@ -615,6 +615,27 @@ namespace
             }
             else
                 state.set(path.varIndex, state.getMust(path.varIndex) | (var.fullMask & ~var.lateMask), var.fullMask);
+        }
+
+        // Reports whether a nested or indexed write goes THROUGH the first-level field rather
+        // than into part of it. A pointer-like field is dereferenced, so the write lands in
+        // storage the variable does not own; every other field is written in place.
+        bool writesThroughField(const TrackedVar& var, int32_t fieldIndex) const
+        {
+            if (fieldIndex < 0 || !var.fieldStruct)
+                return false;
+            const auto fields = var.fieldStruct->fields();
+            if (static_cast<size_t>(fieldIndex) >= fields.size() || !fields[fieldIndex])
+                return false;
+            const TypeRef fieldTypeRef = fields[fieldIndex]->typeRef();
+            if (!fieldTypeRef.isValid())
+                return false;
+            TypeRef       finalTypeRef = fieldTypeRef;
+            const TypeRef unwrapped    = sema_->typeMgr().unwrapAliasEnum(sema_->ctx(), fieldTypeRef);
+            if (unwrapped.isValid())
+                finalTypeRef = unwrapped;
+            const TypeInfo& type = sema_->typeMgr().get(finalTypeRef);
+            return type.isPointerOrReference();
         }
 
         bool isNullableTypeRef(TypeRef typeRef) const
@@ -747,8 +768,8 @@ namespace
             if (sym_->parameters().empty())
                 return;
 
-            SymbolVariable* receiver = sym_->parameters().front();
-            const SymbolStruct* owner = sym_->ownerStruct();
+            SymbolVariable*     receiver = sym_->parameters().front();
+            const SymbolStruct* owner    = sym_->ownerStruct();
             if (!receiver || !owner || !owner->isSemaCompleted() || owner->fields().empty() || owner->fields().size() > 63)
                 return;
 
@@ -1637,10 +1658,13 @@ namespace
             if (leftNode.is(AstNodeId::IndexExpr))
                 walk(leftNode.cast<AstIndexExpr>().nodeArgRef, state);
 
-            // Writing THROUGH a 'Swag.Late' field ('b.item.value = x', 'b.name[i] = c')
-            // dereferences the field: a read, never an initialization.
+            // Writing THROUGH a field ('b.item.value = x', 'b.name[i] = c') dereferences it:
+            // a read of that field, never an initialization of the variable. A 'Swag.Late'
+            // field answers the same way even when its own type is not pointer-like, because
+            // its storage is the null sentinel until it is set.
             if (path.fieldIndex >= 0 && (path.nestedField || path.indexed) &&
-                (vars_[path.varIndex].lateMask & (1ull << path.fieldIndex)))
+                ((vars_[path.varIndex].lateMask & (1ull << path.fieldIndex)) ||
+                 writesThroughField(vars_[path.varIndex], path.fieldIndex)))
             {
                 checkRead(state, assignRef, path);
                 return FlowExit::Normal;
@@ -1668,9 +1692,14 @@ namespace
                     return FlowExit::Normal;
                 }
 
-                if (path.indexed)
+                if (path.indexed || path.nestedField)
                 {
-                    reportDefiniteInitUse(assignRef, var, path.fieldIndex);
+                    // A partial write reaches one element or one member through storage that
+                    // has no implicit default of its own. It is therefore never a proof of
+                    // initialization, but it is also not a use of uninitialized storage once
+                    // every path has already initialized the variable it reaches through.
+                    if ((mustBits & var.fullMask) != var.fullMask)
+                        reportDefiniteInitUse(assignRef, var, path.fieldIndex);
                     state.set(path.varIndex, var.fullMask, var.fullMask);
                     return FlowExit::Normal;
                 }
@@ -1725,10 +1754,11 @@ namespace
                 return FlowExit::Normal;
             }
 
-            if (path.indexed)
+            if (path.indexed || path.nestedField)
             {
-                // Partial element coverage cannot prove that the aggregate default is
-                // dead. The dedicated range pass handles this common case separately.
+                // Partial coverage cannot prove that the aggregate default is dead: an
+                // indexed write reaches one element, and a nested write reaches one member
+                // of a field whose other members still come from that default.
                 disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
                 return FlowExit::Normal;
             }

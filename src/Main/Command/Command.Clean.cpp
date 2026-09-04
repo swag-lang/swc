@@ -146,15 +146,46 @@ namespace
         return true;
     }
 
+    // A build tree is removed right after the compiler, the linker, and whatever scanned their
+    // output are done with it, and on Windows those handles close a moment after the process
+    // that owned them. Removal therefore retries briefly instead of turning that moment into a
+    // failed command; a real holder is still reported, one short wait later.
+    constexpr int  K_REMOVE_ATTEMPTS = 10;
+    constexpr auto K_REMOVE_BACKOFF  = std::chrono::milliseconds(150);
+
+    // Names the first entry under 'root' that still resists removal, so the report points at the
+    // held file instead of at the tree that contains it.
+    fs::path firstEntryStillPresent(const fs::path& root)
+    {
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
+             !ec && it != end;
+             it.increment(ec))
+        {
+            ec.clear();
+            if (!it->is_directory(ec) || ec)
+                return it->path();
+        }
+
+        return root;
+    }
+
     Result removeCleanTarget(TaskContext& ctx, const CleanTarget& target)
     {
         std::error_code ec;
-        fs::remove_all(target.path, ec);
-        if (!ec)
-            return Result::Continue;
+        for (int attempt = 0; attempt < K_REMOVE_ATTEMPTS; attempt++)
+        {
+            ec.clear();
+            fs::remove_all(target.path, ec);
+            if (!ec || !fs::exists(target.path))
+                return Result::Continue;
+            std::this_thread::sleep_for(K_REMOVE_BACKOFF);
+        }
 
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, target.path, FileSystem::normalizeSystemMessage(ec));
+        const fs::path held  = firstEntryStillPresent(target.path);
+        Diagnostic     diag  = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
+        Utf8           cause = FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), held);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, held, cause);
         diag.report(ctx);
         return Result::Error;
     }

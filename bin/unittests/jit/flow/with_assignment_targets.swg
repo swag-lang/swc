@@ -122,10 +122,10 @@ func jitWithAssignedValueTarget()->s32
 
 func jitWithAssignmentsAndScopes()->s32
 {
-    var point                       = jitWithAssignMakePoint(2, 4)
+    var point = jitWithAssignMakePoint(2, 4)
     var ptr:    *JitWithAssignPoint
     var holder: JitWithAssignHolder
-    var total                       = 0
+    var total = 0
 
     with ptr = &point
     {
@@ -155,10 +155,9 @@ func jitWithAssignmentsAndScopes()->s32
 
 func jitWithNestedMemberTarget()->s32
 {
-    var point = jitWithAssignMakePoint(4, 5)
-    var wrapper: JitWithAssignWrapper
-    var total = 0
-    wrapper.holder.ptr = &point
+    var point   = jitWithAssignMakePoint(4, 5)
+    var wrapper = JitWithAssignWrapper{holder: {ptr: &point}}
+    var total   = 0
 
     with wrapper.holder
     {

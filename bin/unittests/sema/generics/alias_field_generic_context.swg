@@ -34,10 +34,7 @@ func(T, V) localAliasPartialTail(value: T, tail: V)->V
         item: MiddleDefaultAlias2'T
     }
 
-    var data: Local
-    data.item.first  = value
-    data.item.second = "ok"
-    data.item.third  = tail
+    var data = Local{item: {first: value, second: "ok", third: tail}}
     return data.item.third
 }
 

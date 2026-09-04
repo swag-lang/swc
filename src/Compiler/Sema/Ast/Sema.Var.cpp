@@ -900,12 +900,12 @@ namespace
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
-        const bool         isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
-        const bool         isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
-        const bool         isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
-        const bool         isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
-        const bool         codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
-        SymbolFunction*    globalFunctionInit      = nullptr;
+        const bool         isConst              = context.flags.has(AstVarDeclFlagsE::Const);
+        const bool         isLet                = context.flags.has(AstVarDeclFlagsE::Let);
+        const bool         isParameter          = context.flags.has(AstVarDeclFlagsE::Parameter);
+        const bool         isUsing              = context.flags.has(AstVarDeclFlagsE::Using);
+        const bool         codeParameterDefault = isParameter && explicitType && explicitType->isCodeBlock();
+        SymbolFunction*    globalFunctionInit   = nullptr;
         VarDeclSetInitInfo setInitInfo;
 
         SWC_RESULT(tryResolveVarDeclSetInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, setInitInfo));
@@ -1022,7 +1022,7 @@ namespace
                 return reportTypeRequiresInit(sema, context, finalTypeRef);
             if (requiresExplicitInit && supportsDefiniteInit)
             {
-                const TypeInfo& type = sema.typeMgr().get(finalTypeRef);
+                const TypeInfo& type           = sema.typeMgr().get(finalTypeRef);
                 TypeRef         storageTypeRef = finalTypeRef;
                 if (const TypeRef unwrapped = type.unwrap(sema.ctx(), finalTypeRef, TypeExpandE::Alias); unwrapped.isValid())
                     storageTypeRef = unwrapped;
@@ -1070,7 +1070,18 @@ namespace
             }
         }
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
-        const bool hasImplicitStructVarInit   = hasImplicitStructConstInit;
+
+        // A struct local declared without an initializer owns a value either way: the type's
+        // implicit default fills it here, or definite assignment proves every path writes it
+        // before a read. Either way its storage participates in scope drops exactly like an
+        // explicitly initialized one, so it carries the same flag.
+        const bool implicitStructVarInit = context.nodeInitRef.isInvalid() &&
+                                           !isParameter &&
+                                           explicitTypeRef.isValid() &&
+                                           explicitType &&
+                                           explicitType->isStruct() &&
+                                           !directSelfStructField;
+        const bool hasImplicitStructVarInit = hasImplicitStructConstInit || implicitStructVarInit;
 
         // Constant
         if (isConst)
@@ -1142,7 +1153,7 @@ namespace
         SWC_RESULT(completeVar(sema, symbols, finalTypeRef));
         if (sema.isCurrentFunction() && !isParameter && context.nodeInitRef.isInvalid())
         {
-            const TypeInfo& type = sema.typeMgr().get(finalTypeRef);
+            const TypeInfo& type           = sema.typeMgr().get(finalTypeRef);
             TypeRef         storageTypeRef = finalTypeRef;
             if (const TypeRef unwrapped = type.unwrap(sema.ctx(), finalTypeRef, TypeExpandE::Alias); unwrapped.isValid())
                 storageTypeRef = unwrapped;

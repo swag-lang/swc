@@ -88,10 +88,7 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
         item: MiddleDefaultBox'T
     }
 
-    var data: Local
-    data.item.first  = value
-    data.item.second = "ok"
-    data.item.third  = tail
+    var data = Local{item: {first: value, second: "ok", third: tail}}
     return data.item.third
 }
 
@@ -109,10 +106,7 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
     Swag.assert(renamed.second.values[2] == 9'u16)
     #assert(#typeof(renamed.first.values) == #type [3] u16)
 
-    var partial: PartialMiddleDefaultHolder'(u32, f64)
-    partial.item.first  = 11
-    partial.item.second = "value"
-    partial.item.third  = 2.5
+    var partial = PartialMiddleDefaultHolder'(u32, f64){item: {first: 11, second: "value", third: 2.5}}
     Swag.assert(partial.item.first == 11'u32)
     Swag.assert(partial.item.second == "value")
     Swag.assert(partial.item.third == 2.5)

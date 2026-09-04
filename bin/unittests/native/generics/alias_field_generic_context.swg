@@ -34,10 +34,7 @@ func(T, V) localAliasPartialTail(value: T, tail: V)->V
         item: MiddleDefaultAlias2'T
     }
 
-    var data: Local
-    data.item.first  = value
-    data.item.second = "ok"
-    data.item.third  = tail
+    var data = Local{item: {first: value, second: "ok", third: tail}}
     return data.item.third
 }
 
@@ -55,14 +52,11 @@ func(U) localAliasPrefixBuffer(value: U)->U
 
 #test
 {
-    var partial: AliasPartialHolder'(u32, f64)
-    var prefix:  AliasExplicitPrefixHolder'u8
-    let tail  = localAliasPartialTail'(bool, f32)(true, 1.5)
-    let value = localAliasPrefixBuffer'u16(12)
+    var partial = AliasPartialHolder'(u32, f64){item: {first: 7, second: "ok", third: 2.5}}
+    var prefix: AliasExplicitPrefixHolder'u8
+    let tail    = localAliasPartialTail'(bool, f32)(true, 1.5)
+    let value   = localAliasPrefixBuffer'u16(12)
 
-    partial.item.first    = 7
-    partial.item.second   = "ok"
-    partial.item.third    = 2.5
     prefix.item.values[0] = 3
     prefix.item.values[2] = 5
 

@@ -34,3 +34,28 @@ func definiteInitConditionalDrop(condition: bool, item: *DefiniteInitItem)
         value = {required: item}
     value = {required: item}     // swc-expected-error {{sema_err_definite_init_drop}}
 }
+
+func definiteInitIndexedWrite(item: *DefiniteInitItem)
+{
+    var slots: [3] *DefiniteInitItem
+    slots[0] = item     // swc-expected-error {{sema_err_definite_init_use}}
+}
+
+struct DefiniteInitPart
+{
+    marker: s32 = 7
+    other:  s32
+}
+
+struct DefiniteInitMixed
+{
+    required: *DefiniteInitItem
+    part:     DefiniteInitPart
+}
+
+func definiteInitNestedWrite(item: *DefiniteInitItem)
+{
+    var value: DefiniteInitMixed
+    value.required   = item
+    value.part.other = 1     // swc-expected-error {{sema_err_definite_init_field_use}}
+}

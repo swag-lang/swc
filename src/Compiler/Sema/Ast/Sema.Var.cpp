@@ -632,6 +632,8 @@ namespace
         outInfo.handled = true;
 
         const auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sema.curNodeRef());
+        if (payload && payload->calledFn && payload->calledFn != sema.currentFunction())
+            SWC_RESULT(sema.waitSemaCompleted(payload->calledFn, sema.node(context.nodeInitRef).codeRef()));
         if (payload &&
             payload->calledFn &&
             !payload->calledFn->hasFullInitialization())

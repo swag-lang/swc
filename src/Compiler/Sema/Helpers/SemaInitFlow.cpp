@@ -9,6 +9,8 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -22,6 +24,15 @@ namespace
     constexpr uint32_t K_MAX_NODES        = 200000;
     constexpr uint32_t K_MAX_ERRORS       = 8;
     constexpr uint64_t K_ALL_BITS         = ~0ull;
+
+    bool isFullInitializationSetter(const SymbolFunction* calledFn)
+    {
+        if (!calledFn)
+            return false;
+        if (calledFn->specOpKind() != SpecOpKind::OpSet && calledFn->specOpKind() != SpecOpKind::OpSetLiteral)
+            return false;
+        return calledFn->hasFullInitialization();
+    }
 
     // One local participating in initialization flow. It either has a safe default
     // that may be elided, or requires a proof before it can be observed. Fields of a
@@ -125,8 +136,11 @@ namespace
                 {
                     if (var.fullInitReceiver)
                     {
-                        if (var.defaultInitCandidate)
+                        if (var.defaultInitCandidate && firstInitializersCanConstruct(var))
+                        {
                             sym_->setInferredFullInitialization(true);
+                            markInitialAssignmentsAsConstruction(var);
+                        }
                         continue;
                     }
 
@@ -139,11 +153,15 @@ namespace
                         continue;
                     }
 
-                    // Safe defaults are intentionally left in the semantic program.
-                    // A source-level write can select a user opSet whose contract
-                    // observes the default state. The SSA/micro passes can remove
-                    // an ordinary dead store after that dispatch has been resolved,
-                    // without ever making that contract speculative here.
+                    // This is deliberately a late lowering decision: semantic
+                    // resolution tells us whether an initial assignment is an
+                    // ordinary store or a user opSet. We only omit storage
+                    // initialization when every first write constructs the value.
+                    if (var.defaultInitCandidate && firstInitializersCanConstruct(var))
+                    {
+                        var.sym->addExtraFlag(SymbolVariableFlagsE::DefaultInitElided);
+                        markInitialAssignmentsAsConstruction(var);
+                    }
                 }
             }
 
@@ -517,6 +535,39 @@ namespace
             state.set(varIndex, var.fullMask, var.fullMask);
         }
 
+        bool firstInitializersCanConstruct(const TrackedVar& var) const
+        {
+            if (var.isRetVal)
+                return false;
+            if (var.typeHasDrop && var.firstInitAssignRefs.empty())
+                return false;
+
+            for (const AstNodeRef assignRef : var.firstInitAssignRefs)
+            {
+                const auto* payload = sema_->semaPayload<AssignSpecOpPayload>(assignRef);
+                if (!payload || !payload->calledFn)
+                {
+                    // A raw store into a type with a drop would skip the visible
+                    // destruction of the ordinary default. Only a FullInit setter
+                    // declares that the incoming storage is a construction site.
+                    if (var.typeHasDrop)
+                        return false;
+                    continue;
+                }
+
+                if (!isFullInitializationSetter(payload->calledFn))
+                    return false;
+            }
+
+            return true;
+        }
+
+        void markInitialAssignmentsAsConstruction(const TrackedVar& var) const
+        {
+            for (const AstNodeRef assignRef : var.firstInitAssignRefs)
+                sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::FirstInit);
+        }
+
         void markInit(FlowState& state, const AccessPath& path) const
         {
             if (deferDepth_)
@@ -756,7 +807,10 @@ namespace
             var.isRetVal   = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
             var.blockDepth = blockDepth_;
             var.loopDepth  = loopDepth_;
-            var.defaultInitCandidate = !needsDefiniteInit;
+            // A mixin expansion is caller text, and the declaration's symbol may
+            // be shared with another expansion. It still needs definite-init
+            // checking, but cannot carry a reusable default-elision fact.
+            var.defaultInitCandidate = !needsDefiniteInit && inlineDepth_ == 0;
             var.needsDefiniteInit    = needsDefiniteInit;
 
             uint64_t      presetBits = 0;
@@ -1660,6 +1714,17 @@ namespace
                 return FlowExit::Normal;
             }
 
+            // A custom setter gets the destination address. It can construct raw
+            // storage only when its own body was proved to initialize every field.
+            // Otherwise its contract may inspect the ordinary default before
+            // replacing it, so the default remains materialized.
+            if (const auto* payload = sema_->semaPayload<AssignSpecOpPayload>(assignRef);
+                payload && payload->calledFn && !isFullInitializationSetter(payload->calledFn))
+            {
+                disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
+                return FlowExit::Normal;
+            }
+
             if (path.indexed)
             {
                 // Partial element coverage cannot prove that the aggregate default is
@@ -1865,6 +1930,19 @@ namespace
         const AstNode& node = sema.node(ref);
         switch (node.id())
         {
+            case AstNodeId::AssignStmt:
+            {
+                // Inference of a callee's complete construction is a body fact.
+                // Wait for that body before this caller decides whether its first
+                // assignment may use raw storage. Self-recursive setters stay
+                // conservative instead of introducing a semantic wait cycle.
+                const auto* payload = sema.semaPayload<AssignSpecOpPayload>(ref);
+                if (payload && payload->calledFn && payload->calledFn != sema.currentFunction() &&
+                    (payload->calledFn->specOpKind() == SpecOpKind::OpSet || payload->calledFn->specOpKind() == SpecOpKind::OpSetLiteral))
+                    SWC_RESULT(sema.waitSemaCompleted(payload->calledFn, node.codeRef()));
+                break;
+            }
+
             case AstNodeId::FunctionExpr:
             case AstNodeId::ClosureExpr:
             case AstNodeId::FunctionDecl:

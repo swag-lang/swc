@@ -1,8 +1,8 @@
 #global private
 
-// Runtime behavior of safe default initialization. The semantic program keeps a
-// default when its lifecycle is observable; the optimizer may remove only writes
-// it has proved unobservable in the final IR.
+// Runtime behavior of safe default initialization. The late lowering gate removes
+// a default only when flow proves that no read, lifecycle, escape, or custom setter
+// can observe it.
 
 var g_defaultDropCount: s32
 
@@ -32,6 +32,63 @@ struct DefaultOuter
     x: s32
 }
 
+struct ObservesDefault
+{
+    marker: s32 = 41
+    value:  s32
+}
+
+impl ObservesDefault
+{
+    mtd opSet(value: s32)
+    {
+        Swag.assert(.marker == 41)
+        .value = value
+    }
+}
+
+struct FullyInitializedBySet
+{
+    first:  s32
+    second: s32
+}
+
+impl FullyInitializedBySet
+{
+    mtd opSet(value: s32)
+    {
+        .first  = value
+        .second = value + 1
+    }
+}
+
+struct DefaultInitProbe
+{
+    a: u64
+    b: u64
+    c: u64
+    d: u64
+    e: u64
+    f: u64
+    g: u64
+    h: u64
+}
+
+#[Swag.NoInline]
+func defaultInitLoweringProbe(seed: u64)->u64
+{
+    var value: DefaultInitProbe
+    value.a = seed
+    value.b = seed + 1
+    value.c = seed + 2
+    value.d = seed + 3
+    value.e = seed + 4
+    value.f = seed + 5
+    value.g = seed + 6
+    value.h = seed + 7
+    return value.a + value.b + value.c + value.d + value.e + value.f + value.g + value.h
+}
+
 func fillDefaultValue(p: *s32)
 {
     p[] = 42
@@ -51,6 +108,30 @@ func defaultPair()->{ x: s32, y: s32 }
     var x: s32
     x = 7
     Swag.assert(x == 7)
+}
+
+// A setter that reads a member before writing cannot receive raw storage.
+#test
+{
+    var value: ObservesDefault
+    value = 8
+    Swag.assert(value.marker == 41 and value.value == 8)
+}
+
+// No #[Swag.FullInit] is required: the setter's resolved body proves that it
+// constructs every member, so its first call can receive raw storage.
+#test
+{
+    var value: FullyInitializedBySet
+    value = 8
+    Swag.assert(value.first == 8 and value.second == 9)
+}
+
+// All fields are written before a read, so the 64-byte default is dead before
+// codegen and only the eight construction stores reach the backend.
+#test
+{
+    Swag.assert(defaultInitLoweringProbe(3) == 52)
 }
 
 // Out parameter: the default stays observable through the pointer.

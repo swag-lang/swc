@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -352,9 +353,29 @@ namespace
         return true;
     }
 
-    bool shouldSkipVariableDefaultInit(const SymbolVariable& symVar)
+    // A mixin is textual caller code. Its locals can deliberately share the
+    // caller's symbol map, so a function-wide flow fact is not a storage fact
+    // for that expansion. Keep the declared default at this boundary; regular
+    // inline functions still use their cloned, per-call symbols and retain the
+    // optimization.
+    bool isInsideMixinExpansion(const CodeGen& codeGen)
     {
-        return symVar.hasExtraFlag(SymbolVariableFlagsE::DefaultInitElided);
+        for (uint32_t up = 0;; ++up)
+        {
+            const AstNodeRef nodeRef = up == 0 ? codeGen.curNodeRef() : codeGen.visit().parentNodeRef(up - 1);
+            if (nodeRef.isInvalid())
+                return false;
+
+            const SemaInlinePayload* inlinePayload = codeGen.sema().inlinePayload(nodeRef);
+            if (inlinePayload && inlinePayload->sourceFunction &&
+                inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                return true;
+        }
+    }
+
+    bool shouldSkipVariableDefaultInit(const CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::DefaultInitElided) && !isInsideMixinExpansion(codeGen);
     }
 
     Result emitVariableDefaultValueToAddress(CodeGen& codeGen, const SymbolVariable& symVar, const MicroReg dstReg, uint32_t localSize)
@@ -568,7 +589,7 @@ namespace
     Result materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder  = codeGen.builder();
-        const bool    skipInit = shouldSkipVariableDefaultInit(symVar);
+        const bool    skipInit = shouldSkipVariableDefaultInit(codeGen, symVar);
         if (symVar.hasGlobalStorage())
             return Result::Continue;
 

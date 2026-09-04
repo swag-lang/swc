@@ -60,7 +60,7 @@ namespace
 
             for (const uint32_t lineStart : lineStarts)
                 processLine(lineStart);
-            flushComments(lastCodeCols_);
+            flushComments(lastCodeCols_, true);
         }
 
     private:
@@ -132,11 +132,14 @@ namespace
             const bool editable = FormatPassUtil::canEditGap(*model_, lineStart) && lineStart != 0 &&
                                   model_->gapHasNewline(lineStart);
 
-            // Whole-line comments adopt the indentation of the next code line.
+            // A whole-line comment introduces the code line under it, so it
+            // takes that line's indentation. A closing brace is the exception:
+            // it sits one level out, and a comment cannot introduce it, so the
+            // comment stays where its own block puts it.
             if (piece.isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart)
             {
                 if (editable)
-                    pendingComments_.push_back(lineStart);
+                    pendingComments_.push_back({lineStart, statementColumns(lineStart, piece)});
                 return;
             }
 
@@ -162,8 +165,8 @@ namespace
                 const ContinuationAnchor anchor = continuationColumns(lineStart, oldCols);
                 newCols                         = anchor.columns;
 
-                for (const uint32_t commentLine : pendingComments_)
-                    recordHangingLine(commentLine, anchor);
+                for (const PendingComment& comment : pendingComments_)
+                    recordHangingLine(comment.line, anchor);
                 recordHangingLine(lineStart, anchor);
 
                 // A bracket that ended its line takes its first continuation
@@ -172,7 +175,7 @@ namespace
                     parenStack_.back().operandColumn = newCols;
             }
 
-            flushComments(newCols);
+            flushComments(newCols, isStatement && piece.hasRole(FormatRoleE::BlockClose));
             lastCodeCols_ = newCols;
 
             if (editable && newCols != oldCols)
@@ -331,13 +334,14 @@ namespace
             return {lastStmtNewCols_ + std::max(options_->continuationIndentWidth, 1u)};
         }
 
-        void flushComments(const uint32_t cols)
+        void flushComments(const uint32_t cols, const bool endsItsBlock)
         {
-            for (const uint32_t commentLine : pendingComments_)
+            for (const PendingComment& comment : pendingComments_)
             {
-                const uint32_t oldCols = FormatModel::textColumns(model_->lineIndentOf(commentLine), std::max(options_->tabWidth, 1u));
-                if (oldCols != cols)
-                    setLineIndent(commentLine, cols);
+                const uint32_t cmtCols = endsItsBlock ? comment.ownCols : cols;
+                const uint32_t oldCols = FormatModel::textColumns(model_->lineIndentOf(comment.line), std::max(options_->tabWidth, 1u));
+                if (oldCols != cmtCols)
+                    setLineIndent(comment.line, cmtCols);
             }
             pendingComments_.clear();
         }
@@ -392,6 +396,14 @@ namespace
             bool        sawCase = false;
         };
 
+        // A whole-line comment, with the column it takes as content of the
+        // block that encloses it.
+        struct PendingComment
+        {
+            uint32_t line;
+            uint32_t ownCols;
+        };
+
         FormatModel*                  model_;
         const FormatOptions*          options_;
         std::vector<FormatBlock>      sortedBlocks_;
@@ -399,7 +411,7 @@ namespace
         std::vector<FormatInlineBody> sortedInlineBodies_;
         std::vector<FormatInlineBody> inlineBodyStack_;
         std::vector<OpenBracket>      parenStack_;
-        std::vector<uint32_t>         pendingComments_;
+        std::vector<PendingComment>   pendingComments_;
         size_t                        nextBlock_            = 0;
         size_t                        nextInlineBody_       = 0;
         uint32_t                      lastStmtOldCols_      = 0;

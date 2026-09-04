@@ -118,6 +118,138 @@ SWC_TEST_BEGIN(FormatComments_NormalizeMode)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatComments_LastInBlockKeepsBlockIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func f()\n"
+        "{\n"
+        "    var x = 1\n"
+        "    discard x\n"
+        "// last\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func f()\n"
+        "{\n"
+        "    var x = 1\n"
+        "    discard x\n"
+        "    // last\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatComments_LastInNestedBlockKeepsBlockIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func f(v: s32)\n"
+        "{\n"
+        "    if v == 1\n"
+        "    {\n"
+        "        discard v\n"
+        "    // inner last\n"
+        "    }\n"
+        "// outer last\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func f(v: s32)\n"
+        "{\n"
+        "    if v == 1\n"
+        "    {\n"
+        "        discard v\n"
+        "        // inner last\n"
+        "    }\n"
+        "    // outer last\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatComments_LastInSwitchKeepsArmIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 0:\n"
+        "        discard v\n"
+        "    case 1:\n"
+        "        discard v\n"
+        "    // end of the last arm\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 0:\n"
+        "        discard v\n"
+        "    case 1:\n"
+        "        discard v\n"
+        "        // end of the last arm\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle      = FormatIndentStyle::Spaces;
+    options.indentWidth      = 4;
+    options.indentCaseLabels = false;
+    options.indentCaseBlocks = true;
+    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatComments_BeforeCaseLabelKeepsLabelIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 0:\n"
+        "        discard v\n"
+        "\n"
+        "        // introduces the next arm\n"
+        "    case 1:\n"
+        "        discard v\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case 0:\n"
+        "        discard v\n"
+        "\n"
+        "    // introduces the next arm\n"
+        "    case 1:\n"
+        "        discard v\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle      = FormatIndentStyle::Spaces;
+    options.indentWidth      = 4;
+    options.indentCaseLabels = false;
+    options.indentCaseBlocks = true;
+    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

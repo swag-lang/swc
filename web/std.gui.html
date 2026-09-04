@@ -378,7 +378,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1172</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1173</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_AboutDlg_addSection">AboutDlg.addSection</a></li>
@@ -1006,6 +1006,7 @@
 <li><a href="#Gui_Pdf_Page_addText">Page.addText</a></li>
 <li><a href="#Gui_Pdf_Page_clear">Page.clear</a></li>
 <li><a href="#Gui_Pdf_Page_create">Page.create</a></li>
+<li><a href="#Gui_Pdf_Page_prepare">Page.prepare</a></li>
 <li><a href="#Gui_Pdf_Page_removeItem">Page.removeItem</a></li>
 <li><a href="#Gui_Pdf_Page_render">Page.render</a></li>
 <li><a href="#Gui_Pdf_Page_setItemFillColor">Page.setItemFillColor</a></li>
@@ -3813,6 +3814,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_Pdf_Page_clear">Page.clear</a></td><td><p>Removes every page item while preserving the page dimensions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Pdf_Page_create">Page.create</a></td><td><p>Creates an empty page with positive dimensions in PDF points.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_prepare">Page.prepare</a></td><td><p>Prepares the page's vector geometry for a draw at <span class="code-inline">scale</span> device pixels per point.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Pdf_Page_removeItem">Page.removeItem</a></td><td><p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
 </td></tr>
@@ -13690,6 +13693,8 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Pdf_Page_create">create</a></td><td><p>Creates an empty page with positive dimensions in PDF points.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Pdf_Page_prepare">prepare</a></td><td><p>Prepares the page's vector geometry for a draw at <span class="code-inline">scale</span> device pixels per point.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Pdf_Page_removeItem">removeItem</a></td><td><p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Pdf_Page_render">render</a></td><td><p>Renders the complete page to an owned Pixel image.</p>
@@ -16506,17 +16511,17 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_PasswordEdit_MaximumByteLength">MaximumByteLength</a></span> = <span class="SNum">1024</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_PdfView_MaxZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.MaxZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_MaxZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L615">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_PdfView_MaxZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.MaxZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_MaxZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L770">src</a></div>
 <p>Largest supported scale, in logical units per PDF point.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MaxZoom</span>         = <span class="SNum">64.0</span>'<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_PdfView_MinZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.MinZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_MinZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L614">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_PdfView_MinZoom" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.MinZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_MinZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L769">src</a></div>
 <p>Smallest supported scale, in logical units per PDF point.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MinZoom</span>         = <span class="SNum">0.05</span>'<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_PdfView_WheelScrollStep" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.WheelScrollStep</span> <a class="api-item-permalink" href="#Gui_PdfView_WheelScrollStep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L616">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_PdfView_WheelScrollStep" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PdfView.WheelScrollStep</span> <a class="api-item-permalink" href="#Gui_PdfView_WheelScrollStep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L771">src</a></div>
 <p>Logical units scrolled per wheel notch.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_PdfView_WheelScrollStep">WheelScrollStep</a></span> = <span class="SNum">60.0</span>'<span class="STpe">f32</span></span></div>
 </section>
@@ -19877,6 +19882,14 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Pdf_Page_prepare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.prepare</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_prepare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L264">src</a></div>
+<p>Prepares the page's vector geometry for a draw at <span class="code-inline">scale</span> device pixels per point.</p>
+<p>Drawing a page flattens its curves and triangulates its fills at the scale it is drawn at, and keeps both inside the page, which is what makes drawing it again cheap. The frame that first draws it at a given scale therefore pays for the whole page, and a page of a few thousand marks takes long enough that a reader enlarging a window sees it stop following the pointer. This does that work on its own, so a caller that knows the scale before the frame does — a viewer that has just decoded a page, or one whose view has just been resized — can pay it away from the frame, and on a worker.</p>
+<p>It reads and writes the page, so it must not run while the page is being drawn.</p>
+<div class="code-block"><span class="SCde">page.<span class="SFct">prepare</span>(<span class="SNum">2.0</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">prepare</span>(scale: <span class="STpe">f32</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Pdf_Page_removeItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.removeItem</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_removeItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L148">src</a></div>
 <p>Removes the item at <span class="code-inline">index</span> and preserves the paint order of the rest.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeItem</span>(index: <span class="STpe">u64</span>)</span></div>
@@ -20040,140 +20053,140 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPlaceholder</span>(placeholder: <span class="SItr">#null</span> <span class="STpe">string</span>) =&gt; .edit.setPlaceholder</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_actualSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.actualSize</span> <a class="api-item-permalink" href="#Gui_PdfView_actualSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L774">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_actualSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.actualSize</span> <a class="api-item-permalink" href="#Gui_PdfView_actualSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L931">src</a></div>
 <p>Shows the page at actual size: one PDF point per 1/96 of a logical inch.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">actualSize</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.clearSelection</span> <a class="api-item-permalink" href="#Gui_PdfView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L784">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.clearSelection</span> <a class="api-item-permalink" href="#Gui_PdfView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L941">src</a></div>
 <p>Empties the selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSelection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.close</span> <a class="api-item-permalink" href="#Gui_PdfView_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L667">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.close</span> <a class="api-item-permalink" href="#Gui_PdfView_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L822">src</a></div>
 <p>Releases the displayed page, its textures, its typefaces, and the document text extracted for search, while keeping the widget alive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_collectTextMatches" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.collectTextMatches</span> <a class="api-item-permalink" href="#Gui_PdfView_collectTextMatches" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L824">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_collectTextMatches" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.collectTextMatches</span> <a class="api-item-permalink" href="#Gui_PdfView_collectTextMatches" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L981">src</a></div>
 <p>Appends the matches of the pages whose text is extracted so far, from page <span class="code-inline">page[]</span> on, and reports whether the whole document has been searched.</p>
 <p>The document's text is extracted on a worker, a page at a time, the first time a search asks for it. This call never waits for a page: it searches the pages extracted since <span class="code-inline">page[]</span>, moves <span class="code-inline">page[]</span> past them, and answers false while pages remain, so a host polls it with the same query, options, page and array until it answers true. A new search starts with <span class="code-inline">page[]</span> at zero. Matches arrive in page order, then in text order within a page; an invalid regular expression ends the search with nothing appended.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">collectTextMatches</span>(text: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Gui_PdfTextSearchOptions">PdfTextSearchOptions</a></span>, page: *<span class="STpe">u64</span>, result: *<span class="SFct">Array</span>'<span class="SCst"><a href="#Gui_PdfTextMatch">PdfTextMatch</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.copySelection</span> <a class="api-item-permalink" href="#Gui_PdfView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L934">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.copySelection</span> <a class="api-item-permalink" href="#Gui_PdfView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L1091">src</a></div>
 <p>Puts the selected text on the clipboard, and reports whether there was one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">copySelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.create</span> <a class="api-item-permalink" href="#Gui_PdfView_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L620">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.create</span> <a class="api-item-permalink" href="#Gui_PdfView_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L775">src</a></div>
 <p>Creates an empty PDF viewer.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PdfView">PdfView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_effectiveZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.effectiveZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_effectiveZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L733">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_effectiveZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.effectiveZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_effectiveZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L890">src</a></div>
 <p>Returns the scale the page is currently shown at, in logical units per PDF point.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">effectiveZoom</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_exchangeDocument" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.exchangeDocument</span> <a class="api-item-permalink" href="#Gui_PdfView_exchangeDocument" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L649">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_exchangeDocument" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.exchangeDocument</span> <a class="api-item-permalink" href="#Gui_PdfView_exchangeDocument" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L804">src</a></div>
 <p>Displays a prepared reader and its decoded first page by exchanging their ownership.</p>
 <p>This is the publication counterpart to opening and decoding a PDF outside the GUI thread. <span class="code-inline">reader</span> must contain at least one page and <span class="code-inline">page</span> must be page zero decoded from that reader. On return they own the content that previously belonged to the view, if any.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">exchangeDocument</span>(reader: *<span class="SCst"><a href="#namespace_Gui_Pdf">Pdf</a></span>.<span class="SCst"><a href="#Gui_Pdf_Reader">Reader</a></span>, page: *<span class="SCst"><a href="#namespace_Gui_Pdf">Pdf</a></span>.<span class="SCst"><a href="#Gui_Pdf_Page">Page</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.findText</span> <a class="api-item-permalink" href="#Gui_PdfView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L951">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.findText</span> <a class="api-item-permalink" href="#Gui_PdfView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L1108">src</a></div>
 <p>Finds and reveals the next occurrence of <span class="code-inline">text</span>, scanning forward from the last hit and wrapping once around the document. The match becomes the selection, so a copy right after a search takes what the search found. Reports whether any page holds the text.</p>
 <p>The document's text is extracted once per document, on a worker, and the first search waits for it; the one page that is decoded here is the page shown for the match.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_findTextMatches" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.findTextMatches</span> <a class="api-item-permalink" href="#Gui_PdfView_findTextMatches" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L802">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_findTextMatches" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.findTextMatches</span> <a class="api-item-permalink" href="#Gui_PdfView_findTextMatches" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L959">src</a></div>
 <p>Finds every non-overlapping text occurrence in page order.</p>
 <p>The document's text is extracted once per document, on a worker, the first time a search asks for it; this call waits for that extraction, so the first search through a document pays it and every later one costs the comparison alone. <a href="#Gui_PdfView_collectTextMatches">Gui.PdfView.collectTextMatches</a> is the same search without the wait. The returned value owns stable page and UTF-8 text coordinates; pass one of its entries to <a href="#Gui_PdfView_revealTextMatch">Gui.PdfView.revealTextMatch</a> while this document remains open. An invalid regular expression returns an empty array.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findTextMatches</span>(text: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Gui_PdfTextSearchOptions">PdfTextSearchOptions</a></span> = {})-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Gui_PdfTextMatch">PdfTextMatch</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.hasSelection</span> <a class="api-item-permalink" href="#Gui_PdfView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L781">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.hasSelection</span> <a class="api-item-permalink" href="#Gui_PdfView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L938">src</a></div>
 <p>Reports whether the reader selected text on the displayed page.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasSelection</span>()-&gt;<span class="STpe">bool</span> =&gt; .selAnchor != <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span> <span class="SLgc">and</span> .selCaret != <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst">Max</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_metadata" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.metadata</span> <a class="api-item-permalink" href="#Gui_PdfView_metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L687">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_metadata" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.metadata</span> <a class="api-item-permalink" href="#Gui_PdfView_metadata" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L843">src</a></div>
 <p>Returns the document's descriptive fields.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metadata</span>()-&gt;<span class="SCst"><a href="#namespace_Gui_Pdf">Pdf</a></span>.<span class="SCst"><a href="#Gui_Pdf_Metadata">Metadata</a></span> =&gt; .reader.metadata</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_nextPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.nextPage</span> <a class="api-item-permalink" href="#Gui_PdfView_nextPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L719">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_nextPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.nextPage</span> <a class="api-item-permalink" href="#Gui_PdfView_nextPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L876">src</a></div>
 <p>Shows the next page when one exists.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextPage</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.open</span> <a class="api-item-permalink" href="#Gui_PdfView_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L635">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.open</span> <a class="api-item-permalink" href="#Gui_PdfView_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L790">src</a></div>
 <p>Opens a PDF file and shows its first page fitted to the viewport.</p>
 <p>The previous document, if any, is released. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">open</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_pageCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.pageCount</span> <a class="api-item-permalink" href="#Gui_PdfView_pageCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L690">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_pageCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.pageCount</span> <a class="api-item-permalink" href="#Gui_PdfView_pageCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L846">src</a></div>
 <p>Returns the number of pages of the open document, or zero when none is open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pageCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .hasPage</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_pageSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.pageSize</span> <a class="api-item-permalink" href="#Gui_PdfView_pageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L693">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_pageSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.pageSize</span> <a class="api-item-permalink" href="#Gui_PdfView_pageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L849">src</a></div>
 <p>Returns the displayed page's dimensions in PDF points.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pageSize</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span> =&gt; .hasPage</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_previousPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.previousPage</span> <a class="api-item-permalink" href="#Gui_PdfView_previousPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L726">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_previousPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.previousPage</span> <a class="api-item-permalink" href="#Gui_PdfView_previousPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L883">src</a></div>
 <p>Shows the previous page when one exists.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">previousPage</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_revealTextMatch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.revealTextMatch</span> <a class="api-item-permalink" href="#Gui_PdfView_revealTextMatch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L851">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_revealTextMatch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.revealTextMatch</span> <a class="api-item-permalink" href="#Gui_PdfView_revealTextMatch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L1008">src</a></div>
 <p>Selects and reveals one match returned by <a href="#Gui_PdfView_findTextMatches">Gui.PdfView.findTextMatches</a>.</p>
 <p>Returns false when its page or byte range no longer belongs to the open document.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealTextMatch</span>(match: <span class="SCst"><a href="#Gui_PdfTextMatch">PdfTextMatch</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.selectAll</span> <a class="api-item-permalink" href="#Gui_PdfView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L908">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.selectAll</span> <a class="api-item-permalink" href="#Gui_PdfView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L1065">src</a></div>
 <p>Selects the whole text of the displayed page.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.selectedText</span> <a class="api-item-permalink" href="#Gui_PdfView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L922">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.selectedText</span> <a class="api-item-permalink" href="#Gui_PdfView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L1079">src</a></div>
 <p>Returns the selected text, in the reading order the page indexes to.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedText</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_setZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.setZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_setZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L747">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_setZoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.setZoom</span> <a class="api-item-permalink" href="#Gui_PdfView_setZoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L904">src</a></div>
 <p>Sets an explicit page scale and leaves fitted mode.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setZoom</span>(value: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_showPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.showPage</span> <a class="api-item-permalink" href="#Gui_PdfView_showPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L696">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_showPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.showPage</span> <a class="api-item-permalink" href="#Gui_PdfView_showPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L852">src</a></div>
 <p>Decodes and shows the page at zero-based <span class="code-inline">index</span>, preserving the zoom mode.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showPage</span>(index: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_textMatchRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.textMatchRect</span> <a class="api-item-permalink" href="#Gui_PdfView_textMatchRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L874">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_textMatchRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.textMatchRect</span> <a class="api-item-permalink" href="#Gui_PdfView_textMatchRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L1031">src</a></div>
 <p>Reports the rendered rectangle of a match on the displayed page in surface coordinates.</p>
 <p>Returns false until the matching page is displayed or when the range no longer belongs to the open document. This is the geometry-only counterpart of <a href="#Gui_PdfView_revealTextMatch">Gui.PdfView.revealTextMatch</a>; hosts remain responsible for how a current result is presented.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">textMatchRect</span>(match: <span class="SCst"><a href="#Gui_PdfTextMatch">PdfTextMatch</a></span>, result: *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_zoomIn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomIn</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomIn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L753">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_zoomIn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomIn</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomIn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L910">src</a></div>
 <p>Increases the page scale by one viewer step.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomIn</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_zoomOut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomOut</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomOut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L759">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_zoomOut" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomOut</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomOut" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L916">src</a></div>
 <p>Decreases the page scale by one viewer step.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomOut</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PdfView_zoomToFit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomToFit</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomToFit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L765">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PdfView_zoomToFit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PdfView.zoomToFit</span> <a class="api-item-permalink" href="#Gui_PdfView_zoomToFit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/view.swg#L922">src</a></div>
 <p>Fits the complete page inside the viewport and recentres it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomToFit</span>()</span></div>
 </section>
@@ -26027,6 +26040,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.Pdf.Page.addText|Gui_Pdf_Page_addText|Appends one UTF-8 text run.",
 "f|Gui.Pdf.Page.clear|Gui_Pdf_Page_clear|Removes every page item while preserving the page dimensions.",
 "f|Gui.Pdf.Page.create|Gui_Pdf_Page_create|Creates an empty page with positive dimensions in PDF points.",
+"f|Gui.Pdf.Page.prepare|Gui_Pdf_Page_prepare|Prepares the page's vector geometry for a draw at scale device pixels per point.",
 "f|Gui.Pdf.Page.removeItem|Gui_Pdf_Page_removeItem|Removes the item at index and preserves the paint order of the rest.",
 "f|Gui.Pdf.Page.render|Gui_Pdf_Page_render|Renders the complete page to an owned Pixel image.",
 "f|Gui.Pdf.Page.setItemFillColor|Gui_Pdf_Page_setItemFillColor|Replaces the fill color of a text or path item.",

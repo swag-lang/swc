@@ -60,7 +60,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">84</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">85</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Pixel_Bmp_Header">Bmp.Header</a></li>
@@ -77,6 +77,7 @@
 <li><a href="#Pixel_Command">Pixel.Command</a></li>
 <li><a href="#Pixel_DecodeOptions">Pixel.DecodeOptions</a></li>
 <li><a href="#Pixel_Element">Pixel.Element</a></li>
+<li><a href="#Pixel_FillPreparer">Pixel.FillPreparer</a></li>
 <li><a href="#Pixel_Font">Pixel.Font</a></li>
 <li><a href="#Pixel_FontCache">Pixel.FontCache</a></li>
 <li><a href="#Pixel_FontEffectParams">Pixel.FontEffectParams</a></li>
@@ -222,7 +223,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">446</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">449</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -301,6 +302,8 @@
 <li><a href="#Pixel_Svg_Drawing_parse">Drawing.parse</a></li>
 <li><a href="#Pixel_Svg_Drawing_rasterize">Drawing.rasterize</a></li>
 <li><a href="#Pixel_Svg_Drawing_shapeCount">Drawing.shapeCount</a></li>
+<li><a href="#Pixel_FillPreparer_flatten">FillPreparer.flatten</a></li>
+<li><a href="#Pixel_FillPreparer_prepare">FillPreparer.prepare</a></li>
 <li><a href="#Pixel_Font_getGlyphDesc">Font.getGlyphDesc</a></li>
 <li><a href="#Pixel_Font_getGlyphDescByIndex">Font.getGlyphDescByIndex</a></li>
 <li><a href="#Pixel_Font_glyphIndex">Font.glyphIndex</a></li>
@@ -543,6 +546,7 @@
 <li><a href="#Pixel_Painter_pushState">Painter.pushState</a></li>
 <li><a href="#Pixel_Painter_pushTransform">Painter.pushTransform</a></li>
 <li><a href="#Pixel_Painter_quality">Painter.quality</a></li>
+<li><a href="#Pixel_Painter_quantizeFlattenScale">Painter.quantizeFlattenScale</a></li>
 <li><a href="#Pixel_Painter_releaseRenderTarget">Painter.releaseRenderTarget</a></li>
 <li><a href="#Pixel_Painter_removeParams">Painter.removeParams</a></li>
 <li><a href="#Pixel_Painter_render">Painter.render</a></li>
@@ -1103,6 +1107,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Element">Pixel.Element</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one compact segment in a <a href="#Pixel_LinePath">Pixel.LinePath</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_FillPreparer">Pixel.FillPreparer</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Builds the tessellation a fill would build, without recording anything.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Font">Pixel.Font</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents a lightweight view of a shared <a href="#Pixel_GlyphCache">Pixel.GlyphCache</a> at one draw size.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_FontCache">Pixel.FontCache</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns the glyph storage and the font views created through it.</p>
@@ -1532,6 +1538,10 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_Svg_Drawing_rasterize">Drawing.rasterize</a></td><td><p>Rasterizes the drawing into an owned image of exactly <span class="code-inline">width</span> by <span class="code-inline">height</span> pixels.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Svg_Drawing_shapeCount">Drawing.shapeCount</a></td><td><p>Returns the number of parsed shapes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_FillPreparer_flatten">FillPreparer.flatten</a></td><td><p>Flattens a path for a draw at <span class="code-inline">scale</span>, without tessellating anything.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_FillPreparer_prepare">FillPreparer.prepare</a></td><td><p>Prepares what <a href="#Pixel_Painter_fillPath">Pixel.Painter.fillPath</a> under <span class="code-inline">rule</span> would build for <span class="code-inline">pathList</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Font_getGlyphDesc">Font.getGlyphDesc</a></td><td><p>Returns the glyph descriptor of a given rune (in reference-size pixels)</p>
 </td></tr>
@@ -2017,6 +2027,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_quality">Painter.quality</a></td><td><p>Returns the current curve tessellation quality.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_quantizeFlattenScale">Painter.quantizeFlattenScale</a></td><td><p>Returns the flattening scale a painter asked for <span class="code-inline">scale</span> would use.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_releaseRenderTarget">Painter.releaseRenderTarget</a></td><td><p>Release the render target</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_removeParams">Painter.removeParams</a></td><td><p>Disables the specified painter behavior flags.</p>
@@ -2314,6 +2326,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_DecodeOptions">Pixel.DecodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls which parts of an encoded image are materialized.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Element">Pixel.Element</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one compact segment in a <a href="#Pixel_LinePath">Pixel.LinePath</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_FillPreparer">Pixel.FillPreparer</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Builds the tessellation a fill would build, without recording anything.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Font">Pixel.Font</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents a lightweight view of a shared <a href="#Pixel_GlyphCache">Pixel.GlyphCache</a> at one draw size.</p>
 </td></tr>
@@ -3258,6 +3272,27 @@ brush.<span class="SFct">addGradientStop</span>(<span class="SNum">0.5</span>, <
 <tr><td id="Pixel_Element_position" class="code-type">position</td><td class="code-type"><a href="std.core.html#Core_Math_Vector2">Core.Math.Vector2</a></td><td><p>Endpoint, or center for an arc.</p>
 </td></tr>
 <tr><td id="Pixel_Element_type" class="code-type">type</td><td class="code-type"><a href="#Pixel_ElementType">Pixel.ElementType</a></td><td><p>Segment representation.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pixel_FillPreparer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.FillPreparer</span> <a class="api-item-permalink" href="#Pixel_FillPreparer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L443">src</a></div>
+<p>Builds the tessellation a fill would build, without recording anything.</p>
+<p>A fill caches its triangulation inside the contours it fills, so the frame that first draws a shape pays for it and the frames after it do not. That is what makes drawing an unchanged document cheap — and what makes the first frame at a new scale expensive, because flattening the geometry finer replaces the contours every cached tessellation was keyed on. A consumer that knows ahead of the frame what it is about to draw, and at what scale — a document viewer that has just decoded a page, or one whose window has just been resized — can pay that here instead, and on whatever thread it likes: nothing below reads a painter, a renderer, or any state shared between them.</p>
+<p>The preparer owns the workspaces the build needs, so preparing a page's worth of shapes allocates once rather than once per shape. One preparer serves one thread, and the geometry it is given must not be drawn while it is preparing it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> preparer: <span class="SCst"><a href="#Pixel_FillPreparer">FillPreparer</a></span>
+<span class="SLgc">for</span> shape <span class="SLgc">in</span> page <span class="SLgc">do</span>
+    preparer.<span class="SFct">prepare</span>(shape, scale, .<span class="SCst">NonZero</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_FillPreparer">FillPreparer</a></span></span></div>
+</section>
+<h3 id="Pixel_FillPreparer_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pixel_FillPreparer_flatten">flatten</a></td><td><p>Flattens a path for a draw at <span class="code-inline">scale</span>, without tessellating anything.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_FillPreparer_prepare">prepare</a></td><td><p>Prepares what <a href="#Pixel_Painter_fillPath">Pixel.Painter.fillPath</a> under <span class="code-inline">rule</span> would build for <span class="code-inline">pathList</span>.</p>
 </td></tr>
 </tbody>
 </table>
@@ -4367,6 +4402,8 @@ painter.<span class="SFct">end</span>()</span></div>
 <tr><td class="code-type"><a href="#Pixel_Painter_pushTransform">pushTransform</a></td><td><p>Pushes a copy of the current transform.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_quality">quality</a></td><td><p>Returns the current curve tessellation quality.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_quantizeFlattenScale">quantizeFlattenScale</a></td><td><p>Returns the flattening scale a painter asked for <span class="code-inline">scale</span> would use.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_releaseRenderTarget">releaseRenderTarget</a></td><td><p>Release the render target</p>
 </td></tr>
@@ -7494,6 +7531,20 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">shapeCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .shapes</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_FillPreparer_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FillPreparer.flatten</span> <a class="api-item-permalink" href="#Pixel_FillPreparer_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L477">src</a></div>
+<p>Flattens a path for a draw at <span class="code-inline">scale</span>, without tessellating anything.</p>
+<p>A stroked path is turned into geometry by the frame that draws it, so there is no tessellation to build for one; flattening it here still keeps the frame from doing it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flatten</span>(pathList: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, scale: <span class="STpe">f32</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_FillPreparer_prepare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FillPreparer.prepare</span> <a class="api-item-permalink" href="#Pixel_FillPreparer_prepare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L460">src</a></div>
+<p>Prepares what <a href="#Pixel_Painter_fillPath">Pixel.Painter.fillPath</a> under <span class="code-inline">rule</span> would build for <span class="code-inline">pathList</span>.</p>
+<p><span class="code-inline">scale</span> is the number of device pixels one path unit covers, the way <a href="#Pixel_Painter_setFlattenScale">Pixel.Painter.setFlattenScale</a> reads it, and is quantized the same way: ask for the scale the shape will be drawn at, and the frame that draws it finds everything cached. Asking for less leaves the frame to flatten the geometry again; asking for more only costs the extra segments.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">prepare</span>(pathList: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, scale: <span class="STpe">f32</span>, rule: <span class="SCst"><a href="#Pixel_PathFillRule">PathFillRule</a></span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
+<p>Prepares what the winding-direction <a href="#Pixel_Painter_fillPath">Pixel.Painter.fillPath</a> would build for <span class="code-inline">pathList</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">prepare</span>(pathList: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, scale: <span class="STpe">f32</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Font_getGlyphDesc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.getGlyphDesc</span> <a class="api-item-permalink" href="#Pixel_Font_getGlyphDesc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L380">src</a></div>
 <p>Returns the glyph descriptor of a given rune (in reference-size pixels)</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getGlyphDesc</span>(c: <span class="STpe">rune</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_GlyphDesc">GlyphDesc</a></span></span></div>
@@ -8329,29 +8380,29 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">texture</span>()-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_arcTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.arcTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_arcTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L193">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_arcTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.arcTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_arcTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L198">src</a></div>
 <p>Add an arc from the previous point</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">arcTo</span>(centerX, centerY: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>, initAngle, maxAngle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_bezierTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.bezierTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_bezierTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L160">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_bezierTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.bezierTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_bezierTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L165">src</a></div>
 <p>Adds a quadratic Bézier ending at <span class="code-inline">(x, y)</span> with one control point.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bezierTo</span>(x, y: <span class="STpe">f32</span>, ctx, cty: <span class="STpe">f32</span>)</span></div>
 <p>Adds a cubic Bézier ending at <span class="code-inline">(x, y)</span> with two control points.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bezierTo</span>(x, y: <span class="STpe">f32</span>, ct1x, ct1y: <span class="STpe">f32</span>, ct2x, ct2y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.clear</span> <a class="api-item-permalink" href="#Pixel_LinePath_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.clear</span> <a class="api-item-permalink" href="#Pixel_LinePath_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L117">src</a></div>
 <p>Releases all path geometry and restores an empty value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.close</span> <a class="api-item-permalink" href="#Pixel_LinePath_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L307">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.close</span> <a class="api-item-permalink" href="#Pixel_LinePath_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L312">src</a></div>
 <p>Close the figure Will add a line or a curve to the first point if necessary</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePath_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L270">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePath_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L275">src</a></div>
 <p>Returns the rectangle enclosing every point that defines this path.</p>
 <p>A Bézier is contained by its control polygon and an arc by its centre and radii, so this answers without flattening anything: it works on a path still being built, and costs one pass over the segments. The result can be wider than the ink the path finally lays down, and is never narrower — which is what makes it safe to reject work against, and unsuitable for measuring a drawing.</p>
 <div class="code-block"><span class="SCde"><span class="SLgc">if</span> !path.<span class="SFct">controlBounds</span>().<span class="SFct">intersects</span>(dirtyRect) <span class="SLgc">do</span>
@@ -8359,92 +8410,92 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">controlBounds</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_curveTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.curveTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_curveTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_curveTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.curveTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_curveTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L150">src</a></div>
 <p>Adds a smoothed curve point at <span class="code-inline">(x, y)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">curveTo</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePath_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L531">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePath_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L554">src</a></div>
 <p>Convert the path to a list of points</p>
 <p><span class="code-inline">scale</span> is the number of device pixels one path unit covers when the result is drawn: the flattening tolerance is expressed in path units, so a curve zoomed by a transform needs proportionally more segments to look as smooth on screen as it does at scale one. The cache keeps the finest flattening produced so far, whichever combination of quality and scale asked for it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flatten</span>(quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_flattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_flattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L507">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_flattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_flattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L530">src</a></div>
 <p>Flattens the path as needed and returns its mutable cached contour.</p>
 <p>Mutating the returned points changes only the cache. Call <a href="#Pixel_LinePath_recomputeFlattenedPolygon">Pixel.LinePath.recomputeFlattenedPolygon</a> after geometric edits; a later path edit may replace the contour completely.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flattenedPolygon</span>(quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)-&gt;*<span class="SCst"><a href="#Pixel_Polygon">Polygon</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_lineTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.lineTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_lineTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L130">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_lineTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.lineTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_lineTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L135">src</a></div>
 <p>Adds a straight segment from the current endpoint to <span class="code-inline">(x, y)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lineTo</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opDrop</span> <a class="api-item-permalink" href="#Pixel_LinePath_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L88">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opDrop</span> <a class="api-item-permalink" href="#Pixel_LinePath_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L93">src</a></div>
 <p>Releases cached tessellation when the path leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_LinePath_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L94">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_LinePath_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L99">src</a></div>
 <p>Detaches cached tessellation after copying the path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_recomputeFlattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.recomputeFlattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_recomputeFlattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L514">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_recomputeFlattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.recomputeFlattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_recomputeFlattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L537">src</a></div>
 <p>Refreshes bounds and polygon properties after editing the flattened contour.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">recomputeFlattenedPolygon</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setArc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setArc</span> <a class="api-item-permalink" href="#Pixel_LinePath_setArc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L459">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setArc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setArc</span> <a class="api-item-permalink" href="#Pixel_LinePath_setArc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L482">src</a></div>
 <p>Initialize the path with an arc</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setArc</span>(centerX, centerY: <span class="STpe">f32</span>, radius: <span class="STpe">f32</span>, startAngle, endAngle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setCircle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setCircle</span> <a class="api-item-permalink" href="#Pixel_LinePath_setCircle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L444">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setCircle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setCircle</span> <a class="api-item-permalink" href="#Pixel_LinePath_setCircle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L467">src</a></div>
 <p>Initialize the path with a circle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCircle</span>(centerX, centerY: <span class="STpe">f32</span>, radius: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipse</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L433">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipse</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L456">src</a></div>
 <p>Initialize the path with an ellipse</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEllipse</span>(centerX, centerY: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipseRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipseRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipseRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L422">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipseRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipseRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipseRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L445">src</a></div>
 <p>Initialize the path with an ellipse at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setEllipse">setEllipse</a>, the center and radii are not snapped to the pixel grid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEllipseRaw</span>(cX, cY: <span class="STpe">f32</span>, rX, rY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L376">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L399">src</a></div>
 <p>Initialize the path with a rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRect</span>(left, top, width, height: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L362">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L385">src</a></div>
 <p>Initialize the path with a rectangle at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setRect">setRect</a>, nothing is snapped to the pixel grid: authored fractional geometry, such as a parsed vector document, stays untouched.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRectRaw</span>(l, t, w, h: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L409">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L432">src</a></div>
 <p>Initialize the path with a round rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRoundRect</span>(left, top, width, height: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L390">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L413">src</a></div>
 <p>Initialize the path with a round rectangle at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setRoundRect">setRoundRect</a>, nothing is snapped to the pixel grid; the radii are clamped to half the dimensions, so a full radius produces a capsule.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRoundRectRaw</span>(l, t, w, h: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.start</span> <a class="api-item-permalink" href="#Pixel_LinePath_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L119">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.start</span> <a class="api-item-permalink" href="#Pixel_LinePath_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L124">src</a></div>
 <p>Clears the path and starts a new open contour at <span class="code-inline">(startX, startY)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(startX, startY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.transform</span> <a class="api-item-permalink" href="#Pixel_LinePath_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L233">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.transform</span> <a class="api-item-permalink" href="#Pixel_LinePath_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L238">src</a></div>
 <p>Maps every point of the path through an affine transform, in place.</p>
 <p>Lines and Bézier segments map exactly. An arc does not survive an affine map — a rotation or a skew turns it into an elliptical arc this representation cannot express — so an arc is first rewritten as the cubic Bézier segments that trace it, and those are mapped. The flattened geometry is discarded; the path flattens again the next time it is painted.</p>
 <div class="code-block"><span class="SCde">clip.<span class="SFct">transform</span>(placement.<span class="SFct">inverse</span>())</span></div>
@@ -8562,7 +8613,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">height</span>()-&gt;<span class="STpe">f32</span> =&gt; .ascent</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_addParams" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.addParams</span> <a class="api-item-permalink" href="#Pixel_Painter_addParams" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1159">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_addParams" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.addParams</span> <a class="api-item-permalink" href="#Pixel_Painter_addParams" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1171">src</a></div>
 <p>Enables the specified painter behavior flags.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addParams</span>(add: <span class="SCst"><a href="#Pixel_PaintParams">PaintParams</a></span>)</span></div>
 </section>
@@ -8573,18 +8624,18 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">advanceTextX</span>(left, offsetX, advanceX: <span class="STpe">f32</span>, info: <span class="SCst"><a href="#Pixel_TextDrawInfo">TextDrawInfo</a></span>, runStart = <span class="SKwd">false</span>)-&gt;{ glyphX: <span class="STpe">f32</span>, rightX: <span class="STpe">f32</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.begin</span> <a class="api-item-permalink" href="#Pixel_Painter_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1042">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.begin</span> <a class="api-item-permalink" href="#Pixel_Painter_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1054">src</a></div>
 <p>Starts a fresh recording scope and resets drawing state.</p>
 <p>A previous scope must have ended. Existing commands and vertices are discarded. Set <span class="code-inline">layoutOnly</span> to compute layout without emitting text geometry.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(layoutOnly = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_bindRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.bindRenderTarget</span> <a class="api-item-permalink" href="#Pixel_Painter_bindRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1503">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_bindRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.bindRenderTarget</span> <a class="api-item-permalink" href="#Pixel_Painter_bindRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1515">src</a></div>
 <p>Bind a render target</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bindRenderTarget</span>(tgt: *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>, paintAlpha = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_blendingMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.blendingMode</span> <a class="api-item-permalink" href="#Pixel_Painter_blendingMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1455">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_blendingMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.blendingMode</span> <a class="api-item-permalink" href="#Pixel_Painter_blendingMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1467">src</a></div>
 <p>Returns the color blend operation subsequent drawing commands use.</p>
 <p>A caller that changes the mode for part of what it draws reads it first and restores it, the way it does for the transform and the flattening scale.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">blendingMode</span>()-&gt;<span class="SCst"><a href="#Pixel_BlendingMode">BlendingMode</a></span> =&gt; .curState</span></div>
@@ -8603,13 +8654,13 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">capStyleRadius</span>(capStyle: <span class="SCst"><a href="#Pixel_LineCapStyle">LineCapStyle</a></span>, lineSize, capScaleX: <span class="STpe">f32</span>, capScaleY: <span class="STpe">f32</span> = <span class="SNum">2</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.clear</span> <a class="api-item-permalink" href="#Pixel_Painter_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1090">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.clear</span> <a class="api-item-permalink" href="#Pixel_Painter_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1102">src</a></div>
 <p>Records a clear of the active rendering surface.</p>
 <p>The current clipping rectangle and color mask apply. Enable alpha writes before clearing when later blend equations need the cleared color to be an opaque backdrop.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>(color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_clippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.clippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_clippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1381">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_clippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.clippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_clippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1393">src</a></div>
 <p>Returns the current clipping rectangle, or an unbounded rectangle when clipping is disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">clippingRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
@@ -8754,12 +8805,12 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawTexture</span>(x, y: <span class="STpe">f32</span>, srcRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span> = <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.end</span> <a class="api-item-permalink" href="#Pixel_Painter_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1068">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.end</span> <a class="api-item-permalink" href="#Pixel_Painter_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1080">src</a></div>
 <p>Ends the active recording scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">end</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_endClippingRegion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.endClippingRegion</span> <a class="api-item-permalink" href="#Pixel_Painter_endClippingRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1427">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_endClippingRegion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.endClippingRegion</span> <a class="api-item-permalink" href="#Pixel_Painter_endClippingRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1439">src</a></div>
 <p>Finishes the region and puts it into effect.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endClippingRegion</span>()</span></div>
 </section>
@@ -8778,7 +8829,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillEllipse</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_fillPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillPath</span> <a class="api-item-permalink" href="#Pixel_Painter_fillPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L156">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_fillPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillPath</span> <a class="api-item-permalink" href="#Pixel_Painter_fillPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L215">src</a></div>
 <p>Fill a list of paths.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPath</span>(pathList: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPath</span>(path: *<span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>)</span></div>
@@ -8794,7 +8845,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPath</span>(pathList: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, rule: <span class="SCst"><a href="#Pixel_PathFillRule">PathFillRule</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_fillPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillPolygon</span> <a class="api-item-permalink" href="#Pixel_Painter_fillPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L355">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_fillPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillPolygon</span> <a class="api-item-permalink" href="#Pixel_Painter_fillPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/fillpath.swg#L378">src</a></div>
 <p>Fill the polygon with the given color</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPolygon</span>(path: *<span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 <p>Fill the polygon with the given <span class="code-inline">brush</span></p>
@@ -8819,7 +8870,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillRoundRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, radiusX, radiusY: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_flattenScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.flattenScale</span> <a class="api-item-permalink" href="#Pixel_Painter_flattenScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L460">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_flattenScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.flattenScale</span> <a class="api-item-permalink" href="#Pixel_Painter_flattenScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L472">src</a></div>
 <p>Returns the quantized flattening scale of subsequent path draws.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">flattenScale</span>() =&gt;</span></div>
@@ -8832,24 +8883,24 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">glyphs</span>(text: <span class="SFct">Array</span>'<span class="STpe">rune</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>)-&gt;<span class="SFct">Array</span>'(<span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_GlyphDesc">GlyphDesc</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_hairline" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.hairline</span> <a class="api-item-permalink" href="#Pixel_Painter_hairline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L489">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_hairline" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.hairline</span> <a class="api-item-permalink" href="#Pixel_Painter_hairline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L501">src</a></div>
 <p>Returns a stroke thickness covering a whole number of device pixels.</p>
 <p>The result is at least one device pixel, so a one-unit hairline stays a crisp single pixel on every display scale instead of a blurred fraction.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hairline</span>(thickness: <span class="STpe">f32</span> = <span class="SNum">1</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_hasClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.hasClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_hasClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1389">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_hasClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.hasClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_hasClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1401">src</a></div>
 <p>Reports whether rectangular clipping is currently enabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasClippingRect</span>()-&gt;<span class="STpe">bool</span> =&gt; .curState</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_interpolationMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.interpolationMode</span> <a class="api-item-permalink" href="#Pixel_Painter_interpolationMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1307">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_interpolationMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.interpolationMode</span> <a class="api-item-permalink" href="#Pixel_Painter_interpolationMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1319">src</a></div>
 <p>Returns the current texture interpolation mode.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">interpolationMode</span>() =&gt; .curState</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_isEmptyClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.isEmptyClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_isEmptyClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1392">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_isEmptyClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.isEmptyClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_isEmptyClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1404">src</a></div>
 <p>Reports whether rectangular clipping currently rejects all drawing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmptyClippingRect</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -8876,162 +8927,168 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">measureStringSnapped</span>(text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, atByte: <span class="STpe">u64</span> = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst"><a href="#Pixel_BlendingMode_Max">Max</a></span>, tabSize: <span class="STpe">u32</span> = <span class="SCst"><a href="#Pixel_DefaultTextTabSize">DefaultTextTabSize</a></span>, letterSpacing = <span class="SNum">0.0</span>'<span class="STpe">f32</span>, deviceScale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_params" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.params</span> <a class="api-item-permalink" href="#Pixel_Painter_params" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1192">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_params" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.params</span> <a class="api-item-permalink" href="#Pixel_Painter_params" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1204">src</a></div>
 <p>Returns the currently enabled painter behavior flags.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">params</span>() =&gt; .curState</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_popClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.popClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_popClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1367">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_popClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.popClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_popClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1379">src</a></div>
 <p>Restore the original clipping rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">popClippingRect</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_popState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.popState</span> <a class="api-item-permalink" href="#Pixel_Painter_popState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1145">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_popState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.popState</span> <a class="api-item-permalink" href="#Pixel_Painter_popState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1157">src</a></div>
 <p>Pops and restores the most recently pushed drawing state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">popState</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_popTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.popTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_popTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1272">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_popTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.popTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_popTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1284">src</a></div>
 <p>Pops and restores the most recently pushed transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">popTransform</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_pushClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_pushClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1346">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_pushClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_pushClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1358">src</a></div>
 <p>Pushes the intersection of <span class="code-inline">rect</span> and the current clipping rectangle.</p>
 <p>By default <span class="code-inline">rect</span> is transformed to surface space using the current translation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushClippingRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, isSurfacePos = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_pushClippingSurfaceRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushClippingSurfaceRect</span> <a class="api-item-permalink" href="#Pixel_Painter_pushClippingSurfaceRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1338">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_pushClippingSurfaceRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushClippingSurfaceRect</span> <a class="api-item-permalink" href="#Pixel_Painter_pushClippingSurfaceRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1350">src</a></div>
 <p>Pushes the intersection of a surface-space rectangle and the current clip.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushClippingSurfaceRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_pushState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushState</span> <a class="api-item-permalink" href="#Pixel_Painter_pushState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1139">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_pushState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushState</span> <a class="api-item-permalink" href="#Pixel_Painter_pushState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1151">src</a></div>
 <p>Pushes a copy of the current drawing state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushState</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_pushTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_pushTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1266">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_pushTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.pushTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_pushTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1278">src</a></div>
 <p>Pushes a copy of the current transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushTransform</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_quality" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.quality</span> <a class="api-item-permalink" href="#Pixel_Painter_quality" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1196">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_quality" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.quality</span> <a class="api-item-permalink" href="#Pixel_Painter_quality" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1208">src</a></div>
 <p>Returns the current curve tessellation quality.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">quality</span>() =&gt; .curState</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_releaseRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.releaseRenderTarget</span> <a class="api-item-permalink" href="#Pixel_Painter_releaseRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1536">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_quantizeFlattenScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.quantizeFlattenScale</span> <a class="api-item-permalink" href="#Pixel_Painter_quantizeFlattenScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L459">src</a></div>
+<p>Returns the flattening scale a painter asked for <span class="code-inline">scale</span> would use.</p>
+<p>The value is bucketed to the power of two at or below it, between one sixty-fourth and sixty-four, so that a zoom moving continuously re-keys the flattening caches a handful of times rather than on every frame. Ask this before preparing geometry ahead of a frame, so what is prepared is exactly what the frame will look for.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">quantizeFlattenScale</span>(scale: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Painter_releaseRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.releaseRenderTarget</span> <a class="api-item-permalink" href="#Pixel_Painter_releaseRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1548">src</a></div>
 <p>Release the render target</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseRenderTarget</span>(tgt: <span class="SItr">#null</span> *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_removeParams" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.removeParams</span> <a class="api-item-permalink" href="#Pixel_Painter_removeParams" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1165">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_removeParams" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.removeParams</span> <a class="api-item-permalink" href="#Pixel_Painter_removeParams" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1177">src</a></div>
 <p>Disables the specified painter behavior flags.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeParams</span>(remove: <span class="SCst"><a href="#Pixel_PaintParams">PaintParams</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_render" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.render</span> <a class="api-item-permalink" href="#Pixel_Painter_render" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L513">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_render" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.render</span> <a class="api-item-permalink" href="#Pixel_Painter_render" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L525">src</a></div>
 <p>Submits the completed command stream to the selected renderer.</p>
 <p>Rendering is synchronous. Call <a href="#Pixel_Painter_end">Painter.end</a> before this method.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">render</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_renderer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.renderer</span> <a class="api-item-permalink" href="#Pixel_Painter_renderer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L498">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_renderer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.renderer</span> <a class="api-item-permalink" href="#Pixel_Painter_renderer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L510">src</a></div>
 <p>Returns the renderer selected for this painter.</p>
 <p>The returned interface borrows the concrete renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderer</span>()-&gt;<span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_resetClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_resetClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1327">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_resetClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_resetClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1339">src</a></div>
 <p>Reset the current clipping rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetClippingRect</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_resetClippingRegion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetClippingRegion</span> <a class="api-item-permalink" href="#Pixel_Painter_resetClippingRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1433">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_resetClippingRegion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetClippingRegion</span> <a class="api-item-permalink" href="#Pixel_Painter_resetClippingRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1445">src</a></div>
 <p>Lifts the clipping region.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetClippingRegion</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_resetState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetState</span> <a class="api-item-permalink" href="#Pixel_Painter_resetState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1097">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_resetState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetState</span> <a class="api-item-permalink" href="#Pixel_Painter_resetState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1109">src</a></div>
 <p>Restores default transform, clipping, blending, interpolation, and color masks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetState</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_resetTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_resetTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1278">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_resetTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.resetTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_resetTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1290">src</a></div>
 <p>Restores the identity transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetTransform</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_rotateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.rotateTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_rotateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1215">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_rotateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.rotateTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_rotateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1227">src</a></div>
 <p>Appends a rotation around the path-space origin.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransform</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 <p>Appends a rotation around the specified path-space center.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransform</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>, centerX, centerY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_rotateTransformInPlace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.rotateTransformInPlace</span> <a class="api-item-permalink" href="#Pixel_Painter_rotateTransformInPlace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1236">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_rotateTransformInPlace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.rotateTransformInPlace</span> <a class="api-item-permalink" href="#Pixel_Painter_rotateTransformInPlace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1248">src</a></div>
 <p>Set the paint rotation. Will rotate around the current transformation position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransformInPlace</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_scaleTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.scaleTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_scaleTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1246">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_scaleTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.scaleTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_scaleTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1258">src</a></div>
 <p>Appends independent horizontal and vertical scale factors.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">scaleTransform</span>(x, y: <span class="STpe">f32</span>)</span></div>
 <p>Appends a uniform scale factor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">scaleTransform</span>(x: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setAntialiased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setAntialiased</span> <a class="api-item-permalink" href="#Pixel_Painter_setAntialiased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1171">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setAntialiased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setAntialiased</span> <a class="api-item-permalink" href="#Pixel_Painter_setAntialiased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1183">src</a></div>
 <p>Enables or disables antialiased path fringes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAntialiased</span>(aa = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setBlendingMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setBlendingMode</span> <a class="api-item-permalink" href="#Pixel_Painter_setBlendingMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1444">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setBlendingMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setBlendingMode</span> <a class="api-item-permalink" href="#Pixel_Painter_setBlendingMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1456">src</a></div>
 <p>Sets the color blend operation used by subsequent drawing commands.</p>
 <p>The artistic modes blend non-premultiplied source and backdrop colors, then composite the result with source-over coverage. <a href="#Pixel_BlendingMode_Min">Pixel.BlendingMode.Min</a> and <a href="#Pixel_BlendingMode_Max">Pixel.BlendingMode.Max</a> remain raw component equations and therefore differ from <a href="#Pixel_BlendingMode_Darken">Pixel.BlendingMode.Darken</a> and <a href="#Pixel_BlendingMode_Lighten">Pixel.BlendingMode.Lighten</a> when alpha is partial.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setBlendingMode</span>(mode: <span class="SCst"><a href="#Pixel_BlendingMode">BlendingMode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setBlurShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setBlurShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setBlurShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1568">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setBlurShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setBlurShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setBlurShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1580">src</a></div>
 <p>Selects one separable blur pass.</p>
 <p><span class="code-inline">axis</span> is <span class="code-inline">0</span> for horizontal sampling and <span class="code-inline">1</span> for vertical sampling. <span class="code-inline">radius</span> must be positive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setBlurShader</span>(axis: <span class="STpe">s32</span>, radius: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_setClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1310">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setClippingRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setClippingRect</span> <a class="api-item-permalink" href="#Pixel_Painter_setClippingRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1322">src</a></div>
 <p>Set the current clipping rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClippingRect</span>(x, y, width, height: <span class="STpe">f32</span>)</span></div>
 <p>Set the current clipping rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClippingRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setClippingRegionMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setClippingRegionMode</span> <a class="api-item-permalink" href="#Pixel_Painter_setClippingRegionMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1420">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setClippingRegionMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setClippingRegionMode</span> <a class="api-item-permalink" href="#Pixel_Painter_setClippingRegionMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1432">src</a></div>
 <p>Changes how what is drawn next joins the region being written.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClippingRegionMode</span>(mode: <span class="SCst"><a href="#Pixel_ClippingMode">ClippingMode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMask" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMask</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMask" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1475">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMask" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMask</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMask" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1487">src</a></div>
 <p>Sets the writable framebuffer channels from a mask value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setColorMask</span>(cm: <span class="SCst"><a href="#Pixel_ColorMask">ColorMask</a></span>)</span></div>
 <p>Sets the writable red, green, blue, and alpha channels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setColorMask</span>(r, g, b, a: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMaskAlpha" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMaskAlpha</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMaskAlpha" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1500">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMaskAlpha" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMaskAlpha</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMaskAlpha" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1512">src</a></div>
 <p>Enables writes only to alpha.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setColorMaskAlpha</span>() =&gt; .setColorMask</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMaskColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMaskColor</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMaskColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1494">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMaskColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMaskColor</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMaskColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1506">src</a></div>
 <p>Enables writes to RGB and disables writes to alpha.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setColorMaskColor</span>() =&gt; .setColorMask</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMaskFull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMaskFull</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMaskFull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1497">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setColorMaskFull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setColorMaskFull</span> <a class="api-item-permalink" href="#Pixel_Painter_setColorMaskFull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1509">src</a></div>
 <p>Enables writes to all color channels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setColorMaskFull</span>() =&gt; .setColorMask</span></div>
 </section>
@@ -9042,13 +9099,13 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setContentScale</span>(scale: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setDefaultShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setDefaultShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setDefaultShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1554">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setDefaultShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setDefaultShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setDefaultShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1566">src</a></div>
 <p>Selects the default antialiased or simple textured built-in program.</p>
 <p>Use <a href="#Pixel_Painter_setBlurShader">Pixel.Painter.setBlurShader</a> or <a href="#Pixel_Painter_setResolveShader">Pixel.Painter.setResolveShader</a> for the parameterized programs.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDefaultShader</span>(shader: <span class="SCst"><a href="#Pixel_DefaultShaderId">DefaultShaderId</a></span> = .<span class="SCst">Default</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setDistanceStrokes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setDistanceStrokes</span> <a class="api-item-permalink" href="#Pixel_Painter_setDistanceStrokes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1182">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setDistanceStrokes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setDistanceStrokes</span> <a class="api-item-permalink" href="#Pixel_Painter_setDistanceStrokes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1194">src</a></div>
 <p>Enables or disables measuring a stroke's antialiasing from its centre line.</p>
 <p>See <a href="#Pixel_PaintParams_DistanceStrokes">Pixel.PaintParams.DistanceStrokes</a> for what it costs and what it changes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDistanceStrokes</span>(on = <span class="SKwd">true</span>)</span></div>
@@ -9061,17 +9118,17 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFlattenScale</span>(scale: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setInterpolationMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setInterpolationMode</span> <a class="api-item-permalink" href="#Pixel_Painter_setInterpolationMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1300">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setInterpolationMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setInterpolationMode</span> <a class="api-item-permalink" href="#Pixel_Painter_setInterpolationMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1312">src</a></div>
 <p>Sets texture interpolation for subsequent textured and gradient draws.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setInterpolationMode</span>(mode: <span class="SCst"><a href="#Pixel_InterpolationMode">InterpolationMode</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setParams" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setParams</span> <a class="api-item-permalink" href="#Pixel_Painter_setParams" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1152">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setParams" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setParams</span> <a class="api-item-permalink" href="#Pixel_Painter_setParams" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1164">src</a></div>
 <p>Adds and removes painter behavior flags atomically.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setParams</span>(add: <span class="SCst"><a href="#Pixel_PaintParams">PaintParams</a></span>, remove: <span class="SCst"><a href="#Pixel_PaintParams">PaintParams</a></span> = .<span class="SCst">Zero</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setQuality" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setQuality</span> <a class="api-item-permalink" href="#Pixel_Painter_setQuality" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1199">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setQuality" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setQuality</span> <a class="api-item-permalink" href="#Pixel_Painter_setQuality" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1211">src</a></div>
 <p>Sets the curve tessellation quality for subsequent paths.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setQuality</span>(quality: <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>)</span></div>
 </section>
@@ -9082,30 +9139,30 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRenderer</span>(renderer: <span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setResolveShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setResolveShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setResolveShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1581">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setResolveShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setResolveShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setResolveShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1593">src</a></div>
 <p>Selects the supersampling resolve program.</p>
 <p><span class="code-inline">factor</span> must be between <span class="code-inline">1</span> and <span class="code-inline">8</span>, inclusive.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setResolveShader</span>(factor: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1544">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setShader</span> <a class="api-item-permalink" href="#Pixel_Painter_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1556">src</a></div>
 <p>Set the current shader</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShader</span>(shader: <span class="SItr">#null</span> *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span> = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setShaderParam" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setShaderParam</span> <a class="api-item-permalink" href="#Pixel_Painter_setShaderParam" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1592">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setShaderParam" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setShaderParam</span> <a class="api-item-permalink" href="#Pixel_Painter_setShaderParam" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1604">src</a></div>
 <p>Set a shader parameter</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShaderParam</span>(param: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span>, val: <span class="STpe">s32</span>)</span></div>
 <p>Set a shader parameter</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShaderParam</span>(param: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span>, val: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setState</span> <a class="api-item-permalink" href="#Pixel_Painter_setState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1117">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setState</span> <a class="api-item-permalink" href="#Pixel_Painter_setState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1129">src</a></div>
 <p>Replaces the current drawing state and emits its renderer-visible changes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setState</span>(state: <span class="SCst"><a href="#Pixel_PaintState">PaintState</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_setTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_setTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1285">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_setTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.setTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_setTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1297">src</a></div>
 <p>Replaces the current path-to-surface transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTransform</span>(tr: <span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span>)</span></div>
 </section>
@@ -9126,19 +9183,19 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">shapeRunInto</span>(result: *<span class="SCst"><a href="#Pixel_ShapedRun">ShapedRun</a></span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, tabSize: <span class="STpe">u32</span> = <span class="SCst"><a href="#Pixel_DefaultTextTabSize">DefaultTextTabSize</a></span>, letterSpacing = <span class="SNum">0.0</span>'<span class="STpe">f32</span>, wordSpacing = <span class="SNum">0.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_snapToDeviceX" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.snapToDeviceX</span> <a class="api-item-permalink" href="#Pixel_Painter_snapToDeviceX" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L466">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_snapToDeviceX" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.snapToDeviceX</span> <a class="api-item-permalink" href="#Pixel_Painter_snapToDeviceX" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L478">src</a></div>
 <p>Rounds a horizontal path-space position to the physical device-pixel grid.</p>
 <p>Valid under a translation-only transform; other transforms return the value unchanged. Use it to keep hairlines and carets on whole device pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">snapToDeviceX</span>(x: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_snapToDeviceY" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.snapToDeviceY</span> <a class="api-item-permalink" href="#Pixel_Painter_snapToDeviceY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L477">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_snapToDeviceY" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.snapToDeviceY</span> <a class="api-item-permalink" href="#Pixel_Painter_snapToDeviceY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L489">src</a></div>
 <p>Rounds a vertical path-space position to the physical device-pixel grid.</p>
 <p>See <a href="#Pixel_Painter_snapToDeviceX">Pixel.Painter.snapToDeviceX</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">snapToDeviceY</span>(y: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_startClippingRegion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.startClippingRegion</span> <a class="api-item-permalink" href="#Pixel_Painter_startClippingRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1413">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_startClippingRegion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.startClippingRegion</span> <a class="api-item-permalink" href="#Pixel_Painter_startClippingRegion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1425">src</a></div>
 <p>Starts drawing a clipping region, which begins empty.</p>
 <p>Until <a href="#Pixel_Painter_endClippingRegion">Pixel.Painter.endClippingRegion</a>, what is drawn shades nothing: its coverage — the antialiased edge, the alpha of a texture, the transparency of a colour — joins the region under <span class="code-inline">mode</span> instead. Everything painted after that, up to <a href="#Pixel_Painter_resetClippingRegion">Pixel.Painter.resetClippingRegion</a>, is cut by the region's coverage per device pixel, so a shape cut along a curve keeps a smooth edge. A render target bound inside a region is not cut while it is being painted; the region applies to the layer when it is drawn.</p>
 <div class="code-block"><span class="SCde">painter.<span class="SFct">startClippingRegion</span>()
@@ -9149,7 +9206,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startClippingRegion</span>(mode = <span class="SCst"><a href="#Pixel_ClippingMode">ClippingMode</a></span>.<span class="SCst"><a href="#Pixel_ClippingMode_Set">Set</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_state" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.state</span> <a class="api-item-permalink" href="#Pixel_Painter_state" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1132">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_state" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.state</span> <a class="api-item-permalink" href="#Pixel_Painter_state" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1144">src</a></div>
 <p>Returns a copy of the complete current drawing state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">state</span>()-&gt;<span class="SCst"><a href="#Pixel_PaintState">PaintState</a></span></span></div>
 </section>
@@ -9159,17 +9216,17 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">textTransformScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.transform</span> <a class="api-item-permalink" href="#Pixel_Painter_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1293">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.transform</span> <a class="api-item-permalink" href="#Pixel_Painter_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1305">src</a></div>
 <p>Returns the current path-to-surface transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">transform</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_translateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.translateTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_translateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1205">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_translateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.translateTransform</span> <a class="api-item-permalink" href="#Pixel_Painter_translateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1217">src</a></div>
 <p>Appends a translation, in path-space pixels, to the current transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translateTransform</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_unbindRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.unbindRenderTarget</span> <a class="api-item-permalink" href="#Pixel_Painter_unbindRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1519">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_unbindRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.unbindRenderTarget</span> <a class="api-item-permalink" href="#Pixel_Painter_unbindRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1531">src</a></div>
 <p>Bind a render target</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unbindRenderTarget</span>()</span></div>
 </section>
@@ -10029,6 +10086,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "s|Pixel.Command|Pixel_Command|Stores one deferred painter command and its command-specific payload.",
 "v|Pixel.Command.id|Pixel_Command_id|Operation represented by the active union payload.",
 "v|Pixel.Command.params|Pixel_Command_params|Command-specific payload selected by id; inactive members must not be read.",
+"s|Pixel.FillPreparer|Pixel_FillPreparer|Builds the tessellation a fill would build, without recording anything.",
 "s|Pixel.FontEffectParams|Pixel_FontEffectParams|Contains resolved MSDF font-effect values sent to the text shader.",
 "v|Pixel.FontEffectParams.bevel|Pixel_FontEffectParams_bevel|Bevel intensity.",
 "v|Pixel.FontEffectParams.enabled|Pixel_FontEffectParams_enabled|Nonzero when at least one effect is active.",
@@ -10985,6 +11043,8 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.Painter.drawMath|Pixel_Painter_drawMath|Draw a parsed expression with its top-left at (left, top), returning the same",
 "f|Pixel.Painter.drawMathCenter|Pixel_Painter_drawMathCenter|Draw a parsed expression centered on (centerX, centerY).",
 "f|Pixel.Painter.drawMathLatex|Pixel_Painter_drawMathLatex|Parse and draw a one-shot LaTeX expression. Cache MathExpression.parse when",
+"f|Pixel.FillPreparer.flatten|Pixel_FillPreparer_flatten|Flattens a path for a draw at scale, without tessellating anything.",
+"f|Pixel.FillPreparer.prepare|Pixel_FillPreparer_prepare|Prepares what Pixel.Painter.fillPath under rule would build for pathList.",
 "f|Pixel.IRenderer.acquireRenderTarget|Pixel_IRenderer_acquireRenderTarget|Acquires a pooled off-screen target at least as large as requested.",
 "f|Pixel.IRenderer.addImage|Pixel_IRenderer_addImage|Loads an image file into a texture owned by this renderer.",
 "f|Pixel.IRenderer.begin|Pixel_IRenderer_begin|Starts a frame for rc and resets the renderer transform.",
@@ -11075,6 +11135,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.Painter.pushState|Pixel_Painter_pushState|Pushes a copy of the current drawing state.",
 "f|Pixel.Painter.pushTransform|Pixel_Painter_pushTransform|Pushes a copy of the current transform.",
 "f|Pixel.Painter.quality|Pixel_Painter_quality|Returns the current curve tessellation quality.",
+"f|Pixel.Painter.quantizeFlattenScale|Pixel_Painter_quantizeFlattenScale|Returns the flattening scale a painter asked for scale would use.",
 "f|Pixel.Painter.releaseRenderTarget|Pixel_Painter_releaseRenderTarget|Release the render target",
 "f|Pixel.Painter.removeParams|Pixel_Painter_removeParams|Disables the specified painter behavior flags.",
 "f|Pixel.Painter.render|Pixel_Painter_render|Submits the completed command stream to the selected renderer.",

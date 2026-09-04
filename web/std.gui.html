@@ -20502,7 +20502,7 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <p>Installs the resolver every string a property attribute declares passes through.</p>
 <p>Every label, description, category segment, heading, note, unit, and enumeration entry the grid generates from reflection is resolved through <span class="code-inline">resolver</span>, so an application that translates its interface makes <span class="code-inline">#[Properties.Name("Thickness")]</span> a key rather than a final wording. One resolver serves every grid in the process, and the strings this module declares itself are resolved after it, so an application only answers for its own. Pass <span class="code-inline">null</span> to show the declared strings again.</p>
 <p>Install it before building a grid — a row already built keeps the text it was created with — and rebuild the grids that must follow a language switch. GUI thread only.</p>
-<div class="code-block"><span class="SCde"><span class="SCst"><a href="#Gui_Properties">Properties</a></span>.<span class="SFct">setTextResolver</span>(<span class="SKwd">func</span>(key: <span class="STpe">string</span>)-&gt;? <span class="STpe">string</span>
+<div class="code-block"><span class="SCde"><span class="SCst"><a href="#Gui_Properties">Properties</a></span>.<span class="SFct">setTextResolver</span>(<span class="SKwd">func</span>(key: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span>?
 {
     <span class="SLgc">switch</span> key
     {
@@ -22785,7 +22785,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.349</div>
 </footer>
 </section>
 </main>

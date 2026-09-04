@@ -3246,7 +3246,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> str            = <span class="SStr">"string"</span>
     <span class="SKwd">let</span> ptr: <span class="SKwd">const</span> *<span class="STpe">u8</span> = str.buffer
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == '<span class="SFct">s</span>')     <span class="SCmt">// Reading through the pointer is fine,</span>
-<span class="SCmt">// but assigning to 'ptr[]' would be rejected</span>
+    <span class="SCmt">// but assigning to 'ptr[]' would be rejected</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Combining__const__with_Pointers">Combining <span class="code-inline">const</span> with Pointers</h3>
 <p>Every <span class="code-inline">*</span> in a type carries its own <span class="code-inline">const</span>, so read-only access is chosen level by level. Read the type from left to right: each <span class="code-inline">const</span> applies to the pointee of the <span class="code-inline">*</span> that follows it, exactly one level down.</p>
@@ -5140,7 +5140,7 @@ indent-style = spaces</span></div>
     {
         x: <span class="STpe">s32</span>      <span class="SCmt">// 4 bytes</span>
         y: <span class="STpe">bool</span>     <span class="SCmt">// 1 byte</span>
-    <span class="SCmt">// 3 bytes of padding to align to s32 size</span>
+        <span class="SCmt">// 3 bytes of padding to align to s32 size</span>
     }
 
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(<span class="SCst">MyStruct1</span>) == <span class="SNum">8</span>)
@@ -5164,7 +5164,7 @@ indent-style = spaces</span></div>
     {
         x: <span class="STpe">bool</span>     <span class="SCmt">// 1 byte</span>
         y: <span class="STpe">bool</span>     <span class="SCmt">// 1 byte</span>
-    <span class="SCmt">// 6 bytes of padding to align struct size to 8</span>
+        <span class="SCmt">// 6 bytes of padding to align struct size to 8</span>
     }
 
     <span class="SCmp">#assert</span>(<span class="SItr">#offsetof</span>(<span class="SCst">MyStruct2</span>.x) == <span class="SNum">0</span>)
@@ -5192,7 +5192,7 @@ indent-style = spaces</span></div>
         x: <span class="STpe">bool</span>     <span class="SCmt">// offset 0: 1 byte</span>
         <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Align(4)]</span>
         y: <span class="STpe">bool</span>     <span class="SCmt">// offset 4: aligned to 4 bytes (3 bytes of padding before y)</span>
-    <span class="SCmt">// 3 bytes of padding to align struct size to 8</span>
+        <span class="SCmt">// 3 bytes of padding to align struct size to 8</span>
     }
 
     <span class="SCmp">#assert</span>(<span class="SItr">#offsetof</span>(<span class="SCst">MyStruct2</span>.x) == <span class="SNum">0</span>)
@@ -5991,6 +5991,27 @@ indent-style = spaces</span></div>
 {
     <span class="SLgc">return</span> <span class="SNum">0</span>
 }</span></div>
+<h3 id="_007_001_declaration_swg_Every_Path_Must_Produce_the_Value">Every Path Must Produce the Value</h3>
+<p>A function that declares a return type is rejected when its body can reach the end without returning: the promise is part of the signature, and a value the caller reads has to exist.</p>
+<p>What counts as leaving the function is <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">unreachable</span> and <span class="code-inline">Swag.panic</span>, an <span class="code-inline">if</span> whose branches all leave, a loop with no way out of it, and a <span class="code-inline">switch</span> where every case leaves and some case always matches — a <span class="code-inline">default</span> arm, or 'switch #complete' over an enum. A plain <span class="code-inline">switch</span> is deliberately not exhaustive whatever its cases cover, so a value outside the set walks past it: writing <span class="code-inline">#complete</span> is what states the promise, and it stays free of any range test in the generated code.</p>
+<p><span class="code-inline">unreachable</span> is the escape hatch when a path cannot happen for a reason the compiler cannot see. It costs nothing once its guard is off.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Season</span> { <span class="SCst">Summer</span>, <span class="SCst">Winter</span> }
+
+<span class="SKwd">func</span> <span class="SFct">seasonLength</span>(season: <span class="SCst">Season</span>)-&gt;<span class="STpe">s32</span>
+{
+    <span class="SCmt">// Without '#complete' this switch would not end the function, and the missing return</span>
+    <span class="SCmt">// would be reported.</span>
+    <span class="SLgc">switch</span> <span class="SItr">#complete</span> season
+    {
+    <span class="SLgc">case</span> .<span class="SCst">Summer</span>: <span class="SLgc">return</span> <span class="SNum">92</span>
+    <span class="SLgc">case</span> .<span class="SCst">Winter</span>: <span class="SLgc">return</span> <span class="SNum">90</span>
+    }
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">seasonLength</span>(<span class="SCst">Season</span>.<span class="SCst">Winter</span>) == <span class="SNum">90</span>)
+}</span></div>
 <h3 id="_007_001_declaration_swg_Inferring_Return_Types">Inferring Return Types</h3>
 <p>Use <span class="code-inline">=&gt;</span> for simple expressions when the return type can be inferred automatically.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum</span>(x, y: <span class="STpe">s32</span>) =&gt; x + y</span></div>
@@ -6293,7 +6314,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">func</span> <span class="SFct">myFunction</span>(value: <span class="STpe">bool</span>, parameters: ...)
     {
-    <span class="SCmt">// This function can accept any number of extra arguments after 'value'.</span>
+        <span class="SCmt">// This function can accept any number of extra arguments after 'value'.</span>
     }
 
     <span class="SFct">myFunction</span>(<span class="SKwd">true</span>, <span class="SNum">4</span>, <span class="SStr">"true"</span>, <span class="SNum">5.6</span>)     <span class="SCmt">// Passes extra arguments after 'value'</span>
@@ -7149,7 +7170,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttributeA, AttributeB(0, 0, "string")]</span>
 <span class="SKwd">func</span> <span class="SFct">function1</span>()
 {
-<span class="SCmt">// Function annotated with multiple attributes</span>
+    <span class="SCmt">// Function annotated with multiple attributes</span>
 }</span></div>
 <h3 id="_010_001_user_attributes_swg_Multiple_Usages">Multiple Usages</h3>
 <p>An attribute can target several element kinds by combining <span class="code-inline">AttrUsage</span> flags with a bitwise OR. This enables reuse across contexts (e.g., functions, structs).</p>
@@ -7161,13 +7182,13 @@ indent-style = spaces</span></div>
 <span class="SAtr">#[AttributeD(6)]</span>
 <span class="SKwd">func</span> <span class="SFct">function2</span>()
 {
-<span class="SCmt">// Function annotated with a multi-usage attribute</span>
+    <span class="SCmt">// Function annotated with a multi-usage attribute</span>
 }
 
 <span class="SAtr">#[AttributeD(150)]</span>
 <span class="SKwd">struct</span> struct1
 {
-<span class="SCmt">// Struct annotated with the same attribute</span>
+    <span class="SCmt">// Struct annotated with the same attribute</span>
 }</span></div>
 <h3 id="_010_001_user_attributes_swg_Retrieving_Attributes_at_Runtime">Retrieving Attributes at Runtime</h3>
 <p>You can inspect attributes via type reflection at runtime. This enables behavior that adapts based on which attributes are present and how they are configured.</p>
@@ -7372,7 +7393,7 @@ indent-style = spaces</span></div>
     <span class="SLgc">defer</span> <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v == <span class="SNum">1</span>)     <span class="SCmt">// Ensures v equals 1 on scope exit.</span>
     v += <span class="SNum">1</span>                        <span class="SCmt">// Increment v.</span>
 
-<span class="SCmt">// When the scope ends, the deferred expression executes here.</span>
+    <span class="SCmt">// When the scope ends, the deferred expression executes here.</span>
 }</span></div>
 <h3 id="_011_002_defer_swg_Deferring_a_Block">Deferring a Block</h3>
 <p>A <span class="code-inline">defer</span> can also enclose multiple expressions within a block. This allows you to group operations that should all run when leaving the scope.</p>
@@ -7387,7 +7408,7 @@ indent-style = spaces</span></div>
 
     v += <span class="SNum">5</span>
 
-<span class="SCmt">// Upon scope exit, the defer block executes, ensuring v == 15.</span>
+    <span class="SCmt">// Upon scope exit, the defer block executes, ensuring v == 15.</span>
 }</span></div>
 <h3 id="_011_002_defer_swg__defer__and_Control_Flow"><span class="code-inline">defer</span> and Control Flow</h3>
 <p>The deferred expression executes every time a scope exits, even when leaving via <span class="code-inline">return</span>, <span class="code-inline">break</span>, or <span class="code-inline">continue</span>. This guarantees proper cleanup in all control flow paths.</p>
@@ -7412,7 +7433,7 @@ indent-style = spaces</span></div>
     <span class="SLgc">defer</span> <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">2</span>)     <span class="SCmt">// Executes second</span>
     <span class="SLgc">defer</span> x *= <span class="SNum">2</span>                  <span class="SCmt">// Executes first</span>
 
-<span class="SCmt">// Execution order is reversed for predictable cleanup flow.</span>
+    <span class="SCmt">// Execution order is reversed for predictable cleanup flow.</span>
 }</span></div>
 <h3 id="_011_002_defer_swg_Example__Resource_Management">Example: Resource Management</h3>
 <p><span class="code-inline">defer</span> is ideal for resource handling — ensuring that allocation and release logic stay close together and cleanup always happens.</p>
@@ -7538,7 +7559,7 @@ indent-style = spaces</span></div>
     {
         <span class="STpe">me</span>.x, <span class="STpe">me</span>.y = <span class="SNum">1</span>
 
-    <span class="SCmt">// Set both coordinates to 1 on this Point.</span>
+        <span class="SCmt">// Set both coordinates to 1 on this Point.</span>
     }
 }</span></div>
 <h3 id="_011_004_with_swg__with__on_a_Variable"><span class="code-inline">with</span> on a Variable</h3>
@@ -8156,7 +8177,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">var</span> x = <span class="SNum">255</span>'<span class="STpe">u8</span>
 
-<span class="SCmt">// x += 1  // Uncomment to see overflow panic</span>
+    <span class="SCmt">// x += 1  // Uncomment to see overflow panic</span>
 }</span></div>
 <h4 id="_013_002_safety_swg_Disabling_Overflow_Safety_with___wrap_">Disabling Overflow Safety with <span class="code-inline">#wrap</span></h4>
 <p>Use <span class="code-inline">#wrap</span> on the operation if overflow is expected and should not panic. It is unnecessary for shifts, whose discarded bits already truncate normally.</p>
@@ -8218,8 +8239,8 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"1"</span>
     <span class="SKwd">let</span> y      = <span class="SKwd">cast</span>(<span class="STpe">string</span>) x
 
-<span class="SCmt">// var z = cast(s32) x  // Would panic: underlying type mismatch</span>
-<span class="SCmt">// Swag.assert(z == 0)</span>
+    <span class="SCmt">// var z = cast(s32) x  // Would panic: underlying type mismatch</span>
+    <span class="SCmt">// Swag.assert(z == 0)</span>
 }</span></div>
 <p>Swag also panics if casting from an interface to a pointer-to-struct cannot be performed.</p>
 <h3 id="_013_002_safety_swg_Array_Bounds_Checking">Array Bounds Checking</h3>
@@ -8229,7 +8250,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> x   = [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>]
     <span class="SKwd">var</span> idx = <span class="SNum">10</span>
 
-<span class="SCmt">// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds</span>
+    <span class="SCmt">// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds</span>
 }</span></div>
 <h4 id="_013_002_safety_swg_Safety_When_Indexing_a_Slice">Safety When Indexing a Slice</h4>
 <p>Indexing a slice is checked for bounds.</p>
@@ -8240,7 +8261,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x[idx] == <span class="SNum">1</span>)
     idx += <span class="SNum">9</span>
 
-<span class="SCmt">// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds</span>
+    <span class="SCmt">// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds</span>
 }</span></div>
 <h4 id="_013_002_safety_swg_Safety_When_Slicing_a_Sized_Value">Safety When Slicing a Sized Value</h4>
 <p>Slice operations are checked for bounds.</p>
@@ -8248,8 +8269,8 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">var</span> x: <span class="SKwd">const</span> [..] <span class="STpe">s32</span> = [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>]
 
-<span class="SCmt">// var slice = x[1 to 4]   // Would panic: out-of-bounds</span>
-<span class="SCmt">// Swag.assert(slice[0] == 1)</span>
+    <span class="SCmt">// var slice = x[1 to 4]   // Would panic: out-of-bounds</span>
+    <span class="SCmt">// Swag.assert(slice[0] == 1)</span>
 }
 
 <span class="SFct">#test</span>
@@ -8257,11 +8278,12 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> x   = <span class="SStr">"string"</span>
     <span class="SKwd">var</span> idx = <span class="SNum">10</span>
 
-<span class="SCmt">// var slice = x[0 to idx] // Would panic: out-of-bounds</span>
-<span class="SCmt">// Swag.assert(slice[0] == 's')</span>
+    <span class="SCmt">// var slice = x[0 to idx] // Would panic: out-of-bounds</span>
+    <span class="SCmt">// Swag.assert(slice[0] == 's')</span>
 }</span></div>
 <h4 id="_013_002_safety_swg_Safety_on_Loop_Ranges">Safety on Loop Ranges</h4>
-<p>A <span class="code-inline">for</span> range whose bounds are not both constant is checked when the loop starts. Swag panics when the lower bound is above the upper bound. An <span class="code-inline">until</span> range whose bounds are equal is empty, not inverted, so it runs zero iterations without panicking.</p>
+<p>A <span class="code-inline">for</span> range asks a predicate rather than a length, and the loop lowering answers it before the first iteration: an inverted range is EMPTY, not a fault, and runs zero times. That is why no guard applies here. A range whose bounds are both constant is different — the inversion is certain rather than merely possible — and it is rejected at compile time.</p>
+<p>Slicing keeps its check, because 'x[a to b]' asks for a length: a range that runs off the end of the sliced value panics under <span class="code-inline">.BoundCheck</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">sumRange</span>(low, high: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
@@ -8276,29 +8298,32 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">sumRange</span>(<span class="SNum">2</span>, <span class="SNum">2</span>) == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">sumRange</span>(<span class="SNum">0</span>, <span class="SNum">4</span>) == <span class="SNum">0</span> + <span class="SNum">1</span> + <span class="SNum">2</span> + <span class="SNum">3</span>)
 
-<span class="SCmt">// Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound</span>
+    <span class="SCmt">// Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound</span>
 }</span></div>
 <h3 id="_013_002_safety_swg_Math_Safety">Math Safety</h3>
-<p>Example: #[Swag.Safety(.Math, true)] Swag panics for invalid math, such as division by zero or invalid intrinsic arguments.</p>
+<p>Example: #[Swag.Safety(.Math, true)] Swag panics on an INTEGER division or remainder by zero, and on an intrinsic argument outside its domain.</p>
+<p>A float division by zero is not covered, and needs no cover: it is defined by IEEE 754 and yields an infinity rather than trapping. What can go wrong afterwards is a <span class="code-inline">NaN</span>, which <span class="code-inline">.NaN</span> watches.</p>
+<p>A divisor the compiler can fold to zero is rejected at compile time by the static half instead (<span class="code-inline">#[Swag.Sanity(.Math)]</span>), which is what covers a build with the dynamic guards off. The two never both report: the guard lowers to a test of the divisor, and past that test the divisor is no longer provably zero, so whichever layer is enabled is the one that speaks.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> x = <span class="SNum">1</span>'<span class="STpe">f32</span>
-    <span class="SKwd">var</span> y = <span class="SNum">0</span>'<span class="STpe">f32</span>
+    <span class="SKwd">var</span> value   = <span class="SNum">10</span>'<span class="STpe">s32</span>
+    <span class="SKwd">var</span> divisor = <span class="SNum">2</span>'<span class="STpe">s32</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value / divisor == <span class="SNum">5</span>)
 
-<span class="SCmt">// var z = x / y  // Would panic: division by zero</span>
-<span class="SCmt">// Swag.print(z)</span>
+    <span class="SCmt">// divisor = 0</span>
+    <span class="SCmt">// Swag.print(value / divisor)  // Would panic: division by zero</span>
 }</span></div>
 <h4 id="_013_002_safety_swg_Checking_Invalid_Math_Intrinsic_Arguments">Checking Invalid Math Intrinsic Arguments</h4>
 <p>Swag validates arguments for several math intrinsics and panics if invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-<span class="SCmt">// Swag.abs(-128)        // Invalid for abs on this target</span>
-<span class="SCmt">// Swag.log(-2'f32)      // Invalid: log of negative</span>
-<span class="SCmt">// Swag.log2(-2'f32)     // Invalid: log2 of negative</span>
-<span class="SCmt">// Swag.log10(2'f64)     // Example: implementation-specific constraints</span>
-<span class="SCmt">// Swag.sqrt(-2'f32)     // Invalid: sqrt of negative</span>
-<span class="SCmt">// Swag.asin(-2'f32)     // Invalid: asin out of range</span>
-<span class="SCmt">// Swag.acos(2'f32)      // Invalid: acos out of range</span>
+    <span class="SCmt">// Swag.abs(-128)        // Invalid for abs on this target</span>
+    <span class="SCmt">// Swag.log(-2'f32)      // Invalid: log of negative</span>
+    <span class="SCmt">// Swag.log2(-2'f32)     // Invalid: log2 of negative</span>
+    <span class="SCmt">// Swag.log10(2'f64)     // Example: implementation-specific constraints</span>
+    <span class="SCmt">// Swag.sqrt(-2'f32)     // Invalid: sqrt of negative</span>
+    <span class="SCmt">// Swag.asin(-2'f32)     // Invalid: asin out of range</span>
+    <span class="SCmt">// Swag.acos(2'f32)      // Invalid: acos out of range</span>
 }</span></div>
 <h3 id="_013_002_safety_swg_Switch_Safety">Switch Safety</h3>
 <p>Example: #[Swag.Safety(.Switch, true)] The guard covers 'switch #complete' only. Such a switch has an arm for every declared value of its enum, so the only value that can reach no case is one outside that set — and that is what Swag panics on.</p>
@@ -8333,7 +8358,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">var</span> b: <span class="STpe">u8</span> = <span class="SNum">2</span>
 
-<span class="SCmt">// if b { }  // Would panic: invalid boolean value</span>
+    <span class="SCmt">// if b { }  // Would panic: invalid boolean value</span>
 }</span></div>
 <h3 id="_013_002_safety_swg_NaN_Safety">NaN Safety</h3>
 <p>Example: #[Swag.Safety(.NaN, true)] Swag panics if a floating-point <span class="code-inline">NaN</span> participates in an operation, preventing propagation of invalid values.</p>
@@ -8358,7 +8383,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> i = <span class="SNum">5</span>
     arr[<span class="SNum">0</span>] = i
 
-<span class="SCmt">// let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)</span>
+    <span class="SCmt">// let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)</span>
 }</span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
@@ -8398,8 +8423,8 @@ indent-style = spaces</span></div>
     p[] = <span class="SNum">1</span>
     <span class="SFct">exampleFree</span>(p, <span class="SNum">4</span>)
 
-<span class="SCmt">// let x = p[]       // Uncomment: error, use of a freed pointer (proven)</span>
-<span class="SCmt">// exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)</span>
+    <span class="SCmt">// let x = p[]       // Uncomment: error, use of a freed pointer (proven)</span>
+    <span class="SCmt">// exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)</span>
 }</span></div>
 <h3 id="_013_003_sanity_swg_Use_of_Moved-From_Values">Use of Moved-From Values</h3>
 <p>Reading a local abandoned by <span class="code-inline">#move</span> or <span class="code-inline">#relocate</span> (and not reset) is a proven error at compile time (<span class="code-inline">.Lifecycle</span>). At runtime, the <span class="code-inline">.Lifecycle</span> <b>safety</b> half additionally poisons abandoned storage with <span class="code-inline">0xDD</span> so the accesses the static check cannot prove still fail deterministically.</p>
@@ -8835,15 +8860,15 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 
 <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCst">DEBUG</span>
 {
-<span class="SCmt">// Compiled because DEBUG == 1.</span>
+    <span class="SCmt">// Compiled because DEBUG == 1.</span>
 }
 <span class="SLgc">elif</span> <span class="SCst">RELEASE</span>
 {
-<span class="SCmt">// Would compile if RELEASE were true and DEBUG were false.</span>
+    <span class="SCmt">// Would compile if RELEASE were true and DEBUG were false.</span>
 }
 <span class="SLgc">else</span>
 {
-<span class="SCmt">// Compiled if neither DEBUG nor RELEASE is true.</span>
+    <span class="SCmt">// Compiled if neither DEBUG nor RELEASE is true.</span>
 }</span></div>
 <p>'#static switch' selects one section from a compile-time value. Multiple values can share a section, and <span class="code-inline">default</span> is optional. Unlike a runtime <span class="code-inline">switch</span>, this construct does not create runtime control flow and does not use <span class="code-inline">break</span> or <span class="code-inline">fallthrough</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">StaticBuildMode</span>
@@ -8943,7 +8968,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
     <span class="SKwd">func</span> <span class="SFct">myMixin</span>()
     {
-    <span class="SCmt">// Basic empty mixin</span>
+        <span class="SCmt">// Basic empty mixin</span>
     }
 }</span></div>
 <h3 id="_015_001_mixins_swg_Basic_Example_of_a_Mixin">Basic Example of a Mixin</h3>
@@ -8988,7 +9013,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
         <span class="SCmt">// first execution</span>
         <span class="SCmp">#inject</span>(what)
 
-    <span class="SCmt">// second execution</span>
+        <span class="SCmt">// second execution</span>
     }
 
     <span class="SKwd">var</span> a = <span class="SNum">0</span>
@@ -9549,7 +9574,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.349</div>
 </footer>
 </section>
 </main>
@@ -10209,6 +10234,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Declaration|_007_001_declaration_swg|",
 "h|Function Declarations|_007_001_declaration_swg_Function_Declarations|",
 "h|Returning Values from Functions|_007_001_declaration_swg_Returning_Values_from_Functions|",
+"h|Every Path Must Produce the Value|_007_001_declaration_swg_Every_Path_Must_Produce_the_Value|",
 "h|Inferring Return Types|_007_001_declaration_swg_Inferring_Return_Types|",
 "h|Defining Parameters in Functions|_007_001_declaration_swg_Defining_Parameters_in_Functions|",
 "h|Using Default Parameter Values|_007_001_declaration_swg_Using_Default_Parameter_Values|",

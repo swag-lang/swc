@@ -121,7 +121,18 @@ func renderOglStable(className, title: string, width, height: s32, scene: Render
         if needsAdvancedBlending and !actual.isValid() do
             break
         if !readbackLost(expected, &actual) do
-            break
+            return actual
+    }
+
+    // Five lost readbacks in a row is not a rendering difference, and reporting it as one
+    // sends a reader looking at the painter. Say what happened instead.
+    if !needsAdvancedBlending or actual.isValid()
+    {
+        if readbackLost(expected, &actual)
+        {
+            Console.println("[ogl] the readback never returned the scene for ", title, "; the context read a blank or foreign framebuffer five times")
+            Swag.assert(false)
+        }
     }
 
     return actual

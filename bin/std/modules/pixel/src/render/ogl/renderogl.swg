@@ -877,6 +877,12 @@ impl RenderOgl
         let curRT = .curRT!
 
         var result: retval = Image.create(w, h, .BGRA8)
+
+        // Name the framebuffer to read from rather than trusting whatever the command stream
+        // left bound. A painter binds and unbinds targets as it runs, and reading the ambient
+        // binding takes the DEFAULT framebuffer instead - a blank buffer, or a foreign window -
+        // which is the whole-image mismatch the parity tests were retrying around.
+        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
         glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.buffer!)
         .unbindRenderTargetImpl()

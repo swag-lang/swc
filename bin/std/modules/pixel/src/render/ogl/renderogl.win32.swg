@@ -7,10 +7,10 @@ internal impl NativeRenderOgl
     // Creates a rendering context for a window handle.
     //
     // When `mainRC` is provided, it is borrowed instead of creating a new context.
-    mtd createWindowContext(hWnd: #null const *void, width, height: s32, mainRC: #null const *void = null)->OglContext fail
+    mtd createWindowContext(hWnd: const *void?, width, height: s32, mainRC: const *void? = null)->OglContext fail
     {
         let nativeWindow = cast(HWND) hWnd
-        var result       = try .createContextForDeviceContext(cast(#null const *void) GetDC(nativeWindow), width, height, mainRC)
+        var result       = try .createContextForDeviceContext(cast(const *void?) GetDC(nativeWindow), width, height, mainRC)
         result.hWnd   = hWnd
         result.ownsDC = true
         return result
@@ -19,7 +19,7 @@ internal impl NativeRenderOgl
     // Creates a rendering context for an environment window.
     mtd createContext(window: *Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail
     {
-        return try .createWindowContext(window.nativeRenderHandle(), width, height, cast(#null const *void) mainRC)
+        return try .createWindowContext(window.nativeRenderHandle(), width, height, cast(const *void?) mainRC)
     }
 
     // Creates a rendering context for an existing device context.
@@ -27,7 +27,7 @@ internal impl NativeRenderOgl
     // The device context remains caller-owned. A supplied `mainRC` is borrowed.
     mtd createDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->OglContext fail
     {
-        return try .createContextForDeviceContext(cast(#null const *void) hdc, width, height, cast(#null const *void) mainRC)
+        return try .createContextForDeviceContext(cast(const *void?) hdc, width, height, cast(const *void?) mainRC)
     }
 
     // Establishes the pixel format and the rendering context of a device context.
@@ -35,7 +35,7 @@ internal impl NativeRenderOgl
     // 'HWND' and 'HDC' are the same handle type, so the two public overloads above cannot be
     // told apart at a call site. Everything that needs this work calls it here by its own name
     // instead of picking between them.
-    private mtd createContextForDeviceContext(hdc: #null const *void, width, height: s32, mainRC: #null const *void)->OglContext fail
+    private mtd createContextForDeviceContext(hdc: const *void?, width, height: s32, mainRC: const *void?)->OglContext fail
     {
         var result: retval
         result.hDC    = hdc
@@ -59,7 +59,7 @@ internal impl NativeRenderOgl
         let pf       = try ChoosePixelFormat(nativeDC, &pfd)
         try SetPixelFormat(nativeDC, pf, &pfd)
 
-        result.hRC    = mainRC orelse cast(#null const *void) try Ogl.wglCreateContext(nativeDC)
+        result.hRC    = mainRC orelse cast(const *void?) try Ogl.wglCreateContext(nativeDC)
         result.ownsRC = mainRC == null
 
         return result
@@ -76,7 +76,7 @@ internal impl NativeRenderOgl
     }
 
     // Deletes a renderer-owned shared OpenGL context after its last drawable is gone.
-    mtd deleteContextHandle(hRC: #null const *void)
+    mtd deleteContextHandle(hRC: const *void?)
     {
         catch wglDeleteContext(cast(HGLRC) hRC)
     }

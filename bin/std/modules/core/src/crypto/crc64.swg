@@ -35,7 +35,7 @@ public impl Crc64
 
     // Includes `data` in the running checksum.
     #[ConstExpr, Swag.Safety(.All, false)]
-    mtd update(data: #null const [..] u8)
+    mtd update(data: const [..] u8?)
     {
         let length = data.count
         if length == 0 do

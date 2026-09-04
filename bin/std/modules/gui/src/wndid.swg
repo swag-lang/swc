@@ -2,7 +2,7 @@
 
 // Stable, non-null identifier used by windows, commands, and modal results.
 //
-// Use `#null WndId` when absence is meaningful.
+// Use `? WndId` when absence is meaningful.
 alias WndId = string
 
 // Declares a command identifier whose value is qualified by the current scope name.

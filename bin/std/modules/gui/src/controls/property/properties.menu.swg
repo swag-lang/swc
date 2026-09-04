@@ -12,7 +12,7 @@ internal impl Properties
     // Resolve, for the current context-menu row (.menuItem), the enclosing array item and the
     // clicked element row (either may be null). Right-clicking an element's field still targets
     // the element, via resolveArrayElement walking ancestors.
-    mtd menuArrayContext()->{ arrItem: #null *PropertiesItem, arrElem: #null *PropertiesItem }
+    mtd menuArrayContext()->{ arrItem: *PropertiesItem?, arrElem: *PropertiesItem? }
     {
         var result: retval
         if !.menuItem do
@@ -34,7 +34,7 @@ internal impl Properties
         let menu = MenuCtrl.createPopup(me)
 
         // Custom items first, contributed by the notify interface(s) along the parent chain.
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf do

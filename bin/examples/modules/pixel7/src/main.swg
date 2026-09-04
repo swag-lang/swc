@@ -33,18 +33,17 @@ struct DecoderCard
     texture: Texture
 }
 
-var g_Window:   Env.Window
-var g_Renderer: Pixel.RenderOgl
-#[Swag.Late]
-var g_Render:   Pixel.IRenderer
-var g_Painter:  Pixel.Painter
-var g_RC:       Pixel.RenderContext
-var g_Keyboard: Input.Keyboard
+var g_Window:      Env.Window
+var g_Renderer:    Pixel.RenderOgl
+late var g_Render: Pixel.IRenderer
+var g_Painter:     Pixel.Painter
+var g_RC:          Pixel.RenderContext
+var g_Keyboard:    Input.Keyboard
 
-var g_TypeFace:  #null *Pixel.TypeFace
-var g_TitleFont: #null *Pixel.Font
-var g_LabelFont: #null *Pixel.Font
-var g_HelpFont:  #null *Pixel.Font
+var g_TypeFace:  *Pixel.TypeFace?
+var g_TitleFont: *Pixel.Font?
+var g_LabelFont: *Pixel.Font?
+var g_HelpFont:  *Pixel.Font?
 
 var g_Page:      s32
 var g_TestFrame: s32
@@ -131,7 +130,7 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
     return result
 }
 
-func nonNullBytes(bytes: #null [..] u8)->const [..] u8
+func nonNullBytes(bytes: [..] u8?)->const [..] u8
 {
     Debug.assert(bytes != null)
     return Swag.makeSlice(cast([*] u8) bytes.buffer!, bytes.count)
@@ -144,7 +143,7 @@ func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedS
     card.texture = g_Render.addImage(image)
 }
 
-func encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: Image, options: #null any = null) fail
+func encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: Image, options: any? = null) fail
 {
     var encoded = source.encode(fileName, options)
     encoded.makeLinear()

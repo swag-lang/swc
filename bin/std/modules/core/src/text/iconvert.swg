@@ -6,6 +6,6 @@ namespace StrConv
     interface IConvert
     {
         // Defines convert.
-        mtd const convert(buf: *ConcatBuffer, convFmt: ConvertFormat, strFormat: #null string)
+        mtd const convert(buf: *ConcatBuffer, convFmt: ConvertFormat, strFormat: string?)
     }
 }

@@ -14,7 +14,7 @@ internal struct MidiRollView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         scroll:    *ScrollWnd
         titleFont: *Font
@@ -290,7 +290,7 @@ internal impl IWnd for MidiRollView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if Swag.isSet(.scroll) do
+        if .scroll != null do
             .refreshLayout()
     }
 

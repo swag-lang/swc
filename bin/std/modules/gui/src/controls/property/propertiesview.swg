@@ -11,8 +11,7 @@ public struct PropertiesView
     }
 
     // The grid this view paints for. 'Properties' establishes it when it builds the view.
-    #[Swag.Late]
-    ed: *Properties
+    late ed: *Properties
 }
 
 internal impl IWnd for PropertiesView
@@ -21,7 +20,7 @@ internal impl IWnd for PropertiesView
     // to the owning Properties so it can move the selection and start edition.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if Swag.isSet(.ed) do
+        if .ed != null do
             .ed.navKeyEvent(evt)
         else do
             evt.accepted = false
@@ -30,7 +29,7 @@ internal impl IWnd for PropertiesView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)
-        if !Swag.isSet(.ed) or !.ed.items.count do
+        if !(.ed != null) or !.ed.items.count do
             return
 
         .ed.refreshGridColumnLayout()
@@ -46,35 +45,35 @@ internal impl IWnd for PropertiesView
             {
                 let item = itemIt!
                 item.line.maxSize.x = cw
-                if Swag.isSet(item.label) do
+                if item.label != null do
                     item.label.position.width = contentW
-                if Swag.isSet(item.labelDesc) do
+                if item.labelDesc != null do
                     item.labelDesc.position.width = contentW
             }
         }
 
         .computeLayout()
 
-        var lastItem: #null *PropertiesItem
+        var lastItem: *PropertiesItem?
         for itemIt in .ed.items
         {
             let item = itemIt!
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.updateAutomaticHeight()
-            if Swag.isSet(item.labelDesc) do
+            if item.labelDesc != null do
                 item.labelDesc.updateAutomaticHeight()
             item.sigResize.call(item)
             item.line.applyLayout()
 
             // Line list-mode row action buttons up with the right edge of the value column
             // now that the row label has its final size (grid docks them, so this is a no-op).
-            if Swag.isSet(item.arrayAddButton) do
+            if item.arrayAddButton != null do
                 .ed.positionListActionButton(item!, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass
             // and lay the row out again when it changed the sizing.
-            if Swag.isSet(item.validationLabel) and .ed.syncValidationBar(item!) do
+            if (item.validationLabel != null) and .ed.syncValidationBar(item!) do
                 item.line.applyLayout()
 
             item.line.sendResizeEvent()

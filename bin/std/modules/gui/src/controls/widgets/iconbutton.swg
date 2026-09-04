@@ -65,10 +65,10 @@ struct IconButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        sigPopupClosed:    SigArray'func||(*IconButton)                                                 // Emitted before the owned popup is destroyed.
-        sigPopupRequested: SigArray'func||(*IconButton)                                                 // Emitted when activation requests popup creation.
-        sigCheckedChanged: SigArray'func||(*IconButton)                                                 // Emitted after user activation changes checked state.
-        iconPainter:       #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Custom icon painter, or null for `icon`.
+        sigPopupClosed:    SigArray'func||(*IconButton)                                              // Emitted before the owned popup is destroyed.
+        sigPopupRequested: SigArray'func||(*IconButton)                                              // Emitted when activation requests popup creation.
+        sigCheckedChanged: SigArray'func||(*IconButton)                                              // Emitted after user activation changes checked state.
+        iconPainter:       (func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags))?     // Custom icon painter, or null for `icon`.
 
         readonly
         {
@@ -85,7 +85,7 @@ struct IconButton
 
     // The popup this button owns while it is open, and the background animation.
     aniBk: BlendColor     // Color animation of the background.
-    popup: #null *Wnd     // Popup currently shown by this button.
+    popup: *Wnd?          // Popup currently shown by this button.
 }
 
 // Returns the chevron a given arrow placement points with.
@@ -239,7 +239,7 @@ impl IWnd for IconButton
         let metrics = .themeMetrics()
         var icon    = .icon
 
-        var subRectBk:    #null *ThemeImageRect
+        var subRectBk:    *ThemeImageRect?
         var colorBk:      Color
         var colorIcon:    Color
         var colorText:    Color
@@ -862,7 +862,7 @@ impl IconButton
     }
 
     // Installs a custom icon painter, or restores descriptor painting when null.
-    mtd setIconPainter(painter: #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags))
+    mtd setIconPainter(painter: (func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags))?)
     {
         .iconPainter = painter
         .invalidate()
@@ -884,7 +884,7 @@ impl IconButton
 
     // Creates an icon button with optional command identifier and interaction flags.
     #[Swag.Discardable]
-    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: #null WndId = null, flags = IconButtonFlags.None)->*IconButton
+    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
     {
         Debug.assert(parent != null)
         var pos = position

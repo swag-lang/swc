@@ -69,7 +69,7 @@ struct TagBinSection
         mapSeek:      HashTable'(string, ConcatBufferPosition)     // Ad-hoc sections: maps field keys to their position.
         keys:         ArrayPtr'String                              // Owns stable text borrowed by 'mapSeek'.
         offsets:      Array'u32                                    // Shaped sections: per-field offsets, relative to the section payload.
-        plan:         #null const *Plan                            // Shaped sections: the plan driving the field order.
+        plan:         const *Plan?                                 // Shaped sections: the plan driving the field order.
         payloadStart: u64                                          // Offset of the first payload byte of the section.
         fieldIndex:   u64                                          // Shaped sections: index of the next field to write.
         kind:         SectionKind                                  // Type of section (e.g., Raw or Unordered)
@@ -104,19 +104,19 @@ struct TagBin
 
     private
     {
-        rootType:     #null typeinfo                                              // Root type supplied by the high-level encoder.
-        compressor:   Core.Compress.Deflate                                       // Compressor used for compressed sections.
-        finalOutput:  #null *ConcatBuffer                                         // Caller buffer receiving the header, then the body.
-        output:       #null *ConcatBuffer                                         // Current sink: the body, or a compressed element scratch.
-        body:         ConcatBuffer                                                // Accumulates every section before the final assembly.
-        shapeIds:     HashTable'(u64, u32)                                        // Maps each serialization plan address to its shape id.
-        shapePlans:   Array'(const *Plan)                                         // The plan of each registered shape, by shape id.
-        headerPatch:  ConcatBufferPosition                                        // Position of the shape directory offset in the header.
-        freeSections: ArrayPtr'TagBinSection                                      // Pool of reusable section structures.
-        sections:     ArrayPtr'TagBinSection                                      // Stack of currently active sections.
-        outStack:     Array'(#null *ConcatBuffer)                                 // Output buffers of the enclosing sections.
-        elemStack:    Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }     // Element stack.
-        freeTmpBuf:   ArrayPtr'ConcatBuffer                                       // Pool of reusable scratch buffers.
+        rootType:     typeinfo?                                              // Root type supplied by the high-level encoder.
+        compressor:   Core.Compress.Deflate                                  // Compressor used for compressed sections.
+        finalOutput:  *ConcatBuffer?                                         // Caller buffer receiving the header, then the body.
+        output:       *ConcatBuffer?                                         // Current sink: the body, or a compressed element scratch.
+        body:         ConcatBuffer                                           // Accumulates every section before the final assembly.
+        shapeIds:     HashTable'(u64, u32)                                   // Maps each serialization plan address to its shape id.
+        shapePlans:   Array'(const *Plan)                                    // The plan of each registered shape, by shape id.
+        headerPatch:  ConcatBufferPosition                                   // Position of the shape directory offset in the header.
+        freeSections: ArrayPtr'TagBinSection                                 // Pool of reusable section structures.
+        sections:     ArrayPtr'TagBinSection                                 // Stack of currently active sections.
+        outStack:     Array'(*ConcatBuffer?)                                 // Output buffers of the enclosing sections.
+        elemStack:    Array'{ compressed: bool, tmpBuf: *ConcatBuffer? }     // Element stack.
+        freeTmpBuf:   ArrayPtr'ConcatBuffer                                  // Pool of reusable scratch buffers.
     }
 }
 
@@ -181,7 +181,7 @@ private impl TagBin
 
     // Opens a section. A raw section starts with a patched byte length, so a reader can
     // verify that the raw layout it decoded is the one that was written.
-    mtd beginSectionWithPlan(kind: SectionKind, plan: #null const *Plan)
+    mtd beginSectionWithPlan(kind: SectionKind, plan: const *Plan?)
     {
         let sec = .newSection()
         sec.kind = kind
@@ -230,7 +230,7 @@ impl TagBin
     }
 
     // Returns the wire identity written for a type value. See [[Core.Serialization.wireTypeCrc]].
-    mtd typeCrcOf(type: #null typeinfo)->u32
+    mtd typeCrcOf(type: typeinfo?)->u32
     {
         return wireTypeCrc(type)
     }
@@ -256,7 +256,7 @@ impl TagBin
 
     // Validates and returns the stable key of a concrete interface object.
     #[Swag.NoDoc]
-    mtd interfaceTypeKey(type: #null typeinfo)->string fail
+    mtd interfaceTypeKey(type: typeinfo?)->string fail
     {
         if !type do
             return ""
@@ -271,7 +271,7 @@ impl TagBin
 
     // Writes the stable key of a concrete interface object.
     #[Swag.NoDoc]
-    mtd writeInterfaceType(type: #null typeinfo) fail
+    mtd writeInterfaceType(type: typeinfo?) fail
     {
         let key = .interfaceTypeKey(type)
         .writeVarint(key.count)
@@ -434,7 +434,7 @@ impl TagBin
     }
 
     // Begins a new struct, writing versioning and section metadata
-    mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool fail
+    mtd beginStruct(structType: typeinfo?, _structData: const [*] u8?)->bool fail
     {
         let output = .output!
         if !structType
@@ -594,7 +594,7 @@ impl TagBin
     mtd endValue() {}
 
     // Begins a sequence and determines if elements can be written in bulk as raw data
-    mtd beginSequence(typeElem: #null typeinfo, data: #null const *void, countElem: u64)->bool
+    mtd beginSequence(typeElem: typeinfo?, data: const *void?, countElem: u64)->bool
     {
         let output = .output!
         output.addNative(TagBinSignature.Sequence)

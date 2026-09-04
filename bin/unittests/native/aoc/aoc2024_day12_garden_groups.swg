@@ -58,7 +58,7 @@ const MaxDim = 64'u32
 
 struct Grid
 {
-    cells:  #null [*] u8
+    cells:  [*] u8?
     width:  u32
     height: u32
 }
@@ -73,7 +73,7 @@ impl Grid
 func parseGrid(text: string)->Grid
 {
     var g: Grid
-    g.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxDim * MaxDim)
+    g.cells = cast([*] u8?) testAlloc(cast(u64) MaxDim * MaxDim)
     let cells = g.cells!
     for index in MaxDim * MaxDim
     {

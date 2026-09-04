@@ -1,7 +1,7 @@
 #global private
 
-// A 'Swag.Late' slot starts as null storage and receives its value later, but its type stays
-// non-null. A condition on it therefore does not ask whether it was set: 'Swag.isSet' does.
+// A 'late' slot starts as null storage and receives its value later, but its type stays
+// non-null. A condition on it therefore does not ask whether it was set: compare it with null.
 
 struct BoolTestLateLabel
 {
@@ -10,12 +10,10 @@ struct BoolTestLateLabel
 
 struct BoolTestLateItem
 {
-    #[Swag.Late]
-    label: *BoolTestLateLabel
+    late label: *BoolTestLateLabel
 }
 
-#[Swag.Late]
-var g_boolTestLateSlot: *BoolTestLateLabel
+late var g_boolTestLateSlot: *BoolTestLateLabel
 
 func boolTestLateField(item: *BoolTestLateItem)->s32
 {
@@ -31,10 +29,10 @@ func boolTestLateGlobal()->s32
     return 0
 }
 
-// The spelling that asks the question.
-func boolTestLateIsSet(item: *BoolTestLateItem)->s32
+// A null comparison asks the question without reading the field.
+func boolTestLatePresence(item: *BoolTestLateItem)->s32
 {
-    if Swag.isSet(item.label) do
+    if (item.label != null) do
         return item.label.width
     return 0
 }

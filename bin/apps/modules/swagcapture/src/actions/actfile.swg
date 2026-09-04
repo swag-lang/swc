@@ -446,8 +446,8 @@ impl MainWnd
         // Which encoder runs is the registry's decision, taken from the extension.
         // Only the two formats that expose encoding options are tuned here; every other
         // encoder writes with its own defaults.
-        let ext               = Path.lowercaseExtension(nameFile)
-        var optImg: #null any = null
+        let ext          = Path.lowercaseExtension(nameFile)
+        var optImg: any? = null
         var optPng: Png.EncodeOptions
         var optJpg: Jpg.EncodeOptions
 
@@ -478,7 +478,7 @@ impl MainWnd
         capture.changed        = true
         capture.linkedUpToDate = true
         .saveCapture(capture)
-        if Swag.isSet(.recentWnd) do
+        if .recentWnd != null do
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)

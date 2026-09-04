@@ -356,23 +356,23 @@ impl Serialization.ISerialize for DateTime
         return false
     }
 
-    mtd impl readElement(type: Swag.TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool fail
+    mtd impl readElement(type: Swag.TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail
     {
         return false
     }
 
-    mtd impl writeElement(type: Swag.TypeValue, data: #null const *void, decoder: Serialization.IEncoder)->bool fail
+    mtd impl writeElement(type: Swag.TypeValue, data: const *void?, decoder: Serialization.IEncoder)->bool fail
     {
         return false
     }
 
-    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) fail {}
+    mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail {}
 }
 
 impl StrConv.IConvert for DateTime
 {
     // Converts a DateTime to a string using a single-character format specifier (for use with Format.toString)
-    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string?)
     {
         var str: String
         if strFormat.count == 0 or strFormat.count > 1 do

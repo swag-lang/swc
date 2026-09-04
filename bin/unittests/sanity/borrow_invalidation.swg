@@ -11,7 +11,7 @@ using Swag
 // what ties the payload's life to the value's.
 struct BorrowInvBuffer
 {
-    data:     #null [*] u8
+    data:     [*] u8?
     length:   u64
     capacity: u64
 }
@@ -253,7 +253,7 @@ func borrowInvRelease()->u8
 // The spelling the standard library actually uses: the payload goes to a free HELPER,
 // and "this method can move what its receiver owns" is inferred through that helper's
 // own summary rather than from an allocator call in the method itself.
-func borrowInvFreeBlock(block: #null [*] u8, size: u64)
+func borrowInvFreeBlock(block: [*] u8?, size: u64)
 {
     if !block do
         return
@@ -268,7 +268,7 @@ func borrowInvFreeBlock(block: #null [*] u8, size: u64)
 
 struct BorrowInvChained
 {
-    data:     #null [*] u8
+    data:     [*] u8?
     capacity: u64
 }
 
@@ -869,7 +869,7 @@ struct BorrowInvNode
 
 struct BorrowInvTable
 {
-    slots:    #null [*] *BorrowInvNode
+    slots:    [*] *BorrowInvNode?
     length:   u64
     capacity: u64
 }

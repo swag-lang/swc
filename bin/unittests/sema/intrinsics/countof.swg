@@ -45,11 +45,11 @@ namespace NS {}
 
 func semaTest001()
 {
-    var a: #null string
+    var a: string?
     var b = a.count
     #assert(#typeof(b) == u64)
 
-    var cs: #null cstring
+    var cs: cstring?
     var csc = cs.count
     #assert(#typeof(csc) == u64)
 

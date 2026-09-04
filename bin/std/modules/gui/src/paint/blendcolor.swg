@@ -15,7 +15,7 @@ struct BlendColor
         curVec4:   Math.Vector4           // Color of the current frame.
         destVec4:  Math.Vector4           // Color the interpolation runs to.
         themeCrc:  u32 = Swag.U32.Max     // Theme the endpoints were resolved against.
-        targetWnd: #null *Wnd             // Window borrowing this blend while a track is active.
+        targetWnd: *Wnd?                  // Window borrowing this blend while a track is active.
     }
 }
 

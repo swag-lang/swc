@@ -267,7 +267,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Gdiplus_GdiplusStartupInput_DebugEventCallback" class="code-type">DebugEventCallback</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td id="Gdiplus_GdiplusStartupInput_DebugEventCallback" class="code-type">DebugEventCallback</td><td class="code-type">*void?</td><td></td></tr>
 <tr><td id="Gdiplus_GdiplusStartupInput_GdiplusVersion" class="code-type">GdiplusVersion</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Gdiplus_GdiplusStartupInput_SuppressBackgroundThread" class="code-type">SuppressBackgroundThread</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Gdiplus_GdiplusStartupInput_SuppressExternalCodecs" class="code-type">SuppressExternalCodecs</td><td class="code-type">s32</td><td></td></tr>
@@ -375,27 +375,27 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipCreateBitmapFromScan0" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipCreateBitmapFromScan0</span> <a class="api-item-permalink" href="#Gdiplus_GdipCreateBitmapFromScan0" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L63">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateBitmapFromScan0</span>(width, height, stride: <span class="STpe">s32</span>, format: <span class="STpe">s32</span>, scan0: <span class="SItr">#null</span> [*] <span class="STpe">u8</span>, bitmap: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpBitmap">GpBitmap</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateBitmapFromScan0</span>(width, height, stride: <span class="STpe">s32</span>, format: <span class="STpe">s32</span>, scan0: [*] <span class="STpe">u8</span>?, bitmap: *(*<span class="SCst"><a href="#Gdiplus_GpBitmap">GpBitmap</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipCreateFontFamilyFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipCreateFontFamilyFromName</span> <a class="api-item-permalink" href="#Gdiplus_GdipCreateFontFamilyFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L71">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateFontFamilyFromName</span>(name: <span class="SCst"><a href="std.win32.html#Win32_LPCWSTR">LPCWSTR</a></span>, collection: <span class="SItr">#null</span> *<span class="STpe">void</span>, fontFamily: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpFontFamily">GpFontFamily</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateFontFamilyFromName</span>(name: <span class="SCst"><a href="std.win32.html#Win32_LPCWSTR">LPCWSTR</a></span>, collection: *<span class="STpe">void</span>?, fontFamily: *(*<span class="SCst"><a href="#Gdiplus_GpFontFamily">GpFontFamily</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipCreatePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipCreatePath</span> <a class="api-item-permalink" href="#Gdiplus_GdipCreatePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L75">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreatePath</span>(fillMode: <span class="STpe">s32</span>, path: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpPath">GpPath</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreatePath</span>(fillMode: <span class="STpe">s32</span>, path: *(*<span class="SCst"><a href="#Gdiplus_GpPath">GpPath</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipCreatePen1" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipCreatePen1</span> <a class="api-item-permalink" href="#Gdiplus_GdipCreatePen1" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L79">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreatePen1</span>(color: <span class="STpe">u32</span>, width: <span class="STpe">f32</span>, unit: <span class="STpe">s32</span>, pen: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpPen">GpPen</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreatePen1</span>(color: <span class="STpe">u32</span>, width: <span class="STpe">f32</span>, unit: <span class="STpe">s32</span>, pen: *(*<span class="SCst"><a href="#Gdiplus_GpPen">GpPen</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipCreateSolidFill" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipCreateSolidFill</span> <a class="api-item-permalink" href="#Gdiplus_GdipCreateSolidFill" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L82">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateSolidFill</span>(color: <span class="STpe">u32</span>, brush: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpSolidFill">GpSolidFill</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateSolidFill</span>(color: <span class="STpe">u32</span>, brush: *(*<span class="SCst"><a href="#Gdiplus_GpSolidFill">GpSolidFill</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipCreateStringFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipCreateStringFormat</span> <a class="api-item-permalink" href="#Gdiplus_GdipCreateStringFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L73">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateStringFormat</span>(formatAttributes: <span class="STpe">s32</span>, language: <span class="STpe">u16</span>, format: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpStringFormat">GpStringFormat</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipCreateStringFormat</span>(formatAttributes: <span class="STpe">s32</span>, language: <span class="STpe">u16</span>, format: *(*<span class="SCst"><a href="#Gdiplus_GpStringFormat">GpStringFormat</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipDeleteBrush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipDeleteBrush</span> <a class="api-item-permalink" href="#Gdiplus_GdipDeleteBrush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L83">src</a></div>
@@ -435,11 +435,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipGetImageGraphicsContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipGetImageGraphicsContext</span> <a class="api-item-permalink" href="#Gdiplus_GdipGetImageGraphicsContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L65">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipGetImageGraphicsContext</span>(image: *<span class="SCst"><a href="#Gdiplus_GpImage">GpImage</a></span>, graphics: *<span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpGraphics">GpGraphics</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipGetImageGraphicsContext</span>(image: *<span class="SCst"><a href="#Gdiplus_GpImage">GpImage</a></span>, graphics: *(*<span class="SCst"><a href="#Gdiplus_GpGraphics">GpGraphics</a></span>?))-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipGetPathWorldBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipGetPathWorldBounds</span> <a class="api-item-permalink" href="#Gdiplus_GdipGetPathWorldBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L78">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipGetPathWorldBounds</span>(path: *<span class="SCst"><a href="#Gdiplus_GpPath">GpPath</a></span>, bounds: *<span class="SCst"><a href="#Gdiplus_GpRectF">GpRectF</a></span>, matrix: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpMatrix">GpMatrix</a></span>, pen: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gdiplus_GpPen">GpPen</a></span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdipGetPathWorldBounds</span>(path: *<span class="SCst"><a href="#Gdiplus_GpPath">GpPath</a></span>, bounds: *<span class="SCst"><a href="#Gdiplus_GpRectF">GpRectF</a></span>, matrix: *<span class="SCst"><a href="#Gdiplus_GpMatrix">GpMatrix</a></span>?, pen: *<span class="SCst"><a href="#Gdiplus_GpPen">GpPen</a></span>?)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipGraphicsClear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipGraphicsClear</span> <a class="api-item-permalink" href="#Gdiplus_GdipGraphicsClear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L70">src</a></div>
@@ -451,7 +451,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdiplusStartup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdiplusStartup</span> <a class="api-item-permalink" href="#Gdiplus_GdiplusStartup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L57">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdiplusStartup</span>(token: *<span class="STpe">u64</span>, input: <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdiplus_GdiplusStartupInput">GdiplusStartupInput</a></span>, output: <span class="SItr">#null</span> *<span class="STpe">void</span>)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GdiplusStartup</span>(token: *<span class="STpe">u64</span>, input: <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdiplus_GdiplusStartupInput">GdiplusStartupInput</a></span>, output: *<span class="STpe">void</span>?)-&gt;<span class="SCst"><a href="#Gdiplus_GpStatus">GpStatus</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdiplus_GdipSetPenLineJoin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdiplus.GdipSetPenLineJoin</span> <a class="api-item-permalink" href="#Gdiplus_GdipSetPenLineJoin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus/src/gdiplus.swg#L80">src</a></div>
@@ -471,7 +471,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
 </footer>
 </section>
 </main>

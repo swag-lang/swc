@@ -3,7 +3,7 @@
 // Closure created in a loop captures by value correctly
 #test
 {
-    var closures: [5] #null func||()->s32 = cast(#null func||()->s32) null
+    var closures: [5] ((func||()->s32)?) = cast((func||()->s32)?) null
 
     for i in 5
     {
@@ -21,7 +21,7 @@
 // Closure captures computed value in loop
 #test
 {
-    var closures: [4] #null func||()->s32 = cast(#null func||()->s32) null
+    var closures: [4] ((func||()->s32)?) = cast((func||()->s32)?) null
 
     for i in 4
     {
@@ -38,8 +38,8 @@
 // Multiple closures from same iteration capture different values
 #test
 {
-    var adders:   [3] #null func||()->s32 = cast(#null func||()->s32) null
-    var doublers: [3] #null func||()->s32 = cast(#null func||()->s32) null
+    var adders:   [3] ((func||()->s32)?) = cast((func||()->s32)?) null
+    var doublers: [3] ((func||()->s32)?) = cast((func||()->s32)?) null
 
     for i in 3
     {
@@ -59,7 +59,7 @@
 // Closure in while loop
 #test
 {
-    var closures: [3] #null func||()->s32 = cast(#null func||()->s32) null
+    var closures: [3] ((func||()->s32)?) = cast((func||()->s32)?) null
     var i = 0
     while i < 3
     {

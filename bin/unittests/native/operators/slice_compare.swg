@@ -20,9 +20,9 @@ func eqWords(a, b: const [..] u32)->bool => a == b
 #[Swag.Optimize(false)]
 func eqPairs(a, b: const [..] Pair)->bool => a == b
 #[Swag.Optimize(false)]
-func isNullSlice(a: #null const [..] u8)->bool => a == null
+func isNullSlice(a: const [..] u8?)->bool => a == null
 
-const MISSING_BYTES: #null const [..] u8 = null
+const MISSING_BYTES: const [..] u8? = null
 
 var g_left:  [8] u8
 var g_right: [8] u8

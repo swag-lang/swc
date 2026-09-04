@@ -8,10 +8,10 @@ struct FontFamily
 {
     public
     {
-        regular:    #null *Font     // Regular face, when available.
-        bold:       #null *Font     // Bold face, when available.
-        italic:     #null *Font     // Italic face, when available.
-        boldItalic: #null *Font     // Combined bold and italic face, when available.
+        regular:    *Font?     // Regular face, when available.
+        bold:       *Font?     // Bold face, when available.
+        italic:     *Font?     // Italic face, when available.
+        boldItalic: *Font?     // Combined bold and italic face, when available.
     }
 }
 
@@ -27,7 +27,7 @@ enum FontFamilyStyle
 impl FontFamily
 {
     // Returns the requested style, falling back to the closest available face.
-    mtd const getFont(style: FontFamilyStyle)->#null *Font
+    mtd const getFont(style: FontFamilyStyle)->*Font?
     {
         switch style
         {

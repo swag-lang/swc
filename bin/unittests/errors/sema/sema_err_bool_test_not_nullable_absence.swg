@@ -2,35 +2,35 @@
 
 // A 'typeinfo', a function value, an interface and a 'cstring' answer a condition by testing
 // themselves against null. A type that cannot hold null makes that test a constant, and none of
-// these families offers another question to ask, so the only repair is '#null'.
+// these families offers another question to ask, so the only repair is '?'.
 
 interface IBoolTestAbsence
 {
     mtd get()->s32
 }
 
-func boolTestAbsenceNullableTypeInfo(type: #null typeinfo)->bool
+func boolTestAbsenceNullableTypeInfo(type: typeinfo?)->bool
 {
     if type do
         return true
     return false
 }
 
-func boolTestAbsenceNullableFunc(fn: #null func()->s32)->s32
+func boolTestAbsenceNullableFunc(fn: (func()->s32)?)->s32
 {
     if fn do
         return fn!()
     return 0
 }
 
-func boolTestAbsenceNullableItf(itf: #null IBoolTestAbsence)->s32
+func boolTestAbsenceNullableItf(itf: IBoolTestAbsence?)->s32
 {
     if itf do
         return itf!.get()
     return 0
 }
 
-func boolTestAbsenceNullableCString(text: #null cstring)->bool
+func boolTestAbsenceNullableCString(text: cstring?)->bool
 {
     while text
     {

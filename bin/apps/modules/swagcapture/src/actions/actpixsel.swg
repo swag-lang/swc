@@ -102,7 +102,7 @@ impl MainWnd
         capture.pushUndo(undo)
     }
 
-    mtd pixSelSmartFill(serial: u64 = 0, masks: #null *Array'Image = null)
+    mtd pixSelSmartFill(serial: u64 = 0, masks: *Array'Image? = null)
     {
         var forms = .getPixSels()
         if forms.isEmpty() do

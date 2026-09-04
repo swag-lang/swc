@@ -502,7 +502,7 @@ public impl Crc32
     }
 
     // Includes `data` in the running checksum.
-    mtd update(data: #null const [..] u8)
+    mtd update(data: const [..] u8?)
     {
         var length = data.count
         if !length do

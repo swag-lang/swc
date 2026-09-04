@@ -660,7 +660,7 @@ private func sampleAlpha(mask: const *SamplePlane, x, y: u64, width, height: u64
 }
 
 // Turns a top-down plane into a Pixel image, whose rows run bottom-up.
-private func planeToImage(plane: const *SamplePlane, fill: #null const *Color)->Image
+private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
 {
     let width  = cast(u64) plane.width
     let height = cast(u64) plane.height

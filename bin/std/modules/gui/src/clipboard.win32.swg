@@ -29,7 +29,7 @@ func hasFormat(fmt: ValueFormat)->bool
 }
 
 // Reports whether `fmt` exists and, when provided, carries the requested type fingerprint.
-func hasTypedData(fmt: ValueFormat, type: #null typeinfo)->bool
+func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
 {
     if g_Fake.enabled
     {
@@ -55,7 +55,7 @@ func hasTypedData(fmt: ValueFormat, type: #null typeinfo)->bool
 }
 
 // Adds or replaces a raw payload and optional type fingerprint without clearing other formats.
-func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
+func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 {
     if g_Fake.enabled do
         return fakeAddTypedData(fmt, type, data)
@@ -83,7 +83,7 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 }
 
 // Returns a copy of the raw payload stored under `fmt`, when its optional type matches.
-func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
+func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 {
     if g_Fake.enabled do
         return fakeGetTypedData(fmt, type)

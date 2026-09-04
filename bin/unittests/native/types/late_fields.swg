@@ -7,11 +7,9 @@ struct NativeLateItem
 
 struct NativeLateBox
 {
-    #[Swag.Late]
-    item: *NativeLateItem
-    #[Swag.Late]
-    name:  string
-    count: s32
+    late item: *NativeLateItem
+    late name: string
+    count:     s32
 }
 
 // Full life of late fields: unset, assigned, read, written through.
@@ -20,12 +18,12 @@ func nativeLateLifecycle()->bool
     var first = NativeLateItem{value: 7}
     var box: NativeLateBox
 
-    if Swag.isSet(box.item) or Swag.isSet(box.name) do
+    if (box.item != null) or (box.name != null) do
         return false
 
     box.item = &first
     box.name = "hello"
-    if !Swag.isSet(box.item) or !Swag.isSet(box.name) do
+    if !(box.item != null) or !(box.name != null) do
         return false
 
     let p: *NativeLateItem = box.item
@@ -45,14 +43,14 @@ func nativeLateAddressOf()->bool
     var box: NativeLateBox
     let slot = &box.item
     slot[] = &it
-    return Swag.isSet(box.item) and box.item.value == 3
+    return (box.item != null) and box.item.value == 3
 }
 
 // Struct literals omit late fields; they start unset.
 func nativeLateLiteral()->bool
 {
     let box = NativeLateBox{count: 4}
-    return box.count == 4 and !Swag.isSet(box.item) and !Swag.isSet(box.name)
+    return box.count == 4 and !(box.item != null) and !(box.name != null)
 }
 
 #test

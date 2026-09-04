@@ -35,7 +35,7 @@ public struct ScrollWnd
     // Scrollbar geometry, hover and drag state, and the color animations that follow them.
     // The layout pass and the mouse events maintain all of it; scroll with 'setScrollPos'
     // and connect to the signals to react.
-    oldMouseCapture: #null *Wnd     // Old mouse capture associated with this value.
+    oldMouseCapture: *Wnd?     // Old mouse capture associated with this value.
 
     scrollRequestPos: Math.Point     // Scroll request pos associated with this value.
 
@@ -76,7 +76,7 @@ public impl IWnd for ScrollWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
-        if !Swag.isSet(.view) do
+        if !(.view != null) do
             return
         var rect = .paddedClientRect()
         rect.width  -= .paddingZ

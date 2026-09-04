@@ -160,7 +160,7 @@ impl Application
         }
     }
 
-    internal mtd surfaceAtNative(x, y: f32)->#null *Surface
+    internal mtd surfaceAtNative(x, y: f32)->*Surface?
     {
         let pt   = POINT{cast(s32) x, cast(s32) y}
         let hWnd = WindowFromPoint(pt)

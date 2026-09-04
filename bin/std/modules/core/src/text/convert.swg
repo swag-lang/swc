@@ -40,7 +40,7 @@ impl ConvertFormatFloat
     //     | G | 'E' for large exponents, 'f' otherwise
     // + 'precision'
     //     A number which is the precision of the fractional part
-    mtd setFormat(strFormat: #null string)
+    mtd setFormat(strFormat: string?)
     {
         let buffer  = strFormat.buffer
         let countof = strFormat.count
@@ -109,7 +109,7 @@ impl ConvertFormatInt
     //     The padding character, in ascii. It's mandatory before the next field
     // + 'width'
     //     The width of the output, in number of characters
-    mtd setFormat(strFormat: #null string)
+    mtd setFormat(strFormat: string?)
     {
         let buffer  = strFormat.buffer
         let countof = strFormat.count
@@ -158,7 +158,7 @@ impl ConvertFormatInt
 }
 
 // Convert a value to an utf8 string, and append the result in a ConcatBuffer
-func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     var valueData = value.buffer
     var type      = Reflection.resolveAliases(Swag.kindOf(value))
@@ -176,7 +176,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     // This is a type
     if Reflection.isType(type)
     {
-        let ptrType = valueData![as #null typeinfo]
+        let ptrType = valueData![as typeinfo?]
         if ptrType do
             buf.addBytes(ptrType.fullname)
         else do
@@ -190,7 +190,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
         if type.flags & TypeInfoFlags.CString
         {
             let ptr = valueData![as [*] u8]
-            let len = (cast(#null cstring) ptr).count
+            let len = (cast(cstring?) ptr).count
             buf.addBytes(Swag.makeSlice(ptr, len))
             return
         }
@@ -228,7 +228,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
         let ptrSlice = cast(const *TypeInfoSlice) type!
         buf.addBytes("[")
 
-        let sl       = cast(#null const [..] u8) valueData
+        let sl       = cast(const [..] u8?) valueData
         var bufSlice = sl.buffer
         for index in sl.count
         {
@@ -247,7 +247,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     if Reflection.isStaticArray(type)
     {
         let ptrArr = cast(const *TypeInfoArray) type!
-        var bufArr = cast(#null const [*] u8) valueData
+        var bufArr = cast(const [*] u8?) valueData
 
         buf.addBytes("[")
         for index in ptrArr.count
@@ -278,7 +278,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     // Any
     if Reflection.isAny(type)
     {
-        let ptrAny = cast(const * #null any) valueData!
+        let ptrAny = cast(const * (any?)) valueData!
         buf.addBytes("{type = ")
         let typeAny = Swag.kindOf(ptrAny[])
         convertAny(buf, typeAny, convFmt, strFormat)
@@ -316,11 +316,11 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
 }
 
 // Convert a structure content to an utf8 string, and put the result in a ConcatBuffer
-func convertStruct(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     let kindof = cast(const *Swag.TypeInfoStruct) Swag.kindOf(value)!
     Debug.assert(kindof.kind == TypeInfoKind.Struct, "this is not a structure")
-    let ptr = cast(#null const [*] u8) value.buffer
+    let ptr = cast(const [*] u8?) value.buffer
 
     // Core.String
     if kindof == String
@@ -354,7 +354,7 @@ func convertStruct(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertF
 }
 
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
-func convertFloat(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatFloat)
+func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat)
 {
     let kindof = cast(const *Swag.TypeInfoNative) Swag.kindOf(value)!
     Debug.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
@@ -372,7 +372,7 @@ func convertFloat(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormat
 }
 
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
-func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatInt)
+func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 {
     let kindof = cast(const *Swag.TypeInfoNative) Swag.kindOf(value)!
     Debug.assert(kindof.flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
@@ -481,7 +481,7 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
 }
 
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
-func convertFloatAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertFloatAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     Debug.assert(Swag.kindOf(value).flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
 
@@ -491,7 +491,7 @@ func convertFloatAny(buf: *ConcatBuffer, value: #null const any, convFmt: Conver
 }
 
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
-func convertIntAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertIntAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     Debug.assert(Swag.kindOf(value).flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
 
@@ -520,7 +520,7 @@ func convertRune(buf: *ConcatBuffer, value: rune)
 }
 
 // Templated version. Convert a value of type 'T'
-func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: #null string)
+func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: string?)
 {
     #static if Reflection.isInteger(T)
     {

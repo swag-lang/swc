@@ -9,7 +9,7 @@ struct BorrowIndexVec
 {
     public
     {
-        buffer: [8] #null *s32
+        buffer: [8] (*s32?)
         count:  u64
     }
 }
@@ -17,7 +17,7 @@ struct BorrowIndexVec
 impl BorrowIndexVec
 {
     #[Swag.Inline]
-    mtd const opIndexPtr(index: u64)->const *#null *s32
+    mtd const opIndexPtr(index: u64)->const *(*s32?)
     {
         return &.buffer[index]
     }
@@ -31,7 +31,7 @@ impl BorrowIndexVec
 
 struct BorrowIndexHolder
 {
-    public picked: #null *s32
+    public picked: *s32?
 }
 
 // Copying a pointer element out of a local container into caller-owned storage is fine:
@@ -47,7 +47,7 @@ func borrowIndexPointerElementCopy(h: *BorrowIndexHolder, src: *s32)
 // Same through a builtin array of pointers.
 func borrowIndexBuiltinArrayElement(h: *BorrowIndexHolder, src: *s32)
 {
-    var arr: [4] #null *s32
+    var arr: [4] (*s32?)
     arr[0]   = src
     h.picked = arr[0]
 }

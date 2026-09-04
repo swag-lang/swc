@@ -108,7 +108,7 @@ namespace
         return h;
     }
 
-    // The #null qualifier must not affect runtime type identity: `#null string` and
+    // The nullable qualifier must not affect runtime type identity: `nullable string` and
     // `string` are the same runtime type (mirrors the qualifier masking in `Swag.typeCmp`).
     uint32_t identityFlags(const TypeInfo& typeInfo)
     {

@@ -50,7 +50,7 @@ internal func canDefaultInit(type: typeinfo)->bool
     return true
 }
 
-internal func defaultInit(dst: #null *void, type: typeinfo)
+internal func defaultInit(dst: *void?, type: typeinfo)
 {
     if !dst do
         return
@@ -100,7 +100,7 @@ internal func defaultInit(dst: #null *void, type: typeinfo)
     clear(data, cast(u64) concreteType.sizeof)
 }
 
-internal func dropType(dst: #null *void, type: typeinfo)
+internal func dropType(dst: *void?, type: typeinfo)
 {
     if !dst do
         return
@@ -146,7 +146,7 @@ internal func dropType(dst: #null *void, type: typeinfo)
     }
 }
 
-internal func postCopyType(dst: #null *void, type: typeinfo)
+internal func postCopyType(dst: *void?, type: typeinfo)
 {
     if !dst do
         return
@@ -192,7 +192,7 @@ internal func postCopyType(dst: #null *void, type: typeinfo)
     }
 }
 
-internal func postMoveType(dst: #null *void, type: typeinfo)
+internal func postMoveType(dst: *void?, type: typeinfo)
 {
     if !dst do
         return

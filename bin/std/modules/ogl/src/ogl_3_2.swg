@@ -2,24 +2,24 @@
 
 using Swag
 
-alias GLsync = #null *void
+alias GLsync = *void?
 
 #[Extension, Swag.PlaceHolder]
 {
     func glClientWaitSync(sync: GLsync, flags: GLbitfield, timeout: GLuint64)->GLenum
     func glDeleteSync(sync: GLsync)
-    func glDrawElementsBaseVertex(mode: GLenum, count: GLsizei, type: GLenum, indices: #null const *void, basevertex: GLint)
-    func glDrawElementsInstancedBaseVertex(mode: GLenum, count: GLsizei, type: GLenum, indices: #null const *void, instancecount: GLsizei, basevertex: GLint)
-    func glDrawRangeElementsBaseVertex(mode: GLenum, start: GLuint, end: GLuint, count: GLsizei, type: GLenum, indices: #null const *void, basevertex: GLint)
+    func glDrawElementsBaseVertex(mode: GLenum, count: GLsizei, type: GLenum, indices: const *void?, basevertex: GLint)
+    func glDrawElementsInstancedBaseVertex(mode: GLenum, count: GLsizei, type: GLenum, indices: const *void?, instancecount: GLsizei, basevertex: GLint)
+    func glDrawRangeElementsBaseVertex(mode: GLenum, start: GLuint, end: GLuint, count: GLsizei, type: GLenum, indices: const *void?, basevertex: GLint)
     func glFenceSync(condition: GLenum, flags: GLbitfield)->GLsync
     func glFramebufferTexture(target: GLenum, attachment: GLenum, texture: GLuint, level: GLint)
-    func glGetBufferParameteri64v(target: GLenum, value: GLenum, data: #null *GLint64)
-    func glGetInteger64i_v(pname: GLenum, index: GLuint, data: #null *GLint64)
-    func glGetInteger64v(pname: GLenum, data: #null *GLint64)
-    func glGetMultisamplefv(pname: GLenum, index: GLuint, val: #null *GLfloat)
-    func glGetSynciv(sync: GLsync, pname: GLenum, count: GLsizei, length: #null *GLsizei, values: #null *GLint)
+    func glGetBufferParameteri64v(target: GLenum, value: GLenum, data: *GLint64?)
+    func glGetInteger64i_v(pname: GLenum, index: GLuint, data: *GLint64?)
+    func glGetInteger64v(pname: GLenum, data: *GLint64?)
+    func glGetMultisamplefv(pname: GLenum, index: GLuint, val: *GLfloat?)
+    func glGetSynciv(sync: GLsync, pname: GLenum, count: GLsizei, length: *GLsizei?, values: *GLint?)
     func glIsSync(sync: GLsync)->GLboolean
-    func glMultiDrawElementsBaseVertex(mode: GLenum, count: #null const *GLsizei, type: GLenum, indices: #null const *#null const *void, drawcount: GLsizei, basevertex: #null const *GLint)
+    func glMultiDrawElementsBaseVertex(mode: GLenum, count: const *GLsizei?, type: GLenum, indices: const *(const *void?)?, drawcount: GLsizei, basevertex: const *GLint?)
     func glProvokingVertex(mode: GLenum)
     func glSampleMaski(maskNumber: GLuint, mask: GLbitfield)
     func glTexImage2DMultisample(target: GLenum, samples: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei, fixedsamplelocations: GLboolean)

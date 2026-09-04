@@ -23,8 +23,8 @@ struct LinePathList
 
     internal
     {
-        fillCache:            #null *LinePathList     // Owned normalized copy, when one was needed.
-        fillCacheStamps:      Array'u64               // Contour revisions the cache was built from.
+        fillCache:            *LinePathList?     // Owned normalized copy, when one was needed.
+        fillCacheStamps:      Array'u64          // Contour revisions the cache was built from.
         fillCacheRule:        Clipper.PolyFillType = NonZero
         fillCacheDirect:      bool     // The source can be filled as it is.
         fillCacheByDirection: bool     // The cache serves the winding-direction fill.

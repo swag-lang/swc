@@ -1,11 +1,11 @@
 #global private
 
-func widenNullablePointer(value: *s32)->#null *s32          => value
-func widenNullableString(value: string)->#null string       => value
-func widenNullableSlice(value: [..] s32)->#null [..] s32    => value
-func widenNullableAny(value: any)->#null any                => value
-func widenNullableCString(value: cstring)->#null cstring    => value
-func widenNullableTypeInfo(value: typeinfo)->#null typeinfo => value
+func widenNullablePointer(value: *s32)->*s32?          => value
+func widenNullableString(value: string)->string?       => value
+func widenNullableSlice(value: [..] s32)->[..] s32?    => value
+func widenNullableAny(value: any)->any?                => value
+func widenNullableCString(value: cstring)->cstring?    => value
+func widenNullableTypeInfo(value: typeinfo)->typeinfo? => value
 
 func nullableWidening()->bool
 {

@@ -11,7 +11,7 @@ struct NullableBranchMergeItem
 
 func nullableBranchMergeBoth(flag: bool, left, right: *NullableBranchMergeItem)->s32
 {
-    var item: #null *NullableBranchMergeItem
+    var item: *NullableBranchMergeItem?
     if flag do item = left
     else do item = right
     return item.value
@@ -19,7 +19,7 @@ func nullableBranchMergeBoth(flag: bool, left, right: *NullableBranchMergeItem)-
 
 func nullableBranchMergeBothBraced(flag: bool, left, right: *NullableBranchMergeItem)->s32
 {
-    var item: #null *NullableBranchMergeItem
+    var item: *NullableBranchMergeItem?
     if flag
     {
         item = left
@@ -34,7 +34,7 @@ func nullableBranchMergeBothBraced(flag: bool, left, right: *NullableBranchMerge
 
 func nullableBranchMergeChain(kind: s32, first, second, third: *NullableBranchMergeItem)->s32
 {
-    var item: #null *NullableBranchMergeItem
+    var item: *NullableBranchMergeItem?
     if kind == 0 do item = first
     elif kind == 1 do item = second
     else do item = third
@@ -44,7 +44,7 @@ func nullableBranchMergeChain(kind: s32, first, second, third: *NullableBranchMe
 // A guard-style exit publishes the surviving path's own proof, not just the condition's.
 func nullableBranchMergeGuardElse(flag: bool, item: *NullableBranchMergeItem)->s32
 {
-    var scan: #null *NullableBranchMergeItem
+    var scan: *NullableBranchMergeItem?
     if flag
     {
         return 0
@@ -58,16 +58,16 @@ func nullableBranchMergeGuardElse(flag: bool, item: *NullableBranchMergeItem)->s
 }
 
 // One path proves it and the other does not, so the value stays nullable and needs '!'.
-func nullableBranchMergeOnlyOne(flag: bool, left: *NullableBranchMergeItem, right: #null *NullableBranchMergeItem)->s32
+func nullableBranchMergeOnlyOne(flag: bool, left: *NullableBranchMergeItem, right: *NullableBranchMergeItem?)->s32
 {
-    var item: #null *NullableBranchMergeItem
+    var item: *NullableBranchMergeItem?
     if flag do item = left
     else do item = right
     return item!.value
 }
 
 // A nested 'if' runs on one path of its own branch, so the enclosing branch proves nothing.
-func nullableBranchMergeNested(outer, inner: bool, left: #null *NullableBranchMergeItem, right: *NullableBranchMergeItem)->s32
+func nullableBranchMergeNested(outer, inner: bool, left: *NullableBranchMergeItem?, right: *NullableBranchMergeItem)->s32
 {
     var item = left
     if outer
@@ -83,7 +83,7 @@ func nullableBranchMergeNested(outer, inner: bool, left: #null *NullableBranchMe
 }
 
 // A loop body may run zero times, so a proof made inside it does not reach the branch end.
-func nullableBranchMergeLoopBody(flag: bool, left: #null *NullableBranchMergeItem, right: *NullableBranchMergeItem, count: s32)->s32
+func nullableBranchMergeLoopBody(flag: bool, left: *NullableBranchMergeItem?, right: *NullableBranchMergeItem, count: s32)->s32
 {
     var item = left
     if flag
@@ -95,9 +95,9 @@ func nullableBranchMergeLoopBody(flag: bool, left: #null *NullableBranchMergeIte
 }
 
 // A path that reassigns a nullable value kills the proof for that path.
-func nullableBranchMergeKill(flag: bool, left: *NullableBranchMergeItem, right: #null *NullableBranchMergeItem)->s32
+func nullableBranchMergeKill(flag: bool, left: *NullableBranchMergeItem, right: *NullableBranchMergeItem?)->s32
 {
-    var item: #null *NullableBranchMergeItem = left
+    var item: *NullableBranchMergeItem? = left
     if flag { item = right }
     else { item = left }
     return item!.value
@@ -105,7 +105,7 @@ func nullableBranchMergeKill(flag: bool, left: *NullableBranchMergeItem, right: 
 
 // Without an 'else' the fall-through path proves only what the condition settled, which the
 // branch assignment must agree with for the merge to publish anything.
-func nullableBranchMergeNoElse(item: #null *NullableBranchMergeItem, fallback: *NullableBranchMergeItem)->s32
+func nullableBranchMergeNoElse(item: *NullableBranchMergeItem?, fallback: *NullableBranchMergeItem)->s32
 {
     var scan = item
     if scan == null do

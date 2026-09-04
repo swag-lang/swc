@@ -105,8 +105,8 @@ const GL_ARB_framebuffer_no_attachments             = 1
 #[Extension, Swag.PlaceHolder]
 {
     func glFramebufferParameteri(target: GLenum, pname: GLenum, param: GLint)
-    func glGetFramebufferParameteriv(target: GLenum, pname: GLenum, params: #null *GLint)
-    func glGetNamedFramebufferParameterivEXT(framebuffer: GLuint, pname: GLenum, params: #null *GLint)
+    func glGetFramebufferParameteriv(target: GLenum, pname: GLenum, params: *GLint?)
+    func glGetNamedFramebufferParameterivEXT(framebuffer: GLuint, pname: GLenum, params: *GLint?)
     func glNamedFramebufferParameteriEXT(framebuffer: GLuint, pname: GLenum, param: GLint)
 }
 
@@ -193,18 +193,18 @@ const GL_ARB_framebuffer_object                       = 1
     func glBindRenderbuffer(target: GLenum, renderbuffer: GLuint)
     func glBlitFramebuffer(srcX0: GLint, srcY0: GLint, srcX1: GLint, srcY1: GLint, dstX0: GLint, dstY0: GLint, dstX1: GLint, dstY1: GLint, mask: GLbitfield, filter: GLenum)
     func glCheckFramebufferStatus(target: GLenum)->GLenum
-    func glDeleteFramebuffers(n: GLsizei, framebuffers: #null const *GLuint)
-    func glDeleteRenderbuffers(n: GLsizei, renderbuffers: #null const *GLuint)
+    func glDeleteFramebuffers(n: GLsizei, framebuffers: const *GLuint?)
+    func glDeleteRenderbuffers(n: GLsizei, renderbuffers: const *GLuint?)
     func glFramebufferRenderbuffer(target: GLenum, attachment: GLenum, renderbuffertarget: GLenum, renderbuffer: GLuint)
     func glFramebufferTexture1D(target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint)
     func glFramebufferTexture2D(target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint)
     func glFramebufferTexture3D(target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint, layer: GLint)
     func glFramebufferTextureLayer(target: GLenum, attachment: GLenum, texture: GLuint, level: GLint, layer: GLint)
-    func glGenFramebuffers(n: GLsizei, framebuffers: #null *GLuint)
-    func glGenRenderbuffers(n: GLsizei, renderbuffers: #null *GLuint)
+    func glGenFramebuffers(n: GLsizei, framebuffers: *GLuint?)
+    func glGenRenderbuffers(n: GLsizei, renderbuffers: *GLuint?)
     func glGenerateMipmap(target: GLenum)
-    func glGetFramebufferAttachmentParameteriv(target: GLenum, attachment: GLenum, pname: GLenum, params: #null *GLint)
-    func glGetRenderbufferParameteriv(target: GLenum, pname: GLenum, params: #null *GLint)
+    func glGetFramebufferAttachmentParameteriv(target: GLenum, attachment: GLenum, pname: GLenum, params: *GLint?)
+    func glGetRenderbufferParameteriv(target: GLenum, pname: GLenum, params: *GLint?)
     func glIsFramebuffer(framebuffer: GLuint)->GLboolean
     func glIsRenderbuffer(renderbuffer: GLuint)->GLboolean
     func glRenderbufferStorage(target: GLenum, internalformat: GLenum, width: GLsizei, height: GLsizei)
@@ -225,12 +225,12 @@ const GL_ARB_shading_language_include = 1
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glCompileShaderIncludeARB(shader: GLuint, count: GLsizei, path: #null const *#null *GLchar, length: #null const *GLint)
-    func glDeleteNamedStringARB(namelen: GLint, name: #null const *GLchar)
-    func glGetNamedStringARB(namelen: GLint, name: #null const *GLchar, bufSize: GLsizei, stringlen: #null *GLint, str: #null *GLchar)
-    func glGetNamedStringivARB(namelen: GLint, name: #null const *GLchar, pname: GLenum, params: #null *GLint)
-    func glIsNamedStringARB(namelen: GLint, name: #null const *GLchar)->GLboolean
-    func glNamedStringARB(type: GLenum, namelen: GLint, name: #null const *GLchar, stringlen: GLint, str: #null const *GLchar)
+    func glCompileShaderIncludeARB(shader: GLuint, count: GLsizei, path: const *(*GLchar?)?, length: const *GLint?)
+    func glDeleteNamedStringARB(namelen: GLint, name: const *GLchar?)
+    func glGetNamedStringARB(namelen: GLint, name: const *GLchar?, bufSize: GLsizei, stringlen: *GLint?, str: *GLchar?)
+    func glGetNamedStringivARB(namelen: GLint, name: const *GLchar?, pname: GLenum, params: *GLint?)
+    func glIsNamedStringARB(namelen: GLint, name: const *GLchar?)->GLboolean
+    func glNamedStringARB(type: GLenum, namelen: GLint, name: const *GLchar?, stringlen: GLint, str: const *GLchar?)
 }
 
 /* ----------------------- GL_ARB_ES2_compatibility ------------------------ */
@@ -277,7 +277,7 @@ const GL_UNSIGNED_INT64_ARB   = 0x140F
     func glGetImageHandleARB(texture: GLuint, level: GLint, layered: GLboolean, layer: GLint, format: GLenum)->GLuint64
     func glGetTextureHandleARB(texture: GLuint)->GLuint64
     func glGetTextureSamplerHandleARB(texture: GLuint, sampler: GLuint)->GLuint64
-    func glGetVertexAttribLui64vARB(index: GLuint, pname: GLenum, params: #null *GLuint64EXT)
+    func glGetVertexAttribLui64vARB(index: GLuint, pname: GLenum, params: *GLuint64EXT?)
     func glIsImageHandleResidentARB(handle: GLuint64)->GLboolean
     func glIsTextureHandleResidentARB(handle: GLuint64)->GLboolean
     func glMakeImageHandleNonResidentARB(handle: GLuint64)
@@ -285,11 +285,11 @@ const GL_UNSIGNED_INT64_ARB   = 0x140F
     func glMakeTextureHandleNonResidentARB(handle: GLuint64)
     func glMakeTextureHandleResidentARB(handle: GLuint64)
     func glProgramUniformHandleui64ARB(program: GLuint, location: GLint, value: GLuint64)
-    func glProgramUniformHandleui64vARB(program: GLuint, location: GLint, count: GLsizei, values: #null const *GLuint64)
+    func glProgramUniformHandleui64vARB(program: GLuint, location: GLint, count: GLsizei, values: const *GLuint64?)
     func glUniformHandleui64ARB(location: GLint, value: GLuint64)
-    func glUniformHandleui64vARB(location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glUniformHandleui64vARB(location: GLint, count: GLsizei, value: const *GLuint64?)
     func glVertexAttribL1ui64ARB(index: GLuint, x: GLuint64EXT)
-    func glVertexAttribL1ui64vARB(index: GLuint, v: #null const *GLuint64EXT)
+    func glVertexAttribL1ui64vARB(index: GLuint, v: const *GLuint64EXT?)
 }
 
 /* ---------------------- GL_ARB_blend_func_extended ----------------------- */
@@ -302,8 +302,8 @@ const GL_ARB_buffer_storage = 1
 
 /* ---------------------------- GL_ARB_cl_event ---------------------------- */
 
-alias GLclContext = #null *void
-alias GLclEvent   = #null *void
+alias GLclContext = *void?
+alias GLclEvent   = *void?
 
 const GL_ARB_cl_event               = 1
 const GL_SYNC_CL_EVENT_ARB          = 0x8240
@@ -311,7 +311,7 @@ const GL_SYNC_CL_EVENT_COMPLETE_ARB = 0x8241
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glCreateSyncFromCLeventARB(context: #null *GLclContext, event: #null *GLclEvent, flags: GLbitfield)->GLsync
+    func glCreateSyncFromCLeventARB(context: *GLclContext?, event: *GLclEvent?, flags: GLbitfield)->GLsync
 }
 
 /* ---------------------- GL_ARB_clear_buffer_object ----------------------- */
@@ -369,7 +369,7 @@ const GL_ARB_cull_distance = 1
 
 /* -------------------------- GL_ARB_debug_output -------------------------- */
 
-alias GLDEBUGPROCARB = func(GLenum, GLenum, GLuint, GLenum, GLsizei, #null const *GLchar, #null const *void)
+alias GLDEBUGPROCARB = func(GLenum, GLenum, GLuint, GLenum, GLsizei, const *GLchar?, const *void?)
 
 const GL_ARB_debug_output                     = 1
 const GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB         = 0x8242
@@ -397,10 +397,10 @@ const GL_DEBUG_SEVERITY_LOW_ARB               = 0x9148
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glDebugMessageCallbackARB(callback: GLDEBUGPROCARB, userParam: #null const *void)
-    func glDebugMessageControlARB(source: GLenum, type: GLenum, severity: GLenum, count: GLsizei, ids: #null const *GLuint, enabled: GLboolean)
-    func glDebugMessageInsertARB(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, buf: #null const *GLchar)
-    func glGetDebugMessageLogARB(count: GLuint, bufSize: GLsizei, sources: #null *GLenum, types: #null *GLenum, ids: #null *GLuint, severities: #null *GLenum, lengths: #null *GLsizei, messageLog: #null *GLchar)->GLuint
+    func glDebugMessageCallbackARB(callback: GLDEBUGPROCARB, userParam: const *void?)
+    func glDebugMessageControlARB(source: GLenum, type: GLenum, severity: GLenum, count: GLsizei, ids: const *GLuint?, enabled: GLboolean)
+    func glDebugMessageInsertARB(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, buf: const *GLchar?)
+    func glGetDebugMessageLogARB(count: GLuint, bufSize: GLsizei, sources: *GLenum?, types: *GLenum?, ids: *GLuint?, severities: *GLenum?, lengths: *GLsizei?, messageLog: *GLchar?)->GLuint
 }
 
 /* ----------------------- GL_ARB_depth_buffer_float ----------------------- */
@@ -446,7 +446,7 @@ const GL_ARB_draw_instanced = 1
 #[Extension, Swag.PlaceHolder]
 {
     func glDrawArraysInstancedARB(mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei)
-    func glDrawElementsInstancedARB(mode: GLenum, count: GLsizei, type: GLenum, indices: #null const *void, primcount: GLsizei)
+    func glDrawElementsInstancedARB(mode: GLenum, count: GLsizei, type: GLenum, indices: const *void?, primcount: GLsizei)
 }
 
 /* ------------------------ GL_ARB_enhanced_layouts ------------------------ */
@@ -519,7 +519,7 @@ const GL_SPIR_V_BINARY_ARB               = 0x9552
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glSpecializeShaderARB(shader: GLuint, pEntryPoint: #null const *GLchar, numSpecializationConstants: GLuint, pConstantIndex: #null const *GLuint, pConstantValue: #null const *GLuint)
+    func glSpecializeShaderARB(shader: GLuint, pEntryPoint: const *GLchar?, numSpecializationConstants: GLuint, pConstantIndex: const *GLuint?, pConstantValue: const *GLuint?)
 }
 
 /* -------------------------- GL_ARB_gpu_shader5 --------------------------- */
@@ -543,42 +543,42 @@ const GL_UNSIGNED_INT64_VEC4_ARB = 0x8FF7
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glGetUniformi64vARB(program: GLuint, location: GLint, params: #null *GLint64)
-    func glGetUniformui64vARB(program: GLuint, location: GLint, params: #null *GLuint64)
-    func glGetnUniformi64vARB(program: GLuint, location: GLint, bufSize: GLsizei, params: #null *GLint64)
-    func glGetnUniformui64vARB(program: GLuint, location: GLint, bufSize: GLsizei, params: #null *GLuint64)
+    func glGetUniformi64vARB(program: GLuint, location: GLint, params: *GLint64?)
+    func glGetUniformui64vARB(program: GLuint, location: GLint, params: *GLuint64?)
+    func glGetnUniformi64vARB(program: GLuint, location: GLint, bufSize: GLsizei, params: *GLint64?)
+    func glGetnUniformui64vARB(program: GLuint, location: GLint, bufSize: GLsizei, params: *GLuint64?)
     func glProgramUniform1i64ARB(program: GLuint, location: GLint, x: GLint64)
-    func glProgramUniform1i64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glProgramUniform1i64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64?)
     func glProgramUniform1ui64ARB(program: GLuint, location: GLint, x: GLuint64)
-    func glProgramUniform1ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glProgramUniform1ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64?)
     func glProgramUniform2i64ARB(program: GLuint, location: GLint, x: GLint64, y: GLint64)
-    func glProgramUniform2i64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glProgramUniform2i64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64?)
     func glProgramUniform2ui64ARB(program: GLuint, location: GLint, x: GLuint64, y: GLuint64)
-    func glProgramUniform2ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glProgramUniform2ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64?)
     func glProgramUniform3i64ARB(program: GLuint, location: GLint, x: GLint64, y: GLint64, z: GLint64)
-    func glProgramUniform3i64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glProgramUniform3i64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64?)
     func glProgramUniform3ui64ARB(program: GLuint, location: GLint, x: GLuint64, y: GLuint64, z: GLuint64)
-    func glProgramUniform3ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glProgramUniform3ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64?)
     func glProgramUniform4i64ARB(program: GLuint, location: GLint, x: GLint64, y: GLint64, z: GLint64, w: GLint64)
-    func glProgramUniform4i64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glProgramUniform4i64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64?)
     func glProgramUniform4ui64ARB(program: GLuint, location: GLint, x: GLuint64, y: GLuint64, z: GLuint64, w: GLuint64)
-    func glProgramUniform4ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glProgramUniform4ui64vARB(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64?)
     func glUniform1i64ARB(location: GLint, x: GLint64)
-    func glUniform1i64vARB(location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glUniform1i64vARB(location: GLint, count: GLsizei, value: const *GLint64?)
     func glUniform1ui64ARB(location: GLint, x: GLuint64)
-    func glUniform1ui64vARB(location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glUniform1ui64vARB(location: GLint, count: GLsizei, value: const *GLuint64?)
     func glUniform2i64ARB(location: GLint, x: GLint64, y: GLint64)
-    func glUniform2i64vARB(location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glUniform2i64vARB(location: GLint, count: GLsizei, value: const *GLint64?)
     func glUniform2ui64ARB(location: GLint, x: GLuint64, y: GLuint64)
-    func glUniform2ui64vARB(location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glUniform2ui64vARB(location: GLint, count: GLsizei, value: const *GLuint64?)
     func glUniform3i64ARB(location: GLint, x: GLint64, y: GLint64, z: GLint64)
-    func glUniform3i64vARB(location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glUniform3i64vARB(location: GLint, count: GLsizei, value: const *GLint64?)
     func glUniform3ui64ARB(location: GLint, x: GLuint64, y: GLuint64, z: GLuint64)
-    func glUniform3ui64vARB(location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glUniform3ui64vARB(location: GLint, count: GLsizei, value: const *GLuint64?)
     func glUniform4i64ARB(location: GLint, x: GLint64, y: GLint64, z: GLint64, w: GLint64)
-    func glUniform4i64vARB(location: GLint, count: GLsizei, value: #null const *GLint64)
+    func glUniform4i64vARB(location: GLint, count: GLsizei, value: const *GLint64?)
     func glUniform4ui64ARB(location: GLint, x: GLuint64, y: GLuint64, z: GLuint64, w: GLuint64)
-    func glUniform4ui64vARB(location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glUniform4ui64vARB(location: GLint, count: GLsizei, value: const *GLuint64?)
 }
 
 /* ----------------------- GL_ARB_half_float_vertex ------------------------ */
@@ -593,8 +593,8 @@ const GL_PARAMETER_BUFFER_BINDING_ARB = 0x80EF
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glMultiDrawArraysIndirectCountARB(mode: GLenum, indirect: #null const *void, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei)
-    func glMultiDrawElementsIndirectCountARB(mode: GLenum, type: GLenum, indirect: #null const *void, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei)
+    func glMultiDrawArraysIndirectCountARB(mode: GLenum, indirect: const *void?, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei)
+    func glMultiDrawElementsIndirectCountARB(mode: GLenum, type: GLenum, indirect: const *void?, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei)
 }
 
 /* ------------------------ GL_ARB_instanced_arrays ------------------------ */
@@ -730,13 +730,13 @@ const GL_NO_RESET_NOTIFICATION_ARB          = 0x8261
 #[Extension, Swag.PlaceHolder]
 {
     func glGetGraphicsResetStatusARB()->GLenum
-    func glGetnCompressedTexImageARB(target: GLenum, lod: GLint, bufSize: GLsizei, img: #null *void)
-    func glGetnTexImageARB(target: GLenum, level: GLint, format: GLenum, type: GLenum, bufSize: GLsizei, img: #null *void)
-    func glGetnUniformdvARB(program: GLuint, location: GLint, bufSize: GLsizei, params: #null *GLdouble)
-    func glGetnUniformfvARB(program: GLuint, location: GLint, bufSize: GLsizei, params: #null *GLfloat)
-    func glGetnUniformivARB(program: GLuint, location: GLint, bufSize: GLsizei, params: #null *GLint)
-    func glGetnUniformuivARB(program: GLuint, location: GLint, bufSize: GLsizei, params: #null *GLuint)
-    func glReadnPixelsARB(x: GLint, y: GLint, width: GLsizei, height: GLsizei, format: GLenum, type: GLenum, bufSize: GLsizei, data: #null *void)
+    func glGetnCompressedTexImageARB(target: GLenum, lod: GLint, bufSize: GLsizei, img: *void?)
+    func glGetnTexImageARB(target: GLenum, level: GLint, format: GLenum, type: GLenum, bufSize: GLsizei, img: *void?)
+    func glGetnUniformdvARB(program: GLuint, location: GLint, bufSize: GLsizei, params: *GLdouble?)
+    func glGetnUniformfvARB(program: GLuint, location: GLint, bufSize: GLsizei, params: *GLfloat?)
+    func glGetnUniformivARB(program: GLuint, location: GLint, bufSize: GLsizei, params: *GLint?)
+    func glGetnUniformuivARB(program: GLuint, location: GLint, bufSize: GLsizei, params: *GLuint?)
+    func glReadnPixelsARB(x: GLint, y: GLint, width: GLsizei, height: GLsizei, format: GLenum, type: GLenum, bufSize: GLsizei, data: *void?)
 }
 
 /* ---------------------- GL_ARB_robustness_isolation ---------------------- */
@@ -758,8 +758,8 @@ const GL_FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_ARB    = 0x9343
 #[Extension, Swag.PlaceHolder]
 {
     func glEvaluateDepthValuesARB()
-    func glFramebufferSampleLocationsfvARB(target: GLenum, start: GLuint, count: GLsizei, v: #null const *GLfloat)
-    func glNamedFramebufferSampleLocationsfvARB(framebuffer: GLuint, start: GLuint, count: GLsizei, v: #null const *GLfloat)
+    func glFramebufferSampleLocationsfvARB(target: GLenum, start: GLuint, count: GLsizei, v: const *GLfloat?)
+    func glNamedFramebufferSampleLocationsfvARB(framebuffer: GLuint, start: GLuint, count: GLsizei, v: const *GLfloat?)
 }
 
 /* ------------------------- GL_ARB_sample_shading ------------------------- */
@@ -1094,6 +1094,6 @@ const GL_ARB_viewport_array = 1
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glDepthRangeArraydvNV(first: GLuint, count: GLsizei, v: #null const *GLdouble)
+    func glDepthRangeArraydvNV(first: GLuint, count: GLsizei, v: const *GLdouble?)
     func glDepthRangeIndexeddNV(index: GLuint, n: GLdouble, f: GLdouble)
 }

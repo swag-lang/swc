@@ -49,13 +49,13 @@ interface ISerialize
     mtd write(encoder: IEncoder)->bool fail
 
     // Reads element.
-    mtd readElement(type: TypeValue, data: #null *void, decoder: IDecoder)->bool fail
+    mtd readElement(type: TypeValue, data: *void?, decoder: IDecoder)->bool fail
 
     // Writes element.
-    mtd writeElement(type: TypeValue, data: #null const *void, encoder: IEncoder)->bool fail
+    mtd writeElement(type: TypeValue, data: const *void?, encoder: IEncoder)->bool fail
 
     // Posts read.
-    mtd postRead(data: #null *void, decoder: IDecoder) fail
+    mtd postRead(data: *void?, decoder: IDecoder) fail
 }
 
 // Represents serializer.
@@ -69,8 +69,8 @@ struct Serializer
 
     internal
     {
-        encode: #null IEncoder     // Encoder used while writing.
-        decode: #null IDecoder     // Decoder used while reading.
+        encode: IEncoder?     // Encoder used while writing.
+        decode: IDecoder?     // Decoder used while reading.
     }
 }
 

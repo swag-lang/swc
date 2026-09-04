@@ -25,7 +25,7 @@ public struct HtmlImageCache
     basePath: String
     entries:  Array'HtmlImageEntry
     index:    HashTable'(String, u32)
-    renderer: #null IRenderer
+    renderer: IRenderer?
 }
 
 impl HtmlImageCache
@@ -63,7 +63,7 @@ impl HtmlImageCache
     // A `data:` reference carries its bytes in the document and decodes in place. Otherwise only
     // a local reference is followed: the engine never opens a network connection for a document
     // it is asked to display, which is what makes viewing an untrusted file safe.
-    mtd fetch(source: string)->#null *HtmlImageEntry
+    mtd fetch(source: string)->*HtmlImageEntry?
     {
         if !source.count do
             return null
@@ -102,7 +102,7 @@ impl HtmlImageCache
     }
 
     // Returns the texture a reference draws with, uploading it the first time it is needed.
-    mtd texture(renderer: IRenderer, source: string)->#null *Texture
+    mtd texture(renderer: IRenderer, source: string)->*Texture?
     {
         let entry = .fetch(source)
         if !entry do

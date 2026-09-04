@@ -18,9 +18,9 @@ public struct SurfaceWnd
     {
         using base:    FrameWnd                // Embedded base state.
         icon:          Icon                    // Icon associated with this value.
-        minimizeBtn:   #null *IconButton       // Minimize btn associated with this value.
-        maximizeBtn:   #null *IconButton       // Maximize btn associated with this value.
-        closeBtn:      #null *IconButton       // Close btn associated with this value.
+        minimizeBtn:   *IconButton?            // Minimize btn associated with this value.
+        maximizeBtn:   *IconButton?            // Maximize btn associated with this value.
+        closeBtn:      *IconButton?            // Close btn associated with this value.
         movingSurface: bool                    // Moving surface associated with this value.
         sizingBorder:  SizingBorder = None     // Sizing border associated with this value.
     }
@@ -382,7 +382,7 @@ impl SurfaceWnd
         {
             if target.type == MenuCtrl
             {
-                let menu = cast(#null *MenuCtrl) target
+                let menu = cast(*MenuCtrl?) target
                 if menu.bar and menu.hitTestBar(surfacePos) == Swag.U32.Max do
                     return true
             }
@@ -529,7 +529,7 @@ impl SurfaceWnd
         }
     }
 
-    mtd create(userView: #null *Wnd, hook: #null HookEvent)
+    mtd create(userView: *Wnd?, hook: HookEvent?)
     {
         .computeStyle()
 

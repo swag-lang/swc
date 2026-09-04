@@ -16,7 +16,7 @@ struct NotNullNode
     value: s32
     name:  string = ""
     inner: NotNullInner
-    next:  #null *NotNullNode
+    next:  *NotNullNode?
 }
 
 impl NotNullNode
@@ -46,7 +46,7 @@ impl INotNullAccess for NotNullNode
 var g_notNullNode:  NotNullNode
 var g_notNullOther: NotNullNode
 
-func notNullGet()->#null *NotNullNode => &g_notNullNode
+func notNullGet()->*NotNullNode? => &g_notNullNode
 
 // A scalar result stays a scalar: no 'orelse' is needed, unlike '?.'.
 func notNullScalar()->s32 => notNullGet()!.value
@@ -70,13 +70,13 @@ func notNullTwoLinks()->s32 => notNullGet()!.next!.value
 
 // Mixed with '?.': the skip outcome still governs the chain, so the scalar result
 // needs the 'orelse' the optional chain requires.
-func notNullMixedWithOptional(node: #null *NotNullNode)->s32 => node?.next!.value orelse -1
+func notNullMixedWithOptional(node: *NotNullNode?)->s32 => node?.next!.value orelse -1
 
 // Interfaces dereference their itable the same way.
-func notNullInterface(itf: #null INotNullAccess)->s32 => itf!.get()
+func notNullInterface(itf: INotNullAccess?)->s32 => itf!.get()
 
 // Tolerated on an already proven value: the flow got there first.
-func notNullRedundant(node: #null *NotNullNode)->s32
+func notNullRedundant(node: *NotNullNode?)->s32
 {
     if node == null do
         return -1
@@ -91,17 +91,17 @@ func notNullBinding()->s32
 }
 
 // Indexing and calling a proven value.
-func notNullIndex(buffer: #null [*] s32)->s32 => buffer![1]
+func notNullIndex(buffer: [*] s32?)->s32 => buffer![1]
 
-func notNullCall(fn: #null func()->s32)->s32 => fn!()
+func notNullCall(fn: (func()->s32)?)->s32 => fn!()
 
 // The dereference applies to the proven pointer.
-func notNullDeref(value: #null *s32)->s32 => value![]
+func notNullDeref(value: *s32?)->s32 => value![]
 
 // A binding to a nullable slot is asserted through its reference layer: what an
 // 'opIndex' hands back is as nullable as the slot, and the assertion strips the flag
 // inside the reference so the member access still reaches the object.
-alias NotNullSlot = #null *NotNullNode
+alias NotNullSlot = *NotNullNode?
 
 struct NotNullBox
 {
@@ -141,7 +141,7 @@ func notNullWriteThroughRef(box: *NotNullBox, newValue: s32)
 }
 
 // A cast whose source is asserted first: the assertion binds tighter than the cast.
-func notNullCastOperand(raw: #null *void)->s32
+func notNullCastOperand(raw: *void?)->s32
 {
     let typed = cast(*NotNullNode) raw!
     return typed.value
@@ -149,7 +149,7 @@ func notNullCastOperand(raw: #null *void)->s32
 
 // Rule C: a '!' after an error-management keyword asserts its RESULT, not the
 // fallible call, which is what the keyword already swallowed.
-func notNullFallible(fails: bool)->#null *NotNullNode fail
+func notNullFallible(fails: bool)->*NotNullNode? fail
 {
     if fails do
         fail Swag.BaseError{"no node"}

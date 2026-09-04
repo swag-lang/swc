@@ -760,8 +760,8 @@ indent-style = spaces</span></div>
 <h3 id="_002_007_keywords_swg_Language_Keyword_Index">Language Keyword Index</h3>
 <p>Keywords are reserved bare words. They cannot be reused as identifiers. This page is an index; the surrounding chapters explain each active construct.</p>
 <h3 id="_002_007_keywords_swg_Declarations_and_Organization">Declarations and Organization</h3>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span>  <span class="SKwd">attr</span>  <span class="SKwd">const</span>  <span class="SKwd">enum</span>  <span class="SKwd">func</span>  <span class="SKwd">impl</span>  <span class="SKwd">interface</span>  <span class="SKwd">internal</span>
-<span class="SKwd">let</span>  <span class="SKwd">mtd</span>  <span class="SKwd">namespace</span>  <span class="SKwd">private</span>  <span class="SKwd">public</span>  <span class="SKwd">readonly</span>  <span class="SKwd">struct</span>  <span class="SKwd">union</span>  <span class="SKwd">using</span>  <span class="SKwd">var</span>  <span class="SKwd">with</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span>  <span class="SKwd">attr</span>  <span class="SKwd">const</span>  <span class="SKwd">enum</span>  <span class="SKwd">func</span>  <span class="SKwd">global</span>  <span class="SKwd">impl</span>  <span class="SKwd">interface</span>  <span class="SKwd">internal</span>  <span class="SKwd">late</span>
+<span class="SKwd">let</span>  <span class="SKwd">mtd</span>  <span class="SKwd">namespace</span>  <span class="SKwd">private</span>  <span class="SKwd">public</span>  <span class="SKwd">readonly</span>  <span class="SKwd">struct</span>  <span class="SKwd">tls</span>  <span class="SKwd">union</span>  <span class="SKwd">using</span>  <span class="SKwd">var</span>  <span class="SKwd">with</span></span></div>
 <p><span class="code-inline">readonly</span> applies to an aggregate field only.</p>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
@@ -797,7 +797,7 @@ indent-style = spaces</span></div>
 <span class="SItr">#uniq5</span>  <span class="SItr">#uniq6</span>  <span class="SItr">#uniq7</span>  <span class="SItr">#uniq8</span>  <span class="SItr">#uniq9</span></span></div>
 <h3 id="_002_007_keywords_swg_Modifiers">Modifiers</h3>
 <p>Modifiers refine the type, operand, conversion, literal, or statement that follows them. They annotate what carries no symbol; a declaration takes an attribute instead.</p>
-<div class="code-block"><span class="SCde"><span class="SItr">#bit</span>  <span class="SItr">#complete</span>  <span class="SItr">#fail</span>  <span class="SItr">#fwd</span>  <span class="SItr">#move</span>  <span class="SItr">#nodrop</span>  <span class="SItr">#nofail</span>  <span class="SItr">#null</span>
+<div class="code-block"><span class="SCde"><span class="SItr">#bit</span>  <span class="SItr">#complete</span>  <span class="SItr">#fail</span>  <span class="SItr">#fwd</span>  <span class="SItr">#move</span>  <span class="SItr">#nodrop</span>  <span class="SItr">#nofail</span>
 <span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
 <h3 id="_002_007_keywords_swg_Runtime_and_Compiler_Intrinsics">Runtime and Compiler Intrinsics</h3>
 <p>Intrinsic values:</p>
@@ -805,7 +805,7 @@ indent-style = spaces</span></div>
 <span class="SNsp">Swag</span>.<span class="SFct">modules</span>()  <span class="SNsp">Swag</span>.<span class="SFct">processInfos</span>()  <span class="SNsp">Swag</span>.<span class="SFct">runtimeFlags</span>()</span></div>
 <p>Type, value, lifecycle, and control intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.typeAs  <span class="SNsp">Swag</span>.assert  <span class="SNsp">Swag</span>.breakpoint  <span class="SNsp">Swag</span>.compilerError  <span class="SNsp">Swag</span>.compilerWarning
-.count  .buffer  <span class="SNsp">Swag</span>.drop  <span class="SNsp">Swag</span>.getContext  <span class="SNsp">Swag</span>.init  <span class="SNsp">Swag</span>.typeIs  <span class="SNsp">Swag</span>.isSet
+.count  .buffer  <span class="SNsp">Swag</span>.drop  <span class="SNsp">Swag</span>.getContext  <span class="SNsp">Swag</span>.init  <span class="SNsp">Swag</span>.typeIs
 <span class="SNsp">Swag</span>.kindOf  <span class="SNsp">Swag</span>.makeAny  <span class="SNsp">Swag</span>.makeInterface  <span class="SNsp">Swag</span>.makeSlice  <span class="SNsp">Swag</span>.makeString  <span class="SNsp">Swag</span>.panic
 <span class="SNsp">Swag</span>.postCopy  <span class="SNsp">Swag</span>.postMove  <span class="SNsp">Swag</span>.print  <span class="SNsp">Swag</span>.safetyPanic  <span class="SNsp">Swag</span>.setContext
 <span class="SNsp">Swag</span>.stringCmp  <span class="SNsp">Swag</span>.tableOf  <span class="SNsp">Swag</span>.typeCmp</span></div>
@@ -910,10 +910,10 @@ indent-style = spaces</span></div>
 <h3 id="_002_008_sigils_swg_The_Four_Modifier_Families">The Four Modifier Families</h3>
 <p>The modifiers are not one list. Each one belongs to exactly one of four families, and the family says what it annotates.</p>
 <h3 id="_002_008_sigils_swg_Type_Qualifiers">Type Qualifiers</h3>
-<p><span class="code-inline">#null</span> is part of the type itself and takes part in conversions. The bare <span class="code-inline">null</span> token is a value:</p>
+<p><span class="code-inline">?</span> is a type suffix and takes part in conversions. Write it immediately after the complete type; <span class="code-inline">*T?</span> is a nullable pointer and <span class="code-inline">*(T?)</span> is a pointer to a nullable slot. The bare <span class="code-inline">null</span> token is a value:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> missing: <span class="SItr">#null</span> *<span class="STpe">s32</span> = <span class="SKwd">null</span>
+    <span class="SKwd">let</span> missing: *<span class="STpe">s32</span>? = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(missing == <span class="SKwd">null</span>)
 }</span></div>
 <p><span class="code-inline">#simd</span> also builds a type: it turns a 16-byte array shape into a packed vector whose lanes compute element-wise (see the simd chapter):</p>
@@ -1216,7 +1216,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> a: <span class="STpe">string</span> = <span class="SStr">"string æ¯"</span>     <span class="SCmt">// UTF-8 encoded string</span>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SStr">"string æ¯"</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SItr">#sizeof</span>(a) == <span class="SNum">2</span> * <span class="SItr">#sizeof</span>(<span class="SItr">#null</span> *<span class="STpe">void</span>))     <span class="SCmt">// Pointer + length</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SItr">#sizeof</span>(a) == <span class="SNum">2</span> * <span class="SItr">#sizeof</span>(*<span class="STpe">void</span>?))     <span class="SCmt">// Pointer + length</span>
 }</span></div>
 <h3 id="_003_001_basic_types_swg_Rune_Type">Rune Type</h3>
 <p>The <span class="code-inline">rune</span> type represents a 32-bit Unicode code point. It stores a single Unicode character and is ideal for per-character text operations across languages.</p>
@@ -1401,7 +1401,7 @@ indent-style = spaces</span></div>
 <p>A string can be <span class="code-inline">null</span> if it has not been initialized. This allows checking whether a string has been assigned a value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> a: <span class="SItr">#null</span> <span class="STpe">string</span>
+    <span class="SKwd">var</span> a: <span class="STpe">string</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SKwd">null</span>)
     a = <span class="SStr">"not null"</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a != <span class="SKwd">null</span>)
@@ -1654,7 +1654,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> a: <span class="STpe">bool</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SKwd">false</span>)
 
-    <span class="SKwd">var</span> b: <span class="SItr">#null</span> <span class="STpe">string</span>
+    <span class="SKwd">var</span> b: <span class="STpe">string</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SKwd">null</span>)
 
     <span class="SKwd">var</span> c: <span class="STpe">f64</span>
@@ -1666,7 +1666,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">var</span> a: <span class="STpe">bool</span>
     a = <span class="SKwd">true</span>
-    <span class="SKwd">var</span> b: <span class="SItr">#null</span> <span class="STpe">string</span>
+    <span class="SKwd">var</span> b: <span class="STpe">string</span>?
     b = <span class="SStr">"ready"</span>
 }</span></div>
 <h3 id="_003_005_variables_swg_Type_Inference">Type Inference</h3>
@@ -1701,24 +1701,22 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(d) == <span class="STpe">string</span>)
 }</span></div>
 <h3 id="_003_005_variables_swg_Special_Variables">Special Variables</h3>
-<p>Swag provides attributes that modify how variables are stored or accessed.</p>
+<p>Swag provides storage keywords that modify how variables are stored or accessed.</p>
 <h4 id="_003_005_variables_swg_Thread-Local_Storage">Thread-Local Storage</h4>
-<p>A global variable marked with <span class="code-inline">#[Swag.Tls]</span> has one copy per thread. Each thread gets its own on first access, starting from the declared value rather than from whatever another thread left behind, and the copy is released when the thread ends.</p>
+<p>A global variable marked with <span class="code-inline">tls</span> has one copy per thread. Each thread gets its own on first access, starting from the declared value rather than from whatever another thread left behind, and the copy is released when the thread ends.</p>
 <p>The copy is per thread, so its address is too: taking a pointer to a thread-local global answers the calling thread's copy, and handing that pointer to another thread points it at storage that thread does not own.</p>
 <div class="blockquote blockquote-attention">
 <div class="blockquote-title-block"><span class="blockquote-title">Attention</span></div>
 <p>A thread-local global must hold a plain value. Its per-thread copies are released without being dropped, so a type with an <span class="code-inline">opDrop</span> leaks on every thread that touches it.</p>
 </div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Tls]</span>
-<span class="SKwd">var</span> <span class="SCst">G</span> = <span class="SNum">0</span>     <span class="SCmt">// One copy per thread, each starting at 0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">tls</span> <span class="SKwd">var</span> <span class="SCst">G</span> = <span class="SNum">0</span>     <span class="SCmt">// One copy per thread, each starting at 0</span></span></div>
 <h4 id="_003_005_variables_swg_Global_Variables">Global Variables</h4>
-<p>A local variable can be marked with <span class="code-inline">#[Swag.Global]</span> to make it global within its function’s scope. It behaves similarly to <span class="code-inline">static</span> variables in C/C++, retaining its value between function calls.</p>
+<p>A local variable can be marked with <span class="code-inline">global</span> to make it global within its function’s scope. It behaves similarly to <span class="code-inline">static</span> variables in C/C++, retaining its value between function calls.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">toto</span>()-&gt;<span class="STpe">s32</span>
     {
-        <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Global]</span>
-        <span class="SKwd">var</span> <span class="SCst">G1</span> = <span class="SNum">0</span>
+        <span class="SKwd">global</span> <span class="SKwd">var</span> <span class="SCst">G1</span> = <span class="SNum">0</span>
         <span class="SCst">G1</span> += <span class="SNum">1</span>
         <span class="SLgc">return</span> <span class="SCst">G1</span>
     }
@@ -1939,12 +1937,12 @@ indent-style = spaces</span></div>
 <p>The <span class="code-inline">orelse</span> operator returns the left-hand expression when it is present, and the right-hand one when it is null. It substitutes a <b>missing</b> value, never a zero one, so the result is non-null even when the operand was not.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> a: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SStr">"string1"</span>
-    <span class="SKwd">let</span> b               = <span class="SStr">"string2"</span>
+    <span class="SKwd">var</span> a: <span class="STpe">string</span>? = <span class="SStr">"string1"</span>
+    <span class="SKwd">let</span> b          = <span class="SStr">"string2"</span>
 
     <span class="SKwd">var</span> c = a <span class="SLgc">orelse</span> b
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(c == <span class="SStr">"string1"</span>)
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(c) == <span class="STpe">string</span>)     <span class="SCmt">// the result drops '#null'</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(c) == <span class="STpe">string</span>)     <span class="SCmt">// the result drops '?'</span>
 
     a = <span class="SKwd">null</span>
     c = a <span class="SLgc">orelse</span> b
@@ -1969,7 +1967,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> empty = <span class="SStr">""</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((empty <span class="SLgc">orelse</span> <span class="SStr">"fallback"</span>) == <span class="SStr">""</span>)
 
-    <span class="SKwd">var</span> missing: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>
+    <span class="SKwd">var</span> missing: <span class="STpe">string</span>? = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((missing <span class="SLgc">orelse</span> <span class="SStr">"fallback"</span>) == <span class="SStr">"fallback"</span>)
 }</span></div>
 <h3 id="_003_006_operators_swg_Type_Promotion">Type Promotion</h3>
@@ -2039,7 +2037,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(~<span class="SNum">0</span>'<span class="STpe">u8</span> == <span class="SNum">255</span>)
 
     <span class="SCmt">// 'orelse' and the ternary sit at the loosest level and group to the right.</span>
-    <span class="SKwd">let</span> a: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>
+    <span class="SKwd">let</span> a: <span class="STpe">string</span>? = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((a <span class="SLgc">orelse</span> (<span class="SKwd">false</span> ? <span class="SStr">"x"</span> : <span class="SStr">"y"</span>)) == <span class="SStr">"y"</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg">Cast</h3>
@@ -2368,8 +2366,8 @@ indent-style = spaces</span></div>
 <p>A slice consists of a data pointer and a <span class="code-inline">u64</span> count representing the number of elements. This allows efficient access to large datasets without copying memory.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> a: <span class="SItr">#null</span> [..] <span class="STpe">bool</span>
-    <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(a) == <span class="SItr">#sizeof</span>(<span class="SItr">#null</span> *<span class="STpe">void</span>) + <span class="SItr">#sizeof</span>(<span class="STpe">u64</span>))
+    <span class="SKwd">var</span> a: [..] <span class="STpe">bool</span>?
+    <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(a) == <span class="SItr">#sizeof</span>(*<span class="STpe">void</span>?) + <span class="SItr">#sizeof</span>(<span class="STpe">u64</span>))
 }</span></div>
 <h3 id="_004_002_slice_swg_Initializing_Slices">Initializing Slices</h3>
 <p>Slices can be initialized directly with array literals. The slice will reference the array’s elements.</p>
@@ -2511,7 +2509,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_004_002_slice_swg_Comparing_Slices">Comparing Slices</h3>
 <p><span class="code-inline">==</span> asks what a slice holds, not where it points. Two slices are equal when they have the same count and the same elements, so a copy into other storage compares equal to its source, and a shorter view over the same storage does not.</p>
-<p>Comparing against <span class="code-inline">null</span> is the one exception: it asks whether the slice has any storage at all, which is what a <span class="code-inline">#null</span> slice records.</p>
+<p>Comparing against <span class="code-inline">null</span> is the one exception: it asks whether the slice has any storage at all, which is what a <span class="code-inline">?</span> slice records.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> source: [<span class="SNum">4</span>] <span class="STpe">u8</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
@@ -2526,7 +2524,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(whole.buffer == head.buffer)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(whole != head)
 
-    <span class="SKwd">let</span> missing: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span> = <span class="SKwd">null</span>
+    <span class="SKwd">let</span> missing: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>? = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(missing == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_003_tuple_swg">Tuple</h3>
@@ -2957,21 +2955,21 @@ indent-style = spaces</span></div>
 <p>Pointers can address any type of data and are fundamental for efficient memory access and manipulation.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> ptr1: <span class="SItr">#null</span> *<span class="STpe">u8</span>            <span class="SCmt">// Pointer to a single 'u8' value</span>
-    <span class="SKwd">var</span> ptr2: <span class="SItr">#null</span> *<span class="SItr">#null</span> *<span class="STpe">u8</span>     <span class="SCmt">// Pointer to another pointer to 'u8'</span>
+    <span class="SKwd">var</span> ptr1: *<span class="STpe">u8</span>?         <span class="SCmt">// Pointer to a single 'u8' value</span>
+    <span class="SKwd">var</span> ptr2: *(*<span class="STpe">u8</span>?)?     <span class="SCmt">// Pointer to another pointer to 'u8'</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Null_Pointers">Null Pointers</h3>
 <p>In Swag, a pointer can be <span class="code-inline">null</span>, meaning it does not refer to any valid memory location. Null pointers are often used to indicate uninitialized or intentionally absent values.</p>
 <p>It is good practice to check for null pointers before dereferencing them to avoid runtime errors.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> ptr1: <span class="SItr">#null</span> *<span class="STpe">u8</span>
+    <span class="SKwd">var</span> ptr1: *<span class="STpe">u8</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr1 == <span class="SKwd">null</span>)     <span class="SCmt">// Uninitialized pointers are null by default</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Non-Null_by_Default">Non-Null by Default</h3>
-<p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Use <span class="code-inline">#null</span> to opt into nullability when null is part of the intended contract.</p>
-<p>Because these types answer a condition by testing their first pointer-sized word against null, only a <span class="code-inline">#null</span> one asks a real question there. A bare <span class="code-inline">*u8</span>, <span class="code-inline">[*] u8</span>, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">func</span> value, <span class="code-inline">interface</span> or <span class="code-inline">typeinfo</span> in a condition is a constant that can only be true, and every boolean context rejects it. A slice and a string test their data pointer, never their count, so an empty one is still present: emptiness is <span class="code-inline">x.count == 0</span>.</p>
-<p>A <span class="code-inline">#null</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), the postfix <span class="code-inline">!</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">#null</span> and bare values of the same type are always allowed. Every declared value begins with its type's safe default; the compiler may elide that initialization only after proving that it cannot be observed.</p>
+<p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Add the <span class="code-inline">?</span> suffix â€” <span class="code-inline">*u8?</span>, <span class="code-inline">string?</span>, <span class="code-inline">[ ..] u8?</span> â€” when null is part of the intended contract.</p>
+<p>Because these types answer a condition by testing their first pointer-sized word against null, only a nullable value (for example <span class="code-inline">*u8?</span>) asks a real question there. A bare <span class="code-inline">*u8</span>, <span class="code-inline">[*] u8</span>, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">func</span> value, <span class="code-inline">interface</span> or <span class="code-inline">typeinfo</span> in a condition is a constant that can only be true, and every boolean context rejects it. A slice and a string test their data pointer, never their count, so an empty one is still present: emptiness is <span class="code-inline">x.count == 0</span>.</p>
+<p>A <span class="code-inline">T?</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), the postfix <span class="code-inline">!</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">T?</span> and bare values of the same type are always allowed. Every declared value begins with its type's safe default; the compiler may elide that initialization only after proving that it cannot be observed.</p>
 <p>A value with <span class="code-inline">opDrop</span> can be consumed with <span class="code-inline">#move</span> only when resetting its moved-from source does not require explicit initialization. Give required fields a default; otherwise the value cannot be moved from safely.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -2993,9 +2991,9 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(holder.ptr) == *<span class="STpe">u8</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Use-Site_Nullability_______and____">Use-Site Nullability, <span class="code-inline">?.</span> and <span class="code-inline">!</span></h3>
-<p>Dereferencing a value whose type is still <span class="code-inline">#null</span> is a compile-time error: the flow must prove the value non-null first. The sanctioned routes are a dominating null test (flow narrowing), the <span class="code-inline">?.</span> guarded access, and the postfix <span class="code-inline">!</span> assertion.</p>
+<p>Dereferencing a value whose type is still <span class="code-inline">T?</span> is a compile-time error: the flow must prove the value non-null first. The sanctioned routes are a dominating null test (flow narrowing), the <span class="code-inline">?.</span> guarded access, and the postfix <span class="code-inline">!</span> assertion.</p>
 <p><span class="code-inline">Swag.assert(p != null)</span> is a dominating null test like any other: the statements after it are only reachable when the condition held, so the proof covers the remainder of the enclosing block. It reads as a precondition rather than as a per-use assertion, which suits a value that is guaranteed non-null for a whole function body. Like every other narrowing proof, it is dropped as soon as the path is reassigned.</p>
-<p><span class="code-inline">p!</span> and <span class="code-inline">p?.</span> are the two outcomes of the same test. <span class="code-inline">?.</span> skips the rest of the postfix chain when the tested value is null; <span class="code-inline">!</span> claims the value is there and panics under <span class="code-inline">Swag.SafetyWhat.Expect</span> when it is not. Being postfix, <span class="code-inline">!</span> binds tighter than every prefix form and chains freely: <span class="code-inline">p!.count</span>, <span class="code-inline">buffer![i]</span>, <span class="code-inline">handler!()</span>. Because it cannot produce an absent result, what follows keeps its plain type — <span class="code-inline">node!.count</span> is an <span class="code-inline">s64</span>, never a <span class="code-inline">#null</span> one, and needs no fallback.</p>
+<p><span class="code-inline">p!</span> and <span class="code-inline">p?.</span> are the two outcomes of the same test. <span class="code-inline">?.</span> skips the rest of the postfix chain when the tested value is null; <span class="code-inline">!</span> claims the value is there and panics under <span class="code-inline">Swag.SafetyWhat.Expect</span> when it is not. Being postfix, <span class="code-inline">!</span> binds tighter than every prefix form and chains freely: <span class="code-inline">p!.count</span>, <span class="code-inline">buffer![i]</span>, <span class="code-inline">handler!()</span>. Because it cannot produce an absent result, what follows keeps its plain type — <span class="code-inline">node!.count</span> is an <span class="code-inline">s64</span>, never a nullable one, and needs no fallback.</p>
 <p><span class="code-inline">try</span>, <span class="code-inline">catch</span> and <span class="code-inline">expect</span> swallow everything to their right, so a <span class="code-inline">!</span> written after one of them applies to its <b>result</b>: <span class="code-inline">expect load(path)!</span> asserts the loaded value, not the fallible call. Parenthesize to assert something inside instead.</p>
 <p>A <span class="code-inline">?.</span> chain whose result is itself nullable-capable (a pointer, string, slice, interface...) simply produces the null outcome in its own type. A chain producing a plain value (an integer, a bool...) cannot carry the null outcome and must hand it to an immediate <span class="code-inline">orelse</span> fallback. A void call through <span class="code-inline">?.</span> is a statement that does nothing when the value is null.</p>
 <p>A proof made inside a branch belongs to that branch, and what holds after an <span class="code-inline">if</span> is what both paths prove: when every path assigns a present value, the value is proven for the code that follows without a <span class="code-inline">!</span>. A path that leaves the block — a <span class="code-inline">return</span>, a <span class="code-inline">break</span>, a <span class="code-inline">fail</span> — reaches none of that code, so the other path's proof holds alone.</p>
@@ -3005,7 +3003,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">struct</span> <span class="SCst">OptChainRefDoc</span>
     {
         count: <span class="STpe">s64</span>
-        next:  <span class="SItr">#null</span> *<span class="SCst">OptChainRefDoc</span>
+        next:  *<span class="SCst">OptChainRefDoc</span>?
     }
 
     <span class="SKwd">var</span> first:  <span class="SCst">OptChainRefDoc</span>
@@ -3014,7 +3012,7 @@ indent-style = spaces</span></div>
     first.next   = &amp;second
     second.count = <span class="SNum">7</span>
 
-    <span class="SKwd">var</span> p: <span class="SItr">#null</span> *<span class="SCst">OptChainRefDoc</span> = &amp;first
+    <span class="SKwd">var</span> p: *<span class="SCst">OptChainRefDoc</span>? = &amp;first
 
     <span class="SCmt">// Narrowing: the null test dominates the dereference.</span>
     <span class="SLgc">if</span> p != <span class="SKwd">null</span> <span class="SLgc">do</span>
@@ -3123,13 +3121,13 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(box.values[<span class="SNum">2</span>] == <span class="SNum">5</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Pointers_to_Nullable_Slots">Pointers to Nullable Slots</h3>
-<p>Taking an address never invents a proof. The address of a <span class="code-inline">#null</span> slot is a non-null pointer TO that slot, and the slot's own nullability waits inside: reading the slot with <span class="code-inline">[]</span> hands back the <span class="code-inline">#null</span> value, and every use of that value needs the same proof it would need on the slot itself.</p>
+<p>Taking an address never invents a proof. The address of a <span class="code-inline">T?</span> slot is a non-null pointer TO that slot, and the slot's own nullability waits inside: reading the slot with <span class="code-inline">[]</span> hands back the nullable value, and every use of that value needs the same proof it would need on the slot itself.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SlotTargetDoc</span>
 {
     count: <span class="STpe">s64</span>
 }
 
-<span class="SKwd">alias</span> <span class="SCst">DocSlot</span> = <span class="SItr">#null</span> *<span class="SCst">SlotTargetDoc</span>
+<span class="SKwd">alias</span> <span class="SCst">DocSlot</span> = *<span class="SCst">SlotTargetDoc</span>?
 
 <span class="SKwd">struct</span> <span class="SCst">SlotBoxDoc</span>
 {
@@ -3148,7 +3146,7 @@ indent-style = spaces</span></div>
     target.count = <span class="SNum">3</span>
     <span class="SKwd">var</span> box = <span class="SCst">SlotBoxDoc</span>{slot: &amp;target}
 
-    <span class="SCmt">// The address itself is non-null; the slot's '#null' waits behind one '[]'.</span>
+    <span class="SCmt">// The address itself is non-null; the slot's nullability waits behind one '[]'.</span>
     <span class="SKwd">let</span> bound = box.<span class="SFct">slotPtr</span>()
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(bound) == <span class="SItr">#type</span> *<span class="SCst">DocSlot</span>)
 
@@ -3160,9 +3158,9 @@ indent-style = spaces</span></div>
     bound[] = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(box.slot == <span class="SKwd">null</span>)
 }</span></div>
-<h3 id="_004_007_pointers_swg_Deferred_Initialization_with__Swag_Late_">Deferred Initialization with <span class="code-inline">Swag.Late</span></h3>
-<p>The <span class="code-inline">Swag.Late</span> attribute declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value during setup — an initialization function, a constructor, the first stage of <span class="code-inline">main</span>. It replaces the <span class="code-inline">#null ... = null</span> + <span class="code-inline">!</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
-<p>The exposed type is non-null, so uses need no <span class="code-inline">!</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">Swag.isSet</span> tests whether the value has been assigned, without reading it. <span class="code-inline">Swag.Late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A local or parameter uses <span class="code-inline"></span> definite assignment instead.</p>
+<h3 id="_004_007_pointers_swg_Deferred_Initialization_with__late_">Deferred Initialization with <span class="code-inline">late</span></h3>
+<p>The <span class="code-inline">late</span> keyword declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value during setup — an initialization function, a constructor, the first stage of <span class="code-inline">main</span>. It replaces a nullable <span class="code-inline">T? = null</span> + <span class="code-inline">!</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
+<p>The exposed type is non-null, so uses need no <span class="code-inline">!</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A normal <span class="code-inline">slot != null</span> comparison inspects that sentinel without reading the value. If absence is an ordinary state that code carries beyond construction, declare the field as <span class="code-inline">T?</span> instead. A local or parameter uses definite assignment instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">LateDocResource</span>
 {
     weight: <span class="STpe">s32</span>
@@ -3170,8 +3168,7 @@ indent-style = spaces</span></div>
 
 <span class="SKwd">var</span> g_lateDocStorage: <span class="SCst">LateDocResource</span>
 
-<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Late]</span>
-<span class="SKwd">var</span> g_lateDocResource: *<span class="SCst">LateDocResource</span>     <span class="SCmt">// non-null type, set later</span>
+<span class="SKwd">late</span> <span class="SKwd">var</span> g_lateDocResource: *<span class="SCst">LateDocResource</span>     <span class="SCmt">// non-null type, set later</span>
 
 <span class="SKwd">func</span> <span class="SFct">setupLateDocResource</span>()
 {
@@ -3184,10 +3181,7 @@ indent-style = spaces</span></div>
     <span class="SCmt">// The type is non-null: no '!', no null test needed at the use site.</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(g_lateDocResource) == *<span class="SCst">LateDocResource</span>)
 
-    <span class="SCmt">// Unset until setup runs, and 'Swag.isSet' says so without reading the value.</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(!<span class="SNsp">Swag</span>.<span class="SFct">isSet</span>(g_lateDocResource))
     <span class="SFct">setupLateDocResource</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">isSet</span>(g_lateDocResource))
 
     <span class="SCmt">// Guarded read yields the value directly.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(g_lateDocResource.weight == <span class="SNum">5</span>)
@@ -3258,9 +3252,9 @@ indent-style = spaces</span></div>
 <p>Every <span class="code-inline">*</span> in a type carries its own <span class="code-inline">const</span>, so read-only access is chosen level by level. Read the type from left to right: each <span class="code-inline">const</span> applies to the pointee of the <span class="code-inline">*</span> that follows it, exactly one level down.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> ptr:  <span class="SItr">#null</span> *<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">u8</span>           <span class="SCmt">// The 'u8' is read-only, the inner pointer is writable</span>
-    <span class="SKwd">var</span> ptr1: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">u8</span>     <span class="SCmt">// Both the inner pointer and the 'u8' are read-only</span>
-    <span class="SKwd">var</span> ptr2: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SItr">#null</span> *<span class="STpe">u8</span>           <span class="SCmt">// The inner pointer is read-only, the 'u8' is writable</span>
+    <span class="SKwd">var</span> ptr:  *(<span class="SKwd">const</span> *<span class="STpe">u8</span>?)?           <span class="SCmt">// The 'u8' is read-only, the inner pointer is writable</span>
+    <span class="SKwd">var</span> ptr1: <span class="SKwd">const</span> *(<span class="SKwd">const</span> *<span class="STpe">u8</span>?)?     <span class="SCmt">// Both the inner pointer and the 'u8' are read-only</span>
+    <span class="SKwd">var</span> ptr2: <span class="SKwd">const</span> *(*<span class="STpe">u8</span>?)?           <span class="SCmt">// The inner pointer is read-only, the 'u8' is writable</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Multi-Value_Pointers">Multi-Value Pointers</h3>
 <p>To enable <b>pointer arithmetic</b> or address <b>contiguous memory blocks</b>, use <span class="code-inline">[*]</span> instead of <span class="code-inline">*</span>.</p>
@@ -3268,8 +3262,8 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Sanity(</span><span class="SNsp">Swag</span>.<span class="SAtr">SafetyWhat.All, false)]</span>
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> ptr: <span class="SItr">#null</span> [*] <span class="STpe">u8</span>     <span class="SCmt">// Pointer to a block of 'u8' values</span>
-    ptr = ptr - <span class="SNum">1</span>             <span class="SCmt">// Move the pointer back by one element</span>
+    <span class="SKwd">var</span> ptr: [*] <span class="STpe">u8</span>?     <span class="SCmt">// Pointer to a block of 'u8' values</span>
+    ptr = ptr - <span class="SNum">1</span>        <span class="SCmt">// Move the pointer back by one element</span>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Pointer_Arithmetic_and_Array_Elements">Pointer Arithmetic and Array Elements</h3>
 <p>When taking the address of an array element, the resulting pointer refers to that single element. Cast it to a multi-value pointer when pointer arithmetic is intended.</p>
@@ -3309,7 +3303,7 @@ indent-style = spaces</span></div>
 </div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> a: <span class="SItr">#null</span> <span class="STpe">any</span>
+    <span class="SKwd">var</span> a: <span class="STpe">any</span>?
 
     <span class="SCmt">// Store an s32 literal value in the 'any'</span>
     a = <span class="SNum">6</span>
@@ -3376,7 +3370,7 @@ indent-style = spaces</span></div>
 <p>An <span class="code-inline">any</span> value can be null, similar to pointers and other nullable types.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> x: <span class="SItr">#null</span> <span class="STpe">any</span>
+    <span class="SKwd">var</span> x: <span class="STpe">any</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
 
     x = <span class="SNum">6</span>
@@ -3394,7 +3388,7 @@ indent-style = spaces</span></div>
 <p>An <span class="code-inline">any</span> can be compared to a type using <span class="code-inline">==</span> or <span class="code-inline">!=</span>. This uses <span class="code-inline">Swag.kindOf</span> internally to compare the stored value's type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> x: <span class="SItr">#null</span> <span class="STpe">any</span>
+    <span class="SKwd">var</span> x: <span class="STpe">any</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
 
     x = <span class="SNum">6</span>
@@ -3739,8 +3733,8 @@ indent-style = spaces</span></div>
 <p>When an <span class="code-inline">if</span> statement includes a variable declaration, you can refine the test with a <span class="code-inline">where</span> clause. The <span class="code-inline">where</span> condition is only evaluated if the variable test passes.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">func</span> <span class="SFct">retSomething</span>()-&gt;<span class="STpe">string</span>     =&gt; <span class="SStr">"string"</span>
-    <span class="SKwd">func</span> <span class="SFct">retNothing</span>()-&gt;<span class="SItr">#null</span> <span class="STpe">string</span> =&gt; <span class="SKwd">null</span>
+    <span class="SKwd">func</span> <span class="SFct">retSomething</span>()-&gt;<span class="STpe">string</span> =&gt; <span class="SStr">"string"</span>
+    <span class="SKwd">func</span> <span class="SFct">retNothing</span>()-&gt;<span class="STpe">string</span>?  =&gt; <span class="SKwd">null</span>
 
     <span class="SCmt">// The 'where' clause runs only if 'str' is not null.</span>
     <span class="SLgc">if</span> <span class="SKwd">let</span> str = <span class="SFct">retSomething</span>() <span class="SLgc">where</span> str[<span class="SNum">0</span>] == '<span class="SFct">s</span>' <span class="SLgc">do</span>
@@ -4797,7 +4791,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">struct</span> <span class="SCst">MyStruct</span>
     {
-        name: <span class="SItr">#null</span> <span class="STpe">string</span>     <span class="SCmt">// Field 'name' of type 'string'</span>
+        name: <span class="STpe">string</span>?     <span class="SCmt">// Field 'name' of type 'string'</span>
     }
 
     <span class="SKwd">struct</span> <span class="SCst">MyStruct1</span>
@@ -4815,7 +4809,7 @@ indent-style = spaces</span></div>
     <span class="SCmt">// Fields separated by commas</span>
     <span class="SKwd">struct</span> <span class="SCst">MyStruct</span>
     {
-        name: <span class="SItr">#null</span> <span class="STpe">string</span>
+        name: <span class="STpe">string</span>?
         val1: <span class="STpe">bool</span>
     }
 
@@ -5017,7 +5011,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">let</span> type    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) <span class="SItr">#type</span> <span class="SCst">MyStruct</span>
     <span class="SKwd">let</span> methods = type.methods!
-    <span class="SKwd">var</span> returnX: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeValue</span>
+    <span class="SKwd">var</span> returnX: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeValue</span>?
 
     <span class="SLgc">for</span> &amp;method <span class="SLgc">in</span> methods
     {
@@ -5295,7 +5289,7 @@ indent-style = spaces</span></div>
     }
 
     <span class="SCmt">// Called when .buffer is used; returns a pointer to the underlying data of type WhateverType</span>
-    <span class="SKwd">func</span> <span class="SFct">opData</span>(<span class="STpe">me</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">WhateverType</span>
+    <span class="SKwd">func</span> <span class="SFct">opData</span>(<span class="STpe">me</span>)-&gt;*<span class="SCst">WhateverType</span>?
     {
         <span class="SLgc">return</span> <span class="SKwd">null</span>
     }
@@ -5939,7 +5933,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> pt2: <span class="SCst">Point2</span>
     <span class="SKwd">var</span> pt3: <span class="SCst">Point3</span>
     <span class="SKwd">var</span> itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt2
-    <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(itf) == <span class="SNum">2</span> * <span class="SItr">#sizeof</span>(<span class="SItr">#null</span> *<span class="STpe">void</span>))
+    <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(itf) == <span class="SNum">2</span> * <span class="SItr">#sizeof</span>(*<span class="STpe">void</span>?))
 
     <span class="SCmt">// Retrieve the concrete type with 'Swag.kindOf'</span>
     itf = <span class="SKwd">cast</span>(<span class="SCst">IReset</span>) pt2
@@ -6090,10 +6084,10 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">ptr1</span>(<span class="SNum">2</span>) == <span class="SNum">4</span>)
 }</span></div>
 <h3 id="_007_002_lambda_swg_Null_Lambdas">Null Lambdas</h3>
-<p>A lambda declared with the <span class="code-inline">#null</span> qualifier can be null, representing an absent function pointer. This is useful for optional callbacks or deferred initialization. A bare lambda type is non-null and must be initialized.</p>
+<p>A lambda declared with the <span class="code-inline">?</span> qualifier can be null, representing an absent function pointer. This is useful for optional callbacks or deferred initialization. A bare lambda type is non-null and must be initialized.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> lambda: <span class="SItr">#null</span> <span class="SKwd">func</span>()-&gt;<span class="STpe">bool</span>
+    <span class="SKwd">var</span> lambda: (<span class="SKwd">func</span>()-&gt;<span class="STpe">bool</span>)?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(lambda == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_007_002_lambda_swg_Using_Lambdas_as_Function_Parameters">Using Lambdas as Function Parameters</h3>
@@ -6142,7 +6136,7 @@ indent-style = spaces</span></div>
 <p>When the variable type is known, parameter and return types can be omitted in the lambda.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> fct: <span class="SItr">#null</span> <span class="SKwd">func</span>(<span class="STpe">s32</span>, <span class="STpe">s32</span>)-&gt;<span class="STpe">bool</span>
+    <span class="SKwd">var</span> fct: (<span class="SKwd">func</span>(<span class="STpe">s32</span>, <span class="STpe">s32</span>)-&gt;<span class="STpe">bool</span>)?
 
     fct = <span class="SKwd">func</span>(x, y) =&gt; x == y
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">fct</span>(<span class="SNum">10</span>, <span class="SNum">10</span>))
@@ -6161,7 +6155,7 @@ indent-style = spaces</span></div>
     }
 
     {
-        <span class="SKwd">var</span> x: <span class="SItr">#null</span> <span class="SKwd">func</span>(val: <span class="STpe">bool</span> = <span class="SKwd">true</span>)
+        <span class="SKwd">var</span> x: (<span class="SKwd">func</span>(val: <span class="STpe">bool</span> = <span class="SKwd">true</span>))?
         x = <span class="SKwd">func</span>(val) { <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(val == <span class="SKwd">true</span>) }
 
         <span class="SFct">x</span>()
@@ -6237,7 +6231,7 @@ indent-style = spaces</span></div>
 <p>A closure variable can also hold a regular lambda (no captures).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> fct: <span class="SItr">#null</span> <span class="SKwd">func</span>||(<span class="STpe">s32</span>, <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
+    <span class="SKwd">var</span> fct: (<span class="SKwd">func</span>||(<span class="STpe">s32</span>, <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>)?
 
     fct = <span class="SKwd">func</span>(x, y) =&gt; x + y
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">fct</span>(<span class="SNum">1</span>, <span class="SNum">2</span>) == <span class="SNum">3</span>)
@@ -6247,7 +6241,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>]
-    <span class="SKwd">var</span> fct: <span class="SItr">#null</span> <span class="SKwd">func</span>||(<span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
+    <span class="SKwd">var</span> fct: (<span class="SKwd">func</span>||(<span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>)?
     fct = <span class="SKwd">func</span>|x|(toAdd)
     {
         <span class="SKwd">var</span> res = <span class="SNum">0</span>
@@ -7257,7 +7251,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">CalleeReturn()</span></td><td>Make <span class="code-inline">return</span> in a macro or mixin return from the caller</td></tr>
 <tr><td><span class="code-inline">Implicit()</span></td><td>Permit an <span class="code-inline">opCast</span> overload as an implicit conversion</td></tr>
 <tr><td><span class="code-inline">Discardable()</span></td><td>Permit a function result to be ignored</td></tr>
-<tr><td>'Deprecated(msg: #null string = null)'</td><td>Mark an API as deprecated</td></tr>
+<tr><td>'Deprecated(msg: string? = null)'</td><td>Mark an API as deprecated</td></tr>
 </tbody>
 </table>
 <h3 id="_010_002_predefined_attributes_swg_Operators__Matching__and_Enums">Operators, Matching, and Enums</h3>
@@ -7288,9 +7282,6 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">NoCopy()</span></td><td>Forbid copying a struct</td></tr>
 <tr><td><span class="code-inline">Opaque()</span></td><td>Hide a struct's contents from exported module APIs</td></tr>
 <tr><td>'ExportType(what: ExportWhat)'</td><td>Export selected runtime reflection data</td></tr>
-<tr><td><span class="code-inline">Tls()</span></td><td>Give each thread its own instance of a global</td></tr>
-<tr><td><span class="code-inline">Global()</span></td><td>Give a local declaration static storage</td></tr>
-<tr><td><span class="code-inline">Late()</span></td><td>Defer the initialization of a non-null field or global</td></tr>
 <tr><td><span class="code-inline">Strict()</span></td><td>Keep an alias distinct for implicit-conversion purposes</td></tr>
 </tbody>
 </table>
@@ -7812,9 +7803,9 @@ indent-style = spaces</span></div>
 
     <span class="SCmt">// Compile-time checks of kind</span>
     <span class="SKwd">using</span> <span class="SCst">Swag</span>
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SItr">#null</span> *<span class="STpe">u8</span>).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Pointer</span>)     <span class="SCmt">// Pointer</span>
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>([<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>]).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Array</span>)       <span class="SCmt">// Array</span>
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>({<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>}).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Struct</span>)      <span class="SCmt">// Struct</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(*<span class="STpe">u8</span>?).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Pointer</span>)         <span class="SCmt">// Pointer</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>([<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>]).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Array</span>)      <span class="SCmt">// Array</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>({<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>}).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Struct</span>)     <span class="SCmt">// Struct</span>
 }</span></div>
 <h3 id="_012_000_type_reflection_swg_The___decltype__Query">The <span class="code-inline">#decltype</span> Query</h3>
 <p><span class="code-inline">#decltype</span> performs the reverse of <span class="code-inline">#typeof</span>/<span class="code-inline">Swag.kindOf</span>: it converts a <span class="code-inline">typeinfo</span> back into a compiler type. Use it to materialize a type determined by compile-time information.</p>
@@ -7833,7 +7824,7 @@ indent-style = spaces</span></div>
     <span class="SKwd">func</span> <span class="SFct">getType</span>(needAString: <span class="STpe">bool</span>)-&gt;<span class="STpe">typeinfo</span>
     {
         <span class="SLgc">if</span> needAString <span class="SLgc">do</span>
-            <span class="SLgc">return</span> <span class="SItr">#null</span> <span class="STpe">string</span>
+            <span class="SLgc">return</span> <span class="STpe">string</span>?
         <span class="SLgc">else</span> <span class="SLgc">do</span>
             <span class="SLgc">return</span> <span class="STpe">s32</span>
     }
@@ -7844,7 +7835,7 @@ indent-style = spaces</span></div>
     x = <span class="SNum">0</span>
 
     <span class="SKwd">var</span> x1: <span class="SItr">#decltype</span>(<span class="SFct">getType</span>(needAString: <span class="SKwd">true</span>))
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(x1) == <span class="SItr">#null</span> <span class="STpe">string</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(x1) == <span class="STpe">string</span>?)
     x1 = <span class="SStr">"0"</span>
 }</span></div>
 <h3 id="_012_001_aggregate_reflection_swg">Aggregate Reflection</h3>
@@ -7974,14 +7965,14 @@ indent-style = spaces</span></div>
     code:       <span class="STpe">s32</span> = <span class="SNum">0</span>
 }
 
-<span class="SKwd">func</span> <span class="SFct">count</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+<span class="SKwd">func</span> <span class="SFct">count</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">if</span> name == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"name cannot be null"</span>}, code: <span class="SNum">7</span>}
     <span class="SLgc">return</span> name.count
 }</span></div>
 <h3 id="_013_001_error_management_swg_Catching_Errors">Catching Errors</h3>
-<p><span class="code-inline">catch</span> handles the error locally and returns the default value for the result type. To inspect the error, capture it with 'as err': this binds a fresh local (of type '#null any') that is null on success and holds the caught error on failure. The capture is visible in the enclosing scope, after the catch, so each capture in a given scope needs its own name.</p>
+<p><span class="code-inline">catch</span> handles the error locally and returns the default value for the result type. To inspect the error, capture it with 'as err': this binds a fresh local (of type <span class="code-inline">any?</span>) that is null on success and holds the caught error on failure. The capture is visible in the enclosing scope, after the catch, so each capture in a given scope needs its own name.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
@@ -7994,7 +7985,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Handling_on_Failure_with__catch_____else_">Handling on Failure with 'catch ... else'</h3>
 <p>'catch e else { H }' runs the anonymous handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. <span class="code-inline">H</span> cannot inspect the error (capture it with 'as err' for that); it is evaluated lazily — only on the failure path — and may divert control flow (e.g. an early <span class="code-inline">return</span>). To read the caught error, use the 'as err' capture form instead.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
     out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) <span class="SFct">count</span>(name)
 }
@@ -8016,7 +8007,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Dismissing_Errors">Dismissing Errors</h3>
 <p>To dismiss a failure and continue with the type default, use <span class="code-inline">catch</span> without a capture: the error is handled and dropped, and the expression yields the default value for the result type. To keep the error, add an 'as err' capture; to use a custom fallback, capture and branch ('var x = catch f() as err; if err != null do x = V').</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">safeCount</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">safeCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
     <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name)
 }
@@ -8028,7 +8019,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Propagating_Errors">Propagating Errors</h3>
 <p><span class="code-inline">try</span> propagates the current error to the caller, so it belongs inside a function that can itself return an error.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">propagateCount</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">propagateCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
 }
@@ -8049,7 +8040,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Implicit_try">Implicit try</h3>
 <p>Inside a function declared with <span class="code-inline">fail</span>, calling another fallible function is an implicit propagation.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">implicitTryCount</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">implicitTryCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">return</span> <span class="SFct">count</span>(name)
 }
@@ -8063,7 +8054,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Error-Handling_Blocks">Error-Handling Blocks</h3>
 <p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), and <span class="code-inline">expect</span> can also guard a whole block of code.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">blockTry</span>(name0: <span class="SItr">#null</span> <span class="STpe">string</span>, name1: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">blockTry</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">var</span> total: <span class="STpe">u64</span> = <span class="SNum">0</span>
     <span class="SKwd">try</span>
@@ -8089,7 +8080,7 @@ indent-style = spaces</span></div>
     <span class="SLgc">return</span> (<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code
 }
 
-<span class="SKwd">func</span> <span class="SFct">blockCatchElse</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span>
+<span class="SKwd">func</span> <span class="SFct">blockCatchElse</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
     <span class="SKwd">catch</span>
     {
@@ -8131,7 +8122,7 @@ indent-style = spaces</span></div>
 <p>A plain <span class="code-inline">defer</span> still runs when a function exits through <span class="code-inline">fail</span>, because <span class="code-inline">fail</span> is an early return carrying an error value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> <span class="SCst">DeferTrace</span>: <span class="STpe">s32</span> = <span class="SNum">0</span>
 
-<span class="SKwd">func</span> <span class="SFct">deferOnFail</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+<span class="SKwd">func</span> <span class="SFct">deferOnFail</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">defer</span> <span class="SCst">DeferTrace</span> += <span class="SNum">1</span>
     <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
@@ -8385,7 +8376,7 @@ indent-style = spaces</span></div>
 <p>Every allocation flows through the <span class="code-inline">Swag.IAllocator</span> interface, whose methods make the operation structural: the analysis infers which functions FREE what their parameters point to (a <span class="code-inline">frees</span> summary, chained through wrappers and across modules like the other summaries). Dereferencing a pointer after it was provably freed — or freeing it twice — is a compile-time error (<span class="code-inline">.Lifecycle</span>). Aliases and conditional frees are misses, never false positives; reassigning the pointer makes it valid again.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">func</span> <span class="SFct">exampleAlloc</span>(size: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span>
+    <span class="SKwd">func</span> <span class="SFct">exampleAlloc</span>(size: <span class="STpe">u64</span>)-&gt;*<span class="STpe">void</span>?
     {
         <span class="SKwd">var</span> req: <span class="SNsp">Swag</span>.<span class="SCst">AllocatorRequest</span>
         req.size = size
@@ -8394,7 +8385,7 @@ indent-style = spaces</span></div>
         <span class="SLgc">return</span> req.address
     }
 
-    <span class="SKwd">func</span> <span class="SFct">exampleFree</span>(ptr: <span class="SItr">#null</span> *<span class="STpe">void</span>, size: <span class="STpe">u64</span>)
+    <span class="SKwd">func</span> <span class="SFct">exampleFree</span>(ptr: *<span class="STpe">void</span>?, size: <span class="STpe">u64</span>)
     {
         <span class="SKwd">var</span> req: <span class="SNsp">Swag</span>.<span class="SCst">AllocatorRequest</span>
         req.address = ptr
@@ -8501,15 +8492,15 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">struct</span> <span class="SCst">Views</span>
     {
-        local:  *<span class="STpe">s32</span>
-        global: *<span class="STpe">s32</span>
+        local:     *<span class="STpe">s32</span>
+        globalPtr: *<span class="STpe">s32</span>
     }
 
     <span class="SKwd">var</span> local: <span class="STpe">s32</span>
     <span class="SKwd">var</span> views: <span class="SCst">Views</span>
-    views.local  = &amp;local
-    views.global = &amp;borrowGlobalValue
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(views.global == &amp;borrowGlobalValue)
+    views.local     = &amp;local
+    views.globalPtr = &amp;borrowGlobalValue
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(views.globalPtr == &amp;borrowGlobalValue)
 }</span></div>
 <h3 id="_013_004_borrowing_swg_Arguments_a_Callee_Keeps">Arguments a Callee Keeps</h3>
 <p>A callee that stores its parameter into storage outliving the call makes any borrowed argument escape, whatever happens to the call result. Storing one parameter into storage reachable from ANOTHER — <span class="code-inline">container.add(&amp;item)</span> — is summarized as a pair, and the call site errors whenever the container provably outlives what was stored in it: a global container, or a local container declared in a shallower scope than the borrowed source.</p>
@@ -8521,7 +8512,7 @@ indent-style = spaces</span></div>
     set.<span class="SFct">add</span>(key)     <span class="SCmt">// Error: 'set' outlives 'key', and it keeps a view of it</span>
 }</span></div>
 <p>A plain <span class="code-inline">*T</span> field is deliberately not treated this way: a single-object pointer inside an owner is just as often a back-reference to something it does not own.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> borrowGlobalStash: <span class="SItr">#null</span> *<span class="STpe">s32</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> borrowGlobalStash: *<span class="STpe">s32</span>?
 
 <span class="SKwd">func</span> <span class="SFct">borrowStash</span>(p: *<span class="STpe">s32</span>)
 {
@@ -9386,18 +9377,18 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
             <span class="SLgc">return</span> <span class="SStr">"x, y: "</span> ++ <span class="SItr">#typeof</span>(<span class="SCst">T</span>).name
         }
 
-        z: <span class="SItr">#null</span> <span class="STpe">string</span>
+        z: <span class="STpe">string</span>?
     }
 
     <span class="SKwd">let</span> v: <span class="SFct">MyStruct</span>'<span class="STpe">bool</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v.x) == <span class="STpe">bool</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v.y) == <span class="STpe">bool</span>)
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v.z) == <span class="SItr">#null</span> <span class="STpe">string</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v.z) == <span class="STpe">string</span>?)
 
     <span class="SKwd">let</span> v1: <span class="SFct">MyStruct</span>'<span class="STpe">f64</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v1.x) == <span class="STpe">f64</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v1.y) == <span class="STpe">f64</span>)
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v1.z) == <span class="SItr">#null</span> <span class="STpe">string</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(v1.z) == <span class="STpe">string</span>?)
 }</span></div>
 <h3 id="_015_003_generated_code_with_ast_swg_Constructing_Strings_in___ast_">Constructing Strings in <span class="code-inline">#ast</span></h3>
 <p><span class="code-inline">#ast</span> must return a string. You can construct it dynamically, e.g. by using a buffer.</p>
@@ -9535,7 +9526,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     function: "vendor_open_v2",
     link: "vendor_import",
     callconv: .C)]</span>
-<span class="SKwd">func</span> <span class="SFct">openVendorHandle</span>(flags: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">openVendorHandle</span>(flags: <span class="STpe">u32</span>)-&gt;*<span class="STpe">void</span>?</span></div>
 <p>The declaration is an ABI contract, not a conversion layer. A mismatched parameter type, struct layout, calling convention, or nullability annotation can corrupt memory even when the code compiles.</p>
 <h3 id="_016_002_c_abi_data_swg">C Abi Data</h3>
 <h3 id="_016_002_c_abi_data_swg_Data_at_a_C_ABI_Boundary">Data at a C ABI Boundary</h3>
@@ -9551,14 +9542,14 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <p>For other data:</p>
 <ul>
 <li>Prefer <span class="code-inline">s8</span> through <span class="code-inline">s64</span> and <span class="code-inline">u8</span> through <span class="code-inline">u64</span> over platform-dependent C spellings.</li>
-<li>Represent optional C pointers with '#null <i>T' or '#null const </i>T'.</li>
+<li>Represent optional C pointers with <span class="code-inline">*T?</span> or <span class="code-inline">const *T?</span>.</li>
 <li>Match aggregate packing and alignment with <span class="code-inline">#[Swag.Pack]</span> and <span class="code-inline">#[Swag.Align]</span> only when the external ABI requires it.</li>
 <li>State who owns returned memory and which function releases it.</li>
 <li>Treat a returned pointer as borrowed unless the external API explicitly transfers ownership.</li>
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
 </footer>
 </section>
 </main>
@@ -10061,7 +10052,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Reaching Through a Pointer|_004_007_pointers_swg_Reaching_Through_a_Pointer|",
 "h|Element Addresses from Containers|_004_007_pointers_swg_Element_Addresses_from_Containers|",
 "h|Pointers to Nullable Slots|_004_007_pointers_swg_Pointers_to_Nullable_Slots|",
-"h|Deferred Initialization with Swag.Late|_004_007_pointers_swg_Deferred_Initialization_with__Swag_Late_|",
+"h|Deferred Initialization with late|_004_007_pointers_swg_Deferred_Initialization_with__late_|",
 "h|Taking the Address of a Variable|_004_007_pointers_swg_Taking_the_Address_of_a_Variable|",
 "h|Dereferencing a Pointer|_004_007_pointers_swg_Dereferencing_a_Pointer|",
 "h|Reinterpreting the Pointed Storage|_004_007_pointers_swg_Reinterpreting_the_Pointed_Storage|",

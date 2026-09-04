@@ -55,7 +55,7 @@
     },
     "destructuring-pattern": {
       "name": "meta.destructuring.swag",
-      "begin": "(?:(\\b(?:let|var|const)\\b)\\s*)?(\\{)(?=[^}]*\\}\\s*=)",
+      "begin": "(?:(\\b(?:late|tls|global|let|var|const)\\b)\\s*)?(\\{)(?=[^}]*\\}\\s*=)",
       "beginCaptures": {
         "1": {
           "name": "keyword.declaration"
@@ -148,14 +148,14 @@
       "patterns": [
         {
           "name": "keyword.declaration",
-          "match": "\\b(let|var|const)\\b"
+          "match": "\\b(late|tls|global|let|var|const)\\b"
         }
       ]
     },
     "intrinsics": {
       "patterns": [
         {
-          "match": "\\b(Swag)(\\.)(tableOf|stringCmp|typeCmp|typeIs|typeAs|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|isSet|postCopy|postMove)\\b",
+          "match": "\\b(Swag)(\\.)(tableOf|stringCmp|typeCmp|typeIs|typeAs|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|postCopy|postMove)\\b",
           "captures": {
             "1": { "name": "entity.name.namespace.builtin.swag" },
             "2": { "name": "punctuation.accessor.namespace.swag" },
@@ -265,7 +265,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|null|complete|fail|nofail|raw|simd)\\b"
+          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|complete|fail|nofail|raw|simd)\\b"
         }
       ]
     },
@@ -532,7 +532,7 @@
       "patterns": [
         {
           "name": "keyword.operator",
-          "match": "[\\/=\\-+!*%<>&|^~.`'!:]"
+          "match": "[\\/=\\-+!?*%<>&|^~.`'!:]"
         }
       ]
     }

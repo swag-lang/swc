@@ -202,7 +202,7 @@ func lengthUntilZero(buf: const [..] u16)->u64
 // `buf` must either be `null` or point to a zero-terminated sequence. Use
 // [[Core.Utf16.lengthUntilZero]] when the storage extent is known so a missing terminator
 // remains bounded.
-func lengthZeroTerminated(buf: #null const [*] u16)->u64
+func lengthZeroTerminated(buf: const [*] u16?)->u64
 {
     if buf == null do
         return 0

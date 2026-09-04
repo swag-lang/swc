@@ -135,8 +135,8 @@ struct MappedRegion
 
     internal
     {
-        view:       #null [*] u8
-        nativeView: #null *void
+        view:       [*] u8?
+        nativeView: *void?
         mapHandle:  FileHandle
         fileHandle: FileHandle
         valid:      bool

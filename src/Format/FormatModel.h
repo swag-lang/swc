@@ -57,6 +57,7 @@ enum class FormatRoleE : uint64_t
     NamedArgumentColon  = 1ULL << 40, // `:` between a named argument / literal field and its value
     AliasDeclStart      = 1ULL << 41, // first piece of an `alias` declaration
     AccessModifier      = 1ULL << 42, // `public` / `private` / `internal` / `readonly` governing one declaration or block
+    NullableTypeSuffix  = 1ULL << 43, // `?` suffix of a nullable type
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 

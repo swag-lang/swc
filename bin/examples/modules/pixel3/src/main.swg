@@ -18,17 +18,16 @@ struct SceneLayout
     rect:  Math.Rectangle
 }
 
-var g_Window:   Env.Window
-var g_Renderer: Pixel.RenderOgl
-#[Swag.Late]
-var g_Render:  Pixel.IRenderer
-var g_Painter: Pixel.Painter
-var g_RC:      Pixel.RenderContext
+var g_Window:      Env.Window
+var g_Renderer:    Pixel.RenderOgl
+late var g_Render: Pixel.IRenderer
+var g_Painter:     Pixel.Painter
+var g_RC:          Pixel.RenderContext
 
 var g_FontPath:   String
 var g_FontBytes:  Array'u8
-var g_TypeFace:   #null *Pixel.TypeFace
-var g_HeaderFont: #null *Pixel.Font
+var g_TypeFace:   *Pixel.TypeFace?
+var g_HeaderFont: *Pixel.Font?
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {

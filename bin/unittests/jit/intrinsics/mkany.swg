@@ -170,7 +170,7 @@ enum MkanyKind: u16
 
 #test
 {
-    func mkanyStringBytesLen(bytes: #null const [..] u8)->u64
+    func mkanyStringBytesLen(bytes: const [..] u8?)->u64
     {
         return bytes.count
     }

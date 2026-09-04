@@ -67,7 +67,7 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
 
 // Asserts that a byte range belongs to the selected allocator.
 // A null buffer is accepted and performs no check.
-func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -84,7 +84,7 @@ func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: #null IAllo
 
 // Releases a byte range through the selected allocator.
 // A null buffer is accepted and performs no operation.
-func free(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -100,7 +100,7 @@ func free(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null,
 }
 
 // Releases every allocation owned by the selected allocator, when supported.
-func freeAll(allocator: #null IAllocator, hint: #null string = null, loc = #callerlocation)
+func freeAll(allocator: IAllocator?, hint: string? = null, loc = #callerlocation)
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -112,7 +112,7 @@ func freeAll(allocator: #null IAllocator, hint: #null string = null, loc = #call
 
 // Resizes a byte allocation, preserving its existing contents.
 // The returned pointer is non-null; a zero new size raises a panic.
-func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
+func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -139,7 +139,7 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #nul
 
 // Allocates an uninitialized byte range.
 // The returned pointer is non-null; a zero size raises a panic.
-func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
+func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -159,7 +159,7 @@ func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hi
 }
 
 // Allocates an uninitialized byte range from the current temporary allocator.
-func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
+func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -178,7 +178,7 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #
 
 // Allocates and default-initializes a value described at runtime.
 // Returns null after reporting a panic when the type requires explicit initialization.
-func new(type: typeinfo, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#null *u8
+func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8?
 {
     let userHint = hint orelse type.fullname
     if !canDefaultInit(type)
@@ -193,7 +193,7 @@ func new(type: typeinfo, allocator: #null IAllocator = null, alignment: u32 = 0,
 }
 
 // Allocates and default-initializes one value of T.
-func(T) new(allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->*T
+func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
     let ptr      = cast(*T) alloc(#sizeof(T), allocator, alignment, userHint, loc)
@@ -202,7 +202,7 @@ func(T) new(allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null 
 }
 
 // Drops and releases one value of T.
-func(T) delete(ptr: #null *T, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !ptr do
         return
@@ -213,7 +213,7 @@ func(T) delete(ptr: #null *T, allocator: #null IAllocator = null, hint: #null st
 }
 
 // Drops and releases a value described at runtime.
-func delete(ptr: #null *void, type: typeinfo, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !ptr do
         return
@@ -228,7 +228,7 @@ func delete(ptr: #null *void, type: typeinfo, allocator: #null IAllocator = null
 }
 
 // Allocates and default-initializes num contiguous values of T.
-func(T) new(num: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] T
+func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] T
 {
     Debug.assert(num > 0)
 
@@ -239,7 +239,7 @@ func(T) new(num: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hi
 }
 
 // Drops and releases num contiguous values of T.
-func(T) delete(ptr: #null [*] T, num: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func(T) delete(ptr: [*] T?, num: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !ptr do
         return

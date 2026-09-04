@@ -7,11 +7,11 @@ struct Item
 {
     public
     {
-        name:      RichString      // Display label, optionally containing styled spans.
-        icon:      Icon            // Optional display icon.
-        id:        #null WndId     // Optional command identifier.
-        userData0: #null *void     // First caller-owned payload pointer.
-        userData1: #null *void     // Second caller-owned payload pointer.
+        name:      RichString     // Display label, optionally containing styled spans.
+        icon:      Icon           // Optional display icon.
+        id:        WndId?         // Optional command identifier.
+        userData0: *void?         // First caller-owned payload pointer.
+        userData1: *void?         // Second caller-owned payload pointer.
     }
 }
 

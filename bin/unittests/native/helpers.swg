@@ -6,8 +6,8 @@ var DropCheck: s32
 
 func fault(code: u32)
 {
-    var ptr: #null [*] u8 = null
-    let p                 = ptr!
+    var ptr: [*] u8? = null
+    let p            = ptr!
     p[code] = cast(u8) code
 }
 

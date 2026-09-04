@@ -13,15 +13,15 @@ internal impl Properties
     // it). The scroll bars are drawn by the scroll window itself, so a click or hover on
     // them targets the scrollWnd and is excluded — scrolling never selects or hot-tracks
     // a row through the bar.
-    mtd isOverRows(target: #null *Wnd)->bool
+    mtd isOverRows(target: *Wnd?)->bool
     {
-        if !target or !Swag.isSet(.edView) do
+        if !target or !(.edView != null) do
             return false
         let view = cast(*Wnd) .edView!
         return target == view or view.isAncestorOf(target)
     }
 
-    mtd hitTest(ptLoc: Math.Point)->#null *PropertiesItem
+    mtd hitTest(ptLoc: Math.Point)->*PropertiesItem?
     {
         let pt = ptLoc + .scrollWnd.scrollPosition()
         for itemIt in .items
@@ -136,7 +136,7 @@ internal impl Properties
             }
 
             // Toggle checkbox
-            elif Swag.isSet(prop.selItem!.checkBox)
+            elif prop.selItem!.checkBox != null
             {
                 let selItem = prop.selItem!
                 selItem.checkBox.toggle()
@@ -170,7 +170,7 @@ internal impl Properties
                     ToolTip.hide(prop.hotItem.line!)
                 prop.hotItem = hit
 
-                if hit and Swag.isSet(hit.label) and prop.isGridLike()
+                if hit and (hit.label != null) and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.clientRect().contains(pt) do

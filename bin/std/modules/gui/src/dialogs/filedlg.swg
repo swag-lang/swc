@@ -43,7 +43,7 @@ struct FileDlgOptions
         mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
         filters:           Array'{ name: string, extensions: string }                  // Named extension filters; empty means all files.
         shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
-        state:             #null *FileDlgState                                         // Optional borrowed state captured when the modal closes and on destruction.
+        state:             *FileDlgState?                                              // Optional borrowed state captured when the modal closes and on destruction.
     }
 }
 
@@ -54,9 +54,8 @@ struct FileDlg
 
     public readonly
     {
-        #[Swag.Late]
-        browser: *FileBrowserCtrl     // Embedded browser control.
-        options: FileDlgOptions       // Effective dialog options.
+        late browser: *FileBrowserCtrl     // Embedded browser control.
+        options:      FileDlgOptions       // Effective dialog options.
     }
 }
 

@@ -54,9 +54,9 @@ struct AllocatorPage
     areaEnd:   u64
     carved:    u64
 
-    ownerHeap: #null *AllocatorThreadHeap
-    nextPage:  #null *AllocatorPage
-    prevPage:  #null *AllocatorPage
+    ownerHeap: *AllocatorThreadHeap?
+    nextPage:  *AllocatorPage?
+    prevPage:  *AllocatorPage?
 
     blockSize:  u32
     blockShift: u32
@@ -79,10 +79,10 @@ struct AllocatorPage
 struct AllocatorSegment
 {
     magic:     u64
-    allocator: #null *void
+    allocator: *void?
 
-    nextSegment: #null *AllocatorSegment
-    prevSegment: #null *AllocatorSegment
+    nextSegment: *AllocatorSegment?
+    prevSegment: *AllocatorSegment?
 
     // Bit i marks page i as carrying blocks. Pages are claimed by several threads at once, so the
     // mask moves only through compare-exchange.
@@ -106,7 +106,7 @@ struct AllocatorArena
     // The exact reservation. Nothing releases it: an arena lives for the whole process, which is
     // what makes recovering a page from any address safe at any time, and it costs address space
     // rather than memory. The base is kept because it is the only record of what was reserved.
-    reserveBase: #null [*] u8
+    reserveBase: [*] u8?
 
     // First segment-aligned address, and the bump cursor over the segments already created.
     base: u64
@@ -117,7 +117,7 @@ struct AllocatorArena
 private var g_AllocatorArenaMutex:  MutexRW
 private var g_AllocatorArenas:      [AllocatorMaxArenas] AllocatorArena
 private var g_AllocatorArenaCount:  u32
-private var g_AllocatorFreeSegment: #null *AllocatorSegment
+private var g_AllocatorFreeSegment: *AllocatorSegment?
 private var g_AllocatorKeySeed:     u64
 
 // Committed bytes and the OS calls behind them, published for the allocator's statistics.
@@ -151,7 +151,7 @@ func atomicAddU64(addr: *u64, delta: u64)
 
 // Reserves address space without committing it. The reservation is over-sized so a
 // segment-aligned window always fits inside it, because a reservation cannot be released in parts.
-private func osReserve(size: u64)->#null [*] u8
+private func osReserve(size: u64)->[*] u8?
 {
     return __hostPageReserve(size)
 }
@@ -429,7 +429,7 @@ impl AllocatorSegment
 
     // Claims a free page for a size class. Several threads carve pages from the same segment, so
     // the mask moves only through compare-exchange and the loser simply retries.
-    mtd acquirePage(classIndex: u32, blockSize: u32)->#null *AllocatorPage
+    mtd acquirePage(classIndex: u32, blockSize: u32)->*AllocatorPage?
     {
         var mask = .pageMask
         while true
@@ -519,9 +519,9 @@ private func allocatorAddArena()->bool
 }
 
 // Carves a fresh segment out of the reservations and commits its header.
-private func allocatorCreateSegment(unitShift: u32)->#null *AllocatorSegment
+private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
 {
-    var chosen: #null *AllocatorArena
+    var chosen: *AllocatorArena?
     for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
@@ -559,13 +559,13 @@ private func allocatorCreateSegment(unitShift: u32)->#null *AllocatorSegment
 }
 
 // Hands the caller a segment shaped for 'unitShift', reusing an emptied one when possible.
-func allocatorAcquireSegment(owner: *void, unitShift: u32)->#null *AllocatorSegment
+func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
 {
     g_AllocatorArenaMutex.lock()
     defer g_AllocatorArenaMutex.unlock()
 
-    var prev: #null *AllocatorSegment
-    var scan: #null *AllocatorSegment = g_AllocatorFreeSegment
+    var prev: *AllocatorSegment?
+    var scan: *AllocatorSegment? = g_AllocatorFreeSegment
     while scan
     {
         let next = scan.nextSegment
@@ -611,7 +611,7 @@ func allocatorReleaseSegment(segment: *AllocatorSegment)
 // Recovers the page owning an address, or null when the address did not come from a segment. Two
 // range tests and a shift replace every per-block header the old layout needed.
 #[Swag.Inline]
-func allocatorPageOf(address: u64)->#null *AllocatorPage
+func allocatorPageOf(address: u64)->*AllocatorPage?
 {
     // Plain loads: the target is x86-64, where a store is visible to another core in program
     // order, and a caller that reached this address already synchronized with its producer.

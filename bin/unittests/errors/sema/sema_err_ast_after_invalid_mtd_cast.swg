@@ -9,7 +9,7 @@ struct AstAfterInvalidCastStringBuilder
 
 struct AstAfterInvalidCastString
 {
-    buffer: #null [*] u8
+    buffer: [*] u8?
     length: u64
 }
 
@@ -43,7 +43,7 @@ struct AstAfterInvalidCastDialog {}
 
 struct(T) AstAfterInvalidCastSignal
 {
-    arr: #null [..] T
+    arr: [..] T?
 }
 
 impl AstAfterInvalidCastSignal
@@ -78,7 +78,7 @@ impl AstAfterInvalidCastSignal
 
 struct AstAfterInvalidCastOwner
 {
-    callback: #null func||(*AstAfterInvalidCastDialog, string)->bool
+    callback: (func||(*AstAfterInvalidCastDialog, string)->bool)?
     signal:   AstAfterInvalidCastSignal'func||(*AstAfterInvalidCastOwner)
 }
 
@@ -91,7 +91,7 @@ struct AstAfterInvalidCastOwner
 
         mtd install()
     {
-        let captured: #null *AstAfterInvalidCastDialog = null
+        let captured: *AstAfterInvalidCastDialog? = null
             .callback = mtd|captured|(dlg, id) { return captured == dlg }
         .signal.call(me)     // swc-expected-error {{sema_err_cannot_cast}}
     }

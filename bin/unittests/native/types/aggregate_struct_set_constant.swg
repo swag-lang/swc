@@ -19,7 +19,7 @@ struct NullableName
 impl NullableName
 {
     #[Swag.Implicit]
-    mtd opSet(value: #null string) { .length = value.count }
+    mtd opSet(value: string?) { .length = value.count }
 }
 
 struct StrictName
@@ -67,7 +67,7 @@ struct CountedPair
     second: Counted
 }
 
-func nullableLength(value: #null string)->u64 => value.count
+func nullableLength(value: string?)->u64 => value.count
 
 #test
 {

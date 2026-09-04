@@ -25,7 +25,7 @@ private const HevcMinFrameThreads = 2'u32
 // One reconstructed picture waiting for its display turn.
 private struct PendingFrame
 {
-    frame: #null *Frame
+    frame: *Frame?
     rank:  u64
 }
 
@@ -41,8 +41,8 @@ private struct HevcFrameThread
     thread:    Threading.Thread
     wake:      Sync.Event
     done:      Sync.Event
-    decoder:   #null *Decoder
-    frame:     #null *Frame
+    decoder:   *Decoder?
+    frame:     *Frame?
     errorText: String
 }
 
@@ -187,7 +187,7 @@ impl HevcStream
         }
 
         // The geometry the reader reports comes from the sequence the sets describe.
-        var sequence: #null const *Sps
+        var sequence: const *Sps?
         for index in 16'u32 where decoder.sps[index].valid
         {
             sequence = &decoder.sps[index]
@@ -707,7 +707,7 @@ impl HevcStream
     }
 
     // Decodes one length-prefixed access unit through the multi-slice fallback.
-    private mtd decodeAccessUnit(decoder: *Decoder, data: const [..] u8)->#null *Frame fail
+    private mtd decodeAccessUnit(decoder: *Decoder, data: const [..] u8)->*Frame? fail
     {
         var offset = 0'u64
         while offset + cast(u64) .lengthSize <= data.count
@@ -741,7 +741,7 @@ private func runHevcFrameThread(thread: Threading.Thread)
         if thread.requestEnd do
             break
 
-        var frame: #null *Frame
+        var frame: *Frame?
         frame = catch frameThread.decoder!.decodePreparedPicture() as decodeError
         if decodeError != null
         {

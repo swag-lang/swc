@@ -62,7 +62,7 @@ public func rebuildSearchCache(indexName: string, full: bool)
 
 struct AdminRouteRegistration
 {
-    type:        #null typeinfo
+    type:        typeinfo?
     handlerName: string = ""
     method:      string = ""
     path:        string = ""

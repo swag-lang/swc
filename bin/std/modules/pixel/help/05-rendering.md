@@ -65,7 +65,7 @@ var ogl: RenderOgl
 let renderer: IRenderer = &ogl
 var painter = Painter.create(renderer)
 var context = try renderer.createContext(
-    cast(#null const *void) window.nativeHandle, width, height)
+    cast(const *void?) window.nativeHandle, width, height)
 defer renderer.deleteContext(&context)
 
 renderer.setCurrentContext(context)

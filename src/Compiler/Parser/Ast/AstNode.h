@@ -39,7 +39,6 @@ enum class AstModifierFlagsE : uint32_t
     Complete  = 1 << 8,
     Move      = 1 << 10,
     Relocate  = 1 << 11, // raw relocation: uninitialized target, abandoned source (no reset)
-    Nullable  = 1 << 12,
     Count,
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;

@@ -8,11 +8,11 @@ struct BitStream
 {
     internal
     {
-        stream:     #null const [..] u8     // Borrowed input bytes.
-        curByte:    u64                     // Current byte index.
-        codeBuffer: u64                     // Buffered low-order bits.
-        numBits:    u8                      // Number of buffered bits.
-        eof:        bool                    // Whether refill reached the end.
+        stream:     const [..] u8?     // Borrowed input bytes.
+        curByte:    u64                // Current byte index.
+        codeBuffer: u64                // Buffered low-order bits.
+        numBits:    u8                 // Number of buffered bits.
+        eof:        bool               // Whether refill reached the end.
     }
 }
 

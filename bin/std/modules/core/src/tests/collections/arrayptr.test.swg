@@ -47,7 +47,7 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 {
     var values: ArrayPtr's32
     values.addNew()[] = 7
-    values.add(cast(#null *s32) null)
+    values.add(cast(*s32?) null)
     values.addNew()[] = 9
 
     var copy = values
@@ -97,8 +97,8 @@ impl ApTracked
     let third = arr[2]
     Swag.assert(arr.indexOf(third) == 2)
     Swag.assert(arr.contains(third))
-    Swag.assert(arr.indexOf(cast(#null *ApTracked) null) == Swag.U64.Max)
-    Swag.assert(!arr.contains(cast(#null *ApTracked) null))
+    Swag.assert(arr.indexOf(cast(*ApTracked?) null) == Swag.U64.Max)
+    Swag.assert(!arr.contains(cast(*ApTracked?) null))
 
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)

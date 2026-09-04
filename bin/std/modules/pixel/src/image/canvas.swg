@@ -49,12 +49,12 @@ struct ImageCanvas
 
     internal
     {
-        renderer:   #null *RenderCpu        // Owns the target and executes painter commands.
-        target:     #null *RenderTarget     // Color target the painter draws into.
-        source:     Texture                 // Existing pixels drawn under every frame, if any.
-        hasSource:  bool                    // Whether the canvas was opened over an image.
-        background: Color                   // Color the target is cleared with.
-        isOpen:     bool                    // Whether the graphics resources are live.
+        renderer:   *RenderCpu?        // Owns the target and executes painter commands.
+        target:     *RenderTarget?     // Color target the painter draws into.
+        source:     Texture            // Existing pixels drawn under every frame, if any.
+        hasSource:  bool               // Whether the canvas was opened over an image.
+        background: Color              // Color the target is cleared with.
+        isOpen:     bool               // Whether the graphics resources are live.
     }
 }
 

@@ -5,7 +5,7 @@ func checkProcessInfosAndArgs()->bool
 {
     let a = (Swag.processInfos().args).count
     let b = Swag.processInfos().args
-    #assert(#typeof(b) == #null string)
+    #assert(#typeof(b) == string?)
     let c = Swag.jit()
     #assert(#typeof(c) == bool)
     let d = Swag.args()
@@ -31,7 +31,7 @@ func checkArgs()->bool
 func checkProcessInfosArgsType()->bool
 {
     let a = Swag.processInfos().args
-    #assert(#typeof(a) == #null string)
+    #assert(#typeof(a) == string?)
     return true
 }
 

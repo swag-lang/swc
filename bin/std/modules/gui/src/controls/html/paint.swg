@@ -10,12 +10,10 @@ using Core, Pixel
 // time one screen costs.
 struct HtmlPainter
 {
-    #[Swag.Late]
-    layout: *HtmlLayout
-    #[Swag.Late]
-    painter:  *Painter
-    images:   #null *HtmlImageCache
-    renderer: #null IRenderer
+    late layout:  *HtmlLayout
+    late painter: *Painter
+    images:       *HtmlImageCache?
+    renderer:     IRenderer?
 
     visible: Math.Rectangle
     scrollY: f32

@@ -156,7 +156,7 @@ impl IActionUI for ActionCapture
 
 impl MainWnd
 {
-    mtd newCapture(img: Image, linked: string = "", from: #null *Capture = null, sourceKind = CaptureSourceKind.Unknown)
+    mtd newCapture(img: Image, linked: string = "", from: *Capture? = null, sourceKind = CaptureSourceKind.Unknown)
     {
         if !img.isValid() do
             return

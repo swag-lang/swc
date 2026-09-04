@@ -16,7 +16,7 @@ func enumUnderlyingType(type: typeinfo)->typeinfo
 
 // Returns reflected information for a named enum value, or null.
 #[ConstExpr]
-func enumValue(type: #null typeinfo, name: #null string)->#null const *TypeValue
+func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
 {
     if !isEnum(type) do
         return null
@@ -29,7 +29,7 @@ func enumValue(type: #null typeinfo, name: #null string)->#null const *TypeValue
 
 // Returns the enum name for a value. Flag values can produce multiple names.
 #[ConstExpr]
-func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualified = true)->String
+func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true)->String
 {
     var result: String
     if !isEnum(type) or !valueAddress do
@@ -42,14 +42,14 @@ func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualif
 
     // Get the user value, as an 'u64' or a string
     var val1:  u64
-    var val1s: #null string
+    var val1s: string?
     switch rawType.sizeof
     {
     case 1:  val1 = cast(u64) safeValue[as u8]
     case 2:  val1 = cast(u64) safeValue[as u16]
     case 4:  val1 = cast(u64) safeValue[as u32]
     case 8:  val1 = cast(u64) safeValue[as u64]
-    case 16: val1s = safeValue[as #null string]
+    case 16: val1s = safeValue[as string?]
     default: return result
     }
 
@@ -63,14 +63,14 @@ func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualif
 
         // Get the enum value, as an 'u64' or a string
         var val2:  u64
-        var val2s: #null string
+        var val2s: string?
         switch rawType.sizeof
         {
         case 1:  val2 = cast(u64) safeItValue[as u8]
         case 2:  val2 = cast(u64) safeItValue[as u16]
         case 4:  val2 = cast(u64) safeItValue[as u32]
         case 8:  val2 = cast(u64) safeItValue[as u64]
-        case 16: val2s = safeItValue[as #null string]
+        case 16: val2s = safeItValue[as string?]
         }
 
         // For a normal enum, stop if this is a match

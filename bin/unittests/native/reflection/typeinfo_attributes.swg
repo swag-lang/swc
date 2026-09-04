@@ -65,7 +65,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
             Swag.assert(params[0].name == "tag")
             Swag.assert(cast(s32) params[0].value == 7)
             Swag.assert(params[1].name == "label")
-            Swag.assert(cast(#null string) params[1].value == "hello")
+            Swag.assert(cast(string?) params[1].value == "hello")
             continue
         }
 
@@ -123,7 +123,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
         Swag.assert(attribute.params.count == 1)
         let params = attribute.params!
         Swag.assert(params[0].name == "name")
-        Swag.assert(cast(#null string) params[0].value == "payload")
+        Swag.assert(cast(string?) params[0].value == "payload")
     }
 
     Swag.assert(foundParamAttribute)
@@ -138,7 +138,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     Swag.assert(attribute.params.count == 1)
     let params = attribute.params!
     Swag.assert(params[0].name == "name")
-    Swag.assert(cast(#null string) params[0].value == "demo")
+    Swag.assert(cast(string?) params[0].value == "demo")
 
     Swag.assert(REFLECTED_STRUCT_INFO.fields.count == 1)
 
@@ -169,7 +169,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     Swag.assert(enumAttribute.params.count == 1)
     let enumParams = enumAttribute.params!
     Swag.assert(enumParams[0].name == "label")
-    Swag.assert(cast(#null string) enumParams[0].value == "state")
+    Swag.assert(cast(string?) enumParams[0].value == "state")
 
     var foundFirstValueAttribute  = false
     var foundSecondValueAttribute = false

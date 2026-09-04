@@ -374,7 +374,7 @@ private const ScanReleaseStepBytes = 16 * 1024 * 1024'u64
 private impl Layout
 {
     // Parses the EBML hierarchy and indexes block payloads without reading them.
-    mtd parse(bytes: const [..] u8, cancelled: #null *u32 = null, indexPictures: bool = true)->bool fail
+    mtd parse(bytes: const [..] u8, cancelled: *u32? = null, indexPictures: bool = true)->bool fail
     {
         .indexPictures = indexPictures
         var container = .openContainer(bytes)
@@ -475,7 +475,7 @@ private impl Layout
     }
 
     // Extends the block index by complete clusters until `sampleCount` pictures are available.
-    mtd indexUntil(bytes: const [..] u8, sampleCount: u64, cancelled: #null *u32 = null, paused: #null *u32 = null)->bool fail
+    mtd indexUntil(bytes: const [..] u8, sampleCount: u64, cancelled: *u32? = null, paused: *u32? = null)->bool fail
     {
         if .indexComplete do
             return true
@@ -548,7 +548,7 @@ private impl Layout
     }
 
     // Extends a sound and timed-text window until every playable track reaches the timestamp.
-    mtd indexAudioThrough(bytes: const [..] u8, timestampNanoseconds: s64, cancelled: #null *u32 = null, paused: #null *u32 = null)->bool fail
+    mtd indexAudioThrough(bytes: const [..] u8, timestampNanoseconds: s64, cancelled: *u32? = null, paused: *u32? = null)->bool fail
     {
         if .indexComplete or .hasMediaThrough(timestampNanoseconds) do
             return true
@@ -588,7 +588,7 @@ private impl Layout
     // The following cluster is the H.264 reorder queue: pictures stored just beyond a cluster
     // boundary may still be presented before its tail. Its size comes from the container rather
     // than from a time or frame-count heuristic.
-    mtd indexWindow(bytes: const [..] u8, sampleIndex: u64, cancelled: #null *u32 = null)->bool fail
+    mtd indexWindow(bytes: const [..] u8, sampleIndex: u64, cancelled: *u32? = null)->bool fail
     {
         if .tracks[.selectedVideo].videoSamples.count <= sampleIndex
         {
@@ -639,7 +639,7 @@ private impl Layout
     }
 
     // Finds the last cue not later than `timestampNanoseconds`.
-    mtd const cueAtOrBefore(timestampNanoseconds: u64)->#null const *CueEntry
+    mtd const cueAtOrBefore(timestampNanoseconds: u64)->const *CueEntry?
     {
         if !.cues.count do
             return null
@@ -659,7 +659,7 @@ private impl Layout
     }
 
     // Finds the first random-access point not earlier than `timestampNanoseconds`.
-    mtd const cueAtOrAfter(timestampNanoseconds: u64)->#null const *CueEntry
+    mtd const cueAtOrAfter(timestampNanoseconds: u64)->const *CueEntry?
     {
         if !.cues.count do
             return null
@@ -800,7 +800,7 @@ private impl Layout
     }
 
     // Records clusters in the first pass so tracks may legally follow media data.
-    mtd parseSegment(cursor: *Cursor, segment: Element, cancelled: #null *u32 = null)->bool fail
+    mtd parseSegment(cursor: *Cursor, segment: Element, cancelled: *u32? = null)->bool fail
     {
         cursor.seek(segment.data)
         while !cursor.atEnd(segment.end)
@@ -1145,7 +1145,7 @@ private impl Layout
     // headers are encountered. Matroska does not require that order: blocks seen first are kept
     // as tiny element descriptors until Timestamp arrives. This avoids the old full preliminary
     // pass over every block header and the repeated cursor jumps it imposed on a mapped file.
-    mtd parseCluster(cursor: *Cursor, cluster: Element, cancelled: #null *u32 = null, paused: #null *u32 = null)->bool fail
+    mtd parseCluster(cursor: *Cursor, cluster: Element, cancelled: *u32? = null, paused: *u32? = null)->bool fail
     {
         let firstVideoSample = .tracks[.selectedVideo].videoSamples.count
         var clusterTimestamp = 0'u64
@@ -1527,7 +1527,7 @@ private struct PublishedSound
 #[Swag.NoCopy]
 private struct FileIndex
 {
-    progressive:      #null *Layout
+    progressive:      *Layout?
     region:           File.MappedRegion
     path:             String
     soundTracks:      Array'SoundFile
@@ -1703,7 +1703,7 @@ struct Decoder
     {
         info:                        StreamInfo
         video:                       PictureStream
-        fileIndex:                   #null *FileIndex
+        fileIndex:                   *FileIndex?
         presentationOrigin:          s64
         durationSeconds:             f64
         streamSampleCount:           u64
@@ -2294,7 +2294,7 @@ impl IAudioDecoder for Decoder
         return Atomic.get(&fileIndex!.soundStage) ? cast(u32) fileIndex!.soundTracks.count : 0
     }
 
-    mtd impl audioTrack(index: u32)->#null const *SoundFile
+    mtd impl audioTrack(index: u32)->const *SoundFile?
     {
         let fileIndex = .fileIndex
         if !fileIndex do
@@ -2325,7 +2325,7 @@ impl ISubtitleDecoder for Decoder
         return Atomic.get(&fileIndex!.soundStage) ? cast(u32) fileIndex!.subtitleTracks.count : 0
     }
 
-    mtd const impl subtitleTrack(index: u32)->#null const *Subtitle.Track
+    mtd const impl subtitleTrack(index: u32)->const *Subtitle.Track?
     {
         let fileIndex = .fileIndex
         if !fileIndex do

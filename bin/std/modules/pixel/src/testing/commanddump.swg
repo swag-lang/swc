@@ -108,9 +108,9 @@ private
         // Remap tables. The index of an entry is the number printed in the snapshot, so the
         // first object of each kind that a drawing touches is always '#0'.
         textures: Array'TextureHandle
-        fonts:    Array'#null const *Font
-        targets:  Array'#null const *RenderTarget
-        shaders:  Array'#null const *ShaderBase
+        fonts:    Array'(const *Font?)
+        targets:  Array'(const *RenderTarget?)
+        shaders:  Array'(const *ShaderBase?)
         params:   Array'ShaderParamHandle
     }
 
@@ -142,7 +142,7 @@ private
             return Format.toString("font#%", idx)
         }
 
-        mtd targetRef(target: #null const *RenderTarget)->String
+        mtd targetRef(target: const *RenderTarget?)->String
         {
             if !target do
                 return String.from("none")
@@ -156,7 +156,7 @@ private
             return Format.toString("rt#%", idx)
         }
 
-        mtd shaderRef(shader: #null const *ShaderBase)->String
+        mtd shaderRef(shader: const *ShaderBase?)->String
         {
             if !shader do
                 return String.from("none")

@@ -230,33 +230,29 @@ struct Command
             clippingRegion: struct{ mode: ClippingMode }
             font:           struct
             {
-                #[Swag.Late]
-                fontRef: *Font
+                late fontRef: *Font
             }
             blendingMode: struct{ mode: BlendingMode }
             textureFont:  struct
             {
-                #[Swag.Late]
-                font:       *Font
+                late font:  *Font
                 atlasIndex: s32
             }
             colorMask: ColorMask
             renderTgt: struct
             {
-                #[Swag.Late]
-                tgt:        *RenderTarget
+                late tgt:   *RenderTarget
                 paintAlpha: bool
             }
             defaultShader: struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
-            shader:        struct{ shader: #null *ShaderBase }
+            shader:        struct{ shader: *ShaderBase? }
 
             shaderParam: struct
             {
-                param: ShaderParamHandle
-                #[Swag.Late]
-                type: typeinfo
-                _f32: f32
-                _s32: s32
+                param:     ShaderParamHandle
+                late type: typeinfo
+                _f32:      f32
+                _s32:      s32
             }
 
             fontEffect: FontEffectParams
@@ -305,7 +301,7 @@ struct Painter
 {
     // Optional backend selected for [[Painter.render]]. It is borrowed and may
     // remain unset when the painter is used only to inspect recorded commands.
-    private rendererItf: #null IRenderer
+    private rendererItf: IRenderer?
 
     public
     {
@@ -351,8 +347,8 @@ struct Painter
         stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
         stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
 
-        stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
-        curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
+        stackRT: Array'(*RenderTarget?)     // Nested off-screen render targets.
+        curRT:   *RenderTarget?             // Active off-screen target, or `null` for the surface.
 
         // Whether the bound target rebuilds its alpha by replaying the recording, as the caller
         // asked when it bound. The target carries the same answer, but only once the renderer has
@@ -378,8 +374,8 @@ struct Painter
 
         // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
         // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-        curTextureFont:      #null *Font     // Font owning the currently bound glyph atlas.
-        curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
+        curTextureFont:      *Font?       // Font owning the currently bound glyph atlas.
+        curTextureFontAtlas: s32 = -1     // Zero-based bound atlas index, or `-1`.
 
         drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
         layoutOnly:     bool            // Whether text layout skips rendering commands.
@@ -1559,7 +1555,7 @@ impl Painter
     }
 
     // Release the render target
-    mtd releaseRenderTarget(tgt: #null *RenderTarget)
+    mtd releaseRenderTarget(tgt: *RenderTarget?)
     {
         if !tgt do
             return
@@ -1567,7 +1563,7 @@ impl Painter
     }
 
     // Set the current shader
-    mtd setShader(shader: #null *ShaderBase = null)
+    mtd setShader(shader: *ShaderBase? = null)
     {
         let cmd = .newCommand(.SetShader, true)
         cmd.shader.shader = shader

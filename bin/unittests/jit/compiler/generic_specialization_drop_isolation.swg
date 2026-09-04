@@ -68,7 +68,7 @@ struct LeakTrackedValue
 {
     tag:     s32
     storage: [16] u8
-    self:    #null [*] u8
+    self:    [*] u8?
 }
 
 impl LeakTrackedValue

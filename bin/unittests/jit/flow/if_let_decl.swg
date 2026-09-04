@@ -1,6 +1,6 @@
 #global private
 
-func jitRetNothing()->#null string => null
+func jitRetNothing()->string? => null
 
 func jitIfLetSimple()->s32
 {

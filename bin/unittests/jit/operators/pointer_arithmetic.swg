@@ -2,7 +2,7 @@
 
 struct PointerFieldHolder
 {
-    ptr: #null [*] u8
+    ptr: [*] u8?
     len: s32
     buf: [8] u8
 }

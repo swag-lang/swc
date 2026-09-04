@@ -23,7 +23,7 @@ internal struct MidiViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:   *Wnd
         info:       *Wnd
@@ -34,10 +34,10 @@ internal struct MidiViewer
 
     details:              String
     load:                 Viewer.BackgroundLoad'MidiDocument
-    loadTimer:            #null *Timer
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    loadTimer:            *Timer?
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 }
 
@@ -164,7 +164,7 @@ private impl IWnd for MidiViewer
 
 internal impl MidiViewer
 {
-    func create(contentParent, commands, info: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*MidiViewer
+    func create(contentParent, commands, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*MidiViewer
     {
         let result = Wnd.create'MidiViewer(contentParent, "scope.midi")
         result.backgroundStyle      = .View

@@ -103,7 +103,7 @@ impl ProgressBar
 {
     // Creates a progress bar with optional initial presentation options.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, flags = ProgressBarFlags.None)->*ProgressBar
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, flags = ProgressBarFlags.None)->*ProgressBar
     {
         Debug.assert(parent != null)
         var pos = position

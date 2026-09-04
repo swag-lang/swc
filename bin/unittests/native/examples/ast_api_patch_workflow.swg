@@ -49,9 +49,9 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, ": bool\n")
         len = appendAst(buffer, len, field.name!)
         len = appendAst(buffer, len, ": ")
-        if field.pointedType == string do
-            len = appendAst(buffer, len, "#null ")
         len = appendAst(buffer, len, field.pointedType!.name!)
+        if field.pointedType == string do
+            len = appendAst(buffer, len, "?")
         len = appendAst(buffer, len, "\n")
     }
 
@@ -177,7 +177,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
             len = appendAst(&buffer[0], len, " = patch.")
             len = appendAst(&buffer[0], len, field.name!)
 
-            // A '#null string' field needs the assertion on the generated read.
+            // A 'string?' field needs the assertion on the generated read.
             if field.pointedType == string do
                 len = appendAst(&buffer[0], len, "!")
             len = appendAst(&buffer[0], len, "\n")

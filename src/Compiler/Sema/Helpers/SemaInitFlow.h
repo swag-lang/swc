@@ -11,7 +11,7 @@ namespace SemaInitFlow
 {
     // True when the function needs the flow analysis: it has a local whose safe
     // default may be elided, a local that requires definite initialization, an
-    // 'opSet' candidate for complete-initialization inference, or '#null'
+    // 'opSet' candidate for complete-initialization inference, or 'nullable'
     // parameters whose contract must be honored by the body.
     bool wantsCheck(Sema& sema, const SymbolFunction& sym);
 
@@ -22,13 +22,13 @@ namespace SemaInitFlow
     // type without a safe default, the same flow facts instead reject every
     // observation that is not definitely initialized.
     //
-    // Also validates the '#null' parameter contract: a parameter whose FIRST use on
+    // Also validates the 'nullable' parameter contract: a parameter whose FIRST use on
     // every path to an exit is an address-requiring operation (dereference, member
     // access, indexing, call) can never survive a null argument.
     //
     // When 'checkReturnContract' is set (plain functions only: interface impls have
     // an imposed signature, and a fallible function synthesizes a zero — hence null
-    // — result on its 'catch' error path), a '#null' return type that no return
+    // — result on its 'catch' error path), a 'nullable' return type that no return
     // path can produce is reported as a dead contract too.
     Result checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract = false);
 }

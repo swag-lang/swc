@@ -8,9 +8,9 @@
 struct StartupInfoW
 {
     cb:              u32
-    lpReserved:      #null *void
-    lpDesktop:       #null *void
-    lpTitle:         #null *void
+    lpReserved:      *void?
+    lpDesktop:       *void?
+    lpTitle:         *void?
     dwX:             u32
     dwY:             u32
     dwXSize:         u32
@@ -21,37 +21,37 @@ struct StartupInfoW
     dwFlags:         u32
     wShowWindow:     u16
     cbReserved2:     u16
-    lpReserved2:     #null *void
-    hStdInput:       #null *void
-    hStdOutput:      #null *void
-    hStdError:       #null *void
+    lpReserved2:     *void?
+    hStdInput:       *void?
+    hStdOutput:      *void?
+    hStdError:       *void?
 }
 
 struct ProcessInformation
 {
-    hProcess:    #null *void
-    hThread:     #null *void
+    hProcess:    *void?
+    hThread:     *void?
     dwProcessId: u32
     dwThreadId:  u32
 }
 
 #[Swag.Foreign("kernel32", "CreateProcessW", callconv: Swag.CallConv.C)]
-func CreateProcessW(applicationName: #null const *u16, commandLine: #null *u16, processAttributes: #null *void, threadAttributes: #null *void, inheritHandles: s32, creationFlags: u32, environment: #null *void, currentDirectory: #null const *u16, startupInfo: *StartupInfoW, processInformation: *ProcessInformation)->s32
+func CreateProcessW(applicationName: const *u16?, commandLine: *u16?, processAttributes: *void?, threadAttributes: *void?, inheritHandles: s32, creationFlags: u32, environment: *void?, currentDirectory: const *u16?, startupInfo: *StartupInfoW, processInformation: *ProcessInformation)->s32
 
 #[Swag.Foreign("kernel32", "TerminateProcess", callconv: Swag.CallConv.C)]
-func TerminateProcess(process: #null *void, exitCode: u32)->s32
+func TerminateProcess(process: *void?, exitCode: u32)->s32
 
 #[Swag.Foreign("kernel32", "WaitForSingleObject", callconv: Swag.CallConv.C)]
-func WaitForSingleObject(handle: #null *void, milliseconds: u32)->u32
+func WaitForSingleObject(handle: *void?, milliseconds: u32)->u32
 
 #[Swag.Foreign("kernel32", "GetExitCodeProcess", callconv: Swag.CallConv.C)]
-func GetExitCodeProcess(process: #null *void, exitCode: *u32)->s32
+func GetExitCodeProcess(process: *void?, exitCode: *u32)->s32
 
 #[Swag.Foreign("kernel32", "CloseHandle", callconv: Swag.CallConv.C)]
-func CloseHandle(handle: #null *void)->s32
+func CloseHandle(handle: *void?)->s32
 
 #[Swag.Foreign("kernel32", "MultiByteToWideChar", callconv: Swag.CallConv.C)]
-func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: #null *u16, dstCount: s32)->s32
+func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: *u16?, dstCount: s32)->s32
 
 #test
 {

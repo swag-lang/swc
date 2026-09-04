@@ -251,7 +251,7 @@ namespace
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
         {
-            // A '#null' text carries no buffer, so the pointer it hands back carries that
+            // A 'nullable' text carries no buffer, so the pointer it hands back carries that
             // absence too: answering with the plain block pointer would lose it silently.
             if (!flags.has(TypeInfoFlagsE::Nullable))
                 resultTypeRef = sema.typeMgr().typeConstBlockPtrU8();
@@ -322,23 +322,6 @@ namespace
     {
         SWC_UNUSED(node);
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
-    }
-
-    // 'Swag.isSet(expr.field)' / 'Swag.isSet(g)' tests whether a 'Swag.Late' field or global has
-    // received its value.
-    Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
-    {
-        if (!SemaHelpers::isLateInitAccess(sema, children[0]))
-            return SemaError::raise(sema, DiagnosticId::sema_err_isset_not_late_field, children[0]);
-
-        // 'Swag.isSet' inspects the storage, it never reads the value: cancel the read guard.
-        // Late members are never constant-extracted, so the operand always has
-        // runtime storage to inspect.
-        SemaHelpers::clearLateFieldReadGuard(sema, children[0]);
-
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
-        sema.setIsValue(node);
-        return Result::Continue;
     }
 
     bool isTypeInfoOperand(Sema& sema, const SemaNodeView& view)
@@ -617,8 +600,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicKindOf(sema, *this, children);
         case TokenId::IntrinsicCountOf:
             return semaIntrinsicCountOf(sema, *this, children);
-        case TokenId::IntrinsicIsSet:
-            return semaIntrinsicIsSet(sema, *this, children);
         case TokenId::IntrinsicMakeAny:
             return semaIntrinsicMakeAny(sema, *this, children);
         case TokenId::IntrinsicMakeSlice:

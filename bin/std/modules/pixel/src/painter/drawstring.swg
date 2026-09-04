@@ -69,7 +69,7 @@ struct TextEffect
 
 impl TextEffect
 {
-    // True if #null any single-pass face effect (outline/glow/bevel/dilate/softness) is on.
+    // True if ? any single-pass face effect (outline/glow/bevel/dilate/softness) is on.
     mtd const hasFaceEffects()->bool
     {
         return .outlineWidth > 0 or .glowColor.a > 0 or .bevel > 0 or .faceDilate != 0 or .softness != 0
@@ -148,8 +148,7 @@ struct ShapedGlyph
 {
     public
     {
-        #[Swag.Late]
-        desc:       const *GlyphDesc     // Borrowed glyph metrics and atlas descriptor.
+        late desc:  const *GlyphDesc     // Borrowed glyph metrics and atlas descriptor.
         glyphIndex: u32                  // Typeface-specific glyph index.
         cluster:    u64                  // Byte offset of the originating UTF-8 cluster.
         advanceX:   f32                  // Horizontal advance in reference-font units.
@@ -165,8 +164,7 @@ struct ShapedRun
 {
     public
     {
-        #[Swag.Late]
-        font:          *Font                        // Borrowed font used for shaping.
+        late font:     *Font                        // Borrowed font used for shaping.
         glyphs:        Array'ShapedGlyph            // Glyphs in logical text order.
         metrics:       StringMetrics                // Logical run measurements.
         inkBounds:     Math.Rectangle               // Bounds of visible glyph pixels.
@@ -182,11 +180,10 @@ struct TextDrawInfo
 {
     public
     {
-        #[Swag.Late]
-        drawFont:    *Font       // Borrowed bitmap or MSDF font selected for drawing.
-        snapPixels:  bool        // Whether glyph positions snap to the device-pixel grid.
-        scale:       f32         // Scale from reference glyph metrics to logical draw units.
-        deviceScale: f32 = 1     // Physical device pixels per logical draw unit.
+        late drawFont: *Font       // Borrowed bitmap or MSDF font selected for drawing.
+        snapPixels:    bool        // Whether glyph positions snap to the device-pixel grid.
+        scale:         f32         // Scale from reference glyph metrics to logical draw units.
+        deviceScale:   f32 = 1     // Physical device pixels per logical draw unit.
 
         // Translation of the transform the text is drawn under, when it is translation
         // only. Snapping accounts for it so glyph edges land on the *device* grid after
@@ -494,7 +491,7 @@ impl Painter
     }
 
     // Get a rune size for a given font
-    func measureRune(c: rune, font: #null *Font)->Math.Point
+    func measureRune(c: rune, font: *Font?)->Math.Point
     {
         var result: retval
         if !font do

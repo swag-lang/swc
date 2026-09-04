@@ -25,7 +25,7 @@
 
 #test
 {
-    func unaryBangPointer(a: #null *void)->bool { return !a }
+    func unaryBangPointer(a: *void?)->bool { return !a }
     const V0 = #run unaryBangPointer(null)
     const V1 = #run unaryBangPointer(cast(*void) 0x1000'u64)
     #assert(V0)
@@ -48,12 +48,12 @@
 #test
 {
     var buf: [512] u8
-    var p:   #null const [*] u8 = &buf[0]
+    var p:   const [*] u8? = &buf[0]
     p = p! + (256 - (cast(u64) p! & 0xFF))     // force the address low byte to 0
     Swag.assert((cast(u64) p! & 0xFF) == 0)
 
     // through .buffer (the original Swag.print swallowed-strings repro)
-    let s: #null string = Swag.makeString(p!, 1)
+    let s: string? = Swag.makeString(p!, 1)
     if !s.buffer do
         Swag.assert(false)
 

@@ -114,7 +114,7 @@ impl Struct
     }
 
     // Called when .buffer is used; returns a pointer to the underlying data of type WhateverType
-    func opData(me)->#null *WhateverType
+    func opData(me)->*WhateverType?
     {
         return null
     }

@@ -19,7 +19,7 @@ struct C
 }
 
 var g_RD:   [MaxColumns] C
-var g_Font: #null *Font
+var g_Font: *Font?
 var g_Rng:  Random.Generator
 
 func initC(i: s32)

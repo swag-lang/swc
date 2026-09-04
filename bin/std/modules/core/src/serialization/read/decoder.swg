@@ -34,7 +34,7 @@ interface IDecoder
     mtd read(data: *void, dataType: typeinfo) fail
 
     // Reads buffer u8.
-    mtd readBufferU8(count: u64)->#null *u8 fail
+    mtd readBufferU8(count: u64)->*u8? fail
 
     // Reads bool.
     mtd readBool()->bool fail
@@ -102,7 +102,7 @@ struct(T) Decoder
 
 impl Decoder
 {
-    mtd readTypeValue(typedVal: TypeValue, data: #null [*] void) fail
+    mtd readTypeValue(typedVal: TypeValue, data: [*] void?) fail
     {
         if !typedVal.pointedType do
             fail SerializationError{"missing type value pointed type"}
@@ -113,7 +113,7 @@ impl Decoder
         .serializer.endElement(typedVal)
     }
 
-    mtd readTypedContent(data: [*] void, dataType: #null typeinfo) fail
+    mtd readTypedContent(data: [*] void, dataType: typeinfo?) fail
     {
         if !dataType do
             fail SerializationError{"missing data type"}
@@ -149,7 +149,7 @@ impl Decoder
         {
             let crc      = .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
-            data[as #null typeinfo] = typeType
+            data[as typeinfo?] = typeType
             return
         }
 
@@ -160,9 +160,9 @@ impl Decoder
             .serializer.beginSection(.Raw)
             defer #nofail .serializer.endSection()
 
-            var objType, itfType: #null typeinfo
+            var objType, itfType: typeinfo?
             var typeVal:          TypeValue
-            typeVal.pointedType = #typeof(#null typeinfo)
+            typeVal.pointedType = #typeof(typeinfo?)
 
             #static if T == Read.TagBin
             {
@@ -180,7 +180,7 @@ impl Decoder
 
             if objType
             {
-                itf.itable = Swag.tableOf(cast(#null const *Swag.TypeInfoStruct) objType, cast(#null const *Swag.TypeInfoStruct) itfType)
+                itf.itable = Swag.tableOf(cast(const *Swag.TypeInfoStruct?) objType, cast(const *Swag.TypeInfoStruct?) itfType)
 
                 typeVal.pointedType = objType
                 itf.obj             = Memory.new(objType)
@@ -342,7 +342,7 @@ impl Decoder
     }
 
     // Read a full struct
-    mtd(TR) readAll(input: const [..] u8)->#null *TR fail
+    mtd(TR) readAll(input: const [..] u8)->*TR? fail
     {
         Debug.assert(Reflection.isStruct(TR))
 
@@ -420,7 +420,7 @@ impl IDecoder for Decoder
     }
 
     // Reads buffer u8.
-    mtd impl readBufferU8(count: u64)->#null *u8 fail
+    mtd impl readBufferU8(count: u64)->*u8? fail
     {
         if !count do
             return null

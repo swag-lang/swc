@@ -1,7 +1,7 @@
 #global export
 using Swag
 
-func(T) nullPtr()->#null *T
+func(T) nullPtr()->*T?
 {
     return null
 }
@@ -16,11 +16,11 @@ struct(T) List {}
 impl List
 {
     #[Discardable]
-    mtd insertAfter(node: #null *ListEntry, value: T)->#null *ListEntry
+    mtd insertAfter(node: *ListEntry?, value: T)->*ListEntry?
     {
         discard node
         let n = nullPtr'ListEntry()
-        #assert(#typeof(n) == #null *ListEntry'T)
+        #assert(#typeof(n) == *ListEntry'T?)
         let nn = n!
         nn.value = value
         return n
@@ -30,6 +30,6 @@ impl List
 func semaTestGenericExplicitTypeArgContext()
 {
     var values: List's32
-    var node:   #null *ListEntry's32 = null
+    var node:   *ListEntry's32? = null
     discard values.insertAfter(node, 1)
 }

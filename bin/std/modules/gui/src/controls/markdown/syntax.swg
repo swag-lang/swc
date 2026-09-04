@@ -201,7 +201,7 @@ func parseReferenceDefinition(line: string)->ReferenceInfo
     return result
 }
 
-private func resolveReferenceTarget(references: #null const [..] Reference, name: string)->string
+private func resolveReferenceTarget(references: const [..] Reference?, name: string)->string
 {
     for &reference in references where Utf8.compare(reference.name.toString(), name, .Latin1NoCase) == 0 do
         return reference.target.toString()
@@ -215,7 +215,7 @@ private struct HtmlInlineInfo
     text:  String
 }
 
-private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocument, node: u32, references: #null const [..] Reference)
+private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocument, node: u32, references: const [..] Reference?)
 {
     for child in document.children(node) do
         appendHtmlInlineNode(output, document, child, references)
@@ -223,7 +223,7 @@ private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocu
 
 // Translates the HTML parser's semantic tree into the smaller rich-text protocol understood by
 // Markdown inline views. Layout-bearing HTML is kept as an Html block instead.
-private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument, node: u32, references: #null const [..] Reference)
+private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument, node: u32, references: const [..] Reference?)
 {
     let current = document.constNode(node)
     if current.kind == .Text
@@ -304,7 +304,7 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
 // Parses exactly one complete inline element at `start`. Feeding one UTF-8 character at a time
 // lets the streaming HTML parser identify the matching close without duplicating its quote,
 // entity, raw-text, void-element, or nesting rules here.
-private func parseHtmlInline(text: string, start: u64, references: #null const [..] Reference)->HtmlInlineInfo
+private func parseHtmlInline(text: string, start: u64, references: const [..] Reference?)->HtmlInlineInfo
 {
     var result: retval
 
@@ -336,7 +336,7 @@ private func parseHtmlInline(text: string, start: u64, references: #null const [
     return result
 }
 
-func renderInline(text: string, references: #null const [..] Reference = null, parsedHtmlText = false)->String
+func renderInline(text: string, references: const [..] Reference? = null, parsedHtmlText = false)->String
 {
     var result: retval
     var index = 0'u64

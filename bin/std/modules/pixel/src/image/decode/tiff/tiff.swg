@@ -88,7 +88,7 @@ struct Ifd
 
 impl Ifd
 {
-    mtd find(tag: u32)->#null *Entry
+    mtd find(tag: u32)->*Entry?
     {
         for i in .entries.count
         {

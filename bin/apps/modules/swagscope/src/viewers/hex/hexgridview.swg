@@ -301,8 +301,7 @@ struct HexGridView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    scroll: *ScrollWnd
+    late scroll: *ScrollWnd
 
     doc: HexDocument
 
@@ -319,7 +318,7 @@ struct HexGridView
 
     // Accepted results in file order. Painting binary-searches this list for each visible row, so
     // marking a large result set never makes a scroll proportional to matches outside the screen.
-    searchHits: #null *Array'Viewer.SearchMatch
+    searchHits: *Array'Viewer.SearchMatch?
 
     bytesPerRow  = 16'u64
     offsetDigits = 8'u64
@@ -331,8 +330,8 @@ struct HexGridView
     layouting: bool     // Guards the resize a scrollbar appearing re-enters.
     syncing:   bool     // Guards the position signal our own scrollbar update raises.
 
-    selectionPoint: Math.Point       // Last local pointer position of an active drag.
-    selectionTimer: #null *Timer     // Repeats autoscroll while the pointer stays outside the viewport.
+    selectionPoint: Math.Point     // Last local pointer position of an active drag.
+    selectionTimer: *Timer?        // Repeats autoscroll while the pointer stays outside the viewport.
 
     charWidth:      f32
     rowHeight:      f32
@@ -583,7 +582,7 @@ impl HexGridView
     // Publishes the row range as a pixel span the scrollbar can drive, and places the thumb.
     mtd syncScrollBar()
     {
-        if !Swag.isSet(.scroll) do
+        if !(.scroll != null) do
             return
 
         let span   = Math.min(cast(f32) .rowCount() * .rowHeight, HexScrollSpan)
@@ -604,7 +603,7 @@ impl HexGridView
     // them.
     mtd adoptScrollPosition(position: f32)
     {
-        if .syncing or !Swag.isSet(.scroll) do
+        if .syncing or !(.scroll != null) do
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let ratio  = Math.clamp(position / usable, 0, 1)
@@ -752,7 +751,7 @@ impl HexGridView
         .invalidate()
     }
 
-    mtd setSearchMatches(matches: #null *Array'Viewer.SearchMatch)
+    mtd setSearchMatches(matches: *Array'Viewer.SearchMatch?)
     {
         .searchHits = matches
         .invalidate()

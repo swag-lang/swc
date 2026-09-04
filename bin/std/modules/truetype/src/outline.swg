@@ -37,18 +37,18 @@ public struct Outline
 
     public readonly
     {
-        contourCount: s16                  // Number of closed contours.
-        pointCount:   s16                  // Total number of outline points.
-        points:       #null [*] Vector     // Borrowed point array, or null when empty.
-        tags:         #null [*] u8         // Borrowed point-tag array, or null when empty.
-        contours:     #null [*] s16        // Borrowed inclusive contour-end indices.
-        flags:        s32                  // Reserved outline flags; currently zero.
+        contourCount: s16             // Number of closed contours.
+        pointCount:   s16             // Total number of outline points.
+        points:       [*] Vector?     // Borrowed point array, or null when empty.
+        tags:         [*] u8?         // Borrowed point-tag array, or null when empty.
+        contours:     [*] s16?        // Borrowed inclusive contour-end indices.
+        flags:        s32             // Reserved outline flags; currently zero.
     }
 }
 
 public impl Outline
 {
-    internal func borrowed(points: #null [*] Vector, tags: #null [*] u8, contours: #null [*] s16, pointCount, contourCount: s16)->Outline
+    internal func borrowed(points: [*] Vector?, tags: [*] u8?, contours: [*] s16?, pointCount, contourCount: s16)->Outline
     {
         var result: retval
         result.points       = points
@@ -69,7 +69,7 @@ public impl Outline
         .flags        = 0
     }
 
-    internal mtd setView(points: #null [*] Vector, tags: #null [*] u8, contours: #null [*] s16, pointCount, contourCount: s16)
+    internal mtd setView(points: [*] Vector?, tags: [*] u8?, contours: [*] s16?, pointCount, contourCount: s16)
     {
         .points       = points
         .tags         = tags

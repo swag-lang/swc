@@ -559,7 +559,7 @@ namespace
 // Materializes the address a use of a global variable resolves to.
 //
 // An ordinary global is a fixed location, so its address is a relocation against the data segment.
-// A '#[Swag.Tls]' global is not: the segment holds the value every thread starts from, and the
+// A 'tls' global is not: the segment holds the value every thread starts from, and the
 // address is the calling thread's own copy, which only the runtime can produce. Every path that
 // reaches a global goes through here, so the two cannot drift apart.
 void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg reg, const SymbolVariable& symVar)

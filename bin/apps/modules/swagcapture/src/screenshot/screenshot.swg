@@ -58,7 +58,7 @@ func waitForCapture()->bool
     return g_GrabDone
 }
 
-func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fail
+func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
 {
     g_App.setGlobalHotKeysEnabled(false)
     defer g_App.setGlobalHotKeysEnabled()
@@ -97,7 +97,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fa
 }
 
 // In place edition of capture image
-func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *Capture fail
+func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture? fail
 {
     let grabRect     = getGrabRect()
     with let capture = Memory.new'Capture()
@@ -135,7 +135,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *C
     return capture
 }
 
-func captureRect(main: *MainWnd)->#null *Capture fail
+func captureRect(main: *MainWnd)->*Capture? fail
 {
     let {img, sf} = try performScreenCapture(main)
     if !sf do
@@ -212,7 +212,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     g_CaptureWindow = {}
 
     // Capture
-    var capture: #null *Capture
+    var capture: *Capture?
     if !setGrabBounds(main, captureMode, monitorIndex) do
         capture = captureRect(main)
     else

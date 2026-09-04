@@ -134,7 +134,7 @@ segment, heading, note, unit and enumeration entry the grid builds passes
 through it:
 
 ```swag
-Properties.setTextResolver(func(key: string)->#null string
+Properties.setTextResolver(func(key: string)->string?
 {
     switch key
     {

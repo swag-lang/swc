@@ -20,7 +20,7 @@ internal func __bootstrapRoundedSize(size: u64)->u64
     return (total + AllocatorHostCommitGranularity - 1) & ~(AllocatorHostCommitGranularity - 1)
 }
 
-internal func __bootstrapAlloc(size: u64)->#null [*] void
+internal func __bootstrapAlloc(size: u64)->[*] void?
 {
     let reservedSize = __bootstrapRoundedSize(size)
     if !reservedSize do
@@ -41,7 +41,7 @@ internal func __bootstrapAlloc(size: u64)->#null [*] void
     return cast([*] void) (base + BootstrapAllocationHeaderSize)
 }
 
-internal func __bootstrapFree(ptr: #null [*] void)
+internal func __bootstrapFree(ptr: [*] void?)
 {
     if !ptr do
         return

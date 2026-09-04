@@ -23,7 +23,7 @@ For other data:
 
 - Prefer 's8' through 's64' and 'u8' through 'u64' over platform-dependent C
   spellings.
-- Represent optional C pointers with '#null *T' or '#null const *T'.
+- Represent optional C pointers with `*T?` or `const *T?`.
 - Match aggregate packing and alignment with '#[Swag.Pack]' and
   '#[Swag.Align]' only when the external ABI requires it.
 - State who owns returned memory and which function releases it.

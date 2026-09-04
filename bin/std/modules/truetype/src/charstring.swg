@@ -13,8 +13,7 @@ const MaxCharstringStack = 48'u32
 // shape a `glyf` glyph does.
 struct OutlineBuilder
 {
-    #[Swag.Late]
-    face:         *FaceImpl
+    late face:    *FaceImpl
     scaleX:       f64
     scaleY:       f64
     contourStart: u32
@@ -104,21 +103,19 @@ impl OutlineBuilder
 // Everything one run of a Type 2 charstring carries between its operators.
 struct Type2State
 {
-    #[Swag.Late]
-    font:    *CffFont
-    builder: #null *OutlineBuilder
-    #[Swag.Late]
-    subrs:     const *CffIndex
-    stack:     [MaxCharstringStack] f64
-    transient: [32] f64
-    depth:     u32
-    x:         f64
-    y:         f64
-    stems:     u32
-    width:     f64
-    haveWidth: bool
-    widthOnly: bool
-    finished:  bool
+    late font:  *CffFont
+    builder:    *OutlineBuilder?
+    late subrs: const *CffIndex
+    stack:      [MaxCharstringStack] f64
+    transient:  [32] f64
+    depth:      u32
+    x:          f64
+    y:          f64
+    stems:      u32
+    width:      f64
+    haveWidth:  bool
+    widthOnly:  bool
+    finished:   bool
 
     nominalWidth: f64
 
@@ -193,7 +190,7 @@ private impl Type2State
     }
 }
 
-private func execType2(state: *Type2State, code: #null const [..] u8, depth: u32) fail
+private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
         fault(0x89)
@@ -630,7 +627,7 @@ private func execType2Escape(state: *Type2State, op: u8)
 //
 // Pass a null `builder` to resolve the width alone, which stops at the first stack-clearing
 // operator instead of interpreting the whole outline.
-func runType2Charstring(font: *CffFont, gid: u32, builder: #null *OutlineBuilder)->f64 fail
+func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
     if gid >= font.charStrings.count() do
         fault(0x10)
@@ -690,11 +687,10 @@ func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 // Everything one run of a Type 1 charstring carries between its operators.
 struct Type1State
 {
-    #[Swag.Late]
-    font:    *Type1Font
-    builder: #null *OutlineBuilder
-    stack:   [MaxCharstringStack] f64
-    depth:   u32
+    late font: *Type1Font
+    builder:   *OutlineBuilder?
+    stack:     [MaxCharstringStack] f64
+    depth:     u32
 
     // Values the interpreter hands back to the charstring through `pop`, which is how the
     // format returns a result from the callable subroutines the language reserves.
@@ -796,7 +792,7 @@ private impl Type1State
     }
 }
 
-private func execType1(state: *Type1State, code: #null const [..] u8, depth: u32) fail
+private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
         fault(0x89)
@@ -1071,7 +1067,7 @@ private func execType1OtherSubr(state: *Type1State)
 //
 // Pass a null `builder` to resolve the width alone, which stops at the sidebearing operator
 // every charstring opens with.
-func runType1Charstring(font: *Type1Font, gid: u32, builder: #null *OutlineBuilder)->f64 fail
+func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
     if cast(u64) gid >= font.charstrings.count do
         fault(0x10)

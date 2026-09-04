@@ -32,7 +32,7 @@ private const CodedDepths: [8] u32 = [0, 8, 12, 0, 16, 20, 24, 32]
 // so the residual loops carry no failure path; the decoder checks [[overran]] once per frame.
 private struct BitReader
 {
-    data:    #null const [*] u8
+    data:    const [*] u8?
     size:    u64
     bitPos:  u64
     overran: bool

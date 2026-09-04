@@ -51,8 +51,8 @@ struct TabItem
 {
     public
     {
-        using item:    Item           // Embedded label, icon, identifier, and user data.
-        readonly view: #null *Wnd     // Page view owned by the tab control, if any.
+        using item:    Item      // Embedded label, icon, identifier, and user data.
+        readonly view: *Wnd?     // Page view owned by the tab control, if any.
     }
 
     // Placement computed by the bar layout, and the color animations of the painted parts.
@@ -91,14 +91,14 @@ struct Tab
     }
 
     // Bar layout and overflow state, recomputed by the layout pass.
-    buttonPopup:       #null *IconButton        // Button that opens the overflow list.
-    popup:             #null *PopupListCtrl     // Overflow list while it is open.
-    firstVisibleIndex: u32                      // First tab the bar can show.
-    hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
-    barHeight:         f32                      // Height the bar measured for itself.
-    mostRightPos:      f32                      // Right edge of the last laid out tab.
-    selectionRail:     Math.Rectangle           // Animated active-rail position.
-    hasSelectionRail:  bool                     // Whether the rail has been laid out once.
+    buttonPopup:       *IconButton?           // Button that opens the overflow list.
+    popup:             *PopupListCtrl?        // Overflow list while it is open.
+    firstVisibleIndex: u32                    // First tab the bar can show.
+    hotIndex:          u32 = Swag.U32.Max     // Tab under the mouse.
+    barHeight:         f32                    // Height the bar measured for itself.
+    mostRightPos:      f32                    // Right edge of the last laid out tab.
+    selectionRail:     Math.Rectangle         // Animated active-rail position.
+    hasSelectionRail:  bool                   // Whether the rail has been laid out once.
 }
 
 impl IWnd for Tab
@@ -118,8 +118,8 @@ impl IWnd for Tab
         let rects   = .themeRects()
 
         // Item image
-        var subRect:       #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
+        var subRect:       *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
         var colorImg:      Color
         var colorText:     Color
         var colorBorder:   Color
@@ -284,7 +284,7 @@ impl IWnd for Tab
         }
 
         // Paint border and back
-        var subRect: #null *ThemeImageRect
+        var subRect: *ThemeImageRect?
         var colorBk: Color
 
         var clientRect = .clientRect()
@@ -631,7 +631,7 @@ impl Tab
 {
     // Creates an empty, keyboard-focusable tab control.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Tab
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Tab
     {
         Debug.assert(parent != null)
         let result = Wnd.create'Tab(parent, null, position, id)
@@ -720,7 +720,7 @@ impl Tab
 
     // Appends a tab and transfers ownership of its optional page view to this control.
     #[Swag.Discardable]
-    mtd addItem(name: string, icon: Icon = {}, view: #null *Wnd = null)->*TabItem
+    mtd addItem(name: string, icon: Icon = {}, view: *Wnd? = null)->*TabItem
     {
         let isFirst = .items.isEmpty()
         if view
@@ -822,7 +822,7 @@ impl Tab
             return
 
         let oldIndex = .selectedIndex
-        var oldView: #null *Wnd
+        var oldView: *Wnd?
         if oldIndex < .items.count do
             oldView = .items[oldIndex]!.view
 
@@ -870,7 +870,7 @@ impl Tab
     }
 
     // Returns the selected item, or null when the control is empty.
-    mtd const selectedItem()->#null *TabItem
+    mtd const selectedItem()->*TabItem?
     {
         if .selectedIndex >= .items.count do
             return null

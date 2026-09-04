@@ -13,7 +13,7 @@ private func callSwagRuntimeHook(handle: *void, stage: u64)
     if !runtimeHook do
         return
 
-    let hook = cast(func(u64, u64, u64, const *#null string)) runtimeHook!
+    let hook = cast(func(u64, u64, u64, const *(string?))) runtimeHook!
     hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64) Swag.getContext().runtimeFlags, &Swag.processInfos().args)
 }
 
@@ -25,7 +25,7 @@ private func callSwagRuntimeHook(handle: *void, stage: u64)
 #[Swag.NoCopy]
 struct NativeLibrary
 {
-    internal handle: #null *void     // Platform module handle, or null while closed.
+    internal handle: *void?     // Platform module handle, or null while closed.
 }
 
 impl NativeLibrary
@@ -41,7 +41,7 @@ impl NativeLibrary
     // Resolves an exported symbol, or returns null when the library has no export by that name.
     //
     // The returned address is borrowed from this library and remains valid only until [[Core.NativeLibrary.close]].
-    mtd const symbol(name: string)->#null const *void
+    mtd const symbol(name: string)->const *void?
     {
         if !.handle do
             return null

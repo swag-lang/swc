@@ -30,8 +30,8 @@ private const AllocatorInvalidFlsId = 0xFFFF_FFFF'u64
 struct AllocatorTracking
 {
     loc:        SourceCodeLocation
-    hint:       #null string
-    stack:      [16] #null *void
+    hint:       string?
+    stack:      [16] (*void?)
     stackCount: u32
     allocId:    u32
 }
@@ -40,13 +40,13 @@ struct AllocatorTracking
 // recovered from the page table.
 struct AllocatorHeader
 {
-    allocAddr: #null [*] void
+    allocAddr: [*] void?
     allocSize: u64
     userSize:  u64
     blockSize: u64
-    prev:      #null *AllocatorHeader
-    next:      #null *AllocatorHeader
-    tracking:  #null *AllocatorTracking
+    prev:      *AllocatorHeader?
+    next:      *AllocatorHeader?
+    tracking:  *AllocatorTracking?
     alignment: u32
     isTracked: bool
 
@@ -88,16 +88,16 @@ struct AllocatorStats
 struct AllocatorThreadClass
 {
     // The page the fast path serves from, plus every other page this heap owns for the class.
-    page:  #null *AllocatorPage
-    first: #null *AllocatorPage
-    last:  #null *AllocatorPage
+    page:  *AllocatorPage?
+    first: *AllocatorPage?
+    last:  *AllocatorPage?
 }
 
 struct AllocatorThreadHeap
 {
-    allocator: #null *void
-    nextHeap:  #null *AllocatorThreadHeap
-    prevHeap:  #null *AllocatorThreadHeap
+    allocator: *void?
+    nextHeap:  *AllocatorThreadHeap?
+    prevHeap:  *AllocatorThreadHeap?
     threadId:  u64
     retired:   u32
     classes:   [AllocatorClassCount] AllocatorThreadClass
@@ -115,15 +115,15 @@ struct Allocator
     // Guards the segment list, the thread-heap list, and the abandoned pages.
     segmentMutex: MutexRW
 
-    firstSegment:   #null *AllocatorSegment
-    firstHeap:      #null *AllocatorThreadHeap
-    firstAbandoned: #null *AllocatorPage
+    firstSegment:   *AllocatorSegment?
+    firstHeap:      *AllocatorThreadHeap?
+    firstAbandoned: *AllocatorPage?
 
     // Header-path bookkeeping. Live blocks are always counted; the tracked list and the quarantine
     // exist only while a diagnostic mode is on.
-    firstAlloc:      #null *AllocatorHeader
-    firstQuarantine: #null *AllocatorHeader
-    lastQuarantine:  #null *AllocatorHeader
+    firstAlloc:      *AllocatorHeader?
+    firstQuarantine: *AllocatorHeader?
+    lastQuarantine:  *AllocatorHeader?
     headerCount:     u64
     headerBytes:     u64
     quarantineBytes: u64
@@ -147,13 +147,13 @@ struct Allocator
 
 private var g_DefaultAllocator: Allocator
 
-private func retireAllocatorThreadHeap(value: #null *void)
+private func retireAllocatorThreadHeap(value: *void?)
 {
     if !value do
         return
 
     let heap      = cast(*AllocatorThreadHeap) value
-    let allocator = cast(#null *Allocator) heap.allocator
+    let allocator = cast(*Allocator?) heap.allocator
     if allocator and allocator.installed() do
         allocator.retireThreadHeap(heap)
 }
@@ -177,12 +177,12 @@ private func allocatorThreadHeapFlsId()->u64
     return candidate
 }
 
-func currentAllocatorThreadHeap()->#null *AllocatorThreadHeap
+func currentAllocatorThreadHeap()->*AllocatorThreadHeap?
 {
-    return cast(#null *AllocatorThreadHeap) __hostThreadStorageGet(allocatorThreadHeapFlsId())
+    return cast(*AllocatorThreadHeap?) __hostThreadStorageGet(allocatorThreadHeapFlsId())
 }
 
-private func setCurrentAllocatorThreadHeap(heap: #null *AllocatorThreadHeap)
+private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
 {
     Swag.assert(__hostThreadStorageSet(allocatorThreadHeapFlsId(), heap))
 }
@@ -303,7 +303,7 @@ impl Allocator
     // Operating system blocks, used by the header path and by the thread-heap records
     // ###################################################################################
 
-    mtd osAlloc(size: u64)->#null [*] u8
+    mtd osAlloc(size: u64)->[*] u8?
     {
         let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
         let address = __hostPageReserve(rounded)
@@ -323,7 +323,7 @@ impl Allocator
     // Reserves one extra page past the block and leaves it uncommitted. Electric mode places the
     // user data flush against it, so an overflow of a single byte faults at the instruction that
     // writes it rather than at the next consistency check.
-    mtd osAllocGuarded(commitBytes: u64)->#null [*] u8
+    mtd osAllocGuarded(commitBytes: u64)->[*] u8?
     {
         let reservedBytes = commitBytes + AllocatorCommitGranularity
         let address       = __hostPageReserve(reservedBytes)
@@ -340,7 +340,7 @@ impl Allocator
         return address
     }
 
-    mtd osFree(address: #null *void, size: u64)
+    mtd osFree(address: *void?, size: u64)
     {
         if !address do
             return
@@ -355,7 +355,7 @@ impl Allocator
     // Thread heaps
     // ###################################################################################
 
-    mtd allocateThreadHeap()->#null *AllocatorThreadHeap
+    mtd allocateThreadHeap()->*AllocatorThreadHeap?
     {
         let address = .osAlloc(#sizeof(AllocatorThreadHeap))
         if !address do
@@ -376,7 +376,7 @@ impl Allocator
         return heap
     }
 
-    mtd threadHeap()->#null *AllocatorThreadHeap
+    mtd threadHeap()->*AllocatorThreadHeap?
     {
         // 'retired' is only ever set from the owning thread, so reading it needs no barrier here.
         let heap = currentAllocatorThreadHeap()
@@ -388,7 +388,7 @@ impl Allocator
         if heap
         {
             setCurrentAllocatorThreadHeap(null)
-            let oldAllocator = cast(#null *Allocator) heap.allocator
+            let oldAllocator = cast(*Allocator?) heap.allocator
             if oldAllocator do
                 oldAllocator.retireThreadHeap(heap)
         }
@@ -496,7 +496,7 @@ impl Allocator
 
     // Adopts an abandoned page of the class, or carves a new one out of a segment. The caller must
     // not hold the segment mutex.
-    mtd acquirePageForClass(heap: *AllocatorThreadHeap, classIndex: u32)->#null *AllocatorPage
+    mtd acquirePageForClass(heap: *AllocatorThreadHeap, classIndex: u32)->*AllocatorPage?
     {
         let blockSize = cast(u32) classSize(classIndex)
         let unitShift = classUnitShift(classIndex)
@@ -504,8 +504,8 @@ impl Allocator
         .segmentMutex.lock()
         defer .segmentMutex.unlock()
 
-        var prev: #null *AllocatorPage
-        var scan: #null *AllocatorPage = .firstAbandoned
+        var prev: *AllocatorPage?
+        var scan: *AllocatorPage? = .firstAbandoned
         while scan
         {
             let next = scan.nextPage
@@ -529,7 +529,7 @@ impl Allocator
             scan = next
         }
 
-        var segment: #null *AllocatorSegment = .firstSegment
+        var segment: *AllocatorSegment? = .firstSegment
         while segment
         {
             if segment.unitShift == unitShift
@@ -755,7 +755,7 @@ impl Allocator
         let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
 
         var allocSize: u64
-        var base:      #null [*] u8
+        var base:      [*] u8?
         var userAddr:  u64
 
         if .electricMode
@@ -1018,7 +1018,7 @@ impl Allocator
             page.pushRemote(address)
     }
 
-    mtd assertIsAllocated(addr: #null *void, callerLoc = #callerlocation)
+    mtd assertIsAllocated(addr: *void?, callerLoc = #callerlocation)
     {
         if !addr do
             return
@@ -1052,7 +1052,7 @@ impl Allocator
         .segmentMutex.lock()
         defer .segmentMutex.unlock()
 
-        var segment: #null *AllocatorSegment = .firstSegment
+        var segment: *AllocatorSegment? = .firstSegment
         while segment
         {
             result.countSegment += 1
@@ -1114,8 +1114,8 @@ impl Allocator
         .segmentMutex.lock()
         defer .segmentMutex.unlock()
 
-        var prevAbandoned: #null *AllocatorPage
-        var abandoned:     #null *AllocatorPage = .firstAbandoned
+        var prevAbandoned: *AllocatorPage?
+        var abandoned:     *AllocatorPage? = .firstAbandoned
         while abandoned
         {
             let next = abandoned.nextPage
@@ -1140,7 +1140,7 @@ impl Allocator
     // Returns every segment without a live page. The caller holds the segment mutex.
     mtd releaseEmptySegments()
     {
-        var segment: #null *AllocatorSegment = .firstSegment
+        var segment: *AllocatorSegment? = .firstSegment
         while segment
         {
             let next = segment.nextSegment
@@ -1178,7 +1178,7 @@ impl Allocator
             .osFree(other, #sizeof(AllocatorThreadHeap))
         }
 
-        var segment: #null *AllocatorSegment = .firstSegment
+        var segment: *AllocatorSegment? = .firstSegment
         while segment
         {
             let next = segment.nextSegment
@@ -1395,7 +1395,7 @@ func releaseAllocatorThreadCache()
 
     setCurrentAllocatorThreadHeap(null)
 
-    let alloc = cast(#null *Allocator) heap.allocator
+    let alloc = cast(*Allocator?) heap.allocator
     if alloc do
         alloc.retireThreadHeap(heap)
 }

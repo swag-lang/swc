@@ -43,7 +43,7 @@ func singlePagePdf(resources: string, content: const [..] u8, extra: const [..] 
 // Returns the one item of `kind` a fixture page is expected to hold.
 func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
 {
-    var result: #null const *Pdf.Item
+    var result: const *Pdf.Item?
     var count = 0'u64
     for item in page.items where item.kind == kind
     {

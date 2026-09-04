@@ -51,8 +51,8 @@ const JIT_NONULL_PARTIAL_ARRAY:     [2] JitNonNullStringDefault = [{value: "expl
 struct JitNonNullHolder
 {
     required: *JitNonNullItem
-    optional: #null *JitNonNullItem
-    legacy:   #null *JitNonNullItem
+    optional: *JitNonNullItem?
+    legacy:   *JitNonNullItem?
     count:    s32 = 7
 }
 
@@ -122,12 +122,12 @@ func jitNonNullConstruction()->bool
     let ctext:                     cstring                      = cast(cstring) &cstringStorage[0]
     let boxed:                     any                          = 123
     let reflectedType:             typeinfo                     = JitNonNullItem
-    var nullableValuePointer:      #null *JitNonNullItem        = null
-    var nullableBlockPointer:      #null [*] JitNonNullItem     = null
-    var nullableSlice:             #null [..] JitNonNullItem    = null
-    var nullableString:            #null string                 = null
-    var nullableCString:           #null cstring                = null
-    var nullableTypeInfo:          #null typeinfo               = null
+    var nullableValuePointer:      *JitNonNullItem?             = null
+    var nullableBlockPointer:      [*] JitNonNullItem?          = null
+    var nullableSlice:             [..] JitNonNullItem?         = null
+    var nullableString:            string?                      = null
+    var nullableCString:           cstring?                     = null
+    var nullableTypeInfo:          typeinfo?                    = null
     let boxedNullableValuePointer: any                          = nullableValuePointer
     let boxedNullableBlockPointer: any                          = nullableBlockPointer
     let boxedNullableSlice:        any                          = nullableSlice
@@ -138,7 +138,7 @@ func jitNonNullConstruction()->bool
     let aliasRequired:             JitConstPointerAlias         = &first
     let legacySource:              *JitNonNullItem              = &first
     let migrated:                  *JitNonNullItem              = migrateJitLegacyPointer(legacySource)
-    var widened:                   #null *JitNonNullItem        = migrated
+    var widened:                   *JitNonNullItem?             = migrated
     widened = null     // the qualifier is real: null flows into it
     widened = migrated
 
@@ -300,8 +300,8 @@ func jitNonNullConstruction()->bool
     #assert(#typeof(initializedHolder.required) == *JitNonNullItem)
 
     // Only explicitly nullable pointers keep a null default; bare pointers have no implicit default.
-    var nullablePointer: #null *JitNonNullItem
-    var legacyHolder:    struct {ptr: #null *JitNonNullItem}
+    var nullablePointer: *JitNonNullItem?
+    var legacyHolder:    struct {ptr: *JitNonNullItem?}
     if nullablePointer != null or legacyHolder.ptr != null do
         return false
 

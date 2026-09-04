@@ -290,7 +290,7 @@ namespace
     // string test their data pointer there, never their count: an empty one answers true.
     //
     // The question is asked of the type the expression was DECLARED with, not of what flow
-    // analysis currently proves: a "#null" pointer narrowed non-null by a dominating guard keeps
+    // analysis currently proves: a "nullable" pointer narrowed non-null by a dominating guard keeps
     // compiling, exactly as "orelse" keeps a dead fallback. A dead test on a nullable-declared
     // value is a code-quality matter; a test of a value whose type can never be null is not.
     bool isBoolTestAlwaysTrue(Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef)
@@ -304,7 +304,7 @@ namespace
 
         // Inside an inline expansion the tested node is the caller's argument substituted for a
         // parameter, and what the callee wrote the test against is the PARAMETER's type. A body
-        // that guards a '#null' parameter keeps typechecking as it did standalone, whatever the
+        // that guards a 'nullable' parameter keeps typechecking as it did standalone, whatever the
         // call site passed; the question here belongs to the caller's own code.
         if (const SymbolVariable* sourceParam = sema.constAssignSourceParameter(castRequest.errorNodeRef); sourceParam != nullptr)
         {
@@ -323,7 +323,7 @@ namespace
 
     // The families share the broken contract but not the repair. A pointer offers the pointed
     // value, a slice and a string offer the count the reader most likely meant, and the rest
-    // only become a real question once they are declared '#null'.
+    // only become a real question once they are declared 'nullable'.
     DiagnosticId boolTestAlwaysTrueDiagId(const TypeInfo& srcType)
     {
         if (srcType.isAnyPointer())
@@ -1052,9 +1052,9 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
     if (isBoolTestAlwaysTrue(sema, castRequest, srcTypeRef))
     {
-        // A 'Swag.Late' slot is the one non-null value that legitimately starts empty, and the
-        // spelling that asks so is 'Swag.isSet': the general help would send the reader to '#null',
-        // which the attribute rejects.
+        // A 'late' slot is the one non-null value that legitimately starts empty. Presence is
+        // queried with an ordinary comparison to null; the general help must not suggest a
+        // nullable declaration because that changes the slot's contract.
         const DiagnosticId diagId = SemaHelpers::isLateInitAccess(sema, castRequest.errorNodeRef) ? DiagnosticId::sema_err_bool_test_late_slot : boolTestAlwaysTrueDiagId(srcType);
         const Result       res    = castRequest.fail(diagId, srcTypeRef, dstTypeRef);
         castRequest.failure.addArgument(Diagnostic::ARG_A_TYPE_FAM, srcType.toArticleFamily(sema.ctx()));
@@ -1472,7 +1472,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     if (srcType.isAnyPointer())
     {
         // A nullable pointer cannot silently bind to an internal non-null move reference.
-        // The only exception is a UFCS receiver: calling a method on a `#null` pointer just dereferences it
+        // The only exception is a UFCS receiver: calling a method on a `nullable` pointer just dereferences it
         // (C-like, may fault at runtime if actually null), so it is allowed without a guard.
         if (srcType.isNullable() && !castRequest.flags.has(CastFlagsE::UfcsArgument))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

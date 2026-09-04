@@ -17,8 +17,8 @@ namespace WinFsp
     #[Swag.NoCopy]
     struct WinFspMount
     {
-        fileSystem:   #null *FspFileSystem
-        context:      #null *NativeMountContext
+        fileSystem:   *FspFileSystem?
+        context:      *NativeMountContext?
         holdsRuntime: bool     // Whether this mount counts towards `g_WinFsp.mountCount`.
     }
 

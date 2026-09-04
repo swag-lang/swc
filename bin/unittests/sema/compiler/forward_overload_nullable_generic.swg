@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-func getValue(type: typeinfo, attribute: typeinfo, value: string)->#null any
+func getValue(type: typeinfo, attribute: typeinfo, value: string)->any?
 {
     let attrib = getAttr(type, attribute)
     if !attrib do
@@ -14,12 +14,12 @@ func(T) getValue(type: typeinfo, attribute: typeinfo, value: string, def: T)->T
     return def
 }
 
-func getAttr(type: typeinfo, attribute: typeinfo)->#null const *Swag.Attribute
+func getAttr(type: typeinfo, attribute: typeinfo)->const *Swag.Attribute?
 {
     return null
 }
 
-func getValue(attribute: const *Swag.Attribute, value: string)->#null any
+func getValue(attribute: const *Swag.Attribute, value: string)->any?
 {
     return null
 }

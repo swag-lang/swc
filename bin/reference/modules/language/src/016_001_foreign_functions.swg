@@ -51,7 +51,7 @@ Use 'function' when the local name should differ from the exported symbol. Use
     function: "vendor_open_v2",
     link: "vendor_import",
     callconv: .C)]
-func openVendorHandle(flags: u32)->#null *void
+func openVendorHandle(flags: u32)->*void?
 ```
 
 The declaration is an ABI contract, not a conversion layer. A mismatched

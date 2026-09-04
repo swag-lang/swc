@@ -141,11 +141,21 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     SmallVector<AstNodeRef> children;
     info.collectChildren(children, ast, *this);
 
-    if (children.empty())
-        return codeRef_.tokRef;
+    // Most nodes begin at their own token and end at their final child. A postfix node is the
+    // inverse: its token follows its child (for example the '?' of a nullable type). Return the
+    // latest source token across both instead of losing that suffix while slicing declarations.
+    TokenRef endRef = codeRef_.tokRef;
+    for (const AstNodeRef childRef : children)
+    {
+        if (!childRef.isValid())
+            continue;
 
-    const AstNode& node = ast.node(children.back());
-    return node.tokRefEnd(ast);
+        const TokenRef childEndRef = ast.node(childRef).tokRefEnd(ast);
+        if (childEndRef.isValid() && (!endRef.isValid() || childEndRef.get() > endRef.get()))
+            endRef = childEndRef;
+    }
+
+    return endRef;
 }
 
 AstNodeRef AstNode::nodeRef(const Ast& ast) const

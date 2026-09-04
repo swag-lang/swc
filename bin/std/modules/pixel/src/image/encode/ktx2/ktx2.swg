@@ -151,7 +151,7 @@ internal impl IImageEncoder for Encoder
 {
     mtd impl format()->ImageFormat => {"KTX2 - Khronos Texture", ".ktx2"}
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         discard options
         if !image.isValid() or !image.pixelFormat.isPacked() do

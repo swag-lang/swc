@@ -121,7 +121,7 @@ struct PdfView
     prepareReady:   u32     // Set by the worker when the page holds `preparingScale`; read atomically.
     prepareCancel:  u32     // Asks the worker to stop after the shape it is on; read atomically.
     preparing:      bool
-    prepareTimer:   #null *Timer
+    prepareTimer:   *Timer?
 }
 
 private impl PdfView
@@ -147,7 +147,7 @@ private impl PdfView
         return result
     }
 
-    mtd applyZoom(value: f32, anchor: #null const *Math.Point = null)
+    mtd applyZoom(value: f32, anchor: const *Math.Point? = null)
     {
         let oldZoom = .effectiveZoom()
         let oldRect = .contentRect()
@@ -244,7 +244,7 @@ private impl PdfView
     }
 
     // Appends every non-overlapping match in one page's text, in text order.
-    func appendPageMatches(result: *Array'PdfTextMatch, source: string, pageIndex: u64, text: string, options: PdfTextSearchOptions, expression: #null *Parser.RegExp)
+    func appendPageMatches(result: *Array'PdfTextMatch, source: string, pageIndex: u64, text: string, options: PdfTextSearchOptions, expression: *Parser.RegExp?)
     {
         if expression
         {
@@ -413,7 +413,7 @@ internal impl PdfView
         .prepareReady      = 0
         .prepareCancel     = 0
         .preparing         = true
-        .prepareJob.lambda = func(data: #null *void)
+        .prepareJob.lambda = func(data: *void?)
         {
             let view = cast(*PdfView) data!
             view.runPrepare()
@@ -771,7 +771,7 @@ impl PdfView
 
     // Creates an empty PDF viewer.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*PdfView
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PdfView
     {
         Debug.assert(parent != null)
         let result = Wnd.create'PdfView(parent, null, position, id)

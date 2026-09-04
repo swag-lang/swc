@@ -163,7 +163,7 @@ sites use '!' only after successful asset loading establishes the
 invariant.
 */
 
-var g_Font: #null *Font
+var g_Font: *Font?
 
 /**
 ## Types

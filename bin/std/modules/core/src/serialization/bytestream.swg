@@ -8,10 +8,10 @@ public struct ByteStream
 {
     internal
     {
-        readBuffer:  #null const [..] u8     // Borrowed read-only bytes.
-        writeBuffer: #null *Array'u8         // Borrowed writable destination.
-        seek:        u64                     // Current byte position.
-        eof:         bool                    // Whether a read advanced to the end.
+        readBuffer:  const [..] u8?     // Borrowed read-only bytes.
+        writeBuffer: *Array'u8?         // Borrowed writable destination.
+        seek:        u64                // Current byte position.
+        eof:         bool               // Whether a read advanced to the end.
     }
 }
 
@@ -110,7 +110,7 @@ public impl ByteStream
     }
 
     // Reads 'count' bytes from the stream into 'dest'
-    mtd readBytes(dest: #null *u8, count: u64) fail
+    mtd readBytes(dest: *u8?, count: u64) fail
     {
         if .seek + count > .length() do
             fail OverflowError{"byte stream overflow"}

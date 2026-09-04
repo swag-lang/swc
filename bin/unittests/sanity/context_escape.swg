@@ -103,7 +103,7 @@ func contextEscapeGlobalContext()
 
 struct ContextEscapeHolder
 {
-    context: #null *Context
+    context: *Context?
 }
 
 // A pointer read out of a value is not this frame's storage either.

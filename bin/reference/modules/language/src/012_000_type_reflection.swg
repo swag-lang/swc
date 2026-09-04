@@ -80,9 +80,9 @@ array, struct, etc. This is essential when handling types generically.
 
     // Compile-time checks of kind
     using Swag
-    #assert(#typeof(#null *u8).kind == TypeInfoKind.Pointer)     // Pointer
-    #assert(#typeof([1, 2, 3]).kind == TypeInfoKind.Array)       // Array
-    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)      // Struct
+    #assert(#typeof(*u8?).kind == TypeInfoKind.Pointer)         // Pointer
+    #assert(#typeof([1, 2, 3]).kind == TypeInfoKind.Array)      // Array
+    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)     // Struct
 }
 
 /**
@@ -112,7 +112,7 @@ the corresponding type. This enables dynamic yet type-safe patterns.
     func getType(needAString: bool)->typeinfo
     {
         if needAString do
-            return #null string
+            return string?
         else do
             return s32
     }
@@ -123,6 +123,6 @@ the corresponding type. This enables dynamic yet type-safe patterns.
     x = 0
 
     var x1: #decltype(getType(needAString: true))
-    #assert(#typeof(x1) == #null string)
+    #assert(#typeof(x1) == string?)
     x1 = "0"
 }

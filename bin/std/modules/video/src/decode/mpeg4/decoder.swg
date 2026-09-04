@@ -88,7 +88,7 @@ impl Decoder
     //
     // When `header` is given, a video object plane stops the walk and its header is read into it;
     // the answer is the bit its payload starts at, or -1 when the run holds no further plane.
-    mtd readStartCodes(bytes: const [..] u8, header: #null *PlaneHeader, from = 0'u64)->s64 fail
+    mtd readStartCodes(bytes: const [..] u8, header: *PlaneHeader?, from = 0'u64)->s64 fail
     {
         var at = nextStartCode(bytes, from)
         while at + 4 <= bytes.count

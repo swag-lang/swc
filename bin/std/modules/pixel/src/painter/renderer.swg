@@ -11,10 +11,10 @@ struct RenderContext
 {
     public
     {
-        renderHandle: #null const *void     // Platform drawable handle, or `null` for an off-screen context.
-        data:         #null *void           // Opaque renderer-owned state.
-        width:        s32                   // Drawable width, in pixels.
-        height:       s32                   // Drawable height, in pixels.
+        renderHandle: const *void?     // Platform drawable handle, or `null` for an off-screen context.
+        data:         *void?           // Opaque renderer-owned state.
+        width:        s32              // Drawable width, in pixels.
+        height:       s32              // Drawable height, in pixels.
     }
 }
 
@@ -34,7 +34,7 @@ interface IRenderer
     //
     // `shared` is borrowed during the call and belongs to this same renderer.
     // The returned context remains owned by the caller until [[deleteContext]].
-    mtd createContext(renderHandle: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
+    mtd createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
 
     // Releases renderer state held by `context` and invalidates the descriptor.
     mtd deleteContext(context: *RenderContext)
@@ -80,7 +80,7 @@ interface IRenderer
     //
     // `vp` optionally limits the viewport. A backend may use the complete target
     // when it has no distinct viewport state.
-    mtd bindRenderTarget(target: *RenderTarget, vp: #null *Math.Rectangle = null)
+    mtd bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null)
 
     // Reads a rectangle of an off-screen target into a new image.
     mtd readRenderTarget(target: const *RenderTarget, x, y, width, height: s32)->Image
@@ -144,5 +144,5 @@ interface IRenderer
     mtd acquireRenderTarget(width, height: s32)->*RenderTarget
 
     // Returns a pooled target to this renderer; `null` is ignored.
-    mtd releaseRenderTarget(target: #null *RenderTarget)
+    mtd releaseRenderTarget(target: *RenderTarget?)
 }

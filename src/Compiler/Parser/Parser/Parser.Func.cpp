@@ -521,7 +521,6 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
 
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicDataOf:
-        case TokenId::IntrinsicIsSet:
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeSlice:
         case TokenId::IntrinsicMakeString:

@@ -1,24 +1,24 @@
 #global private
 
-// Flow-sensitive nullable narrowing: when the control flow proves a `#null` value is
+// Flow-sensitive nullable narrowing: when the control flow proves a `?` value is
 // non-null (guards, comparisons, early exits, loops, short-circuits, ternaries), the
 // value can be used where a non-null type is required, without an explicit `!`.
 
 struct NarrowNode
 {
     value: s32
-    next:  #null *NarrowNode
+    next:  *NarrowNode?
 }
 
 struct NarrowOwner
 {
-    node: #null *NarrowNode
+    node: *NarrowNode?
 }
 
 func takesPtr(p: *NarrowNode)->s32 => p.value
 
 // A plain truthiness guard narrows inside the `then` branch.
-func narrowIf(p: #null *NarrowNode)->s32
+func narrowIf(p: *NarrowNode?)->s32
 {
     if p do
         return takesPtr(p)
@@ -26,7 +26,7 @@ func narrowIf(p: #null *NarrowNode)->s32
 }
 
 // An explicit `!= null` comparison narrows the same way.
-func narrowCmp(p: #null *NarrowNode)->s32
+func narrowCmp(p: *NarrowNode?)->s32
 {
     if p != null do
         return takesPtr(p)
@@ -34,7 +34,7 @@ func narrowCmp(p: #null *NarrowNode)->s32
 }
 
 // `== null` narrows the else side / fallthrough.
-func narrowCmpElse(p: #null *NarrowNode)->s32
+func narrowCmpElse(p: *NarrowNode?)->s32
 {
     if p == null do
         return -1
@@ -42,7 +42,7 @@ func narrowCmpElse(p: #null *NarrowNode)->s32
 }
 
 // `if !p do return` guards the remainder of the function.
-func narrowEarlyReturn(p: #null *NarrowNode)->s32
+func narrowEarlyReturn(p: *NarrowNode?)->s32
 {
     if !p do
         return -1
@@ -50,7 +50,7 @@ func narrowEarlyReturn(p: #null *NarrowNode)->s32
 }
 
 // `a and b` narrows both operands in the `then` branch.
-func narrowAnd(a, b: #null *NarrowNode)->s32
+func narrowAnd(a, b: *NarrowNode?)->s32
 {
     if a and b do
         return takesPtr(a) + takesPtr(b)
@@ -58,13 +58,13 @@ func narrowAnd(a, b: #null *NarrowNode)->s32
 }
 
 // The right side of `and` sees the left side narrowed.
-func narrowAndRhs(p: #null *NarrowNode)->bool
+func narrowAndRhs(p: *NarrowNode?)->bool
 {
     return p and takesPtr(p) == 42
 }
 
 // `a == null or b == null` guards both operands after the early exit.
-func narrowOrReturn(a, b: #null *NarrowNode)->s32
+func narrowOrReturn(a, b: *NarrowNode?)->s32
 {
     if a == null or b == null do
         return -1
@@ -72,7 +72,7 @@ func narrowOrReturn(a, b: #null *NarrowNode)->s32
 }
 
 // A `while` condition narrows inside the body, re-proven at each iteration.
-func narrowWhile(head: #null *NarrowNode)->s32
+func narrowWhile(head: *NarrowNode?)->s32
 {
     var total = 0
     var cur   = head
@@ -85,7 +85,7 @@ func narrowWhile(head: #null *NarrowNode)->s32
 }
 
 // Ternary branches inherit the condition's facts.
-func narrowTernary(p: #null *NarrowNode)->s32
+func narrowTernary(p: *NarrowNode?)->s32
 {
     return p ? takesPtr(p) : -1
 }
@@ -110,7 +110,7 @@ impl NarrowOwner
 }
 
 // A `let` initialized from a narrowed value inherits the non-null type.
-func narrowLet(p: #null *NarrowNode)->s32
+func narrowLet(p: *NarrowNode?)->s32
 {
     if p
     {
@@ -124,13 +124,13 @@ func narrowLet(p: #null *NarrowNode)->s32
 func narrowAssignGen()->s32
 {
     var node = NarrowNode{value: 7}
-    var p: #null *NarrowNode
+    var p: *NarrowNode?
     p = &node
     return takesPtr(p)
 }
 
 // Reassigning from a nullable source re-nullifies, and a new guard re-narrows.
-func narrowKillAssign(p, q: #null *NarrowNode)->s32
+func narrowKillAssign(p, q: *NarrowNode?)->s32
 {
     var cur = p
     if cur
@@ -162,14 +162,14 @@ func narrowNotNullTolerant()->s32
 
 // `Swag.assert` panics when its condition is false, so the statements after it are only
 // reachable with the condition true: its facts hold for the remainder of the block.
-func narrowAssert(p: #null *NarrowNode)->s32
+func narrowAssert(p: *NarrowNode?)->s32
 {
     Swag.assert(p != null)
     return takesPtr(p)
 }
 
 // The proof holds across the statements that follow it, not just the next one.
-func narrowAssertAcrossStatements(p: #null *NarrowNode)->s32
+func narrowAssertAcrossStatements(p: *NarrowNode?)->s32
 {
     Swag.assert(p != null)
     let first = takesPtr(p)
@@ -178,7 +178,7 @@ func narrowAssertAcrossStatements(p: #null *NarrowNode)->s32
 }
 
 // A logical chain proves every operand it requires.
-func narrowAssertAnd(a, b: #null *NarrowNode)->s32
+func narrowAssertAnd(a, b: *NarrowNode?)->s32
 {
     Swag.assert(a != null and b != null)
     return takesPtr(a) + takesPtr(b)
@@ -192,7 +192,7 @@ func narrowAssertField(o: *NarrowOwner)->s32
 }
 
 // Reassigning from a nullable source kills the asserted fact; a second assert re-proves it.
-func narrowAssertKill(p, q: #null *NarrowNode)->s32
+func narrowAssertKill(p, q: *NarrowNode?)->s32
 {
     var cur = p
     Swag.assert(cur != null)
@@ -204,7 +204,7 @@ func narrowAssertKill(p, q: #null *NarrowNode)->s32
 }
 
 // An assertion inside a nested block does not outlive it.
-func narrowAssertScoped(p: #null *NarrowNode)->s32
+func narrowAssertScoped(p: *NarrowNode?)->s32
 {
     {
         Swag.assert(p != null)

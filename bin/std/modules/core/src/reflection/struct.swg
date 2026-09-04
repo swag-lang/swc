@@ -5,7 +5,7 @@ using Swag
 
 // Returns true if this is a struct of the given 'name'.
 #[ConstExpr]
-func isNamedStruct(type: #null typeinfo, name: #null string)->bool
+func isNamedStruct(type: typeinfo?, name: string?)->bool
 {
     if !isStruct(type) do
         return false
@@ -17,7 +17,7 @@ func isNamedStruct(type: #null typeinfo, name: #null string)->bool
 // Get information about a specific method in a given struct.
 // Returns null if the method does not exist
 #[ConstExpr]
-func findMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
+func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
 {
     if !isStruct(type) do
         return null
@@ -31,7 +31,7 @@ func findMethod(type: #null typeinfo, name: #null string)->#null const *TypeValu
 // Get information about a specific field in a given struct
 // Returns null if the field does not exist
 #[ConstExpr]
-func findField(type: #null typeinfo, name: #null string)->#null const *TypeValue
+func findField(type: typeinfo?, name: string?)->const *TypeValue?
 {
     if !isStruct(type) do
         return null
@@ -54,7 +54,7 @@ func fieldCrc(type: typeinfo, name: string)->u32
 
 // Get a field value with a given runtime type.
 #[ConstExpr]
-func readFieldValue(destination: #null *void, field: #null const *TypeValue, source: #null *void)
+func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void?)
 {
     if !destination or !field or !source do
         return
@@ -67,7 +67,7 @@ func readFieldValue(destination: #null *void, field: #null const *TypeValue, sou
 
 // Assigns a value to a reflected field while preserving its lifecycle semantics.
 #[ConstExpr]
-func writeFieldValue(destination: #null *void, field: #null const *TypeValue, source: #null const *void)
+func writeFieldValue(destination: *void?, field: const *TypeValue?, source: const *void?)
 {
     if !destination or !field or !source do
         return
@@ -80,11 +80,11 @@ func writeFieldValue(destination: #null *void, field: #null const *TypeValue, so
 
 // Helper function to know if a struct has a special method
 #[ConstExpr]
-func hasMethod(type: #null typeinfo, name: #null string)->bool => findMethod(type, name) != null
+func hasMethod(type: typeinfo?, name: string?)->bool => findMethod(type, name) != null
 
 // Returns true if values of that type can use the default '<=>' comparison.
 #[ConstExpr]
-func canCompare(type: #null typeinfo)->bool
+func canCompare(type: typeinfo?)->bool
 {
     if !type do
         return false
@@ -122,19 +122,19 @@ func canCompare(type: #null typeinfo)->bool
 #[ConstExpr, Inline]
 {
     // Returns whether this value has drop.
-    func hasDrop(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
+    func hasDrop(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
 
     // Returns whether this value has post move.
-    func hasPostMove(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
+    func hasPostMove(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
 
     // Returns whether this value has post copy.
-    func hasPostCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
+    func hasPostCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
 
     // Returns whether this value can copy.
-    func canCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
+    func canCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
 
     // Returns whether pod.
-    func isPod(type: #null typeinfo)->bool
+    func isPod(type: typeinfo?)->bool
     {
         if !type do
             return false
@@ -144,7 +144,7 @@ func canCompare(type: #null typeinfo)->bool
 
 // Returns true if the interface 'itf' is implemented in the given structure type.
 #[ConstExpr]
-func hasInterface(type: #null typeinfo, itf: typeinfo)->bool
+func hasInterface(type: typeinfo?, itf: typeinfo)->bool
 {
     if !isStruct(type) do
         return false
@@ -152,7 +152,7 @@ func hasInterface(type: #null typeinfo, itf: typeinfo)->bool
     let typeStruct = cast(const *TypeInfoStruct) type!
     for it in typeStruct.interfaces
     {
-        // Compare with the canonical crc so a '#null'-qualified interface type matches the
+        // Compare with the canonical crc so a '?'-qualified interface type matches the
         // bare interface registered in the implementation list (same identity, different
         // nullability qualifier). Fall back to the name for entries without a pointed type.
         if it.pointedType

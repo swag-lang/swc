@@ -71,8 +71,8 @@ func semaTest003()
 
 func semaTest004()
 {
-    var s: #null string = null
-    var p               = s.buffer
+    var s: string? = null
+    var p          = s.buffer
     #assert(#typeof(p) == const [*] u8)
 }
 

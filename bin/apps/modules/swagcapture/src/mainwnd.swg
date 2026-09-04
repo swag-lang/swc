@@ -1,5 +1,5 @@
 // Global variable
-var g_Main: #null *MainWnd
+var g_Main: *MainWnd?
 
 // Constants
 const ClipboardFormat        = "Swag.Capture"
@@ -92,7 +92,7 @@ enum BottomSize
 struct MainWnd
 {
     using wnd: Wnd
-    #[Swag.Late]
+        late
     {
         topBar, recentBar, rightBar, editBar: *Wnd
         toolRail, commandReadouts:            *StackLayoutCtrl
@@ -109,8 +109,8 @@ struct MainWnd
         appearanceButton:                     *AppearanceButton
     }
 
-    sizeBtn:       #null *IconButton
-    embInfoFreeze: #null *InfoBar
+    sizeBtn:       *IconButton?
+    embInfoFreeze: *InfoBar?
     icons:         IconSet
     appIcon:       ImageList
     monitors:      Array'Env.Monitor
@@ -140,8 +140,7 @@ struct MainWnd
     mdlFormCallout: FormCallout
 
     // Set right after construction (create/test fixtures).
-    #[Swag.Late]
-    mdlHighlight, mdlPixSel, mdlFavorite: IForm
+    late mdlHighlight, mdlPixSel, mdlFavorite: IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
     mdlByType: Array'IForm
@@ -372,7 +371,7 @@ impl MainWnd
 
     // Waits for the background save targeting `file` (any when null) and reports its
     // failure, which the timer that scheduled it can no longer do.
-    mtd flushCaptureSave(file: #null string = null)
+    mtd flushCaptureSave(file: string? = null)
     {
         let failed = g_CaptureSaves.flush(file)
         if !failed.isEmpty() do
@@ -398,7 +397,7 @@ impl MainWnd
             // reads the latest landed version of the file.
             .flushCaptureSave(file)
 
-            let full: #null *Capture = catch Capture.load(file) as err
+            let full: *Capture? = catch Capture.load(file) as err
             if err != null
             {
                 MessageDlg.error(.surface!, appStrings().msg_FailedRename, err)
@@ -413,7 +412,7 @@ impl MainWnd
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
-        if Swag.isSet(.libWnd) and Swag.isSet(.libWnd.view)
+        if (.libWnd != null) and (.libWnd.view != null)
         {
             for it in .libWnd.view.items where it.capture and it.fi.fullname == file do
                 it.capture.title = title
@@ -429,7 +428,7 @@ impl MainWnd
     {
         Cursor.activateWait()
         .flushCaptureSave(file)
-        let full: #null *Capture = catch Capture.load(file) as err
+        let full: *Capture? = catch Capture.load(file) as err
         if err != null
         {
             MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, err)
@@ -541,24 +540,24 @@ impl MainWnd
     {
         .updateCommandState()
         .updateToolTitle()
-        if Swag.isSet(.propWnd) do
+        if .propWnd != null do
             .propWnd.selectionHasChanged()
-        if Swag.isSet(.quickWnd) do
+        if .quickWnd != null do
             .quickWnd.updateQuickStyles()
     }
 
     mtd captureHasChanged()
     {
         .updateSizeDisplay()
-        if Swag.isSet(.recentWnd)
+        if .recentWnd != null
         {
-            if Swag.isSet(.toolRail) do
+            if .toolRail != null do
                 .toolRail.updateCommandState()
             .updateRecent()
         }
     }
 
-    mtd getCapture()->#null *Capture
+    mtd getCapture()->*Capture?
     {
         if .libraryMode do
             return .libWnd.getCapture()
@@ -567,7 +566,7 @@ impl MainWnd
 
     mtd updateRecent()
     {
-        if Swag.isSet(.recentWnd) do
+        if .recentWnd != null do
             .recentWnd.updateRecent()
     }
 
@@ -599,7 +598,7 @@ impl MainWnd
     // panel used to carry, and unlike them it says something the reader does not know.
     mtd updateToolTitle()
     {
-        if !Swag.isSet(.toolTitle) do
+        if !(.toolTitle != null) do
             return
 
         var name = appStrings().act_Select
@@ -967,7 +966,7 @@ impl MainWnd
 
         // Pixel-selection forms borrow a theme color, so their retained renderings
         // follow the switch.
-        if Swag.isSet(.editWnd)
+        if .editWnd != null
         {
             let capture = .editWnd.getCapture()
             if capture do

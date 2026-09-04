@@ -73,7 +73,7 @@ struct Track
     internal
     {
         textStorage:         String
-        allocationAllocator: #null IAllocator
+        allocationAllocator: IAllocator?
     }
 }
 
@@ -480,7 +480,7 @@ impl Track
     mtd const cueCount()->u64 => .cues.count
 
     // Borrows one cue, or returns null when `index` is outside the track.
-    mtd const cue(index: u64)->#null const *Cue => index < .cues.count ? &.cues[index] : null
+    mtd const cue(index: u64)->const *Cue? => index < .cues.count ? &.cues[index] : null
 
     // Borrows one cue's text, or returns an empty view when `index` is outside the track.
     #[Swag.NoInline]
@@ -511,7 +511,7 @@ impl Track
 
     // Borrows the UTF-8 bytes for one cue. The pointer remains valid while the track is alive.
     #[Swag.NoInline]
-    mtd const cueTextData(index: u64)->#null const [*] u8
+    mtd const cueTextData(index: u64)->const [*] u8?
     {
         if index >= .cues.count do
             return null
@@ -524,7 +524,7 @@ impl Track
 
     // Borrows the display-name bytes. Use [[Video.Subtitle.Track.displayNameLength]] for the size.
     #[Swag.NoInline]
-    mtd const displayNameData()->#null const [*] u8 => .name.buffer
+    mtd const displayNameData()->const [*] u8? => .name.buffer
 
     // Returns the display-name byte count.
     #[Swag.NoInline]
@@ -532,7 +532,7 @@ impl Track
 
     // Borrows the language-tag bytes. Use [[Video.Subtitle.Track.languageTagLength]] for the size.
     #[Swag.NoInline]
-    mtd const languageTagData()->#null const [*] u8 => .language.buffer
+    mtd const languageTagData()->const [*] u8? => .language.buffer
 
     // Returns the language-tag byte count.
     #[Swag.NoInline]
@@ -639,7 +639,7 @@ impl Track
     // A successful call returns a non-null pointer. Call [[Video.Subtitle.Track.destroy]] when the
     // track is no longer needed.
     #[Swag.NoInline]
-    func loadOwned(fileName: string)->#null *Track fail
+    func loadOwned(fileName: string)->*Track? fail
     {
         let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
         let result    = Memory.new'Track(allocator)

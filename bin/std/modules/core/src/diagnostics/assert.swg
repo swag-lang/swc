@@ -3,7 +3,7 @@
 
 // Performs the assert operation.
 #[Swag.Macro]
-func assert(expr: #code->bool, message: #null string = null, loc = #callerlocation)
+func assert(expr: #code->bool, message: string? = null, loc = #callerlocation)
 {
     #static if ASSERT
     {
@@ -14,7 +14,7 @@ func assert(expr: #code->bool, message: #null string = null, loc = #callerlocati
 
 // Performs the safety operation.
 #[Swag.Macro]
-func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = null, loc = #callerlocation)
+func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string? = null, loc = #callerlocation)
 {
     #static if #safety(what)
     {
@@ -25,7 +25,7 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = nu
 
 // Performs the safety bound check operation.
 #[Swag.Macro]
-func safetyBoundCheck(expr50: #code->bool, message: #null string = null, loc = #callerlocation)
+func safetyBoundCheck(expr50: #code->bool, message: string? = null, loc = #callerlocation)
 {
     safety'(Swag.SafetyWhat.BoundCheck)(expr50, message, loc)
 }

@@ -19,7 +19,7 @@ internal func comApartmentIsUsable(result: HRESULT)->bool => result == S_OK or r
 internal func comOwnsInitialization(result: HRESULT)->bool => result == S_OK or result == S_FALSE
 
 // Builds a source buffer with every optional playback and loop field disabled.
-internal func makeXAudio2Buffer(data: const *BYTE, size: u32, context: #null *void)->XAUDIO2_BUFFER
+internal func makeXAudio2Buffer(data: const *BYTE, size: u32, context: *void?)->XAUDIO2_BUFFER
 {
     return XAUDIO2_BUFFER{
         flags: 0,
@@ -35,8 +35,8 @@ internal func makeXAudio2Buffer(data: const *BYTE, size: u32, context: #null *vo
 
 struct XAudio2DriverNative
 {
-    xAudio2:        #null *IXAudio2
-    masteringVoice: #null *IXAudio2MasteringVoice
+    xAudio2:        *IXAudio2?
+    masteringVoice: *IXAudio2MasteringVoice?
     hasInitCOM:     bool
     speakerMask:    u32
     x3DInstance:    X3DAUDIO_HANDLE
@@ -176,13 +176,13 @@ internal
     func onVoiceProcessingPassStart(_me: *IXAudio2VoiceCallback, _bytesRequired: UINT32) {}
     func onVoiceProcessingPassEnd(_me: *IXAudio2VoiceCallback) {}
     func onStreamEnd(_me: *IXAudio2VoiceCallback) {}
-    func onBufferStart(_me: *IXAudio2VoiceCallback, _pBufferContext: #null *void) {}
-    func onLoopEnd(_me: *IXAudio2VoiceCallback, _pBufferContext: #null *void) {}
-    func onVoiceError(_me: *IXAudio2VoiceCallback, _pBufferContext: #null *void, _error: HRESULT) {}
+    func onBufferStart(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?) {}
+    func onLoopEnd(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?) {}
+    func onVoiceError(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?, _error: HRESULT) {}
 
-    func onBufferEnd(_me: *IXAudio2VoiceCallback, pBufferContext: #null *void)
+    func onBufferEnd(_me: *IXAudio2VoiceCallback, pBufferContext: *void?)
     {
-        let voice = cast(#null *Voice) pBufferContext
+        let voice = cast(*Voice?) pBufferContext
         if !voice do
             return
         let safeVoice = voice
@@ -250,13 +250,13 @@ impl Voice
         var flags: DWORD
         if !createFlags.has(.PitchControl) do
             flags |= XAUDIO2_VOICE_NOPITCH
-        var handle: #null *IXAudio2SourceVoice
+        var handle: *IXAudio2SourceVoice?
         let safeXAudio2       = g_Driver.xAudio2.xAudio2!
         let createSourceVoice = safeXAudio2.vtbl.createSourceVoice
         let hr                = createSourceVoice(safeXAudio2, &handle, cast(const *WAVEFORMATEX) &wfx.format, flags, XAUDIO2_DEFAULT_FREQ_RATIO, &g_Cb, null, null)
         if hr != S_OK do
             fail SystemError{"createSourceVoice", errorID: hresultErrorId(hr)}
-        voice.handle = cast(#null *void) handle
+        voice.handle = cast(*void?) handle
     }
 
     mtd destroyXAudio2()
@@ -409,7 +409,7 @@ internal impl Voice
         const MaxBus = 16
         var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR
         var sfxSendList:  XAUDIO2_VOICE_SENDS
-        var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS
+        var pSFXSEndList: *XAUDIO2_VOICE_SENDS?
 
         let count = buses.count
         if count > MaxBus do
@@ -444,11 +444,11 @@ internal impl Voice
 
 impl Bus
 {
-    func createXAudio2(bus: *Bus, numChannels: u32, parent: #null *Bus = null) fail
+    func createXAudio2(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
     {
         var sfxSend:      XAUDIO2_SEND_DESCRIPTOR
         var sfxSendList:  XAUDIO2_VOICE_SENDS
-        var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS
+        var pSFXSEndList: *XAUDIO2_VOICE_SENDS?
 
         if parent
         {
@@ -462,13 +462,13 @@ impl Bus
             pSFXSEndList          = &sfxSendList
         }
 
-        var handle: #null *IXAudio2SubmixVoice
+        var handle: *IXAudio2SubmixVoice?
         let safeXAudio2       = g_Driver.xAudio2.xAudio2!
         let createSubmixVoice = safeXAudio2.vtbl.createSubmixVoice
         let hr                = createSubmixVoice(safeXAudio2, &handle, numChannels, 44100, XAUDIO2_VOICE_USEFILTER, 0, pSFXSEndList, null)
         if hr != S_OK do
             fail SystemError{"createSubmixVoice", errorID: hresultErrorId(hr)}
-        bus.handle = cast(#null *void) handle
+        bus.handle = cast(*void?) handle
     }
 
     mtd destroyXAudio2()

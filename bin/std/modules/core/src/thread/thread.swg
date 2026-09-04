@@ -2,7 +2,7 @@
 #global namespace Threading
 
 // Names the thread handle type.
-alias ThreadHandle = #null const *void
+alias ThreadHandle = const *void?
 
 // Selects thread priority.
 enum ThreadPriority
@@ -20,10 +20,10 @@ struct Thread
 {
     public
     {
-        userLambda: #null func||(Thread)     // User lambda associated with this value.
+        userLambda: (func||(Thread))?     // User lambda associated with this value.
 
         context:   Swag.Context     // Context associated with this value.
-        userParam: #null *void      // User param associated with this value.
+        userParam: *void?           // User param associated with this value.
 
         priority   = ThreadPriority.Normal     // Priority associated with this value.
         requestEnd = false                     // Cooperative stop flag the thread body polls.
@@ -77,7 +77,7 @@ impl Thread
     }
 
     // Creates a suspended thread with a cloned runtime context.
-    mtd init(lambda: func||(Thread), userParam: #null *void = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
+    mtd init(lambda: func||(Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Debug.assert(!.isValid(), "thread already created")
 
@@ -129,7 +129,7 @@ impl Thread
     }
 }
 
-private func threadEntry(param: #null *void)->u32
+private func threadEntry(param: *void?)->u32
 {
     let thread = cast(*Thread) param!
     Swag.setContext(thread.context)

@@ -1,17 +1,17 @@
 #global private
 #global if #os == Swag.TargetOs.Windows
 
-alias HANDLE     = #null const [*] void
+alias HANDLE     = const [*] void?
 alias DWORD      = u32
 alias BOOL       = s32
-alias ThreadProc = func(#null *void)->DWORD
+alias ThreadProc = func(*void?)->DWORD
 
 const WAIT_OBJECT_0 = 0'u32
 const INFINITE      = 0xFFFFFFFF'u32
 
 #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
-    func CreateThread(lpThreadAttributes: #null *void, dwStackSize: u64, lpStartAddress: ThreadProc, lpParameter: #null *void, dwCreationFlags: DWORD, lpThreadId: #null *DWORD)->HANDLE
+    func CreateThread(lpThreadAttributes: *void?, dwStackSize: u64, lpStartAddress: ThreadProc, lpParameter: *void?, dwCreationFlags: DWORD, lpThreadId: *DWORD?)->HANDLE
     func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
     func CloseHandle(handle: HANDLE)->BOOL
 }
@@ -22,7 +22,7 @@ struct CallbackData
     observed: u64
 }
 
-func threadCallback(param: #null *void)->DWORD
+func threadCallback(param: *void?)->DWORD
 {
     let data = cast(*CallbackData) param!
     data.observed = data.value

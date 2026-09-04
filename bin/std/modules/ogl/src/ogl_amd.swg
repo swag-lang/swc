@@ -32,14 +32,14 @@ const GL_PERFMON_RESULT_AMD           = 0x8BC6
 #[Extension, Swag.PlaceHolder]
 {
     func glBeginPerfMonitorAMD(monitor: GLuint)
-    func glDeletePerfMonitorsAMD(n: GLsizei, monitors: #null *GLuint)
+    func glDeletePerfMonitorsAMD(n: GLsizei, monitors: *GLuint?)
     func glEndPerfMonitorAMD(monitor: GLuint)
-    func glGenPerfMonitorsAMD(n: GLsizei, monitors: #null *GLuint)
-    func glGetPerfMonitorCounterDataAMD(monitor: GLuint, pname: GLenum, dataSize: GLsizei, data: #null *GLuint, bytesWritten: #null *GLint)
-    func glGetPerfMonitorCounterInfoAMD(group: GLuint, counter: GLuint, pname: GLenum, data: #null *void)
-    func glGetPerfMonitorCounterStringAMD(group: GLuint, counter: GLuint, bufSize: GLsizei, length: #null *GLsizei, counterString: #null *GLchar)
-    func glGetPerfMonitorCountersAMD(group: GLuint, numCounters: #null *GLint, maxActiveCounters: #null *GLint, counterSize: GLsizei, counters: #null *GLuint)
-    func glGetPerfMonitorGroupStringAMD(group: GLuint, bufSize: GLsizei, length: #null *GLsizei, groupString: #null *GLchar)
-    func glGetPerfMonitorGroupsAMD(numGroups: #null *GLint, groupsSize: GLsizei, groups: #null *GLuint)
-    func glSelectPerfMonitorCountersAMD(monitor: GLuint, enable: GLboolean, group: GLuint, numCounters: GLint, counterList: #null *GLuint)
+    func glGenPerfMonitorsAMD(n: GLsizei, monitors: *GLuint?)
+    func glGetPerfMonitorCounterDataAMD(monitor: GLuint, pname: GLenum, dataSize: GLsizei, data: *GLuint?, bytesWritten: *GLint?)
+    func glGetPerfMonitorCounterInfoAMD(group: GLuint, counter: GLuint, pname: GLenum, data: *void?)
+    func glGetPerfMonitorCounterStringAMD(group: GLuint, counter: GLuint, bufSize: GLsizei, length: *GLsizei?, counterString: *GLchar?)
+    func glGetPerfMonitorCountersAMD(group: GLuint, numCounters: *GLint?, maxActiveCounters: *GLint?, counterSize: GLsizei, counters: *GLuint?)
+    func glGetPerfMonitorGroupStringAMD(group: GLuint, bufSize: GLsizei, length: *GLsizei?, groupString: *GLchar?)
+    func glGetPerfMonitorGroupsAMD(numGroups: *GLint?, groupsSize: GLsizei, groups: *GLuint?)
+    func glSelectPerfMonitorCountersAMD(monitor: GLuint, enable: GLboolean, group: GLuint, numCounters: GLint, counterList: *GLuint?)
 }

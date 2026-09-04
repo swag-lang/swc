@@ -2,7 +2,7 @@
 #global namespace File
 
 // Opaque handle to a file, used internally by FileStream
-alias FileHandle = #null const *void
+alias FileHandle = const *void?
 
 // Owns an open file and exposes byte-oriented reading, writing, and seeking.
 #[Swag.NoCopy]
@@ -51,7 +51,7 @@ impl FileStream
     }
 
     // Reads at most `length` bytes, completing host-sized chunks until the stream ends.
-    mtd read(buffer: #null *void, length: u64)->u64 fail
+    mtd read(buffer: *void?, length: u64)->u64 fail
     {
         Debug.assert(.isOpen())
         Debug.assert(.canRead)
@@ -73,7 +73,7 @@ impl FileStream
     }
 
     // Writes at most `length` bytes, completing host-sized chunks while progress is made.
-    mtd write(buffer: #null const *void, length: u64)->u64 fail
+    mtd write(buffer: const *void?, length: u64)->u64 fail
     {
         Debug.assert(.isOpen())
         Debug.assert(.canWrite)

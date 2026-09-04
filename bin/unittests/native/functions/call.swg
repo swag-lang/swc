@@ -45,7 +45,7 @@ namespace compiler1629
     #test
     {
         var arr: [64] u8
-        var ptr = cast([*] #null [*] void) &arr[0]
+        var ptr = cast([*] ([*] void?)) &arr[0]
         ptr[0] = null
         Swag.assert(ptr[0] == null)
     }
@@ -113,7 +113,7 @@ namespace compiler1640
     //
     #test
     {
-        var c: #null [*] u8 = null
+        var c: [*] u8? = null
         c += 0xFF00
         var usedBuckets: u32
         usedBuckets = c ? 1 : 0
@@ -191,8 +191,8 @@ namespace compiler1661
 
     #test
     {
-        var addr1: #null *TT      = null
-        var addr:  [1] *#null *TT = [&addr1]
+        var addr1: *TT?      = null
+        var addr:  [1] *(*TT?) = [&addr1]
         var value: TT
 
         // addr1[0] = &value
@@ -253,7 +253,7 @@ namespace compiler1664
     #test
     {
         var value: TT
-        var addr:  [2, 2] #null *TT = cast(#null *TT) null
+        var addr:  [2, 2] (*TT?) = cast(*TT?) null
 
         addr[0, 0] = &value
 
@@ -1107,7 +1107,7 @@ namespace compiler343
     //
     #test
     {
-        let a: #null *s32 = null
+        let a: *s32? = null
         Swag.assert(a == null)
     }
 }
@@ -1120,7 +1120,7 @@ namespace compiler344
     {
         var a: s32
         Swag.assert(a == 0)
-        var b: #null *s32 = null
+        var b: *s32? = null
         Swag.assert(b == null)
     }
 }

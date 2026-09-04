@@ -3,20 +3,20 @@
 struct AA
 {
     x: s32
-    y: #null *BB
+    y: *BB?
 }
 
 struct BB
 {
     x: s32
-    y: #null any
-    z: #null *void
+    y: any?
+    z: *void?
 }
 
-struct CC { a: #null *CC }
+struct CC { a: *CC? }
 #assert(#sizeof(CC) == 8)
 
-struct LL { p: #null *LLEnum }
+struct LL { p: *LLEnum? }
 enum LLEnum { LLEnum_A = #sizeof(LL) }
 
 const NC: s32 = 42

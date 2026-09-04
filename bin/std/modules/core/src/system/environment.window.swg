@@ -12,8 +12,8 @@ struct WindowCallbacks
 {
     public
     {
-        onPaint:  #null WindowPaintCallback      // Invoked for a paint request.
-        onResize: #null WindowResizeCallback     // Invoked after the logical client size changes.
+        onPaint:  WindowPaintCallback?      // Invoked for a paint request.
+        onResize: WindowResizeCallback?     // Invoked after the logical client size changes.
     }
 }
 
@@ -54,7 +54,7 @@ struct Window
 {
     internal
     {
-        nativeHandle: #null const *void     // Opaque platform window storage.
+        nativeHandle: const *void?     // Opaque platform window storage.
     }
 
     public callbacks: WindowCallbacks     // Callbacks dispatched by the platform event adapter.
@@ -99,7 +99,7 @@ impl Window
     // Returns the borrowed opaque drawable used to create a rendering context.
     //
     // Only a platform rendering adapter should interpret this value.
-    mtd nativeRenderHandle()->#null const *void
+    mtd nativeRenderHandle()->const *void?
     {
         if .isOpen() do
             .rebindNative()

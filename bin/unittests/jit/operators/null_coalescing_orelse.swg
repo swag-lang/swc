@@ -45,7 +45,7 @@ var GNullCoerc: s32 = 56
 
 #test
 {
-    func nullStringFallback(value: #null string)->bool
+    func nullStringFallback(value: string?)->bool
     {
         let resolved = value orelse "fallback"
         return resolved == "fallback"
@@ -57,7 +57,7 @@ var GNullCoerc: s32 = 56
 
 #test
 {
-    func nullPointerFallback(ptr: #null *s32)->s32
+    func nullPointerFallback(ptr: *s32?)->s32
     {
         let fallback = cast(*s32) &GNullCoerc
         let resolved = ptr orelse fallback

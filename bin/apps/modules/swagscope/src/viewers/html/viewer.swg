@@ -21,7 +21,7 @@ internal struct HtmlViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         view:      *HtmlView
         zoomLabel: *IconButton

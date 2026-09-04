@@ -24,8 +24,7 @@ struct Json
 
     internal
     {
-        #[Swag.Late]
-        output:         *ConcatBuffer                                 // Output buffer for generated JSON.
+        late output:    *ConcatBuffer                                 // Output buffer for generated JSON.
         indent:         u32                                           // Current indentation level.
         containerDepth: u32                                           // Current logical nesting depth for arrays/objects.
         fmtInt:         StrConv.ConvertFormatInt                      // Format used for converting integers.
@@ -43,7 +42,7 @@ impl Json
     }
 
     // Returns the identity written for a type value: the canonical runtime crc.
-    mtd typeCrcOf(type: #null typeinfo)->u32
+    mtd typeCrcOf(type: typeinfo?)->u32
     {
         if !type do
             return 0
@@ -58,7 +57,7 @@ impl Json
             .output.addNative(' 'u8)
     }
 
-    internal mtd writeString(value: #null string)
+    internal mtd writeString(value: string?)
     {
         const Hex = "0123456789ABCDEF"
 
@@ -119,7 +118,7 @@ impl Json
     mtd endRoot() {}
 
     // Begins a JSON array.
-    mtd beginSequence(_typeElem: #null typeinfo, _data: #null const *void, _countElem: u64)->bool
+    mtd beginSequence(_typeElem: typeinfo?, _data: const *void?, _countElem: u64)->bool
     {
         .output.addBytes("[")
         .lastSeekValue  = .output.position()
@@ -181,7 +180,7 @@ impl Json
     }
 
     // Begins writing a struct (treated as a JSON object).
-    mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool
+    mtd beginStruct(_structType: typeinfo?, _structData: const *u8?)->bool
     {
         .beginSection(.Ordered)
         return false

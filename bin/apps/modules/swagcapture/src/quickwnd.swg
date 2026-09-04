@@ -81,14 +81,13 @@ func(T) addStyleForm(qs: *QuickStyle, form: *T)
 struct QuickButton
 {
     using iconBtn: IconButton
-    formItf:       #null IForm
-    #[Swag.Late]
-    quickWnd: *QuickWnd
+    formItf:       IForm?
+    late quickWnd: *QuickWnd
 }
 
 struct QuickStylePaintForm
 {
-    itf: #null IForm
+    itf: IForm?
 }
 
 func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
@@ -207,10 +206,8 @@ struct QuickWnd
 {
     using scrollWnd: ScrollWnd
 
-    #[Swag.Late]
-    layout: *WrapLayoutCtrl
-    #[Swag.Late]
-    main: *MainWnd
+    late layout: *WrapLayoutCtrl
+    late main:   *MainWnd
 
     qsArrow:     QuickStyle
     qsShape:     QuickStyle
@@ -225,7 +222,7 @@ struct QuickWnd
     qsPixSel:    QuickStyle
     qsCallout:   QuickStyle
 
-    currentStyle: #null *QuickStyle
+    currentStyle: *QuickStyle?
 }
 
 impl IWnd for QuickWnd
@@ -327,7 +324,7 @@ impl QuickWnd
         .updateSelection()
     }
 
-    mtd btnPopup(btn: #null *Button, pos: Math.Point)
+    mtd btnPopup(btn: *Button?, pos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me)
         menu.addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: !btn)

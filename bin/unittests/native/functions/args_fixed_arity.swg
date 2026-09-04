@@ -48,7 +48,7 @@ func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
     return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
 }
 
-func callPointerEnum(a: #null *void, b: FixedKind, c: s32)->u64
+func callPointerEnum(a: *void?, b: FixedKind, c: s32)->u64
 {
     return cast(u64) (a != null) + cast(u64) cast(u8) b + cast(u64) c
 }

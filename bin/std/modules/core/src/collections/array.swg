@@ -13,10 +13,10 @@ struct(T) Array
 {
     public
     {
-        allocator: #null IAllocator     // The allocator used for memory operations.
-        buffer:    #null [*] T          // Pointer to the contiguous memory block holding the elements.
-        count:     u64                  // The number of valid elements currently in the array.
-        capacity:  u64                  // The total number of elements that can be stored in the allocated buffer.
+        allocator: IAllocator?     // The allocator used for memory operations.
+        buffer:    [*] T?          // Pointer to the contiguous memory block holding the elements.
+        count:     u64             // The number of valid elements currently in the array.
+        capacity:  u64             // The total number of elements that can be stored in the allocated buffer.
     }
 }
 
@@ -31,7 +31,7 @@ impl Array
 
     // Returns a raw, constant pointer to the array's me.buffer.
     #[Inline]
-    mtd opData()->#null const *T
+    mtd opData()->const *T?
     {
         return .buffer
     }
@@ -568,7 +568,7 @@ impl Array
     }
 
     // Appends all elements from a slice to the end of the array.
-    mtd add(values: #null const [..] T)
+    mtd add(values: const [..] T?)
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
@@ -817,7 +817,7 @@ impl Array
 
 impl StrConv.IConvert for Array
 {
-    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string?)
     {
         buf.addBytes("[")
         if .count

@@ -148,7 +148,7 @@ private func finishHexAnalysis(result: *HexAnalysisResult, ascii: *HexStringScan
 
 // Streams one range into fixed byte counts and a bounded set of inferred ASCII and UTF-16 runs.
 // `cancelled` and `processed` are optional atomics owned by an asynchronous caller.
-func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: #null *u32 = null, processed: #null *u64 = null)->HexAnalysisResult
+func analyzeHexRange(fileName: string, range: HexAnalysisRange, cancelled: *u32? = null, processed: *u64? = null)->HexAnalysisResult
 {
     var result: retval
     result.range = range
@@ -254,7 +254,7 @@ impl HexAnalysisOperation
         .result   = {}
         Atomic.exchange(&.cancelRequested, 0)
         Atomic.exchange(&.processed, 0)
-        .job.lambda = func(data: #null *void)
+        .job.lambda = func(data: *void?)
         {
             let operation = cast(*HexAnalysisOperation) data!
             operation.result = analyzeHexRange(operation.fileName.toString(), operation.range, &operation.cancelRequested, &operation.processed)

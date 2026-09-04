@@ -35,11 +35,10 @@ internal struct CodeViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    editor: *RichEditCtrl
+    late editor: *RichEditCtrl
 
-    info:              #null *Wnd
-    zoomLabel:         #null *IconButton
+    info:              *Wnd?
+    zoomLabel:         *IconButton?
     zoomPercent:       u32 = 100
     swagLexer:         RichEditLexerSwag
     codeLexer:         GenericCodeLexer
@@ -51,13 +50,13 @@ internal struct CodeViewer
     residentStart:     u64
     residentOffsetY:   f32
     virtualHeight:     f32
-    loadTimer:         #null *Timer
+    loadTimer:         *Timer?
     hasText:           bool
     pauseStreaming:    bool
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
-    reportFailure:     #null Viewer.ReportFailure
+    reportFailure:     Viewer.ReportFailure?
     failureReason:     String
 }
 
@@ -238,7 +237,7 @@ internal impl CodeViewer
         }
     }
 
-    func create(contentParent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null, info: #null *Wnd = null)->*CodeViewer
+    func create(contentParent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, info: *Wnd? = null)->*CodeViewer
     {
         let result = Wnd.create'CodeViewer(contentParent, "scope.code")
         result.backgroundStyle = .View

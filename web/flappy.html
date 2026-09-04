@@ -120,7 +120,7 @@
 <span class="SKwd">var</span> g_SoundHit:   <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>
 <span class="SKwd">var</span> g_SoundFlap:  <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span></span></div>
 <p><span class="code-inline">g_Font</span> is a nullable pointer because font creation can return no font. Call sites use <span class="code-inline">!</span> only after successful asset loading establishes the invariant.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> g_Font: <span class="SItr">#null</span> *<span class="SCst">Font</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> g_Font: *<span class="SCst">Font</span>?</span></div>
 <h4 id="Types">Types</h4>
 <div class="code-block"><span class="SCde"><span class="SCmt">// State for the player sprite.</span>
 <span class="SKwd">struct</span> <span class="SCst">Bird</span>
@@ -421,7 +421,7 @@
 }</span></div>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
 </footer>
 </section>
 </main>

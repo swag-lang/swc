@@ -43,9 +43,8 @@ public struct Size
 {
     public readonly
     {
-        #[Swag.Late]
-        face:    *Face           // Borrowed pointer to the owning face.
-        metrics: SizeMetrics     // Metrics established by [[TrueType.Face.setPixelSize]].
+        late face: *Face           // Borrowed pointer to the owning face.
+        metrics:   SizeMetrics     // Metrics established by [[TrueType.Face.setPixelSize]].
     }
 }
 

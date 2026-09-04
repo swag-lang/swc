@@ -39,9 +39,9 @@ impl IWnd for ToggleButton
         let colors = .themeColors()
         let rects  = .themeRects()
 
-        var subRectBk:     #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
-        var subRectMark:   #null *ThemeImageRect
+        var subRectBk:     *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
+        var subRectMark:   *ThemeImageRect?
         var colorBk:       Color
         var colorBorder:   Color
         var colorMark:     Color
@@ -122,7 +122,7 @@ impl ToggleButton
 {
     // Creates a toggle button with an optional command identifier.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ToggleButton
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ToggleButton
     {
         Debug.assert(parent != null)
         var pos = position

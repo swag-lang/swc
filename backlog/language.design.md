@@ -582,7 +582,7 @@ with exactly one language and keeps deliberately.
   kind of condition than the one before it, which is the reading this entry is about. The truthiness
   half comes from C, where `if (int x = f())` does coerce — and C has no `where` to sit next to it.
 - Next: decide whether the implicit truthiness test should be restricted to nullable-capable
-  types, where "did I get something" is the intended reading and `#null` already marks it in the
+  types, where "did I get something" is the intended reading and `?` already marks it in the
   type. On a plain `s32` the same line silently means "is it non-zero", which the ternary already
   spells out — and the reference makes that exact argument when it explains why `orelse` refuses a
   non-nullable operand
@@ -937,7 +937,7 @@ with exactly one language and keeps deliberately.
 - Found while: widening the never-null condition rule. The `bin/` sweep it forced stopped
   on `if (ptrAny[]).buffer` in `convertAny`, which reads as "does this value carry a payload" and
   which the type system now calls a constant.
-- Observation: `.buffer` of a `string` or `cstring` now carries the source's `#null`, but the `any`
+- Observation: `.buffer` of a `string` or `cstring` now carries the source's `?`, but the `any`
   and `interface` cases still answer a non-null block pointer whatever the payload is. The
   container's own nullability is not the payload's: a non-null `any` built by `Swag.makeAny(null, type)`
   and an interface whose `obj` was never set both hand back null, and `bin/std` already tests for
@@ -946,7 +946,7 @@ with exactly one language and keeps deliberately.
 - Evidence: `semaIntrinsicDataOf` ([Sema.Intrinsic.cpp](../src/Compiler/Sema/Ast/Sema.Intrinsic.cpp))
   builds the `any` and `interface` results with `TypeInfo::makeBlockPointer(typeVoid(), flags)`,
   where `flags` comes from the container type. Probe — `convertAny` had to read its `any` through
-  `[as #null any]` to keep asking the question at all. The old 0.1.186 note is obsolete: at the
+  `[as any?]` to keep asking the question at all. The old 0.1.186 note is obsolete: at the
   2026-09-02 HEAD (0.1.315), a raw tracked-source inventory reports 3,972 `.buffer` occurrences
   under `bin/**/*.swg` and `bin/**/*.swgs`; that is an upper bound, not the number requiring a
   nullable assertion, because the receiver types have not yet been classified.
@@ -956,6 +956,6 @@ with exactly one language and keeps deliberately.
   which is what the runtime says. Classify the inventory by receiver type before estimating the
   migration; the eventual sweep may require `cast(*T) itf.buffer!` at affected sites. Also consider
   whether a non-null `any` should instead
-  be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `#null`.
+  be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `?`.
 - Complete when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
   contract is documented, and the resulting migration plus compiler and module tests agree.

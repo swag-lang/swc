@@ -152,7 +152,7 @@ public impl RegExp
     // The subject must match from its first byte to its last one: `abc` matches the pattern
     // `abc` but `abcd` does not. Use [[Core.Parser.RegExp.grep]] to look for an occurrence
     // inside a subject.
-    mtd match(str: #null string)->bool
+    mtd match(str: string?)->bool
     {
         return .search(str orelse "", 0, true, true)
     }
@@ -168,7 +168,7 @@ public impl RegExp
     // subject does not begin with an occurrence.
     //
     // The returned string points into `str`.
-    mtd partialMatch(str: #null string)->#null string
+    mtd partialMatch(str: string?)->string?
     {
         if str == null do
             return null
@@ -182,7 +182,7 @@ public impl RegExp
     // Returns the first occurrence of the pattern in the subject, or `null` when there is none.
     //
     // The returned string points into `str`.
-    mtd grep(str: #null string)->#null string
+    mtd grep(str: string?)->string?
     {
         if str == null do
             return null
@@ -194,7 +194,7 @@ public impl RegExp
     }
 
     // Compiles the pattern, then returns its first occurrence in the subject.
-    func grep(expr: string, str: #null string)->#null string fail
+    func grep(expr: string, str: string?)->string? fail
     {
         var expression = create(expr)
         return expression.grep(str)
@@ -206,7 +206,7 @@ public impl RegExp
     // empty occurrence is reported, and the next search then starts one scalar value further,
     // so a pattern that matches the empty string yields one occurrence per position rather
     // than looping. The returned strings point into `str`.
-    mtd grepAll(str: #null string)->Array'(string)
+    mtd grepAll(str: string?)->Array'(string)
     {
         var result: retval
 
@@ -221,7 +221,7 @@ public impl RegExp
     }
 
     // Compiles the pattern, then returns every occurrence of it in the subject.
-    func grepAll(expr: string, str: #null string)->Array'(string) fail
+    func grepAll(expr: string, str: string?)->Array'(string) fail
     {
         var expression = create(expr)
         return expression.grepAll(str)
@@ -231,7 +231,7 @@ public impl RegExp
     //
     // The offsets are byte offsets into `str`. The capture groups of that occurrence are
     // readable afterwards, like after any other successful match.
-    mtd find(str: #null string, start: u64 = 0)->{ found: bool, span: Span }
+    mtd find(str: string?, start: u64 = 0)->{ found: bool, span: Span }
     {
         var result: retval
 
@@ -249,7 +249,7 @@ public impl RegExp
     // Returns where every occurrence of the pattern is in the subject, in order.
     //
     // The rule for empty occurrences is the one [[Core.Parser.RegExp.grepAll]] describes.
-    mtd findAll(str: #null string)->Array'Span
+    mtd findAll(str: string?)->Array'Span
     {
         var result: retval
 
@@ -358,7 +358,7 @@ public impl RegExp
     // In `replacement`, `$0` to `$9` stand for what that capture group matched, `${name}`
     // for what the group of that name matched, and `$$` for one dollar sign. A group that
     // did not take part in the occurrence contributes nothing.
-    mtd replaceAll(str: #null string, replacement: string)->String
+    mtd replaceAll(str: string?, replacement: string)->String
     {
         var result: retval
 
@@ -388,7 +388,7 @@ public impl RegExp
     //
     // An occurrence of the pattern is the separator, so a subject with two occurrences yields
     // three parts, empty ones included. The returned strings point into `str`.
-    mtd split(str: #null string)->Array'(string)
+    mtd split(str: string?)->Array'(string)
     {
         var result: retval
 
@@ -508,7 +508,7 @@ private impl RegExp
     }
 
     // Keeps what a capture engine reported, and takes the span of the whole match out of it.
-    mtd keepSlots(source: #null const [*] u64)
+    mtd keepSlots(source: const [*] u64?)
     {
         let count = .program.slotCount
         if count < 2 or source == null do

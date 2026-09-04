@@ -14,7 +14,7 @@ struct PopupListCtrlItem
         // icon and wording. It receives Checked for the stored selection and Hot for the row
         // under the pointer, so a visual preset keeps the same interaction language as a text
         // entry without becoming a grid of buttons.
-        contentPainter: #null func||(*PopupListCtrlItem, *PaintContext, Math.Rectangle, PaintItemFlags)
+        contentPainter: (func||(*PopupListCtrlItem, *PaintContext, Math.Rectangle, PaintItemFlags))?
     }
 }
 
@@ -40,14 +40,13 @@ struct PopupListCtrl
         markSelectionOnly: bool
 
         // Emitted when the popup closes; the index is U32.Max when the action was canceled.
-        sigClosed: #null func||(*PopupListCtrl, u32)
+        sigClosed: (func||(*PopupListCtrl, u32))?
 
         readonly
         {
-            items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
-            selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
-            #[Swag.Late]
-            scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
+            items:          ArrayPtr'PopupListCtrlItem     // Entries in display order.
+            selectedIndex = Swag.U32.Max                   // Initially highlighted item, or U32.Max.
+            late scrollWnd: *ScrollWnd                     // Scrollable viewport owned by the popup.
         }
     }
 
@@ -57,11 +56,10 @@ struct PopupListCtrl
 // Implements painting and input inside a popup list.
 internal struct PopupListView
 {
-    using wnd: Wnd     // Embedded wnd state.
-    #[Swag.Late]
-    list:    *PopupListCtrl         // List associated with this value.
-    hotIdx:  u32 = Swag.U32.Max     // Index of hot.
-    closing: bool                   // Closing associated with this value.
+    using wnd: Wnd                    // Embedded wnd state.
+    late list: *PopupListCtrl         // List associated with this value.
+    hotIdx:    u32 = Swag.U32.Max     // Index of hot.
+    closing:   bool                   // Closing associated with this value.
 }
 
 internal impl IWnd for PopupListView
@@ -436,7 +434,7 @@ impl PopupListCtrl
 
     // Appends a selectable item and returns its stable heap object.
     #[Swag.Discardable]
-    mtd addItem(name: string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->*PopupListCtrlItem
+    mtd addItem(name: string, id: WndId? = null, icon: Icon = {}, userData0: *void? = null, userData1: *void? = null)->*PopupListCtrlItem
     {
         let item = .items.allocate()
         with item

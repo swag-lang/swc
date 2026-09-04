@@ -156,7 +156,7 @@ struct Language
 private struct StringTable
 {
     type: typeinfo = Strings     // Reflected type of the table.
-    data: #null *void            // The live table the fields of which are retargeted.
+    data: *void?                 // The live table the fields of which are retargeted.
     file: String                 // Base name of the per-language resource.
 
     // Decoded translation values. The table fields are views into these heap strings,
@@ -173,7 +173,7 @@ private struct LocalizationState
     // Bundle the active language was applied from, borrowed for as long as it stays active.
     // A table registered after the switch is translated from it, which is what makes a
     // shared library loaded on demand arrive in the language already on screen.
-    resources: #null const *Resources.Bundle
+    resources: const *Resources.Bundle?
 }
 
 private var g_Localization: LocalizationState
@@ -263,7 +263,7 @@ func languages()->const [..] Language
 }
 
 // Returns the registered language named by `tag`, or `null` when no language carries it.
-func findLanguage(tag: string)->#null const *Language
+func findLanguage(tag: string)->const *Language?
 {
     ensureReferenceLanguage()
     for &one in g_Localization.languages where one.tag == tag do
@@ -411,7 +411,7 @@ private func resetTable(table: *StringTable)
 // starting with `#` is a comment; there are no inline comments, since prose owns the
 // rest of the line. With a pool, decoded values are copied there and the table fields
 // are pointed at them; without one, the content is only validated.
-private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, pool: #null *Array'(*String)) fail
+private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, pool: *Array'(*String)?) fail
 {
     let lines = Tokenize.splitLines(content)
     for oneit, idx in lines

@@ -7,7 +7,7 @@ using Core, Gui, Pixel
 
 var g_Image:   Image
 var g_Texture: Texture
-var g_Slider:  #null *Slider
+var g_Slider:  *Slider?
 
 func compute()
 {

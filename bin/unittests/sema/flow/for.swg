@@ -224,7 +224,7 @@ func semaTest027()
 
 func semaTest028()
 {
-    var str: #null string
+    var str: string?
     for it in str.count {}
     var v: u32
     for it in v {}

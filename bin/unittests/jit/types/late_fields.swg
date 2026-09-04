@@ -7,11 +7,9 @@ struct JitLateItem
 
 struct JitLateBox
 {
-    #[Swag.Late]
-    item: *JitLateItem
-    #[Swag.Late]
-    name:  string
-    count: s32
+    late item: *JitLateItem
+    late name: string
+    count:     s32
 }
 
 // Full life of late fields: unset, assigned, read, written through.
@@ -20,12 +18,12 @@ func jitLateLifecycle()->bool
     var first = JitLateItem{value: 7}
     var box: JitLateBox
 
-    if Swag.isSet(box.item) or Swag.isSet(box.name) do
+    if (box.item != null) or (box.name != null) do
         return false
 
     box.item = &first
     box.name = "hello"
-    if !Swag.isSet(box.item) or !Swag.isSet(box.name) do
+    if !(box.item != null) or !(box.name != null) do
         return false
 
     let p: *JitLateItem = box.item
@@ -45,14 +43,14 @@ func jitLateAddressOf()->bool
     var box: JitLateBox
     let slot = &box.item
     slot[] = &it
-    return Swag.isSet(box.item) and box.item.value == 3
+    return (box.item != null) and box.item.value == 3
 }
 
 // Struct literals omit late fields; they start unset.
 func jitLateLiteral()->bool
 {
     let box = JitLateBox{count: 4}
-    return box.count == 4 and !Swag.isSet(box.item) and !Swag.isSet(box.name)
+    return box.count == 4 and !(box.item != null) and !(box.name != null)
 }
 
 #test
@@ -63,17 +61,16 @@ func jitLateLiteral()->bool
 }
 
 // Regression: a struct with non-zero field defaults initializes through the
-// partial per-field path. A 'Swag.Late' field is typed non-null, so the generic
+// partial per-field path. A 'late' field is typed non-null, so the generic
 // implicit-default emitter used to SKIP it ("requires explicit init"), leaving
-// whatever garbage the allocation carried: 'Swag.isSet' then read true on a fresh
+// whatever garbage the allocation carried: 'a presence comparison' then read true on a fresh
 // object (seen as 0xD0 mimalloc poison on the heap). Late storage must be
 // zeroed on every construction path.
 struct JitLateDirty
 {
-    tag: s32 = 5
-    #[Swag.Late]
-    item:  *JitLateItem
-    ratio: f32 = 1.5
+    tag:       s32 = 5
+    late item: *JitLateItem
+    ratio:     f32 = 1.5
 }
 
 func jitLateDirtyMemoryInit()->bool
@@ -84,7 +81,7 @@ func jitLateDirtyMemoryInit()->bool
     let box = cast(*JitLateDirty) raw
     Swag.init(box, 1)
 
-    let ok = box.tag == 5 and box.ratio == 1.5 and !Swag.isSet(box.item)
+    let ok = box.tag == 5 and box.ratio == 1.5 and !(box.item != null)
     testFree(raw)
     return ok
 }

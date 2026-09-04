@@ -74,7 +74,7 @@ struct PackedImageLike
     bpp:           u8
     bytesPerPixel: u8
     meta:          MiniArrayLike
-    work:          #null *PackedImageLike
+    work:          *PackedImageLike?
     storage:       [16] u8
 }
 

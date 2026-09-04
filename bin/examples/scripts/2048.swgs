@@ -78,8 +78,8 @@ struct Cell
 }
 
 var g_Cells:     Array'Cell
-var g_Font:      #null *Font
-var g_LabelFont: #null *Font
+var g_Font:      *Font?
+var g_LabelFont: *Font?
 var g_MoveDirX:  s32
 var g_MoveDirY:  s32
 var g_IsMoving:  bool
@@ -207,7 +207,7 @@ func animate(wnd: *Wnd)
         g_Cells.removeAt(i)
 }
 
-func cellAt(x, y: s32, self: #null *Cell = null)->#null *Cell
+func cellAt(x, y: s32, self: *Cell? = null)->*Cell?
 {
     for &c in g_Cells
     {

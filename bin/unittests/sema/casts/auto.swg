@@ -50,7 +50,7 @@ func semaTest006()
 
 func semaTest007()
 {
-    var p: #null *u32 = null
+    var p: *u32? = null
 }
 
 func semaTest008()
@@ -81,9 +81,9 @@ func semaTest011()
 
 func semaTest012()
 {
-    var p:  #null *u32     = cast() null
-    var s:  #null string   = cast() null
-    var sl: #null [..] s32 = cast() null
+    var p:  *u32?     = cast() null
+    var s:  string?   = cast() null
+    var sl: [..] s32? = cast() null
 }
 
 func semaTest013()

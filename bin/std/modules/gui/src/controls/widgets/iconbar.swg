@@ -74,7 +74,7 @@ impl IconBar
 {
     // Creates an empty icon bar with a non-negative icon size and item padding.
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
     {
         Debug.assert(parent != null)
         Debug.assert(iconSize >= 0 and itemPadding >= 0)
@@ -88,7 +88,7 @@ impl IconBar
 
     // Appends an icon button with optional command identifier and interaction flags.
     #[Swag.Discardable]
-    mtd addButton(icon: Icon, id: #null WndId = null, flags = IconButtonFlags.None)->*IconButton
+    mtd addButton(icon: Icon, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
     {
         var sizedIcon = icon
         sizedIcon.sizeX, sizedIcon.sizeY = .iconSize
@@ -110,14 +110,14 @@ impl IconBar
 
     // Appends a radio-style button that remains checked after its first activation.
     #[Swag.Discardable]
-    mtd addRadioButton(icon: Icon, id: #null WndId = null)->*IconButton
+    mtd addRadioButton(icon: Icon, id: WndId? = null)->*IconButton
     {
         return .addButton(icon, id, .Radio)
     }
 
     // Appends a toggle button that flips checked state on every activation.
     #[Swag.Discardable]
-    mtd addToggleButton(icon: Icon, id: #null WndId = null)->*IconButton
+    mtd addToggleButton(icon: Icon, id: WndId? = null)->*IconButton
     {
         return .addButton(icon, id, .Toggle)
     }
@@ -161,11 +161,11 @@ impl IconBar
     }
 
     // Returns the child icon button carrying one command identifier, or null when absent.
-    mtd buttonById(id: WndId)->#null *IconButton
+    mtd buttonById(id: WndId)->*IconButton?
     {
         let button = .childById(id)
         if !button do
             return null
-        return cast(#null *IconButton) button
+        return cast(*IconButton?) button
     }
 }

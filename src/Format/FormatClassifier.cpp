@@ -583,7 +583,7 @@ namespace
             }
             addRole(startPiece, startRole);
 
-            // The type may start with qualifiers (`#late`, `#null`, `*`, ...)
+            // The type may start with qualifiers (`const`, `*`, ...)
             // that its span skips over. Walk backward to the nearest `:` so
             // each declaration in a VarDeclList marks its own separator.
             const NodeSpan typeSpan = spanOf(typeRef);
@@ -856,6 +856,14 @@ namespace
                     const NodeSpan returnSpan = spanOf(lambda.nodeReturnTypeRef);
                     if (returnSpan.valid())
                         addRole(prevCodeBeforeOperandIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
+                    break;
+                }
+
+                case AstNodeId::QualifiedType:
+                {
+                    const auto& qualified = node.cast<AstQualifiedType>();
+                    if (qualified.hasFlag(AstQualifiedTypeFlagsE::Nullable) && span.valid())
+                        addRole(span.maxPiece, FormatRoleE::NullableTypeSuffix);
                     break;
                 }
 

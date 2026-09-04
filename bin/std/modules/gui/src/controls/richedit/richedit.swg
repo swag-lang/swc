@@ -47,7 +47,7 @@ struct RichEditCtrl
         tabSize:                  s32 = 4                                                    // Width of a tab stop in space advances.
         marginLeft:               f32                                                        // Blank space between the view and the left text edge.
         marginRight:              f32                                                        // Blank space between the right text edge and the view.
-        lexer:                    #null IRichEditLexer                                       // Optional lexer responsible for assigning style indices.
+        lexer:                    IRichEditLexer?                                            // Optional lexer responsible for assigning style indices.
         form  = RichEditForm.RichEditCtrl                                                    // Current theme treatment.
         sigIsReadOnly:            SigArray'func||(*bool)                                     // Lets owners impose read-only state in addition to `flags`.
         sigChanged:               SigArray'func||(*RichEditCtrl)                             // Emitted after document content changes.
@@ -64,15 +64,13 @@ struct RichEditCtrl
     // The document and everything the control derives from it: the line pool, the cursor and
     // selection, the visible window, and the undo timeline. Edit through the methods and
     // connect to the signals; this state only makes sense together.
-    cursorPos: RichEditCursor            // Cursor pos associated with this value.
-    selBeg:    RichEditCursor            // Sel beg associated with this value.
-    lines:     ArrayPtr'RichEditLine     // Lines associated with this value.
-    freeLines: ArrayPtr'RichEditLine     // Free lines associated with this value.
-    #[Swag.Late]
-    scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
-    #[Swag.Late]
-    edView:       *RichEditView      // Ed view associated with this value.
-    selRectangle: Math.Rectangle     // Sel rectangle associated with this value.
+    cursorPos:      RichEditCursor            // Cursor pos associated with this value.
+    selBeg:         RichEditCursor            // Sel beg associated with this value.
+    lines:          ArrayPtr'RichEditLine     // Lines associated with this value.
+    freeLines:      ArrayPtr'RichEditLine     // Free lines associated with this value.
+    late scrollWnd: *ScrollWnd                // Scroll wnd associated with this value.
+    late edView:    *RichEditView             // Ed view associated with this value.
+    selRectangle:   Math.Rectangle            // Sel rectangle associated with this value.
 
     hasSelRect:              bool     // Whether this value has sel rect.
     modified:                bool     // Modified associated with this value.
@@ -185,7 +183,7 @@ private impl RichEditCtrl
     #[Swag.Discardable]
     mtd newLine(index: u64)->*RichEditLine
     {
-        var p: #null *RichEditLine
+        var p: *RichEditLine?
 
         if .freeLines.count do
             p = .freeLines.popBack()
@@ -276,7 +274,7 @@ impl RichEditCtrl
 {
     // Creates a rich-text editor as a child of the requested window.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*RichEditCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*RichEditCtrl
     {
         var pos = position
         if pos.height == 0 do
@@ -484,7 +482,7 @@ impl RichEditCtrl
         if !.lexer do
             return
 
-        var prev, cur, next: #null *RichEditLine
+        var prev, cur, next: *RichEditLine?
         for i in (.lines).count
         {
             cur  = .lines[i]!

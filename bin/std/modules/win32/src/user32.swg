@@ -5,14 +5,14 @@ using Swag
 
 #[Swag.Strict]
 {
-    alias HWND     = #null const *void
-    alias HMENU    = #null const *void
-    alias HICON    = #null const *void
-    alias HBITMAP  = #null const *void
-    alias HCURSOR  = #null const *void
-    alias HBRUSH   = #null const *void
-    alias HDC      = #null const *void
-    alias HMONITOR = #null const *void
+    alias HWND     = const *void?
+    alias HMENU    = const *void?
+    alias HICON    = const *void?
+    alias HBITMAP  = const *void?
+    alias HCURSOR  = const *void?
+    alias HBRUSH   = const *void?
+    alias HDC      = const *void?
+    alias HMONITOR = const *void?
 }
 
 alias WPARAM   = u64
@@ -267,7 +267,7 @@ struct WNDCLASSA
     public
     {
         style:         UINT
-        lpfnWndProc:   #null const *void
+        lpfnWndProc:   const *void?
         cbClsExtra:    s32
         cbWndExtra:    s32
         hInstance:     HINSTANCE
@@ -284,7 +284,7 @@ struct WNDCLASSW
     public
     {
         style:         UINT
-        lpfnWndProc:   #null const *void
+        lpfnWndProc:   const *void?
         cbClsExtra:    s32
         cbWndExtra:    s32
         hInstance:     HINSTANCE
@@ -1021,7 +1021,7 @@ const DI_COMPAT      = 0x0004
 const DI_DEFAULTSIZE = 0x0008
 const DI_NOMIRROR    = 0x0010
 
-alias DPI_AWARENESS_CONTEXT = #null *void
+alias DPI_AWARENESS_CONTEXT = *void?
 const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -1's64
 const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -2's64
 const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -3's64
@@ -1138,7 +1138,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func BeginPaint(hWnd: HWND, lpPaint: *PAINTSTRUCT)->HDC
     func EndPaint(hWnd: HWND, lpPaint: const *PAINTSTRUCT)->BOOL
     func ReleaseDC(hWnd: HWND, hDC: HDC)->s32
-    func InvalidateRect(hWnd: HWND, lpRect: #null const *RECT, bErase: BOOL)->BOOL
+    func InvalidateRect(hWnd: HWND, lpRect: const *RECT?, bErase: BOOL)->BOOL
 
     func ScreenToClient(hWnd: HWND, lpPoint: *POINT)->BOOL
     func ClientToScreen(hWnd: HWND, lpPoint: *POINT)->BOOL
@@ -1151,7 +1151,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func SetWindowLongPtrA(hWnd: HWND, nIndex: s32, dwNewLong: LONG_PTR)->LONG_PTR
     func SetWindowLongPtrW(hWnd: HWND, nIndex: s32, dwNewLong: LONG_PTR)->LONG_PTR
 
-    func EnumDisplayMonitors(hdc: HDC, lprcClip: #null *RECT, lpfnEnum: MONITORENUMPROC, dwData: LPARAM)->BOOL
+    func EnumDisplayMonitors(hdc: HDC, lprcClip: *RECT?, lpfnEnum: MONITORENUMPROC, dwData: LPARAM)->BOOL
     func EnumWindows(lpEnumFunc: WNDENUMPROC, lParam: LPARAM)->BOOL
 }
 

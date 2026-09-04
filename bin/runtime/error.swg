@@ -2,7 +2,7 @@ using Swag
 
 ////////////////////////////////////////////////////////////
 
-func __dropErr(err: #null any)
+func __dropErr(err: any?)
 {
     if err == null do
         return
@@ -75,7 +75,7 @@ func __pushErr()
 
     // This is a borrowed bitwise snapshot. The owning error value stays in its scratch slot; a
     // normal assignment here would give the snapshot an ownership lifecycle of its own.
-    Swag.memcpy(&cxt.errors[cxt.errorIndex].pushCurError, &cxt.curError, #sizeof(#null any))
+    Swag.memcpy(&cxt.errors[cxt.errorIndex].pushCurError, &cxt.curError, #sizeof(any?))
 
     cxt.hasError   = 0
     cxt.curError   = null
@@ -91,8 +91,8 @@ func __popErr()
     cxt.errorIndex -= 1
 
     cxt.hasError = cxt.errors[cxt.errorIndex].pushHasError
-    Swag.memcpy(&cxt.curError, &cxt.errors[cxt.errorIndex].pushCurError, #sizeof(#null any))
-    Swag.memset(&cxt.errors[cxt.errorIndex].pushCurError, 0, #sizeof(#null any))
+    Swag.memcpy(&cxt.curError, &cxt.errors[cxt.errorIndex].pushCurError, #sizeof(any?))
+    Swag.memset(&cxt.errors[cxt.errorIndex].pushCurError, 0, #sizeof(any?))
     cxt.traceIndex          = cxt.errors[cxt.errorIndex].pushTraceIndex
     cxt.errorAllocator.used = cxt.errors[cxt.errorIndex].pushUsedAlloc
 
@@ -113,14 +113,14 @@ func __endErr()
 // Seed the 'catch e as err { H }' binding: copy the current error into the caller-provided
 // slot right before the handler runs (curError is still valid at that point, cleared by
 // '__endErr' only after H). All the fat-value copy lives here so codegen just passes the slot.
-func __bindErr(dst: *#null any)
+func __bindErr(dst: *(any?))
 {
     dst[] = Swag.getContext().curError
 }
 
 // Reset a 'catch e as err' capture slot before the fallible call runs, so a successful
 // call leaves 'err' null (the failure path overwrites it via '__bindErr').
-func __clearErr(dst: *#null any)
+func __clearErr(dst: *(any?))
 {
     dst[] = null
 }
@@ -230,7 +230,7 @@ func compilerWarning(message: string, loc: SourceCodeLocation)
 // Print a full panic report: banner, message, source location and both stack traces.
 // Shared by the default panic path below and by the native #test runner, whose panic
 // hook reports a failing test with the exact same output before resuming the runner.
-func __printPanicReport(message: #null string, loc: SourceCodeLocation)
+func __printPanicReport(message: string?, loc: SourceCodeLocation)
 {
     let cxt = Swag.getContext()
 
@@ -262,7 +262,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
     // The panic entry captures before calling a user hook. Capturing from the hook itself stops at
     // the panic frame on Windows and loses the application caller, which made devmode reports no
     // more useful than release reports. A direct internal call still has a local fallback.
-    var fallback: [64] #null *void = cast(#null *void) null
+    var fallback: [64] (*void?) = cast(*void?) null
     var trace = Swag.makeSlice(&cxt.panicStack[0], cxt.panicStackCount)
     if !cxt.panicStackCount
     {
@@ -282,7 +282,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
 
 // Stop the execution and panic
 #[Swag.Safety(.All, false)]
-func panic(message: #null string, loc: SourceCodeLocation)
+func panic(message: string?, loc: SourceCodeLocation)
 {
     // Capture while the application caller is still immediately above this frame. A panic hook is
     // free to resume execution (the native test runner does). Store it in the process context so a
@@ -324,7 +324,7 @@ func safetyPanic(message: string, loc: SourceCodeLocation)
     Swag.panic(message, loc)
 }
 
-func __panic(file: const [*] u8, line: u32, col: u32, message: #null const [*] u8)
+func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation
     loc.fileName               = Swag.makeString(file, (cast(const cstring) file).count)
@@ -335,7 +335,7 @@ func __panic(file: const [*] u8, line: u32, col: u32, message: #null const [*] u
     Swag.panic(msg, loc)
 }
 
-func __compilerError(file: const [*] u8, line: u32, col: u32, message: #null const [*] u8)
+func __compilerError(file: const [*] u8, line: u32, col: u32, message: const [*] u8?)
 {
     var loc: SourceCodeLocation
     loc.fileName               = Swag.makeString(file, (cast(const cstring) file).count)

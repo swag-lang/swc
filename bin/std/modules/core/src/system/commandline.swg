@@ -4,7 +4,7 @@
 using Core.Errors
 
 // Overrides the command-line name associated with a reflected field.
-attr ArgParams(nameAlias: #null string = null)
+attr ArgParams(nameAlias: string? = null)
 
 // Represents parse options.
 struct ParseOptions
@@ -143,8 +143,8 @@ struct FieldResult
 {
     public
     {
-        field: #null const *Swag.TypeValue     // Field associated with this value.
-        index: u64 = Swag.U64.Max              // Index associated with this value.
+        field: const *Swag.TypeValue?     // Field associated with this value.
+        index: u64 = Swag.U64.Max         // Index associated with this value.
     }
 }
 
@@ -192,7 +192,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
         }
 
         // Test name alias
-        let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(#null string) null)
+        let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(string?) null)
         if aliasName != null and isSameName(aliasName orelse "", name)
         {
             result.field = it

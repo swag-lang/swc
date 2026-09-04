@@ -319,9 +319,9 @@ namespace
 
         builder.emitLoadAddressRegMem(payload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
 
-        // 'Swag.Late' field: reading a value that was never assigned is a guarded
+        // 'late' field: reading a value that was never assigned is a guarded
         // fault. Consumers that never read (pure store target, address-of,
-        // 'Swag.isSet') cleared the safety payload during sema.
+        // null comparison) cleared the safety payload during sema.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
             SWC_RESULT(CodeGenSafety::emitLateReadCheck(codeGen, node, payload.reg, memberTypeRef));
 

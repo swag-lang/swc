@@ -27,7 +27,7 @@ struct FormLayoutOptions
         controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
         helpSpacing                        = 4.0'f32       // Gap before optional help text.
         rowSpacing                         = 12.0'f32      // Gap between consecutive rows.
-        labelFont:      #null *Font        = null          // Font applied to every created label, or the theme font.
+        labelFont:      *Font?             = null          // Font applied to every created label, or the theme font.
         labelFlags:     LabelFlags         = None          // Presentation options applied to every created label.
     }
 }
@@ -37,10 +37,10 @@ struct FormLayoutRow
 {
     public readonly
     {
-        label:  *Label           // Label created and owned by the form.
-        field:  *Wnd             // Caller-created field owned by the form.
-        action: #null *Wnd       // Optional trailing action owned by the form.
-        help:   #null *Label     // Optional explanatory label owned by the form.
+        label:  *Label      // Label created and owned by the form.
+        field:  *Wnd        // Caller-created field owned by the form.
+        action: *Wnd?       // Optional trailing action owned by the form.
+        help:   *Label?     // Optional explanatory label owned by the form.
     }
 }
 
@@ -292,7 +292,7 @@ impl FormLayoutCtrl
     // and owns the label and optional help label. The concrete field remains
     // directly available to the caller through the pointer passed here.
     #[Swag.Discardable]
-    mtd addField(label: string, field: *Wnd, action: #null *Wnd = null, help: #null string = null)->u64
+    mtd addField(label: string, field: *Wnd, action: *Wnd? = null, help: string? = null)->u64
     {
         Debug.assert(field.parent == me, "form field needs the form as its parent")
         Debug.assert(!action or action.parent == me, "form action needs the form as its parent")
@@ -319,7 +319,7 @@ impl FormLayoutCtrl
     // Creates an editable text field, appends its labeled row, and returns the editor.
     //
     // `icon` is displayed inside the editor when it refers to a valid atlas frame.
-    mtd addTextField(label: string, text: string = "", placeholder: #null string = null, help: #null string = null, icon: Icon = {}, id: #null WndId = null)->*EditBox
+    mtd addTextField(label: string, text: string = "", placeholder: string? = null, help: string? = null, icon: Icon = {}, id: WndId? = null)->*EditBox
     {
         let result = EditBox.create(me, text, id: id)
         result.setPlaceholder(placeholder)
@@ -333,7 +333,7 @@ impl FormLayoutCtrl
     //
     // `flags` defaults to [[Gui.PasswordEditFlags.RevealButton]]; pass
     // [[Gui.PasswordEditFlags.None]] for a permanently masked field.
-    mtd addPasswordField(label: string, placeholder: #null string = null, help: #null string = null, icon: Icon = {}, id: #null WndId = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
+    mtd addPasswordField(label: string, placeholder: string? = null, help: string? = null, icon: Icon = {}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         let result = PasswordEdit.create(me, id: id, flags: flags)
         result.setPlaceholder(placeholder)
@@ -347,7 +347,7 @@ impl FormLayoutCtrl
     //
     // The combo box starts empty and without a selection. Fill it with
     // [[Gui.ComboBox.addItem]], then select the entry the form should open on.
-    mtd addChoiceField(label: string, help: #null string = null, id: #null WndId = null)->*ComboBox
+    mtd addChoiceField(label: string, help: string? = null, id: WndId? = null)->*ComboBox
     {
         let result = ComboBox.create(me, id: id)
         discard .addField(label, result, null, help)
@@ -360,7 +360,7 @@ impl FormLayoutCtrl
     // already says what checking it does, and a name beside it would only say the same thing
     // twice. The box therefore lines up under the fields rather than under their names, which is
     // where the reader is already looking.
-    mtd addOptionField(text: string, help: #null string = null, id: #null WndId = null)->*CheckButton
+    mtd addOptionField(text: string, help: string? = null, id: WndId? = null)->*CheckButton
     {
         let result = CheckButton.create(me, text, id: id)
         discard .addField("", result, null, help)
@@ -372,7 +372,7 @@ impl FormLayoutCtrl
     // The button shares the height of its field and keeps its preferred width. A row holds a
     // single trailing control, so this cannot follow [[Gui.FormLayoutCtrl.addRowChoice]] on
     // the same row.
-    mtd addRowAction(text: string, icon: Icon = {}, id: #null WndId = null)->*PushButton
+    mtd addRowAction(text: string, icon: Icon = {}, id: WndId? = null)->*PushButton
     {
         let result = PushButton.create(me, text, {}, id)
         if icon.isValid() do
@@ -385,7 +385,7 @@ impl FormLayoutCtrl
     //
     // Use it for the unit or qualifier of a value the field itself holds, such as the size
     // unit beside a capacity. A row holds a single trailing control.
-    mtd addRowChoice(id: #null WndId = null)->*ComboBox
+    mtd addRowChoice(id: WndId? = null)->*ComboBox
     {
         let result = ComboBox.create(me, id: id)
         .attachToLastRow(result)

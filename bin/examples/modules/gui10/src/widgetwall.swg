@@ -21,8 +21,7 @@ const CaptionWide = 104.0
 // and pinning two hundred rectangles by hand is how a catalogue stops being updated.
 struct Flow
 {
-    #[Swag.Late]
-    view: *Wnd
+    late view: *Wnd
 
     width: f32     // Usable width, already inside the padding.
     x:     f32     // Left edge of the next widget.
@@ -98,8 +97,7 @@ struct WidgetWall
 {
     using scrollWnd: ScrollWnd
 
-    #[Swag.Late]
-    view: *Wnd
+    late view: *Wnd
 
     flow:  Flow
     built: bool
@@ -123,7 +121,7 @@ impl WidgetWall
     // the middle of inspecting.
     mtd build()
     {
-        if .built or !Swag.isSet(.view) or .view.clientRect().width < 240 do
+        if .built or !(.view != null) or .view.clientRect().width < 240 do
             return
         .built = true
 

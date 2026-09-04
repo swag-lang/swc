@@ -5,7 +5,7 @@ public struct Item
     public
     {
         storage: [1] u8
-        buffer:  #null [*] u8
+        buffer:  [*] u8?
     }
 }
 

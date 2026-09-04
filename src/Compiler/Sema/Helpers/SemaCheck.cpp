@@ -389,7 +389,6 @@ namespace
             case AstModifierFlagsE::Complete: return TokenId::ModifierComplete;
             case AstModifierFlagsE::Move: return TokenId::ModifierMove;
             case AstModifierFlagsE::Relocate: return TokenId::ModifierRelocate;
-            case AstModifierFlagsE::Nullable: return TokenId::ModifierNullable;
             default:
                 SWC_UNREACHABLE();
         }

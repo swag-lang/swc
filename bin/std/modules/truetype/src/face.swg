@@ -81,7 +81,7 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
     return result
 }
 
-private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: #null IAllocator)->#null *Face fail
+private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?)->*Face? fail
 {
     if bytes.count == 0 do
         fault(0x06)
@@ -180,7 +180,7 @@ public impl Face
     // let face  = (try TrueType.Face.load(bytes.toSlice()))!
     // defer face.destroy()
     // ```
-    func load(bytes: const [..] u8, allocator: #null IAllocator = null)->#null *Face fail
+    func load(bytes: const [..] u8, allocator: IAllocator? = null)->*Face? fail
     {
         return Face.loadAt(bytes, 0, allocator)
     }
@@ -196,7 +196,7 @@ public impl Face
     // [[TrueType.Face.load]] for standalone font files, where missing metadata is an error.
     //
     // Ownership and cleanup match [[TrueType.Face.load]].
-    func loadSubset(bytes: const [..] u8, familyName: string, allocator: #null IAllocator = null)->#null *Face fail
+    func loadSubset(bytes: const [..] u8, familyName: string, allocator: IAllocator? = null)->*Face? fail
     {
         if !familyName.count do
             fault(0x06)
@@ -220,7 +220,7 @@ public impl Face
     //     defer face.destroy()
     // }
     // ```
-    func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: #null IAllocator = null)->#null *Face fail
+    func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face? fail
     {
         return loadFaceBytes(bytes, faceIndex, "", allocator)
     }

@@ -58,11 +58,10 @@ impl Style
 #[Swag.NoDoc]
 struct VisualBlock
 {
-    #[Swag.Late]
-    wnd:        *Wnd
-    inline:     #null *InlineView
-    table:      #null *TableView
-    html:       #null *HtmlView
+    late wnd:   *Wnd
+    inline:     *InlineView?
+    table:      *TableView?
+    html:       *HtmlView?
     kind:       BlockKind
     searchText: String
 
@@ -104,7 +103,7 @@ struct View
         }
     }
 
-    #[Swag.Late]
+        late
     {
         scroll: *ScrollWnd
         body:   *Wnd
@@ -125,7 +124,7 @@ struct View
     sourceDone:              bool
     pendingBlocks:           Array'Block
     pendingIndex:            u64
-    loadTimer:               #null *Timer
+    loadTimer:               *Timer?
     contentHeight:           f32
     jumpToEnd:               bool
     hasPendingTarget:        bool
@@ -1291,7 +1290,7 @@ internal impl IWnd for View
 {
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
-        if Swag.isSet(.scroll) do
+        if .scroll != null do
             .applyDocumentStyle()
     }
 

@@ -33,7 +33,7 @@ struct StaticInferredDepOwner
 
 struct StaticInlineBuffer
 {
-    public buffer: #null [*] u8
+    public buffer: [*] u8?
 }
 
 #[Swag.Opaque]

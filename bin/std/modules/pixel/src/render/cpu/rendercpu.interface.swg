@@ -6,7 +6,7 @@ impl IRenderer for RenderCpu
 {
     mtd const impl needsNativeWindow()->bool => false
 
-    mtd impl createContext(renderHandle: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
+    mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
     {
         Debug.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
         Debug.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
@@ -63,7 +63,7 @@ impl IRenderer for RenderCpu
         .drawImpl(painter)
     }
 
-    mtd impl bindRenderTarget(target: *RenderTarget, vp: #null *Math.Rectangle = null)
+    mtd impl bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null)
     {
         .bindRenderTargetImpl(target)
     }
@@ -163,7 +163,7 @@ impl IRenderer for RenderCpu
         return .acquireRenderTargetImpl(width, height)
     }
 
-    mtd impl releaseRenderTarget(target: #null *RenderTarget)
+    mtd impl releaseRenderTarget(target: *RenderTarget?)
     {
         .releaseRenderTargetImpl(target)
     }

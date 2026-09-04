@@ -9,7 +9,7 @@ const JIT_PRESENT_EMPTY_STRING_SLICE:  const [..] u8               = ""
 const JIT_PRESENT_EMPTY_CSTRING:       const cstring               = cast(const cstring) ("").buffer
 const JIT_PRESENT_EMPTY_CSTRING_SLICE: const [..] u8               = cast(const [..] u8) JIT_PRESENT_EMPTY_CSTRING
 const JIT_PRESENT_EMPTY_SLICE_DEFAULT: JitPresentEmptySliceDefault = {}
-const JIT_MISSING_EMPTY_SLICE:         #null const [..] u8         = null
+const JIT_MISSING_EMPTY_SLICE:         const [..] u8?              = null
 
 func jitPresentEmptySlices()->bool
 {

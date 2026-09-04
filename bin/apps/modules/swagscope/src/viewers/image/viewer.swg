@@ -119,7 +119,7 @@ internal struct ImageViewer
     using wnd: Wnd
     details:   String
 
-    #[Swag.Late]
+        late
     {
         actions:         *Wnd
         info:            *Wnd
@@ -133,13 +133,13 @@ internal struct ImageViewer
         frameLabel:      *Label
     }
 
-    navigateFile:         #null Viewer.NavigateFile
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportChromeChanged:  #null Viewer.ReportChromeChanged
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    navigateFile:         Viewer.NavigateFile?
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportChromeChanged:  Viewer.ReportChromeChanged?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     load:                 Viewer.BackgroundLoad'ImageViewerContent
-    loadTimer:            #null *Timer
+    loadTimer:            *Timer?
     failureReason:        String
 }
 

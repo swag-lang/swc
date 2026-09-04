@@ -61,7 +61,7 @@ struct Image
 
     // Reusable scratch image owned by this image, allocated on demand by the transforms.
     #[Core.Serialization.NoSerialize]
-    workingBuffer: #null *Image
+    workingBuffer: *Image?
 }
 
 // One logical pixel in the representation used between storage formats.
@@ -311,7 +311,7 @@ impl Image
     // let pixels: [4] u8 = {255, 0, 0, 255}
     // let image = Image.create(1, 1, .RGBA8, pixels)
     // ```
-    func create(width, height: s32, pixelFormat: PixelFormat, buffer: #null const [..] u8 = null, alphaMode = AlphaMode.Straight)->Image
+    func create(width, height: s32, pixelFormat: PixelFormat, buffer: const [..] u8? = null, alphaMode = AlphaMode.Straight)->Image
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
 
@@ -438,7 +438,7 @@ impl Image
 
     // Visits every complete 16-byte block of the pixel buffer in parallel.
     #[Swag.Macro]
-    internal mtd visitVectorBytes(contextData: #null *void = null, stmt: #code(var block, data))
+    internal mtd visitVectorBytes(contextData: *void? = null, stmt: #code(var block, data))
     {
         const VectorSize = #sizeof(Math.Simd.U8x16)
         let count = .byteCount - .byteCount % VectorSize
@@ -477,7 +477,7 @@ impl Image
     // | y         | the pixel y coordinates
     // | userData  | as passed to the macro
     #[Swag.Macro]
-    mtd visitPixels(pixelUserData: #null *void = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
+    mtd visitPixels(pixelUserData: *void? = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
         Debug.assert(stride > 0)
 
@@ -505,7 +505,7 @@ impl Image
     // format and alpha association. This is the common scalar fallback for filters whose packed
     // 8-bit specialization cannot represent a high-precision or grayscale image.
     #[Swag.Macro]
-    internal mtd transformLogicalPixels(pixelUserData: #null *void = null,
+    internal mtd transformLogicalPixels(pixelUserData: *void? = null,
                                         stmt: #code(var value: PixelValue, image: *Image, x: s32, y: s32, userData))
     {
         var context = {image: me, userData: pixelUserData}

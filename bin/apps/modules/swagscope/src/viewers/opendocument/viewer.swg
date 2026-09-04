@@ -1484,10 +1484,10 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
     }
 
     let archive = try loadZipArchive(fileName)
-    var mime:    #null *ZipEntry
-    var content: #null *ZipEntry
-    var styles:  #null *ZipEntry
-    var meta:    #null *ZipEntry
+    var mime:    *ZipEntry?
+    var content: *ZipEntry?
+    var styles:  *ZipEntry?
+    var meta:    *ZipEntry?
     for &entry in archive.entries
     {
         if entry.path == "mimetype" do
@@ -1539,7 +1539,7 @@ internal struct OpenDocumentViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         html:      *HtmlView
         table:     *TableViewer
@@ -1554,11 +1554,11 @@ internal struct OpenDocumentViewer
     slideIndex:           u64
     zoomPercent:          u32 = 100
     load:                 Viewer.BackgroundLoad'OpenDocumentContent
-    loadTimer:            #null *Timer
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportChromeChanged:  #null Viewer.ReportChromeChanged
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    loadTimer:            *Timer?
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportChromeChanged:  Viewer.ReportChromeChanged?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 }
 
@@ -1635,7 +1635,7 @@ private impl OpenDocumentViewer
 {
     mtd applyZoom()
     {
-        if !Swag.isSet(.html) do
+        if !(.html != null) do
             return
         var style = HtmlStyle.theme()
         style.bodyFontSize = cast(u32) Math.max(Math.round(16.0 * cast(f32) .zoomPercent / 100), 1)
@@ -1788,7 +1788,7 @@ private impl OpenDocumentViewer
 
     mtd showSheet(index: u64, clearSearch: bool)->bool
     {
-        if index >= .document.sheets.count or !Swag.isSet(.table) do
+        if index >= .document.sheets.count or !(.table != null) do
             return false
         if index == .sheetIndex
         {
@@ -1815,14 +1815,14 @@ private impl OpenDocumentViewer
     {
         if index >= .document.slides.count do
             return false
-        if index == .slideIndex and Swag.isSet(.html)
+        if index == .slideIndex and (.html != null)
         {
             if clearSearch do
                 .html.clearSearch()
             return true
         }
 
-        if Swag.isSet(.html) do
+        if .html != null do
             .html.destroy()
         .slideIndex     = index
         .html           = HtmlView.createText(me, .document.slides[index].html.toString())
@@ -1883,7 +1883,7 @@ private impl OpenDocumentViewer
     {
         for &sheet, index in .document.sheets
         {
-            if index == .sheetIndex and Swag.isSet(.table) do
+            if index == .sheetIndex and (.table != null) do
                 .collectTableMatches(&.table.document, index, text, options, result)
             else do
                 .collectTableMatches(&sheet.table, index, text, options, result)
@@ -1931,7 +1931,7 @@ private impl OpenDocumentViewer
     {
         if .document.kind == .Spreadsheet
         {
-            if Swag.isSet(.table) do
+            if .table != null do
                 .collectSpreadsheetMatches(text, options, result)
             return
         }
@@ -1942,7 +1942,7 @@ private impl OpenDocumentViewer
             return
         }
 
-        if Swag.isSet(.html) do
+        if .html != null do
             Viewer.collectTextMatches(.document.html.toString(), text, options, 0, 0, 0, result)
     }
 
@@ -1965,7 +1965,7 @@ private impl OpenDocumentViewer
             return .html.revealFileOffset(match.offset, text)
         }
 
-        if !Swag.isSet(.html) do
+        if !(.html != null) do
             return false
         return .html.revealFileOffset(match.offset, text)
     }
@@ -1974,12 +1974,12 @@ private impl OpenDocumentViewer
     {
         if .document.kind == .Spreadsheet
         {
-            if !Swag.isSet(.table) do
+            if !(.table != null) do
                 return false
             return .table.searchBounds(result)
         }
 
-        if !Swag.isSet(.html) do
+        if !(.html != null) do
             return false
         return .html.searchMatchRect(result)
     }
@@ -1988,12 +1988,12 @@ private impl OpenDocumentViewer
     {
         if .document.kind == .Spreadsheet
         {
-            if Swag.isSet(.table) do
+            if .table != null do
                 .table.clearSearch()
             return
         }
 
-        if Swag.isSet(.html) do
+        if .html != null do
             .html.clearSearch()
     }
 

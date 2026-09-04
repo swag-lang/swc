@@ -95,8 +95,8 @@ with a `where` clause. The `where` condition is only evaluated if the variable t
 
 #test
 {
-    func retSomething()->string     => "string"
-    func retNothing()->#null string => null
+    func retSomething()->string => "string"
+    func retNothing()->string?  => null
 
     // The 'where' clause runs only if 'str' is not null.
     if let str = retSomething() where str[0] == 's' do

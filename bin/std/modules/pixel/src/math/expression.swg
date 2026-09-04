@@ -200,10 +200,9 @@ struct MathExpression
 
     internal
     {
-        source: String                // Expression text the tree was parsed from.
-        nodes:  ArrayPtr'MathNode     // Pool owning every node of the tree.
-        #[Swag.Late]
-        root: *MathNode     // Root of the tree, set by 'parse'.
+        source:    String                // Expression text the tree was parsed from.
+        nodes:     ArrayPtr'MathNode     // Pool owning every node of the tree.
+        late root: *MathNode             // Root of the tree, set by 'parse'.
     }
 }
 
@@ -857,7 +856,7 @@ private impl MathParser
     mtd parseRadical()->*MathNode fail
     {
         .skipMathSpaces()
-        var index: #null *MathNode
+        var index: *MathNode?
         if .peek() == '[' do
             index = .parseBracketGroup()
         let radicand = .parseRequiredArgument("radical")
@@ -1140,7 +1139,7 @@ private impl MathParser
     mtd parseAtom()->*MathNode fail
     {
         let base       = .parsePrimary()
-        var sub, sup: #null *MathNode
+        var sub, sup: *MathNode?
         var limitsMode = MathLimitsMode.Automatic
 
         while true

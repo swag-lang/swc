@@ -7,8 +7,7 @@
 #[Swag.Opaque, Swag.NoDoc]
 public struct Request
 {
-    #[Swag.Late]
-    owner:      *Wnd           // Window that requested the tooltip.
+    late owner: *Wnd           // Window that requested the tooltip.
     surfacePos: Math.Point     // Anchor in surface coordinates.
     str:        String         // Text to display.
     delay:      f32            // Remaining delay in seconds.
@@ -27,10 +26,10 @@ public struct State
 
     internal
     {
-        pending:       #null *Request      // Request still counting down.
-        current:       #null *FrameWnd     // Tip on screen.
-        currentOwner:  #null *Wnd          // Window the visible tip annotates.
-        pointerInside: bool                // Whether the pointer is over the visible tip.
+        pending:       *Request?      // Request still counting down.
+        current:       *FrameWnd?     // Tip on screen.
+        currentOwner:  *Wnd?          // Window the visible tip annotates.
+        pointerInside: bool           // Whether the pointer is over the visible tip.
     }
 }
 
@@ -89,7 +88,7 @@ impl State
     }
 
     // Whether `wnd` is the visible tip or part of it.
-    public mtd contains(wnd: #null *Wnd)->bool
+    public mtd contains(wnd: *Wnd?)->bool
     {
         let current = .current
         if !current or !wnd do
@@ -101,7 +100,7 @@ impl State
     private mtd isInteractive()->bool
     {
         let current = .current
-        if !current or !Swag.isSet(current.view) do
+        if !current or !(current.view != null) do
             return false
         let label = cast(*Label) current.view
         return label.name.hasUrl
@@ -116,7 +115,7 @@ impl State
     //
     // `from` is only ever compared, never read: the window the pointer left may already be on its
     // way out by the time this runs.
-    mtd pointerMoved(from: #null *Wnd, onto: #null *Wnd)
+    mtd pointerMoved(from: *Wnd?, onto: *Wnd?)
     {
         if .contains(onto)
         {
@@ -160,7 +159,7 @@ impl State
     // with an ellipsis rather than grow, and it never scrolls — so a caller can hand it any length
     // knowing the reader is shown a box, not a viewport onto something longer. Keep a tip to what
     // fits: text the height cap truncates is text nobody reads.
-    public mtd show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: Time.Duration = 500'ms)
+    public mtd show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500'ms)
     {
         if str == null or str.count == 0 do
             return
@@ -241,7 +240,7 @@ impl State
 // Shows a tip for `owner`, in the application `owner` belongs to.
 //
 // See [[Gui.ToolTip.State.show]] for what a tip may contain and how large it may become.
-public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: Time.Duration = 500'ms)
+public func show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500'ms)
 {
     owner.app().toolTip.show(owner, surfacePos, str, delay)
 }

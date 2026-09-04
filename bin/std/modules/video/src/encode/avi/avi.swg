@@ -82,7 +82,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
 
-    mtd impl begin(sink: *Sink, info: StreamInfo, options: #null any) fail
+    mtd impl begin(sink: *Sink, info: StreamInfo, options: any?) fail
     {
         if info.width > MaxFrameSide or info.height > MaxFrameSide do
             fail UnsupportedFormatError{"AVI frame dimensions exceed what the container can describe"}

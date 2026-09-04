@@ -37,7 +37,7 @@ func xAdvanceOffset(valueFormat: u16)->s32
 
 // Returns the coverage index of 'glyph', or -1 when the table does not cover it.
 // Both coverage formats are sorted, so both are binary-searched.
-func coverageIndex(table: #null const [..] u8, offset: u64, glyph: u16)->s32 fail
+func coverageIndex(table: const [..] u8?, offset: u64, glyph: u16)->s32 fail
 {
     let format = readU16(table, offset + 0)
     let count  = readU16(table, offset + 2)
@@ -99,7 +99,7 @@ func coverageIndex(table: #null const [..] u8, offset: u64, glyph: u16)->s32 fai
 
 // Returns the class of 'glyph' in a class-definition table. Class zero is the
 // implicit class of every glyph the table does not list.
-func glyphClass(table: #null const [..] u8, offset: u64, glyph: u16)->u16 fail
+func glyphClass(table: const [..] u8?, offset: u64, glyph: u16)->u16 fail
 {
     let format = readU16(table, offset)
     if format == 1
@@ -146,7 +146,7 @@ func glyphClass(table: #null const [..] u8, offset: u64, glyph: u16)->u16 fail
 //
 // A font declares the feature once per script and language system, so the same
 // indices arrive many times over; the result holds each of them once.
-func collectKernLookups(table: #null const [..] u8, featureListOffset: u64)->Array'u16 fail
+func collectKernLookups(table: const [..] u8?, featureListOffset: u64)->Array'u16 fail
 {
     var result: retval
 
@@ -223,7 +223,7 @@ func parseGpos(faceData: *FaceImpl) fail
 }
 
 // Searches one format-1 pair set, whose records are sorted by second glyph.
-func lookupPairSet(table: #null const [..] u8, pairSet: u64, rightGlyph: u16, recordSize: u64, advanceOffset: u64)->s16 fail
+func lookupPairSet(table: const [..] u8?, pairSet: u64, rightGlyph: u16, recordSize: u64, advanceOffset: u64)->s16 fail
 {
     let pairCount = readU16(table, pairSet)
     var left      = 0'u32

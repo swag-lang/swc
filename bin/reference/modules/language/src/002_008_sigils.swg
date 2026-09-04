@@ -128,13 +128,14 @@ families, and the family says what it annotates.
 
 # Type Qualifiers
 
-'#null' is part of the type itself and takes part in conversions. The bare
-'null' token is a value:
+`?` is a type suffix and takes part in conversions. Write it immediately after the
+complete type; `*T?` is a nullable pointer and `*(T?)` is a pointer to a nullable slot.
+The bare `null` token is a value:
 */
 
 #test
 {
-    let missing: #null *s32 = null
+    let missing: *s32? = null
     Swag.assert(missing == null)
 }
 

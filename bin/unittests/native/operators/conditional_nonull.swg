@@ -19,7 +19,7 @@ impl NativeConditionalIndex
     }
 }
 
-func nativeConditionalMaybe(p: *NativeConditionalNonNullItem)->#null *NativeConditionalNonNullItem => p
+func nativeConditionalMaybe(p: *NativeConditionalNonNullItem)->*NativeConditionalNonNullItem? => p
 
 func nativeConditionalNonNullBranches(flag: bool)->bool
 {
@@ -27,9 +27,9 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
     var second  = NativeConditionalNonNullItem{value: 22}
     var indexed = NativeConditionalIndex'(*NativeConditionalNonNullItem){values: [&first]}
 
-    let legacy:   *NativeConditionalNonNullItem       = &first
-    let nullable: #null *NativeConditionalNonNullItem = nativeConditionalMaybe(&first)
-    let required: *NativeConditionalNonNullItem       = &second
+    let legacy:   *NativeConditionalNonNullItem  = &first
+    let nullable: *NativeConditionalNonNullItem? = nativeConditionalMaybe(&first)
+    let required: *NativeConditionalNonNullItem  = &second
 
     let indexedNullLast       = flag ? indexed[0] : null
     let indexedNullFirst      = flag ? null : indexed[0]
@@ -41,14 +41,14 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
     let nullableRequiredLast  = flag ? required : nullable
     let requiredOnly          = flag ? required : required
 
-    #assert(#typeof(indexedNullLast) == #null *NativeConditionalNonNullItem)
-    #assert(#typeof(indexedNullFirst) == #null *NativeConditionalNonNullItem)
-    #assert(#typeof(requiredNullLast) == #null *NativeConditionalNonNullItem)
-    #assert(#typeof(requiredNullFirst) == #null *NativeConditionalNonNullItem)
+    #assert(#typeof(indexedNullLast) == *NativeConditionalNonNullItem?)
+    #assert(#typeof(indexedNullFirst) == *NativeConditionalNonNullItem?)
+    #assert(#typeof(requiredNullLast) == *NativeConditionalNonNullItem?)
+    #assert(#typeof(requiredNullFirst) == *NativeConditionalNonNullItem?)
     #assert(#typeof(legacyRequiredFirst) == *NativeConditionalNonNullItem)
     #assert(#typeof(legacyRequiredLast) == *NativeConditionalNonNullItem)
-    #assert(#typeof(nullableRequiredFirst) == #null *NativeConditionalNonNullItem)
-    #assert(#typeof(nullableRequiredLast) == #null *NativeConditionalNonNullItem)
+    #assert(#typeof(nullableRequiredFirst) == *NativeConditionalNonNullItem?)
+    #assert(#typeof(nullableRequiredLast) == *NativeConditionalNonNullItem?)
     #assert(#typeof(requiredOnly) == *NativeConditionalNonNullItem)
 
     if flag

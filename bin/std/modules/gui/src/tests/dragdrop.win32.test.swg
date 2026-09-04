@@ -68,8 +68,8 @@ internal func testGlobalBlock(text: string)->HGLOBAL
 #[Swag.NoCopy]
 internal struct StreamOnlySource
 {
-    lpVtbl: #null *IDataObjectVtbl     // Interface header OLE calls through; must stay first.
-    inner:  #null *DragDataObject      // Object the blocks are produced by.
+    lpVtbl: *IDataObjectVtbl?     // Interface header OLE calls through; must stay first.
+    inner:  *DragDataObject?      // Object the blocks are produced by.
 }
 
 var g_StreamOnlyVtbl: IDataObjectVtbl
@@ -174,7 +174,7 @@ func streamOnlyEnum(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESU
     return E_NOTIMPL
 }
 
-func streamOnlyAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: #null *void, conn: *DWORD)->HRESULT
+func streamOnlyAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: *void?, conn: *DWORD)->HRESULT
 {
     discard itf
     discard fmt
@@ -495,7 +495,7 @@ impl IWnd for PlatformCatcher
     var out: LPVOID
     var iid = IID_IDropTarget
     Swag.assert(target.lpVtbl.QueryInterface(target, &iid, &out) == S_OK)
-    Swag.assert(cast(#null *void) out == cast(#null *void) target)
+    Swag.assert(cast(*void?) out == cast(*void?) target)
 
     // An interface the object does not implement is refused, and clears the output.
     var otherIid = IID_IDataObject

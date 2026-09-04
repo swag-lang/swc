@@ -5,8 +5,7 @@ union(T) ValueOrPtr
     value: T
 
     // The pointer view of the same storage starts null, so the union keeps a zero default.
-    #[Swag.Late]
-    ptr: *T
+    late ptr: *T
 }
 
 alias ValueOrPtrAlias  = ValueOrPtr

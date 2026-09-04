@@ -2,12 +2,12 @@
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glUniformMatrix2x3fv(location: GLint, count: GLsizei, transpose: GLboolean, value: #null const *GLfloat)
-    func glUniformMatrix2x4fv(location: GLint, count: GLsizei, transpose: GLboolean, value: #null const *GLfloat)
-    func glUniformMatrix3x2fv(location: GLint, count: GLsizei, transpose: GLboolean, value: #null const *GLfloat)
-    func glUniformMatrix3x4fv(location: GLint, count: GLsizei, transpose: GLboolean, value: #null const *GLfloat)
-    func glUniformMatrix4x2fv(location: GLint, count: GLsizei, transpose: GLboolean, value: #null const *GLfloat)
-    func glUniformMatrix4x3fv(location: GLint, count: GLsizei, transpose: GLboolean, value: #null const *GLfloat)
+    func glUniformMatrix2x3fv(location: GLint, count: GLsizei, transpose: GLboolean, value: const *GLfloat?)
+    func glUniformMatrix2x4fv(location: GLint, count: GLsizei, transpose: GLboolean, value: const *GLfloat?)
+    func glUniformMatrix3x2fv(location: GLint, count: GLsizei, transpose: GLboolean, value: const *GLfloat?)
+    func glUniformMatrix3x4fv(location: GLint, count: GLsizei, transpose: GLboolean, value: const *GLfloat?)
+    func glUniformMatrix4x2fv(location: GLint, count: GLsizei, transpose: GLboolean, value: const *GLfloat?)
+    func glUniformMatrix4x3fv(location: GLint, count: GLsizei, transpose: GLboolean, value: const *GLfloat?)
 }
 
 const GL_CURRENT_RASTER_SECONDARY_COLOR = 0x845F

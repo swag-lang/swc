@@ -9,7 +9,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     return Swag.makeInterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
-func allocOne(itf: IAllocator, size: u64, alignment: u32 = 0)->#null *void
+func allocOne(itf: IAllocator, size: u64, alignment: u32 = 0)->*void?
 {
     var req: AllocatorRequest
     req.size      = size
@@ -18,7 +18,7 @@ func allocOne(itf: IAllocator, size: u64, alignment: u32 = 0)->#null *void
     return req.address
 }
 
-func freeOne(itf: IAllocator, address: #null *void)
+func freeOne(itf: IAllocator, address: *void?)
 {
     var req: AllocatorRequest
     req.address = address
@@ -80,7 +80,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     let itf = makeAllocator(&alloc)
 
     const Count = 40_000
-    var addresses: [Count] #null *void
+    var addresses: [Count] (*void?)
     for i in Count
     {
         addresses[i] = allocOne(itf, 32)
@@ -272,7 +272,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     let itf = makeAllocator(&alloc)
 
     const Count = 8192
-    var addresses: [Count] #null *void
+    var addresses: [Count] (*void?)
     for i in Count
     {
         addresses[i] = allocOne(itf, 64)
@@ -305,7 +305,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     alloc.maxQuarantineBytes = 32 * 1024
 
     const Count = 64
-    var addresses: [Count] #null *void
+    var addresses: [Count] (*void?)
     for i in Count
     {
         addresses[i] = allocOne(itf, 128)
@@ -439,7 +439,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
-    var addresses: [16] #null *void
+    var addresses: [16] (*void?)
     for i in 16
     {
         addresses[i] = allocOne(itf, 48)
@@ -476,7 +476,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
         #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
         {
-            func CreateThread(lpThreadAttributes: #null *void, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
+            func CreateThread(lpThreadAttributes: *void?, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
             func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
             func CloseHandle(handle: HANDLE)
         }
@@ -485,7 +485,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     struct AllocRetirePayload
     {
         allocator: IAllocator
-        out:       *#null *void
+        out:       *(*void?)
         size:      u64
         done:      *s32
     }
@@ -495,7 +495,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     struct FullPageRetirePayload
     {
         allocator: IAllocator
-        out:       *[FullPageRetireCount] #null *void
+        out:       *[FullPageRetireCount] (*void?)
     }
 
     // Allocates a block, then gives this thread's heap back while the block is still live, so the
@@ -534,8 +534,8 @@ func freeOne(itf: IAllocator, address: #null *void)
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var blockAddr: #null *void = null
-        var done:      s32         = 0
+        var blockAddr: *void? = null
+        var done:      s32    = 0
         var payload:   AllocRetirePayload
         payload.allocator = itf
         payload.out       = &blockAddr
@@ -575,8 +575,8 @@ func freeOne(itf: IAllocator, address: #null *void)
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var blockAddr: #null *void = null
-        var done:      s32         = 0
+        var blockAddr: *void? = null
+        var done:      s32    = 0
         var payload:   AllocRetirePayload
         payload.allocator = itf
         payload.out       = &blockAddr
@@ -608,7 +608,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var addresses: [FullPageRetireCount] #null *void
+        var addresses: [FullPageRetireCount] (*void?)
         var payload:   FullPageRetirePayload
         payload.allocator = itf
         payload.out       = &addresses
@@ -639,7 +639,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     struct PageThreadShared
     {
-        itf:   #null IAllocator
+        itf:   IAllocator?
         ready: s32
         start: s32
     }
@@ -648,7 +648,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     {
         let shared = cast(*PageThreadShared) param
         let itf    = shared.itf!
-        var addresses: [PageThreadAllocCount] #null *void
+        var addresses: [PageThreadAllocCount] (*void?)
 
         Swag.atomadd(&shared.ready, 1)
         while Swag.atomcmpxchg(&shared.start, 0, 0) == 0 {}
@@ -676,7 +676,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         let itf = makeAllocator(&alloc)
         shared.itf = itf
 
-        var handles: [PageThreadCount] #null Th.HANDLE = cast(#null Th.HANDLE) null
+        var handles: [PageThreadCount] (Th.HANDLE?) = cast(Th.HANDLE?) null
         for i in PageThreadCount
         {
             var tid: Th.DWORD
@@ -707,9 +707,9 @@ func freeOne(itf: IAllocator, address: #null *void)
 
     struct StressShared
     {
-        itf:       #null IAllocator
-        alloc:     #null *Allocator
-        slots:     [StressCount] #null *void
+        itf:       IAllocator?
+        alloc:     *Allocator?
+        slots:     [StressCount] (*void?)
         index:     s32
         freerDone: s32
     }
@@ -757,7 +757,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         shared.itf   = itf
         shared.alloc = &alloc
 
-        var handles: [StressCount] #null Th.HANDLE = cast(#null Th.HANDLE) null
+        var handles: [StressCount] (Th.HANDLE?) = cast(Th.HANDLE?) null
         for i in StressCount
         {
             var tid: Th.DWORD

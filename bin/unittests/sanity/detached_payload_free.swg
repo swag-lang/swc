@@ -34,7 +34,7 @@ func myFree(ptr: *void, size: u64)
 
 struct DetachedTable
 {
-    table:    #null [*] u64
+    table:    [*] u64?
     capacity: u64
 }
 

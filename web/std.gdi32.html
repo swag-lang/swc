@@ -816,7 +816,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Gdi32_BITMAP_bmBits" class="code-type">bmBits</td><td class="code-type">#null [*] void</td><td></td></tr>
+<tr><td id="Gdi32_BITMAP_bmBits" class="code-type">bmBits</td><td class="code-type">[*] void?</td><td></td></tr>
 <tr><td id="Gdi32_BITMAP_bmBitsPixel" class="code-type">bmBitsPixel</td><td class="code-type">u16</td><td></td></tr>
 <tr><td id="Gdi32_BITMAP_bmHeight" class="code-type">bmHeight</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Gdi32_BITMAP_bmPlanes" class="code-type">bmPlanes</td><td class="code-type">u16</td><td></td></tr>
@@ -896,15 +896,15 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Gdi32_HFONT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HFONT</span> <a class="api-item-permalink" href="#Gdi32_HFONT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L11">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HFONT">HFONT</a></span>   = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HFONT">HFONT</a></span>   = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Gdi32_HGDIOBJ" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HGDIOBJ</span> <a class="api-item-permalink" href="#Gdi32_HGDIOBJ" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L10">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HGDIOBJ">HGDIOBJ</a></span> = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HGDIOBJ">HGDIOBJ</a></span> = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Gdi32_HPEN" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gdi32.HPEN</span> <a class="api-item-permalink" href="#Gdi32_HPEN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L12">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HPEN">HPEN</a></span>    = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Gdi32_HPEN">HPEN</a></span>    = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gdi32_LOGFONTA" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gdi32.LOGFONTA</span> <a class="api-item-permalink" href="#Gdi32_LOGFONTA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L272">src</a></div>
@@ -1813,7 +1813,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdi32_CreateDIBSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.CreateDIBSection</span> <a class="api-item-permalink" href="#Gdi32_CreateDIBSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L663">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateDIBSection</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, pbmi: <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_BITMAPINFO">BITMAPINFO</a></span>, usage: <span class="SCst"><a href="std.win32.html#Win32_UINT">UINT</a></span>, ppvBits: *<span class="SItr">#null</span> *<span class="STpe">void</span>, hSection: <span class="SCst"><a href="std.win32.html#Win32_HANDLE">HANDLE</a></span>, offset: <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateDIBSection</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, pbmi: <span class="SKwd">const</span> *<span class="SCst"><a href="#Gdi32_BITMAPINFO">BITMAPINFO</a></span>, usage: <span class="SCst"><a href="std.win32.html#Win32_UINT">UINT</a></span>, ppvBits: *(*<span class="STpe">void</span>?), hSection: <span class="SCst"><a href="std.win32.html#Win32_HANDLE">HANDLE</a></span>, offset: <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gdi32_CreateFontIndirectA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gdi32.CreateFontIndirectA</span> <a class="api-item-permalink" href="#Gdi32_CreateFontIndirectA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdi32/src/gdi32.swg#L622">src</a></div>
@@ -1952,7 +1952,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
 </footer>
 </section>
 </main>

@@ -5216,12 +5216,12 @@
 <tr><td id="Win32_CREATESTRUCTA_cx" class="code-type">cx</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_cy" class="code-type">cy</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_dwExStyle" class="code-type">dwExStyle</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTA_hInstance" class="code-type">hInstance</td><td class="code-type">#null const [*] void</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTA_hInstance" class="code-type">hInstance</td><td class="code-type">const [*] void?</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_hMenu" class="code-type">hMenu</td><td class="code-type"><a href="#Win32_HMENU">Win32.HMENU</a></td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_hwndParent" class="code-type">hwndParent</td><td class="code-type"><a href="#Win32_HWND">Win32.HWND</a></td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTA_lpCreateParams" class="code-type">lpCreateParams</td><td class="code-type">#null [*] void</td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTA_lpszClass" class="code-type">lpszClass</td><td class="code-type">#null const [*] u8</td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTA_lpszName" class="code-type">lpszName</td><td class="code-type">#null const [*] u8</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTA_lpCreateParams" class="code-type">lpCreateParams</td><td class="code-type">[*] void?</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTA_lpszClass" class="code-type">lpszClass</td><td class="code-type">const [*] u8?</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTA_lpszName" class="code-type">lpszName</td><td class="code-type">const [*] u8?</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_style" class="code-type">style</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_x" class="code-type">x</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTA_y" class="code-type">y</td><td class="code-type">s32</td><td></td></tr>
@@ -5238,12 +5238,12 @@
 <tr><td id="Win32_CREATESTRUCTW_cx" class="code-type">cx</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_cy" class="code-type">cy</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_dwExStyle" class="code-type">dwExStyle</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTW_hInstance" class="code-type">hInstance</td><td class="code-type">#null const [*] void</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTW_hInstance" class="code-type">hInstance</td><td class="code-type">const [*] void?</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_hMenu" class="code-type">hMenu</td><td class="code-type"><a href="#Win32_HMENU">Win32.HMENU</a></td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_hwndParent" class="code-type">hwndParent</td><td class="code-type"><a href="#Win32_HWND">Win32.HWND</a></td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTW_lpCreateParams" class="code-type">lpCreateParams</td><td class="code-type">#null [*] void</td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTW_lpszClass" class="code-type">lpszClass</td><td class="code-type">#null const [*] u16</td><td></td></tr>
-<tr><td id="Win32_CREATESTRUCTW_lpszName" class="code-type">lpszName</td><td class="code-type">#null const [*] u16</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTW_lpCreateParams" class="code-type">lpCreateParams</td><td class="code-type">[*] void?</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTW_lpszClass" class="code-type">lpszClass</td><td class="code-type">const [*] u16?</td><td></td></tr>
+<tr><td id="Win32_CREATESTRUCTW_lpszName" class="code-type">lpszName</td><td class="code-type">const [*] u16?</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_style" class="code-type">style</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_x" class="code-type">x</td><td class="code-type">s32</td><td></td></tr>
 <tr><td id="Win32_CREATESTRUCTW_y" class="code-type">y</td><td class="code-type">s32</td><td></td></tr>
@@ -5265,7 +5265,7 @@
 </table>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_DPI_AWARENESS_CONTEXT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.DPI_AWARENESS_CONTEXT</span> <a class="api-item-permalink" href="#Win32_DPI_AWARENESS_CONTEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1025">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_DPI_AWARENESS_CONTEXT">DPI_AWARENESS_CONTEXT</a></span> = <span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_DPI_AWARENESS_CONTEXT">DPI_AWARENESS_CONTEXT</a></span> = *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Win32_DROPFILES" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.DROPFILES</span> <a class="api-item-permalink" href="#Win32_DROPFILES" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L245">src</a></div>
@@ -5380,7 +5380,7 @@
 <tr><td id="Win32_FORMATETC_cfFormat" class="code-type">cfFormat</td><td class="code-type">u16</td><td></td></tr>
 <tr><td id="Win32_FORMATETC_dwAspect" class="code-type">dwAspect</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_FORMATETC_lindex" class="code-type">lindex</td><td class="code-type">s32</td><td></td></tr>
-<tr><td id="Win32_FORMATETC_ptd" class="code-type">ptd</td><td class="code-type">#null *<a href="#Win32_DVTARGETDEVICE">Win32.DVTARGETDEVICE</a></td><td></td></tr>
+<tr><td id="Win32_FORMATETC_ptd" class="code-type">ptd</td><td class="code-type">*<a href="#Win32_DVTARGETDEVICE">Win32.DVTARGETDEVICE</a>?</td><td></td></tr>
 <tr><td id="Win32_FORMATETC_tymed" class="code-type">tymed</td><td class="code-type">u32</td><td></td></tr>
 </tbody>
 </table>
@@ -5400,27 +5400,27 @@
 </table>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HANDLE" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HANDLE</span> <a class="api-item-permalink" href="#Win32_HANDLE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L8">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>                 = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>                 = <span class="SKwd">const</span> [*] <span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HBITMAP" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HBITMAP</span> <a class="api-item-permalink" href="#Win32_HBITMAP" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L12">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HBITMAP">HBITMAP</a></span>  = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HBITMAP">HBITMAP</a></span>  = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HBRUSH" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HBRUSH</span> <a class="api-item-permalink" href="#Win32_HBRUSH" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L14">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HBRUSH">HBRUSH</a></span>   = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HBRUSH">HBRUSH</a></span>   = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HCURSOR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HCURSOR</span> <a class="api-item-permalink" href="#Win32_HCURSOR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L13">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HCURSOR">HCURSOR</a></span>  = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HCURSOR">HCURSOR</a></span>  = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HDC" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HDC</span> <a class="api-item-permalink" href="#Win32_HDC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L15">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HDC">HDC</a></span>      = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HDC">HDC</a></span>      = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HDROP" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HDROP</span> <a class="api-item-permalink" href="#Win32_HDROP" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L9">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HDROP">HDROP</a></span>    = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HDROP">HDROP</a></span>    = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HGLOBAL" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HGLOBAL</span> <a class="api-item-permalink" href="#Win32_HGLOBAL" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L9">src</a></div>
@@ -5428,7 +5428,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HICON" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HICON</span> <a class="api-item-permalink" href="#Win32_HICON" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L11">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HICON">HICON</a></span>    = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HICON">HICON</a></span>    = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HINSTANCE" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HINSTANCE</span> <a class="api-item-permalink" href="#Win32_HINSTANCE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L11">src</a></div>
@@ -5436,7 +5436,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HKEY" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HKEY</span> <a class="api-item-permalink" href="#Win32_HKEY" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/advapi32.swg#L9">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>        = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>        = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HLOCAL" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HLOCAL</span> <a class="api-item-permalink" href="#Win32_HLOCAL" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L10">src</a></div>
@@ -5444,7 +5444,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HMENU" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HMENU</span> <a class="api-item-permalink" href="#Win32_HMENU" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L10">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HMENU">HMENU</a></span>    = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HMENU">HMENU</a></span>    = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HMODULE" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HMODULE</span> <a class="api-item-permalink" href="#Win32_HMODULE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L12">src</a></div>
@@ -5452,7 +5452,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HMONITOR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HMONITOR</span> <a class="api-item-permalink" href="#Win32_HMONITOR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L16">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HMONITOR">HMONITOR</a></span> = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HMONITOR">HMONITOR</a></span> = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HRESULT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HRESULT</span> <a class="api-item-permalink" href="#Win32_HRESULT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L7">src</a></div>
@@ -5460,7 +5460,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_HWND" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.HWND</span> <a class="api-item-permalink" href="#Win32_HWND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L9">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HWND">HWND</a></span>     = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_HWND">HWND</a></span>     = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Win32_ICONINFO" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.ICONINFO</span> <a class="api-item-permalink" href="#Win32_ICONINFO" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L992">src</a></div>
@@ -5497,15 +5497,15 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_IDataObjectVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>)-&gt;u32</td><td></td></tr>
-<tr><td id="Win32_IDataObjectVtbl_DAdvise" class="code-type">DAdvise</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, u32, #null *void, *u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDataObjectVtbl_DAdvise" class="code-type">DAdvise</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, u32, *void?, *u32)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_DUnadvise" class="code-type">DUnadvise</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDataObjectVtbl_EnumDAdvise" class="code-type">EnumDAdvise</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDataObjectVtbl_EnumFormatEtc" class="code-type">EnumFormatEtc</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, u32, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDataObjectVtbl_EnumDAdvise" class="code-type">EnumDAdvise</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, *([*] void?))-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDataObjectVtbl_EnumFormatEtc" class="code-type">EnumFormatEtc</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, u32, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_GetCanonicalFormatEtc" class="code-type">GetCanonicalFormatEtc</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_GetData" class="code-type">GetData</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, *<a href="#Win32_STGMEDIUM">Win32.STGMEDIUM</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_GetDataHere" class="code-type">GetDataHere</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, *<a href="#Win32_STGMEDIUM">Win32.STGMEDIUM</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_QueryGetData" class="code-type">QueryGetData</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDataObjectVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDataObjectVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>)-&gt;u32</td><td></td></tr>
 <tr><td id="Win32_IDataObjectVtbl_SetData" class="code-type">SetData</td><td class="code-type">func(*<a href="#Win32_IDataObject">Win32.IDataObject</a>, const *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, *<a href="#Win32_STGMEDIUM">Win32.STGMEDIUM</a>, s32)-&gt;s32</td><td></td></tr>
 </tbody>
@@ -5532,12 +5532,12 @@
 <tr><td id="Win32_IDragSourceHelperVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IDragSourceHelper">Win32.IDragSourceHelper</a>)-&gt;u32</td><td></td></tr>
 <tr><td id="Win32_IDragSourceHelperVtbl_InitializeFromBitmap" class="code-type">InitializeFromBitmap</td><td class="code-type">func(*<a href="#Win32_IDragSourceHelper">Win32.IDragSourceHelper</a>, *<a href="#Win32_SHDRAGIMAGE">Win32.SHDRAGIMAGE</a>, *<a href="#Win32_IDataObject">Win32.IDataObject</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDragSourceHelperVtbl_InitializeFromWindow" class="code-type">InitializeFromWindow</td><td class="code-type">func(*<a href="#Win32_IDragSourceHelper">Win32.IDragSourceHelper</a>, <a href="#Win32_HWND">Win32.HWND</a>, *<a href="#Win32_POINT">Win32.POINT</a>, *<a href="#Win32_IDataObject">Win32.IDataObject</a>)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDragSourceHelperVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDragSourceHelper">Win32.IDragSourceHelper</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDragSourceHelperVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDragSourceHelper">Win32.IDragSourceHelper</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDragSourceHelperVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IDragSourceHelper">Win32.IDragSourceHelper</a>)-&gt;u32</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IDropSource" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropSource</span> <a class="api-item-permalink" href="#Win32_IDropSource" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L246">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IDropSource" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropSource</span> <a class="api-item-permalink" href="#Win32_IDropSource" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L242">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IDropSource">IDropSource</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5548,7 +5548,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IDropSourceVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropSourceVtbl</span> <a class="api-item-permalink" href="#Win32_IDropSourceVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L251">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IDropSourceVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropSourceVtbl</span> <a class="api-item-permalink" href="#Win32_IDropSourceVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L247">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IDropSourceVtbl">IDropSourceVtbl</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5558,12 +5558,12 @@
 <tr><td id="Win32_IDropSourceVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IDropSource">Win32.IDropSource</a>)-&gt;u32</td><td></td></tr>
 <tr><td id="Win32_IDropSourceVtbl_GiveFeedback" class="code-type">GiveFeedback</td><td class="code-type">func(*<a href="#Win32_IDropSource">Win32.IDropSource</a>, u32)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropSourceVtbl_QueryContinueDrag" class="code-type">QueryContinueDrag</td><td class="code-type">func(*<a href="#Win32_IDropSource">Win32.IDropSource</a>, s32, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDropSourceVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDropSource">Win32.IDropSource</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropSourceVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDropSource">Win32.IDropSource</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropSourceVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IDropSource">Win32.IDropSource</a>)-&gt;u32</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IDropTarget" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropTarget</span> <a class="api-item-permalink" href="#Win32_IDropTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L223">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IDropTarget" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropTarget</span> <a class="api-item-permalink" href="#Win32_IDropTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L221">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IDropTarget">IDropTarget</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5593,16 +5593,16 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_IDropTargetHelperVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>)-&gt;u32</td><td></td></tr>
-<tr><td id="Win32_IDropTargetHelperVtbl_DragEnter" class="code-type">DragEnter</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, <a href="#Win32_HWND">Win32.HWND</a>, #null *<a href="#Win32_IDataObject">Win32.IDataObject</a>, *<a href="#Win32_POINT">Win32.POINT</a>, u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropTargetHelperVtbl_DragEnter" class="code-type">DragEnter</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, <a href="#Win32_HWND">Win32.HWND</a>, *<a href="#Win32_IDataObject">Win32.IDataObject</a>?, *<a href="#Win32_POINT">Win32.POINT</a>, u32)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropTargetHelperVtbl_DragLeave" class="code-type">DragLeave</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropTargetHelperVtbl_DragOver" class="code-type">DragOver</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, *<a href="#Win32_POINT">Win32.POINT</a>, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDropTargetHelperVtbl_Drop" class="code-type">Drop</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, #null *<a href="#Win32_IDataObject">Win32.IDataObject</a>, *<a href="#Win32_POINT">Win32.POINT</a>, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDropTargetHelperVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropTargetHelperVtbl_Drop" class="code-type">Drop</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, *<a href="#Win32_IDataObject">Win32.IDataObject</a>?, *<a href="#Win32_POINT">Win32.POINT</a>, u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropTargetHelperVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropTargetHelperVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IDropTargetHelper">Win32.IDropTargetHelper</a>)-&gt;u32</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IDropTargetVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropTargetVtbl</span> <a class="api-item-permalink" href="#Win32_IDropTargetVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L228">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IDropTargetVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IDropTargetVtbl</span> <a class="api-item-permalink" href="#Win32_IDropTargetVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L226">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IDropTargetVtbl">IDropTargetVtbl</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5610,16 +5610,16 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_IDropTargetVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>)-&gt;u32</td><td></td></tr>
-<tr><td id="Win32_IDropTargetVtbl_DragEnter" class="code-type">DragEnter</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, #null *<a href="#Win32_IDataObject">Win32.IDataObject</a>, u32, <a href="#Win32_POINTL">Win32.POINTL</a>, *u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropTargetVtbl_DragEnter" class="code-type">DragEnter</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, *<a href="#Win32_IDataObject">Win32.IDataObject</a>?, u32, <a href="#Win32_POINTL">Win32.POINTL</a>, *u32)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropTargetVtbl_DragLeave" class="code-type">DragLeave</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropTargetVtbl_DragOver" class="code-type">DragOver</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, u32, <a href="#Win32_POINTL">Win32.POINTL</a>, *u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDropTargetVtbl_Drop" class="code-type">Drop</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, #null *<a href="#Win32_IDataObject">Win32.IDataObject</a>, u32, <a href="#Win32_POINTL">Win32.POINTL</a>, *u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IDropTargetVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropTargetVtbl_Drop" class="code-type">Drop</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, *<a href="#Win32_IDataObject">Win32.IDataObject</a>?, u32, <a href="#Win32_POINTL">Win32.POINTL</a>, *u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IDropTargetVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IDropTargetVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IDropTarget">Win32.IDropTarget</a>)-&gt;u32</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IEnumFORMATETC" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IEnumFORMATETC</span> <a class="api-item-permalink" href="#Win32_IEnumFORMATETC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L267">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IEnumFORMATETC" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IEnumFORMATETC</span> <a class="api-item-permalink" href="#Win32_IEnumFORMATETC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L261">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IEnumFORMATETC">IEnumFORMATETC</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5630,7 +5630,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IEnumFORMATETCVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IEnumFORMATETCVtbl</span> <a class="api-item-permalink" href="#Win32_IEnumFORMATETCVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L272">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IEnumFORMATETCVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IEnumFORMATETCVtbl</span> <a class="api-item-permalink" href="#Win32_IEnumFORMATETCVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L266">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IEnumFORMATETCVtbl">IEnumFORMATETCVtbl</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5638,9 +5638,9 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_IEnumFORMATETCVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>)-&gt;u32</td><td></td></tr>
-<tr><td id="Win32_IEnumFORMATETCVtbl_Clone" class="code-type">Clone</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IEnumFORMATETCVtbl_Next" class="code-type">Next</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, u32, *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, #null *u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IEnumFORMATETCVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IEnumFORMATETCVtbl_Clone" class="code-type">Clone</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, *([*] void?))-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IEnumFORMATETCVtbl_Next" class="code-type">Next</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, u32, *<a href="#Win32_FORMATETC">Win32.FORMATETC</a>, *u32?)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IEnumFORMATETCVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IEnumFORMATETCVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>)-&gt;u32</td><td></td></tr>
 <tr><td id="Win32_IEnumFORMATETCVtbl_Reset" class="code-type">Reset</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IEnumFORMATETCVtbl_Skip" class="code-type">Skip</td><td class="code-type">func(*<a href="#Win32_IEnumFORMATETC">Win32.IEnumFORMATETC</a>, u32)-&gt;s32</td><td></td></tr>
@@ -5678,7 +5678,7 @@
 <tr><td id="Win32_IP_ADAPTER_INFO_address" class="code-type">address</td><td class="code-type">[8] u8</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_addressLength" class="code-type">addressLength</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_comboIndex" class="code-type">comboIndex</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_IP_ADAPTER_INFO_currentIpAddress" class="code-type">currentIpAddress</td><td class="code-type">#null *<a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a></td><td></td></tr>
+<tr><td id="Win32_IP_ADAPTER_INFO_currentIpAddress" class="code-type">currentIpAddress</td><td class="code-type">*<a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a>?</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_description" class="code-type">description</td><td class="code-type">[132] u8</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_dhcpEnabled" class="code-type">dhcpEnabled</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_dhcpServer" class="code-type">dhcpServer</td><td class="code-type"><a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a></td><td></td></tr>
@@ -5688,7 +5688,7 @@
 <tr><td id="Win32_IP_ADAPTER_INFO_ipAddressList" class="code-type">ipAddressList</td><td class="code-type"><a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a></td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_leaseExpires" class="code-type">leaseExpires</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_leaseObtained" class="code-type">leaseObtained</td><td class="code-type">u64</td><td></td></tr>
-<tr><td id="Win32_IP_ADAPTER_INFO_next" class="code-type">next</td><td class="code-type">#null *<a href="#Win32_IP_ADAPTER_INFO">Win32.IP_ADAPTER_INFO</a></td><td></td></tr>
+<tr><td id="Win32_IP_ADAPTER_INFO_next" class="code-type">next</td><td class="code-type">*<a href="#Win32_IP_ADAPTER_INFO">Win32.IP_ADAPTER_INFO</a>?</td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_primaryWinsServer" class="code-type">primaryWinsServer</td><td class="code-type"><a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a></td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_secondaryWinsServer" class="code-type">secondaryWinsServer</td><td class="code-type"><a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a></td><td></td></tr>
 <tr><td id="Win32_IP_ADAPTER_INFO_type" class="code-type">type</td><td class="code-type">u32</td><td></td></tr>
@@ -5705,7 +5705,7 @@
 <tr><td id="Win32_IP_ADDR_STRING_context" class="code-type">context</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_IP_ADDR_STRING_ipAddress" class="code-type">ipAddress</td><td class="code-type"><a href="#Win32_IP_ADDRESS_STRING">Win32.IP_ADDRESS_STRING</a></td><td></td></tr>
 <tr><td id="Win32_IP_ADDR_STRING_ipMask" class="code-type">ipMask</td><td class="code-type"><a href="#Win32_IP_ADDRESS_STRING">Win32.IP_ADDRESS_STRING</a></td><td></td></tr>
-<tr><td id="Win32_IP_ADDR_STRING_next" class="code-type">next</td><td class="code-type">#null *<a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a></td><td></td></tr>
+<tr><td id="Win32_IP_ADDR_STRING_next" class="code-type">next</td><td class="code-type">*<a href="#Win32_IP_ADDR_STRING">Win32.IP_ADDR_STRING</a>?</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -5724,7 +5724,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_IP_MASK_STRING">IP_MASK_STRING</a></span> = <span class="SCst"><a href="#Win32_IP_ADDRESS_STRING">IP_ADDRESS_STRING</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IStream" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IStream</span> <a class="api-item-permalink" href="#Win32_IStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L195">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IStream" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IStream</span> <a class="api-item-permalink" href="#Win32_IStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L193">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IStream">IStream</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -5735,7 +5735,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Win32_IStreamVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IStreamVtbl</span> <a class="api-item-permalink" href="#Win32_IStreamVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L202">src</a></div>
+<div class="api-item api-item-struct"><span id="Win32_IStreamVtbl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.IStreamVtbl</span> <a class="api-item-permalink" href="#Win32_IStreamVtbl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L200">src</a></div>
 <p>The two <span class="code-inline">ISequentialStream</span> methods are spelled inline, because the vtable of a derived interface is the base one followed by its own entries and nothing here needs the base name.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Win32_IStreamVtbl">IStreamVtbl</a></span></span></div>
 </section>
@@ -5744,19 +5744,19 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_IStreamVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>)-&gt;u32</td><td></td></tr>
-<tr><td id="Win32_IStreamVtbl_Clone" class="code-type">Clone</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IStreamVtbl_Clone" class="code-type">Clone</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_Commit" class="code-type">Commit</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IStreamVtbl_CopyTo" class="code-type">CopyTo</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, *<a href="#Win32_IStream">Win32.IStream</a>, u64, #null *u64, #null *u64)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IStreamVtbl_CopyTo" class="code-type">CopyTo</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, *<a href="#Win32_IStream">Win32.IStream</a>, u64, *u64?, *u64?)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_LockRegion" class="code-type">LockRegion</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, u64, u64, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IStreamVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IStreamVtbl_Read" class="code-type">Read</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, #null [*] void, u32, #null *u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IStreamVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IStreamVtbl_Read" class="code-type">Read</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, [*] void?, u32, *u32?)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>)-&gt;u32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_Revert" class="code-type">Revert</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IStreamVtbl_Seek" class="code-type">Seek</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, s64, u32, #null *u64)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IStreamVtbl_Seek" class="code-type">Seek</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, s64, u32, *u64?)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_SetSize" class="code-type">SetSize</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, u64)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_Stat" class="code-type">Stat</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, *<a href="#Win32_STATSTG">Win32.STATSTG</a>, u32)-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IStreamVtbl_UnlockRegion" class="code-type">UnlockRegion</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, u64, u64, u32)-&gt;s32</td><td></td></tr>
-<tr><td id="Win32_IStreamVtbl_Write" class="code-type">Write</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, #null const [*] void, u32, #null *u32)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IStreamVtbl_Write" class="code-type">Write</td><td class="code-type">func(*<a href="#Win32_IStream">Win32.IStream</a>, const [*] void?, u32, *u32?)-&gt;s32</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -5779,7 +5779,7 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_IUnknownVtbl_AddRef" class="code-type">AddRef</td><td class="code-type">func(*<a href="#Win32_IUnknown">Win32.IUnknown</a>)-&gt;u32</td><td></td></tr>
-<tr><td id="Win32_IUnknownVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IUnknown">Win32.IUnknown</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *#null [*] void)-&gt;s32</td><td></td></tr>
+<tr><td id="Win32_IUnknownVtbl_QueryInterface" class="code-type">QueryInterface</td><td class="code-type">func(*<a href="#Win32_IUnknown">Win32.IUnknown</a>, const *<a href="#Win32_GUID">Win32.GUID</a>, *([*] void?))-&gt;s32</td><td></td></tr>
 <tr><td id="Win32_IUnknownVtbl_Release" class="code-type">Release</td><td class="code-type">func(*<a href="#Win32_IUnknown">Win32.IUnknown</a>)-&gt;u32</td><td></td></tr>
 </tbody>
 </table>
@@ -5854,35 +5854,35 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPBYTE" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPBYTE</span> <a class="api-item-permalink" href="#Win32_LPBYTE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L19">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPBYTE">LPBYTE</a></span>                 = <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_BYTE">BYTE</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPBYTE">LPBYTE</a></span>                 = *<span class="SCst"><a href="#Win32_BYTE">BYTE</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPCH" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPCH</span> <a class="api-item-permalink" href="#Win32_LPCH" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L46">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCH">LPCH</a></span>                   = <span class="SItr">#null</span> [*] <span class="SCst"><a href="#Win32_CHAR">CHAR</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCH">LPCH</a></span>                   = [*] <span class="SCst"><a href="#Win32_CHAR">CHAR</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPCSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPCSTR</span> <a class="api-item-permalink" href="#Win32_LPCSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L24">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>                 = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>                 = <span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPCTSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPCTSTR</span> <a class="api-item-permalink" href="#Win32_LPCTSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L28">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCTSTR">LPCTSTR</a></span>                = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCTSTR">LPCTSTR</a></span>                = <span class="SKwd">const</span> [*] <span class="STpe">u16</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPCVOID" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPCVOID</span> <a class="api-item-permalink" href="#Win32_LPCVOID" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L23">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCVOID">LPCVOID</a></span>                = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCVOID">LPCVOID</a></span>                = <span class="SKwd">const</span> [*] <span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPCWSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPCWSTR</span> <a class="api-item-permalink" href="#Win32_LPCWSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L26">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>                = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>                = <span class="SKwd">const</span> [*] <span class="STpe">u16</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPDWORD" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPDWORD</span> <a class="api-item-permalink" href="#Win32_LPDWORD" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L29">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>                = <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>                = *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPOVERLAPPED" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPOVERLAPPED</span> <a class="api-item-permalink" href="#Win32_LPOVERLAPPED" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L330">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPOVERLAPPED">LPOVERLAPPED</a></span> = <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_OVERLAPPED">OVERLAPPED</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPOVERLAPPED">LPOVERLAPPED</a></span> = *<span class="SCst"><a href="#Win32_OVERLAPPED">OVERLAPPED</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPOVERLAPPED_COMPLETION_ROUTINE" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPOVERLAPPED_COMPLETION_ROUTINE</span> <a class="api-item-permalink" href="#Win32_LPOVERLAPPED_COMPLETION_ROUTINE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L331">src</a></div>
@@ -5890,23 +5890,23 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPSTR</span> <a class="api-item-permalink" href="#Win32_LPSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L44">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>                  = <span class="SItr">#null</span> [*] <span class="SCst"><a href="#Win32_CHAR">CHAR</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>                  = [*] <span class="SCst"><a href="#Win32_CHAR">CHAR</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPTHREAD_START_ROUTINE" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPTHREAD_START_ROUTINE</span> <a class="api-item-permalink" href="#Win32_LPTHREAD_START_ROUTINE" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L51">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPTHREAD_START_ROUTINE">LPTHREAD_START_ROUTINE</a></span> = <span class="SKwd">func</span>(<span class="SItr">#null</span> *<span class="STpe">void</span>)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPTHREAD_START_ROUTINE">LPTHREAD_START_ROUTINE</a></span> = <span class="SKwd">func</span>(*<span class="STpe">void</span>?)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPVOID" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPVOID</span> <a class="api-item-permalink" href="#Win32_LPVOID" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L22">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>                 = <span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>                 = [*] <span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPWCH" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPWCH</span> <a class="api-item-permalink" href="#Win32_LPWCH" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L47">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPWCH">LPWCH</a></span>                  = <span class="SItr">#null</span> [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPWCH">LPWCH</a></span>                  = [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LPWSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LPWSTR</span> <a class="api-item-permalink" href="#Win32_LPWSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L45">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>                 = <span class="SItr">#null</span> [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>                 = [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_LRESULT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.LRESULT</span> <a class="api-item-permalink" href="#Win32_LRESULT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L13">src</a></div>
@@ -6025,7 +6025,7 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_OVERLAPPED_data" class="code-type">data</td><td class="code-type">union { ... }</td><td></td></tr>
-<tr><td id="Win32_OVERLAPPED_hEvent" class="code-type">hEvent</td><td class="code-type">#null const [*] void</td><td></td></tr>
+<tr><td id="Win32_OVERLAPPED_hEvent" class="code-type">hEvent</td><td class="code-type">const [*] void?</td><td></td></tr>
 <tr><td id="Win32_OVERLAPPED_Internal" class="code-type">Internal</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Win32_OVERLAPPED_InternalHigh" class="code-type">InternalHigh</td><td class="code-type">u64</td><td></td></tr>
 </tbody>
@@ -6060,15 +6060,15 @@
 </table>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_PCSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.PCSTR</span> <a class="api-item-permalink" href="#Win32_PCSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L25">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_PCSTR">PCSTR</a></span>                  = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_PCSTR">PCSTR</a></span>                  = <span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_PCWSTR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.PCWSTR</span> <a class="api-item-permalink" href="#Win32_PCWSTR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L27">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_PCWSTR">PCWSTR</a></span>                 = <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_PCWSTR">PCWSTR</a></span>                 = <span class="SKwd">const</span> [*] <span class="STpe">u16</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_PLONG" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.PLONG</span> <a class="api-item-permalink" href="#Win32_PLONG" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L40">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_PLONG">PLONG</a></span>                  = <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_LONG">LONG</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_PLONG">PLONG</a></span>                  = *<span class="SCst"><a href="#Win32_LONG">LONG</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Win32_POINT" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.POINT</span> <a class="api-item-permalink" href="#Win32_POINT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L221">src</a></div>
@@ -6104,8 +6104,8 @@
 <tbody>
 <tr><td id="Win32_PROCESS_INFORMATION_dwProcessId" class="code-type">dwProcessId</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_PROCESS_INFORMATION_dwThreadId" class="code-type">dwThreadId</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_PROCESS_INFORMATION_hProcess" class="code-type">hProcess</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_PROCESS_INFORMATION_hThread" class="code-type">hThread</td><td class="code-type">#null const [*] void</td><td></td></tr>
+<tr><td id="Win32_PROCESS_INFORMATION_hProcess" class="code-type">hProcess</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_PROCESS_INFORMATION_hThread" class="code-type">hThread</td><td class="code-type">const [*] void?</td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -6135,7 +6135,7 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_SECURITY_ATTRIBUTES_bInheritHandle" class="code-type">bInheritHandle</td><td class="code-type">s32</td><td></td></tr>
-<tr><td id="Win32_SECURITY_ATTRIBUTES_lpSecurityDescriptor" class="code-type">lpSecurityDescriptor</td><td class="code-type">#null [*] void</td><td></td></tr>
+<tr><td id="Win32_SECURITY_ATTRIBUTES_lpSecurityDescriptor" class="code-type">lpSecurityDescriptor</td><td class="code-type">[*] void?</td><td></td></tr>
 <tr><td id="Win32_SECURITY_ATTRIBUTES_nLength" class="code-type">nLength</td><td class="code-type">u32</td><td></td></tr>
 </tbody>
 </table>
@@ -6240,7 +6240,7 @@
 </table>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_SRWLOCK" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.SRWLOCK</span> <a class="api-item-permalink" href="#Win32_SRWLOCK" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L194">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_SRWLOCK">SRWLOCK</a></span> = <span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_SRWLOCK">SRWLOCK</a></span> = *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Win32_STARTUPINFOA" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.STARTUPINFOA</span> <a class="api-item-permalink" href="#Win32_STARTUPINFOA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L405">src</a></div>
@@ -6260,13 +6260,13 @@
 <tr><td id="Win32_STARTUPINFOA_dwY" class="code-type">dwY</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STARTUPINFOA_dwYCountChars" class="code-type">dwYCountChars</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STARTUPINFOA_dwYSize" class="code-type">dwYSize</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_hStdError" class="code-type">hStdError</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_hStdInput" class="code-type">hStdInput</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_hStdOutput" class="code-type">hStdOutput</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_lpDesktop" class="code-type">lpDesktop</td><td class="code-type">#null [*] u8</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_lpReserved" class="code-type">lpReserved</td><td class="code-type">#null [*] u8</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_lpReserved2" class="code-type">lpReserved2</td><td class="code-type">#null *u8</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOA_lpTitle" class="code-type">lpTitle</td><td class="code-type">#null [*] u8</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_hStdError" class="code-type">hStdError</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_hStdInput" class="code-type">hStdInput</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_hStdOutput" class="code-type">hStdOutput</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_lpDesktop" class="code-type">lpDesktop</td><td class="code-type">[*] u8?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_lpReserved" class="code-type">lpReserved</td><td class="code-type">[*] u8?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_lpReserved2" class="code-type">lpReserved2</td><td class="code-type">*u8?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOA_lpTitle" class="code-type">lpTitle</td><td class="code-type">[*] u8?</td><td></td></tr>
 <tr><td id="Win32_STARTUPINFOA_wShowWindow" class="code-type">wShowWindow</td><td class="code-type">u16</td><td></td></tr>
 </tbody>
 </table>
@@ -6288,13 +6288,13 @@
 <tr><td id="Win32_STARTUPINFOW_dwY" class="code-type">dwY</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STARTUPINFOW_dwYCountChars" class="code-type">dwYCountChars</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STARTUPINFOW_dwYSize" class="code-type">dwYSize</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_hStdError" class="code-type">hStdError</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_hStdInput" class="code-type">hStdInput</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_hStdOutput" class="code-type">hStdOutput</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_lpDesktop" class="code-type">lpDesktop</td><td class="code-type">#null [*] u16</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_lpReserved" class="code-type">lpReserved</td><td class="code-type">#null [*] u16</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_lpReserved2" class="code-type">lpReserved2</td><td class="code-type">#null *u8</td><td></td></tr>
-<tr><td id="Win32_STARTUPINFOW_lpTitle" class="code-type">lpTitle</td><td class="code-type">#null [*] u16</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_hStdError" class="code-type">hStdError</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_hStdInput" class="code-type">hStdInput</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_hStdOutput" class="code-type">hStdOutput</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_lpDesktop" class="code-type">lpDesktop</td><td class="code-type">[*] u16?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_lpReserved" class="code-type">lpReserved</td><td class="code-type">[*] u16?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_lpReserved2" class="code-type">lpReserved2</td><td class="code-type">*u8?</td><td></td></tr>
+<tr><td id="Win32_STARTUPINFOW_lpTitle" class="code-type">lpTitle</td><td class="code-type">[*] u16?</td><td></td></tr>
 <tr><td id="Win32_STARTUPINFOW_wShowWindow" class="code-type">wShowWindow</td><td class="code-type">u16</td><td></td></tr>
 </tbody>
 </table>
@@ -6314,7 +6314,7 @@
 <tr><td id="Win32_STATSTG_grfMode" class="code-type">grfMode</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STATSTG_grfStateBits" class="code-type">grfStateBits</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STATSTG_mtime" class="code-type">mtime</td><td class="code-type"><a href="#Win32_FILETIME">Win32.FILETIME</a></td><td></td></tr>
-<tr><td id="Win32_STATSTG_pwcsName" class="code-type">pwcsName</td><td class="code-type">#null [*] u16</td><td></td></tr>
+<tr><td id="Win32_STATSTG_pwcsName" class="code-type">pwcsName</td><td class="code-type">[*] u16?</td><td></td></tr>
 <tr><td id="Win32_STATSTG_reserved" class="code-type">reserved</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_STATSTG_type" class="code-type">type</td><td class="code-type">u32</td><td></td></tr>
 </tbody>
@@ -6330,7 +6330,7 @@
 <tbody>
 <tr><td id="Win32_STGMEDIUM_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">union { ... }</td><td><p>Stream, for <span class="code-inline">TYMED_ISTREAM</span>.</p>
 </td></tr>
-<tr><td id="Win32_STGMEDIUM_pUnkForRelease" class="code-type">pUnkForRelease</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td id="Win32_STGMEDIUM_pUnkForRelease" class="code-type">pUnkForRelease</td><td class="code-type">*void?</td><td></td></tr>
 <tr><td id="Win32_STGMEDIUM_tymed" class="code-type">tymed</td><td class="code-type">u32</td><td></td></tr>
 </tbody>
 </table>
@@ -6349,8 +6349,8 @@
 </td></tr>
 <tr><td id="Win32_SYSTEM_INFO_dwPageSize" class="code-type">dwPageSize</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_SYSTEM_INFO_dwProcessorType" class="code-type">dwProcessorType</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_SYSTEM_INFO_lpMaximumApplicationAddress" class="code-type">lpMaximumApplicationAddress</td><td class="code-type">#null [*] void</td><td></td></tr>
-<tr><td id="Win32_SYSTEM_INFO_lpMinimumApplicationAddress" class="code-type">lpMinimumApplicationAddress</td><td class="code-type">#null [*] void</td><td></td></tr>
+<tr><td id="Win32_SYSTEM_INFO_lpMaximumApplicationAddress" class="code-type">lpMaximumApplicationAddress</td><td class="code-type">[*] void?</td><td></td></tr>
+<tr><td id="Win32_SYSTEM_INFO_lpMinimumApplicationAddress" class="code-type">lpMinimumApplicationAddress</td><td class="code-type">[*] void?</td><td></td></tr>
 <tr><td id="Win32_SYSTEM_INFO_wProcessorLevel" class="code-type">wProcessorLevel</td><td class="code-type">u16</td><td></td></tr>
 <tr><td id="Win32_SYSTEM_INFO_wProcessorRevision" class="code-type">wProcessorRevision</td><td class="code-type">u16</td><td></td></tr>
 </tbody>
@@ -6403,11 +6403,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_va_list" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.va_list</span> <a class="api-item-permalink" href="#Win32_va_list" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L49">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> va_list                = <span class="SItr">#null</span> [*] <span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> va_list                = [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_WAITORTIMERCALLBACK" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.WAITORTIMERCALLBACK</span> <a class="api-item-permalink" href="#Win32_WAITORTIMERCALLBACK" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L52">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_WAITORTIMERCALLBACK">WAITORTIMERCALLBACK</a></span>    = <span class="SKwd">func</span>(<span class="SItr">#null</span> *<span class="STpe">void</span>, <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Win32_WAITORTIMERCALLBACK">WAITORTIMERCALLBACK</a></span>    = <span class="SKwd">func</span>(*<span class="STpe">void</span>?, <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Win32_WCHAR" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Win32.WCHAR</span> <a class="api-item-permalink" href="#Win32_WCHAR" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L43">src</a></div>
@@ -6505,10 +6505,10 @@
 <tr><td id="Win32_WNDCLASSA_hbrBackground" class="code-type">hbrBackground</td><td class="code-type"><a href="#Win32_HBRUSH">Win32.HBRUSH</a></td><td></td></tr>
 <tr><td id="Win32_WNDCLASSA_hCursor" class="code-type">hCursor</td><td class="code-type"><a href="#Win32_HCURSOR">Win32.HCURSOR</a></td><td></td></tr>
 <tr><td id="Win32_WNDCLASSA_hIcon" class="code-type">hIcon</td><td class="code-type"><a href="#Win32_HICON">Win32.HICON</a></td><td></td></tr>
-<tr><td id="Win32_WNDCLASSA_hInstance" class="code-type">hInstance</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_WNDCLASSA_lpfnWndProc" class="code-type">lpfnWndProc</td><td class="code-type">#null const *void</td><td></td></tr>
-<tr><td id="Win32_WNDCLASSA_lpszClassName" class="code-type">lpszClassName</td><td class="code-type">#null const [*] u8</td><td></td></tr>
-<tr><td id="Win32_WNDCLASSA_lpszMenuName" class="code-type">lpszMenuName</td><td class="code-type">#null const [*] u8</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSA_hInstance" class="code-type">hInstance</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSA_lpfnWndProc" class="code-type">lpfnWndProc</td><td class="code-type">const *void?</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSA_lpszClassName" class="code-type">lpszClassName</td><td class="code-type">const [*] u8?</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSA_lpszMenuName" class="code-type">lpszMenuName</td><td class="code-type">const [*] u8?</td><td></td></tr>
 <tr><td id="Win32_WNDCLASSA_style" class="code-type">style</td><td class="code-type">u32</td><td></td></tr>
 </tbody>
 </table>
@@ -6525,10 +6525,10 @@
 <tr><td id="Win32_WNDCLASSW_hbrBackground" class="code-type">hbrBackground</td><td class="code-type"><a href="#Win32_HBRUSH">Win32.HBRUSH</a></td><td></td></tr>
 <tr><td id="Win32_WNDCLASSW_hCursor" class="code-type">hCursor</td><td class="code-type"><a href="#Win32_HCURSOR">Win32.HCURSOR</a></td><td></td></tr>
 <tr><td id="Win32_WNDCLASSW_hIcon" class="code-type">hIcon</td><td class="code-type"><a href="#Win32_HICON">Win32.HICON</a></td><td></td></tr>
-<tr><td id="Win32_WNDCLASSW_hInstance" class="code-type">hInstance</td><td class="code-type">#null const [*] void</td><td></td></tr>
-<tr><td id="Win32_WNDCLASSW_lpfnWndProc" class="code-type">lpfnWndProc</td><td class="code-type">#null const *void</td><td></td></tr>
-<tr><td id="Win32_WNDCLASSW_lpszClassName" class="code-type">lpszClassName</td><td class="code-type">#null const [*] u16</td><td></td></tr>
-<tr><td id="Win32_WNDCLASSW_lpszMenuName" class="code-type">lpszMenuName</td><td class="code-type">#null const [*] u16</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSW_hInstance" class="code-type">hInstance</td><td class="code-type">const [*] void?</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSW_lpfnWndProc" class="code-type">lpfnWndProc</td><td class="code-type">const *void?</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSW_lpszClassName" class="code-type">lpszClassName</td><td class="code-type">const [*] u16?</td><td></td></tr>
+<tr><td id="Win32_WNDCLASSW_lpszMenuName" class="code-type">lpszMenuName</td><td class="code-type">const [*] u16?</td><td></td></tr>
 <tr><td id="Win32_WNDCLASSW_style" class="code-type">style</td><td class="code-type">u32</td><td></td></tr>
 </tbody>
 </table>
@@ -11595,56 +11595,56 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CloseHandle</span>(handle: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_CoCreateInstance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoCreateInstance</span> <a class="api-item-permalink" href="#Win32_CoCreateInstance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L294">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoCreateInstance</span>(rclsid: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_GUID">GUID</a></span>, pUnkOuter: <span class="SItr">#null</span> *<span class="STpe">void</span>, dwClsContext: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, riid: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_GUID">GUID</a></span>, ppv: *<span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
+<div class="api-item api-item-func"><span id="Win32_CoCreateInstance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoCreateInstance</span> <a class="api-item-permalink" href="#Win32_CoCreateInstance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L286">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoCreateInstance</span>(rclsid: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_GUID">GUID</a></span>, pUnkOuter: *<span class="STpe">void</span>?, dwClsContext: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, riid: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_GUID">GUID</a></span>, ppv: *<span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_CoInitializeEx" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoInitializeEx</span> <a class="api-item-permalink" href="#Win32_CoInitializeEx" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L292">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoInitializeEx</span>(pvReserved: <span class="SItr">#null</span> *<span class="STpe">void</span>, dwCoInit: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
+<div class="api-item api-item-func"><span id="Win32_CoInitializeEx" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoInitializeEx</span> <a class="api-item-permalink" href="#Win32_CoInitializeEx" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L284">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoInitializeEx</span>(pvReserved: *<span class="STpe">void</span>?, dwCoInit: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_CoTaskMemAlloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoTaskMemAlloc</span> <a class="api-item-permalink" href="#Win32_CoTaskMemAlloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L297">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoTaskMemAlloc</span>(cb: <span class="SCst"><a href="#Win32_SIZE_T">SIZE_T</a></span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<div class="api-item api-item-func"><span id="Win32_CoTaskMemAlloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoTaskMemAlloc</span> <a class="api-item-permalink" href="#Win32_CoTaskMemAlloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L289">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoTaskMemAlloc</span>(cb: <span class="SCst"><a href="#Win32_SIZE_T">SIZE_T</a></span>)-&gt;[*] <span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_CoTaskMemFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoTaskMemFree</span> <a class="api-item-permalink" href="#Win32_CoTaskMemFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L298">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoTaskMemFree</span>(pv: <span class="SItr">#null</span> *<span class="STpe">void</span>)</span></div>
+<div class="api-item api-item-func"><span id="Win32_CoTaskMemFree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoTaskMemFree</span> <a class="api-item-permalink" href="#Win32_CoTaskMemFree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L290">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoTaskMemFree</span>(pv: *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_CoUninitialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoUninitialize</span> <a class="api-item-permalink" href="#Win32_CoUninitialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L293">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_CoUninitialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CoUninitialize</span> <a class="api-item-permalink" href="#Win32_CoUninitialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L285">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CoUninitialize</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateConsoleScreenBuffer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateConsoleScreenBuffer</span> <a class="api-item-permalink" href="#Win32_CreateConsoleScreenBuffer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L573">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateConsoleScreenBuffer</span>(dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwShareMode: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, dwFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpScreenBufferData: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateConsoleScreenBuffer</span>(dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwShareMode: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSecurityAttributes: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, dwFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpScreenBufferData: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateDirectoryA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateDirectoryA</span> <a class="api-item-permalink" href="#Win32_CreateDirectoryA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1276">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateDirectoryA</span>(lpPathName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateDirectoryA</span>(lpPathName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpSecurityAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateDirectoryW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateDirectoryW</span> <a class="api-item-permalink" href="#Win32_CreateDirectoryW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1283">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateDirectoryW</span>(lpPathName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateDirectoryW</span>(lpPathName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpSecurityAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateEventA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateEventA</span> <a class="api-item-permalink" href="#Win32_CreateEventA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L883">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateEventA</span>(lpEventAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, bInitialState: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateEventA</span>(lpEventAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, bInitialState: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateEventW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateEventW</span> <a class="api-item-permalink" href="#Win32_CreateEventW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L891">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateEventW</span>(lpEventAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, bInitialState: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateEventW</span>(lpEventAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, bInitialState: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateFileA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateFileA</span> <a class="api-item-permalink" href="#Win32_CreateFileA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1097">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateFileA</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwShareMode: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, dwCreationDisposition: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwFlagsAndAttributes: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, hTemplateFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateFileA</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwShareMode: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSecurityAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, dwCreationDisposition: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwFlagsAndAttributes: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, hTemplateFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateFileMappingW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateFileMappingW</span> <a class="api-item-permalink" href="#Win32_CreateFileMappingW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L940">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateFileMappingW</span>(hFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpFileMappingAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, flProtect: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwMaximumSizeHigh: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwMaximumSizeLow: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateFileMappingW</span>(hFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpFileMappingAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, flProtect: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwMaximumSizeHigh: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwMaximumSizeLow: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateFileW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateFileW</span> <a class="api-item-permalink" href="#Win32_CreateFileW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1105">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateFileW</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwShareMode: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, dwCreationDisposition: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwFlagsAndAttributes: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, hTemplateFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateFileW</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, dwDesiredAccess: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwShareMode: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSecurityAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, dwCreationDisposition: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwFlagsAndAttributes: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, hTemplateFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateIconIndirect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateIconIndirect</span> <a class="api-item-permalink" href="#Win32_CreateIconIndirect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1306">src</a></div>
@@ -11652,47 +11652,47 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateJobObjectW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateJobObjectW</span> <a class="api-item-permalink" href="#Win32_CreateJobObjectW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L830">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateJobObjectW</span>(lpJobAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, lpName: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateJobObjectW</span>(lpJobAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>?)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateMutexA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateMutexA</span> <a class="api-item-permalink" href="#Win32_CreateMutexA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L899">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateMutexA</span>(lpMutexAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bInitialOwner: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateMutexA</span>(lpMutexAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bInitialOwner: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateMutexW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateMutexW</span> <a class="api-item-permalink" href="#Win32_CreateMutexW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L907">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateMutexW</span>(lpMutexAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bInitialOwner: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateMutexW</span>(lpMutexAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bInitialOwner: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreatePipe" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreatePipe</span> <a class="api-item-permalink" href="#Win32_CreatePipe" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L871">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreatePipe</span>(hReadPipe: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, hWritePipe: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpPipeAttributes: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, nSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreatePipe</span>(hReadPipe: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, hWritePipe: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpPipeAttributes: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, nSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateProcessA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateProcessA</span> <a class="api-item-permalink" href="#Win32_CreateProcessA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L818">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateProcessA</span>(lpApplicationName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpCommandLine: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpProcessAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, lpThreadAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bInheritHandles: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwCreationFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpEnvironment: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, lpCurrentDirectory: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpStartupInfo: *<span class="SCst"><a href="#Win32_STARTUPINFOA">STARTUPINFOA</a></span>, lpProcessInformation: *<span class="SCst"><a href="#Win32_PROCESS_INFORMATION">PROCESS_INFORMATION</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateProcessA</span>(lpApplicationName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpCommandLine: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpProcessAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, lpThreadAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bInheritHandles: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwCreationFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpEnvironment: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, lpCurrentDirectory: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, lpStartupInfo: *<span class="SCst"><a href="#Win32_STARTUPINFOA">STARTUPINFOA</a></span>, lpProcessInformation: *<span class="SCst"><a href="#Win32_PROCESS_INFORMATION">PROCESS_INFORMATION</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateProcessW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateProcessW</span> <a class="api-item-permalink" href="#Win32_CreateProcessW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L824">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateProcessW</span>(lpApplicationName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpCommandLine: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpProcessAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, lpThreadAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bInheritHandles: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwCreationFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpEnvironment: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, lpCurrentDirectory: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpStartupInfo: *<span class="SCst"><a href="#Win32_STARTUPINFOW">STARTUPINFOW</a></span>, lpProcessInformation: *<span class="SCst"><a href="#Win32_PROCESS_INFORMATION">PROCESS_INFORMATION</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateProcessW</span>(lpApplicationName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpCommandLine: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpProcessAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, lpThreadAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bInheritHandles: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwCreationFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpEnvironment: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, lpCurrentDirectory: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpStartupInfo: *<span class="SCst"><a href="#Win32_STARTUPINFOW">STARTUPINFOW</a></span>, lpProcessInformation: *<span class="SCst"><a href="#Win32_PROCESS_INFORMATION">PROCESS_INFORMATION</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_CreateStreamOnHGlobal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateStreamOnHGlobal</span> <a class="api-item-permalink" href="#Win32_CreateStreamOnHGlobal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L295">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_CreateStreamOnHGlobal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateStreamOnHGlobal</span> <a class="api-item-permalink" href="#Win32_CreateStreamOnHGlobal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L287">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateStreamOnHGlobal</span>(hGlobal: <span class="SCst"><a href="#Win32_HGLOBAL">HGLOBAL</a></span>, fDeleteOnRelease: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, ppstm: *<span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateThread" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateThread</span> <a class="api-item-permalink" href="#Win32_CreateThread" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L751">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateThread</span>(lpThreadAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, dwStackSize: <span class="SCst"><a href="#Win32_SIZE_T">SIZE_T</a></span>, lpStartAddress: <span class="SCst"><a href="#Win32_LPTHREAD_START_ROUTINE">LPTHREAD_START_ROUTINE</a></span>, lpParameter: *<span class="STpe">void</span>, dwCreationFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpThreadId: *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateThread</span>(lpThreadAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, dwStackSize: <span class="SCst"><a href="#Win32_SIZE_T">SIZE_T</a></span>, lpStartAddress: <span class="SCst"><a href="#Win32_LPTHREAD_START_ROUTINE">LPTHREAD_START_ROUTINE</a></span>, lpParameter: *<span class="STpe">void</span>, dwCreationFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpThreadId: *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateTimerQueueTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateTimerQueueTimer</span> <a class="api-item-permalink" href="#Win32_CreateTimerQueueTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L915">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateTimerQueueTimer</span>(phNewTimer: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, timerQueue: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, callback: <span class="SCst"><a href="#Win32_WAITORTIMERCALLBACK">WAITORTIMERCALLBACK</a></span>, parameter: <span class="SItr">#null</span> *<span class="STpe">void</span>, dueTime: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, period: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, flags: <span class="SCst"><a href="#Win32_ULONG">ULONG</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateTimerQueueTimer</span>(phNewTimer: *<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, timerQueue: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, callback: <span class="SCst"><a href="#Win32_WAITORTIMERCALLBACK">WAITORTIMERCALLBACK</a></span>, parameter: *<span class="STpe">void</span>?, dueTime: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, period: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, flags: <span class="SCst"><a href="#Win32_ULONG">ULONG</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateWaitableTimerA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateWaitableTimerA</span> <a class="api-item-permalink" href="#Win32_CreateWaitableTimerA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L609">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateWaitableTimerA</span>(lpTimerAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpTimerName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateWaitableTimerA</span>(lpTimerAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpTimerName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateWaitableTimerW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateWaitableTimerW</span> <a class="api-item-permalink" href="#Win32_CreateWaitableTimerW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L610">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateWaitableTimerW</span>(lpTimerAttributes: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpTimerName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">CreateWaitableTimerW</span>(lpTimerAttributes: *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, bManualReset: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, lpTimerName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_CreateWindowExA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.CreateWindowExA</span> <a class="api-item-permalink" href="#Win32_CreateWindowExA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1063">src</a></div>
@@ -11747,7 +11747,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DispatchMessageW</span>(lpMsg: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_MSG">MSG</a></span>)-&gt;<span class="SCst"><a href="#Win32_LRESULT">LRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_DoDragDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DoDragDrop</span> <a class="api-item-permalink" href="#Win32_DoDragDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L304">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_DoDragDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DoDragDrop</span> <a class="api-item-permalink" href="#Win32_DoDragDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L296">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DoDragDrop</span>(pDataObj: *<span class="SCst"><a href="#Win32_IDataObject">IDataObject</a></span>, pDropSource: *<span class="SCst"><a href="#Win32_IDropSource">IDropSource</a></span>, dwOKEffects: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, pdwEffect: *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -11760,7 +11760,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_DragQueryFileW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DragQueryFileW</span> <a class="api-item-permalink" href="#Win32_DragQueryFileW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L478">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DragQueryFileW</span>(hDrop: <span class="SCst"><a href="#Win32_HDROP">HDROP</a></span>, iFile: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>, lpszFile: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>, cch: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DragQueryFileW</span>(hDrop: <span class="SCst"><a href="#Win32_HDROP">HDROP</a></span>, iFile: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>, lpszFile: <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>?, cch: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_DragQueryPoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.DragQueryPoint</span> <a class="api-item-permalink" href="#Win32_DragQueryPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L479">src</a></div>
@@ -11788,7 +11788,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_EnumDisplayMonitors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.EnumDisplayMonitors</span> <a class="api-item-permalink" href="#Win32_EnumDisplayMonitors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1155">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">EnumDisplayMonitors</span>(hdc: <span class="SCst"><a href="#Win32_HDC">HDC</a></span>, lprcClip: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_RECT">RECT</a></span>, lpfnEnum: <span class="SCst"><a href="#Win32_MONITORENUMPROC">MONITORENUMPROC</a></span>, dwData: <span class="SCst"><a href="#Win32_LPARAM">LPARAM</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">EnumDisplayMonitors</span>(hdc: <span class="SCst"><a href="#Win32_HDC">HDC</a></span>, lprcClip: *<span class="SCst"><a href="#Win32_RECT">RECT</a></span>?, lpfnEnum: <span class="SCst"><a href="#Win32_MONITORENUMPROC">MONITORENUMPROC</a></span>, dwData: <span class="SCst"><a href="#Win32_LPARAM">LPARAM</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_EnumWindows" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.EnumWindows</span> <a class="api-item-permalink" href="#Win32_EnumWindows" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1156">src</a></div>
@@ -11801,12 +11801,12 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_ExtractIconExA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ExtractIconExA</span> <a class="api-item-permalink" href="#Win32_ExtractIconExA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L502">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
-<span class="SKwd">func</span> <span class="SFct">ExtractIconExA</span>(lpszFile: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, nIconIndex: <span class="STpe">s32</span>, phiconLarge: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>, phiconSmall: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>, nIcons: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">ExtractIconExA</span>(lpszFile: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, nIconIndex: <span class="STpe">s32</span>, phiconLarge: *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>?, phiconSmall: *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>?, nIcons: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_ExtractIconExW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ExtractIconExW</span> <a class="api-item-permalink" href="#Win32_ExtractIconExW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L511">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
-<span class="SKwd">func</span> <span class="SFct">ExtractIconExW</span>(lpszFile: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, nIconIndex: <span class="STpe">s32</span>, phiconLarge: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>, phiconSmall: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>, nIcons: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">ExtractIconExW</span>(lpszFile: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, nIconIndex: <span class="STpe">s32</span>, phiconLarge: *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>?, phiconSmall: *<span class="SCst"><a href="#Win32_HICON">HICON</a></span>?, nIcons: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_failWinError" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.failWinError</span> <a class="api-item-permalink" href="#Win32_failWinError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/win32.swg#L5">src</a></div>
@@ -11891,7 +11891,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_FormatMessageA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.FormatMessageA</span> <a class="api-item-permalink" href="#Win32_FormatMessageA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L554">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">FormatMessageA</span>(dwFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSource: <span class="SCst"><a href="#Win32_LPCVOID">LPCVOID</a></span>, dwMessageId: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwLanguageId: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, nSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, <span class="SCst">Arguments</span>: <span class="SItr">#null</span> *va_list)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">FormatMessageA</span>(dwFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpSource: <span class="SCst"><a href="#Win32_LPCVOID">LPCVOID</a></span>, dwMessageId: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwLanguageId: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, nSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, <span class="SCst">Arguments</span>: *va_list?)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_FreeConsole" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.FreeConsole</span> <a class="api-item-permalink" href="#Win32_FreeConsole" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L727">src</a></div>
@@ -11899,7 +11899,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_FreeEnvironmentStringsW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.FreeEnvironmentStringsW</span> <a class="api-item-permalink" href="#Win32_FreeEnvironmentStringsW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L563">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">FreeEnvironmentStringsW</span>(penv: <span class="SItr">#null</span> [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">FreeEnvironmentStringsW</span>(penv: [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span>?)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GET_WHEEL_DELTA_WPARAM" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GET_WHEEL_DELTA_WPARAM</span> <a class="api-item-permalink" href="#Win32_GET_WHEEL_DELTA_WPARAM" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L439">src</a></div>
@@ -11944,11 +11944,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetCommandLineA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetCommandLineA</span> <a class="api-item-permalink" href="#Win32_GetCommandLineA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L560">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetCommandLineA</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetCommandLineA</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetCommandLineW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetCommandLineW</span> <a class="api-item-permalink" href="#Win32_GetCommandLineW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L561">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetCommandLineW</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetCommandLineW</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u16</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetConsoleScreenBufferInfo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetConsoleScreenBufferInfo</span> <a class="api-item-permalink" href="#Win32_GetConsoleScreenBufferInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L745">src</a></div>
@@ -12004,11 +12004,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetEnvironmentStringsW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetEnvironmentStringsW</span> <a class="api-item-permalink" href="#Win32_GetEnvironmentStringsW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L562">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetEnvironmentStringsW</span>()-&gt;<span class="SItr">#null</span> [*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetEnvironmentStringsW</span>()-&gt;[*] <span class="SCst"><a href="#Win32_WCHAR">WCHAR</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetEnvironmentVariableW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetEnvironmentVariableW</span> <a class="api-item-permalink" href="#Win32_GetEnvironmentVariableW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L564">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetEnvironmentVariableW</span>(lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpBuffer: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>, nSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetEnvironmentVariableW</span>(lpName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>?, nSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetExitCodeProcess" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetExitCodeProcess</span> <a class="api-item-permalink" href="#Win32_GetExitCodeProcess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L853">src</a></div>
@@ -12045,15 +12045,15 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetFullPathNameA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetFullPathNameA</span> <a class="api-item-permalink" href="#Win32_GetFullPathNameA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1259">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
-<span class="SKwd">func</span> <span class="SFct">GetFullPathNameA</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, nBufferLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>, lpFilePart: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">GetFullPathNameA</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, nBufferLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>, lpFilePart: *<span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>?)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetFullPathNameW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetFullPathNameW</span> <a class="api-item-permalink" href="#Win32_GetFullPathNameW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1268">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
-<span class="SKwd">func</span> <span class="SFct">GetFullPathNameW</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCTSTR">LPCTSTR</a></span>, nBufferLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>, lpFilePart: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">GetFullPathNameW</span>(lpFileName: <span class="SCst"><a href="#Win32_LPCTSTR">LPCTSTR</a></span>, nBufferLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>, lpFilePart: *<span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>?)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_GetHGlobalFromStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetHGlobalFromStream</span> <a class="api-item-permalink" href="#Win32_GetHGlobalFromStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L296">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_GetHGlobalFromStream" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetHGlobalFromStream</span> <a class="api-item-permalink" href="#Win32_GetHGlobalFromStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L288">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetHGlobalFromStream</span>(pstm: *<span class="SCst"><a href="#Win32_IStream">IStream</a></span>, phglobal: *<span class="SCst"><a href="#Win32_HGLOBAL">HGLOBAL</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -12122,7 +12122,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetProcAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetProcAddress</span> <a class="api-item-permalink" href="#Win32_GetProcAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L566">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetProcAddress</span>(hModule: <span class="SCst"><a href="#Win32_HMODULE">HMODULE</a></span>, lpProcName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetProcAddress</span>(hModule: <span class="SCst"><a href="#Win32_HMODULE">HMODULE</a></span>, lpProcName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_GetStdHandle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.GetStdHandle</span> <a class="api-item-permalink" href="#Win32_GetStdHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L572">src</a></div>
@@ -12226,7 +12226,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_InvalidateRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.InvalidateRect</span> <a class="api-item-permalink" href="#Win32_InvalidateRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1142">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">InvalidateRect</span>(hWnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, lpRect: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_RECT">RECT</a></span>, bErase: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">InvalidateRect</span>(hWnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, lpRect: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_RECT">RECT</a></span>?, bErase: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_IsClipboardFormatAvailable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.IsClipboardFormatAvailable</span> <a class="api-item-permalink" href="#Win32_IsClipboardFormatAvailable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1099">src</a></div>
@@ -12237,7 +12237,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">IsDebuggerPresent</span>()-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_isEqualGuid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.isEqualGuid</span> <a class="api-item-permalink" href="#Win32_isEqualGuid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L308">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_isEqualGuid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.isEqualGuid</span> <a class="api-item-permalink" href="#Win32_isEqualGuid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L300">src</a></div>
 <p>Reports whether two interface identifiers name the same interface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isEqualGuid</span>(a, b: <span class="SCst"><a href="#Win32_GUID">GUID</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -12303,18 +12303,18 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_MoveFileExW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.MoveFileExW</span> <a class="api-item-permalink" href="#Win32_MoveFileExW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L865">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">MoveFileExW</span>(lpExistingFileName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpNewFileName: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, dwFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">MoveFileExW</span>(lpExistingFileName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, lpNewFileName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>?, dwFlags: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_MoveWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.MoveWindow</span> <a class="api-item-permalink" href="#Win32_MoveWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1246">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">MoveWindow</span>(hWnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, x, y, nWidth, nHeight: <span class="STpe">s32</span>, bRepaint: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_OleInitialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.OleInitialize</span> <a class="api-item-permalink" href="#Win32_OleInitialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L299">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">OleInitialize</span>(pvReserved: <span class="SItr">#null</span> *<span class="STpe">void</span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
+<div class="api-item api-item-func"><span id="Win32_OleInitialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.OleInitialize</span> <a class="api-item-permalink" href="#Win32_OleInitialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L291">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">OleInitialize</span>(pvReserved: *<span class="STpe">void</span>?)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_OleUninitialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.OleUninitialize</span> <a class="api-item-permalink" href="#Win32_OleUninitialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L300">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_OleUninitialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.OleUninitialize</span> <a class="api-item-permalink" href="#Win32_OleUninitialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L292">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">OleUninitialize</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -12339,7 +12339,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_PeekNamedPipe" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.PeekNamedPipe</span> <a class="api-item-permalink" href="#Win32_PeekNamedPipe" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L615">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">PeekNamedPipe</span>(hNamedPipe: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpBuffer: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, nBufferSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBytesRead: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>, lpTotalBytesAvail: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>, lpBytesLeftThisMessage: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">PeekNamedPipe</span>(hNamedPipe: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>?, nBufferSize: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBytesRead: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>?, lpTotalBytesAvail: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>?, lpBytesLeftThisMessage: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>?)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_PostMessageA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.PostMessageA</span> <a class="api-item-permalink" href="#Win32_PostMessageA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1204">src</a></div>
@@ -12356,7 +12356,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_QueryInformationJobObject" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.QueryInformationJobObject</span> <a class="api-item-permalink" href="#Win32_QueryInformationJobObject" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L842">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
-<span class="SKwd">func</span> <span class="SFct">QueryInformationJobObject</span>(hJob: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, <span class="SCst">JobObjectInformationClass</span>: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpJobObjectInformation: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, cbJobObjectInformationLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpReturnLength: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="STpe">bool</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">QueryInformationJobObject</span>(hJob: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, <span class="SCst">JobObjectInformationClass</span>: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpJobObjectInformation: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, cbJobObjectInformationLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpReturnLength: *<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_QueryPerformanceCounter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.QueryPerformanceCounter</span> <a class="api-item-permalink" href="#Win32_QueryPerformanceCounter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L590">src</a></div>
@@ -12369,7 +12369,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_ReadDirectoryChangesW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ReadDirectoryChangesW</span> <a class="api-item-permalink" href="#Win32_ReadDirectoryChangesW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L975">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
-<span class="SKwd">func</span> <span class="SFct">ReadDirectoryChangesW</span>(hDirectory: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, nBufferLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, bWatchSubtree: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwNotifyFilter: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBytesReturned: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>, lpOverlapped: <span class="SCst"><a href="#Win32_LPOVERLAPPED">LPOVERLAPPED</a></span>, lpCompletionRoutine: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPOVERLAPPED_COMPLETION_ROUTINE">LPOVERLAPPED_COMPLETION_ROUTINE</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">ReadDirectoryChangesW</span>(hDirectory: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpBuffer: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, nBufferLength: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, bWatchSubtree: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>, dwNotifyFilter: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpBytesReturned: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>, lpOverlapped: <span class="SCst"><a href="#Win32_LPOVERLAPPED">LPOVERLAPPED</a></span>, lpCompletionRoutine: <span class="SCst"><a href="#Win32_LPOVERLAPPED_COMPLETION_ROUTINE">LPOVERLAPPED_COMPLETION_ROUTINE</a></span>?)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_ReadFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ReadFile</span> <a class="api-item-permalink" href="#Win32_ReadFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L614">src</a></div>
@@ -12381,11 +12381,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_RegCreateKeyExA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegCreateKeyExA</span> <a class="api-item-permalink" href="#Win32_RegCreateKeyExA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/advapi32.swg#L53">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegCreateKeyExA</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpSubKey: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpClass: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>, dwOptions: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, samDesired: <span class="SCst"><a href="#Win32_REGSAM">REGSAM</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, hkResult: *<span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpdwDisposition: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegCreateKeyExA</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpSubKey: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpClass: <span class="SCst"><a href="#Win32_LPSTR">LPSTR</a></span>?, dwOptions: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, samDesired: <span class="SCst"><a href="#Win32_REGSAM">REGSAM</a></span>, lpSecurityAttributes: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, hkResult: *<span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpdwDisposition: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_RegCreateKeyExW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegCreateKeyExW</span> <a class="api-item-permalink" href="#Win32_RegCreateKeyExW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/advapi32.swg#L54">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegCreateKeyExW</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpSubKey: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpClass: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>, dwOptions: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, samDesired: <span class="SCst"><a href="#Win32_REGSAM">REGSAM</a></span>, lpSecurityAttributes: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>, hkResult: *<span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpdwDisposition: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegCreateKeyExW</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpSubKey: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpClass: <span class="SCst"><a href="#Win32_LPWSTR">LPWSTR</a></span>?, dwOptions: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, samDesired: <span class="SCst"><a href="#Win32_REGSAM">REGSAM</a></span>, lpSecurityAttributes: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_SECURITY_ATTRIBUTES">SECURITY_ATTRIBUTES</a></span>?, hkResult: *<span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpdwDisposition: <span class="SCst"><a href="#Win32_LPDWORD">LPDWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_RegisterClassA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegisterClassA</span> <a class="api-item-permalink" href="#Win32_RegisterClassA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1217">src</a></div>
@@ -12406,7 +12406,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegisterClipboardFormatW</span>(name: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>)-&gt;<span class="SCst"><a href="#Win32_UINT">UINT</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_RegisterDragDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegisterDragDrop</span> <a class="api-item-permalink" href="#Win32_RegisterDragDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L301">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_RegisterDragDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegisterDragDrop</span> <a class="api-item-permalink" href="#Win32_RegisterDragDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L293">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegisterDragDrop</span>(hwnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>, pDropTarget: *<span class="SCst"><a href="#Win32_IDropTarget">IDropTarget</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -12423,11 +12423,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_RegSetValueExA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegSetValueExA</span> <a class="api-item-permalink" href="#Win32_RegSetValueExA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/advapi32.swg#L57">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegSetValueExA</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpValueName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwType: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpData: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_BYTE">BYTE</a></span>, cbData: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegSetValueExA</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpValueName: <span class="SCst"><a href="#Win32_LPCSTR">LPCSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwType: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpData: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_BYTE">BYTE</a></span>?, cbData: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_RegSetValueExW" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RegSetValueExW</span> <a class="api-item-permalink" href="#Win32_RegSetValueExW" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/advapi32.swg#L58">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegSetValueExW</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpValueName: <span class="SItr">#null</span> <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwType: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpData: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_BYTE">BYTE</a></span>, cbData: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RegSetValueExW</span>(hKey: <span class="SCst"><a href="#Win32_HKEY">HKEY</a></span>, lpValueName: <span class="SCst"><a href="#Win32_LPCWSTR">LPCWSTR</a></span>?, reserved: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, dwType: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>, lpData: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_BYTE">BYTE</a></span>?, cbData: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>)-&gt;<span class="SCst"><a href="#Win32_LSTATUS">LSTATUS</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_ReleaseCapture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ReleaseCapture</span> <a class="api-item-permalink" href="#Win32_ReleaseCapture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1134">src</a></div>
@@ -12450,7 +12450,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ReleaseSRWLockShared</span>(<span class="SCst">SRWLock</span>: *<span class="SCst"><a href="#Win32_SRWLOCK">SRWLOCK</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_ReleaseStgMedium" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ReleaseStgMedium</span> <a class="api-item-permalink" href="#Win32_ReleaseStgMedium" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L303">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_ReleaseStgMedium" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.ReleaseStgMedium</span> <a class="api-item-permalink" href="#Win32_ReleaseStgMedium" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L295">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ReleaseStgMedium</span>(pmedium: *<span class="SCst"><a href="#Win32_STGMEDIUM">STGMEDIUM</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -12471,7 +12471,7 @@
 <span class="SKwd">func</span> <span class="SFct">ResumeThread</span>(hThread: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>)-&gt;<span class="SCst"><a href="#Win32_DWORD">DWORD</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Win32_RevokeDragDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RevokeDragDrop</span> <a class="api-item-permalink" href="#Win32_RevokeDragDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L302">src</a></div>
+<div class="api-item api-item-func"><span id="Win32_RevokeDragDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.RevokeDragDrop</span> <a class="api-item-permalink" href="#Win32_RevokeDragDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/ole32.swg#L294">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RevokeDragDrop</span>(hwnd: <span class="SCst"><a href="#Win32_HWND">HWND</a></span>)-&gt;<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -12551,11 +12551,11 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_SetFilePointerEx" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.SetFilePointerEx</span> <a class="api-item-permalink" href="#Win32_SetFilePointerEx" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1226">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetFilePointerEx</span>(hFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, liDistanceToMove: <span class="SCst"><a href="#Win32_LARGE_INTEGER">LARGE_INTEGER</a></span>, lpNewFilePointer: <span class="SItr">#null</span> *<span class="SCst"><a href="#Win32_LARGE_INTEGER">LARGE_INTEGER</a></span>, dwMoveMethod: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetFilePointerEx</span>(hFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, liDistanceToMove: <span class="SCst"><a href="#Win32_LARGE_INTEGER">LARGE_INTEGER</a></span>, lpNewFilePointer: *<span class="SCst"><a href="#Win32_LARGE_INTEGER">LARGE_INTEGER</a></span>?, dwMoveMethod: <span class="SCst"><a href="#Win32_DWORD">DWORD</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_SetFileTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.SetFileTime</span> <a class="api-item-permalink" href="#Win32_SetFileTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L1007">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetFileTime</span>(hFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpCreationTime: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_FILETIME">FILETIME</a></span>, lpLastAccessTime: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_FILETIME">FILETIME</a></span>, lpLastWriteTime: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_FILETIME">FILETIME</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetFileTime</span>(hFile: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpCreationTime: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_FILETIME">FILETIME</a></span>?, lpLastAccessTime: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_FILETIME">FILETIME</a></span>?, lpLastWriteTime: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_FILETIME">FILETIME</a></span>?) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_SetFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.SetFocus</span> <a class="api-item-permalink" href="#Win32_SetFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1136">src</a></div>
@@ -12587,7 +12587,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_SetWaitableTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.SetWaitableTimer</span> <a class="api-item-permalink" href="#Win32_SetWaitableTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/kernel32.swg#L612">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetWaitableTimer</span>(hTimer: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpDueTime: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_LARGE_INTEGER">LARGE_INTEGER</a></span>, lPeriod: <span class="SCst"><a href="#Win32_LONG">LONG</a></span>, pfnCompletionRoutine: <span class="SItr">#null</span> *<span class="STpe">void</span>, lpArgToCompletionRoutine: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, fResume: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetWaitableTimer</span>(hTimer: <span class="SCst"><a href="#Win32_HANDLE">HANDLE</a></span>, lpDueTime: <span class="SKwd">const</span> *<span class="SCst"><a href="#Win32_LARGE_INTEGER">LARGE_INTEGER</a></span>, lPeriod: <span class="SCst"><a href="#Win32_LONG">LONG</a></span>, pfnCompletionRoutine: *<span class="STpe">void</span>?, lpArgToCompletionRoutine: <span class="SCst"><a href="#Win32_LPVOID">LPVOID</a></span>, fResume: <span class="SCst"><a href="#Win32_BOOL">BOOL</a></span>)-&gt;<span class="SCst"><a href="#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_SetWindowLongPtrA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.SetWindowLongPtrA</span> <a class="api-item-permalink" href="#Win32_SetWindowLongPtrA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L1152">src</a></div>
@@ -12603,7 +12603,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_SHChangeNotify" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.SHChangeNotify</span> <a class="api-item-permalink" href="#Win32_SHChangeNotify" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L481">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SHChangeNotify</span>(wEventId: <span class="SCst"><a href="#Win32_LONG">LONG</a></span>, uFlags: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>, dwItem1: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>, dwItem2: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SHChangeNotify</span>(wEventId: <span class="SCst"><a href="#Win32_LONG">LONG</a></span>, uFlags: <span class="SCst"><a href="#Win32_UINT">UINT</a></span>, dwItem1: <span class="SKwd">const</span> *<span class="STpe">void</span>?, dwItem2: <span class="SKwd">const</span> *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Win32_Shell_NotifyIconA" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.Shell_NotifyIconA</span> <a class="api-item-permalink" href="#Win32_Shell_NotifyIconA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L525">src</a></div>
@@ -12730,7 +12730,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
 </footer>
 </section>
 </main>

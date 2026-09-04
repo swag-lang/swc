@@ -104,7 +104,7 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
 // Reads syntax elements from the main data, most significant bit first.
 struct BitReader
 {
-    data:   #null const [*] u8
+    data:   const [*] u8?
     bitEnd: u64
     bitPos: u64
 }

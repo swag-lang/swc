@@ -7,13 +7,12 @@ internal struct MathView
 {
     using wnd:  Wnd
     expression: MathExpression
-    #[Swag.Late]
-    owner: *View
+    late owner: *View
 }
 
 internal impl MathView
 {
-    func create(owner: *View, parent: *Wnd, source: string)->#null *MathView
+    func create(owner: *View, parent: *Wnd, source: string)->*MathView?
     {
         let expression = catch MathExpression.parse(source) as parseError
         if parseError != null do

@@ -26,13 +26,13 @@ struct PagePanelLayout
 }
 
 var app:           Application
-var g_Surface:     #null *Surface
-var g_View:        #null *Wnd
-var g_Title:       #null *Label
-var g_SubTitle:    #null *Label
-var g_ThemeButton: #null *PushButton
-var g_PageView:    #null *Wnd
-var g_Footer:      #null *Label
+var g_Surface:     *Surface?
+var g_View:        *Wnd?
+var g_Title:       *Label?
+var g_SubTitle:    *Label?
+var g_ThemeButton: *PushButton?
+var g_PageView:    *Wnd?
+var g_Footer:      *Label?
 var g_Page:        s32
 var g_TestFrame:   s32
 var g_DarkTheme:   bool

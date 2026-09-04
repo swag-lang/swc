@@ -42,10 +42,9 @@ using Core
 // named: 'name' is filled once the whole map has been read.
 struct Node
 {
-    #[Swag.Late]
-    name:  string
-    left:  u64
-    right: u64
+    late name: string
+    left:      u64
+    right:     u64
 }
 
 func day8B()

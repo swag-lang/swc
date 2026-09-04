@@ -49,9 +49,9 @@ namespace
             case TokenId::KwdMtd:
             case TokenId::CompilerDeclType:
             case TokenId::KwdConst:
-            case TokenId::ModifierNullable:
             case TokenId::SymAsterisk:
             case TokenId::SymLeftBracket:
+            case TokenId::SymLeftParen:
                 return true;
 
             default:
@@ -270,9 +270,6 @@ AstModifierFlags Parser::parseModifiers()
                 }
                 consume();
                 continue;
-            case TokenId::ModifierNullable:
-                toSet = AstModifierFlagsE::Nullable;
-                break;
             default:
                 break;
         }
@@ -437,6 +434,15 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
 AstNodeRef Parser::parseQuotedSingleSuffixValue()
 {
     // `Type'Arg` must recognize the same leading type syntax as `Type'(Arg, ...)`.
+    // In a type context the suffix is an operand of the enclosing type constructor,
+    // so it must leave a following '?' for that constructor: `*Array'u8?` is a nullable
+    // pointer to `Array'u8`, while `*Array'(u8?)` explicitly makes the element nullable.
+    // A quoted generic may carry a value argument (`Buffer'3`) as well as a type argument.
+    // Only type-shaped suffixes need the type parser in a declaration; literals still belong to
+    // the generic-expression path.
+    if (hasContextFlag(ParserContextFlagsE::InType) && !Token::isLiteral(id()))
+        return parseSubType(false);
+
     if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
         return parseType();
 
@@ -801,7 +807,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicCountOf:
         case TokenId::IntrinsicDataOf:
-        case TokenId::IntrinsicIsSet:
             return parseIntrinsicCall(1);
 
         case TokenId::IntrinsicMakeAny:
@@ -975,14 +980,28 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdStruct:
         case TokenId::KwdUnion:
         case TokenId::SymAsterisk:
-        case TokenId::ModifierNullable:
             return parseType();
 
         case TokenId::CompilerType:
             return parseCompilerTypeExpr();
 
         case TokenId::Identifier:
-            return parseQuotedIdentifier();
+        {
+            AstNodeRef nodeRef = parseQuotedIdentifier();
+
+            // A named type used as a type-value in an expression (most visibly on the right of
+            // '#typeof(x) == T?') still owns its postfix nullability. The suffix is deliberately
+            // adjacent, so ordinary ternaries retain their spaced spelling.
+            if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
+            {
+                auto [nullableRef, nullablePtr] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
+                nullablePtr->nodeTypeRef         = nodeRef;
+                nullablePtr->addFlag(AstQualifiedTypeFlagsE::Nullable);
+                nodeRef = nullableRef;
+            }
+
+            return nodeRef;
+        }
         case TokenId::KwdMe:
         case TokenId::CompilerUniq0:
         case TokenId::CompilerUniq1:

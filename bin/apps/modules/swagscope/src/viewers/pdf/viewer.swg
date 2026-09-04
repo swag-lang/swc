@@ -64,14 +64,14 @@ internal struct PdfViewer
 {
     using wnd:            Wnd
     details:              String
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     load:                 Viewer.BackgroundLoad'PdfViewerContent
-    loadTimer:            #null *Timer
+    loadTimer:            *Timer?
     failureReason:        String
 
-    #[Swag.Late]
+        late
     {
         info:           *Wnd
         pdfView:        *PdfView
@@ -234,7 +234,7 @@ private impl PdfViewer
         }
     }
 
-    func create(contentParent, info: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null, reportDetails: #null Viewer.ReportDetails = null, reportLoadingChanged: #null Viewer.ReportLoadingChanged = null)->*PdfViewer
+    func create(contentParent, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, reportDetails: Viewer.ReportDetails? = null, reportLoadingChanged: Viewer.ReportLoadingChanged? = null)->*PdfViewer
     {
         let result = Wnd.create'PdfViewer(contentParent, "scope.pdf")
         result.backgroundStyle      = .View

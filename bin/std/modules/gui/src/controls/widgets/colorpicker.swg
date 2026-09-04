@@ -503,7 +503,7 @@ impl ColorPicker
 {
     // Creates a saturation-lightness picker initialized to opaque red.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ColorPicker
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ColorPicker
     {
         Debug.assert(parent != null)
         let result = Wnd.create'ColorPicker(parent, null, position, id)

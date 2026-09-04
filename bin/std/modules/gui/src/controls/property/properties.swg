@@ -20,7 +20,7 @@ interface IPropertyNotify
 {
     // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore
     // recorded against a previous grid content (the values are already back in the instances).
-    mtd itemHasChanged(list: *Properties, item: #null *PropertiesItem) {}
+    mtd itemHasChanged(list: *Properties, item: *PropertiesItem?) {}
 
     // Returns whether item visible.
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool
@@ -162,7 +162,7 @@ struct Properties
 
     public
     {
-        sigValueChanged: SigArray'func||(*Properties, #null *PropertiesItem)     // Emitted after an edited value changes; item is null for detached undo/redo.
+        sigValueChanged: SigArray'func||(*Properties, *PropertiesItem?)     // Emitted after an edited value changes; item is null for detached undo/redo.
 
         // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
         // selection moves with the keyboard and the mouse; a host reads both to follow the grid.
@@ -170,33 +170,31 @@ struct Properties
         readonly
         {
             items:   ArrayPtr'PropertiesItem     // Rows of the grid, in display order.
-            selItem: #null *PropertiesItem       // Selected row, or 'null'.
+            selItem: *PropertiesItem?            // Selected row, or 'null'.
         }
 
-        // Scrolling viewport of the grid, established when it is created. A host configures the
-        // scrollbars or scrolls the grid through it; the grid decides which window it is.
-        #[Swag.Late]
-        readonly scrollWnd: *ScrollWnd
+            // Scrolling viewport of the grid, established when it is created. A host configures the
+            // scrollbars or scrolls the grid through it; the grid decides which window it is.
+            late readonly scrollWnd: *ScrollWnd
     }
 
     // View the rows are painted in, established when the grid is created.
-    #[Swag.Late]
-    edView: *PropertiesView
+    late edView: *PropertiesView
 
     // Grid state rebuilt from the rows: section index, hover and selection, and the transient
     // state of one gesture. The grid maintains all of it.
-    sections: Array'{ item: #null *PropertiesItem, lvl: s32 }     // Section rows and their depth.
+    sections: Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
-    gridLevelHasMark:    Array'bool                // Whether any row at that depth shows a triangle.
-    hotItem:             #null *PropertiesItem     // Row under the mouse.
-    currentSectionIndex: u32 = Swag.U32.Max        // Section the viewport is scrolled to.
-    stringFilter:        String                    // Active row filter.
-    cursorSet:           bool                      // Whether the grid set the cursor this frame.
-    resizingColumn:      bool                      // Whether a column-resize drag is in progress.
-    aniBar:              BlendColor                // Animation of the live column-resize rule.
-    editPopup:           #null *Wnd                // Popup owned by the row being edited.
+    gridLevelHasMark:    Array'bool             // Whether any row at that depth shows a triangle.
+    hotItem:             *PropertiesItem?       // Row under the mouse.
+    currentSectionIndex: u32 = Swag.U32.Max     // Section the viewport is scrolled to.
+    stringFilter:        String                 // Active row filter.
+    cursorSet:           bool                   // Whether the grid set the cursor this frame.
+    resizingColumn:      bool                   // Whether a column-resize drag is in progress.
+    aniBar:              BlendColor             // Animation of the live column-resize rule.
+    editPopup:           *Wnd?                  // Popup owned by the row being edited.
 
     // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
     // instance per added struct, freed on destroy; every row's defaultData points into it.
@@ -205,7 +203,7 @@ struct Properties
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
-    menuItem: #null *PropertiesItem
+    menuItem: *PropertiesItem?
 
     // Undo/redo (propertiesundo.swg). Every field edit committed through commitItemChange records
     // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
@@ -213,22 +211,22 @@ struct Properties
     // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
     // of one slider drag into a single command. generation stamps the grid content: it bumps on
     // clear so commands recorded against dropped rows skip their row refresh.
-    externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
+    externUndoMgr: *UndoManager?     // Undo timeline of the host, when it shares one.
 
     undoEnabled: bool = true     // Whether edits record undo commands.
 
     // Recording state of the undo timeline the grid owns.
-    undoMgr:      UndoManager                // Commands recorded by this grid.
-    applyingUndo: bool                       // Whether a command is restoring a value right now.
-    generation:   u64                        // Content stamp, bumped by 'clear'.
-    dragItem:     #null *PropertiesItem      // Row of the slider drag being coalesced.
-    dragCmd:      #null *PropUndoCommand     // Command the drag accumulates into.
+    undoMgr:      UndoManager           // Commands recorded by this grid.
+    applyingUndo: bool                  // Whether a command is restoring a value right now.
+    generation:   u64                   // Content stamp, bumped by 'clear'.
+    dragItem:     *PropertiesItem?      // Row of the slider drag being coalesced.
+    dragCmd:      *PropUndoCommand?     // Command the drag accumulates into.
 
     // Host-level notify interface (setNotify): consulted for every row, in addition to the
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
     // does not own the displayed structs (an editor panel showing a document's objects) plugs
     // dynamic visibility, validation and change reactions.
-    hostNtfy: #null IPropertyNotify
+    hostNtfy: IPropertyNotify?
 
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.
@@ -264,7 +262,7 @@ impl IWnd for Properties
         for itIt in .items
         {
             let it = itIt!
-            if Swag.isSet(it.validationLabel) and it.validation != .None do
+            if (it.validationLabel != null) and it.validation != .None do
                 .applyValidationVisual(it)
             if it.flags.has(.Note) do
                 .applyNoteVisual(it)
@@ -283,7 +281,7 @@ impl IWnd for Properties
         if !item do
             return
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item!, evt.id!)
@@ -320,7 +318,7 @@ internal impl Properties
                 result.enable = false
         }
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf
@@ -365,21 +363,21 @@ internal impl Properties
                 .refreshBool(item)
             elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed) do
                 .refreshNative(item)
-            elif Reflection.isString(pointed) and Swag.isSet(item.editBox)
+            elif Reflection.isString(pointed) and (item.editBox != null)
             {
                 item.editBox.setText(item.data![as string])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and Swag.isSet(item.editBox)
+            elif pointed == Core.String and (item.editBox != null)
             {
                 item.editBox.setText(item.data![as String])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and Swag.isSet(item.comboBox) do
+            elif pointed == Core.String and (item.comboBox != null) do
                 .refreshFontName(item)
             elif Reflection.isStruct(pointed)
             {
-                let typeStruct = cast(#null const *Swag.TypeInfoStruct) pointed
+                let typeStruct = cast(const *Swag.TypeInfoStruct?) pointed
                 if typeStruct.fromGeneric == Array do
                     .refreshArray(item)
             }
@@ -391,7 +389,7 @@ impl Properties
 {
     // Creates a new Properties instance
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: #null WndId = null)->*Properties
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: WndId? = null)->*Properties
     {
         let ed = Wnd.create'Properties(parent, "", position, id)
 
@@ -474,7 +472,7 @@ impl Properties
     // Set the host-level notify interface, consulted for every row in addition to the
     // per-struct implementations. Lets a host that does not own the displayed structs plug
     // dynamic visibility/enabling, read-only state and change reactions.
-    mtd setNotify(itf: #null IPropertyNotify)
+    mtd setNotify(itf: IPropertyNotify?)
     {
         .hostNtfy = itf
     }
@@ -536,7 +534,7 @@ impl Properties
     }
 
     // Add a new struct to display.
-    mtd addStruct(val: any, section: #null string = null)
+    mtd addStruct(val: any, section: string? = null)
     {
         let typeof = Swag.kindOf(val)
         Debug.assert(typeof.kind == .Struct)
@@ -552,7 +550,7 @@ impl Properties
     // instances is shown as "mixed". With a single base this behaves like addStruct.
     // With 'onlyNamed', only the fields carrying an explicit Properties.Name attribute get a
     // row: the grid becomes opt-in, for structs whose fields are mostly internal state.
-    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: #null string = null, onlyNamed = false)
+    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string? = null, onlyNamed = false)
     {
         Debug.assert(typeof.kind == .Struct)
         Debug.assert(bases.count >= 1)
@@ -561,7 +559,7 @@ impl Properties
         defer .buildOnlyNamed = false
 
         let firstItemIdx   = .items.count
-        var item: #null *PropertiesItem
+        var item: *PropertiesItem?
         let numItemsBefore = .items.count
 
         // Section
@@ -631,7 +629,7 @@ impl Properties
                 continue
             }
 
-            let off = cast(#null [*] u8) it.data - base0
+            let off = cast([*] u8?) it.data - base0
             for b in bases do
                 it.dataInstances.add(cast(*u8) (cast([*] u8) b + off))
         }
@@ -695,7 +693,7 @@ impl Properties
         if .hostNtfy do
             .hostNtfy.itemHasChanged(me, item)
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf do
@@ -795,7 +793,7 @@ impl Properties
             return false
 
         // Static strings are inherently read-only (shown with a read-only editor).
-        if item.type == #null string do
+        if item.type == string? do
             return true
 
         if Reflection.hasAttribute(item.typeValue, .ReadOnly) do
@@ -804,7 +802,7 @@ impl Properties
         if .hostNtfy and .hostNtfy.isItemReadOnly(me, item) do
             return true
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf and scan.ntfyItf.isItemReadOnly(me, item) do
@@ -824,10 +822,10 @@ impl Properties
         if .isItemReadOnly(item) do
             return false
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
-            if Swag.isSet(scan.line) and scan.line.isDisabled() do
+            if (scan.line != null) and scan.line.isDisabled() do
                 return false
             scan = scan.parent
         }
@@ -861,7 +859,7 @@ impl Properties
         // exactly like a static string; any other editor (slider, combo, checkbox, ...) is
         // grayed instead, since those have no read-only mode.
         let readOnly = .isItemReadOnly(item)
-        if Swag.isSet(item.editBox)
+        if item.editBox != null
         {
             if readOnly do
                 item.editBox.updateFlags(.ReadOnly)
@@ -871,18 +869,18 @@ impl Properties
 
         for c in item.line.children
         {
-            if Swag.isSet(item.label) and c == item.label do
+            if (item.label != null) and c == item.label do
                 continue
-            if Swag.isSet(item.labelDesc) and c == item.labelDesc do
+            if (item.labelDesc != null) and c == item.labelDesc do
                 continue
-            if Swag.isSet(item.validationLabel) and c == item.validationLabel do
+            if (item.validationLabel != null) and c == item.validationLabel do
                 continue
-            if Swag.isSet(item.editBox) and c == cast(#null *Wnd) item.editBox do
+            if (item.editBox != null) and c == cast(*Wnd?) item.editBox do
                 continue
 
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if Swag.isSet(item.revertButton) and c == cast(#null *Wnd) item.revertButton do
+            if (item.revertButton != null) and c == cast(*Wnd?) item.revertButton do
                 continue
             c.enable(!readOnly)
         }

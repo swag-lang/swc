@@ -2,7 +2,7 @@
 using Swag
 
 #[Swag.Strict]
-alias OrelseStrictHandle = #null const *void
+alias OrelseStrictHandle = const *void?
 
 interface IOrelseProbe
 {
@@ -24,13 +24,13 @@ const StrictHandleResolved = cast(OrelseStrictHandle) null orelse StrictHandleFa
 #assert(#typeof(StrictHandleResolved) == OrelseStrictHandle)
 #assert(StrictHandleResolved == StrictHandleFallback)
 
-const NullableTypeInfo: #null typeinfo = null
-const TypeInfoFallback: typeinfo       = s32
-const TypeInfoResolved                 = NullableTypeInfo orelse TypeInfoFallback
+const NullableTypeInfo: typeinfo? = null
+const TypeInfoFallback: typeinfo  = s32
+const TypeInfoResolved            = NullableTypeInfo orelse TypeInfoFallback
 #assert(#typeof(TypeInfoResolved) == typeinfo)
 #assert(TypeInfoResolved == s32)
 
-const AnyNullValue: #null any = null
+const AnyNullValue: any? = null
 #assert(AnyNullValue == null)
 
 const AnyTrueValue: any = true
@@ -43,9 +43,9 @@ const AnyFalseValue: any = false
 
 func semaTest001()
 {
-    var raw:     [2] u8              = ['x'u8, 'y'u8]
-    let primary: #null const [..] u8 = null
-    let resolved                     = primary orelse raw
+    var raw:     [2] u8         = ['x'u8, 'y'u8]
+    let primary: const [..] u8? = null
+    let resolved                = primary orelse raw
     #assert(#typeof(resolved) == const [..] u8)
     Swag.assert(resolved.count == 2)
 }
@@ -53,17 +53,17 @@ func semaTest001()
 func semaTest002()
 {
     var cstrData: [3] u8 = ['o'u8, 'k'u8, 0]
-    let resolved         = cast(#null cstring) null orelse cast(cstring) &cstrData[0]
+    let resolved         = cast(cstring?) null orelse cast(cstring) &cstrData[0]
     #assert(#typeof(resolved) == cstring)
     Swag.assert(resolved.count == 2)
 }
 
 func semaTest003()
 {
-    var probe    = OrelseProbe{value: 7}
-    var primary: #null IOrelseProbe = null
-    let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
-    let resolved = primary orelse fallback
+    var probe                  = OrelseProbe{value: 7}
+    var primary: IOrelseProbe? = null
+    let fallback               = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
+    let resolved               = primary orelse fallback
     #assert(#typeof(resolved) == IOrelseProbe)
     Swag.assert(resolved.id() == 7)
 }

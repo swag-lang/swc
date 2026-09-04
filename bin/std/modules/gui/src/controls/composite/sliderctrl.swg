@@ -18,7 +18,7 @@ struct SliderCtrl
             spacing:        f32  = 8        // Gap on each side of the slider track.
             autoValueWidth: bool = true     // Whether the numeric editor grows to fit the configured range.
 
-            #[Swag.Late]
+                late
             {
                 label:  *Label       // Descriptive label.
                 slider: *Slider      // Interactive value slider.
@@ -32,7 +32,7 @@ impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !Swag.isSet(.label) do
+        if !(.label != null) do
             return
         let rect    = .clientRect()
         let metrics = .themeMetrics()
@@ -67,7 +67,7 @@ impl SliderCtrl
 {
     // Creates a labelled numeric slider.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null)->*SliderCtrl
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*SliderCtrl
     {
         Debug.assert(parent != null)
         let metrics = parent.themeMetrics()

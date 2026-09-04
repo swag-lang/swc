@@ -14,8 +14,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
     let painter = paintEvt.paintContext.painter
 
-    #[Swag.Global]
-    var zoff: f32
+    global var zoff: f32
     zoff += wnd.app().deltaSeconds()
 
     var lp: LinePath

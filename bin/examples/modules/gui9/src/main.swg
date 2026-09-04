@@ -7,9 +7,9 @@ const W = 960
 const H = 680
 
 var app:        Application
-var g_Surface:  #null *Surface
-var g_View:     #null *Wnd
-var g_Browser:  #null *FileBrowserCtrl
+var g_Surface:  *Surface?
+var g_View:     *Wnd?
+var g_Browser:  *FileBrowserCtrl?
 var g_StartDir: String
 
 // Shared by every file dialog of the session: each one reopens with the previous

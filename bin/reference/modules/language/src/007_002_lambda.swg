@@ -22,13 +22,13 @@ passed as arguments, or returned from other functions—enabling functional prog
 /**
 # Null Lambdas
 
-A lambda declared with the `#null` qualifier can be null, representing an absent
+A lambda declared with the `?` qualifier can be null, representing an absent
 function pointer. This is useful for optional callbacks or deferred initialization.
 A bare lambda type is non-null and must be initialized.
 */
 #test
 {
-    var lambda: #null func()->bool
+    var lambda: (func()->bool)?
     Swag.assert(lambda == null)
 }
 
@@ -98,7 +98,7 @@ When the variable type is known, parameter and return types can be omitted in th
 */
 #test
 {
-    var fct: #null func(s32, s32)->bool
+    var fct: (func(s32, s32)->bool)?
 
     fct = func(x, y) => x == y
     Swag.assert(fct(10, 10))
@@ -121,7 +121,7 @@ Lambdas may have parameters with default values, allowing flexible invocation.
     }
 
     {
-        var x: #null func(val: bool = true)
+        var x: (func(val: bool = true))?
         x = func(val) { Swag.assert(val == true) }
 
         x()

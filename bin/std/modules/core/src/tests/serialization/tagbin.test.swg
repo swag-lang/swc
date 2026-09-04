@@ -132,9 +132,9 @@ struct TagBinConversionTarget
 
 struct TagBinTypeInfoPayload
 {
-    primitive:   #null typeinfo
-    staticArray: #null typeinfo
-    payload:     #null typeinfo
+    primitive:   typeinfo?
+    staticArray: typeinfo?
+    payload:     typeinfo?
 }
 
 enum TagBinModeU8: u8
@@ -201,7 +201,7 @@ public impl ITagBinScore for TagBinInterfaceProbe
 
 struct TagBinInterfacePayload
 {
-    score: #null ITagBinScore
+    score: ITagBinScore?
     other: s32
 }
 
@@ -223,7 +223,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
     mtd impl read(_decoder: Serialization.IDecoder)->bool fail  => false
     mtd impl write(_encoder: Serialization.IEncoder)->bool fail => false
 
-    mtd impl readElement(type: TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool fail
+    mtd impl readElement(type: TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail
     {
         if type.name == "remapped"
         {
@@ -255,7 +255,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl writeElement(type: TypeValue, data: #null const *void, encoder: Serialization.IEncoder)->bool fail
+    mtd impl writeElement(type: TypeValue, data: const *void?, encoder: Serialization.IEncoder)->bool fail
     {
         if type.name == "remapped"
         {
@@ -279,7 +279,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl postRead(data: #null *void, _decoder: Serialization.IDecoder) fail
+    mtd impl postRead(data: *void?, _decoder: Serialization.IDecoder) fail
     {
         let value = cast(*TagBinHookPayload) data!
         value.postReadSeen = true
@@ -306,11 +306,11 @@ public impl Serialization.ISerialize for TagBinVersionProbe
     mtd impl read(_decoder: Serialization.IDecoder)->bool fail  => false
     mtd impl write(_encoder: Serialization.IEncoder)->bool fail => false
 
-    mtd impl readElement(_type: TypeValue, _data: #null *void, _decoder: Serialization.IDecoder)->bool fail => false
+    mtd impl readElement(_type: TypeValue, _data: *void?, _decoder: Serialization.IDecoder)->bool fail => false
 
-    mtd impl writeElement(_type: TypeValue, _data: #null const *void, _encoder: Serialization.IEncoder)->bool fail => false
+    mtd impl writeElement(_type: TypeValue, _data: const *void?, _encoder: Serialization.IEncoder)->bool fail => false
 
-    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) fail
+    mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail
     {
         let value = cast(*TagBinVersionProbe) data!
         value.seenVersion = decoder.version()
@@ -502,7 +502,7 @@ func assertU32Array(values: Array'u32, expected: const [..] u32)->bool
     return true
 }
 
-func releaseTagBinInterface(value: *#null ITagBinScore)
+func releaseTagBinInterface(value: *(ITagBinScore?))
 {
     let runtime = cast(*Swag.Interface) value
     if runtime.obj

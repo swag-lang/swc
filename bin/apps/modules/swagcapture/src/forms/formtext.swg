@@ -36,9 +36,9 @@ struct FormText
         gizmo:       GizmoRect
         isDirty:     bool
         isDirtyFont: bool
-        typeFace:    #null *TypeFace
+        typeFace:    *TypeFace?
 
-        cacheFace:    #null *TypeFace
+        cacheFace:    *TypeFace?
         cachebSize:   f32
         cachesSize:   f32
         cachefSize:   f32

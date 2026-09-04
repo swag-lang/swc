@@ -36,6 +36,47 @@ AstNodeRef Parser::parseTopLevelCall()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseTopLevelStorageModifier()
+{
+    // Keep a direct `late var value` declaration intact so the variable node spans
+    // its storage modifier too. The scoped state is only for the block/access forms.
+    if (!nextIsAny(TokenId::KwdPublic, TokenId::KwdPrivate, TokenId::KwdInternal, TokenId::SymLeftCurly))
+        return parseVarDecl();
+
+    EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
+    while (true)
+    {
+        AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
+        switch (id())
+        {
+            case TokenId::KwdLate: storageFlag = AstVarStorageFlagsE::Late; break;
+            case TokenId::KwdTls: storageFlag = AstVarStorageFlagsE::Tls; break;
+            case TokenId::KwdGlobal: storageFlag = AstVarStorageFlagsE::Global; break;
+            default: break;
+        }
+
+        if (storageFlag == AstVarStorageFlagsE::Zero)
+            break;
+        if (storageFlags.has(storageFlag))
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_storage_modifier, ref());
+            diag.report(*ctx_);
+        }
+        storageFlags.add(storageFlag);
+        consume();
+    }
+
+    const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = topLevelStorageFlags_;
+    topLevelStorageFlags_.add(storageFlags);
+    AstNodeRef nodeRef;
+    if (isAny(TokenId::KwdPublic, TokenId::KwdPrivate, TokenId::KwdInternal))
+        nodeRef = parseAccessModifier();
+    else
+        nodeRef = parseTopLevelDeclOrBlock();
+    topLevelStorageFlags_ = savedStorageFlags;
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseAccessModifier()
 {
     const TokenId  modifierId  = id();
@@ -128,7 +169,7 @@ AstNodeRef Parser::parseAlias()
     // Letting the full expression parser run here would make value expressions look
     // valid until sema, producing poorer diagnostics and ambiguous AST shapes.
     // 1) Definitely looks like a type (array, func, struct literal type, pointer type, simd type, etc.)
-    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierNullable, TokenId::ModifierSimd, TokenId::SymAsterisk))
+    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::SymLeftParen, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierSimd, TokenId::SymAsterisk))
     {
         nodePtr->nodeExprRef = parseType();
     }
@@ -437,7 +478,7 @@ AstNodeRef Parser::parseErrorManagementStmt()
     else
         nodePtr->nodeBodyRef = parseExpression();
 
-    // 'catch e as err' captures the caught error into a fresh local 'err' (of type '#null any')
+    // 'catch e as err' captures the caught error into a fresh local 'err' (of type 'nullable any')
     // bound in the ENCLOSING scope: null on success, the error on failure (dismissed). The 'as'
     // operator also spells a cast, so after a catch a trailing 'as IDENT' is ALWAYS an error
     // capture, never a cast (to cast a catch result, parenthesize: '(catch f()) as T'). Here the
@@ -798,6 +839,9 @@ AstNodeRef Parser::parseTopLevelDeclOrBlock()
             return parseAttributeList<AstNodeId::TopLevelBlock>();
         case TokenId::KwdConst:
         case TokenId::KwdVar:
+        case TokenId::KwdLate:
+        case TokenId::KwdTls:
+        case TokenId::KwdGlobal:
             return parseVarDecl();
         case TokenId::KwdFunc:
         case TokenId::KwdMtd:
@@ -854,6 +898,11 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::KwdPrivate:
         case TokenId::KwdInternal:
             return parseAccessModifier();
+
+        case TokenId::KwdLate:
+        case TokenId::KwdTls:
+        case TokenId::KwdGlobal:
+            return parseTopLevelStorageModifier();
 
         case TokenId::KwdReadOnly:
             raiseError(DiagnosticId::parser_err_readonly_outside_aggregate, ref());
@@ -944,6 +993,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdConst:
         case TokenId::KwdVar:
         case TokenId::KwdLet:
+        case TokenId::KwdLate:
+        case TokenId::KwdTls:
+        case TokenId::KwdGlobal:
         {
             AstNodeRef nodeRef;
             if (nextIs(TokenId::SymLeftCurly))

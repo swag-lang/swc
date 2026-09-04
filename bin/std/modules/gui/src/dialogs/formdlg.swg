@@ -36,8 +36,7 @@ struct FormDlg
     {
         using dialog: Dialog     // Embedded modal-dialog behavior.
 
-        readonly #[Swag.Late]
-        form: *FormLayoutCtrl     // Form owned by the dialog, empty until the caller adds fields.
+        readonly late form: *FormLayoutCtrl     // Form owned by the dialog, empty until the caller adds fields.
     }
 }
 

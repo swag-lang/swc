@@ -172,7 +172,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     // Narrow enough that the middle run has to take a line of its own, and too narrow for it.
     Painter.computeLayout({0, 0, 120, 400}, &text, format)
 
-    var longChunk: #null *RichChunk
+    var longChunk: *RichChunk?
     for &c in text.chunks where c.slice.count > 20 do
         longChunk = c
 
@@ -289,7 +289,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     let room = Painter.measureStringSnapped("alpha ", font) + Painter.measureStringSnapped("beta", font) + 1
     Painter.computeLayout({0, 0, room, 400}, &text, format)
 
-    var alphaChunk, betaChunk, dotChunk: #null *RichChunk
+    var alphaChunk, betaChunk, dotChunk: *RichChunk?
     for &c in text.chunks
     {
         switch c.slice

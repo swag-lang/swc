@@ -16,9 +16,9 @@ const LASER_LENGTH       = 25
 const SPEED_ALIEN_X      = 60
 const SPEED_ALIEN_Y      = 20
 
-var g_Wnd:      #null *Wnd
+var g_Wnd:      *Wnd?
 var g_DataPath: String
-var g_Painter:  #null *Painter
+var g_Painter:  *Painter?
 
 var g_MoveAlienDirection: f32 = 1
 var g_NumAlienLasers          = 0
@@ -33,14 +33,13 @@ var g_SoundMusic:     Audio.SoundFile
 var g_SoundLaser:     Audio.SoundFile
 var g_SoundExplosion: Audio.SoundFile
 
-var g_Font: #null *Font
+var g_Font: *Font?
 
 struct Alien
 {
-    x, y: f32
-    #[Swag.Late]
-    type: *Texture
-    dead: bool
+    x, y:      f32
+    late type: *Texture
+    dead:      bool
 }
 
 struct Player

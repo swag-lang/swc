@@ -39,7 +39,7 @@ struct SliceHeader
 // One resolved reference picture of a slice, with its explicit prediction weights.
 struct RefPic
 {
-    frame:  #null *Frame
+    frame:  *Frame?
     poc:    s32
     isLong: bool
 
@@ -66,8 +66,8 @@ private struct ListOp
 // One slice being decoded: its header, entropy state, and resolved reference lists.
 struct Slice
 {
-    dec:     #null *Decoder
-    pps:     #null *Pps     // Kept because reconstruction runs after every slice parses.
+    dec:     *Decoder?
+    pps:     *Pps?     // Kept because reconstruction runs after every slice parses.
     header:  SliceHeader
     bits:    BitReader     // CAVLC entropy source, shared with the header.
     cabac:   CabacReader
@@ -475,7 +475,7 @@ impl Slice
         var picNumPred = cast(s32) .header.frameNum
         for operation in ops
         {
-            var target: #null *Frame
+            var target: *Frame?
             if operation.kind == 2
             {
                 for reference in dec.longRefs where reference.longTermIdx == cast(s32) operation.value

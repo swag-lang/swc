@@ -21,18 +21,12 @@ struct PropertiesCtrl
 
         readonly
         {
-            #[Swag.Late]
-            splitter: *SplitterCtrl     // Splitter associated with this value.
-            #[Swag.Late]
-            list: *ListCtrl     // List associated with this value.
-            #[Swag.Late]
-            tab: *Tab     // Tab associated with this value.
-            #[Swag.Late]
-            search: *EditBox     // Search field, when [[Gui.PropertiesCtrlFlags.SearchBar]] is set.
-            #[Swag.Late]
-            viewButton: *IconButton     // View-options button beside [[Gui.PropertiesCtrl.search]].
-            #[Swag.Late]
-            properties: *Properties     // Property editor owned by this control.
+            late splitter:   *SplitterCtrl     // Splitter associated with this value.
+            late list:       *ListCtrl         // List associated with this value.
+            late tab:        *Tab              // Tab associated with this value.
+            late search:     *EditBox          // Search field, when [[Gui.PropertiesCtrlFlags.SearchBar]] is set.
+            late viewButton: *IconButton       // View-options button beside [[Gui.PropertiesCtrl.search]].
+            late properties: *Properties       // Property editor owned by this control.
         }
 
         readonly flags: PropertiesCtrlFlags     // Active optional UI features.
@@ -43,7 +37,7 @@ impl PropertiesCtrl
 {
     // Creates a property editor and its requested navigation controls.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: #null WndId = null)->*PropertiesCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: WndId? = null)->*PropertiesCtrl
     {
         let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
 
@@ -124,28 +118,28 @@ impl PropertiesCtrl
         .list.clear()
 
         // In the filter bar
-        if Swag.isSet(.tab)
+        if .tab != null
         {
             .tab.clear()
             let tabItem = .tab.addItem(strings().prop_All)
-            tabItem.userData0 = cast(#null *void) .properties.sections.count
+            tabItem.userData0 = cast(*void?) .properties.sections.count
         }
 
-        var parentLine: #null *ListLine
+        var parentLine: *ListLine?
         for &it, idx in .properties.sections
         {
             let item = it.item!
             var naked: String
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 naked = RichString.plainText(item.label.text())
             else do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
 
             // In the filter bar
-            if Swag.isSet(.tab) and it.lvl == 0
+            if (.tab != null) and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
-                tabItem.userData0 = cast(#null *void) idx
+                tabItem.userData0 = cast(*void?) idx
             }
 
             // In the left pane
@@ -187,7 +181,7 @@ impl PropertiesCtrl
     }
 
     // Appends one reflected structure and rebuilds section navigation.
-    mtd addStruct(val: any, section: #null string = null)
+    mtd addStruct(val: any, section: string? = null)
     {
         .properties.addStruct(val, section)
         .fillSections()

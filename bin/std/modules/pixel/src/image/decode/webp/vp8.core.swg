@@ -65,7 +65,7 @@ const VP8_DEQUANT_AC: [128] u16 = [
 
 struct Vp8Partition
 {
-    data:          #null const [*] u8
+    data:          const [*] u8?
     size:          u32
     offset:        u32
     rangeM1:       u32

@@ -3,20 +3,19 @@ using Core, Pixel, TrueType
 const W = 800
 const H = 480
 
-var g_Window:   Env.Window
-var g_Renderer: Pixel.RenderOgl
-#[Swag.Late]
-var g_Render:  Pixel.IRenderer
-var g_Painter: Pixel.Painter
-var g_RC:      Pixel.RenderContext
+var g_Window:      Env.Window
+var g_Renderer:    Pixel.RenderOgl
+late var g_Render: Pixel.IRenderer
+var g_Painter:     Pixel.Painter
+var g_RC:          Pixel.RenderContext
 
 var g_FontPath:  String
 var g_FontBytes: Array'u8
-var g_Face:      #null *Face
-var g_TypeFace:  #null *Pixel.TypeFace
-var g_TitleFont: #null *Pixel.Font
-var g_BodyFont:  #null *Pixel.Font
-var g_InfoFont:  #null *Pixel.Font
+var g_Face:      *Face?
+var g_TypeFace:  *Pixel.TypeFace?
+var g_TitleFont: *Pixel.Font?
+var g_BodyFont:  *Pixel.Font?
+var g_InfoFont:  *Pixel.Font?
 var g_FontInfo:  String
 
 func fontPath(fileName: string, loc = #callerlocation)->String

@@ -37,7 +37,7 @@ struct Header
 
 struct Palette
 {
-    data:          #null const [*] u8
+    data:          const [*] u8?
     first:         u16
     count:         u16
     bitsPerPixel:  u8

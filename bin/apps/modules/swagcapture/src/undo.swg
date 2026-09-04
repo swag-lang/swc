@@ -33,7 +33,7 @@ enum UndoKind
 
 // Editable text lives on FormText and (reusing it) FormCallout. The SetText undo
 // treats both uniformly through these helpers instead of special-casing each type.
-func formEditableText(f: IForm)->#null *String
+func formEditableText(f: IForm)->*String?
 {
     switch f
     {
@@ -55,7 +55,7 @@ func formEditableTextDirty(f: IForm)
 
 // Font name/style also live on both FormText and FormCallout; the SetFont/SetFontStyle
 // undos operate on either through these helpers.
-func formFontNamePtr(f: IForm)->#null *String
+func formFontNamePtr(f: IForm)->*String?
 {
     switch f
     {
@@ -66,7 +66,7 @@ func formFontNamePtr(f: IForm)->#null *String
     return null
 }
 
-func formFontStylePtr(f: IForm)->#null *FontFamilyStyle
+func formFontStylePtr(f: IForm)->*FontFamilyStyle?
 {
     switch f
     {
@@ -91,8 +91,8 @@ func formFontDirty(f: IForm)
 struct Undo
 {
     kind:     UndoKind
-    capture:  #null *Capture
-    baseForm: #null IForm
+    capture:  *Capture?
+    baseForm: IForm?
 
     selection: Array'u64
 
@@ -117,9 +117,9 @@ struct Undo
     maxP:      s32
     pointIdx:  u32
     valU32:    u32
-    valRef:    #null const *Swag.TypeValue
-    mdlType:   #null typeinfo
-    mdlValue:  #null *BaseForm
+    valRef:    const *Swag.TypeValue?
+    mdlType:   typeinfo?
+    mdlValue:  *BaseForm?
     text:      String
     fontStyle: FontFamilyStyle
 

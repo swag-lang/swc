@@ -23,15 +23,15 @@ const FilterWidth      = 260.0
 const RingsWidth       = 130.0
 
 var app:        Application
-var g_Surface:  #null *Surface
-var g_View:     #null *Wnd
-var g_Title:    #null *Label
-var g_SubTitle: #null *Label
-var g_Footer:   #null *Label
-var g_Filter:   #null *EditBox
-var g_Rings:    #null *CheckButton
-var g_Sheet:    #null *SheetWnd
-var g_Widgets:  #null *WidgetWall
+var g_Surface:  *Surface?
+var g_View:     *Wnd?
+var g_Title:    *Label?
+var g_SubTitle: *Label?
+var g_Footer:   *Label?
+var g_Filter:   *EditBox?
+var g_Rings:    *CheckButton?
+var g_Sheet:    *SheetWnd?
+var g_Widgets:  *WidgetWall?
 
 var g_ThemeButtons: Array'(*PushButton)
 var g_PageButtons:  Array'(*PushButton)

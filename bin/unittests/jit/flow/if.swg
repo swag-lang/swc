@@ -109,7 +109,7 @@
 
 #test
 {
-    func earlyReturnAndElif(enabled: bool, text: #null string, hasClear: bool)->s32
+    func earlyReturnAndElif(enabled: bool, text: string?, hasClear: bool)->s32
     {
         if !enabled do
             return 1
@@ -162,7 +162,7 @@ impl EarlyReturnAndElifText
         return .length
     }
 
-    mtd const opEquals(other: #null string)->bool
+    mtd const opEquals(other: string?)->bool
     {
         return .length == other.count
     }
@@ -172,8 +172,8 @@ struct EarlyReturnAndElifBox
 {
     enabled: bool
     text:    EarlyReturnAndElifText
-    button:  #null *EarlyReturnAndElifButton
-    cb:      #null func||()
+    button:  *EarlyReturnAndElifButton?
+    cb:      (func||())?
     value:   s32
 }
 
@@ -184,7 +184,7 @@ impl EarlyReturnAndElifBox
         .value += 10
     }
 
-    mtd setText(text: #null string)
+    mtd setText(text: string?)
     {
         .text.length = text.count
     }

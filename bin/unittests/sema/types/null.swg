@@ -1,13 +1,13 @@
 #global private
 
-const A: #null *s32 = null
+const A: *s32? = null
 #assert(A == null)
-const B: #null string = null
+const B: string? = null
 #assert(B == null)
 
-const C: #null [..] #null string = null
+const C: [..] (string?)? = null
 #assert(C == null)
-const D: #null any = null
+const D: any? = null
 #assert(D == null)
 
 const E = "toto"

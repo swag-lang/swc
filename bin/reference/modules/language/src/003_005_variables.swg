@@ -57,7 +57,7 @@ initialization as an optimization, without changing the program's semantics.
     var a: bool
     Swag.assert(a == false)
 
-    var b: #null string
+    var b: string?
     Swag.assert(b == null)
 
     var c: f64
@@ -75,7 +75,7 @@ before any read, escape, or drop, it can omit the redundant default clear itself
 {
     var a: bool
     a = true
-    var b: #null string
+    var b: string?
     b = "ready"
 }
 
@@ -122,13 +122,13 @@ Type inference also applies when declaring multiple variables simultaneously.
 /**
 # Special Variables
 
-Swag provides attributes that modify how variables are stored or accessed.
+Swag provides storage keywords that modify how variables are stored or accessed.
 */
 
 /**
 ## Thread-Local Storage
 
-A global variable marked with '#[Swag.Tls]' has one copy per thread. Each thread gets its own on
+A global variable marked with `tls` has one copy per thread. Each thread gets its own on
 first access, starting from the declared value rather than from whatever another thread left
 behind, and the copy is released when the thread ends.
 
@@ -140,13 +140,12 @@ thread does not own.
 > A thread-local global must hold a plain value. Its per-thread copies are released without being
 > dropped, so a type with an 'opDrop' leaks on every thread that touches it.
 */
-#[Swag.Tls]
-var G = 0     // One copy per thread, each starting at 0
+tls var G = 0     // One copy per thread, each starting at 0
 
 /**
 ## Global Variables
 
-A local variable can be marked with '#[Swag.Global]' to make it global within
+A local variable can be marked with `global` to make it global within
 its function’s scope. It behaves similarly to 'static' variables in C/C++,
 retaining its value between function calls.
 */
@@ -155,8 +154,7 @@ retaining its value between function calls.
 {
     func toto()->s32
     {
-        #[Swag.Global]
-        var G1 = 0
+        global var G1 = 0
         G1 += 1
         return G1
     }

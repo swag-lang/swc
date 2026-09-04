@@ -41,17 +41,16 @@ public struct PopupMenuItem
         rightName:  RichString     // Optional right-aligned shortcut label.
 
         // Re-reads 'name' on every layout, or `null` when the label was set once.
-        nameResolver: #null MenuLabelResolver
+        nameResolver: MenuLabelResolver?
 
-        #[Swag.Late]
-        popup:     *MenuCtrl                           // Popup associated with this value.
-        pos:       f32                                 // Pos associated with this value.
-        size:      f32                                 // Size associated with this value.
-        rg:        CommandStateEvent.RenderingHint     // Rg associated with this value.
-        separator: bool                                // Separator associated with this value.
-        disabled:  bool                                // Disabled associated with this value.
-        checked:   bool                                // Checked associated with this value.
-        hidden:    bool                                // Hidden associated with this value.
+        late popup: *MenuCtrl                           // Popup associated with this value.
+        pos:        f32                                 // Pos associated with this value.
+        size:       f32                                 // Size associated with this value.
+        rg:         CommandStateEvent.RenderingHint     // Rg associated with this value.
+        separator:  bool                                // Separator associated with this value.
+        disabled:   bool                                // Disabled associated with this value.
+        checked:    bool                                // Checked associated with this value.
+        hidden:     bool                                // Hidden associated with this value.
     }
 
     submenuOpensLeft: bool     // Resolved opening side used by layout and painting.
@@ -64,8 +63,8 @@ public struct MenuCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame window state.
 
-        sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)         // Emitted after a command is selected.
-        onPrepareItem:      #null func(*MenuCtrl, *PopupMenuItem)     // Updates an item before menu layout is computed.
+        sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)      // Emitted after a command is selected.
+        onPrepareItem:      (func(*MenuCtrl, *PopupMenuItem))?     // Updates an item before menu layout is computed.
 
         readonly
         {
@@ -80,15 +79,15 @@ public struct MenuCtrl
     selectedIdx:             u32 = Swag.U32.Max     // Item selected by keyboard navigation.
     bar:                     bool                   // Whether this control is a persistent menu bar.
     endModal:                bool                   // Whether the active modal loop should end.
-    endModalResult:          #null WndId            // Selected command, or `null` when dismissed.
-    ownerMenu:               #null *MenuCtrl        // Parent menu for a submenu.
-    subVisible:              #null *MenuCtrl        // Currently visible submenu.
-    timer:                   #null *Timer           // Delayed submenu-opening timer.
+    endModalResult:          WndId?                 // Selected command, or `null` when dismissed.
+    ownerMenu:               *MenuCtrl?             // Parent menu for a submenu.
+    subVisible:              *MenuCtrl?             // Currently visible submenu.
+    timer:                   *Timer?                // Delayed submenu-opening timer.
     dirtyLayout:             bool                   // Whether item bounds need recomputing.
     paintByFrame:            bool                   // Whether the frame paints an anchored popup.
     popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
-    popupAnchorButton:       #null *IconButton      // Icon button repainted as the tab of an attached popup.
+    popupAnchorButton:       *IconButton?           // Icon button repainted as the tab of an attached popup.
     popupButtonOpensUp:      bool                   // Whether an attached icon-button menu opens above its tab.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
@@ -149,7 +148,7 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x     -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            if selected and Swag.isSet(it.popup) and .subVisible == it.popup
+            if selected and (it.popup != null) and .subVisible == it.popup
             {
                 // Fill past the bar, outline only to it — the same split the popup makes in
                 // [[Gui.MenuCtrl.paintPopupBarAnchor]], and for the same reason.
@@ -161,7 +160,7 @@ public impl IWnd for MenuCtrl
                 anchorBorder.setBottom(backPos.bottom() + metrics.wnd_BorderSize)
                 theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
-            elif selected and Swag.isSet(it.popup)
+            elif selected and (it.popup != null)
             {
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
@@ -283,7 +282,7 @@ public impl IWnd for MenuCtrl
             // A left-opening submenu uses the shared glyph column when the row has no glyph of
             // its own. Reserving another column after the marker left a conspicuous hole before
             // the wording. A row that genuinely has both a marker and a glyph still keeps both.
-            if Swag.isSet(it.popup)
+            if it.popup != null
             {
                 if it.submenuOpensLeft and !.popupHasMarkerColumn
                 {
@@ -356,7 +355,7 @@ public impl IWnd for MenuCtrl
             }
 
             // Submenu marker
-            if Swag.isSet(it.popup)
+            if it.popup != null
             {
                 let glyph = it.submenuOpensLeft ? ThemeIcons.ChevronLeft : ThemeIcons.ChevronRight
                 let icon  = theme.icon(glyph, metrics.chevron_Size)
@@ -467,7 +466,7 @@ public impl IWnd for MenuCtrl
             if .hotIdx != Swag.U32.Max
             {
                 let hotItem = .items[.hotIdx]!
-                if Swag.isSet(hotItem.popup)
+                if hotItem.popup != null
                 {
                     .hideSubVisible()
                     .removeTimer()
@@ -512,7 +511,7 @@ impl MenuCtrl
     private mtd resolveSubmenuDirections()
     {
         let surfaceRect = .surfaceRect()
-        for i in .items where Swag.isSet(i!.popup) and !i!.hidden
+        for i in .items where (i!.popup != null) and !i!.hidden
         {
             let item = i!
             item.popup.updateState()
@@ -750,7 +749,7 @@ impl MenuCtrl
         painter.setTransform(base)
     }
 
-    mtd setEndModal(result: #null WndId)
+    mtd setEndModal(result: WndId?)
     {
         var p = me
         while p.ownerMenu
@@ -931,7 +930,7 @@ impl MenuCtrl
 
     mtd showHotPopup()
     {
-        if .hotIdx == Swag.U32.Max or !Swag.isSet(.items[.hotIdx]!.popup)
+        if .hotIdx == Swag.U32.Max or !(.items[.hotIdx]!.popup != null)
         {
             .selectedIdx = Swag.U32.Max
             return
@@ -1086,7 +1085,7 @@ impl MenuCtrl
             // A submenu row paints a chevron after the text column. Reserve that band while
             // measuring too, otherwise the row is exactly wide enough only until the chevron is
             // subtracted at paint time and its last word is clipped.
-            if Swag.isSet(it.popup)
+            if it.popup != null
             {
                 hasSubmenuRows = true
                 w              += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
@@ -1156,7 +1155,7 @@ public impl MenuCtrl
     mtd const isModalEnded()->bool => .endModal
 
     // Returns the selected modal command, or null when dismissed or still running.
-    mtd const modalResult()->#null WndId => .endModalResult
+    mtd const modalResult()->WndId? => .endModalResult
 
     // Adds and removes presentation options, then invalidates cached layout.
     mtd updateFlags(add: MenuFlags = .None, remove = MenuFlags.None)
@@ -1178,7 +1177,7 @@ public impl MenuCtrl
     // the content inset without being clipped. `owner`, or `parent` when omitted, remains the
     // logical owner for command routing.
     #[Swag.Discardable]
-    func createPopup(parent: *Wnd, id: #null WndId = null, owner: #null *Wnd = null)->*MenuCtrl
+    func createPopup(parent: *Wnd, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Debug.assert(parent != null)
         let topView     = parent.topView()
@@ -1197,7 +1196,7 @@ public impl MenuCtrl
 
     // Creates a persistent horizontal menu bar.
     #[Swag.Discardable]
-    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: #null WndId = null, owner: #null *Wnd = null)->*MenuCtrl
+    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Debug.assert(parent != null)
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
@@ -1271,7 +1270,7 @@ public impl MenuCtrl
 
     // Adds a command with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
-    mtd addItem(name: #null string, id: WndId, icon: Icon = {}, rightName: #null string = null, disabled = false, checked = false)->*PopupMenuItem
+    mtd addItem(name: string?, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
@@ -1300,7 +1299,7 @@ public impl MenuCtrl
     // Use this rather than a literal for a label that has to follow a language switch; see
     // [[Gui.MenuLabelResolver]].
     #[Swag.Discardable]
-    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = {}, rightName: #null string = null, disabled = false, checked = false)->*PopupMenuItem
+    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
         with let mitem = .addItem(name(), id, icon, rightName, disabled, checked)
         {
@@ -1312,7 +1311,7 @@ public impl MenuCtrl
 
     // Adds a submenu with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
-    mtd addPopup(name: #null string, popup: *MenuCtrl, icon: Icon = {}, id: #null WndId = null)->*PopupMenuItem
+    mtd addPopup(name: string?, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
@@ -1334,7 +1333,7 @@ public impl MenuCtrl
     // once, so the six entries of an application bar would otherwise keep the language they
     // were built in while everything below them refreshes through the command state.
     #[Swag.Discardable]
-    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = {}, id: #null WndId = null)->*PopupMenuItem
+    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = .addPopup(name(), popup, icon, id)
         {
@@ -1363,19 +1362,19 @@ public impl MenuCtrl
     // with a notch. A [[Gui.IconButtonArrowPosition.RightUpward]] marker opens the menu above the
     // button; every other marker opens it below. When `autoDestroy` is true, the menu destroys
     // itself after the modal loop.
-    mtd doModal(button: *IconButton, autoDestroy: bool = false)->#null WndId
+    mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId?
     {
         return .doModalImpl({}, .TopLeft, autoDestroy, button)
     }
 
     // Runs a popup menu modally and returns its selected command, or null when dismissed.
     // When `autoDestroy` is true, the menu destroys itself after the modal loop ends.
-    mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->#null WndId
+    mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->WndId?
     {
         return .doModalImpl(surfacePos, pos, autoDestroy, null)
     }
 
-    private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: #null *IconButton)->#null WndId
+    private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?)->WndId?
     {
         Debug.assert(!.bar)
 

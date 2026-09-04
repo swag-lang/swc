@@ -3,15 +3,15 @@ using Core, Gui
 // One drive Swag Vault currently exposes, and the container behind it.
 struct MountedDrive
 {
-    volume:         #null *MountedVault     // Live mount, owned by this entry until it is unmounted.
-    path:           String                  // Container file the drive reads and writes.
-    drive:          String                  // Stable backend destination identifier persisted by Swag Vault.
-    mountLabel:     String                  // Host-facing destination name shown in the mounted list.
-    needsPassword:  bool                    // Whether a password was needed to open the container.
-    readOnly:       bool                    // Whether the drive was mounted for reading alone.
-    atStartup:      bool                    // Whether Swag Vault mounts this container again the next time it starts.
-    totalBytes:     u64                     // Capacity exposed by the mounted filesystem.
-    availableBytes: u64                     // Free capacity observed when the row was last refreshed.
+    volume:         *MountedVault?     // Live mount, owned by this entry until it is unmounted.
+    path:           String             // Container file the drive reads and writes.
+    drive:          String             // Stable backend destination identifier persisted by Swag Vault.
+    mountLabel:     String             // Host-facing destination name shown in the mounted list.
+    needsPassword:  bool               // Whether a password was needed to open the container.
+    readOnly:       bool               // Whether the drive was mounted for reading alone.
+    atStartup:      bool               // Whether Swag Vault mounts this container again the next time it starts.
+    totalBytes:     u64                // Capacity exposed by the mounted filesystem.
+    availableBytes: u64                // Free capacity observed when the row was last refreshed.
 }
 
 // Columns of the mounted-drives list, in the order `MountedDrives.create` adds them.
@@ -38,15 +38,12 @@ internal enum MountedColumn
 // stand for a drive everywhere else.
 struct MountedDrives
 {
-    card: VaultCard
-    #[Swag.Late]
-    list: *ListCtrl
-    #[Swag.Late]
-    empty: *Label
-    #[Swag.Late]
-    unmountButton:  *PushButton
-    drives:         Array'MountedDrive
-    startupEnabled: bool = true
+    card:               VaultCard
+    late list:          *ListCtrl
+    late empty:         *Label
+    late unmountButton: *PushButton
+    drives:             Array'MountedDrive
+    startupEnabled:     bool = true
 
     // Emitted once the table says what `drives` now holds. Whether the action of the card can
     // work depends on the selection *and* on what the window is doing, so the window is what
@@ -242,7 +239,7 @@ impl MountedDrives
     //
     // The caller becomes responsible for closing and releasing what it gets back: this card
     // holds a mount only while it shows it.
-    mtd detach(index: u64)->#null *MountedVault
+    mtd detach(index: u64)->*MountedVault?
     {
         Debug.assert(index < .drives.count)
         let result = .drives[index].volume

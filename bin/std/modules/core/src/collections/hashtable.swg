@@ -26,7 +26,7 @@ struct(K, V) HashTable
     #[Swag.NoDoc]
     const HASH_FIRST = 2'u32
 
-    internal allocator: #null IAllocator
+    internal allocator: IAllocator?
 
     // Sizes are reported, never set: the table grows itself when it needs to.
 
@@ -41,9 +41,9 @@ struct(K, V) HashTable
 
     private
     {
-        table:         #null [*] HashTableEntry     // Contiguous memory block for the slots.
-        deleted:       u64                          // The number of slots marked as deleted.
-        growThreshold: u64                          // Used slot count that triggers a resize, derived from 'capacity'.
+        table:         [*] HashTableEntry?     // Contiguous memory block for the slots.
+        deleted:       u64                     // The number of slots marked as deleted.
+        growThreshold: u64                     // Used slot count that triggers a resize, derived from 'capacity'.
     }
 }
 
@@ -500,7 +500,7 @@ impl HashTable
 
     // Tries to find the entry for a given key.
     // Returns a pointer to the 'HashTableEntry' if found, otherwise returns 'null'.
-    mtd tryFind(key: K)->#null *HashTableEntry
+    mtd tryFind(key: K)->*HashTableEntry?
     {
         if !.table do
             return null
@@ -529,7 +529,7 @@ impl HashTable
 
     // Tries to find the entry for a given key.
     // Returns a pointer to the 'HashTableEntry' if found, otherwise returns 'null'.
-    mtd const tryFind(key: K)->#null const *HashTableEntry
+    mtd const tryFind(key: K)->const *HashTableEntry?
     {
         if !.table do
             return null
@@ -647,7 +647,7 @@ impl HashTable
 
 impl StrConv.IConvert for HashTable
 {
-    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string?)
     {
         buf.addBytes("[")
         var first = true

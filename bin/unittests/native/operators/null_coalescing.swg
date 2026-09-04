@@ -1,15 +1,15 @@
 #global private
 
-const C: #null string = null
-const D               = C orelse "d"
+const C: string? = null
+const D          = C orelse "d"
 #assert(D == "d")
 
 const E: string = "e"
 const F         = E orelse "f"
 #assert(F == "e")
 
-const S0: #null const [..] u8 = null
-const S1 = S0 orelse "abc"
+const S0: const [..] u8? = null
+const S1                 = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)
 #assert(S1[0] == 'a')
 #assert(S1[1] == 'b')
@@ -48,11 +48,11 @@ func fallbackString()->string
 
 // Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
 // side would make the `null` fallback uncastable (and pointless).
-func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
+func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
 
 #test
 {
-    var p: #null *s32
+    var p: *s32?
     var v: s32 = 10
     Swag.assert((p orelse &v) == &v)
     p = &v
@@ -61,7 +61,7 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 
 #test
 {
-    var s: #null string
+    var s: string?
     Swag.assert((s orelse "fallback") == "fallback")
     s = "ok"
     Swag.assert((s orelse "fallback") == "ok")
@@ -79,8 +79,8 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 #test
 {
     NullCoercCounter = 0
-    var ptr: #null *s32 = null
-    let value           = ptr orelse fallbackPointer()
+    var ptr: *s32? = null
+    let value      = ptr orelse fallbackPointer()
 
     Swag.assert(value == &NullCoercValue)
     Swag.assert(value[] == 33)
@@ -90,8 +90,8 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 #test
 {
     NullCoercCounter = 0
-    var s: #null string = null
-    let value           = s orelse fallbackString()
+    var s: string? = null
+    let value      = s orelse fallbackString()
 
     Swag.assert(value == "fallback")
     Swag.assert(NullCoercCounter == 1)

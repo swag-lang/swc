@@ -167,9 +167,9 @@ internal struct Decoder
 
     private
     {
-        stream:     #null const [*] u8
-        inBufOfs:   #null [*] u8
-        pSampleBuf: #null [*] u8
+        stream:     const [*] u8?
+        inBufOfs:   [*] u8?
+        pSampleBuf: [*] u8?
 
         imageSizeX:      s32
         imageSizeY:      s32
@@ -219,7 +219,7 @@ internal struct Decoder
         compSampV:   [MaxComponents] s32
         compQuant:   [MaxComponents] u32
         compIdent:   [MaxComponents] s32
-        blockSeg:    [MaxBlocksPerRow] #null [*] s16
+        blockSeg:    [MaxBlocksPerRow] ([*] s16?)
         compList:    [MaxCompsInScan] u32
         compDcTab:   [MaxComponents] s32
         compAcTab:   [MaxComponents] s32
@@ -227,10 +227,10 @@ internal struct Decoder
         compBlocksV: [MaxComponents] s32
         mcuOrg:      [MaxBocksPerMcu] u32
         h:           [MaxHuffTables] HuffTables
-        dcHuffSeg:   [MaxBocksPerMcu] #null *HuffTables
-        acHuffSeg:   [MaxBocksPerMcu] #null *HuffTables
+        dcHuffSeg:   [MaxBocksPerMcu] (*HuffTables?)
+        acHuffSeg:   [MaxBocksPerMcu] (*HuffTables?)
         blockMcuY:   [MaxComponents] s32
-        component:   [MaxBocksPerMcu] #null *u32
+        component:   [MaxBocksPerMcu] (*u32?)
         lastDcVal:   [MaxComponents] s32
         dcCoeffs:    [MaxComponents] CoeffBuf
         acCoeffs:    [MaxComponents] CoeffBuf
@@ -277,7 +277,7 @@ impl Decoder
 
     mtd doit(buf: [*] u8) fail
     {
-        var scanLineOfs: #null *void
+        var scanLineOfs: *void?
         var scanLineLen: u32
 
         // Gray scale (1BPP)

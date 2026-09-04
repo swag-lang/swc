@@ -166,7 +166,7 @@ func mkanyCastStringFromAny(value: any)->string
     return cast(string) reboxed
 }
 
-func mkanyStringBytesLen(bytes: #null const [..] u8)->u64
+func mkanyStringBytesLen(bytes: const [..] u8?)->u64
 {
     return bytes.count
 }

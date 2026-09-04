@@ -49,7 +49,7 @@ impl BadIndexPtrValueReturn
 
 impl BadIndexPtrNullableReturn
 {
-    mtd opIndexPtr(index: u64)->#null *s32 { return null }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd opIndexPtr(index: u64)->*s32? { return null }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 #test

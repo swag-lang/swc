@@ -74,12 +74,11 @@ struct IconSet
     public
     {
         // The rasterized document; borrowed, never owned. It must outlive the set.
-        atlas: #null *IconAtlas
+        atlas: *IconAtlas?
     }
 
     // The renderer frame textures are created through; borrowed, never owned.
-    #[Swag.Late]
-    renderer: Pixel.IRenderer
+    late renderer: Pixel.IRenderer
 
     lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
     scale: f32                             // Device scale the lists were built at.
@@ -103,7 +102,7 @@ impl IconSet
     {
         for key, value in .lists
         {
-            if Swag.isSet(.renderer) do
+            if .renderer != null do
                 value.release(.renderer)
             Memory.delete(value)
         }

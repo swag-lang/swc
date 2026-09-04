@@ -108,7 +108,7 @@ internal func buildChecksumTable()->[256] u32
 // Reads file windows on demand while the pages are walked.
 private struct Source
 {
-    stream:      #null *File.FileStream
+    stream:      *File.FileStream?
     size:        u64
     window:      Array'u8
     windowStart: u64

@@ -342,7 +342,7 @@ impl Header
 
     // Creates an empty header using the current theme height by default.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Header
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Header
     {
         Debug.assert(parent != null)
 

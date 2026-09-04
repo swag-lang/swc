@@ -2,7 +2,7 @@
 using Swag
 
 #[Swag.Strict]
-alias OrelseStrictHandle = #null const *void
+alias OrelseStrictHandle = const *void?
 
 interface IOrelseProbe
 {
@@ -35,26 +35,26 @@ func strictHandleFallback()->bool
 
 func typeInfoFallback()->bool
 {
-    let primary:  #null typeinfo = null
-    let fallback: typeinfo       = s32
-    let resolved                 = primary orelse fallback
+    let primary:  typeinfo? = null
+    let fallback: typeinfo  = s32
+    let resolved            = primary orelse fallback
     return resolved == s32
 }
 
 func cstringFallback()->bool
 {
     var data: [3] u8 = ['o'u8, 'k'u8, 0]
-    let resolved     = cast(#null cstring) null orelse cast(cstring) &data[0]
+    let resolved     = cast(cstring?) null orelse cast(cstring) &data[0]
     #assert(#typeof(resolved) == cstring)
     return resolved != null and resolved.count == 2
 }
 
 func interfaceFallback()->bool
 {
-    var probe    = OrelseProbe{value: 55}
-    var primary: #null IOrelseProbe = null
-    let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
-    let resolved = primary orelse fallback
+    var probe                  = OrelseProbe{value: 55}
+    var primary: IOrelseProbe? = null
+    let fallback               = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
+    let resolved               = primary orelse fallback
     return resolved.id() == 55
 }
 
@@ -83,9 +83,9 @@ func interfaceFallback()->bool
 {
     func explicitAnyChecks()->bool
     {
-        let missing:   #null any = null
-        let boolTrue:  any       = true
-        let boolFalse: any       = false
+        let missing:   any? = null
+        let boolTrue:  any  = true
+        let boolFalse: any  = false
         return missing == null and
                boolTrue != null and
                boolFalse != null and

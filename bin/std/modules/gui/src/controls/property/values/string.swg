@@ -6,7 +6,7 @@ internal impl Properties
     mtd validateDynamicString(item: *PropertiesItem)
     {
         var data = cast(*String) item.data!
-        if Swag.isSet(item.editBox) do
+        if item.editBox != null do
             data[] = item.editBox.text()
         .commitItemChange(item)
     }
@@ -15,7 +15,7 @@ internal impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if !Swag.isSet(item.comboBox) do
+        if !(item.comboBox != null) do
             return
 
         if .fieldIsMixed(item)
@@ -50,17 +50,17 @@ internal impl Properties
         .commitItemChange(item)
     }
 
-    mtd constructFontName(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructFontName(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item = .addItem(value, data, parentItem)
 
         if g_PropSysFonts.isEmpty() do
             g_PropSysFonts = FontFamily.enumerateSystemFonts()
 
-        var combo: #null *ComboBox
+        var combo: *ComboBox?
         if .kind == .Panel
         {
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
@@ -100,7 +100,7 @@ internal impl Properties
         combon.sigChanged += func|prop = me, item|(ed, n) { prop.validateFontName(item) }
     }
 
-    mtd constructDynamicString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructDynamicString(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         if Reflection.hasAttribute(value, .FontName)
         {
@@ -112,10 +112,10 @@ internal impl Properties
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        var ed: #null *EditBox
+        var ed: *EditBox?
         if .kind == .Panel
         {
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.hide()
             with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as String], flags: .ReleaseFocusOnEnterOrEscape)
             {
@@ -172,17 +172,17 @@ internal impl Properties
         }
     }
 
-    mtd constructStaticString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructStaticString(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        var ed: #null *EditBox
+        var ed: *EditBox?
         if .kind == .Panel
         {
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.hide()
             with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as string])
             {

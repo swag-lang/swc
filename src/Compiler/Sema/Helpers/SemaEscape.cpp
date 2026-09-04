@@ -1588,7 +1588,7 @@ namespace
                 resolvedRef = sema.viewZero(node.cast<AstNamedArgument>().nodeArgRef).nodeRef();
             else if (node.is(AstNodeId::CastExpr))
             {
-                // A cast (e.g. the implicit widening to a #null destination) preserves
+                // A cast (e.g. the implicit widening to a nullable destination) preserves
                 // borrow provenance: look through it to reach the call.
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))

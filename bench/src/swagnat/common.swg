@@ -8,7 +8,7 @@ struct BenchAllocationHeader
     _padding:  u64
 }
 
-func benchAlloc(size: u64)->#null [*] void
+func benchAlloc(size: u64)->[*] void?
 {
     if size > Swag.U64.Max - #sizeof(BenchAllocationHeader) do
         return null
@@ -27,7 +27,7 @@ func benchAlloc(size: u64)->#null [*] void
     return cast([*] void) (cast([*] u8) header + #sizeof(BenchAllocationHeader))
 }
 
-func benchFree(ptr: #null [*] void)
+func benchFree(ptr: [*] void?)
 {
     if !ptr do
         return

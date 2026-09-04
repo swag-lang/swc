@@ -58,7 +58,7 @@ struct LibraryWnd
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         main:        *MainWnd
         view:        *LibraryView
@@ -123,7 +123,7 @@ impl LibraryWnd
 {
     mtd applyLanguage()
     {
-        if !Swag.isSet(.viewBtn) do
+        if !(.viewBtn != null) do
             return
 
         .viewBtn.setText(appStrings().ui_BarView)
@@ -155,7 +155,7 @@ impl LibraryWnd
         .invalidate()
     }
 
-    mtd getCapture()->#null *Capture
+    mtd getCapture()->*Capture?
     {
         if .view.focusItem < .view.items.count do
             return .view.items[.view.focusItem].capture
@@ -401,7 +401,7 @@ impl LibraryWnd
     // what prevents a fixed-width rail from manufacturing a horizontal scroll bar.
     mtd layoutSidebarColumns()
     {
-        if !Swag.isSet(.listCtrl) do
+        if !(.listCtrl != null) do
             return
         let available = .listCtrl.listView.paddedClientRect().width
         if available <= 0 do
@@ -465,10 +465,10 @@ impl LibraryWnd
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
-        var lastLine:        #null *ListLine
-        var lastLineYear:    #null *ListLine
-        var lastLineMonth:   #null *ListLine
-        var lastLineDay:     #null *ListLine
+        var lastLine:        *ListLine?
+        var lastLineYear:    *ListLine?
+        var lastLineMonth:   *ListLine?
+        var lastLineDay:     *ListLine?
 
         let icon1 = .main.icon(.Calendar, themeRowIconSize(.themeMetrics()))
         var cptYear, cptMonth, cptDay = 0
@@ -552,7 +552,7 @@ impl LibraryWnd
 
     mtd refreshAutomaticFilters(force = false)
     {
-        if !Swag.isSet(.listCtrl) do
+        if !(.listCtrl != null) do
             return
 
         let applications = .collectNamedFilters(true)
@@ -675,7 +675,7 @@ impl LibraryWnd
 
     mtd updateFolderMode()
     {
-        if !Swag.isSet(.sideBar) do
+        if !(.sideBar != null) do
             return
         if .currentFolder() == Library.getFolder() do
             .sideBar.show()
@@ -779,7 +779,7 @@ impl LibraryWnd
         return result
     }
 
-    mtd applyDynamicFilter(result: #null WndId)
+    mtd applyDynamicFilter(result: WndId?)
     {
         if !result do
             return
@@ -873,13 +873,13 @@ impl LibraryWnd
         .view.invalidate()
     }
 
-    mtd updateMetadata(file: String, tags: #null const *Array'String = null, favorite: #null const *bool = null, rating: #null const *u8 = null)
+    mtd updateMetadata(file: String, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
     {
         // The edited capture autosaves in the background; make sure this load reads
         // the latest landed version of the file.
         .main.flushCaptureSave(file)
 
-        let loaded: #null *Capture = catch Capture.load(file) as err
+        let loaded: *Capture? = catch Capture.load(file) as err
         if err != null
         {
             MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, err)
@@ -1037,7 +1037,7 @@ impl LibraryWnd
     // each carrying its full path in 'tag' so navigation can act on it.
     mtd updateBreadcrumb()
     {
-        if !Swag.isSet(.breadcrumb) do
+        if !(.breadcrumb != null) do
             return
         .breadcrumb.clear()
 

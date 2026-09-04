@@ -383,7 +383,7 @@ func appStrings()->const *AppStrings => &g_AppStrings
 // the `prop_` field whose reference English repeats it answers with its wording in the
 // active language. Answers `null` for a string no field claims, which is what leaves a
 // symbol such as `"%"` or `"1...2...3..."` alone.
-func resolvePropertyText(key: string)->#null string
+func resolvePropertyText(key: string)->string?
 {
     let type      = cast(const *Swag.TypeInfoStruct) #typeof(AppStrings)
     let reference = cast(const [*] u8) &g_PropertyKeys

@@ -106,7 +106,7 @@ namespace
             return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), exprView.nodeRef(), exprView.typeRef());
 
         // Use-site nullability: narrowing was already applied to the live view, so a
-        // remaining '#null' means no dominating test proves this dereference safe.
+        // remaining 'nullable' means no dominating test proves this dereference safe.
         if (srcType.isNullable() && (!exprView.hasConstant() || exprView.cst()->isNull()))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, exprView.nodeRef(), exprView.typeRef());
 

@@ -8,9 +8,9 @@ using Core
 
 namespace WinFsp
 {
-    alias NativeHandle = #null const [*] void
+    alias NativeHandle = const [*] void?
 
-    alias NativeModule = #null const [*] void
+    alias NativeModule = const [*] void?
 
     const InvalidHandle = cast(NativeHandle) cast #bit (u64) -1's64
     const GenericWrite  = 0x40000000'u32
@@ -74,7 +74,7 @@ namespace WinFsp
     {
         version:          u16
         alignmentPadding: [6] u8
-        userContext:      #null *void
+        userContext:      *void?
     }
 
     #assert(#sizeof(FspVolumeParams) == 504)
@@ -84,32 +84,32 @@ namespace WinFsp
     #assert(#offsetof(FspFileSystem.userContext) == 8)
 
     alias FspGetVolumeInfoFn     = func(*FspFileSystem, *FspVolumeInfo)->s32
-    alias FspSetVolumeLabelFn    = func(*FspFileSystem, #null [*] u16, *FspVolumeInfo)->s32
-    alias FspGetSecurityByNameFn = func(*FspFileSystem, #null [*] u16, #null *u32, #null *void, #null *u64)->s32
-    alias FspCreateFn            = func(*FspFileSystem, #null [*] u16, u32, u32, u32, #null *void, u64, *#null *void, *FileInfo)->s32
-    alias FspOpenFn              = func(*FspFileSystem, #null [*] u16, u32, u32, *#null *void, *FileInfo)->s32
-    alias FspOverwriteFn         = func(*FspFileSystem, #null *void, u32, u8, u64, *FileInfo)->s32
-    alias FspCleanupFn           = func(*FspFileSystem, #null *void, #null [*] u16, u32)
-    alias FspCloseFn             = func(*FspFileSystem, #null *void)
-    alias FspReadFn              = func(*FspFileSystem, #null *void, #null *void, u64, u32, *u32)->s32
-    alias FspWriteFn             = func(*FspFileSystem, #null *void, #null *void, u64, u32, u8, u8, *u32, *FileInfo)->s32
-    alias FspFlushFn             = func(*FspFileSystem, #null *void, #null *FileInfo)->s32
-    alias FspGetFileInfoFn       = func(*FspFileSystem, #null *void, *FileInfo)->s32
-    alias FspSetBasicInfoFn      = func(*FspFileSystem, #null *void, u32, u64, u64, u64, u64, *FileInfo)->s32
-    alias FspSetFileSizeFn       = func(*FspFileSystem, #null *void, u64, u8, *FileInfo)->s32
-    alias FspCanDeleteFn         = func(*FspFileSystem, #null *void, #null [*] u16)->s32
-    alias FspRenameFn            = func(*FspFileSystem, #null *void, #null [*] u16, #null [*] u16, u8)->s32
-    alias FspGetSecurityFn       = func(*FspFileSystem, #null *void, #null *void, *u64)->s32
-    alias FspSetSecurityFn       = func(*FspFileSystem, #null *void, u32, #null *void)->s32
-    alias FspReadDirectoryFn     = func(*FspFileSystem, #null *void, #null [*] u16, #null [*] u16, #null *void, u32, *u32)->s32
-    alias FspGetDirInfoByNameFn  = func(*FspFileSystem, #null *void, #null [*] u16, *FspDirInfo)->s32
+    alias FspSetVolumeLabelFn    = func(*FspFileSystem, [*] u16?, *FspVolumeInfo)->s32
+    alias FspGetSecurityByNameFn = func(*FspFileSystem, [*] u16?, *u32?, *void?, *u64?)->s32
+    alias FspCreateFn            = func(*FspFileSystem, [*] u16?, u32, u32, u32, *void?, u64, *(*void?), *FileInfo)->s32
+    alias FspOpenFn              = func(*FspFileSystem, [*] u16?, u32, u32, *(*void?), *FileInfo)->s32
+    alias FspOverwriteFn         = func(*FspFileSystem, *void?, u32, u8, u64, *FileInfo)->s32
+    alias FspCleanupFn           = func(*FspFileSystem, *void?, [*] u16?, u32)
+    alias FspCloseFn             = func(*FspFileSystem, *void?)
+    alias FspReadFn              = func(*FspFileSystem, *void?, *void?, u64, u32, *u32)->s32
+    alias FspWriteFn             = func(*FspFileSystem, *void?, *void?, u64, u32, u8, u8, *u32, *FileInfo)->s32
+    alias FspFlushFn             = func(*FspFileSystem, *void?, *FileInfo?)->s32
+    alias FspGetFileInfoFn       = func(*FspFileSystem, *void?, *FileInfo)->s32
+    alias FspSetBasicInfoFn      = func(*FspFileSystem, *void?, u32, u64, u64, u64, u64, *FileInfo)->s32
+    alias FspSetFileSizeFn       = func(*FspFileSystem, *void?, u64, u8, *FileInfo)->s32
+    alias FspCanDeleteFn         = func(*FspFileSystem, *void?, [*] u16?)->s32
+    alias FspRenameFn            = func(*FspFileSystem, *void?, [*] u16?, [*] u16?, u8)->s32
+    alias FspGetSecurityFn       = func(*FspFileSystem, *void?, *void?, *u64)->s32
+    alias FspSetSecurityFn       = func(*FspFileSystem, *void?, u32, *void?)->s32
+    alias FspReadDirectoryFn     = func(*FspFileSystem, *void?, [*] u16?, [*] u16?, *void?, u32, *u32)->s32
+    alias FspGetDirInfoByNameFn  = func(*FspFileSystem, *void?, [*] u16?, *FspDirInfo)->s32
 
     // The dispatch table WinFsp calls back through. Every slot starts null and receives its
     // operation while the table is built, which is also how an unimplemented operation stays
     // null and reads as unsupported.
     struct FspInterface
     {
-        #[Swag.Late]
+        late
         {
             getVolumeInfo:     FspGetVolumeInfoFn
             setVolumeLabel:    FspSetVolumeLabelFn
@@ -132,27 +132,26 @@ namespace WinFsp
             readDirectory:     FspReadDirectoryFn
         }
 
-        unused19To23: [5] #null const *void
+        unused19To23: [5] (const *void?)
 
-        #[Swag.Late]
-        getDirInfoByName: FspGetDirInfoByNameFn
+        late getDirInfoByName: FspGetDirInfoByNameFn
 
-        unused25To63: [39] #null const *void
+        unused25To63: [39] (const *void?)
     }
 
-    #assert(#sizeof(FspInterface) == 64 * #sizeof(#null *void))
-    #assert(#offsetof(FspInterface.getDirInfoByName) == 24 * #sizeof(#null *void))
+    #assert(#sizeof(FspInterface) == 64 * #sizeof(*void?))
+    #assert(#offsetof(FspInterface.getDirInfoByName) == 24 * #sizeof(*void?))
 
-    alias FspFileSystemCreateFn           = func(#null const [*] u16, const *FspVolumeParams, const *FspInterface, *#null *FspFileSystem)->s32
+    alias FspFileSystemCreateFn           = func(const [*] u16?, const *FspVolumeParams, const *FspInterface, *(*FspFileSystem?))->s32
     alias FspFileSystemDeleteFn           = func(*FspFileSystem)
-    alias FspFileSystemSetMountPointFn    = func(*FspFileSystem, #null const [*] u16)->s32
+    alias FspFileSystemSetMountPointFn    = func(*FspFileSystem, const [*] u16?)->s32
     alias FspFileSystemRemoveMountPointFn = func(*FspFileSystem)
     alias FspFileSystemStartDispatcherFn  = func(*FspFileSystem, u32)->s32
     alias FspFileSystemStopDispatcherFn   = func(*FspFileSystem)
-    alias FspFileSystemAddDirInfoFn       = func(#null *FspDirInfo, #null *void, u32, *u32)->u8
+    alias FspFileSystemAddDirInfoFn       = func(*FspDirInfo?, *void?, u32, *u32)->u8
     alias FspFileSystemSetGuardFn         = func(*FspFileSystem, s32)
-    alias FspSetSecurityDescriptorFn      = func(#null const *void, u32, #null *void, *#null *void)->s32
-    alias FspDeleteSecurityDescriptorFn   = func(#null *void, #null const *void)
+    alias FspSetSecurityDescriptorFn      = func(const *void?, u32, *void?, *(*void?))->s32
+    alias FspDeleteSecurityDescriptorFn   = func(*void?, const *void?)
     alias WinFspRegistrationFn            = func()->s32
     alias FspDebugLogSetHandleFn          = func(NativeHandle)
     alias FspFsctlStartServiceFn          = func()->s32
@@ -161,8 +160,8 @@ namespace WinFsp
     {
         module: NativeModule
 
-        // The runtime entry points, resolved once when the library is loaded.
-        #[Swag.Late]
+            // The runtime entry points, resolved once when the library is loaded.
+            late
         {
             fsCreate:              FspFileSystemCreateFn
             destroy:               FspFileSystemDeleteFn
@@ -175,9 +174,9 @@ namespace WinFsp
             setSecurityDescriptor: FspSetSecurityDescriptorFn
         }
 
-        setSecurityAddress: #null const *void
+        setSecurityAddress: const *void?
 
-        #[Swag.Late]
+            late
         {
             deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn
             registerServer:           WinFspRegistrationFn
@@ -205,30 +204,30 @@ namespace WinFsp
 
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
-        func LoadLibraryW(name: #null const [*] u16)->NativeModule
-        func GetProcAddress(module: NativeModule, name: const [*] u8)->#null const *void
+        func LoadLibraryW(name: const [*] u16?)->NativeModule
+        func GetProcAddress(module: NativeModule, name: const [*] u8)->const *void?
         func FreeLibrary(module: NativeModule)->s32
         func GetEnvironmentVariableA(name: const [*] u8, value: [*] u8, capacity: u32)->u32
         func GetLastError()->u32
-        func CreateFileW(fileName: #null const [*] u16, access, share: u32, security: #null *void, disposition, flags: u32, templateFile: NativeHandle)->NativeHandle
+        func CreateFileW(fileName: const [*] u16?, access, share: u32, security: *void?, disposition, flags: u32, templateFile: NativeHandle)->NativeHandle
         func CloseHandle(handle: NativeHandle)->s32
         func OpenProcess(access: u32, inheritHandle: s32, processId: u32)->NativeHandle
         func WaitForSingleObject(handle: NativeHandle, milliseconds: u32)->u32
-        func MoveFileExW(existing, replacement: #null const [*] u16, flags: u32)->s32
-        func RemoveDirectoryW(path: #null const [*] u16)->s32
-        func LocalFree(memory: #null *void)->#null *void
+        func MoveFileExW(existing, replacement: const [*] u16?, flags: u32)->s32
+        func RemoveDirectoryW(path: const [*] u16?)->s32
+        func LocalFree(memory: *void?)->*void?
     }
 
     #[Swag.Foreign("advapi32", callconv: Swag.CallConv.C)]
     {
-        func ConvertStringSecurityDescriptorToSecurityDescriptorW(text: #null const [*] u16, revision: u32, descriptor: *#null *void, size: #null *u32)->s32
-        func GetSecurityDescriptorLength(descriptor: #null const *void)->u32
+        func ConvertStringSecurityDescriptorToSecurityDescriptorW(text: const [*] u16?, revision: u32, descriptor: *(*void?), size: *u32?)->s32
+        func GetSecurityDescriptorLength(descriptor: const *void?)->u32
     }
 
     #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
     {
         func IsUserAnAdmin()->s32
-        func ShellExecuteW(window: #null *void, operation, file, parameters, directory: #null const [*] u16, show: s32)->#null const *void
+        func ShellExecuteW(window: *void?, operation, file, parameters, directory: const [*] u16?, show: s32)->const *void?
     }
 
     func isElevated()->bool => IsUserAnAdmin() != 0

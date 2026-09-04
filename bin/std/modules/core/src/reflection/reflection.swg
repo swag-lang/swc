@@ -6,58 +6,58 @@ using Swag
 #[ConstExpr, Inline]
 {
     // Returns whether native.
-    func isNative(t: #null typeinfo) => t and t.kind == .Native
+    func isNative(t: typeinfo?) => t and t.kind == .Native
 
     // Returns whether pointer.
-    func isPointer(t: #null typeinfo) => t and t.kind == .Pointer
+    func isPointer(t: typeinfo?) => t and t.kind == .Pointer
 
     // Returns whether enum.
-    func isEnum(t: #null typeinfo) => t and t.kind == .Enum
+    func isEnum(t: typeinfo?) => t and t.kind == .Enum
 
     // Returns whether struct.
-    func isStruct(t: #null typeinfo) => t and t.kind == .Struct
+    func isStruct(t: typeinfo?) => t and t.kind == .Struct
 
     // Returns whether static array.
-    func isStaticArray(t: #null typeinfo) => t and t.kind == .Array
+    func isStaticArray(t: typeinfo?) => t and t.kind == .Array
 
     // Returns whether slice.
-    func isSlice(t: #null typeinfo) => t and t.kind == .Slice
+    func isSlice(t: typeinfo?) => t and t.kind == .Slice
 
     // Returns whether type alias.
-    func isTypeAlias(t: #null typeinfo) => t and t.kind == .Alias
+    func isTypeAlias(t: typeinfo?) => t and t.kind == .Alias
 
     // Returns whether interface.
-    func isInterface(t: #null typeinfo) => t and t.kind == .Interface
+    func isInterface(t: typeinfo?) => t and t.kind == .Interface
 
     // Returns whether integer.
-    func isInteger(t: #null typeinfo) => t and t.flags & .Integer
+    func isInteger(t: typeinfo?) => t and t.flags & .Integer
 
     // Returns whether float.
-    func isFloat(t: #null typeinfo) => t and t.flags & .Float
+    func isFloat(t: typeinfo?) => t and t.flags & .Float
 
     // Returns whether generic.
-    func isGeneric(t: #null typeinfo) => t and t.flags & .Generic
+    func isGeneric(t: typeinfo?) => t and t.flags & .Generic
 
     // Returns whether tuple.
-    func isTuple(t: #null typeinfo) => t and t.flags & .Tuple
+    func isTuple(t: typeinfo?) => t and t.flags & .Tuple
 
     // Returns whether type.
-    func isType(t: #null typeinfo) => t and t.flags & .PointerTypeInfo
+    func isType(t: typeinfo?) => t and t.flags & .PointerTypeInfo
 
     // Returns whether pointer ref.
-    func isPointerRef(t: #null typeinfo) => t and t.flags & .PointerRef
+    func isPointerRef(t: typeinfo?) => t and t.flags & .PointerRef
 
     // Returns whether pointer arithmetic.
-    func isPointerArithmetic(t: #null typeinfo) => t and t.flags & .PointerArithmetic
+    func isPointerArithmetic(t: typeinfo?) => t and t.flags & .PointerArithmetic
 
     // Returns whether the type is an enum marked with #[Swag.EnumFlags].
-    func isFlagsEnum(t: #null typeinfo)->bool
+    func isFlagsEnum(t: typeinfo?)->bool
     {
         return isEnum(t) and hasAttribute(t, EnumFlags)
     }
 
     // Returns whether simple native.
-    func isSimpleNative(t: #null typeinfo)->bool
+    func isSimpleNative(t: typeinfo?)->bool
     {
         if !isNative(t) do
             return false
@@ -67,7 +67,7 @@ using Swag
     }
 
     // Returns whether rune.
-    func isRune(t: #null typeinfo)->bool
+    func isRune(t: typeinfo?)->bool
     {
         if !isNative(t) do
             return false
@@ -77,7 +77,7 @@ using Swag
     }
 
     // Returns whether any.
-    func isAny(t: #null typeinfo)->bool
+    func isAny(t: typeinfo?)->bool
     {
         if !isNative(t) do
             return false
@@ -87,7 +87,7 @@ using Swag
     }
 
     // Returns whether bool.
-    func isBool(t: #null typeinfo)->bool
+    func isBool(t: typeinfo?)->bool
     {
         if !isNative(t) do
             return false
@@ -97,7 +97,7 @@ using Swag
     }
 
     // Returns whether string.
-    func isString(t: #null typeinfo)->bool
+    func isString(t: typeinfo?)->bool
     {
         if !isNative(t) do
             return false
@@ -141,7 +141,7 @@ using Swag
     }
 
     // Assigns a runtime-typed value, preserving its copy and drop semantics.
-    func assign(destination: #null *void, source: #null const *void, type: #null typeinfo)
+    func assign(destination: *void?, source: const *void?, type: typeinfo?)
     {
         if !destination or !source or !type or destination == source do
             return
@@ -161,7 +161,7 @@ using Swag
     }
 
     // Resets a runtime-typed value to its declared default value.
-    func reset(destination: #null *void, type: #null typeinfo)
+    func reset(destination: *void?, type: typeinfo?)
     {
         if !destination or !type
         {
@@ -184,10 +184,10 @@ using Swag
 
 private var g_HashCrcToType:  HashTable'(u32, typeinfo)
 private var g_HashNameToType: HashTable'(string, typeinfo)
-private var g_HashKeyToType:  HashTable'(string, #null typeinfo)
+private var g_HashKeyToType:  HashTable'(string, typeinfo?)
 private var g_HashLock:       Sync.RWLock
 
-private func addCrcTypeIdentity(crc: u32, type: #null typeinfo)
+private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
 {
     if !crc or !type do
         return
@@ -234,7 +234,7 @@ private func registerStableTypeKeyNoLock(type: typeinfo)
     g_HashKeyToType.add(stableKey, null)
 }
 
-private func registerTypeNoLock(type: #null typeinfo)->bool
+private func registerTypeNoLock(type: typeinfo?)->bool
 {
     if !type do
         return false
@@ -270,7 +270,7 @@ private func registerTypeNoLock(type: #null typeinfo)->bool
     return true
 }
 
-private func registerTypeGraphNoLock(type: #null typeinfo)
+private func registerTypeGraphNoLock(type: typeinfo?)
 {
     if !registerTypeNoLock(type) do
         return
@@ -343,7 +343,7 @@ func registerType(type: typeinfo)
 }
 
 // Returns the registered type associated with a CRC, or null.
-func typeFromCrc(crc: u32)->#null typeinfo
+func typeFromCrc(crc: u32)->typeinfo?
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashCrcToType.tryFind(crc)
@@ -353,7 +353,7 @@ func typeFromCrc(crc: u32)->#null typeinfo
 }
 
 // Returns the registered type associated with a name, or null.
-func typeFromName(name: string)->#null typeinfo
+func typeFromName(name: string)->typeinfo?
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashNameToType.tryFind(name)
@@ -365,7 +365,7 @@ func typeFromName(name: string)->#null typeinfo
 // Returns the registered struct associated with a stable serialization key.
 //
 // Returns null when the key is unknown or declared by more than one struct.
-internal func typeFromKey(key: string)->#null typeinfo
+internal func typeFromKey(key: string)->typeinfo?
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashKeyToType.tryFind(key)

@@ -14,13 +14,13 @@ func GetPidExplicitWin64()->u32
 func GetCurrentProcess()->*void
 
 #[Swag.Foreign("kernel32", "GetProcessId", callconv: Swag.CallConv.C)]
-func GetProcessId(process: #null *void)->u32
+func GetProcessId(process: *void?)->u32
 
 #[Swag.Foreign("kernel32", "VirtualAlloc", callconv: Swag.CallConv.C)]
-func VirtualAlloc(address: #null *void, bytes: u64, allocType: u32, protect: u32)->*void
+func VirtualAlloc(address: *void?, bytes: u64, allocType: u32, protect: u32)->*void
 
 #[Swag.Foreign("kernel32", "VirtualFree", callconv: Swag.CallConv.C)]
-func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool
+func VirtualFree(address: *void?, bytes: u64, freeType: u32)->bool
 
 #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
@@ -70,13 +70,13 @@ func MulDiv(number: s32, numerator: s32, denominator: s32)->s32
 func GetProcessHeap()->*void
 
 #[Swag.Foreign("kernel32", "HeapAlloc", callconv: Swag.CallConv.C)]
-func HeapAlloc(heap: #null *void, flags: u32, bytes: u64)->*void
+func HeapAlloc(heap: *void?, flags: u32, bytes: u64)->*void
 
 #[Swag.Foreign("kernel32", "HeapFree", callconv: Swag.CallConv.C)]
-func HeapFree(heap: #null *void, flags: u32, mem: #null *void)->bool
+func HeapFree(heap: *void?, flags: u32, mem: *void?)->bool
 
 #[Swag.Foreign("kernel32", "MultiByteToWideChar", callconv: Swag.CallConv.C)]
-func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: #null *u16, dstCount: s32)->s32
+func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: *u16?, dstCount: s32)->s32
 
 #test
 {

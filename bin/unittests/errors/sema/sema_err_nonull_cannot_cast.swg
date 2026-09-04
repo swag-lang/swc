@@ -15,7 +15,7 @@ struct NonNullCannotCastOpCastBox {}
 impl NonNullCannotCastOpCastBox
 {
     #[Swag.ConstExpr, Swag.Implicit]
-    mtd const opCast()->#null *NonNullCannotCastItem => null
+    mtd const opCast()->*NonNullCannotCastItem? => null
 }
 
 struct NonNullCannotCastNullableOpCastBox {}
@@ -23,7 +23,7 @@ struct NonNullCannotCastNullableOpCastBox {}
 impl NonNullCannotCastNullableOpCastBox
 {
     #[Swag.Implicit]
-    mtd const opCast()->#null string => "present-but-optional"
+    mtd const opCast()->string? => "present-but-optional"
 }
 
 func acceptNonNullCannotCast(value: *NonNullCannotCastItem) {}
@@ -92,8 +92,8 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 
 #test
 {
-    var nullable: #null *NonNullCannotCastItem = null
-    let value:    *NonNullCannotCastItem       = nullable     // swc-expected-error {{sema_err_cannot_cast}}
+    var nullable: *NonNullCannotCastItem? = null
+    let value:    *NonNullCannotCastItem  = nullable     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -131,7 +131,7 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
     let preboxed: any = cast(any) 0
 
     // Boxing a typed null pointer also creates a present 'any' value.
-    let nullPointer:  #null *NonNullCannotCastItem = null
+    let nullPointer:  *NonNullCannotCastItem? = null
     let boxedPointer: any = cast(any) nullPointer
     #assert(boxedPointer != null)
 }
@@ -151,10 +151,10 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 #test
 {
     // Identical string bytes under distinct nullability contracts must keep distinct types.
-    let legacy:   string       = "same-bytes"
-    let optional: #null string = "same-bytes"
-    let required: string       = "same-bytes"
+    let legacy:   string  = "same-bytes"
+    let optional: string? = "same-bytes"
+    let required: string  = "same-bytes"
     #assert(#typeof(legacy) == string)
-    #assert(#typeof(optional) == #null string)
+    #assert(#typeof(optional) == string?)
     #assert(#typeof(required) == string)
 }

@@ -120,7 +120,7 @@ impl FontFamily
     //
     // Falls back to the closest available style and returns `null` when the
     // descriptor contains no usable face.
-    public func createTypeFace(fontFamily: SystemFontFamilyInfo, style: FontFamilyStyle)->#null *TypeFace fail
+    public func createTypeFace(fontFamily: SystemFontFamilyInfo, style: FontFamilyStyle)->*TypeFace? fail
     {
         var logFont = fontFamily.faces[cast(u64) style]
         if style == .Regular

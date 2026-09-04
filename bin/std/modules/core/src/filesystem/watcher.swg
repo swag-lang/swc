@@ -82,7 +82,7 @@ struct Watcher
         options: WatchOptions     // Scope, filter, and buffer policy fixed at creation.
     }
 
-    internal native: #null *void
+    internal native: *void?
 }
 
 // Starts watching `root` with the default options.

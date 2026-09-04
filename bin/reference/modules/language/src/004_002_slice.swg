@@ -11,8 +11,8 @@ This allows efficient access to large datasets without copying memory.
 */
 #test
 {
-    var a: #null [..] bool
-    #assert(#sizeof(a) == #sizeof(#null *void) + #sizeof(u64))
+    var a: [..] bool?
+    #assert(#sizeof(a) == #sizeof(*void?) + #sizeof(u64))
 }
 
 /**
@@ -221,7 +221,7 @@ same count and the same elements, so a copy into other storage compares equal to
 source, and a shorter view over the same storage does not.
 
 Comparing against 'null' is the one exception: it asks whether the slice has any storage at
-all, which is what a '#null' slice records.
+all, which is what a '?' slice records.
 */
 
 #test
@@ -238,6 +238,6 @@ all, which is what a '#null' slice records.
     Swag.assert(whole.buffer == head.buffer)
     Swag.assert(whole != head)
 
-    let missing: #null const [..] u8 = null
+    let missing: const [..] u8? = null
     Swag.assert(missing == null)
 }

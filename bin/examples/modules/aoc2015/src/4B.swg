@@ -27,7 +27,7 @@ func day4B()
         var sliceJobs: Array'ForJob
         sliceJobs.resize(Jobs.workerCount())
 
-        func jobEntry(jobData: #null *void)
+        func jobEntry(jobData: *void?)
         {
             let oneJob = cast(*ForJob) jobData!
             var index  = oneJob.start

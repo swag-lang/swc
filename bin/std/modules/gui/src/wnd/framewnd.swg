@@ -37,8 +37,7 @@ struct FrameWnd
     {
         using wnd: Wnd     // Embedded wnd state.
 
-        #[Swag.Late]
-        view:           *Wnd                      // Hosted content view.
+        late view:      *Wnd                      // Hosted content view.
         frameForm  = FrameWndForm.Transparent     // Background and border geometry.
         frameFlags = FrameWndFlags.Borders        // Active optional decoration.
         anchor     = FrameWndAnchor.None          // Edge carrying the callout anchor.
@@ -78,7 +77,7 @@ impl IWnd for FrameWnd
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var subRectBk: #null *ThemeImageRect
+        var subRectBk: *ThemeImageRect?
         var colorBk:   Color
 
         switch .frameForm
@@ -122,7 +121,7 @@ impl IWnd for FrameWnd
         let rects   = .themeRects()
         let metrics = .themeMetrics()
 
-        var subRectBorder: #null *ThemeImageRect
+        var subRectBorder: *ThemeImageRect?
         var colorBorder:   Color
 
         switch .frameForm
@@ -204,7 +203,7 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !Swag.isSet(.view) do
+        if !(.view != null) do
             return
         var rect = .paddedClientRect()
         rect.applyPadding(.view.margin)
@@ -216,7 +215,7 @@ impl FrameWnd
 {
     // Creates and attaches a typed child as this frame's view.
     #[Swag.Discardable]
-    mtd(T) createView(hook: #null HookEvent = null)->*T
+    mtd(T) createView(hook: HookEvent? = null)->*T
     {
         // The view is born at its final laid-out rectangle — the frame minus its
         // caption and border paddings — because a hook may lay out its content from
@@ -230,9 +229,9 @@ impl FrameWnd
     // Replaces and destroys the current view, then attaches `what` to this frame.
     mtd setView(what: *Wnd)
     {
-        if Swag.isSet(.view) and .view == what do
+        if (.view != null) and .view == what do
             return
-        if Swag.isSet(.view) do
+        if .view != null do
             .view.destroy()
         what.setParent(me)
         .view = what

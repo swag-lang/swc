@@ -6,7 +6,7 @@ const DefaultCapacity = 4'u64
 
 struct(T) DynArray
 {
-    data:     #null [*] T
+    data:     [*] T?
     count:    u64
     capacity: u64
 }
@@ -15,7 +15,7 @@ func(T) create()->DynArray'T
 {
     var result: DynArray'T
     result.capacity = DefaultCapacity
-    result.data     = cast(#null [*] T) testAlloc(DefaultCapacity * #sizeof(T))
+    result.data     = cast([*] T?) testAlloc(DefaultCapacity * #sizeof(T))
     return result
 }
 
@@ -33,7 +33,7 @@ func(T) push(arr: *DynArray'T, value: T)
     if arr.count == arr.capacity
     {
         let newCapacity = arr.capacity * 2
-        arr.data     = cast(#null [*] T) testRealloc(arr.data, newCapacity * #sizeof(T))
+        arr.data     = cast([*] T?) testRealloc(arr.data, newCapacity * #sizeof(T))
         arr.capacity = newCapacity
     }
 
@@ -108,7 +108,7 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
     if arr.count == arr.capacity
     {
         let newCapacity = arr.capacity * 2
-        arr.data     = cast(#null [*] T) testRealloc(arr.data, newCapacity * #sizeof(T))
+        arr.data     = cast([*] T?) testRealloc(arr.data, newCapacity * #sizeof(T))
         arr.capacity = newCapacity
     }
 

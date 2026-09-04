@@ -58,18 +58,18 @@ struct TagBin
         schema: String
     }
 
-    stream:            ByteStream                           // Input cursor over the version 1 body.
-    bodyBuffer:        Buffer                               // Owns the decompressed body of a compressed stream.
-    shapes:            Array'TagBinShape                    // Shape directory of a version 1 stream.
-    freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
-    sections:          ArrayPtr'TagBinSection               // Active section stack.
-    convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
-    convertValToArray: bool                                 // Whether the next scalar becomes an array.
-    convertArrayToVal: bool                                 // Whether the next array becomes a scalar.
-    outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
-    elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
+    stream:            ByteStream                      // Input cursor over the version 1 body.
+    bodyBuffer:        Buffer                          // Owns the decompressed body of a compressed stream.
+    shapes:            Array'TagBinShape               // Shape directory of a version 1 stream.
+    freeSections:      ArrayPtr'TagBinSection          // Reusable section objects.
+    sections:          ArrayPtr'TagBinSection          // Active section stack.
+    convertNextNative: const *Swag.TypeInfoNative?     // Pending native conversion.
+    convertValToArray: bool                            // Whether the next scalar becomes an array.
+    convertArrayToVal: bool                            // Whether the next array becomes a scalar.
+    outStack:          Array'{ buf: const [..] u8?, seek: u64 }
+    elemStack:         Array'{ compressed: bool, tmpBuf: *Buffer? }
     tmpPool:           ArrayPtr'Buffer
-    expectedRootType:  #null typeinfo     // Root type supplied by [[Core.Serialization.Decoder.readAll]].
+    expectedRootType:  typeinfo?     // Root type supplied by [[Core.Serialization.Decoder.readAll]].
 }
 
 // Counters describing what a decode had to tolerate.
@@ -134,8 +134,8 @@ struct TagBinSection
         kind:          SectionKind                            // Type of section (ordered, unordered, or raw)
         positional:    bool                                   // Shape matches the plan, so fields are read in order.
         mapLoaded:     bool                                   // Whether 'mapSeek' is populated.
-        shape:         #null const *TagBinShape               // Shape describing the stream fields.
-        plan:          #null const *Plan                      // The reader plan of the struct, when known.
+        shape:         const *TagBinShape?                    // Shape describing the stream fields.
+        plan:          const *Plan?                           // The reader plan of the struct, when known.
     }
 }
 
@@ -151,7 +151,7 @@ private impl TagBin
     // Returns a pointer to a section object, either reused from the free pool or newly allocated.
     mtd newSection()->*TagBinSection
     {
-        var ptr: #null *TagBinSection
+        var ptr: *TagBinSection?
         if .freeSections.count
         {
             let recycled = .freeSections.popBack()!
@@ -222,7 +222,7 @@ private impl TagBin
 
     // Check if type conversion is possible between 'fromType' and 'toType'.
     // Sets up conversion flags and returns true if the conversion is supported.
-    mtd canConvertType(toType, fromType: #null typeinfo)->bool
+    mtd canConvertType(toType, fromType: typeinfo?)->bool
     {
         if toType == fromType do
             return true
@@ -240,22 +240,22 @@ private impl TagBin
         if dstType == srcType
         {
             if Reflection.isSimpleNative(dstType) do
-                .convertNextNative = cast(#null const *Swag.TypeInfoNative) srcType
+                .convertNextNative = cast(const *Swag.TypeInfoNative?) srcType
             return true
         }
 
-        var fromStruct: #null const *Swag.TypeInfoStruct
-        var toStruct:   #null const *Swag.TypeInfoStruct
+        var fromStruct: const *Swag.TypeInfoStruct?
+        var toStruct:   const *Swag.TypeInfoStruct?
 
         if Reflection.isStruct(srcType) do
-            fromStruct = cast(#null const *Swag.TypeInfoStruct) srcType
+            fromStruct = cast(const *Swag.TypeInfoStruct?) srcType
         if Reflection.isStruct(dstType) do
-            toStruct = cast(#null const *Swag.TypeInfoStruct) dstType
+            toStruct = cast(const *Swag.TypeInfoStruct?) dstType
 
         // s64/float/bool/rune to s64/float/bool/rune
         if Reflection.isSimpleNative(dstType) and Reflection.isSimpleNative(srcType)
         {
-            .convertNextNative = cast(#null const *Swag.TypeInfoNative) srcType
+            .convertNextNative = cast(const *Swag.TypeInfoNative?) srcType
             return true
         }
 
@@ -389,7 +389,7 @@ private impl TagBin
     // positional fast path when the stream shape is identical to it. Every validation
     // happens before the section is pushed: a failure after the push would leave an
     // orphan section for the enclosing 'endSection' to pop.
-    mtd openSection(kind: SectionKind, plan: #null const *Plan) fail
+    mtd openSection(kind: SectionKind, plan: const *Plan?) fail
     {
         if kind == .Raw
         {
@@ -736,7 +736,7 @@ impl TagBin
 
     // Reads and resolves the stable key of a concrete interface object.
     #[Swag.NoDoc]
-    mtd readInterfaceType()->#null typeinfo fail
+    mtd readInterfaceType()->typeinfo? fail
     {
         let key = .readWireString()
         if key == "" do
@@ -822,7 +822,7 @@ impl TagBin
 
     // Begin reading a struct of the given 'structType'.
     // Returns false for normal struct processing, true for special handling cases.
-    mtd beginStruct(structType: #null typeinfo, _structData: #null [*] u8)->bool fail
+    mtd beginStruct(structType: typeinfo?, _structData: [*] u8?)->bool fail
     {
         var sig = .stream.readNative'u32()
         if sig == Write.TagBinSignature.Raw
@@ -845,7 +845,7 @@ impl TagBin
             fail SerializationError{"invalid version signature"}
         let streamVersion = .stream.readNative'u32()
 
-        var plan: #null const *Plan
+        var plan: const *Plan?
         if structType and Reflection.isStruct(structType) do
             plan = planFor(cast(const *Swag.TypeInfoStruct) structType!)
 
@@ -1013,7 +1013,7 @@ impl TagBin
 
     // Begin reading a sequence (array) of elements of type 'typeElem'.
     // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
-    mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: *u64)->bool fail
+    mtd beginSequence(typeElem: typeinfo?, data: *u8?, countElem: *u64)->bool fail
     {
         let orgCount = countElem[]
         if .convertValToArray

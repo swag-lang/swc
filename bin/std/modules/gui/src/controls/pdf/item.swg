@@ -280,12 +280,12 @@ impl Item
     // Returns a borrowed path list for a path item.
     //
     // The pointer remains valid until the owning page or its item array is mutated.
-    mtd const pathValue()->#null const *LinePathList => .kind == .Path ? &.path : null
+    mtd const pathValue()->const *LinePathList? => .kind == .Path ? &.path : null
 
     // Returns a borrowed image for an image item.
     //
     // The pointer remains valid until the owning page or its item array is mutated.
-    mtd const imageValue()->#null const *Image => .kind == .Image ? &.image : null
+    mtd const imageValue()->const *Image? => .kind == .Image ? &.image : null
 }
 
 internal impl Item

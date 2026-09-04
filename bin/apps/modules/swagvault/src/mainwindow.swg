@@ -160,19 +160,19 @@ struct MountSettings
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:            Jobs.Job                // Worker scheduled for `kind`.
-    kind:           OperationKind           // Work the job performs, or `None` while the window is idle.
-    timer:          #null *Timer            // Polls the job while it runs.
-    error:          #null any               // Failure captured by the job, or null when it succeeded.
-    path:           String                  // Container file the operation acts on.
-    mount:          String                  // Stable backend destination identifier requested by a mount operation.
-    mountLabel:     String                  // Host-facing destination name reported when the operation completes.
-    size:           u64                     // Container size requested by a create or a grow.
-    camouflageOnly: bool                    // Whether resize only refreshes the random physical tail.
-    access:         VaultAccess             // Current password and key files, owned and cleared by the operation.
-    replacement:    VaultAccess             // Access installed by a password or key-file change.
-    resultKeyFiles: Array'String            // Key-file selection published after a verified change.
-    volume:         #null *MountedVault     // Mount a mount operation produced, or the one an unmount closes.
+    job:            Jobs.Job           // Worker scheduled for `kind`.
+    kind:           OperationKind      // Work the job performs, or `None` while the window is idle.
+    timer:          *Timer?            // Polls the job while it runs.
+    error:          any?               // Failure captured by the job, or null when it succeeded.
+    path:           String             // Container file the operation acts on.
+    mount:          String             // Stable backend destination identifier requested by a mount operation.
+    mountLabel:     String             // Host-facing destination name reported when the operation completes.
+    size:           u64                // Container size requested by a create or a grow.
+    camouflageOnly: bool               // Whether resize only refreshes the random physical tail.
+    access:         VaultAccess        // Current password and key files, owned and cleared by the operation.
+    replacement:    VaultAccess        // Access installed by a password or key-file change.
+    resultKeyFiles: Array'String       // Key-file selection published after a verified change.
+    volume:         *MountedVault?     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
     readOnly:          bool                 // Whether a mount operation exposes the drive read only.
@@ -193,15 +193,15 @@ struct MainWindow
 {
     using wnd: Wnd
 
-    // Text and control of the header, kept so a language switch can say it again.
-    #[Swag.Late]
+        // Text and control of the header, kept so a language switch can say it again.
+        late
     {
         subtitle:         *Label
         appearanceButton: *AppearanceButton
     }
 
-    // Controls of the automatic-unmount page.
-    #[Swag.Late]
+        // Controls of the automatic-unmount page.
+        late
     {
         privacyModeControl: *CheckButton
         unmountOnLock:      *CheckButton
@@ -210,8 +210,8 @@ struct MainWindow
         idleTimeout:        *ComboBox
     }
 
-    // Controls of the "create a new vault" card.
-    #[Swag.Late]
+        // Controls of the "create a new vault" card.
+        late
     {
         createPath:      *EditBox
         createSize:      *EditBox
@@ -223,8 +223,8 @@ struct MainWindow
         browseCreate:    *PushButton
     }
 
-    // Controls of the "open an existing vault" card.
-    #[Swag.Late]
+        // Controls of the "open an existing vault" card.
+        late
     {
         mountPath:      *EditBox
         mountPassword:  *PasswordEdit
@@ -238,10 +238,10 @@ struct MainWindow
         browseMount:    *PushButton
     }
 
-    // The single status line displayed above the footer, the glyph whose color reports its tone,
-    // and the spinner that replaces the glyph while work runs. The text and the glyph are written
-    // only through `setStatus`, the spinner only through `showBusy`.
-    #[Swag.Late]
+        // The single status line displayed above the footer, the glyph whose color reports its tone,
+        // and the spinner that replaces the glyph while work runs. The text and the glyph are written
+        // only through `setStatus`, the spinner only through `showBusy`.
+        late
     {
         statusView: *Wnd
         status:     *Label
@@ -252,8 +252,7 @@ struct MainWindow
     // The cards are pages of one tab strip rather than columns of one grid: a vault is created,
     // opened, watched, or governed by automatic-unmount policy, and only one task is active at a
     // time. Side by side they would cost the width of every page while leaving the others idle.
-    #[Swag.Late]
-    tabs: *Tab
+    late tabs: *Tab
 
     // The form cards, kept whole so a language switch can re-label their headings, and the band
     // that says which drives the window currently exposes.
@@ -275,8 +274,8 @@ struct MainWindow
     // works through it. Only the first survives a run.
     startupVaults:   Array'StartupVault
     startupQueue:    Array'StartupVault
-    startupTimer:    #null *Timer
-    securityTimer:   #null *Timer
+    startupTimer:    *Timer?
+    securityTimer:   *Timer?
     securityMonitor: AutoUnmountMonitor
 
     // Last successful choices restored into the open-vault form. Passwords are never settings.
@@ -309,7 +308,7 @@ struct MainWindow
 // Returns an owned string, not a view: one kind formats its sentence, and a view into
 // that temporary would dangle as soon as the statement building it ends. The constant
 // sentences are copied out of the string table for the same contract.
-internal func caughtMessage(err: #null any)->String
+internal func caughtMessage(err: any?)->String
 {
     let s = appStrings()
 
@@ -379,7 +378,7 @@ internal func caughtMessage(err: #null any)->String
 //
 // It is deliberately not shown: the reader gets the sentence for the kind, and this is the
 // line whoever reads a report needs to tell two failures of the same kind apart.
-private func logDiagnostic(message: #null string)
+private func logDiagnostic(message: string?)
 {
     if !message do
         return
@@ -392,7 +391,7 @@ private func logDiagnostic(message: #null string)
 
 // Whether an operation stopped because the user asked it to, rather than because something
 // about the container or the system stopped it.
-internal func isCanceledError(err: #null any)->bool
+internal func isCanceledError(err: any?)->bool
 {
     switch err
     {
@@ -402,7 +401,7 @@ internal func isCanceledError(err: #null any)->bool
     return false
 }
 
-internal func runMainWindowOperation(data: #null *void)
+internal func runMainWindowOperation(data: *void?)
 {
     let window = cast(*MainWindow) (data!)
     window.runOperation()
@@ -630,7 +629,7 @@ impl MainWindow
     //
     // The strip reads first, so it is what the keyboard would otherwise start on — and the first
     // key press would then change page instead of typing into the form the reader is looking at.
-    mtd initialStop()->#null *Wnd
+    mtd initialStop()->*Wnd?
     {
         switch .tabs.selectedIndex
         {
@@ -1311,7 +1310,7 @@ impl MainWindow
         .readOnly.setState(.mountSettings.readOnly ? .Checked : .Unchecked)
     }
 
-    mtd showError(message: string, err: #null any = null)
+    mtd showError(message: string, err: any? = null)
     {
         var detail = String.from(message)
         if err != null do

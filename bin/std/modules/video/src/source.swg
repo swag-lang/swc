@@ -16,15 +16,15 @@ struct Source
 {
     internal
     {
-        stream:      File.FileStream         // Open file, when the source reads from a file.
-        memory:      #null const [..] u8     // Borrowed encoded bytes, when the source reads from memory.
-        path:        String                  // File the source reads, empty for a memory source.
-        window:      Array'u8                // Read-ahead window over the file.
-        windowStart: u64                     // Stream offset of the first byte held in the window.
-        windowCount: u64                     // Number of valid bytes in the window.
-        cursor:      u64                     // Read position in the stream.
-        length:      u64                     // Total size of the stream, in bytes.
-        isFile:      bool                    // Whether the source reads from `stream`.
+        stream:      File.FileStream     // Open file, when the source reads from a file.
+        memory:      const [..] u8?      // Borrowed encoded bytes, when the source reads from memory.
+        path:        String              // File the source reads, empty for a memory source.
+        window:      Array'u8            // Read-ahead window over the file.
+        windowStart: u64                 // Stream offset of the first byte held in the window.
+        windowCount: u64                 // Number of valid bytes in the window.
+        cursor:      u64                 // Read position in the stream.
+        length:      u64                 // Total size of the stream, in bytes.
+        isFile:      bool                // Whether the source reads from `stream`.
     }
 }
 

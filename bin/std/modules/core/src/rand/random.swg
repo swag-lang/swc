@@ -1,7 +1,6 @@
 #global namespace Random
 
-#[Swag.Tls]
-private var g_SharedGenerator: Generator'MultiplyWithCarry32
+    tls private var g_SharedGenerator: Generator'MultiplyWithCarry32
 
 // Returns the default generator for the current thread.
 //

@@ -83,7 +83,7 @@ struct ViewerFolderHistory
 struct ViewerActionBar
 {
     using wnd:       Wnd
-    centerGroup:     #null *Wnd
+    centerGroup:     *Wnd?
     fillCenterGroup: bool
 }
 
@@ -129,14 +129,14 @@ struct ViewerInfoLayout
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         filesButton:  *IconButton
         fileGroup:    *StackLayoutCtrl
         generalLabel: *Label
     }
 
-    sideButton: #null *IconButton
+    sideButton: *IconButton?
 }
 
 impl IWnd for ViewerInfoLayout
@@ -144,7 +144,7 @@ impl IWnd for ViewerInfoLayout
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if Swag.isSet(.fileGroup) and Swag.isSet(.generalLabel) do
+        if (.fileGroup != null) and (.generalLabel != null) do
             .computeLayout()
     }
 }
@@ -232,7 +232,7 @@ struct ViewerErrorView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         summaryLabel: *Label
         reasonLabel:  *Label
@@ -258,8 +258,7 @@ struct ViewerLoadingOverlay
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    spinner: *ViewerLoadingSpinner
+    late spinner: *ViewerLoadingSpinner
 }
 
 // One application-owned marker for every current occurrence. Viewers report the band they painted
@@ -483,7 +482,7 @@ struct ViewerClassifiedFile
 struct ViewerChoiceLoad
 {
     job:      Jobs.Job
-    index:    #null *ViewerPluginRegistry
+    index:    *ViewerPluginRegistry?
     fileName: String
     recent:   Array'String
     result:   ViewerClassifiedFile
@@ -502,7 +501,7 @@ impl ViewerChoiceLoad
         .index      = index
         .fileName   = fileName
         .recent     = recent
-        .job.lambda = func(data: #null *void)
+        .job.lambda = func(data: *void?)
         {
             let operation = cast(*ViewerChoiceLoad) data!
             var absolute  = catch Path.absolute(operation.fileName.toString()) as pathError
@@ -562,7 +561,7 @@ struct ViewerWindow
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commandBar:          *ViewerActionBar
         kindButton:          *IconButton
@@ -611,27 +610,27 @@ struct ViewerWindow
 
     index:                   ViewerPluginRegistry
     pluginIcons:             Array'ViewerPluginIcons
-    currentView:             #null *Wnd
-    currentActions:          #null *Wnd
-    currentInfo:             #null *Wnd
-    currentCommands:         #null *Wnd
-    currentSidePanelHost:    #null *Wnd
-    currentSidePanelButton:  #null *IconButton
-    outgoingView:            #null *Wnd
-    outgoingActions:         #null *Wnd
-    outgoingInfo:            #null *Wnd
-    outgoingCommands:        #null *Wnd
-    outgoingSidePanelHost:   #null *Wnd
-    outgoingSidePanelButton: #null *IconButton
+    currentView:             *Wnd?
+    currentActions:          *Wnd?
+    currentInfo:             *Wnd?
+    currentCommands:         *Wnd?
+    currentSidePanelHost:    *Wnd?
+    currentSidePanelButton:  *IconButton?
+    outgoingView:            *Wnd?
+    outgoingActions:         *Wnd?
+    outgoingInfo:            *Wnd?
+    outgoingCommands:        *Wnd?
+    outgoingSidePanelHost:   *Wnd?
+    outgoingSidePanelButton: *IconButton?
     choices:                 Array'ViewerPluginChoice
     instances:               Array'ViewerSession
     activeChoiceIndex             = Swag.U32.Max
-    startupTimer:            #null *Timer
-    searchTimer:             #null *Timer
-    searchBoundsTimer:       #null *Timer
-    loadingTimer:            #null *Timer
+    startupTimer:            *Timer?
+    searchTimer:             *Timer?
+    searchBoundsTimer:       *Timer?
+    loadingTimer:            *Timer?
     choiceLoad:              ViewerChoiceLoad
-    smokeTimer:              #null *Timer
+    smokeTimer:              *Timer?
     searchStream:            File.FileStream
     searchQuery:             String
     searchToolTip:           String
@@ -1597,7 +1596,7 @@ impl ViewerWindow
     // `version` is a parameter for the same reason `buildDate` is: the live one carries the
     // compiler build number, which moves with every compiler change, and a golden of this box
     // would be invalidated by each of them.
-    mtd createAboutDialog(buildDate: Time.DateTime, version: #null string = null)->*AboutDlg
+    mtd createAboutDialog(buildDate: Time.DateTime, version: string? = null)->*AboutDlg
     {
         let liveVersion = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
         let dlg         = AboutDlg.createApplication(.surface!, {
@@ -1977,7 +1976,7 @@ impl ViewerWindow
 
     // Moves the host-owned panel action with the viewer it belongs to. The action remains on the
     // information edge while its panel occupies the matching right-side lane.
-    private mtd setCurrentSidePanel(panel: #null *Wnd, button: #null *IconButton)
+    private mtd setCurrentSidePanel(panel: *Wnd?, button: *IconButton?)
     {
         .currentSidePanelHost?.hide()
         .currentSidePanelButton?.hide()
@@ -2030,7 +2029,7 @@ impl ViewerWindow
     }
 
     // Swaps presentations only after the incoming progressive viewer has something to show.
-    mtd commitViewerTransition(expected: #null *Wnd = null)
+    mtd commitViewerTransition(expected: *Wnd? = null)
     {
         if !.outgoingView or .activeChoiceIndex >= .instances.count do
             return
@@ -2824,7 +2823,7 @@ impl ViewerWindow
     // Returns the window of the active viewer that owns the keyboard, or the viewer itself when
     // it declares no traversal stop. A composite stop hands out its focus delegate, which is
     // the window that actually reads the keys.
-    mtd viewerFocusTarget()->#null *Wnd
+    mtd viewerFocusTarget()->*Wnd?
     {
         let view = .currentView
         if !view do

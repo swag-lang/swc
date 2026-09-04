@@ -16,7 +16,7 @@ public interface IHash32
 // cost of a table probe; this reads the buffer in 8 byte chunks, overlaps the
 // tail instead of stepping through it, and never reads outside the range.
 #[ConstExpr, Safety(.All, false)]
-public func hashBytes32(buffer: #null const [..] u8)->u32
+public func hashBytes32(buffer: const [..] u8?)->u32
 {
     const Mix1  = 0x9E3779B97F4A7C15'u64
     const Mix2  = 0xC2B2AE3D27D4EB4F'u64

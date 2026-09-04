@@ -3,13 +3,13 @@
 struct InlineBug11Node
 {
     value: u32
-    next:  #null *InlineBug11Node
-    prev:  #null *InlineBug11Node
+    next:  *InlineBug11Node?
+    prev:  *InlineBug11Node?
 }
 
 struct InlineBug11List
 {
-    head: #null *InlineBug11Node
+    head: *InlineBug11Node?
 }
 
 impl InlineBug11List
@@ -53,7 +53,7 @@ impl InlineBug11List
     nodes[1].prev  = &nodes[0]
 
     var list = InlineBug11List{&nodes[0]}
-    var popped: #null *InlineBug11Node = null
+    var popped: *InlineBug11Node? = null
     Swag.assert(list.pop(&popped))
     Swag.assert(popped! == &nodes[0])
     Swag.assert(list.head == &nodes[1])

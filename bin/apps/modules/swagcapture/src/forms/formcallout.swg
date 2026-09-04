@@ -404,7 +404,7 @@ impl IForm for FormCallout
         }
     }
 
-    mtd impl setup(capt: #null *Capture)
+    mtd impl setup(capt: *Capture?)
     {
         .capture = capt
         .gizmoRect.setupForForm(me)

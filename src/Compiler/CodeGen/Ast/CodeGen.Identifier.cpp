@@ -798,8 +798,8 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 
     codeGenIdentifierFromSymbol(codeGen, *symbol);
 
-    // 'Swag.Late' global read guard: emit the null-read check when sema requested it (a value
-    // read that was not cleared by an assignment target, address-of or 'Swag.isSet'). The
+    // 'late' global read guard: emit the null-read check when sema requested it (a value
+    // read that was not cleared by an assignment target, address-of or null comparison). The
     // global's payload is its storage address; the check panics if the value is null.
     if (symbol->isVariable() && symbol->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
     {

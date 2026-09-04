@@ -165,7 +165,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
-    var ptrs: [4] #null *void
+    var ptrs: [4] (*void?)
     for i in 4
     {
         var req: AllocatorRequest

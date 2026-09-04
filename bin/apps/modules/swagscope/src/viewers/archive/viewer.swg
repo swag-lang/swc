@@ -6,7 +6,7 @@ private const ArchiveTreeWidth = 380.0
 
 // Keeps directory rows before file rows at every level, while preserving natural name ordering
 // within each kind. Directory rows carry no entry payload, including empty explicit directories.
-func compareArchiveTreeLines(a, b: #null *ListLine, column: u32, descending: bool)->s32
+func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 {
     if !a or !b do
         return 0
@@ -48,7 +48,7 @@ struct ZipEntryExtract
     archiveFileName: String
     entry:           ZipEntry
     destination:     String
-    error:           #null any
+    error:           any?
 }
 
 impl ZipEntryExtract
@@ -60,7 +60,7 @@ impl ZipEntryExtract
         .entry           = entry[]
         .destination     = destination
         .error           = null
-        .job.lambda      = func(data: #null *void)
+        .job.lambda      = func(data: *void?)
         {
             let load = cast(*ZipEntryExtract) data!
             catch extractZipEntry(load.archiveFileName.toString(), &load.entry, load.destination.toString()) as extractError
@@ -100,7 +100,7 @@ struct ArchiveViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         splitter:      *SplitterCtrl
         treePane:      *Wnd
@@ -109,21 +109,20 @@ struct ArchiveViewer
         previewStatus: *Label
     }
 
-    #[Swag.Late]
-    embedded:             Viewer.Embedded
+    late embedded:        Viewer.Embedded
     archive:              ZipArchive
-    entryLines:           Array'(#null *ListLine)
+    entryLines:           Array'(*ListLine?)
     load:                 Viewer.BackgroundLoad'ZipArchive
     extract:              ZipEntryExtract
-    loadTimer:            #null *Timer
-    previewTimer:         #null *Timer
+    loadTimer:            *Timer?
+    previewTimer:         *Timer?
     pendingPreview = Swag.U64.Max
     activePreview  = Swag.U64.Max
     previewFile:          String
     sourceFile:           String
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
     retiring:             bool
 }
@@ -207,7 +206,7 @@ private impl ArchiveViewer
         {
             let parts = Tokenize.split(entry.path.toString(), '/'rune)
             var prefix: String
-            var parent: #null *ListLine
+            var parent: *ListLine?
             for part, partIndex in parts
             {
                 if !part.count do
@@ -236,7 +235,7 @@ private impl ArchiveViewer
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
                 line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize).toString())
-                line.userData0          = cast(#null *void) (entryIndex + 1)
+                line.userData0          = cast(*void?) (entryIndex + 1)
                 .entryLines[entryIndex] = line
             }
         }

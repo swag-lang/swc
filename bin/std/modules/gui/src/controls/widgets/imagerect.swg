@@ -68,7 +68,7 @@ impl ImageRect
 {
     // Creates an empty image window.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ImageRect
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageRect
     {
         Debug.assert(parent != null)
         let result = Wnd.create'ImageRect(parent, null, position, id)

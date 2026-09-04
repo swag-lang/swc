@@ -58,7 +58,7 @@ struct FileNotFoundError
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        fileName:   #null string       // File name associated with this value.
+        fileName:   string?            // File name associated with this value.
     }
 }
 
@@ -68,7 +68,7 @@ struct InvalidFileNameError
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        fileName:   #null string       // File name associated with this value.
+        fileName:   string?            // File name associated with this value.
     }
 }
 
@@ -78,7 +78,7 @@ struct SandboxError
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        path:       #null string       // Path the refused operation targeted.
+        path:       string?            // Path the refused operation targeted.
     }
 }
 
@@ -98,7 +98,7 @@ struct InvalidVersion
 // error embeds as its first field; an error type without one, or with an empty message,
 // answers with its type name instead, so the result is always printable. A `null` error
 // answers with an empty string.
-func message(err: #null any)->string
+func message(err: any?)->string
 {
     if err == null do
         return ""
@@ -134,7 +134,7 @@ func message(err: #null any)->string
 
 // Make a string persistent for errors.
 // That kind of string can be stored in an error struct.
-func mkString(str: #null string)->#null string
+func mkString(str: string?)->string?
 {
     if str == null do
         return null
@@ -142,7 +142,7 @@ func mkString(str: #null string)->#null string
     let count = str.count
     let ptr   = Swag.getContext().errorAllocator.alloc(count)
     Swag.memcpy(ptr, str.buffer, count)
-    let safePtr = cast(#null [*] u8) ptr
+    let safePtr = cast([*] u8?) ptr
     if !safePtr do
         return null
     return Swag.makeString(safePtr, count)

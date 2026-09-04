@@ -217,7 +217,7 @@ impl Decoder
         }
     }
 
-    mtd decode(scanLineOfs: *#null *void, scanLineLen: *u32)->s32 fail
+    mtd decode(scanLineOfs: *(*void?), scanLineLen: *u32)->s32 fail
     {
         if .totalLinesLeft == 0 do
             return Done

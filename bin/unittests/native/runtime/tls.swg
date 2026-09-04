@@ -2,15 +2,13 @@
 
 using Swag
 
-// A '#[Swag.Tls]' global must be one copy per thread, starting from the declared value. Proving it
+// A 'tls' global must be one copy per thread, starting from the declared value. Proving it
 // needs a real OS thread: a value written on one thread must be invisible to the other, and each
 // thread must see the initializer rather than whatever the previous one left behind.
 
-#[Swag.Tls]
-var g_Counter = 0'u64
+tls var g_Counter = 0'u64
 
-#[Swag.Tls]
-var g_Zero: u64
+tls var g_Zero: u64
 
 struct TlsPoint
 {
@@ -18,8 +16,7 @@ struct TlsPoint
     y: u64 = 22
 }
 
-#[Swag.Tls]
-var g_Point: TlsPoint
+tls var g_Point: TlsPoint
 
 #static if #os == Swag.TargetOs.Windows
 {
@@ -34,7 +31,7 @@ var g_Point: TlsPoint
 
         #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
         {
-            func CreateThread(lpThreadAttributes: #null *void, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
+            func CreateThread(lpThreadAttributes: *void?, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
             func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
             func CloseHandle(handle: HANDLE)
         }

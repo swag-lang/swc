@@ -26,7 +26,7 @@ enum class SymbolVariableFlagsE : uint16_t
     GlobalStorage           = 1 << 12,
     FwdCopy                 = 1 << 13, // copy variant of a '#fwd' parameter: requires a copyable type at match time
     ClosureCapture          = 1 << 14,
-    LateInit                = 1 << 15, // 'Swag.Late' struct field: non-null type, null storage until first assignment
+    LateInit                = 1 << 15, // 'late' field: non-null type, null storage until first assignment
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 
@@ -63,6 +63,10 @@ public:
     bool                  closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }
     void                  setClosureCaptureByRef(bool value) noexcept;
     bool                  hasGlobalStorage() const { return hasExtraFlag(SymbolVariableFlagsE::GlobalStorage); }
+    bool                  isDeclaredGlobal() const noexcept { return declaredGlobal_; }
+    void                  setDeclaredGlobal(bool value) noexcept { declaredGlobal_ = value; }
+    bool                  isDeclaredThreadLocal() const noexcept { return declaredThreadLocal_; }
+    void                  setDeclaredThreadLocal(bool value) noexcept { declaredThreadLocal_ = value; }
     SymbolFunction*       globalFunctionInit() const { return globalFunctionInit_; }
     void                  setGlobalFunctionInit(SymbolFunction* symbol) { globalFunctionInit_ = symbol; }
     const SymbolFunction* ownerFunction() const noexcept;
@@ -74,7 +78,7 @@ public:
     void                  setGlobalStorage(DataSegmentKind kind, uint32_t offset);
     DataSegmentKind       globalStorageKind() const { return globalStorageKind_; }
 
-    // A '#[Swag.Tls]' global. Its global storage holds the value every thread starts from, and the
+    // A 'tls' global. Its global storage holds the value every thread starts from, and the
     // address a use resolves to is the calling thread's own copy of it, so the address is not a
     // link-time constant and has to be materialized by a call.
     bool     isThreadLocal() const noexcept { return threadLocalSize_ != 0; }
@@ -108,6 +112,8 @@ private:
     uint32_t        closureCaptureOffset_  = 0;
     uint32_t        threadLocalIdOffset_   = 0;
     uint32_t        threadLocalSize_       = 0;
+    bool            declaredGlobal_        = false;
+    bool            declaredThreadLocal_   = false;
     MemberAccess    memberAccess_          = MemberAccess::Internal;
     bool            memberReadOnly_        = false;
 };

@@ -23,9 +23,9 @@ struct LifecycleApi
 {
     public
     {
-        isLoading:           #null IsLoading               // Reports unfinished viewer work.
-        needsLoadingOverlay: #null NeedsLoadingOverlay     // Reports whether useful content is unavailable.
-        retire:              #null Retire                  // Releases external resources before destruction.
+        isLoading:           IsLoading?               // Reports unfinished viewer work.
+        needsLoadingOverlay: NeedsLoadingOverlay?     // Reports whether useful content is unavailable.
+        retire:              Retire?                  // Releases external resources before destruction.
     }
 }
 
@@ -66,9 +66,8 @@ struct(T) BackgroundLoad
     using operation: BackgroundOperation
     fileName:        String
     value:           T
-    error:           #null any
-    #[Swag.Late]
-    load: func(string)->T fail
+    error:           any?
+    late load:       func(string)->T fail
 }
 
 impl BackgroundLoad
@@ -78,7 +77,7 @@ impl BackgroundLoad
         Debug.assert(!.started)
         .fileName   = fileName
         .load       = load
-        .job.lambda = func(data: #null *void)
+        .job.lambda = func(data: *void?)
         {
             let operation = cast(*BackgroundLoad'T) data!
             operation.value = catch operation.load(operation.fileName.toString()) as loadError

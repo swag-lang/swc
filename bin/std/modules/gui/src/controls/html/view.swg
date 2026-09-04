@@ -109,8 +109,7 @@ struct HtmlCanvas
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    owner: *HtmlView
+    late owner: *HtmlView
 }
 
 // One independently scrolled element retained while an incremental parse rebuilds the box tree.
@@ -156,7 +155,7 @@ struct HtmlView
 
     internal
     {
-        #[Swag.Late]
+        late
         {
             scroll: *ScrollWnd
             canvas: *HtmlCanvas
@@ -181,7 +180,7 @@ struct HtmlView
         fileSize:    u64
         bytesRead:   u64
         sourceDone:  bool
-        loadTimer:   #null *Timer
+        loadTimer:   *Timer?
         nextRefresh: u64
         embedded:    bool
 
@@ -1492,7 +1491,7 @@ internal impl IWnd for HtmlView
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         discard evt
-        if Swag.isSet(.scroll) do
+        if .scroll != null do
             .rebuild()
     }
 

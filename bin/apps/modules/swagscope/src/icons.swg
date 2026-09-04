@@ -55,6 +55,6 @@ func viewerIcons()->*IconAtlas
 // released with the window that created the renderer holding them.
 struct ViewerPluginIcons
 {
-    atlas: #null *IconAtlas
+    atlas: *IconAtlas?
     icons: IconSet
 }

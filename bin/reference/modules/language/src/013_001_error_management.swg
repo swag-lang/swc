@@ -13,7 +13,7 @@ struct MyError
     code:       s32 = 0
 }
 
-func count(name: #null string)->u64 fail
+func count(name: string?)->u64 fail
 {
     if name == null do
         fail MyError{base: Swag.BaseError{"name cannot be null"}, code: 7}
@@ -24,7 +24,7 @@ func count(name: #null string)->u64 fail
 # Catching Errors
 'catch' handles the error locally and returns the default value for the result
 type. To inspect the error, capture it with 'as err': this binds a fresh local
-(of type '#null any') that is null on success and holds the caught error on
+(of type `any?`) that is null on success and holds the caught error on
 failure. The capture is visible in the enclosing scope, after the catch, so each
 capture in a given scope needs its own name.
 */
@@ -46,7 +46,7 @@ cannot inspect the error (capture it with 'as err' for that); it is evaluated
 lazily — only on the failure path — and may divert control flow (e.g. an early
 'return'). To read the caught error, use the 'as err' capture form instead.
 */
-func recordTrace(name: #null string, out: *s32) fail
+func recordTrace(name: string?, out: *s32) fail
 {
     out[] = cast(s32) count(name)
 }
@@ -74,7 +74,7 @@ capture: the error is handled and dropped, and the expression yields the default
 value for the result type. To keep the error, add an 'as err' capture; to use a
 custom fallback, capture and branch ('var x = catch f() as err; if err != null do x = V').
 */
-func safeCount(name: #null string)->u64
+func safeCount(name: string?)->u64
 {
     return catch count(name)
 }
@@ -90,7 +90,7 @@ func safeCount(name: #null string)->u64
 'try' propagates the current error to the caller, so it belongs inside a
 function that can itself return an error.
 */
-func propagateCount(name: #null string)->u64 fail
+func propagateCount(name: string?)->u64 fail
 {
     return try count(name)
 }
@@ -115,7 +115,7 @@ func propagateCount(name: #null string)->u64 fail
 Inside a function declared with 'fail', calling another fallible function is
 an implicit propagation.
 */
-func implicitTryCount(name: #null string)->u64 fail
+func implicitTryCount(name: string?)->u64 fail
 {
     return count(name)
 }
@@ -133,7 +133,7 @@ func implicitTryCount(name: #null string)->u64 fail
 'try', 'catch' (optionally with 'as err' or 'else'), and 'expect' can also guard
 a whole block of code.
 */
-func blockTry(name0: #null string, name1: #null string)->u64 fail
+func blockTry(name0: string?, name1: string?)->u64 fail
 {
     var total: u64 = 0
     try
@@ -159,7 +159,7 @@ func blockCatchCode()->s32
     return (cast(MyError) err).code
 }
 
-func blockCatchElse(name: #null string)->u64
+func blockCatchElse(name: string?)->u64
 {
     catch
     {
@@ -209,7 +209,7 @@ A plain 'defer' still runs when a function exits through 'fail', because
 */
 var DeferTrace: s32 = 0
 
-func deferOnFail(name: #null string)->u64 fail
+func deferOnFail(name: string?)->u64 fail
 {
     defer DeferTrace += 1
     return try count(name)

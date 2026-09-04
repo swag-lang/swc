@@ -1,14 +1,14 @@
 #global private
 
-var LastInlineBufferTextDropAddr:       #null [*] void
-var LastInlineBufferTextDropBuffer:     #null [*] u8
-var ExpectedInlineBufferTextDropAddr:   #null [*] void
-var ExpectedInlineBufferTextDropBuffer: #null [*] u8
+var LastInlineBufferTextDropAddr:       [*] void?
+var LastInlineBufferTextDropBuffer:     [*] u8?
+var ExpectedInlineBufferTextDropAddr:   [*] void?
+var ExpectedInlineBufferTextDropBuffer: [*] u8?
 
 struct SelfPointerValue
 {
     storage: [8] u8
-    buffer:  #null [*] u8
+    buffer:  [*] u8?
 }
 
 impl SelfPointerValue
@@ -53,7 +53,7 @@ impl CopySlot
 
 struct(T) EntryArray
 {
-    entries: #null [*] CopySlot'T
+    entries: [*] CopySlot'T?
 }
 
 impl EntryArray
@@ -81,10 +81,10 @@ func minU64(lhs: u64, rhs: u64)->u64
 
 struct InlineBufferText
 {
-    buffer:    #null [*] u8
+    buffer:    [*] u8?
     length:    u64
     capacity:  u64
-    allocator: #null IAllocator
+    allocator: IAllocator?
     padding:   [16] u8
 }
 
@@ -159,7 +159,7 @@ struct(K, V) HashLikeEntry
 
 struct(K, V) HashLikeTable
 {
-    entries:  #null [*] HashLikeEntry'(K, V)
+    entries:  [*] HashLikeEntry'(K, V)?
     capacity: u64
 }
 

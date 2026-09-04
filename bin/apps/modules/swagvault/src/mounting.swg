@@ -25,7 +25,7 @@ struct MountedVaultSpace
 #[Swag.NoCopy]
 struct MountedVault
 {
-    handle: #null *void
+    handle: *void?
 }
 
 impl MountedVault

@@ -7,18 +7,18 @@ internal struct FontStyleEditor {}
 
 internal impl IPropertyEditor for FontStyleEditor
 {
-    mtd impl canEdit(type: #null typeinfo)->bool
+    mtd impl canEdit(type: typeinfo?)->bool
     {
         return type == FontFamilyStyle
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
         let parentItem = parent!
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parentItem)
-        let style = cast(#null *FontFamilyStyle) data
+        let style = cast(*FontFamilyStyle?) data
 
         const BtnW = 34
         let lineH = list.themeMetrics().btnPush_Height
@@ -53,7 +53,7 @@ internal impl IPropertyEditor for FontStyleEditor
             .setCheckIndicator(.Ink)
         }
 
-        func writeStyle(list: *Properties, item: *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: *IconButton)
+        func writeStyle(list: *Properties, item: *PropertiesItem, style: *FontFamilyStyle?, btnBold, btnItalic: *IconButton)
         {
             if style == null do
                 return

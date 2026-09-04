@@ -10,7 +10,7 @@ struct CryptoBatch
     physical:    u64
     records:     [..] u8
     plain:       [..] u8
-    error:       #null any
+    error:       any?
     errorLock:   Sync.Mutex
     invalidTags: s32
 }
@@ -21,7 +21,7 @@ struct BlockMapBackup
     blocks: Array'BlockMapping
 }
 
-private func keepFirstBatchError(batch: *CryptoBatch, err: #null any)
+private func keepFirstBatchError(batch: *CryptoBatch, err: any?)
 {
     if err == null do
         return
@@ -181,7 +181,7 @@ impl Volume
     // Fills a physical range rather than merely resizing the file. This keeps
     // the container fully allocated and makes the camouflage tail look exactly
     // like encrypted data.
-    mtd randomizeRange(first, last: u64, progress: #null *VolumeProgress, progressBase: u64, canceledMessage: string) fail
+    mtd randomizeRange(first, last: u64, progress: *VolumeProgress?, progressBase: u64, canceledMessage: string) fail
     {
         if first >= last do
             return
@@ -244,7 +244,7 @@ impl Volume
     // Randomizing the container dominates the call, so `progress` reports how far it has come
     // and carries the caller's cancellation. A canceled creation fails with `.Canceled` and
     // deletes the partial file, exactly like any other failure.
-    func create(path: string, password: const [..] u8, requestedSize: u64, progress: #null *VolumeProgress = null)->Volume fail
+    func create(path: string, password: const [..] u8, requestedSize: u64, progress: *VolumeProgress? = null)->Volume fail
     {
         if requestedSize < MinimumSize do
             failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
@@ -373,7 +373,7 @@ impl Volume
         defer Core.Crypto.secureClear(first.plain.toSlice())
         var second = try result.readHeader(1)
         defer Core.Crypto.secureClear(second.plain.toSlice())
-        var selected: #null *HeaderCandidate
+        var selected: *HeaderCandidate?
         if first.valid and second.valid do
             selected = first.sequence >= second.sequence ? &first : &second
         elif first.valid do
@@ -612,7 +612,7 @@ impl Volume
     //
     // Shrinking is not offered: blocks above the new limit would have to be evacuated first,
     // and a container that has to be rewritten to lose space is not worth the risk.
-    mtd grow(requestedSize: u64, progress: #null *VolumeProgress = null) fail
+    mtd grow(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
         if progress and progress!.isCanceled() do
@@ -676,7 +676,7 @@ impl Volume
     // Chooses and authenticates a fresh random physical size while leaving the
     // logical capacity and every live block in place. It can be repeated on an
     // existing volume whenever its current file size has become identifying.
-    mtd reapplyCamouflage(progress: #null *VolumeProgress = null) fail
+    mtd reapplyCamouflage(progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
         let previousPhysical = .physicalSize
@@ -718,7 +718,7 @@ impl Volume
     }
 
     // Changes the physical capacity in either direction.
-    mtd resize(requestedSize: u64, progress: #null *VolumeProgress = null) fail
+    mtd resize(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         if requestedSize > .containerSize
         {
@@ -733,7 +733,7 @@ impl Volume
     // geometry, then truncates the tail. Until the checkpoint lands, every old mapping and the
     // old file length remain valid; after it lands, an interrupted truncation is completed by
     // [[Volume.open]].
-    mtd shrink(requestedSize: u64, progress: #null *VolumeProgress = null) fail
+    mtd shrink(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
         if progress and progress!.isCanceled() do
@@ -1477,31 +1477,31 @@ impl Volume
         .label      = record.label
     }
 
-    mtd nodeById(id: u64)->#null *Node
+    mtd nodeById(id: u64)->*Node?
     {
         let index = .nodeLookup.nodePosition(id)
         return index != Swag.U64.Max ? &.nodes[index] : null
     }
 
-    mtd findChild(parentId: u64, name: string)->#null *Node
+    mtd findChild(parentId: u64, name: string)->*Node?
     {
         let id = .nodeLookup.childId(parentId, name)
         return id != Swag.U64.Max ? .nodeById(id) : null
     }
 
-    mtd firstChild(parentId: u64)->#null *Node
+    mtd firstChild(parentId: u64)->*Node?
     {
         let id = .nodeLookup.firstChildId(parentId)
         return id ? .nodeById(id) : null
     }
 
-    mtd nextSibling(id: u64)->#null *Node
+    mtd nextSibling(id: u64)->*Node?
     {
         let nextId = .nodeLookup.nextSiblingId(id)
         return nextId ? .nodeById(nextId) : null
     }
 
-    mtd resolve(path: string)->#null *Node
+    mtd resolve(path: string)->*Node?
     {
         let parts   = Tokenize.split(path, cast(u8) '\\', removeEmpty: true)
         var current = .nodeById(1)
@@ -1517,7 +1517,7 @@ impl Volume
         return current
     }
 
-    mtd resolveParent(path: string)->{parent: #null *Node, name: string}
+    mtd resolveParent(path: string)->{parent: *Node?, name: string}
     {
         let parts = Tokenize.split(path, cast(u8) '\\', removeEmpty: true)
         if !parts.count do

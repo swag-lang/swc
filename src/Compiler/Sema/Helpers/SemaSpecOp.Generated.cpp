@@ -493,7 +493,7 @@ namespace
     }
 
     // Only an overload accepting the struct itself answers 'a == b' between two of its values. An
-    // 'opEquals' declared against another type — a '#null string' the struct compares itself
+    // 'opEquals' declared against another type — a 'nullable string' the struct compares itself
     // against, say — adds a comparison beside the built-in one instead of replacing it, so it
     // neither stands in for a generated overload nor stops the struct from receiving one.
     bool declaredEqualityTargetsOwner(Sema& sema, const SymbolFunction& function, const SymbolStruct& ownerStruct)

@@ -266,7 +266,7 @@ private func drawingOpenDocumentXml()->String
         var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt").toString())
         let view   = cast(*OpenDocumentViewer) result.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-        Swag.assert(Swag.isSet(view.html) and Utf8.contains(view.document.html.toString(), "Document with Tables") and result.info!.isVisible())
+        Swag.assert((view.html != null) and Utf8.contains(view.document.html.toString(), "Document with Tables") and result.info!.isVisible())
     }
 
     {
@@ -276,7 +276,7 @@ private func drawingOpenDocumentXml()->String
         var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods").toString())
         let view   = cast(*OpenDocumentViewer) result.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-        Swag.assert(Swag.isSet(view.table) and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
+        Swag.assert((view.table != null) and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
     }
 
     {
@@ -286,7 +286,7 @@ private func drawingOpenDocumentXml()->String
         var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp").toString())
         let view   = cast(*OpenDocumentViewer) result.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-        Swag.assert(Swag.isSet(view.html) and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html.toString(), "Sample Presentation") and result.info!.isVisible())
+        Swag.assert((view.html != null) and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html.toString(), "Sample Presentation") and result.info!.isVisible())
     }
 }
 
@@ -301,7 +301,7 @@ private func drawingOpenDocumentXml()->String
     var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName.toString())
     let flatView   = cast(*OpenDocumentViewer) flatResult.view!
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
-    Swag.assert(Swag.isSet(flatView.table) and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
+    Swag.assert((flatView.table != null) and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
 
     let templateFileName = writeOpenDocumentFixture(".ott", .Text, textOpenDocumentXml().toString(), true)
     defer discard catch File.delete(templateFileName)
@@ -311,7 +311,7 @@ private func drawingOpenDocumentXml()->String
     var templateResult = openTestViewer(openDocumentViewerPlugin(), &templateHost.root, templateFileName.toString())
     let templateView   = cast(*OpenDocumentViewer) templateResult.view!
     completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
-    Swag.assert(Swag.isSet(templateView.html) and Utf8.contains(templateView.document.html.toString(), "Quarterly report"))
+    Swag.assert((templateView.html != null) and Utf8.contains(templateView.document.html.toString(), "Quarterly report"))
 }
 
 // ODG keeps each drawing page searchable without trying to execute drawing content or macros.
@@ -325,7 +325,7 @@ private func drawingOpenDocumentXml()->String
     var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName.toString())
     let flatView   = cast(*OpenDocumentViewer) flatResult.view!
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
-    Swag.assert(Swag.isSet(flatView.html) and !Swag.isSet(flatView.table) and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
+    Swag.assert((flatView.html != null) and !(flatView.table != null) and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
     Swag.assert(flatResult.info != null and flatResult.info!.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == openDocumentStrings().ui_TipPage)
 
     flatView.pageCombo.setSelectedIndex(1)
@@ -349,7 +349,7 @@ private func drawingOpenDocumentXml()->String
     var templateResult = openTestViewer(openDocumentViewerPlugin(), &templateHost.root, templateFileName.toString())
     let templateView   = cast(*OpenDocumentViewer) templateResult.view!
     completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
-    Swag.assert(Swag.isSet(templateView.html) and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html.toString(), "Read-only drawing page"))
+    Swag.assert((templateView.html != null) and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html.toString(), "Read-only drawing page"))
 }
 
 // ODT uses the offline HTML document surface and exposes its rendered text through shared search.
@@ -368,7 +368,7 @@ private func drawingOpenDocumentXml()->String
 
     let view = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert(Swag.isSet(view.html) and !Swag.isSet(view.table))
+    Swag.assert((view.html != null) and !(view.table != null))
     Swag.assert(view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1"))
     Swag.assert(result.info != null)
     assertViewerInfoButton(view.zoomLabel)
@@ -413,7 +413,7 @@ private func drawingOpenDocumentXml()->String
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     host.root.applyLayout()
     discard host.render(&host.root)
-    Swag.assert(Swag.isSet(view.table) and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
+    Swag.assert((view.table != null) and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
     Swag.assert(result.info != null and result.info!.isHidden())
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSheet)
 
@@ -457,7 +457,7 @@ private func drawingOpenDocumentXml()->String
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert(Swag.isSet(view.html) and !Swag.isSet(view.table) and view.document.slides.count == 2)
+    Swag.assert((view.html != null) and !(view.table != null) and view.document.slides.count == 2)
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSlide)
 
     view.pageCombo.setSelectedIndex(1)

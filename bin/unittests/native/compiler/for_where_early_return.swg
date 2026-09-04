@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-func slicesEqual(lhs, rhs: #null const [..] s32)->bool
+func slicesEqual(lhs, rhs: const [..] s32?)->bool
 {
     if lhs.count != rhs.count do
         return false

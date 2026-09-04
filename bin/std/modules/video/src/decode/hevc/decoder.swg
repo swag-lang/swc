@@ -51,7 +51,7 @@ struct PuMotion
 // buffer, clause 8.3.4.
 struct RefPicList
 {
-    frames:   [ListCount, MaxRefPics] #null *Frame
+    frames:   [ListCount, MaxRefPics] (*Frame?)
     poc:      [ListCount, MaxRefPics] s32
     longTerm: [ListCount, MaxRefPics] bool
     count:    [ListCount] u32
@@ -63,7 +63,7 @@ struct RefPicList
 // frame carries an atomic hold that prevents its owner from reusing it during reconstruction.
 struct DpbReference
 {
-    frame:   #null *Frame
+    frame:   *Frame?
     marking: FrameMarking
 }
 
@@ -78,16 +78,16 @@ struct Decoder
 {
     sps:       [16] Sps
     pps:       [64] Pps
-    activeSps: #null const *Sps
-    activePps: #null const *Pps
+    activeSps: const *Sps?
+    activePps: const *Pps?
 
     dpb:            [MaxDpbFrames] Frame
-    current:        #null *Frame
+    current:        *Frame?
     references:     [MaxDpbFrames] DpbReference
     referenceCount: u32
 
     // The picture the last slice header closed, for a caller that feeds units one at a time.
-    finishedFrame: #null *Frame
+    finishedFrame: *Frame?
 
     header:            SliceHeader
     previousHeader:    SliceHeader
@@ -231,7 +231,7 @@ impl Decoder
     }
 
     // Returns the sequence parameter set the active picture parameter set names.
-    mtd const sequenceOf(pps: const *Pps)->#null const *Sps
+    mtd const sequenceOf(pps: const *Pps)->const *Sps?
     {
         if pps.spsId >= 16 or !.sps[pps.spsId].valid do
             return null
@@ -483,7 +483,7 @@ impl Decoder
     }
 
     // Finds a decoded picture by its order count.
-    mtd findByPoc(poc: s32, shortTerm: bool)->#null *Frame
+    mtd findByPoc(poc: s32, shortTerm: bool)->*Frame?
     {
         for index in .referenceCount
         {
@@ -500,7 +500,7 @@ impl Decoder
     }
 
     // Finds a long-term picture by the low bits of its order count.
-    mtd findByPocLsb(pocLsb: u32, mask: u32)->#null *Frame
+    mtd findByPocLsb(pocLsb: u32, mask: u32)->*Frame?
     {
         for index in .referenceCount
         {
@@ -513,7 +513,7 @@ impl Decoder
     }
 
     // Takes a free picture out of the decoded picture buffer.
-    mtd acquireFrame()->#null *Frame
+    mtd acquireFrame()->*Frame?
     {
         for &frame in .dpb
         {
@@ -649,7 +649,7 @@ impl Decoder
         if header.sliceType == SliceTypeI do
             return
 
-        var temp:      [ListCount, 3 * MaxRefPics] #null *Frame
+        var temp:      [ListCount, 3 * MaxRefPics] (*Frame?)
         var tempPoc:   [ListCount, 3 * MaxRefPics] s32
         var tempLong:  [ListCount, 3 * MaxRefPics] bool
         var tempCount: [ListCount] u32
@@ -721,9 +721,9 @@ impl Decoder
     }
 
     // Returns the decoded picture closest in order count to `poc`, for a missing reference.
-    private mtd nearestReference(poc: s32)->#null *Frame
+    private mtd nearestReference(poc: s32)->*Frame?
     {
-        var best: #null *Frame
+        var best: *Frame?
         var bestDistance = Swag.S32.Max
         for index in .referenceCount
         {

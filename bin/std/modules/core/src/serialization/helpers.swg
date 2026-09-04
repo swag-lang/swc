@@ -26,7 +26,7 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
 
 // Returns the canonical schema of a root type, or an empty schema when the type does
 // not opt into document identity checks.
-internal func wireSchema(type: #null typeinfo)->string
+internal func wireSchema(type: typeinfo?)->string
 {
     if !type do
         return ""
@@ -37,7 +37,7 @@ internal func wireSchema(type: #null typeinfo)->string
 }
 
 // Returns the explicit stable key of a struct type.
-internal func wireTypeKey(type: #null typeinfo)->string
+internal func wireTypeKey(type: typeinfo?)->string
 {
     if !type do
         return ""
@@ -47,7 +47,7 @@ internal func wireTypeKey(type: #null typeinfo)->string
     return cast(string) key!
 }
 
-internal func getTypeInfoCrc(type: #null typeinfo)->u32
+internal func getTypeInfoCrc(type: typeinfo?)->u32
 {
     if !type do
         return 0
@@ -71,7 +71,7 @@ internal func getTypeInfoCrc(type: #null typeinfo)->u32
 //   be decoded through its statically requested type because structured payloads are
 //   self-framed. Dynamic interface objects use [[wireTypeKey]] instead.
 // - Everything else keeps the canonical runtime crc of the type.
-internal func wireTypeCrc(type: #null typeinfo)->u32
+internal func wireTypeCrc(type: typeinfo?)->u32
 {
     if !type do
         return 0
@@ -92,7 +92,7 @@ internal func wireTypeCrc(type: #null typeinfo)->u32
 }
 
 // Determin if a type can be serialized by a simple copy
-public func isPodFinal(type: #null typeinfo)->{ raw: bool, sizeof: u64 }
+public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
 {
     if type
     {

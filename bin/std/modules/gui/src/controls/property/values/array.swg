@@ -52,7 +52,7 @@ internal impl Properties
         let arrData = cast(*Array'u8) item.data!
         if arrData.count == cast(u64) item.userData0 do
             return
-        item.userData0 = cast(#null *void) arrData.count
+        item.userData0 = cast(*void?) arrData.count
 
         .reconstructArray(item)
         setDescEditBox(item)
@@ -74,7 +74,7 @@ internal impl Properties
     }
 
     // Buffer base, element type and element count of an array item (static or dynamic).
-    mtd arrayElementInfo(arrayItem: *PropertiesItem)->{ base: #null [*] u8, valueType: #null typeinfo, count: u64 }
+    mtd arrayElementInfo(arrayItem: *PropertiesItem)->{ base: [*] u8?, valueType: typeinfo?, count: u64 }
     {
         if Reflection.isDynamicArray(arrayItem.type)
         {
@@ -84,7 +84,7 @@ internal impl Properties
         }
 
         let typeArr = cast(const *Swag.TypeInfoArray) arrayItem.type!
-        return {cast(#null [*] u8) arrayItem.data, typeArr.pointedType, typeArr.count}
+        return {cast([*] u8?) arrayItem.data, typeArr.pointedType, typeArr.count}
     }
 
     // Ordinal of an array element among the array's direct children. Robust for struct arrays,
@@ -105,9 +105,9 @@ internal impl Properties
 
     // Resolve the array element row (a direct child of an array) from the clicked item or one
     // of its ancestors, so right-clicking a struct element's field still targets the element.
-    mtd resolveArrayElement(item: *PropertiesItem)->#null *PropertiesItem
+    mtd resolveArrayElement(item: *PropertiesItem)->*PropertiesItem?
     {
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan and scan.parent
         {
             if .isArrayItem(scan.parent) do
@@ -155,7 +155,7 @@ internal impl Properties
         .commitItemChange(item)
     }
 
-    mtd constructArray(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructArray(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item           = .addItem(value, data, parentItem)
         let numItemsBefore = .items.count
@@ -165,7 +165,7 @@ internal impl Properties
         let arrData   = cast(*Array'u8) data!
         var newData   = arrData.buffer
 
-        item.userData0 = cast(#null *void) arrData.count
+        item.userData0 = cast(*void?) arrData.count
 
         for i in arrData.count
         {
@@ -176,7 +176,7 @@ internal impl Properties
             newData += valueType.sizeof
         }
 
-        let parentForBtn = .isGridLike() ? item.line : cast(#null *Wnd) item.label
+        let parentForBtn = .isGridLike() ? item.line : cast(*Wnd?) item.label
         let addBtn       = IconButton.create(parentForBtn!, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)

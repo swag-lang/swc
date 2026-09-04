@@ -17,7 +17,7 @@ impl RuntimeText
 struct RuntimeChoice
 {
     text: RuntimeText
-    id:   #null string = null
+    id:   string? = null
 }
 
 struct RuntimeNode

@@ -432,7 +432,7 @@ SWC_TEST_BEGIN(FormatAlign_StructFieldsWithTypeQualifiers)
         "{\n"
         "    using wnd: Wnd\n"
         "    main: *Wnd\n"
-        "    capture: #null *Wnd\n"
+        "    capture: *Wnd?\n"
         "    zoom: f32 = 1\n"
         "    inPlaceEdit: bool\n"
         "}\n";
@@ -443,7 +443,7 @@ SWC_TEST_BEGIN(FormatAlign_StructFieldsWithTypeQualifiers)
         "{\n"
         "    using wnd:   Wnd\n"
         "    main:        *Wnd\n"
-        "    capture:     #null *Wnd\n"
+        "    capture:     *Wnd?\n"
         "    zoom:        f32 = 1\n"
         "    inPlaceEdit: bool\n"
         "}\n";

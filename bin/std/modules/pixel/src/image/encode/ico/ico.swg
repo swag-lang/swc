@@ -16,7 +16,7 @@ internal impl IImageEncoder for Encoder
 
     // Encode a single image as a 32-bit BGRA DIB icon entry with an empty AND mask.
     // The alpha channel carries transparency; the AND mask is left fully opaque.
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         var single: [1] Image = [image]
         try appendAll(result, single)

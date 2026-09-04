@@ -12,7 +12,7 @@
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var f: #null func()->s32
+    var f: (func()->s32)?
     let g = f!
     let x = g()     // swc-expected-error {{sanity_err_null_call}}
     discard x
@@ -22,7 +22,7 @@
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var f: #null func()->s32
+    var f: (func()->s32)?
     var g = f
     let h = g!
     let x = h()     // swc-expected-error {{sanity_err_null_call}}

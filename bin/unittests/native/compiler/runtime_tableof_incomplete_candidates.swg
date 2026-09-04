@@ -21,7 +21,7 @@ impl ITableProbe for TableProbe
     mtd impl score()->s32 => .value
 }
 
-func runtimeTableOf(objectType, interfaceType: typeinfo)->#null const *void
+func runtimeTableOf(objectType, interfaceType: typeinfo)->const *void?
 {
     return Swag.tableOf(cast(const *Swag.TypeInfoStruct) objectType, cast(const *Swag.TypeInfoStruct) interfaceType)
 }

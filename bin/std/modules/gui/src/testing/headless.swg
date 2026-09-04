@@ -40,17 +40,16 @@ struct HeadlessHost
 {
     public
     {
-        app:        Application     // App associated with this value.
-        renderer:   RenderCpu       // Deterministic backend borrowed by `app.renderer`.
-        surface:    Surface         // Surface associated with this value.
-        surfaceWnd: SurfaceWnd      // Surface wnd associated with this value.
-        root:       Wnd             // Root associated with this value.
-        #[Swag.Late]
-        theme:        *Theme          // Theme associated with this value.
+        app:          Application     // App associated with this value.
+        renderer:     RenderCpu       // Deterministic backend borrowed by `app.renderer`.
+        surface:      Surface         // Surface associated with this value.
+        surfaceWnd:   SurfaceWnd      // Surface wnd associated with this value.
+        root:         Wnd             // Root associated with this value.
+        late theme:   *Theme          // Theme associated with this value.
         mousePos:     Math.Point      // Mouse pos associated with this value.
         closed:       bool            // Closed associated with this value.
         commandCount: u32             // Number of command entries.
-        lastCommand:  #null WndId     // Last command associated with this value.
+        lastCommand:  WndId?          // Last command associated with this value.
 
         // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
         // is true once every armed stage has completed.
@@ -304,7 +303,7 @@ impl HeadlessHost
         .autoArmed     = true
     }
 
-    private mtd addAutoStage(kind: AutoStageKind, button: #null WndId = null, folder, file, label: #null string = null)->*AutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder, file, label: string? = null)->*AutoStage
     {
         let stage = cast(*AutoStage) .autoStages.emplaceInitAddress()
         stage.kind   = kind
@@ -437,7 +436,7 @@ impl HeadlessHost
     }
 
     // Returns the deepest visible window at a screen position, including surface borders.
-    mtd wndAt(pt: Math.Point)->#null *Wnd
+    mtd wndAt(pt: Math.Point)->*Wnd?
     {
         let surface = .app.surfaceAt(pt.x, pt.y)
         if surface
@@ -514,7 +513,7 @@ impl HeadlessHost
     //
     // `wnd` defaults to the root. `steps` remains for source compatibility and is ignored because
     // [[Gui.Animator.finishAll]] supplies an exact endpoint instead of paint-count settling.
-    mtd settleAnimations(wnd: #null *Wnd = null, steps: u32 = 16)
+    mtd settleAnimations(wnd: *Wnd? = null, steps: u32 = 16)
     {
         discard steps
         let target = wnd orelse &.root
@@ -527,7 +526,7 @@ impl HeadlessHost
     }
 
     // Fires one active timer immediately and drains resulting queues.
-    mtd fireTimer(timer: #null *Timer)
+    mtd fireTimer(timer: *Timer?)
     {
         // A preceding callback may have destroyed this timer's target and flushed the timer
         // before a test reaches it in a snapshot. Establish ownership without dereferencing the
@@ -649,7 +648,7 @@ impl HeadlessHost
         if .app.modalSurfaces.isEmpty() do
             return false
 
-        var wnd: #null *Wnd
+        var wnd: *Wnd?
         for surface in .app.modalSurfaces.reversed()
         {
             let view = surface.view()
@@ -665,12 +664,12 @@ impl HeadlessHost
     }
 
     // Finds edit ctrl by label.
-    mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->#null *EditCtrl
+    mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->*EditCtrl?
     {
         if wnd.type == EditCtrl
         {
             let ctrl = cast(*EditCtrl) wnd
-            if Swag.isSet(ctrl.label) and ctrl.label.name.raw == label do
+            if (ctrl.label != null) and ctrl.label.name.raw == label do
                 return ctrl
         }
 
@@ -700,7 +699,7 @@ impl HeadlessHost
     }
 
     // Finds file browser ctrl.
-    mtd findFileBrowserCtrl(wnd: *Wnd)->#null *FileBrowserCtrl
+    mtd findFileBrowserCtrl(wnd: *Wnd)->*FileBrowserCtrl?
     {
         if wnd.type == FileBrowserCtrl do
             return cast(*FileBrowserCtrl) wnd
@@ -721,7 +720,7 @@ impl HeadlessHost
         if .app.modalSurfaces.isEmpty() do
             return false
 
-        var browser: #null *FileBrowserCtrl
+        var browser: *FileBrowserCtrl?
         for surface in .app.modalSurfaces
         {
             let view = surface.view()
@@ -730,7 +729,7 @@ impl HeadlessHost
                 break
         }
 
-        if !browser or !Swag.isSet(browser.editFile) do
+        if !browser or !(browser.editFile != null) do
             return false
 
         if folder.count
@@ -746,12 +745,12 @@ impl HeadlessHost
     }
 
     // Returns captured popup menu.
-    mtd capturedPopupMenu()->#null *MenuCtrl
+    mtd capturedPopupMenu()->*MenuCtrl?
     {
         if !.app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
             return null
 
-        let menu = cast(#null *MenuCtrl) .app.mouseCaptureWnd
+        let menu = cast(*MenuCtrl?) .app.mouseCaptureWnd
         if menu.bar do
             return null
 
@@ -1013,7 +1012,7 @@ impl HeadlessHost
     }
 
     // Returns mouse target.
-    mtd mouseTargetAt(pt: Math.Point)->#null *Wnd
+    mtd mouseTargetAt(pt: Math.Point)->*Wnd?
     {
         if .app.mouseCaptureWnd do
             return .app.mouseCaptureWnd

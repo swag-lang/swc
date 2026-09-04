@@ -132,10 +132,10 @@ internal
         lookaheadPos:     u32                                     // Lookahead pos associated with this value.
         lookaheadSize:    u32                                     // Lookahead size associated with this value.
         dictSize:         u32                                     // Dict size associated with this value.
-        lzCodeBufAddr:    #null [*] u8                            // Lz code buf addr associated with this value.
-        lzFlags:          #null *u8                               // Lz flags associated with this value.
-        outputBufAddr:    #null [*] u8                            // Output buf addr associated with this value.
-        outputBufEndAddr: #null [*] u8                            // Output buf end addr associated with this value.
+        lzCodeBufAddr:    [*] u8?                                 // Lz code buf addr associated with this value.
+        lzFlags:          *u8?                                    // Lz flags associated with this value.
+        outputBufAddr:    [*] u8?                                 // Output buf addr associated with this value.
+        outputBufEndAddr: [*] u8?                                 // Output buf end addr associated with this value.
         numFlagsLeft:     u32                                     // Num flags left associated with this value.
         totalLzBytes:     u32                                     // Total lz bytes associated with this value.
         lzCodeBufDictPos: u32                                     // Lz code buf dict pos associated with this value.
@@ -146,8 +146,8 @@ internal
         savedLit:         u32                                     // Saved lit associated with this value.
         outputFlushOfs:   u32                                     // Output flush ofs associated with this value.
         blockIndex:       u32                                     // Index of block.
-        inBuf:            #null const [*] u8                      // In buf associated with this value.
-        inSrc:            #null const [*] u8                      // In src associated with this value.
+        inBuf:            const [*] u8?                           // In buf associated with this value.
+        inSrc:            const [*] u8?                           // In src associated with this value.
         srcBufLeft:       u64                                     // Src buf left associated with this value.
         outBufOfs:        u64                                     // Out buf ofs associated with this value.
         dict:             [LzDictSize + MaxMatchLen - 1] u8       // Dict associated with this value.
@@ -160,7 +160,7 @@ internal
         hash3:            [LzHashSize] u16                        // Most recent position of each three-byte sequence.
         prev3:            [LzDictSize] u16                        // Position that held a three-byte sequence before this one.
         outputBuf:        [OutBufSize] u8                         // Output buf associated with this value.
-        result:           #null *Array'u8                         // Result associated with this value.
+        result:           *Array'u8?                              // Result associated with this value.
     }
 }
 
@@ -172,7 +172,7 @@ public struct Deflate
 
     private
     {
-        state:     #null *Compressor                               // Compressor state, allocated on first use.
+        state:     *Compressor?                                    // Compressor state, allocated on first use.
         initFlags: CompressionFlags = CompressionFlags.Default     // Flags 'init' was given.
     }
 
@@ -911,7 +911,7 @@ impl Deflate
         var compBlockSucceeded = false
         let useRawBlock        = ((d.compressFlags & ForceAllRawBlocks) != 0) and (d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize
 
-        var outputBufStart: #null [*] u8
+        var outputBufStart: [*] u8?
         let result = d.result!
         if result.capacity - result.count >= OutBufSize do
             outputBufStart = result.buffer + d.outBufOfs

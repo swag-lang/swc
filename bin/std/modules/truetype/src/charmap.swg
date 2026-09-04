@@ -11,8 +11,7 @@ public struct CharMap
 
     public readonly
     {
-        #[Swag.Late]
-        face:       *Face     // Borrowed pointer to the owning face.
+        late face:  *Face     // Borrowed pointer to the owning face.
         encoding:   u32       // Four-byte encoding tag, or zero for the selected Unicode map.
         platformID: u16       // TrueType platform identifier.
         encodingID: u16       // Platform-specific encoding identifier.

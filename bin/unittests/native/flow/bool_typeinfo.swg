@@ -2,15 +2,15 @@
 using Swag
 
 // Every statement that takes a condition accepts a type value. The values are bound as
-// '#null typeinfo' variables: a type that can never be null refuses the question, because the
+// '? typeinfo' variables: a type that can never be null refuses the question, because the
 // answer could only be true.
 
 #test
 {
-    var intType:   #null typeinfo = #type s32
-    var floatType: #null typeinfo = #type f32
-    var arrayType: #null typeinfo = #type const [2] u8
-    var funcType:  #null typeinfo = #type func()->s32
+    var intType:   typeinfo? = #type s32
+    var floatType: typeinfo? = #type f32
+    var arrayType: typeinfo? = #type const [2] u8
+    var funcType:  typeinfo? = #type func()->s32
 
     var count = 0
     if intType do

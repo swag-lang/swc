@@ -112,12 +112,11 @@ func onResize(window: *Env.Window, width, height: s32)
     g_Painter.setContentScale(window.dpiScale())
 }
 
-var g_Window:   Env.Window
-var g_Renderer: Pixel.RenderOgl
-#[Swag.Late]
-var g_Render:  Pixel.IRenderer
-var g_Painter: Pixel.Painter
-var g_RC:      Pixel.RenderContext
+var g_Window:      Env.Window
+var g_Renderer:    Pixel.RenderOgl
+late var g_Render: Pixel.IRenderer
+var g_Painter:     Pixel.Painter
+var g_RC:          Pixel.RenderContext
 
 #main
 {

@@ -353,7 +353,7 @@ func parseRune(str: string)->{ value: rune, eat: u32 } fail
 }
 
 // Parse an identifier name in the sens of swag (ascii)
-func parseIdentifier(str: string)->#null string fail
+func parseIdentifier(str: string)->string? fail
 {
     let countof = str.count
     if !countof do

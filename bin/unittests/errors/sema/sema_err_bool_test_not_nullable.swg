@@ -2,7 +2,7 @@
 
 // A single-value pointer answers a condition by testing itself against null. A pointer type
 // that cannot hold null makes that test a constant, while the spelling reads like a test of
-// the pointed value, so every boolean context rejects it. A '#null' pointer keeps all of
+// the pointed value, so every boolean context rejects it. A '?' pointer keeps all of
 // those spellings: there the test asks a real question.
 
 struct NonNullConditionItem
@@ -10,21 +10,21 @@ struct NonNullConditionItem
     value: s32
 }
 
-func nonNullConditionNullableIf(item: #null *NonNullConditionItem)->s32
+func nonNullConditionNullableIf(item: *NonNullConditionItem?)->s32
 {
     if item do
         return item.value
     return 0
 }
 
-func nonNullConditionNullableNot(item: #null *NonNullConditionItem)->s32
+func nonNullConditionNullableNot(item: *NonNullConditionItem?)->s32
 {
     if !item do
         return 0
     return item.value
 }
 
-func nonNullConditionNullableWhile(scan: #null *NonNullConditionItem)->s32
+func nonNullConditionNullableWhile(scan: *NonNullConditionItem?)->s32
 {
     while scan
     {
@@ -37,7 +37,7 @@ func nonNullConditionNullableWhile(scan: #null *NonNullConditionItem)->s32
 // Flow narrowing does not turn the question into a contradiction: the declared type still
 // carries it, so a proven pointer keeps every spelling, exactly as 'orelse' keeps a dead
 // fallback on a nullable-declared value.
-func nonNullConditionNarrowed(item: #null *NonNullConditionItem)->s32
+func nonNullConditionNarrowed(item: *NonNullConditionItem?)->s32
 {
     if item == null do
         return 0
@@ -54,10 +54,10 @@ func nonNullConditionPointee(flag: *bool)->s32
     return 0
 }
 
-// An inlined body asks the question of its own parameter, so a guard written against a '#null'
+// An inlined body asks the question of its own parameter, so a guard written against a '?'
 // parameter keeps typechecking whatever the call site passes.
 #[Swag.Inline]
-func nonNullConditionInlinedGuard(item: #null *NonNullConditionItem)->s32 => item ? item!.value : 0
+func nonNullConditionInlinedGuard(item: *NonNullConditionItem?)->s32 => item ? item!.value : 0
 
 func nonNullConditionInlinedCaller(item: *NonNullConditionItem)->s32
 {

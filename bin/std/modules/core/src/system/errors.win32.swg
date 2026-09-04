@@ -6,7 +6,7 @@ using Win32
 // Translate a captured Win32 SystemError into a domain error. The caller captures the error
 // from the failing Win32 call ('catch Win32Call(...) as err') and hands it here; 'err' is null
 // when the call succeeded, in which case there is nothing to translate.
-func transformWinErrors(err: #null any, val0: #null string = null) fail
+func transformWinErrors(err: any?, val0: string? = null) fail
 {
     if err == null do
         return

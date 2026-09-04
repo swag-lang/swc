@@ -262,8 +262,7 @@ internal struct TableViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    list: *ListCtrl
+    late list: *ListCtrl
 
     document:             TableDocument
     searchRow:            u64 = Swag.U64.Max
@@ -271,10 +270,10 @@ internal struct TableViewer
     searchOffset:         u64
     searchLength:         u64
     load:                 Viewer.BackgroundLoad'TableDocument
-    loadTimer:            #null *Timer
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    loadTimer:            *Timer?
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 }
 
@@ -467,7 +466,7 @@ impl TableViewer
         .list.invalidate()
     }
 
-    func create(parent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*TableViewer
+    func create(parent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*TableViewer
     {
         let result = TableViewer.createBase(parent)
         result.reportFailure        = reportFailure
@@ -488,7 +487,7 @@ impl TableViewer
     }
 }
 
-private func fillTableVirtualLine(list: *ListCtrl, line: #null *ListLine, index: u32)
+private func fillTableVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line == null do
         return

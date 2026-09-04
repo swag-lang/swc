@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.NoInline]
-func maybeText(flag: bool)->#null string
+func maybeText(flag: bool)->string?
 {
     if flag do
         return "abc"

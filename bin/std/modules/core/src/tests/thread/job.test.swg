@@ -17,7 +17,7 @@ struct WaitJobThreadData
     waitReturned: *s32
 }
 
-func reusedJobEntry(data: #null *void)
+func reusedJobEntry(data: *void?)
 {
     let jobData        = cast(*ReusedJobData) data!
     let executionIndex = Atomic.add(&jobData.executionCount, 1) + 1

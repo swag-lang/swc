@@ -389,7 +389,7 @@ impl Polygon
             let cy0 = Math.clamp(cast(s32) ((Math.min(a0.y, a1.y) - .minBounds.y) * invCh), 0, res - 1)
             let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .minBounds.y) * invCh), 0, res - 1)
 
-            // Test against edges already registered in #null any cell this edge overlaps.
+            // Test against edges already registered in ? any cell this edge overlaps.
             for cy in cy0 to cy1
             {
                 for cx in cx0 to cx1

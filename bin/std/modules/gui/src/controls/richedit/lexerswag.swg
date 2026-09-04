@@ -189,7 +189,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#runes", State.Intrinsic)
         .mapWords.add("#safety", State.Intrinsic)
         .mapWords.add("#sanity", State.Intrinsic)
-        .mapWords.add("Swag.isSet", State.Intrinsic)
         .mapWords.add("#include", State.Intrinsic)
 
         .mapWords.add("#uniq0", State.Intrinsic)
@@ -402,7 +401,9 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#move", State.Modifier)
         .mapWords.add("#relocate", State.Modifier)
         .mapWords.add("#fwd", State.Modifier)
-        .mapWords.add("#null", State.Modifier)
+        .mapWords.add("late", State.Keyword)
+        .mapWords.add("tls", State.Keyword)
+        .mapWords.add("global", State.Keyword)
         .mapWords.add("#complete", State.Modifier)
         .mapWords.add("#fail", State.Modifier)
         .mapWords.add("#nofail", State.Modifier)
@@ -483,7 +484,7 @@ impl IRichEditLexer for RichEditLexerSwag
         return false
     }
 
-    mtd impl compute(linePrev: #null *RichEditLine, line: *RichEditLine, lineNext: #null *RichEditLine)
+    mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
         var seek                = 0'u64
         var currentState: State = linePrev ? cast(State) linePrev.lexerEndingState : State.Default

@@ -26,7 +26,7 @@ public impl Properties
     // navigable row when none is selected yet.
     mtd focusNavigation(fallbackToFirst = true)
     {
-        if !Swag.isSet(.edView) do
+        if !(.edView != null) do
             return
 
         // Keep the current selection (e.g. the row just clicked, even when it is a
@@ -74,7 +74,7 @@ internal impl Properties
 
         // An open combo drop-down is driven here (the grid keeps the focus), so the
         // arrows move the popup selection instead of the grid rows or the page.
-        if .selItem and Swag.isSet(.selItem.comboBox) and .selItem.comboBox.popup
+        if .selItem and (.selItem.comboBox != null) and .selItem.comboBox.popup
         {
             let popup = .selItem.comboBox.popup
             switch evt.key
@@ -119,7 +119,7 @@ internal impl Properties
             .activateSel()
 
         case .Space:
-            if .selItem and Swag.isSet(.selItem.checkBox) do
+            if .selItem and (.selItem.checkBox != null) do
                 .selItem.checkBox.toggle()
             else do
                 .activateSel()
@@ -128,7 +128,7 @@ internal impl Properties
 
             // A slider steps right away (and stays focused for further steps), so
             // the very first press already changes the value.
-            if .selItem and Swag.isSet(.selItem.sliderBox)
+            if .selItem and (.selItem.sliderBox != null)
             {
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(1)
@@ -142,7 +142,7 @@ internal impl Properties
                 .activateSel()
 
         case .Left:
-            if .selItem and Swag.isSet(.selItem.sliderBox)
+            if .selItem and (.selItem.sliderBox != null)
             {
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(-1)
@@ -201,7 +201,7 @@ internal impl Properties
     // built-in editors as well as the inner editboxes/combos/sliders used by custom
     // editors (color hex field, vector x/y/z, ...), but not labels, lines or the
     // popup-trigger icon buttons.
-    mtd isEditorWnd(w: #null *Wnd)->bool
+    mtd isEditorWnd(w: *Wnd?)->bool
     {
         if !w do
             return false
@@ -215,14 +215,14 @@ private impl Properties
     mtd isEditing()->bool
     {
         let f = .focusedWindow()
-        if !f or f == cast(#null *Wnd) .edView do
+        if !f or f == cast(*Wnd?) .edView do
             return false
         return .isEditorWnd(f)
     }
 
     // First interactive editor widget inside 'wnd' (depth-first), or null. Used to
     // start edition on rows whose editor is a composite/custom control.
-    mtd firstEditorIn(wnd: #null *Wnd)->#null *Wnd
+    mtd firstEditorIn(wnd: *Wnd?)->*Wnd?
     {
         if !wnd do
             return null
@@ -244,9 +244,9 @@ private impl Properties
     // interactive editors (unless flagged NoFocus), and — in grid mode — expandable
     // group headers so they can be collapsed/expanded by keyboard. Pure
     // section/category headers (no data, no type, no editor) are skipped.
-    mtd isNavigable(item: #null *PropertiesItem)->bool
+    mtd isNavigable(item: *PropertiesItem?)->bool
     {
-        if !item or !Swag.isSet(item.line) do
+        if !item or !(item.line != null) do
             return false
         if !item.line.isVisible() do
             return false
@@ -263,10 +263,10 @@ private impl Properties
 
     mtd itemHasEditor(item: *PropertiesItem)->bool
     {
-        return Swag.isSet(item.editBox) or Swag.isSet(item.comboBox) or Swag.isSet(item.sliderBox) or Swag.isSet(item.checkBox)
+        return (item.editBox != null) or (item.comboBox != null) or (item.sliderBox != null) or (item.checkBox != null)
     }
 
-    mtd firstNavigable(forward: bool)->#null *PropertiesItem
+    mtd firstNavigable(forward: bool)->*PropertiesItem?
     {
         if forward
         {
@@ -288,7 +288,7 @@ private impl Properties
         return null
     }
 
-    mtd indexOfItem(item: #null *PropertiesItem)->s64
+    mtd indexOfItem(item: *PropertiesItem?)->s64
     {
         if !item do
             return -1
@@ -302,7 +302,7 @@ private impl Properties
     }
 
     // Set the selected (highlighted) row, scroll it into view and repaint.
-    mtd setSelItem(item: #null *PropertiesItem)
+    mtd setSelItem(item: *PropertiesItem?)
     {
         .selItem = item
         if item do
@@ -355,20 +355,20 @@ private impl Properties
         if !item do
             return
 
-        if Swag.isSet(item.checkBox)
+        if item.checkBox != null
         {
             item.checkBox.toggle()
             return
         }
 
-        if Swag.isSet(item.editBox)
+        if item.editBox != null
         {
             item.editBox.setFocus()
             item.editBox.selectAll()
             return
         }
 
-        if Swag.isSet(item.comboBox)
+        if item.comboBox != null
         {
             // Open the drop-down so the new item is chosen from the list, rather than
             // silently cycling values in place. The grid keeps the focus and forwards
@@ -377,7 +377,7 @@ private impl Properties
             return
         }
 
-        if Swag.isSet(item.sliderBox)
+        if item.sliderBox != null
         {
             // Edit the value box like a plain editbox row: focus it and select its
             // text so the value can be typed over right away. The slider track stays
@@ -406,14 +406,14 @@ private impl Properties
     // path (e.g. EditBox.sigFocusLost -> validateNative).
     mtd commitEdit()
     {
-        if Swag.isSet(.edView) do
+        if .edView != null do
             .edView.setFocus()
     }
 
     // Scroll the grid so the given row is fully visible.
-    mtd ensureItemVisible(item: #null *PropertiesItem)
+    mtd ensureItemVisible(item: *PropertiesItem?)
     {
-        if !item or !Swag.isSet(item.line) do
+        if !item or !(item.line != null) do
             return
 
         let lineTop       = item.line.position.y

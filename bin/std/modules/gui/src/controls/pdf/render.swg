@@ -23,8 +23,8 @@ struct RenderOptions
 
 using Core.Math
 
-private func loadTypeface(name: string)->#null *TypeFace fail => try TypeFace.load(name)
-private func createTypeface(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
+private func loadTypeface(name: string)->*TypeFace? fail => try TypeFace.load(name)
+private func createTypeface(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
 
 // Faces a page falls back to, grouped by the shape of the font the document asked for.
 //
@@ -50,7 +50,7 @@ private const SubstituteMono: [4] [4] string = [
     ["courbi.ttf", "consolaz.ttf", "DejaVuSansMono-BoldOblique.ttf", "LiberationMono-BoldItalic.ttf"]]
 
 // Returns the face standing in for a font whose program cannot be drawn.
-private func substituteTypeface(fallbackFontFile: string, resource: #null const *FontResource)->*TypeFace fail
+private func substituteTypeface(fallbackFontFile: string, resource: const *FontResource?)->*TypeFace fail
 {
     if fallbackFontFile.count do
         return try TypeFace.load(fallbackFontFile)
@@ -119,11 +119,11 @@ private const MaxSubstituteCondense = 2.0'f32
 #[Swag.Opaque, Swag.NoDoc]
 struct RenderFontCache
 {
-    embedded:           Array'(#null *TypeFace)     // Per page font index, once resolution was attempted.
+    embedded:           Array'(*TypeFace?)     // Per page font index, once resolution was attempted.
     embeddedResolved:   Array'bool
-    substitute:         Array'(#null *TypeFace)     // Substitute face per page font index.
+    substitute:         Array'(*TypeFace?)     // Substitute face per page font index.
     substituteResolved: Array'bool
-    fallback:           #null *TypeFace     // Substitute face for text with no font resource.
+    fallback:           *TypeFace?     // Substitute face for text with no font resource.
     fallbackResolved:   bool
 }
 
@@ -153,7 +153,7 @@ internal impl RenderFontCache
     }
 
     // Returns the face built from an embedded font program, or nothing when it cannot be read.
-    mtd embeddedFace(index: u32, resource: const *FontResource)->#null *TypeFace
+    mtd embeddedFace(index: u32, resource: const *FontResource)->*TypeFace?
     {
         if index >= .embedded.count do
             return null
@@ -172,7 +172,7 @@ internal impl RenderFontCache
     }
 
     // Returns the face standing in for a font whose program cannot be drawn.
-    mtd substituteFace(fallbackFontFile: string, index: u32, resource: #null const *FontResource)->*TypeFace fail
+    mtd substituteFace(fallbackFontFile: string, index: u32, resource: const *FontResource?)->*TypeFace fail
     {
         if !resource or index >= .substitute.count
         {
@@ -258,7 +258,7 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
 // advance the PDF declared for it instead: one character usually, several when the code
 // stands for a ligature the substitute spells out, and their widths are scaled to fill
 // exactly that advance.
-private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: #null const *FontResource, font: *Font)
+private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: const *FontResource?, font: *Font)
 {
     let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
     if !resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count

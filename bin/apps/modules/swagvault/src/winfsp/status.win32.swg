@@ -27,7 +27,7 @@ namespace WinFsp
     // perform a checked numeric conversion to an unsigned integer.
     func statusBits(status: s32)->u32 => cast #bit (u32) status
 
-    func statusFromError(err: #null any, fallback = StatusIoDeviceError)->s32
+    func statusFromError(err: any?, fallback = StatusIoDeviceError)->s32
     {
         switch err
         {

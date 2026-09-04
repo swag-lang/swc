@@ -4,12 +4,12 @@
 #foreignlib("opengl32")
 using Swag, Core, Win32, Gdi32
 
-alias HGLRC               = #null const *void
+alias HGLRC               = const *void?
 alias getExtensionAddress = wglGetProcAddress
 
 #[Foreign("opengl32", callconv: Swag.CallConv.C)]
 {
-    func wglGetProcAddress(arg1: LPCSTR)->#null const *void
+    func wglGetProcAddress(arg1: LPCSTR)->const *void?
 }
 
 internal namespace PrivOgl
@@ -70,7 +70,7 @@ namespace Platform.Win32
         {
             hDC:    HDC
             hRC:    HGLRC
-            window: #null *Env.Window
+            window: *Env.Window?
         }
     }
 

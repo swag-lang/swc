@@ -16,11 +16,11 @@ using Core, Win32, Pixel, Gdi32
 #[Swag.NoCopy]
 internal struct SurfaceDropTarget
 {
-    lpVtbl:   #null *IDropTargetVtbl     // Interface header OLE calls through; must stay first.
-    refCount: ULONG      = 1             // OLE reference count; the surface holds one of them.
-    surface:  #null *Surface             // Surface the gesture is routed into.
-    data:     DragData                   // Payload read once per gesture and reused until it ends.
-    allowed:  DropEffect = None          // Effects the source published for the running gesture.
+    lpVtbl:   *IDropTargetVtbl?     // Interface header OLE calls through; must stay first.
+    refCount: ULONG      = 1        // OLE reference count; the surface holds one of them.
+    surface:  *Surface?             // Surface the gesture is routed into.
+    data:     DragData              // Payload read once per gesture and reused until it ends.
+    allowed:  DropEffect = None     // Effects the source published for the running gesture.
 }
 
 private var g_DropTargetVtbl: IDropTargetVtbl
@@ -51,8 +51,8 @@ private func startOle()
 // creating it is a COM activation, so a process that never drags never pays for one, and a target
 // asks for its half on every pointer move of every gesture. A machine where it cannot be created
 // simply drags with no picture, which is what happened before it existed.
-private var g_DropTargetHelper: #null *IDropTargetHelper
-private var g_DragSourceHelper: #null *IDragSourceHelper
+private var g_DropTargetHelper: *IDropTargetHelper?
+private var g_DragSourceHelper: *IDragSourceHelper?
 private var g_DragHelperTried:  bool
 
 private func loadDragHelper()
@@ -82,7 +82,7 @@ private func loadDragHelper()
 //
 // Answers `null` when no native window backs the surface, which is what a headless test is: the
 // helper paints on the desktop, and there is no desktop under it.
-private func dropTargetHelper(surface: *Surface)->#null *IDropTargetHelper
+private func dropTargetHelper(surface: *Surface)->*IDropTargetHelper?
 {
     if !surface.hWnd do
         return null
@@ -92,7 +92,7 @@ private func dropTargetHelper(surface: *Surface)->#null *IDropTargetHelper
 }
 
 // The half of the drag helper that gives the gesture its picture in the first place.
-private func dragSourceHelper()->#null *IDragSourceHelper
+private func dragSourceHelper()->*IDragSourceHelper?
 {
     loadDragHelper()
     return g_DragSourceHelper
@@ -199,7 +199,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
     if !size do
         return result
 
-    let buf = cast(#null [*] u8) GlobalLock(med.hGlobal)
+    let buf = cast([*] u8?) GlobalLock(med.hGlobal)
     if !buf do
         return result
     defer discard GlobalUnlock(buf)
@@ -243,7 +243,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
 //
 // `withContents` is what separates a gesture hovering a window from one released on it: only the
 // second asks a source to produce the content of a file it holds in memory.
-private func readDragData(dataObj: #null *IDataObject, data: *DragData, withContents: bool)
+private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents: bool)
 {
     data.clear()
     if !dataObj do
@@ -347,7 +347,7 @@ private func comRelease(itf: *IDropTarget)->ULONG
     return target.refCount
 }
 
-private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
+private func comDragEnter(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
     readDragData(dataObj, &target.data, false)
@@ -400,7 +400,7 @@ private func comDragLeave(itf: *IDropTarget)->HRESULT
     return S_OK
 }
 
-private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
+private func comDrop(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
 
@@ -481,7 +481,7 @@ private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
     if !hglob do
         return null
 
-    let buf = cast(#null [*] u8) GlobalLock(hglob)
+    let buf = cast([*] u8?) GlobalLock(hglob)
     if !buf
     {
         discard GlobalFree(hglob)
@@ -506,7 +506,7 @@ private func buildHDrop(data: *DragData)->HGLOBAL
     if !hglob do
         return null
 
-    let base = cast(#null [*] u8) GlobalLock(hglob)
+    let base = cast([*] u8?) GlobalLock(hglob)
     if !base
     {
         discard GlobalFree(hglob)
@@ -546,7 +546,7 @@ private func buildDib(data: *DragData)->HGLOBAL
     if !hglob do
         return null
 
-    let base = cast(#null [*] u8) GlobalLock(hglob)
+    let base = cast([*] u8?) GlobalLock(hglob)
     if !base
     {
         discard GlobalFree(hglob)
@@ -580,7 +580,7 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
     if !hglob do
         return null
 
-    let base = cast(#null [*] u8) GlobalLock(hglob)
+    let base = cast([*] u8?) GlobalLock(hglob)
     if !base
     {
         discard GlobalFree(hglob)
@@ -619,7 +619,7 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
     if !hglob do
         return null
 
-    let buf = cast(#null [*] u16) GlobalLock(hglob)
+    let buf = cast([*] u16?) GlobalLock(hglob)
     if !buf
     {
         discard GlobalFree(hglob)
@@ -647,9 +647,9 @@ internal struct DragStoredFormat
 #[Swag.NoCopy]
 internal struct DragDataObject
 {
-    lpVtbl:   #null *IDataObjectVtbl     // Interface header OLE calls through; must stay first.
+    lpVtbl:   *IDataObjectVtbl?          // Interface header OLE calls through; must stay first.
     refCount: ULONG = 1                  // Reference count; the session owns the storage.
-    data:     #null *DragData            // Payload the formats below are produced from.
+    data:     *DragData?                 // Payload the formats below are produced from.
     formats:  Array'FORMATETC            // What this object can produce, and through which medium.
     stored:   Array'DragStoredFormat     // What was handed to it through `SetData`.
 }
@@ -674,10 +674,10 @@ internal impl DragDataObject
 #[Swag.NoCopy]
 internal struct DragFormatEnum
 {
-    lpVtbl:   #null *IEnumFORMATETCVtbl     // Interface header OLE calls through; must stay first.
-    refCount: ULONG = 1                     // Reference count; reaching zero releases the object.
-    formats:  Array'FORMATETC               // Snapshot of what the data object offers.
-    index:    u64                           // Next entry the enumeration returns.
+    lpVtbl:   *IEnumFORMATETCVtbl?     // Interface header OLE calls through; must stay first.
+    refCount: ULONG = 1                // Reference count; reaching zero releases the object.
+    formats:  Array'FORMATETC          // Snapshot of what the data object offers.
+    index:    u64                      // Next entry the enumeration returns.
 }
 
 // The source side of the gesture: what tells OLE to keep going, drop, or give up, and what keeps
@@ -685,9 +685,9 @@ internal struct DragFormatEnum
 #[Swag.NoCopy]
 internal struct DragDropSource
 {
-    lpVtbl:   #null *IDropSourceVtbl     // Interface header OLE calls through; must stay first.
-    refCount: ULONG = 1                  // Reference count; the session owns the storage.
-    app:      #null *Application         // Application to keep painting for the length of the gesture.
+    lpVtbl:   *IDropSourceVtbl?     // Interface header OLE calls through; must stay first.
+    refCount: ULONG = 1             // Reference count; the session owns the storage.
+    app:      *Application?         // Application to keep painting for the length of the gesture.
 }
 
 // One outgoing drag, alive for exactly the call that runs it.
@@ -797,7 +797,7 @@ private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HR
         return DV_E_TYMED
 
     let size = GlobalSize(source.hGlobal)
-    let buf  = cast(#null [*] u8) GlobalLock(source.hGlobal)
+    let buf  = cast([*] u8?) GlobalLock(source.hGlobal)
     if !buf do
         return E_OUTOFMEMORY
     defer discard GlobalUnlock(buf)
@@ -929,7 +929,7 @@ private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVO
     return S_OK
 }
 
-private func srcDAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: #null *void, conn: *DWORD)->HRESULT
+private func srcDAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: *void?, conn: *DWORD)->HRESULT
 {
     discard itf
     discard fmt
@@ -982,7 +982,7 @@ private func enumRelease(itf: *IEnumFORMATETC)->ULONG
     return left
 }
 
-private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, fetched: #null *ULONG)->HRESULT
+private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, fetched: *ULONG?)->HRESULT
 {
     let obj  = formatEnumOf(itf)
     let dest = cast([*] FORMATETC) entries
@@ -1120,7 +1120,7 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
         .bmiHeader.biCompression = BI_RGB
     }
 
-    var raw: #null *void
+    var raw: *void?
     let bmp = catch CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) as err
     if err != null or !bmp or !raw do
         return result
@@ -1177,7 +1177,7 @@ private func attachDragImage(dataObj: *IDataObject, image: const *Image)
 internal impl DragSession
 {
     // Wires both interfaces onto `data`, which has to outlive the gesture.
-    mtd setup(data: *DragData, app: #null *Application = null)
+    mtd setup(data: *DragData, app: *Application? = null)
     {
         .dataObj.lpVtbl   = &g_DataObjectVtbl
         .dataObj.refCount = 1
@@ -1211,7 +1211,7 @@ impl Wnd
     // feedback callback the same loop makes.
     //
     // Answers `None` immediately with no native window, which is what a headless test gets.
-    mtd startDrag(data: *DragData, allowed = DropEffect.Copy, picture: #null const *Pixel.Image = null)->DropEffect
+    mtd startDrag(data: *DragData, allowed = DropEffect.Copy, picture: const *Pixel.Image? = null)->DropEffect
     {
         let surface = .surface
         if !surface or !surface.app.renderer.needsNativeWindow() do
@@ -1230,7 +1230,7 @@ impl Wnd
         session.setup(data, surface.app)
 
         let dataObj = cast(*IDataObject) &session.dataObj
-        let shown: #null const *Pixel.Image = picture orelse data.image()
+        let shown: const *Pixel.Image? = picture orelse data.image()
         if shown do
             attachDragImage(dataObj, shown!)
 

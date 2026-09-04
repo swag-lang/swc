@@ -27,14 +27,14 @@ struct TweakFile
 // which is what left a registered image-rect folder impossible to write.
 private struct FieldPath
 {
-    offset: u64                // Byte offset of the value inside the folder.
-    type:   #null typeinfo     // Type the path ends on, or null when the name resolves to nothing.
+    offset: u64           // Byte offset of the value inside the folder.
+    type:   typeinfo?     // Type the path ends on, or null when the name resolves to nothing.
 }
 
 impl TweakFile
 {
     // Reads a value name, which walks into a nested struct at each '.'.
-    private func parseName(str: string)->#null string fail
+    private func parseName(str: string)->string? fail
     {
         var count = (try StrConv.parseIdentifier(str)).count
         while count + 1 < str.count and str[count] == '.'u8
@@ -111,8 +111,8 @@ impl TweakFile
             }
         }
 
-        var refs:          Array'Ref         // Pending references to resolve
-        var currentFolder: #null *Folder     // Current folder being parsed
+        var refs:          Array'Ref     // Pending references to resolve
+        var currentFolder: *Folder?      // Current folder being parsed
 
         for oneit, idx in lines
         {
@@ -190,7 +190,7 @@ impl TweakFile
             }
 
             // Parse and assign value to field
-            let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type!, one) as valueErr
+            let parsedOne: string? = catch StrConv.parseValue(cast([*] u8) currentFolder.data + path.offset, path.type!, one) as valueErr
             if valueErr != null do
                 fail SyntaxError{"invalid value", line: idx + 1}
             one = parsedOne orelse ""

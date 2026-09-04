@@ -1121,7 +1121,7 @@ internal impl CeltDecoder
         sctx.qalloc = qalloc
     }
 
-    mtd quantBandN1(ctx: *BandContext, x: [*] f32, y: #null [*] f32, lowbandOut: #null [*] f32, dec: *RangeDecoder)->u32
+    mtd quantBandN1(ctx: *BandContext, x: [*] f32, y: [*] f32?, lowbandOut: [*] f32?, dec: *RangeDecoder)->u32
     {
         var target = x
         for c in (y ? 2'u32 : 1)
@@ -1143,7 +1143,7 @@ internal impl CeltDecoder
         return 1
     }
 
-    mtd quantPartition(ctx: *BandContext, x: [*] f32, n: u32, bBits: s32, b: u32, lowband: #null [*] f32, lm: s32, gain: f32, fill: u32, dec: *RangeDecoder)->u32
+    mtd quantPartition(ctx: *BandContext, x: [*] f32, n: u32, bBits: s32, b: u32, lowband: [*] f32?, lm: s32, gain: f32, fill: u32, dec: *RangeDecoder)->u32
     {
         let i     = ctx.band
         var cm    = 0'u32
@@ -1175,7 +1175,7 @@ internal impl CeltDecoder
             var mbits = Math.max(0's32, Math.min(bb, (bb - delta) / 2))
             var sbits = bb - mbits
             ctx.remainingBits -= sctx.qalloc
-            var nextLowband: #null [*] f32
+            var nextLowband: [*] f32?
             if lowband do
                 nextLowband = lowband! + half
             var rebalance = ctx.remainingBits
@@ -1251,7 +1251,7 @@ internal impl CeltDecoder
         return cm
     }
 
-    mtd quantBand(ctx: *BandContext, x: [*] f32, n: u32, bBits: s32, b: u32, lowbandIn: #null [*] f32, lm: u32, lowbandOut: #null [*] f32, gain: f32, useScratch: bool, fillIn: u32, dec: *RangeDecoder)->u32
+    mtd quantBand(ctx: *BandContext, x: [*] f32, n: u32, bBits: s32, b: u32, lowbandIn: [*] f32?, lm: u32, lowbandOut: [*] f32?, gain: f32, useScratch: bool, fillIn: u32, dec: *RangeDecoder)->u32
     {
         if n == 1 do
             return .quantBandN1(ctx, x, null, lowbandOut, dec)
@@ -1332,7 +1332,7 @@ internal impl CeltDecoder
         return cm & ((1'u32 << blocks) - 1)
     }
 
-    mtd quantBandStereo(ctx: *BandContext, x, y: [*] f32, n: u32, bBits: s32, b: u32, lowband: #null [*] f32, lm: u32, lowbandOut: #null [*] f32, useScratch: bool, fillIn: u32, dec: *RangeDecoder)->u32
+    mtd quantBandStereo(ctx: *BandContext, x, y: [*] f32, n: u32, bBits: s32, b: u32, lowband: [*] f32?, lm: u32, lowbandOut: [*] f32?, useScratch: bool, fillIn: u32, dec: *RangeDecoder)->u32
     {
         if n == 1 do
             return .quantBandN1(ctx, x, y, lowbandOut, dec)
@@ -1467,7 +1467,7 @@ internal impl CeltDecoder
             ctx.band = i
             let last = i == .endBand - 1
             var x    = spectrum + M * cast(u32) CeltBands[i]
-            var y: #null [*] f32
+            var y: [*] f32?
             if C == 2 do
                 y = spectrum + N + M * cast(u32) CeltBands[i]
             let n    = M * cast(u32) (CeltBands[i + 1] - CeltBands[i])
@@ -1552,16 +1552,16 @@ internal impl CeltDecoder
                     norm[j] = 0.5 * (norm[j] + norm2[j])
             }
 
-            var lowband:  #null [*] f32
-            var lowband2: #null [*] f32
+            var lowband:  [*] f32?
+            var lowband2: [*] f32?
             if effectiveLowband != Swag.U32.Max
             {
                 lowband  = norm + effectiveLowband
                 lowband2 = norm2 + effectiveLowband
             }
 
-            var lowbandOut:  #null [*] f32
-            var lowbandOut2: #null [*] f32
+            var lowbandOut:  [*] f32?
+            var lowbandOut2: [*] f32?
             if !last
             {
                 lowbandOut  = norm + M * cast(u32) CeltBands[i] - normOffset

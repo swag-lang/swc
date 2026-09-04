@@ -3,8 +3,8 @@
 // null pointer literal
 #test
 {
-    var p: #null *s32 = null
-    #assert(#typeof(p) == #null *s32)
+    var p: *s32? = null
+    #assert(#typeof(p) == *s32?)
     Swag.assert(p == null)
     Swag.assert(!p)
 }
@@ -12,8 +12,8 @@
 // null assignment and comparison
 #test
 {
-    var v: s32        = 42
-    var p: #null *s32 = &v
+    var v: s32   = 42
+    var p: *s32? = &v
 
     Swag.assert(p != null)
     p = null
@@ -23,9 +23,9 @@
 // null for different pointer types
 #test
 {
-    var a: #null *u8   = null
-    var b: #null *f64  = null
-    var c: #null *void = null
+    var a: *u8?   = null
+    var b: *f64?  = null
+    var c: *void? = null
     Swag.assert(a == null)
     Swag.assert(b == null)
     Swag.assert(c == null)
@@ -34,7 +34,7 @@
 // null optional-style: pointer used as bool
 #test
 {
-    var p: #null *s32 = null
+    var p: *s32? = null
     Swag.assert(!p)
 
     var v: s32 = 7

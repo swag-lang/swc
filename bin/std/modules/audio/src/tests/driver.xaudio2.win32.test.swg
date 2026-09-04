@@ -25,7 +25,7 @@ using Swag, Core, Win32
 #test
 {
     let sample  = 0x7F'u8
-    let context = cast(#null *void) &sample
+    let context = cast(*void?) &sample
     let buffer  = makeXAudio2Buffer(&sample, 1, context)
 
     Swag.assert(buffer.flags == 0)

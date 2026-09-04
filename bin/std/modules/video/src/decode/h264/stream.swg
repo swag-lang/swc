@@ -34,7 +34,7 @@ private const AvcMinFrameThreads = 2'u32
 // One decoded H.264 frame waiting for its display turn.
 private struct PendingFrame
 {
-    frame: #null *H264.Frame
+    frame: *H264.Frame?
     rank:  u64
 }
 
@@ -53,8 +53,8 @@ struct AvcFrameThread
     thread:    Threading.Thread
     wake:      Sync.Event
     done:      Sync.Event
-    decoder:   #null *H264.Decoder
-    frame:     #null *H264.Frame
+    decoder:   *H264.Decoder?
+    frame:     *H264.Frame?
     errorText: String
 }
 
@@ -671,7 +671,7 @@ private func runAvcFrameThread(thread: Threading.Thread)
         if thread.requestEnd do
             break
 
-        var frame: #null *H264.Frame
+        var frame: *H264.Frame?
         frame = catch frameThread.decoder!.decodePreparedAccessUnit() as decodeError
         if decodeError != null
         {

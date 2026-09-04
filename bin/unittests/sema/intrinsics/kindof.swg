@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    var a: #null any
+    var a: any?
     var b = Swag.kindOf(a)
     #assert(#typeof(b) == typeinfo)
 }

@@ -50,7 +50,7 @@ moving with it.
 * **Metaprogramming**: mixins, macros, and a compiler interface, without a dedicated syntax.
 * **Generics** for a simple usage, with `where` constraints. No template nightmare here.
 * **Errors as values**, inspired by `Zig` and `Swift`: a function `fail`s, and the caller decides to propagate with `try`, handle with `catch ... as err`, or assert success with `expect`.
-* **Nullability in the type system**: `#null` marks what can be null, the compiler narrows it through the control flow, and `?.`, `orelse`, and the postfix `!` handle the rest.
+* **Nullability in the type system**: the `?` type suffix marks what can be null, the compiler narrows it through the control flow, and `?.`, `orelse`, and the postfix `!` handle the rest.
 * **Move semantics** (`#move`, `#fwd`, `#relocate`) and automatic return value optimization.
 * **Interfaces** for dynamic dispatch, inspired by `Go`.
 * **Modules**, compiled as separate dynamic libraries.

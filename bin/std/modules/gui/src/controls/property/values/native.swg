@@ -5,7 +5,7 @@ internal impl Properties
         let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
-        if Swag.isSet(item.sliderBox)
+        if item.sliderBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -31,7 +31,7 @@ internal impl Properties
 
             .setEditMixed(item, item.sliderBox.edit)
         }
-        elif Swag.isSet(item.editBox)
+        elif item.editBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -64,7 +64,7 @@ internal impl Properties
         let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
-        if Swag.isSet(item.sliderBox)
+        if item.sliderBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -87,7 +87,7 @@ internal impl Properties
             case .F64: setEd'f64()
             }
         }
-        elif Swag.isSet(item.editBox)
+        elif item.editBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -205,13 +205,13 @@ internal impl Properties
         }
     }
 
-    mtd constructNative(value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructNative(value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item = .addItem(value, data, parentItem)
 
         if .kind == .Panel
         {
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.hide()
             .constructNativePanel(item, value, typeNative)
         }
@@ -341,7 +341,7 @@ internal impl Properties
 
         .refreshNative(item)
 
-        if Swag.isSet(item.sliderBox)
+        if item.sliderBox != null
         {
             item.sliderBox.sigChanged += func|prop = me, item|(ed) { prop.validateNative(item) }
 
@@ -349,7 +349,7 @@ internal impl Properties
             item.sliderBox.slider.sigStartChange += func|prop = me, item|(s) { prop.beginItemDrag(item) }
             item.sliderBox.slider.sigEndChange   += func|prop = me|(s) { prop.endItemDrag() }
         }
-        elif Swag.isSet(item.editBox)
+        elif item.editBox != null
         {
             item.editBox.sigFocusLost += func|prop = me, item|(ed)
             {

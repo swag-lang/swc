@@ -64,7 +64,7 @@ struct TextView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:      *Wnd
         info:          *Wnd
@@ -81,9 +81,9 @@ struct TextView
     residentStart:      u64
     residentOffsetY:    f32
     virtualHeight:      f32
-    loadTimer:          #null *Timer
+    loadTimer:          *Timer?
     statisticsThread:   Threading.Thread
-    statisticsTimer:    #null *Timer
+    statisticsTimer:    *Timer?
     statisticsState:    u32
     statistics:         TextStatistics
     statisticsEncoding: Text.Encoding
@@ -97,7 +97,7 @@ struct TextView
     contentStart:       u64
     wrapping                = true
     zoomPercent:        u32 = 100
-    reportDetails:      #null Viewer.ReportDetails
+    reportDetails:      Viewer.ReportDetails?
 }
 
 private func runTextStatistics(thread: Threading.Thread)

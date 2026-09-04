@@ -3,19 +3,19 @@
 #[Swag.Inline]
 func inlineJitNullCoalescingSliceFallback()->bool
 {
-    var value:          #null [..] u32 = null
-    let fallbackValues: [2] u32        = [7, 9]
-    let fallback:       [..] u32       = fallbackValues
-    let resolved                       = value orelse fallback
+    var value:          [..] u32? = null
+    let fallbackValues: [2] u32   = [7, 9]
+    let fallback:       [..] u32  = fallbackValues
+    let resolved                  = value orelse fallback
     return resolved.count == 2 and resolved[0] == 7 and resolved[1] == 9
 }
 
 #[Swag.Inline]
 func inlineJitNullCoalescingStringFallback()->bool
 {
-    var value: #null string = null
-    let fallback            = "fallback"
-    let resolved            = value orelse fallback
+    var value: string? = null
+    let fallback       = "fallback"
+    let resolved       = value orelse fallback
     return resolved == fallback
 }
 
@@ -44,9 +44,9 @@ func inlineJitNonNullCoalescingSliceWins()->bool
     var empty = ""
     Swag.assert((empty orelse "fallback") == "")
 
-    var missing: #null string = null
+    var missing: string? = null
     Swag.assert((missing orelse "fallback") == "fallback")
 
-    // The result drops '#null': it is guaranteed present.
+    // The result drops '?': it is guaranteed present.
     #assert(#typeof(missing orelse "fallback") == string)
 }

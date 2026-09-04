@@ -125,14 +125,14 @@ func commandState(id: WndId)->CommandStateEvent
 }
 
 // Asks action type T whether it accepts the command, through its IActionUI interface.
-func(T) actionAccept(wnd: #null *Wnd, id: WndId)->bool
+func(T) actionAccept(wnd: *Wnd?, id: WndId)->bool
 {
     let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.accept({wnd: wnd, id: id})
 }
 
 // Executes action type T through its IActionUI interface, as the command dispatch would.
-func(T) actionExecute(wnd: #null *Wnd, id: WndId)->bool
+func(T) actionExecute(wnd: *Wnd?, id: WndId)->bool
 {
     let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.execute({wnd: wnd, id: id})

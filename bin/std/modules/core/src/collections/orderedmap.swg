@@ -22,7 +22,7 @@ struct(K, V) OrderedMap
     private
     {
         entries:    Array'(OrderedMapEntry'(K, V))
-        comparator: #null *void
+        comparator: *void?
     }
 
     public readonly count: u64     // The number of key-value pairs in the map.
@@ -171,7 +171,7 @@ impl OrderedMap
 
     // Returns the entry for `key`, or `null` when the key is absent.
     // The returned pointer is invalidated by insertion or removal.
-    mtd tryFind(key: K)->#null *OrderedMapEntry
+    mtd tryFind(key: K)->*OrderedMapEntry?
     {
         let index = .lowerBound(key)
         if index == .count or .compareKeys(.entries[index].key, key) != 0 do
@@ -181,7 +181,7 @@ impl OrderedMap
 
     // Returns the entry for `key`, or `null` when the key is absent.
     // The returned pointer is invalidated by insertion or removal.
-    mtd const tryFind(key: K)->#null const *OrderedMapEntry
+    mtd const tryFind(key: K)->const *OrderedMapEntry?
     {
         let index = .lowerBound(key)
         if index == .count or .compareKeys(.entries[index].key, key) != 0 do

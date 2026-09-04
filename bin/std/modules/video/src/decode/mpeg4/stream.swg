@@ -180,7 +180,7 @@ impl Mpeg4Stream
     }
 
     // Gives up one held picture, either to the caller or to the floor.
-    mtd release(at: u64, target: #null *PlanarFrame)
+    mtd release(at: u64, target: *PlanarFrame?)
     {
         if let output = target do
             output[] = #move .queue[at].planes

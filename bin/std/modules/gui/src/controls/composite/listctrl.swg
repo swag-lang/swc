@@ -63,21 +63,21 @@ struct ListLine
 {
     public
     {
-        colorBk:         Color           // Row background override, or transparent for the list color.
-        colorFg:         Color           // Row foreground override, or transparent for the list color.
-        userData0:       #null *void     // First application-defined pointer payload.
-        userData1:       #null *void     // Second application-defined pointer payload.
-        userData2:       #null *void     // Third application-defined pointer payload.
-        userData3:       #null *void     // Fourth application-defined pointer payload.
-        leftTextMargin:  f32             // Additional leading margin for this row.
-        forceExpandMark: bool            // Whether to show an expansion mark without child rows.
-        canCheck:        bool            // Whether the row exposes a check box.
-        separator:       bool            // Whether the row is a non-selectable separator.
-        iconMargin:      bool            // Whether to reserve icon space when the first cell has no icon.
+        colorBk:         Color      // Row background override, or transparent for the list color.
+        colorFg:         Color      // Row foreground override, or transparent for the list color.
+        userData0:       *void?     // First application-defined pointer payload.
+        userData1:       *void?     // Second application-defined pointer payload.
+        userData2:       *void?     // Third application-defined pointer payload.
+        userData3:       *void?     // Fourth application-defined pointer payload.
+        leftTextMargin:  f32        // Additional leading margin for this row.
+        forceExpandMark: bool       // Whether to show an expansion mark without child rows.
+        canCheck:        bool       // Whether the row exposes a check box.
+        separator:       bool       // Whether the row is a non-selectable separator.
+        iconMargin:      bool       // Whether to reserve icon space when the first cell has no icon.
 
         lines:    ArrayPtr'ListLine     // Direct child rows.
         items:    ArrayPtr'ListItem     // Cells indexed by their `column` field.
-        parent:   #null *ListLine       // Parent row, or null for a root row.
+        parent:   *ListLine?            // Parent row, or null for a root row.
         index:    u32                   // Stable row identity assigned by the owning list.
         level:    u32                   // Zero-based hierarchy depth.
         expanded: bool                  // Whether direct child rows are visible.
@@ -104,7 +104,7 @@ struct ListCtrl
             virtualCount:     u32                                // Number of rows supplied by `onFillVirtualLine`.
             isVirtual:        bool                               // Whether row data is supplied on demand.
 
-            #[Swag.Late]
+                late
             {
                 scrollWnd: *ScrollWnd     // Scrolling container.
                 listView:  *ListView      // Row-rendering and input view.
@@ -112,23 +112,23 @@ struct ListCtrl
             }
         }
 
-        sigSelectionChanged:  SigArray'func||(*ListCtrl)                                       // Emitted after the selected row set changes.
-        sigCheckedChanged:    SigArray'func||(*ListCtrl)                                       // Emitted after the checked row set changes.
-        sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a right click, with the local position.
-        sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a left double click, with the local position.
-        sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row expands.
-        sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row collapses.
-        sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted for a key press before the list reads it; accept the event to claim the key.
-        onFillVirtualLine:    #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
-        compareLines:         #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
+        sigSelectionChanged:  SigArray'func||(*ListCtrl)                          // Emitted after the selected row set changes.
+        sigCheckedChanged:    SigArray'func||(*ListCtrl)                          // Emitted after the checked row set changes.
+        sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)              // Emitted for a right click, with the local position.
+        sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)              // Emitted for a left double click, with the local position.
+        sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)               // Emitted after a row expands.
+        sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)               // Emitted after a row collapses.
+        sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)               // Emitted for a key press before the list reads it; accept the event to claim the key.
+        onFillVirtualLine:    (func(*ListCtrl, *ListLine?, u32))?                 // Fills a transient row before a virtual row is painted.
+        compareLines:         (func(*ListLine?, *ListLine?, u32, bool)->s32)?     // Compares two rows for custom sorting.
     }
 
-    toFreeLines:      ArrayPtr'ListLine           // Owns every allocated root row.
-    lines:            Array'(#null *ListLine)     // Visible rows in display order.
-    idxLineToIdxList: HashTable'(u32, u32)        // Maps stable row identities to visible indexes.
-    selModel:         SelModel                    // Selected stable row identities.
-    checkModel:       SelModel                    // Checked stable row identities.
-    nextLineIndex:    u32                         // Identity assigned to the next created row.
+    toFreeLines:      ArrayPtr'ListLine        // Owns every allocated root row.
+    lines:            Array'(*ListLine?)       // Visible rows in display order.
+    idxLineToIdxList: HashTable'(u32, u32)     // Maps stable row identities to visible indexes.
+    selModel:         SelModel                 // Selected stable row identities.
+    checkModel:       SelModel                 // Checked stable row identities.
+    nextLineIndex:    u32                      // Identity assigned to the next created row.
 
     public
     {
@@ -157,9 +157,8 @@ struct ListView
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
-        #[Swag.Late]
-        list: *ListCtrl     // List associated with this value.
+        using wnd: Wnd           // Embedded wnd state.
+        late list: *ListCtrl     // List associated with this value.
     }
 
     // Set when a press was consumed by something else, so the matching release is ignored.
@@ -228,7 +227,7 @@ impl IWnd for ListView
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if Swag.isSet(.list) do
+        if .list != null do
             .list.computeLayout()
     }
 
@@ -254,7 +253,7 @@ impl IWnd for ListView
         if !lineCount do
             return
 
-        var focusLine: #null *ListLine
+        var focusLine: *ListLine?
         if .list.focusIndex < .list.lines.count do
             focusLine = .list.lines[.list.focusIndex]
 
@@ -642,7 +641,7 @@ impl IWnd for ListView
             }
         }
 
-        if Swag.isSet(.list.header) and .list.listFlags.has(.VerticalLines)
+        if (.list.header != null) and .list.listFlags.has(.VerticalLines)
         {
             rect = .paddedClientRect()
             for idx in 1 until .list.header.items.count
@@ -691,7 +690,7 @@ private impl ListView
         var result: retval
         var pos = row
 
-        if Swag.isSet(.list.header)
+        if .list.header != null
         {
             pos.x     = .columnPosition(item.column)
             pos.width = .list.header.itemWidthForColumn(item.column)
@@ -703,7 +702,7 @@ private impl ListView
         // A row keeps its content clear of its own leading edge. A list with a header takes that
         // air from the header's own column inset instead; adding it here as well would slide
         // every cell out from under its title.
-        if !Swag.isSet(.list.header) do
+        if !(.list.header != null) do
             pos.moveLeft(metrics.list_Padding)
 
         if itemIndex == 0
@@ -726,7 +725,7 @@ private impl ListView
         }
 
         // Take care of header item margin
-        if Swag.isSet(.list.header) do
+        if .list.header != null do
             pos.moveLeft(.list.header.itemPadding)
 
         // Left margin, or icon
@@ -1120,7 +1119,7 @@ impl ListCtrl
 
     // Creates a list without a column header.
     #[Swag.Discardable]
-    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
+    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
     {
         Debug.assert(parent != null)
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
@@ -1145,7 +1144,7 @@ impl ListCtrl
 
     // Creates a list control configured for multiple columns.
     #[Swag.Discardable]
-    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
+    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
     {
         Debug.assert(parent != null)
         let list = Wnd.create'ListCtrl(parent, "", position, id)
@@ -1161,7 +1160,7 @@ impl ListCtrl
                 return false
 
             var list = cast(*ListCtrl) wnd
-            if !Swag.isSet(list.header) do
+            if !(list.header != null) do
                 return false
             var header = list.header
             if header.form == .Transparent do
@@ -1365,7 +1364,7 @@ impl ListCtrl
         var scrollWidth: f32
         if .horizontalExtent > 0 do
             scrollWidth = .horizontalExtent
-        elif Swag.isSet(.header) do
+        elif .header != null do
             scrollWidth = .header.contentWidth()
         else do
             scrollWidth = clientRect.width
@@ -1396,7 +1395,7 @@ impl ListCtrl
         // A virtual list keeps no row object, so the row is produced the way painting produces
         // it: the caller's own filler, into storage that lives for this measurement alone.
         var scratch: ListLine
-        var line:    #null *ListLine = null
+        var line:    *ListLine? = null
         if .isVirtual
         {
             if !.onFillVirtualLine do
@@ -1422,7 +1421,7 @@ impl ListCtrl
     }
 
     // Returns the visible row at `index`.
-    mtd const lineAt(idx: u32)->#null *ListLine
+    mtd const lineAt(idx: u32)->*ListLine?
     {
         Debug.assert(!.isVirtual, "virtual lists do not retain row objects")
         Debug.assert(idx < .lines.count, "list row index is out of range")
@@ -1453,7 +1452,7 @@ impl ListCtrl
     }
 
     // Creates an empty root or child row and returns its retained object.
-    mtd createLine(parentLine: #null *ListLine)->*ListLine
+    mtd createLine(parentLine: *ListLine?)->*ListLine
     {
         Debug.assert(!.isVirtual, "createLine cannot be called on a virtual list")
 
@@ -1479,7 +1478,7 @@ impl ListCtrl
 
     // Creates a row and initializes its first cell.
     #[Swag.Discardable]
-    mtd createLine(name: string, icon: Icon = {}, parentLine: #null *ListLine = null)->*ListLine
+    mtd createLine(name: string, icon: Icon = {}, parentLine: *ListLine? = null)->*ListLine
     {
         let line = .createLine(parentLine)
         line.setItem(0, name, icon)
@@ -1497,21 +1496,21 @@ impl ListCtrl
         .focusIndex    = Swag.U32.Max
         .selModel.clear()
         .checkModel.clear()
-        if Swag.isSet(.scrollWnd) do
+        if .scrollWnd != null do
             .computeLayout()
     }
 
     // Adds a named column to the list header.
     mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
     {
-        Debug.assert(Swag.isSet(.header))
+        Debug.assert((.header != null))
         .header.addColumn(name, width, icon)
     }
 
     // Changes one header column width.
     mtd setColumnWidth(idx: u32, width: f32)
     {
-        Debug.assert(Swag.isSet(.header))
+        Debug.assert((.header != null))
         .header.setItemWidth(idx, width)
     }
 
@@ -1575,7 +1574,7 @@ impl ListCtrl
     }
 
     // Returns the retained row with keyboard focus, or `null` in virtual mode or without focus.
-    mtd const focusedLine()->#null *ListLine
+    mtd const focusedLine()->*ListLine?
     {
         if .focusIndex >= .lines.count do
             return null
@@ -1606,7 +1605,7 @@ impl ListCtrl
     }
 
     // Returns the retained rows currently selected, or an empty array in virtual mode.
-    mtd const selectedLines()->Array'(#null *ListLine)
+    mtd const selectedLines()->Array'(*ListLine?)
     {
         var result: retval
         if .isVirtual or .selModel.isEmpty() do
@@ -1624,7 +1623,7 @@ impl ListCtrl
     }
 
     // Returns the retained rows currently checked, or an empty array in virtual mode.
-    mtd const checkedLines()->Array'(#null *ListLine)
+    mtd const checkedLines()->Array'(*ListLine?)
     {
         var result: retval
         if .isVirtual or .checkModel.isEmpty() do
@@ -1643,7 +1642,7 @@ impl ListCtrl
 
     // Returns a selected line
     // Mostly for singlesel mode
-    mtd const selectedLine()->#null *ListLine
+    mtd const selectedLine()->*ListLine?
     {
         if .isVirtual or .selModel.isEmpty() do
             return null
@@ -1662,7 +1661,7 @@ impl ListCtrl
             .idxLineToIdxList.add(l!.index, cast(u32) idx)
     }
 
-    private mtd collectVisibleLines(result: *Array'(#null *ListLine), lines: [..] #null *ListLine)
+    private mtd collectVisibleLines(result: *Array'(*ListLine?), lines: [..] (*ListLine?))
     {
         for lIt in lines
         {
@@ -1673,9 +1672,9 @@ impl ListCtrl
         }
     }
 
-    private mtd sort(column: u32, descending: bool, toSort: *Array'(#null *ListLine))
+    private mtd sort(column: u32, descending: bool, toSort: *Array'(*ListLine?))
     {
-        func sortFunc(column: u32, descending: bool, a, b: #null *ListLine)->s32
+        func sortFunc(column: u32, descending: bool, a, b: *ListLine?)->s32
         {
             if !a or !b do
                 return 0
@@ -1690,7 +1689,7 @@ impl ListCtrl
             return res
         }
 
-        let cb = func|list = me, column, descending|(a, b: #null *ListLine)->s32
+        let cb = func|list = me, column, descending|(a, b: *ListLine?)->s32
         {
             if !a or !b do
                 return 0
@@ -1738,7 +1737,7 @@ impl ListCtrl
         .sort(column, descending, &.lines)
         .mapIndexes()
 
-        if Swag.isSet(.header) and persistent do
+        if (.header != null) and persistent do
             .header.setSortIndicator(column, descending ? .Descending : .Ascending)
 
         .invalidate()
@@ -1747,7 +1746,7 @@ impl ListCtrl
     // Sort list as before
     mtd sort()
     {
-        if Swag.isSet(.header) and .header.sortDirection != .None do
+        if (.header != null) and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending)
         else do
             .sort(0, false)
@@ -1761,14 +1760,14 @@ impl ListCtrl
         line.expanded = true
         .sigExpanded.call(me, line)
 
-        if Swag.isSet(.header) and .header.sortDirection != .None do
+        if (.header != null) and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending, &line.lines)
 
         let res = .idxLineToIdxList.tryFind(line.index)
         if !res do
             return
 
-        var toInsert: Array'(#null *ListLine)
+        var toInsert: Array'(*ListLine?)
         .collectVisibleLines(&toInsert, line.lines.toSlice())
         if toInsert.count
         {
@@ -1787,7 +1786,7 @@ impl ListCtrl
         line.expanded = false
         .sigCollapsed.call(me, line)
 
-        var tmp: Array'(#null *ListLine)
+        var tmp: Array'(*ListLine?)
         tmp.add(line)
 
         var removeCount = 0'u32
@@ -1827,7 +1826,7 @@ impl ListCtrl
     // Collapse all lines
     mtd collapseAll()
     {
-        func collapseRec(sl: [..] #null *ListLine)
+        func collapseRec(sl: [..] (*ListLine?))
         {
             for lIt in sl
             {

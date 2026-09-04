@@ -266,7 +266,7 @@ impl IForm for FormLine
             painter.drawLine(.xa * z, .ya * z, .xb * z, .yb * z, pen)
     }
 
-    mtd impl setup(capt: #null *Capture)
+    mtd impl setup(capt: *Capture?)
     {
         .capture = capt
         .gizmo.anchors.resize(3)

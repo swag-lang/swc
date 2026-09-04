@@ -207,7 +207,7 @@ impl JitWithPrioInner
 struct JitWithPrioOwner
 {
     inner:  JitWithPrioInner
-    pInner: #null *JitWithPrioInner
+    pInner: *JitWithPrioInner?
     hits:   s32
 }
 

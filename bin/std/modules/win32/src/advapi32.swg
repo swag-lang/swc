@@ -5,7 +5,7 @@ using Swag
 
 alias ACCESS_MASK = DWORD
 alias REGSAM      = ACCESS_MASK
-alias HKEY        = #null const *void
+alias HKEY        = const *void?
 alias LSTATUS     = LONG
 
 const HKEY_CLASSES_ROOT                = cast(HKEY) cast(u64) 0x80000000
@@ -49,12 +49,12 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
 
 #[Foreign("advapi32", callconv: Swag.CallConv.C), Swag.Discardable]
 {
-    func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: #null LPSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
-    func RegCreateKeyExW(hKey: HKEY, lpSubKey: LPCWSTR, reserved: DWORD, lpClass: #null LPWSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
+    func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: LPSTR?, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: const *SECURITY_ATTRIBUTES?, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
+    func RegCreateKeyExW(hKey: HKEY, lpSubKey: LPCWSTR, reserved: DWORD, lpClass: LPWSTR?, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: const *SECURITY_ATTRIBUTES?, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
     func RegOpenCurrentUser(samDesired: REGSAM, phkResult: *HKEY)->LSTATUS
     func RegOpenKeyExW(hKey: HKEY, lpSubKey: LPCWSTR, ulOptions: DWORD, samDesired: REGSAM, phkResult: *HKEY)->LSTATUS
-    func RegSetValueExA(hKey: HKEY, lpValueName: LPCSTR, reserved: DWORD, dwType: DWORD, lpData: #null const *BYTE, cbData: DWORD)->LSTATUS
-    func RegSetValueExW(hKey: HKEY, lpValueName: #null LPCWSTR, reserved: DWORD, dwType: DWORD, lpData: #null const *BYTE, cbData: DWORD)->LSTATUS
+    func RegSetValueExA(hKey: HKEY, lpValueName: LPCSTR, reserved: DWORD, dwType: DWORD, lpData: const *BYTE?, cbData: DWORD)->LSTATUS
+    func RegSetValueExW(hKey: HKEY, lpValueName: LPCWSTR?, reserved: DWORD, dwType: DWORD, lpData: const *BYTE?, cbData: DWORD)->LSTATUS
     func RegCloseKey(hKey: HKEY)->LSTATUS
 }
 

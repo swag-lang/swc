@@ -52,7 +52,7 @@ private func unpackFloat(raw: u32)->f32
 // matters rather than failing on the spot.
 private struct BitReader
 {
-    data:    #null const [*] u8
+    data:    const [*] u8?
     size:    u64
     bitPos:  u64
     overran: bool

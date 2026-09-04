@@ -70,7 +70,7 @@ impl Button
     // Pass `null` for a button that shows only its icon. The label is plain text; rich spans
     // are set through `name` directly. A button carrying no explicit width follows its
     // label, so re-labelling one after a language switch is enough to size it again.
-    mtd setText(text: #null string)
+    mtd setText(text: string?)
     {
         .name.set(text)
         .invalidate()

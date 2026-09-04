@@ -57,15 +57,13 @@ struct FaceImpl
 {
     face: Face
 
-    #[Swag.Late]
-    allocationAllocator: IAllocator
+    late allocationAllocator: IAllocator
 
-    fontData:       Array'u8
-    tables:         Array'TableRecord
-    glyphMetrics:   Array'GlyphMetric
-    glyphLocations: Array'u32
-    #[Swag.Late]
-    chosenCMap:       const [..] u8
+    fontData:         Array'u8
+    tables:           Array'TableRecord
+    glyphMetrics:     Array'GlyphMetric
+    glyphLocations:   Array'u32
+    late chosenCMap:  const [..] u8
     cmapFormat:       u16
     unitsPerEm:       u16
     numLongMetrics:   u16
@@ -75,7 +73,7 @@ struct FaceImpl
 
     // Format-14 subtable holding the Unicode variation sequences, when the face
     // declares one. It supplements the selected map instead of replacing it.
-    variationCMap: #null const [..] u8
+    variationCMap: const [..] u8?
 
     // Blue-zone metrics for vertical hinting, in font design units (0 = unknown).
     xHeight:   s16
@@ -106,7 +104,7 @@ struct FaceImpl
     // 'gposTable'. Class-based subtables describe a glyph-pair matrix far too large
     // to expand, so kerning is resolved per query rather than precomputed. These
     // answer before 'kernPairs', which covers the pairs they leave at zero.
-    gposTable:         #null const [..] u8
+    gposTable:         const [..] u8?
     gposPairSubtables: Array'u32
 }
 
@@ -159,7 +157,7 @@ impl FaceImpl
     }
 }
 
-func getFaceImpl(face: #null *Face)->*FaceImpl fail
+func getFaceImpl(face: *Face?)->*FaceImpl fail
 {
     if !face do
         fault(0x23)
@@ -172,7 +170,7 @@ func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail
     return getFaceImpl(slot.face)
 }
 
-func findTable(faceData: *FaceImpl, tag: u32)->#null const *TableRecord
+func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
 {
     for it in faceData.tables
     {
@@ -183,7 +181,7 @@ func findTable(faceData: *FaceImpl, tag: u32)->#null const *TableRecord
     return null
 }
 
-func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->#null const [..] u8 fail
+func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8? fail
 {
     let rec = findTable(faceData, tag)
     if !rec do

@@ -24,13 +24,13 @@ struct PropFieldValue
 {
     public
     {
-        valid:    bool                  // Valid associated with this value.
-        isString: bool                  // Whether this value is string.
-        n:        u64                   // number of instances captured
-        sz:       u64                   // per-instance byte size (raw-bytes case only)
-        addrs:    Array'(#null *u8)     // field address in each captured instance
-        bytes:    Array'u8              // n * sz contiguous raw bytes (raw-bytes case)
-        strings:  Array'String          // n strings (String case)
+        valid:    bool             // Valid associated with this value.
+        isString: bool             // Whether this value is string.
+        n:        u64              // number of instances captured
+        sz:       u64              // per-instance byte size (raw-bytes case only)
+        addrs:    Array'(*u8?)     // field address in each captured instance
+        bytes:    Array'u8         // n * sz contiguous raw bytes (raw-bytes case)
+        strings:  Array'String     // n strings (String case)
     }
 }
 
@@ -38,7 +38,7 @@ internal impl PropFieldValue
 {
     // True for the types the grid can snapshot/restore safely: dynamic String (by content) or
     // any POD value (native/enum/bool/color/vector/POD struct/static array of POD).
-    func canSnapshot(type: #null typeinfo)->bool
+    func canSnapshot(type: typeinfo?)->bool
     {
         if !type do
             return false
@@ -89,7 +89,7 @@ internal impl PropFieldValue
                 return
             .bytes.resize(.n * .sz)
             for k in .n do
-                Memory.copy(cast(#null [*] void) (.bytes.buffer + k * .sz), cast(#null const [*] void) .addrs[k], .sz)
+                Memory.copy(cast([*] void?) (.bytes.buffer + k * .sz), cast(const [*] void?) .addrs[k], .sz)
         }
 
         .valid = true
@@ -111,7 +111,7 @@ internal impl PropFieldValue
         else
         {
             for k in .n do
-                Memory.copy(cast(#null [*] void) .addrs[k], cast(#null const [*] void) (.bytes.buffer + k * .sz), .sz)
+                Memory.copy(cast([*] void?) .addrs[k], cast(const [*] void?) (.bytes.buffer + k * .sz), .sz)
         }
     }
 
@@ -157,8 +157,7 @@ struct PropUndoCommand
 {
     public
     {
-        #[Swag.Late]
-        prop:       *Properties        // Prop associated with this value.
+        late prop:  *Properties        // Prop associated with this value.
         generation: u64                // Generation associated with this value.
         oldVal:     PropFieldValue     // Old val associated with this value.
         newVal:     PropFieldValue     // New val associated with this value.
@@ -290,7 +289,7 @@ impl Properties
     // one, so property edits and the host's other commands share a single undo timeline. The
     // grid must stay alive as long as the external manager holds commands recorded by it.
     // Pass null to go back to the internal manager.
-    mtd setExternalUndoMgr(mgr: #null *UndoManager)
+    mtd setExternalUndoMgr(mgr: *UndoManager?)
     {
         .externUndoMgr = mgr
     }

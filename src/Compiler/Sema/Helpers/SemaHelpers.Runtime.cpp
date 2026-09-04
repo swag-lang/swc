@@ -443,9 +443,8 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
     return Result::Continue;
 }
 
-// Whether the expression names a 'Swag.Late' slot: a field through a member access, or a bare
-// identifier for a global. Both start as null storage and receive their value later, so a
-// consumer that asks about presence rather than value goes through 'Swag.isSet'.
+// Whether the expression names a 'late' slot: a field through a member access, or a bare
+// identifier for a global. Both start as null storage and receive their value later.
 bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
@@ -465,17 +464,17 @@ bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
     return sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
 }
 
-// A 'Swag.Late' field access requests a null-safety read guard when it resolves
+// A 'late' field access requests a null-safety read guard when it resolves
 // (memberStruct). Consumers that never read the field value — pure assignment
-// target, address-of, 'Swag.isSet' — call this to cancel the guard.
+// target, address-of, or a null comparison — call this to cancel the guard.
 void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return;
     const SemaNodeView view = sema.viewNode(nodeRef);
-    // A 'Swag.Late' read guard sits on a field member access or on a bare identifier (a
-    // 'Swag.Late' global). Both are cleared by a non-reading consumer (assignment target,
-    // address-of, 'Swag.isSet').
+    // A 'late' read guard sits on a field member access or on a bare identifier (a
+    // 'late' global). Both are cleared by a non-reading consumer (assignment target,
+    // address-of, or a null comparison).
     if (!view.node() || (view.node()->isNot(AstNodeId::MemberAccessExpr) && view.node()->isNot(AstNodeId::Identifier)))
         return;
     if (auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(view.nodeRef()))

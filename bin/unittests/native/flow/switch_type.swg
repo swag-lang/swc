@@ -43,8 +43,8 @@
 }
 
 // A comparison that folds must answer like the same comparison at run time. Type identity is
-// the runtime hash, which ignores the '#null' qualifier, so both sides of this pair are true.
-alias NullString = #null string
+// the runtime hash, which ignores the '?' qualifier, so both sides of this pair are true.
+alias NullString = string?
 const TN: typeinfo = NullString
 #assert(TN == string)
 
@@ -59,8 +59,8 @@ const TN: typeinfo = NullString
 // instead of type identity would silently fall through to 'default'.
 #test
 {
-    var text: #null string = "value"
-    var a:    typeinfo     = #typeof(text)
+    var text: string?  = "value"
+    var a:    typeinfo = #typeof(text)
     Swag.assert(a == string)
 
     var hit = 0
@@ -78,7 +78,7 @@ const TN: typeinfo = NullString
 
 #test
 {
-    var ptr: #null *s32
+    var ptr: *s32?
     var a:   typeinfo = #typeof(ptr)
     Swag.assert(a == *s32)
 
@@ -129,7 +129,7 @@ const TN: typeinfo = NullString
 
 #test
 {
-    func switchNullableTypeInfoValue(v: #null typeinfo)->s32
+    func switchNullableTypeInfoValue(v: typeinfo?)->s32
     {
         switch v
         {
@@ -139,8 +139,8 @@ const TN: typeinfo = NullString
         }
     }
 
-    var present: #null typeinfo = s32
-    var absent:  #null typeinfo = null
+    var present: typeinfo? = s32
+    var absent:  typeinfo? = null
     Swag.assert(switchNullableTypeInfoValue(present) == 1)
     Swag.assert(switchNullableTypeInfoValue(absent) == 2)
 }

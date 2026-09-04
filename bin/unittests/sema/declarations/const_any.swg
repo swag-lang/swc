@@ -106,8 +106,8 @@ func semaTest013()
 
 func semaTest014()
 {
-    const A: #null any = null
-    #assert(#typeof(A) == #null any)
+    const A: any? = null
+    #assert(#typeof(A) == any?)
     Swag.assert(A == null)
 }
 

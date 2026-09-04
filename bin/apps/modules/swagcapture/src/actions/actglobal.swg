@@ -67,7 +67,7 @@ impl IActionUI for ActionGlobal
                 main.saveCapture(capture)
             main.flushCaptureSave()
 
-            if Swag.isSet(main.libWnd) do
+            if main.libWnd != null do
                 main.libWnd.requestClose()
             main.postQuitEvent()
 

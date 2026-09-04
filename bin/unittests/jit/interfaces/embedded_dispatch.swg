@@ -7,7 +7,7 @@ interface IDispatch
 
 struct Base
 {
-    itf:   #null IDispatch
+    itf:   IDispatch?
     value: s32 = 10
 }
 

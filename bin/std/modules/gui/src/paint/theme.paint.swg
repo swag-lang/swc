@@ -57,7 +57,7 @@ impl Theme
     }
 
     // Draws a themed image region, using its optional nine-slice margins.
-    mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
+    mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: *ThemeImageRect?, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         drawSubRect(painter, .res.imgWidgets, dstRect, subRect, color, center, interpol, .res.atlasScale)
     }
@@ -66,7 +66,7 @@ impl Theme
     //
     // `subRect` is expressed in authored atlas texels; `srcScale` maps it onto a texture
     // rasterized that many times larger, as the theme atlas is on a scaled display.
-    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear, srcScale = 1'f32)
+    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: *ThemeImageRect?, color: Color, center = true, interpol = InterpolationMode.Linear, srcScale = 1'f32)
     {
         if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return

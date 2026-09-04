@@ -79,7 +79,7 @@ interface IAudioDecoder
     mtd audioTrackCount()->u32
 
     // Returns a sound track owned by the decoder, or `null` past the end.
-    mtd audioTrack(index: u32)->#null const *SoundFile
+    mtd audioTrack(index: u32)->const *SoundFile?
 }
 
 // Optional decoder capability exposing timed text tracks carried by a video container.
@@ -89,7 +89,7 @@ interface ISubtitleDecoder
     mtd const subtitleTrackCount()->u32
 
     // Returns a subtitle track owned by the decoder, or `null` past the end.
-    mtd const subtitleTrack(index: u32)->#null const *Subtitle.Track
+    mtd const subtitleTrack(index: u32)->const *Subtitle.Track?
 }
 
 // Optional decoder capability handing pictures over without converting them to RGB.
@@ -134,16 +134,16 @@ struct Reader
 {
     internal
     {
-        source:          Source                               // Bytes of the encoded stream.
-        info:            StreamInfo                           // What the decoder reported when opening.
-        format:          StreamFormat                         // Format claimed by the selected decoder.
-        decoder:         #null IDecoder                       // Decoder instance owned by this reader.
-        audioDecoder:    #null IAudioDecoder                  // Optional sound-track capability.
-        subtitleDecoder: #null ISubtitleDecoder               // Optional timed-text capability.
-        planarDecoder:   #null IPlanarDecoder                 // Optional unconverted-picture capability.
-        timedDecoder:    #null ITimedDecoder                  // Optional exact-timestamp capability.
-        deferred:        #null IDeferredDecoder               // Optional deferred sample-index capability.
-        decoderType:     #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
+        source:          Source                          // Bytes of the encoded stream.
+        info:            StreamInfo                      // What the decoder reported when opening.
+        format:          StreamFormat                    // Format claimed by the selected decoder.
+        decoder:         IDecoder?                       // Decoder instance owned by this reader.
+        audioDecoder:    IAudioDecoder?                  // Optional sound-track capability.
+        subtitleDecoder: ISubtitleDecoder?               // Optional timed-text capability.
+        planarDecoder:   IPlanarDecoder?                 // Optional unconverted-picture capability.
+        timedDecoder:    ITimedDecoder?                  // Optional exact-timestamp capability.
+        deferred:        IDeferredDecoder?               // Optional deferred sample-index capability.
+        decoderType:     const *Swag.TypeInfoStruct?     // Concrete decoder type, used to release it.
     }
 }
 
@@ -189,7 +189,7 @@ impl Reader
     func canOpen(fileName: string)->bool => findDecoder(fileName) != null
 
     // Returns the registered decoder claiming `fileName`, or `null` when none does.
-    internal func findDecoder(fileName: string)->#null const *DecoderDesc
+    internal func findDecoder(fileName: string)->const *DecoderDesc?
     {
         for decoder in decoders where decoder.format.matches(fileName) do
             return decoder
@@ -330,7 +330,7 @@ impl Reader
     // Returns sound track `index`, owned by this reader, or `null` past the end.
     //
     // The track streams from its own file cursor and remains valid until the reader is closed.
-    mtd const audioTrack(index: u32)->#null const *SoundFile
+    mtd const audioTrack(index: u32)->const *SoundFile?
     {
         return .audioDecoder ? .audioDecoder!.audioTrack(index) : null
     }
@@ -342,7 +342,7 @@ impl Reader
     //
     // The returned track remains valid until the reader is closed. Its cues use the same media
     // timeline as [[Video.Reader.frameTimestamp]].
-    mtd const subtitleTrack(index: u32)->#null const *Subtitle.Track
+    mtd const subtitleTrack(index: u32)->const *Subtitle.Track?
     {
         return .subtitleDecoder ? .subtitleDecoder!.subtitleTrack(index) : null
     }

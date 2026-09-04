@@ -124,7 +124,7 @@ An interface occupies two pointers: object pointer + virtual table pointer.
     var pt2: Point2
     var pt3: Point3
     var itf = cast(IReset) pt2
-    #assert(#sizeof(itf) == 2 * #sizeof(#null *void))
+    #assert(#sizeof(itf) == 2 * #sizeof(*void?))
 
     // Retrieve the concrete type with 'Swag.kindOf'
     itf = cast(IReset) pt2

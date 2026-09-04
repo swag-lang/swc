@@ -22,7 +22,7 @@ struct Paddle
 
 var g_Rng:  Random.Generator
 var g_Rect: Math.Rectangle
-var g_Font: #null *Font
+var g_Font: *Font?
 
 var g_ScoreLeft:  s32
 var g_ScoreRight: s32

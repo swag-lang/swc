@@ -38,12 +38,12 @@ struct GridMap
     height: u32
     startX: u32
     startY: u32
-    cells:  #null [*] u8
+    cells:  [*] u8?
 }
 
 struct IndexBuffer
 {
-    data:      #null [*] u32
+    data:      [*] u32?
     count:     u32
     capacity:  u32
     growCount: u32
@@ -69,7 +69,7 @@ func cellIndex(x, y, width: u32)->u32
 
 func allocBytes(size: u32)->[*] u8
 {
-    let ptr = cast(#null [*] u8) testAlloc(cast(u64) size)
+    let ptr = cast([*] u8?) testAlloc(cast(u64) size)
     Swag.assert(ptr != null)
     return ptr!
 }
@@ -98,7 +98,7 @@ func initIndexBuffer(initialCapacity: u32)->IndexBuffer
 {
     var result: IndexBuffer
     result.capacity = initialCapacity
-    result.data     = cast(#null [*] u32) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
+    result.data     = cast([*] u32?) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
     Swag.assert(result.data != null)
     return result
 }
@@ -110,7 +110,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast(#null [*] u32) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
+        result.data = cast([*] u32?) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
         Swag.assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32

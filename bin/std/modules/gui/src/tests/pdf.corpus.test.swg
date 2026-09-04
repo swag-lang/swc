@@ -2,7 +2,7 @@
 
 using Core, Pixel, Pdf
 
-private func createCorpusTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
+private func createCorpusTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
 
 private struct CorpusPdf
 {

@@ -86,8 +86,8 @@ impl ConstDataOfSpecBuffer
 // .buffer on null string returns null
 #test
 {
-    var s: #null string = null
-    var p               = s.buffer
+    var s: string? = null
+    var p          = s.buffer
     #assert(#typeof(p) == const [*] u8)
     Swag.assert(p == null)
 }

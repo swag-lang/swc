@@ -3,7 +3,7 @@
 struct ExplicitNullabilityItem {}
 
 alias ExplicitNullabilityRequiredPtr    = *ExplicitNullabilityItem
-alias ExplicitNullabilityOptionalString = #null string
+alias ExplicitNullabilityOptionalString = string?
 
 struct ExplicitNullabilityHolder
 {
@@ -14,7 +14,7 @@ struct ExplicitNullabilityHolder
     ctext:         cstring
     boxed:         any
     reflectedType: typeinfo
-    optionalText:  #null string
+    optionalText:  string?
 }
 
 func explicitNullabilityAccept(
@@ -25,7 +25,7 @@ func explicitNullabilityAccept(
     ctext: cstring,
     boxed: any,
     reflectedType: typeinfo,
-    optionalText: #null string)
+    optionalText: string?)
 {
     #assert(#typeof(valuePointer) == *ExplicitNullabilityItem)
     #assert(#typeof(blockPointer) == [*] ExplicitNullabilityItem)
@@ -34,7 +34,7 @@ func explicitNullabilityAccept(
     #assert(#typeof(ctext) == cstring)
     #assert(#typeof(boxed) == any)
     #assert(#typeof(reflectedType) == typeinfo)
-    #assert(#typeof(optionalText) == #null string)
+    #assert(#typeof(optionalText) == string?)
 }
 
 func explicitNullabilityReturnAlias(value: ExplicitNullabilityRequiredPtr)->ExplicitNullabilityRequiredPtr => value

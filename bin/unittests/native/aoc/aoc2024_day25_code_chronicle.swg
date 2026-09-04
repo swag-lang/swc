@@ -95,8 +95,8 @@ const MaxSchematics = 512'u32
 
 struct ParseResult
 {
-    locks:     #null [*] Heights
-    keys:      #null [*] Heights
+    locks:     [*] Heights?
+    keys:      [*] Heights?
     lockCount: u32
     keyCount:  u32
 }
@@ -104,8 +104,8 @@ struct ParseResult
 func parseInit()->ParseResult
 {
     var r: ParseResult
-    r.locks = cast(#null [*] Heights) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
-    r.keys  = cast(#null [*] Heights) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
+    r.locks = cast([*] Heights?) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
+    r.keys  = cast([*] Heights?) testAlloc(cast(u64) MaxSchematics * #sizeof(Heights))
     return r
 }
 

@@ -26,7 +26,7 @@ public interface IImageEncoder
     //
     // `opt` is `null` for defaults or points to the encoder-specific options
     // structure. Fails for invalid images or unsupported dimensions/formats.
-    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) fail
+    mtd encode(buf: *ConcatBuffer, img: Image, opt: any?) fail
 }
 
 public impl Image
@@ -34,7 +34,7 @@ public impl Image
     private var encoders: Array'ImageEncoder
 
     // Returns the registered encoder claiming `fileName`, or `null` when none does.
-    private func getEncoder(fileName: string)->#null const *ImageEncoder
+    private func getEncoder(fileName: string)->const *ImageEncoder?
     {
         for &encoder in encoders where encoder.format.matches(fileName) do
             return encoder
@@ -73,7 +73,7 @@ public impl Image
     //
     // `fileName` selects the encoder by extension; no file is opened.
     // Fails if the image is invalid or no encoder accepts the extension.
-    mtd const encode(fileName: string, options: #null any = null)->ConcatBuffer fail
+    mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
         if !.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
@@ -111,7 +111,7 @@ public impl Image
     // Selection works exactly as in [[Pixel.Image.encode]]. This is what a caller handing the
     // bytes to something that wants a single slice asks for — a clipboard medium, a drag payload,
     // a request body — rather than flattening the segmented buffer itself every time.
-    mtd const encodeToBytes(fileName: string, options: #null any = null)->Array'u8 fail
+    mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
     {
         var buffer = try .encode(fileName, options)
         buffer.makeLinear()
@@ -122,7 +122,7 @@ public impl Image
     }
 
     // Encodes the image and writes it to `fileName`.
-    mtd const save(fileName: string, options: #null any = null) fail
+    mtd const save(fileName: string, options: any? = null) fail
     {
         var result = try .encode(fileName, options)
         File.writeAllBytes(fileName, result)

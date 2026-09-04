@@ -12,7 +12,7 @@ struct(T) PriorityQueue
     private
     {
         items:      Array'T
-        comparator: #null *void
+        comparator: *void?
     }
 
     public readonly count: u64     // The number of elements in the queue.

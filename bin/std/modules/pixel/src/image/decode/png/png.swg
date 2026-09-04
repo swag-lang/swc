@@ -88,7 +88,7 @@ private
     struct DecodeChunk
     {
         header: ChunkHeader
-        datas:  #null const [..] u8
+        datas:  const [..] u8?
         crc:    u32
     }
 }
@@ -111,7 +111,7 @@ internal struct Decoder
         inChannels:    s32                    // Channels present in the source.
         outChannels:   s32                    // Channels written to the destination.
         dcmpBuf:       Array'u8               // Decompressed scanlines before defiltering.
-        dstPixels:     #null [*] u8           // Destination pixel buffer.
+        dstPixels:     [*] u8?                // Destination pixel buffer.
         dstPixelsSize: u64                    // Size of the destination buffer, in bytes.
         chunkTRNS:     DecodeChunk            // Transparency chunk, when the stream carries one.
         palette:       [256] u32              // Palette entries of an indexed stream.
@@ -146,7 +146,7 @@ impl Decoder
 
         result.header = ch
 
-        // Resync the byte cursor before #null any raw pointer access: the bit reader may have
+        // Resync the byte cursor before ? any raw pointer access: the bit reader may have
         // buffered bytes ahead of the consumed position (its refill loads several bytes at
         // once), so rewind those back into 'curByte' so 'curPtr' is the true chunk start.
         .stream.revert()

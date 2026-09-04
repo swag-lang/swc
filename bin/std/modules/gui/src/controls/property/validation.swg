@@ -20,7 +20,7 @@ struct PropValidationResult
     public
     {
         state:   PropValidation = .None     // Validation severity.
-        message: #null string               // Explanation shown with the row, or null for none.
+        message: string?                    // Explanation shown with the row, or null for none.
     }
 }
 
@@ -96,7 +96,7 @@ internal impl Properties
             result  = .hostNtfy.validateItem(me, item)
         }
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf
@@ -118,7 +118,7 @@ internal impl Properties
 
     // Assigns validation state directly for data not represented by a reflected struct field.
     #[Swag.Discardable]
-    mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: #null string = null)->bool
+    mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: string? = null)->bool
     {
         return .applyItemValidation(item, state, message)
     }
@@ -128,7 +128,7 @@ internal impl Properties
     // stay vertically centered together — see applyValidationVisual for the icon/colors.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
-        if item.validation == .None or !Swag.isSet(item.validationLabel) do
+        if item.validation == .None or !(item.validationLabel != null) do
             return
         let lbl = item.validationLabel
         if !lbl.isVisible() do
@@ -147,7 +147,7 @@ internal impl Properties
     // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
     mtd applyValidationVisual(item: *PropertiesItem)
     {
-        if !Swag.isSet(item.validationLabel) or item.validation == .None do
+        if !(item.validationLabel != null) or item.validation == .None do
             return
         let lbl = item.validationLabel
         lbl.setIcon(.validationIcon(item.validation))
@@ -162,7 +162,7 @@ internal impl Properties
     // styles, so a note built under one theme would otherwise keep stale colors under the next.
     mtd applyNoteVisual(item: *PropertiesItem)
     {
-        if !Swag.isSet(item.label) do
+        if !(item.label != null) do
             return
         let lbl = item.label
         lbl.setIcon(.theme().icon(.Information, .valBarIconSize))
@@ -185,7 +185,7 @@ internal impl Properties
     #[Swag.Discardable]
     mtd syncValidationBar(item: *PropertiesItem)->bool
     {
-        // The only caller guards on 'Swag.isSet(item.validationLabel)'.
+        // The only caller guards on 'a presence comparison(item.validationLabel)'.
         let lbl     = item.validationLabel
         let visible = lbl.isVisible()
 
@@ -238,7 +238,7 @@ private impl Properties
 {
     // Apply a validation state + message to an item: create/show/hide its message bar.
     // Returns true when the bar's presence or text changed (a relayout is then needed).
-    mtd applyItemValidation(item: *PropertiesItem, state: PropValidation, message: #null string)->bool
+    mtd applyItemValidation(item: *PropertiesItem, state: PropValidation, message: string?)->bool
     {
         if item.validation == state and item.validationMsg == message do
             return false
@@ -247,7 +247,7 @@ private impl Properties
 
         if state == .None
         {
-            if Swag.isSet(item.validationLabel) and item.validationLabel.isVisible() do
+            if (item.validationLabel != null) and item.validationLabel.isVisible() do
                 item.validationLabel.show(false)
         }
         else
@@ -258,7 +258,7 @@ private impl Properties
             item.validationLabel.show(true)
         }
 
-        if Swag.isSet(item.line) do
+        if item.line != null do
             item.line.invalidate()
         return true
     }
@@ -266,7 +266,7 @@ private impl Properties
     // Lazily create the message-bar label, stacked under the row editor.
     mtd ensureValidationLabel(item: *PropertiesItem)
     {
-        if Swag.isSet(item.validationLabel) do
+        if item.validationLabel != null do
             return
 
         with let lbl = Label.create(item.line, "", {0, 0, .position.width, 0})

@@ -9,7 +9,7 @@
 func arguments()->const [..] string => Swag.args()
 
 // Returns the command-line argument at `index`, or `null` when it is out of range.
-func argument(index: u32)->#null string
+func argument(index: u32)->string?
 {
     let args = Swag.args()
     if index >= args.count do
@@ -128,7 +128,7 @@ func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
     return result
 }
 
-private var g_CmdLineArgs: #null const [..] string
+private var g_CmdLineArgs: const [..] string?
 
 // Identifies a virtual-desktop system metric.
 enum SystemMetric

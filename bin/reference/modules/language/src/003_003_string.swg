@@ -96,7 +96,7 @@ whether a string has been assigned a value.
 */
 #test
 {
-    var a: #null string
+    var a: string?
     Swag.assert(a == null)
     a = "not null"
     Swag.assert(a != null)

@@ -5,7 +5,7 @@ using Swag
 
 alias HRESULT  = s32
 alias SHSTDAPI = HRESULT
-alias HDROP    = #null const *void
+alias HDROP    = const *void?
 
 const S_OK    = 0's32
 const S_FALSE = 1's32
@@ -362,10 +362,10 @@ struct IDropTargetHelperVtbl
         QueryInterface: func(*IDropTargetHelper, const *GUID, *LPVOID)->HRESULT
         AddRef:         func(*IDropTargetHelper)->ULONG
         Release:        func(*IDropTargetHelper)->ULONG
-        DragEnter:      func(*IDropTargetHelper, HWND, #null *IDataObject, *POINT, DWORD)->HRESULT
+        DragEnter:      func(*IDropTargetHelper, HWND, *IDataObject?, *POINT, DWORD)->HRESULT
         DragLeave:      func(*IDropTargetHelper)->HRESULT
         DragOver:       func(*IDropTargetHelper, *POINT, DWORD)->HRESULT
-        Drop:           func(*IDropTargetHelper, #null *IDataObject, *POINT, DWORD)->HRESULT
+        Drop:           func(*IDropTargetHelper, *IDataObject?, *POINT, DWORD)->HRESULT
     }
 }
 
@@ -459,8 +459,8 @@ internal namespace Shell32Priv
     {
         func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL)->BOOL
         func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL)->BOOL
-        func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT
-        func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT
+        func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT
+        func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT
         func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO)->SHSTDAPI
         func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL
         func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL
@@ -474,10 +474,10 @@ internal namespace Shell32Priv
     func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func DragAcceptFiles(hWnd: HWND, fAccept: BOOL)
-    func DragQueryFileW(hDrop: HDROP, iFile: UINT, lpszFile: #null LPWSTR, cch: UINT)->UINT
+    func DragQueryFileW(hDrop: HDROP, iFile: UINT, lpszFile: LPWSTR?, cch: UINT)->UINT
     func DragQueryPoint(hDrop: HDROP, ppt: *POINT)->BOOL
     func DragFinish(hDrop: HDROP)
-    func SHChangeNotify(wEventId: LONG, uFlags: UINT, dwItem1: #null const *void, dwItem2: #null const *void)
+    func SHChangeNotify(wEventId: LONG, uFlags: UINT, dwItem1: const *void?, dwItem2: const *void?)
 }
 
 const SHCNE_ASSOCCHANGED = 0x08000000's32
@@ -498,7 +498,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     }
 
     #[Swag.Discardable]
-    func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT fail
+    func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT fail
     {
         let res = Shell32Priv.ExtractIconExA(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
         if res == Swag.U32.Max do
@@ -507,7 +507,7 @@ const SHCNF_IDLIST       = 0x0000'u32
     }
 
     #[Swag.Discardable]
-    func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT fail
+    func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT fail
     {
         let res = Shell32Priv.ExtractIconExW(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
         if res == Swag.U32.Max do

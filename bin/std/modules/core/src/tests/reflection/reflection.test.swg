@@ -157,7 +157,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let fieldEnabled = Reflection.findField(type, "enabled")
     let typeStruct   = cast(const *Swag.TypeInfoStruct) type
 
-    Swag.assert(cast(#null string) Reflection.attributeValue(type, TypeMeta, "label") == "probe")
+    Swag.assert(cast(string?) Reflection.attributeValue(type, TypeMeta, "label") == "probe")
     Swag.assert(cast(s32) Reflection.attributeValue(type, TypeMeta, "priority") == 3)
     for &it in typeStruct.fields where it.name == "x"
     {
@@ -167,13 +167,13 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
         Swag.assert(params.count == 2)
         Swag.assert(params[0].name == "fieldAlias")
         Swag.assert(params[1].name == "rank")
-        Swag.assert(cast(#null string) params[0].value == "primary")
+        Swag.assert(cast(string?) params[0].value == "primary")
         Swag.assert(cast(s32) params[1].value == 7)
     }
 
-    Swag.assert(cast(#null string) Reflection.attributeValue(fieldX, FieldMeta, "fieldAlias") == "primary")
+    Swag.assert(cast(string?) Reflection.attributeValue(fieldX, FieldMeta, "fieldAlias") == "primary")
     Swag.assert(Reflection.attributeValue(fieldX, FieldMeta, "rank", 0) == 7)
-    Swag.assert(cast(#null string) Reflection.attributeValue(fieldEnabled, FieldMeta, "fieldAlias") == "switch")
+    Swag.assert(cast(string?) Reflection.attributeValue(fieldEnabled, FieldMeta, "fieldAlias") == "switch")
     Swag.assert(Reflection.attributeValue(fieldEnabled, FieldMeta, "rank", 0) == 0)
     Swag.assert(Reflection.attributeValue(type, TypeMeta, "missing") == null)
 }
@@ -188,7 +188,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
     var readX:       s32
     var readEnabled: bool
-    var readLabel:   #null string
+    var readLabel:   string?
 
     Reflection.readFieldValue(&readX, fieldX, &probe)
     Reflection.readFieldValue(&readEnabled, fieldEnabled, &probe)
@@ -310,14 +310,14 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
     Swag.assert(Reflection.enumUnderlyingType(enumType) == u32)
     Swag.assert(enumValue.name == "Busy")
-    Swag.assert(cast(#null const *u32) enumValue.value != null)
+    Swag.assert(cast(const *u32?) enumValue.value != null)
     Swag.assert(enumValue.value![as u32] == 1)
     Swag.assert(Reflection.enumName(enumType, &state) == "ProbeState.Busy")
     Swag.assert(Reflection.enumName(enumType, &state, fullyQualified: false) == "Busy")
     Swag.assert(!Reflection.isFlagsEnum(enumType))
     Swag.assert(Reflection.isFlagsEnum(#typeof(ProbeFlags)))
     Swag.assert(enumInfo.attributes![0].type == EnumMeta)
-    Swag.assert(cast(#null string) Reflection.attributeValue(enumType, EnumMeta, "label") == "state")
+    Swag.assert(cast(string?) Reflection.attributeValue(enumType, EnumMeta, "label") == "state")
 }
 
 #test
@@ -327,7 +327,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let attrs    = Reflection.attributes(enumType, EnumMeta)
     Swag.assert(attrs.count == 1)
     let params = attrs[0].params!
-    Swag.assert(cast(#null string) params[0].value == "flags")
+    Swag.assert(cast(string?) params[0].value == "flags")
 }
 
 #test
@@ -339,9 +339,9 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let generics = funcInfo.generics!
     Swag.assert(generics[0].pointedType == u16)
     Swag.assert(generics[1].pointedType == s32)
-    Swag.assert(cast(#null const *s32) generics[1].value != null)
+    Swag.assert(cast(const *s32?) generics[1].value != null)
     Swag.assert((generics[1].value![as s32]) == 3)
     Swag.assert(funcInfo.attributes![0].type == FuncMeta)
-    Swag.assert(cast(#null string) Reflection.attributeValue(funcType, FuncMeta, "label") == "repeat")
+    Swag.assert(cast(string?) Reflection.attributeValue(funcType, FuncMeta, "label") == "repeat")
     Swag.assert(cast(s32) Reflection.attributeValue(funcType, FuncMeta, "arity") == 2)
 }

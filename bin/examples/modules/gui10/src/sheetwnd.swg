@@ -43,8 +43,7 @@ struct SheetView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    host: *SheetWnd
+    late host: *SheetWnd
 
     kind:   SheetKind
     filter: String
@@ -55,9 +54,9 @@ struct SheetView
     // building one per swatch per frame is not.
     grounds: [4] Color
 
-    fontName: #null *Font     // Face the names are listed in.
-    fontMono: #null *Font     // Face the values are listed in, so digits line up.
-    fontHead: #null *Font     // Face a family head is set in.
+    fontName: *Font?     // Face the names are listed in.
+    fontMono: *Font?     // Face the values are listed in, so digits line up.
+    fontHead: *Font?     // Face a family head is set in.
 }
 
 impl SheetView
@@ -321,8 +320,7 @@ struct SheetWnd
 {
     using scrollWnd: ScrollWnd
 
-    #[Swag.Late]
-    view: *SheetView
+    late view: *SheetView
 }
 
 impl SheetWnd
@@ -344,7 +342,7 @@ impl IWnd for SheetWnd
     // A palette switch changes every swatch and every hexadecimal string on the sheet.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged and Swag.isSet(.view) do
+        if evt.kind == .ThemeChanged and (.view != null) do
             .view.rebuild()
     }
 }

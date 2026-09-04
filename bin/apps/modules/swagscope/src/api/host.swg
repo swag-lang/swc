@@ -23,11 +23,11 @@ struct HostServices
 {
     public
     {
-        reportFailure:        #null ReportFailure            // Reports a decoder failure discovered after creation.
-        reportDetails:        #null ReportDetails            // Replaces the host-owned format summary.
-        reportChromeChanged:  #null ReportChromeChanged      // Requests another contributed-group layout pass.
-        reportLoadingChanged: #null ReportLoadingChanged     // Notifies the host of changed loading state.
-        navigateFile:         #null NavigateFile             // Requests a neighboring file by signed direction.
+        reportFailure:        ReportFailure?            // Reports a decoder failure discovered after creation.
+        reportDetails:        ReportDetails?            // Replaces the host-owned format summary.
+        reportChromeChanged:  ReportChromeChanged?      // Requests another contributed-group layout pass.
+        reportLoadingChanged: ReportLoadingChanged?     // Notifies the host of changed loading state.
+        navigateFile:         NavigateFile?             // Requests a neighboring file by signed direction.
     }
 }
 
@@ -64,11 +64,9 @@ struct SidePanel
 {
     public
     {
-        #[Swag.Late]
-        content: *Wnd     // Parent in which the plugin builds the panel contents.
+        late content: *Wnd     // Parent in which the plugin builds the panel contents.
 
-        #[Swag.Late]
-        toggle: *IconButton     // Toggle placed by the host at the edge controlled by the panel.
+        late toggle: *IconButton     // Toggle placed by the host at the edge controlled by the panel.
     }
 }
 

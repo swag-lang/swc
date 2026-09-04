@@ -297,12 +297,12 @@ zero one, so the result is non-null even when the operand was not.
 */
 #test
 {
-    var a: #null string = "string1"
-    let b               = "string2"
+    var a: string? = "string1"
+    let b          = "string2"
 
     var c = a orelse b
     Swag.assert(c == "string1")
-    #assert(#typeof(c) == string)     // the result drops '#null'
+    #assert(#typeof(c) == string)     // the result drops '?'
 
     a = null
     c = a orelse b
@@ -339,7 +339,7 @@ and the ternary already expresses it:
     var empty = ""
     Swag.assert((empty orelse "fallback") == "")
 
-    var missing: #null string = null
+    var missing: string? = null
     Swag.assert((missing orelse "fallback") == "fallback")
 }
 
@@ -441,6 +441,6 @@ operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
     Swag.assert(~0'u8 == 255)
 
     // 'orelse' and the ternary sit at the loosest level and group to the right.
-    let a: #null string = null
+    let a: string? = null
     Swag.assert((a orelse (false ? "x" : "y")) == "y")
 }

@@ -69,7 +69,7 @@ impl Spinner
 {
     // Creates a spinner, square by default and sized by the theme when `position` says nothing.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Spinner
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Spinner
     {
         Debug.assert(parent != null)
 

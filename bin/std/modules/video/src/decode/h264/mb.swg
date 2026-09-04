@@ -85,13 +85,13 @@ struct Mb
     decodedMask:  u32           // Raster 4x4 blocks already reconstructed, for intra prediction.
     motionMask:   [2] u32       // Raster 4x4 blocks whose motion is assigned, per reference list.
     firstJob:     McJob
-    extraJobs:    #null *MbExtraJobs
+    extraJobs:    *MbExtraJobs?
     jobCount:     u32
     cbpLuma:      u32
     cbpChroma:    u32
     qp:           s32
 
-    residual: #null *MbResidual
+    residual: *MbResidual?
 
     // Nonzero bookkeeping, CAVLC count semantics.
     nzLuma:      [16] u8     // Per raster 4x4 block.

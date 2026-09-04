@@ -1076,7 +1076,7 @@ impl PdfParser
     }
 
     // Returns one expanded object stream, decompressing it the first time it is needed.
-    mtd objectStream(container: u32)->#null *ObjectStream
+    mtd objectStream(container: u32)->*ObjectStream?
     {
         let existing = .objectStreamIndex.tryFind(container)
         if existing do

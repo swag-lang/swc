@@ -28,7 +28,7 @@ impl StringBuilder
     }
 
     // Append a string
-    mtd appendString(value: #null string)
+    mtd appendString(value: string?)
     {
         .buffer.addBytes(value)
     }
@@ -46,7 +46,7 @@ impl StringBuilder
     }
 
     // Append a value
-    mtd appendAny(value: #null const any, strFormat: #null string = null)
+    mtd appendAny(value: const any?, strFormat: string? = null)
     {
         let convFmt: StrConv.ConvertFormat
         convertAny(&.buffer, value, convFmt, strFormat)

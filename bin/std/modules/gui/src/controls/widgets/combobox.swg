@@ -48,15 +48,15 @@ struct ComboBox
             flags         = ComboBoxFlags.None         // Active presentation options.
             items:   ArrayPtr'ComboBoxItem             // Entries in display order.
             selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
-            editBox: #null *EditBox                    // Embedded editor in editable mode, otherwise null.
+            editBox: *EditBox?                         // Embedded editor in editable mode, otherwise null.
         }
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
-    isHot:              bool                     // Whether the mouse is over the combo.
-    popup:              #null *PopupListCtrl     // Drop-down list while it is open.
-    pointerFocusReturn: #null *Wnd               // Focus owner restored after pointer use.
-    maxIconSize:        s32                      // Widest item icon, sizing the icon column.
+    isHot:              bool                // Whether the mouse is over the combo.
+    popup:              *PopupListCtrl?     // Drop-down list while it is open.
+    pointerFocusReturn: *Wnd?               // Focus owner restored after pointer use.
+    maxIconSize:        s32                 // Widest item icon, sizing the icon column.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
@@ -106,8 +106,8 @@ impl IWnd for ComboBox
         let metrics = .themeMetrics()
         let rects   = .themeRects()
 
-        var subRectBk:     #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
+        var subRectBk:     *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
         var colorBk:       Color
         var colorBorder:   Color
         var colorText:     Color
@@ -414,7 +414,7 @@ impl ComboBox
 {
     // Creates a selection or editable combo box with optional presentation flags.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
     {
         Debug.assert(parent != null)
         let metrics = parent.themeMetrics()
@@ -463,7 +463,7 @@ impl ComboBox
 
     // Appends a selectable item and returns its stable heap object.
     #[Swag.Discardable]
-    mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->*ComboBoxItem
+    mtd addItem(name: string?, id: WndId? = null, icon: Icon = {}, userData0: *void? = null, userData1: *void? = null)->*ComboBoxItem
     {
         let item = .items.allocate()
         with item
@@ -511,7 +511,7 @@ impl ComboBox
     }
 
     // Returns the selected item, or null when the combo box has no selection.
-    mtd const selectedItem()->#null *ComboBoxItem
+    mtd const selectedItem()->*ComboBoxItem?
     {
         if .selectedIndex >= .items.count do
             return null

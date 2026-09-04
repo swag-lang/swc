@@ -76,14 +76,14 @@ struct EditBox
 
         readonly
         {
-            icon:           Icon                                           // Optional leading icon.
-            unit:           String                                         // Optional trailing unit, such as "kg".
-            form      = EditBoxForm.Rectangle                              // Current background geometry.
-            flags     = EditBoxFlags.None                                  // Active interaction and presentation options.
-            inputMode = EditBoxInputMode.Text                              // Current built-in validation mode.
-            maximumLength:  s32                                            // Maximum rune count, or zero for no limit.
-            trailingMargin: f32                                            // Extra trailing inset in logical units.
-            validator:      #null func||(*EditBox)->EditBoxCheckResult     // Custom validator, or null for built-in validation.
+            icon:           Icon                                        // Optional leading icon.
+            unit:           String                                      // Optional trailing unit, such as "kg".
+            form      = EditBoxForm.Rectangle                           // Current background geometry.
+            flags     = EditBoxFlags.None                               // Active interaction and presentation options.
+            inputMode = EditBoxInputMode.Text                           // Current built-in validation mode.
+            maximumLength:  s32                                         // Maximum rune count, or zero for no limit.
+            trailingMargin: f32                                         // Extra trailing inset in logical units.
+            validator:      (func||(*EditBox)->EditBoxCheckResult)?     // Custom validator, or null for built-in validation.
         }
     }
 
@@ -102,18 +102,18 @@ struct EditBox
     aniBk:     BlendColor = {speed: 4}     // Background colour animation
     aniBorder: BlendColor = {speed: 4}     // Border colour animation
 
-    isInvalid:          bool                  // True if current content is invalid
-    isHot:              bool                  // True while the mouse is hovering
-    isDragging:         bool                  // True while the user is selecting text
-    selBeg, selEnd:     u64                   // Selection start/end (byte indices)
-    timerCaret:         #null *Timer          // Blinking‑caret timer
-    clearBtn:           #null *IconButton     // Optional clear button instance
-    clearBtnTextMargin: f32                   // Text margin reserved for the clear button
-    visibleCaret:       bool                  // True when the caret should be visible
-    posSelBeg:          f32                   // X‑position of selection start in pixels
-    posSelEnd:          f32                   // X‑position of selection end in pixels
-    scrollPosX:         f32                   // Horizontal scroll offset
-    countRunes:         s32                   // Number of runes currently in text
+    isInvalid:          bool             // True if current content is invalid
+    isHot:              bool             // True while the mouse is hovering
+    isDragging:         bool             // True while the user is selecting text
+    selBeg, selEnd:     u64              // Selection start/end (byte indices)
+    timerCaret:         *Timer?          // Blinking‑caret timer
+    clearBtn:           *IconButton?     // Optional clear button instance
+    clearBtnTextMargin: f32              // Text margin reserved for the clear button
+    visibleCaret:       bool             // True when the caret should be visible
+    posSelBeg:          f32              // X‑position of selection start in pixels
+    posSelEnd:          f32              // X‑position of selection end in pixels
+    scrollPosX:         f32              // Horizontal scroll offset
+    countRunes:         s32              // Number of runes currently in text
 }
 
 impl IWnd for EditBox
@@ -153,8 +153,8 @@ impl IWnd for EditBox
         let metrics = .themeMetrics()
         let rects   = .themeRects()
 
-        var subRectBk:     #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
+        var subRectBk:     *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
         var colorBk:       Color
         var colorBorder:   Color
         var colorText:     Color
@@ -635,7 +635,7 @@ private impl EditBox
     }
 
     // Inserts an arbitrary UTF‑8 string (after deleting the current selection).
-    mtd insertString(str: #null string)
+    mtd insertString(str: string?)
     {
         let safeStr = str orelse ""
         Utf8.visitRunes(safeStr) #code(r)
@@ -664,7 +664,7 @@ private impl EditBox
         else
         {
             var eat = 0'u32
-            var parseErr: #null any
+            var parseErr: any?
             switch .inputMode
             {
             case .SignedInteger:
@@ -1164,7 +1164,7 @@ impl EditBox
 {
     // Creates a single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = .None)->*EditBox
+    func create(parent: *Wnd, content: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditBox
     {
         Debug.assert(parent != null)
         var pos = position
@@ -1207,14 +1207,14 @@ impl EditBox
     }
 
     // Changes the placeholder displayed while content is empty.
-    mtd setPlaceholder(placeholder: #null string)
+    mtd setPlaceholder(placeholder: string?)
     {
         .name.set(placeholder)
         .invalidate()
     }
 
     // Replaces the content and optionally emits one `sigTextChanged` notification.
-    mtd setText(str: #null string, notify = true)
+    mtd setText(str: string?, notify = true)
     {
         if .textStorage == str do
             return
@@ -1337,7 +1337,7 @@ impl EditBox
     }
 
     // Changes the trailing unit.
-    mtd setUnit(unit: #null string)
+    mtd setUnit(unit: string?)
     {
         .unit = unit orelse ""
         .invalidate()
@@ -1361,7 +1361,7 @@ impl EditBox
     }
 
     // Changes the custom validator; null restores built-in validation.
-    mtd setValidator(validator: #null func||(*EditBox)->EditBoxCheckResult)
+    mtd setValidator(validator: (func||(*EditBox)->EditBoxCheckResult)?)
     {
         .validator = validator
         discard .checkContent()

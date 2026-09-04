@@ -19,8 +19,8 @@ public struct Job
 {
     public
     {
-        lambda: #null func(#null *void)     // Callback invoked once, or `null` for a no-op job.
-        data:   #null *void                 // Opaque caller-owned context passed to `lambda`.
+        lambda: (func(*void?))?     // Callback invoked once, or `null` for a no-op job.
+        data:   *void?              // Opaque caller-owned context passed to `lambda`.
     }
 
     // Scheduling state, owned by the job manager that runs the job.
@@ -34,10 +34,10 @@ public struct(T) SliceJob
 {
     public
     {
-        using base:  Job                    // Embedded base state.
-        buffer:      #null const [..] T     // Buffer associated with this value.
-        offset:      u32                    // Offset associated with this value.
-        contextData: #null *void            // Context data associated with this value.
+        using base:  Job               // Embedded base state.
+        buffer:      const [..] T?     // Buffer associated with this value.
+        offset:      u32               // Offset associated with this value.
+        contextData: *void?            // Context data associated with this value.
     }
 }
 
@@ -47,14 +47,14 @@ public struct ForJob
 {
     public
     {
-        using base:  Job             // Embedded base state.
-        startIndex:  u32             // Index of start.
-        endIndex:    u32             // Index of end.
-        contextData: #null *void     // Context data associated with this value.
+        using base:  Job        // Embedded base state.
+        startIndex:  u32        // Index of start.
+        endIndex:    u32        // Index of end.
+        contextData: *void?     // Context data associated with this value.
     }
 }
 
-var g_Allocator:        #null Swag.IAllocator
+var g_Allocator:        Swag.IAllocator?
 var g_mustEnd:          bool
 var g_workerCount:      s32
 var g_workers:          Array'Thread
@@ -98,7 +98,7 @@ func runJob(job: *Job)
     let lambda = job.lambda
     if !lambda do
         return
-    let safeLambda = lambda orelse func(data: #null *void) {}
+    let safeLambda = lambda orelse func(data: *void?) {}
     safeLambda(job.data)
 
     // Done
@@ -119,7 +119,7 @@ func peekExecJob()->bool
     return true
 }
 
-func getJobToExec()->#null *Job
+func getJobToExec()->*Job?
 {
     if Atomic.get(&g_pendingJobCount) == 0 do
         return null
@@ -258,19 +258,19 @@ public func wait(job: *Job)
 // - 'buffer': address of the element of the range to process
 // - 'data':   contextData as passed to the macro
 #[Swag.Macro]
-public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
+public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void? = null, stmt: #code(var buffer, data))
 {
     if !range.count do
         return
     Debug.assert(offset != 0)
 
-    func jobEntry(jobData: #null *void)
+    func jobEntry(jobData: *void?)
     {
         let oneJob = cast(*SliceJob'T) jobData!
         visitSlice(oneJob.buffer, oneJob.offset, oneJob.contextData)
     }
 
-    func visitSlice(sliceBuffer: #null const [..] T, sliceOffset: u32, sliceContextData: #null *void)
+    func visitSlice(sliceBuffer: const [..] T?, sliceOffset: u32, sliceContextData: *void?)
     {
         let scan = sliceBuffer.buffer
         if !scan do
@@ -329,18 +329,18 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
 // - 'index': current for index
 // - 'data':  contextData as passed to the macro
 #[Swag.Macro]
-public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code(index: u32, data))
+public func parallelFor(count: u32, contextData: *void? = null, stmt: #code(index: u32, data))
 {
     if !count do
         return
 
-    func jobEntry(jobData: #null *void)
+    func jobEntry(jobData: *void?)
     {
         let oneJob = cast(*ForJob) jobData!
         visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.contextData)
     }
 
-    func visitFor(forStart, forEnd: u32, forContextData: #null *void)
+    func visitFor(forStart, forEnd: u32, forContextData: *void?)
     {
         var curIndex = forStart
         for (forEnd - forStart) + 1

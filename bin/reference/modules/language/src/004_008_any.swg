@@ -14,7 +14,7 @@
 
 #test
 {
-    var a: #null any
+    var a: any?
 
     // Store an s32 literal value in the 'any'
     a = 6
@@ -107,7 +107,7 @@ An 'any' value can be null, similar to pointers and other nullable types.
 
 #test
 {
-    var x: #null any
+    var x: any?
     Swag.assert(x == null)
 
     x = 6
@@ -131,7 +131,7 @@ This uses 'Swag.kindOf' internally to compare the stored value's type.
 
 #test
 {
-    var x: #null any
+    var x: any?
     Swag.assert(x == null)
 
     x = 6

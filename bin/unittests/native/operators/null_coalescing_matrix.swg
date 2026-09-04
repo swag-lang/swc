@@ -19,16 +19,16 @@ impl INullCoalescingProbe for NullCoalescingProbe
     }
 }
 
-func probeObject(itf: INullCoalescingProbe)->#null *void
+func probeObject(itf: INullCoalescingProbe)->*void?
 {
     let runtimeItf = cast(const *Swag.Interface) &itf
     return runtimeItf.obj
 }
 
-func probeITable(itf: INullCoalescingProbe)->#null const *void
+func probeITable(itf: INullCoalescingProbe)->const *void?
 {
     let runtimeItf = cast(const *Swag.Interface) &itf
-    return cast(#null const *void) runtimeItf.itable
+    return cast(const *void?) runtimeItf.itable
 }
 
 func falseBoolFallback(value: bool)->bool
@@ -38,9 +38,9 @@ func falseBoolFallback(value: bool)->bool
 
 func nullStringFallback()->bool
 {
-    var value: #null string = null
-    let fallback            = "fallback"
-    let resolved            = value orelse fallback
+    var value: string? = null
+    let fallback       = "fallback"
+    let resolved       = value orelse fallback
     return resolved == fallback
 }
 
@@ -54,10 +54,10 @@ func nonNullStringWins()->bool
 
 func nullSliceFallback()->bool
 {
-    var value:          #null [..] u32 = null
-    let fallbackValues: [2] u32        = [7, 9]
-    let fallback:       [..] u32       = fallbackValues
-    let resolved                       = value orelse fallback
+    var value:          [..] u32? = null
+    let fallbackValues: [2] u32   = [7, 9]
+    let fallback:       [..] u32  = fallbackValues
+    let resolved                  = value orelse fallback
     return resolved.count == 2 and resolved[0] == 7 and resolved[1] == 9
 }
 
@@ -73,10 +73,10 @@ func nonNullSliceWins()->bool
 
 func nullInterfaceFallbackWritesThroughSelectedReceiver()->bool
 {
-    var value: #null INullCoalescingProbe = null
-    var fallbackProbe = NullCoalescingProbe{tag: 77}
-    let fallback      = Swag.makeInterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
-    let selected      = value orelse fallback
+    var value: INullCoalescingProbe? = null
+    var fallbackProbe                = NullCoalescingProbe{tag: 77}
+    let fallback                     = Swag.makeInterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
+    let selected                     = value orelse fallback
 
     var written: u64 = 0
     selected.write(&written)

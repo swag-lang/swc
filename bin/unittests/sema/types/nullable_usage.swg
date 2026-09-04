@@ -6,7 +6,7 @@
 // - a dominating null test (flow narrowing);
 // - an explicit '!' assertion (runtime-checked in safety builds);
 // - a '?.' guarded access, optionally closed by an 'orelse' fallback.
-// The TYPE boundary is unchanged: a '#null T' never converts implicitly to 'T'.
+// The TYPE boundary is unchanged: a '? T' never converts implicitly to 'T'.
 
 struct NullableUsageItem
 {
@@ -23,7 +23,7 @@ var g_nullableUsageStorage: s32
 // Narrowing: the null test dominates the dereference.
 func nullableUsageLocalDeref(use: bool)->s32
 {
-    var p: #null *s32
+    var p: *s32?
     if use do
         p = &g_nullableUsageStorage
     if p == null do
@@ -33,16 +33,16 @@ func nullableUsageLocalDeref(use: bool)->s32
 
 func nullableUsageLocalIndex(count: u64)->s32
 {
-    var block: #null [*] s32
+    var block: [*] s32?
     if count do
-        block = cast(#null [*] s32) &g_nullableUsageStorage
+        block = cast([*] s32?) &g_nullableUsageStorage
     if block == null do
         return 0
     return block[0]
 }
 
 // Crossing the type boundary requires the same control-flow proof...
-func nullableUsageRefined(value: #null *NullableUsageItem, block: #null [*] s32, callback: #null func()->s32)->s32
+func nullableUsageRefined(value: *NullableUsageItem?, block: [*] s32?, callback: (func()->s32)?)->s32
 {
     if value == null or block == null or callback == null do
         return 0
@@ -51,19 +51,19 @@ func nullableUsageRefined(value: #null *NullableUsageItem, block: #null [*] s32,
 }
 
 // ...or an explicit '!' assertion.
-func nullableUsageAsserted(value: #null *NullableUsageItem)->s32
+func nullableUsageAsserted(value: *NullableUsageItem?)->s32
 {
     return value!.value
 }
 
 // ...or a '?.' guarded access.
-func nullableUsageOptional(value: #null *NullableUsageItem)->s32
+func nullableUsageOptional(value: *NullableUsageItem?)->s32
 {
     return value?.value orelse 0
 }
 
 // A conditional branch inherits the matching truth of its condition.
-func nullableUsageConditionalDeref(value: #null *s32)->s32
+func nullableUsageConditionalDeref(value: *s32?)->s32
 {
     return value != null ? value[] : 0
 }

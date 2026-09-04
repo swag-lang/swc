@@ -4,7 +4,7 @@
 using Swag
 
 // Returns whether the type is a Core dynamic array.
-func isDynamicArray(t: #null typeinfo)->bool
+func isDynamicArray(t: typeinfo?)->bool
 {
     if !t or !isStruct(t) do
         return false
@@ -17,7 +17,7 @@ func isDynamicArray(t: #null typeinfo)->bool
 }
 
 // Returns a dynamic array's element type, or null for another kind of type.
-func dynamicArrayElementType(t: #null typeinfo)->#null typeinfo
+func dynamicArrayElementType(t: typeinfo?)->typeinfo?
 {
     if !isDynamicArray(t) do
         return null
@@ -28,7 +28,7 @@ func dynamicArrayElementType(t: #null typeinfo)->#null typeinfo
 }
 
 // Removes every element from a runtime-typed dynamic array.
-func clearDynamicArray(arrayPointer: #null *void, elementType: #null typeinfo)
+func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
 {
     if !arrayPointer or !elementType do
         return
@@ -50,7 +50,7 @@ func clearDynamicArray(arrayPointer: #null *void, elementType: #null typeinfo)
 }
 
 // Removes an element from a runtime-typed dynamic array while preserving value lifecycles.
-func removeDynamicArrayElement(arrayPointer: #null *void, elementType: #null typeinfo, index: u64)
+func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, index: u64)
 {
     if !arrayPointer or !elementType do
         return
@@ -90,7 +90,7 @@ func removeDynamicArrayElement(arrayPointer: #null *void, elementType: #null typ
 // Swap two elements (by index) inside a contiguous buffer of 'valueType'. Works for both a
 // static array buffer and a 'Core.Array' buffer (pass arr.buffer), handling structs that need
 // a post-move fixup after their bytes are relocated.
-func swapRuntimeValues(basePointer: #null *void, valueType: #null typeinfo, indexA, indexB: u64)
+func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB: u64)
 {
     if !basePointer or !valueType or indexA == indexB do
         return
@@ -121,7 +121,7 @@ func swapRuntimeValues(basePointer: #null *void, valueType: #null typeinfo, inde
 // With 'defaultInitSlot' false, the new slot is only zeroed and the CALLER must fully
 // initialize it (deserialization does): this supports element types that have no
 // implicit default, like non-null interfaces.
-func appendDynamicArrayElement(arrayPointer: #null *void, elementType: #null typeinfo, initialize: bool = true)->#null *void
+func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, initialize: bool = true)->*void?
 {
     if !arrayPointer or !elementType
     {

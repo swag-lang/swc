@@ -37,7 +37,7 @@ struct Type1Font
 }
 
 // Reverses the stream cipher that protects a Type 1 private section or charstring.
-func eexecDecrypt(data: #null const [..] u8, key: u16, skip: u64)->Array'u8
+func eexecDecrypt(data: const [..] u8?, key: u16, skip: u64)->Array'u8
 {
     var result: retval
     if data.count <= skip do
@@ -56,7 +56,7 @@ func eexecDecrypt(data: #null const [..] u8, key: u16, skip: u64)->Array'u8
     return result
 }
 
-func findBytes(data: #null const [..] u8, from: u64, needle: string)->u64
+func findBytes(data: const [..] u8?, from: u64, needle: string)->u64
 {
     let size  = needle.count
     let total = data.count
@@ -92,7 +92,7 @@ private func isPostScriptDelimiter(c: u8)->bool
     return isPostScriptSpace(c) or c == '/' or c == '[' or c == ']' or c == '{' or c == '}' or c == '(' or c == ')'
 }
 
-private func skipPostScriptSpaces(data: #null const [..] u8, from: u64)->u64
+private func skipPostScriptSpaces(data: const [..] u8?, from: u64)->u64
 {
     var pos = from
     while pos < data.count and isPostScriptSpace(data![pos]) do
@@ -101,7 +101,7 @@ private func skipPostScriptSpaces(data: #null const [..] u8, from: u64)->u64
 }
 
 // Reads the next whitespace-delimited token, without its leading delimiter.
-private func readPostScriptToken(data: #null const [..] u8, from: u64)->{ text: string, next: u64 }
+private func readPostScriptToken(data: const [..] u8?, from: u64)->{ text: string, next: u64 }
 {
     var pos   = skipPostScriptSpaces(data, from)
     let start = pos
@@ -111,7 +111,7 @@ private func readPostScriptToken(data: #null const [..] u8, from: u64)->{ text: 
     return {cast(string) Swag.makeSlice(data.buffer + start, pos - start), pos}
 }
 
-private func readPostScriptNumber(data: #null const [..] u8, from: u64)->{ value: f64, next: u64 }
+private func readPostScriptNumber(data: const [..] u8?, from: u64)->{ value: f64, next: u64 }
 {
     var pos = skipPostScriptSpaces(data, from)
 
@@ -148,7 +148,7 @@ private func readPostScriptNumber(data: #null const [..] u8, from: u64)->{ value
 //
 // A PFB file interleaves ASCII and binary segments behind six-byte headers; the font
 // program itself is their concatenation.
-private func unwrapPfb(bytes: #null const [..] u8)->Array'u8 fail
+private func unwrapPfb(bytes: const [..] u8?)->Array'u8 fail
 {
     var result: retval
     if bytes.count < 6 or bytes![0] != 0x80
@@ -179,7 +179,7 @@ private func unwrapPfb(bytes: #null const [..] u8)->Array'u8 fail
 }
 
 // Decodes the hexadecimal spelling a PFA file gives the private section.
-private func decodeEexecHex(data: #null const [..] u8)->Array'u8
+private func decodeEexecHex(data: const [..] u8?)->Array'u8
 {
     var result: retval
     var high = 0'u8
@@ -215,7 +215,7 @@ private func decodeEexecHex(data: #null const [..] u8)->Array'u8
 //
 // The binary form starts with four random bytes, so the test is whether the first four
 // non-space bytes are all hexadecimal digits — the check the format itself prescribes.
-private func isHexPrivateSection(data: #null const [..] u8)->bool
+private func isHexPrivateSection(data: const [..] u8?)->bool
 {
     var seen = 0'u32
     for c in data
@@ -234,7 +234,7 @@ private func isHexPrivateSection(data: #null const [..] u8)->bool
 }
 
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
-private func readCharstringData(data: #null const [..] u8, from: u64, lenIV: u64)->{ bytes: Array'u8, next: u64 } fail
+private func readCharstringData(data: const [..] u8?, from: u64, lenIV: u64)->{ bytes: Array'u8, next: u64 } fail
 {
     var result: retval
     let length = readPostScriptNumber(data, from)
@@ -259,7 +259,7 @@ private func readCharstringData(data: #null const [..] u8, from: u64, lenIV: u64
     return result
 }
 
-private func parseType1Subrs(font: *Type1Font, data: #null const [..] u8, lenIV: u64) fail
+private func parseType1Subrs(font: *Type1Font, data: const [..] u8?, lenIV: u64) fail
 {
     let marker = findBytes(data, 0, "/Subrs")
     if marker >= data.count do
@@ -290,7 +290,7 @@ private func parseType1Subrs(font: *Type1Font, data: #null const [..] u8, lenIV:
 // The name every font reserves for the glyph drawn in place of one it does not have.
 private const NotDefName = ".notdef"
 
-private func parseType1CharStrings(font: *Type1Font, data: #null const [..] u8, lenIV: u64) fail
+private func parseType1CharStrings(font: *Type1Font, data: const [..] u8?, lenIV: u64) fail
 {
     var pos = findBytes(data, 0, "/CharStrings")
     if pos >= data.count do
@@ -357,7 +357,7 @@ private func parseType1CharStrings(font: *Type1Font, data: #null const [..] u8, 
         fault(0xBA)
 }
 
-private func parseType1Encoding(font: *Type1Font, clear: #null const [..] u8) fail
+private func parseType1Encoding(font: *Type1Font, clear: const [..] u8?) fail
 {
     let marker = findBytes(clear, 0, "/Encoding")
     if marker >= clear.count do
@@ -408,7 +408,7 @@ private func parseType1Encoding(font: *Type1Font, clear: #null const [..] u8) fa
     }
 }
 
-private func parseType1Header(font: *Type1Font, clear: #null const [..] u8)
+private func parseType1Header(font: *Type1Font, clear: const [..] u8?)
 {
     let matrix = findBytes(clear, 0, "/FontMatrix")
     if matrix < clear.count
@@ -469,7 +469,7 @@ private func parseType1Header(font: *Type1Font, clear: #null const [..] u8)
 }
 
 // Reads a complete Type 1 font program, in its PFB, PFA, or bare form.
-func parseType1Font(bytes: #null const [..] u8)->Type1Font fail
+func parseType1Font(bytes: const [..] u8?)->Type1Font fail
 {
     var result: retval
 

@@ -11,7 +11,7 @@ private struct DWM_BLURBEHIND
 {
     dwFlags:                DWORD
     fEnable:                BOOL
-    hRgnBlur:               #null *void
+    hRgnBlur:               *void?
     fTransitionOnMaximized: BOOL
 }
 
@@ -37,22 +37,22 @@ private #[Swag.Foreign("dwmapi", callconv: Swag.CallConv.C)]
 private #[Swag.Foreign("gdi32", callconv: Swag.CallConv.C)]
 {
     // Creates a rectangular region; an inverted rectangle yields the empty region.
-    func CreateRectRgn(x1, y1, x2, y2: s32)->#null *void
+    func CreateRectRgn(x1, y1, x2, y2: s32)->*void?
 
     // Releases a GDI object.
-    func DeleteObject(ho: #null *void)->BOOL
+    func DeleteObject(ho: *void?)->BOOL
 }
 
 private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
 {
     // Starts a low-priority window timer used to pace interactive resize frames.
-    func SetTimer(hWnd: HWND, nIDEvent: u64, uElapse: UINT, lpTimerFunc: #null *void)->u64
+    func SetTimer(hWnd: HWND, nIDEvent: u64, uElapse: UINT, lpTimerFunc: *void?)->u64
 
     // Stops a window timer.
     func KillTimer(hWnd: HWND, uIDEvent: u64)->BOOL
 
     // Removes a native update region after an equivalent frame was presented directly.
-    func ValidateRect(hWnd: HWND, lpRect: #null const *RECT)->BOOL
+    func ValidateRect(hWnd: HWND, lpRect: const *RECT?)->BOOL
 }
 
 // Defines dwmwa window corner preference.
@@ -206,7 +206,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     }
 
     // Get 'Surface' pointer
-    let surface = cast(#null *Surface) cast #bit (u64) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
+    let surface = cast(*Surface?) cast #bit (u64) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
     if surface
     {
         if msg == WM_USER
@@ -512,8 +512,7 @@ private impl Surface
         Env.enableDpiAwareness()
 
         // Create class
-        #[Swag.Global]
-        var doneClass: bool
+        global var doneClass: bool
         let className16   = Utf16.toZeroTerminated("Swag.Gui.Surface")
         let surfaceName16 = Utf16.toZeroTerminated(result.surfaceId)
         let className     = className16.buffer
@@ -528,7 +527,7 @@ private impl Surface
 
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
-            wc.cbWndExtra    = #sizeof(#null *void)
+            wc.cbWndExtra    = #sizeof(*void?)
             wc.style         = CS_OWNDC | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
             wc.lpfnWndProc   = cast() &winProc
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
@@ -550,7 +549,7 @@ private impl Surface
         }
 
         // Create window
-        result.hWnd = cast(#null const *void) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
+        result.hWnd = cast(const *void?) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
         if !result.hWnd do
             failWinError(GetLastError())
 
@@ -587,7 +586,7 @@ private impl Surface
 
 impl Surface
 {
-    internal mtd const nativeRenderHandle()->#null const *void => cast(#null const *void) .hWnd
+    internal mtd const nativeRenderHandle()->const *void? => cast(const *void?) .hWnd
 
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
@@ -642,7 +641,7 @@ impl Surface
     // carries the mouse message directly in 'lParam', which is what the window proc
     // forwards as 'param1'. NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that
     // layout and is intentionally not used.
-    mtd setTrayIcon(icon: Pixel.Image, tip: #null string = null)
+    mtd setTrayIcon(icon: Pixel.Image, tip: string? = null)
     {
         if !.app.renderer.needsNativeWindow() do
             return

@@ -215,7 +215,7 @@ internal struct VideoSeekOverlay
     text:       String
     direction:  s32
     fontReady:  bool
-    timer:      #null *Timer
+    timer:      *Timer?
     offsetAni:  AnimationHandle
     scaleAni:   AnimationHandle
     opacityAni: AnimationHandle
@@ -432,7 +432,7 @@ private func videoSubtitleTrackCommand(sidecar: bool, index: u32)->String
     return Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
 }
 
-internal func videoSubtitleText(data: #null const [*] u8, length: u64)->string
+internal func videoSubtitleText(data: const [*] u8?, length: u64)->string
 {
     return data and length ? cast(string) Swag.makeSlice(data!, length) : ""
 }
@@ -528,7 +528,7 @@ internal struct VideoViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:        *Wnd
         playButton:      *IconButton
@@ -546,7 +546,7 @@ internal struct VideoViewer
         subtitleOverlay: *VideoSubtitleOverlay
     }
 
-    seekOverlay: #null *VideoSeekOverlay
+    seekOverlay: *VideoSeekOverlay?
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
     // thread affinity. `openState` is zero while opening, one on success and two on failure.
@@ -559,8 +559,8 @@ internal struct VideoViewer
     // Opening retains bounded metadata while progressive indexes and payloads stay in the file.
     video:               Reader
     planar:              bool     // The codec hands its pictures over without converting them.
-    audio:               #null const *SoundFile
-    voice:               #null *Voice
+    audio:               const *SoundFile?
+    voice:               *Voice?
     audioTrackIndex:     u32
     audioEngineAcquired: bool
     subtitleSource:      VideoSubtitleSource
@@ -616,7 +616,7 @@ internal struct VideoViewer
     resumeAudioAfterSeek: bool
     audioRangePending:    bool     // The progressive sound index does not reach the picture yet.
 
-    timer:                #null *Timer
+    timer:                *Timer?
     clock:                Time.Stopwatch
     elapsed:              f64
     frameIndex:           u64
@@ -631,9 +631,9 @@ internal struct VideoViewer
     audioReady:           bool
     timelineReady:        bool
     timelineChanging:     bool
-    reportDetails:        #null Viewer.ReportDetails
-    reportFailure:        #null Viewer.ReportFailure
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    reportDetails:        Viewer.ReportDetails?
+    reportFailure:        Viewer.ReportFailure?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     retireRequested:      bool
     retired:              bool
 
@@ -1058,7 +1058,7 @@ internal impl VideoViewer
         }
     }
 
-    mtd const subtitleTrack()->#null const *Subtitle.Track
+    mtd const subtitleTrack()->const *Subtitle.Track?
     {
         switch #complete .subtitleSource
         {
@@ -1301,7 +1301,7 @@ internal impl VideoViewer
     //
     // A codec that reconstructs planes hands them over as they are; one that does not produces the
     // packed picture itself. Only the queue knows which of the two a slot holds.
-    private mtd decodeIntoSlot(slot: u32, index: u64)->#null any
+    private mtd decodeIntoSlot(slot: u32, index: u64)->any?
     {
         if .planar
         {
@@ -2165,7 +2165,7 @@ private func runVideoViewerDecode(thread: Threading.Thread)
 }
 
 // Creates the integrated video playback view.
-private func loadVideoViewer(host: Viewer.Host)->#null *VideoViewer fail => try VideoViewer.create(host)
+private func loadVideoViewer(host: Viewer.Host)->*VideoViewer? fail => try VideoViewer.create(host)
 
 func createVideoViewer(host: Viewer.Host)
 {

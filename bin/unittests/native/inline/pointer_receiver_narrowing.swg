@@ -2,7 +2,7 @@
 
 struct PointerReceiverNarrowing
 {
-    buffer: #null [*] u8
+    buffer: [*] u8?
 }
 
 impl PointerReceiverNarrowing

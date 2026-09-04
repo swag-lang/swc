@@ -287,11 +287,10 @@ using Swag, Core
 // is geometry (rects, endpoints, point lists, rotation) and form order.
 struct UndoFuzzForm
 {
-    #[Swag.Late]
-    kind:   typeinfo
-    rect:   Math.Rectangle
-    rotate: f32
-    points: Array'Math.Vector2
+    late kind: typeinfo
+    rect:      Math.Rectangle
+    rotate:    f32
+    points:    Array'Math.Vector2
 }
 
 struct UndoFuzzState

@@ -1,15 +1,15 @@
 #global private
 
-const A: #null *s32 = null
+const A: *s32? = null
 #assert(A == null)
-const B: #null string = null
+const B: string? = null
 #assert(B == null)
 
 #assert(A == B)     // swc-expected-error {{sema_err_compare_operand_type}}
 
-const C: #null [..] string = null
+const C: [..] string? = null
 #assert(C == null)
-const D: #null any = null
+const D: any? = null
 #assert(D == null)
 
 const E = "toto"

@@ -256,7 +256,7 @@ func display()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_IndexBuffer)
 
     const Stride = 9 * #sizeof(GLfloat)
-    var offset: #null const [*] u8 = null
+    var offset: const [*] u8? = null
     glEnableVertexAttribArray(0)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, Stride, offset)
     offset += 3 * #sizeof(GLfloat)

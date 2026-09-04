@@ -12,7 +12,7 @@ struct OuterValue
 
 struct OuterPtr
 {
-    using p: #null *Inner
+    using p: *Inner?
 }
 
 struct OuterAnonymousStruct

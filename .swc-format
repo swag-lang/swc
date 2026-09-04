@@ -7,8 +7,9 @@
 # ready-to-edit `.swc-format` file, and `swc format --style preserve` to
 # normalize nothing at all.
 #
-# One departure. Line endings are a property of the checkout rather than of the
-# style, so the built-in style preserves them; this tree is checked out with
-# CRLF (`.gitattributes`), and pinning the value here repairs the files that
-# an editor or a bulk tool silently rewrote to LF.
+# One departure, and it belongs to the checkout rather than to the style. Line
+# endings are a property of the working tree, so the built-in style preserves
+# them; this tree is checked out with CRLF (`.gitattributes`), and pinning the
+# value at the root repairs the files that an editor or a bulk tool silently
+# rewrote to LF - under `bin/` and under `tools/` alike.
 end-of-line-style = crlf

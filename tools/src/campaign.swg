@@ -20,6 +20,10 @@ public func runTests(context: *Context, options: *Options)->s32 fail
     if backlog != 0 do
         return backlog
 
+    let notices = try auditNotices(context)
+    if notices != 0 do
+        return notices
+
     if !options.module.isEmpty()
     {
         Console.println("tests.swgs runs a whole set and takes no name. Use unittests, std, examples, apps,")

@@ -1,4 +1,4 @@
-#global if WINDOWS
+#global if WINDOWS and #command == Swag.CompilerCommand.Test
 #global private
 
 // A loaded library resolves its exports, and closing it clears the owner without requiring drop.

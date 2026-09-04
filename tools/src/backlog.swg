@@ -62,43 +62,6 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->u32 fail
     return errors
 }
 
-private func markdownHeadingAnchor(line: string)->String
-{
-    var result: retval
-    var start:  u64
-    while start < line.count and start < 6 and line[start] == '#' do
-        start += 1
-    if start == 0 or start >= line.count or line[start] != ' ' do
-        return result
-
-    start += 1
-    Utf8.visitRunes(cast(const [..] u8) line[start until line.count]) #code(c, charIndex, byteIndex)
-    {
-        discard charIndex
-        discard byteIndex
-        if Unicode.isLetterOrDigit(c) do
-            result += Unicode.toLower(c)
-        elif c == '-' or c == '_' do
-            result += c
-        elif c == ' ' do
-            result += '-'
-    }
-
-    return result
-}
-
-private func hasMarkdownHeading(fileName: string, anchor: string)->bool fail
-{
-    let content = try File.readAllText(fileName)
-    for line in Tokenize.splitLines(content.toString())
-    {
-        if markdownHeadingAnchor(line) == anchor do
-            return true
-    }
-
-    return false
-}
-
 private func auditBacklogLink(fileName: string, lineNumber: u64, destination: string)->u32 fail
 {
     if Utf8.startsWith(cast(const [..] u8) destination, "https://") or Utf8.startsWith(cast(const [..] u8) destination, "http://") or Utf8.startsWith(cast(const [..] u8) destination, "mailto:") do

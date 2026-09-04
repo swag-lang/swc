@@ -1,6 +1,6 @@
 ---
 name: design-swag-bin-modules
-description: Design, review, normalize, and complete public Swag module APIs under bin/. Use whenever adding or changing public declarations, reviewing API consistency or completeness, renaming exported symbols, changing ownership or failure contracts, reorganizing standard or runtime modules, or performing a module-wide API quality pass in bin/runtime, bin/std, bin/native, or bin/examples.
+description: Design, review, normalize, and complete public Swag module APIs under bin/. Use whenever adding or changing public declarations, reviewing API consistency or completeness, renaming exported symbols, changing ownership or failure contracts, reorganizing standard or runtime modules, or performing a module-wide API quality pass in bin/runtime, bin/std, bin/apps, or bin/examples.
 ---
 
 # Design Swag Bin Modules

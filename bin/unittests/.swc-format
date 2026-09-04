@@ -1,8 +1,8 @@
 # Unit tests anchor `swc-expected-error` / `swc-expected-warning` markers to
 # the exact line that raises the diagnostic: any option that adds, removes, or
 # moves lines would detach a marker from its error. Only the line-count-stable
-# rewrites (spacing, alignment, literal case, ...) stay inherited from
-# bin/.swc-format. The lexer/ and parser/ suites keep their own stricter
+# rewrites (spacing, alignment, literal case, ...) stay inherited from the
+# repository `.swc-format`. The lexer/ and parser/ suites keep their own stricter
 # all-preserve overrides on top of this one.
 allow-short-functions-on-single-line = preserve
 allow-short-blocks-on-single-line = preserve

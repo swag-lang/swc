@@ -71,8 +71,9 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `vault.swgs` | The privileged Swag Vault/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
 `tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, fully scoped
-domain file names, Markdown links, and the README inventory before it selects or starts a test
-campaign.
+domain file names, Markdown links, the README inventory, and the third-party notice contract -
+every scoped `THIRDPARTY.md` is indexed and every `@NOTICE:` resolves - before it selects or
+starts a test campaign.
 
 ## Workspaces
 

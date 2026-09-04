@@ -94,6 +94,7 @@ namespace Integration
         }
 
         failWith("No unused drive letter is available for the integration sandbox.")
+        unreachable
     }
 
     func movePath(existing, replacement: string, replace = false) fail

@@ -347,7 +347,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Constants</span><span class="toc-count">90</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">91</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Core_ASSERT">Core.ASSERT</a></li>
@@ -438,12 +438,13 @@
 <li><a href="#Core_Math_Vector4_UnitY">Vector4.UnitY</a></li>
 <li><a href="#Core_Math_Vector4_UnitZ">Vector4.UnitZ</a></li>
 <li><a href="#Core_Math_Vector4_Zero">Vector4.Zero</a></li>
+<li><a href="#Core_Env_Window_OffScreenOrigin">Window.OffScreenOrigin</a></li>
 <li><a href="#Core_Serialization_Write_TagBinAdHocShape">Write.TagBinAdHocShape</a></li>
 <li><a href="#Core_Serialization_Write_TagBinVersion1">Write.TagBinVersion1</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1685</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1686</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -2104,6 +2105,7 @@
 <li><a href="#Core_Env_Window_requestPaint">Window.requestPaint</a></li>
 <li><a href="#Core_Env_Window_setClientSize">Window.setClientSize</a></li>
 <li><a href="#Core_Env_Window_show">Window.show</a></li>
+<li><a href="#Core_Env_Window_showOffScreen">Window.showOffScreen</a></li>
 <li><a href="#Core_Env_WindowLoop_next">WindowLoop.next</a></li>
 <li><a href="#Core_Scc_Writer_addChunk">Writer.addChunk</a></li>
 <li><a href="#Core_Scc_Writer_id">Writer.id</a></li>
@@ -3101,6 +3103,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Math_Vector4_UnitZ">Vector4.UnitZ</a></td><td><p>Unit vector along Z-axis (0, 0, 1, 0)</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Vector4_Zero">Vector4.Zero</a></td><td><p>Zero vector (0, 0, 0, 0)</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Window_OffScreenOrigin">Window.OffScreenOrigin</a></td><td><p>Far enough from every monitor that no desktop arrangement can bring the window into view.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Write_TagBinAdHocShape">Write.TagBinAdHocShape</a></td><td><p>Shape id of a section whose fields are self-described in the stream rather than</p>
 </td></tr>
@@ -6399,6 +6403,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Env_Window_setClientSize">Window.setClientSize</a></td><td><p>Resizes the client area to <span class="code-inline">width</span> by <span class="code-inline">height</span> logical units while preserving</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_show">Window.show</a></td><td><p>Shows the window and updates its client area.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Window_showOffScreen">Window.showOffScreen</a></td><td><p>Realizes the window without putting it in front of the user.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowLoop_next">WindowLoop.next</a></td><td><p>Processes pending events and returns whether the application should continue.</p>
 </td></tr>
@@ -10742,6 +10748,14 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </td></tr>
 </tbody>
 </table>
+<h3 id="Core_Env_Window_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Env_Window_OffScreenOrigin">OffScreenOrigin</a></td><td><p>Far enough from every monitor that no desktop arrangement can bring the window into view.</p>
+</td></tr>
+</tbody>
+</table>
 <h3 id="Core_Env_Window_methods">Methods</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
@@ -10767,6 +10781,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td class="code-type"><a href="#Core_Env_Window_setClientSize">setClientSize</a></td><td><p>Resizes the client area to <span class="code-inline">width</span> by <span class="code-inline">height</span> logical units while preserving</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_show">show</a></td><td><p>Shows the window and updates its client area.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Window_showOffScreen">showOffScreen</a></td><td><p>Realizes the window without putting it in front of the user.</p>
 </td></tr>
 </tbody>
 </table>
@@ -16852,6 +16868,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Zero</span>     = <span class="SCst"><a href="#Core_Math_Vector4">Vector4</a></span>{<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>}</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_Env_Window_OffScreenOrigin" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Window.OffScreenOrigin</span> <a class="api-item-permalink" href="#Core_Env_Window_OffScreenOrigin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L619">src</a></div>
+<p>Far enough from every monitor that no desktop arrangement can bring the window into view.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Env_Window_OffScreenOrigin">OffScreenOrigin</a></span> = -<span class="SNum">32000</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Core_Serialization_Write_TagBinAdHocShape" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Write.TagBinAdHocShape</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBinAdHocShape" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L38">src</a></div>
 <p>Shape id of a section whose fields are self-described in the stream rather than referenced from the shape directory. Used for dynamic fields written through <span class="code-inline">Serializer.serialize</span> and for types that drive their own fields with <span class="code-inline">ISerialize</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Serialization_Write_TagBinAdHocShape">TagBinAdHocShape</a></span> = <span class="SNum">0xFFFFFFFF</span>'<span class="STpe">u32</span></span></div>
@@ -18772,7 +18793,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">corpusRoot</span>()-&gt;<span class="STpe">string</span> =&gt; g_CorpusRoot.toString</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L173">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L193">src</a></div>
 <p>Creates and owns a top-level application window.</p>
 <p>The returned <a href="#Core_Env_Window">Core.Env.Window</a> keeps its platform-specific state opaque and closes the window when it leaves scope. The logical <span class="code-inline">options</span> size is realized in the physical pixels of the monitor where the platform creates it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Window">Window</a></span> <span class="SKwd">fail</span></span></div>
@@ -26477,7 +26498,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L185">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_showOffScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.showOffScreen</span> <a class="api-item-permalink" href="#Core_Env_Window_showOffScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L173">src</a></div>
+<p>Realizes the window without putting it in front of the user.</p>
+<p>The window is placed outside the visible desktop and shown without taking activation, so its drawable is complete — which is what a graphics context needs before it can render and read back — while nothing appears on screen and nothing steals the focus. A headless check that needs a real drawable asks for this instead of <a href="#Core_Env_Window_show">Core.Env.Window.show</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showOffScreen</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L205">src</a></div>
 <p>Processes pending events and returns whether the application should continue.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">next</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -28040,6 +28067,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "c|Core.Serialization.Write.TagBinAdHocShape|Core_Serialization_Write_TagBinAdHocShape|Shape id of a section whose fields are self-described in the stream rather than",
 "c|Core.Serialization.Write.TagBinVersion1|Core_Serialization_Write_TagBinVersion1|Version mark written after the root signature. This is the only supported TagBin",
 "c|Core.Env.LineEnding|Core_Env_LineEnding|Native line-ending sequence.",
+"c|Core.Env.Window.OffScreenOrigin|Core_Env_Window_OffScreenOrigin|Far enough from every monitor that no desktop arrangement can bring the window into view.",
 "c|Core.Latin1.CharProperties|Core_Latin1_CharProperties|Defines char properties.",
 "c|Core.StringSmallSize|Core_StringSmallSize|Defines string small size.",
 "c|Core.Utf16.RuneError|Core_Utf16_RuneError|Defines rune error.",
@@ -29420,6 +29448,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Env.Window.requestPaint|Core_Env_Window_requestPaint|Queues a paint request for this window.",
 "f|Core.Env.Window.setClientSize|Core_Env_Window_setClientSize|Resizes the client area to width by height logical units while preserving",
 "f|Core.Env.Window.show|Core_Env_Window_show|Shows the window and updates its client area.",
+"f|Core.Env.Window.showOffScreen|Core_Env_Window_showOffScreen|Realizes the window without putting it in front of the user.",
 "f|Core.Env.WindowLoop.next|Core_Env_WindowLoop_next|Processes pending events and returns whether the application should continue.",
 "f|Core.equals|Core_equals|Returns whether flags contains exactly value.",
 "f|Core.Errors.message|Core_Errors_message|Returns the text an error value carries, so a report can print what failed.",

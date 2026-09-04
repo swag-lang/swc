@@ -131,7 +131,7 @@ struct KeyShortcut
         modifiers: Input.KeyModifiers = None     // Required modifier-key combination.
         key:       Input.Key          = None     // Required non-modifier key.
         id:        WndId              = ""       // Command identifier sent on a match.
-        target:    #null *Wnd                    // Explicit command target, or `null` to use normal routing.
+        target:    *Wnd?                         // Explicit command target, or `null` to use normal routing.
     }
 }
 
@@ -251,14 +251,12 @@ struct Wnd
 {
     public
     {
-        #[Swag.Late]
-        itf: IWnd     // Dynamic event receiver implemented by the concrete window type.
-        #[Swag.Late]
-        type:     typeinfo                   // Runtime type of the concrete window allocation.
-        surface:  #null *Surface             // Surface containing this window, or `null` while detached.
-        style:    ThemeStyle                 // Local style and inherited theme reference.
+        late itf:  IWnd                      // Dynamic event receiver implemented by the concrete window type.
+        late type: typeinfo                  // Runtime type of the concrete window allocation.
+        surface:   *Surface?                 // Surface containing this window, or `null` while detached.
+        style:     ThemeStyle                // Local style and inherited theme reference.
         wndFlags = WndFlags.ClipChildren     // Active state, clipping, and paint-order flags.
-        userData: #null *void                // Opaque application-owned payload; never dereferenced by GUI.
+        userData:  *void?                    // Opaque application-owned payload; never dereferenced by GUI.
 
         position:      Math.Rectangle     // Logical rectangle relative to the parent client origin.
         preferredSize: Math.Point         // Natural layout size; non-positive components fall back to `position`.
@@ -280,17 +278,17 @@ struct Wnd
             hasPresentationClip: bool                        // Whether `presentationClip` limits painting.
         }
 
-        parent: #null *Wnd     // Structural parent responsible for position, layout, and lifetime.
-        owner:  #null *Wnd     // Logical owner used by popup and command routing when distinct from `parent`.
+        parent: *Wnd?     // Structural parent responsible for position, layout, and lifetime.
+        owner:  *Wnd?     // Logical owner used by popup and command routing when distinct from `parent`.
 
         // The child list is maintained by the window itself: attach through [setParent] and
         // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
         readonly children: Array'(*Wnd)
 
-        name:    RichString      // Display text with optional rich spans.
-        id:      #null WndId     // Optional stable command, lookup, and persistence identifier.
-        cursor:  Cursor          // Cursor requested while the pointer is over this window.
-        toolTip: String          // Plain tooltip text; empty disables the tooltip.
+        name:    RichString     // Display text with optional rich spans.
+        id:      WndId?         // Optional stable command, lookup, and persistence identifier.
+        cursor:  Cursor         // Cursor requested while the pointer is over this window.
+        toolTip: String         // Plain tooltip text; empty disables the tooltip.
 
         keyShortcuts: Array'KeyShortcut     // Key combinations routed from this subtree.
         actions:      Array'IActionUI       // Command actions exposed or consumed by this window.
@@ -323,7 +321,7 @@ struct Wnd
         // A composite declares the policy on itself and delegates the focus to the inner window
         // that actually handles the keys, so a caller holding the composite never has to know
         // which part of it edits, scrolls, or draws a caret.
-        focusDelegate: #null *Wnd
+        focusDelegate: *Wnd?
 
         backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
     }
@@ -353,8 +351,8 @@ struct Wnd
 
     public
     {
-        hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
-        hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
+        hookOnEvent:      HookEvent?     // Will be called before processing the event of the window
+        hookOnChildEvent: HookEvent?     // Will be called before processing whatever event of a child window
     }
 }
 
@@ -582,19 +580,19 @@ impl Wnd
 
     // Allocates a concrete window with an empty name and rectangle.
     #[Swag.Inline]
-    func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: #null HookEvent = null)->*T
+    func(T) create(parent: *Wnd? = null, id: WndId? = null, hook: HookEvent? = null)->*T
     {
         return create'T(parent, "", {}, id, hook)
     }
 
     #[Swag.Inline]
     // Allocates a concrete window with an empty name at `position`.
-    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: #null HookEvent = null)->*T
+    func(T) create(parent: *Wnd?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T
     {
         return create'T(parent, "", position, id, hook)
     }
 
-    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: #null WndId = null, hook: #null HookEvent = null)->*T
+    func(T) create(parent: *Wnd?, name: string?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T
     {
         let res = Memory.new'T()
         res.isAllocated = true
@@ -674,7 +672,7 @@ impl Wnd
         return Swag.U64.Max
     }
 
-    private mtd assignSurface(surface: #null *Surface)
+    private mtd assignSurface(surface: *Surface?)
     {
         .surface = surface
         for child in .children do
@@ -684,7 +682,7 @@ impl Wnd
     // Reparents this window, or detaches it when `who` is `null`.
     //
     // The complete subtree follows the new surface. Cycles are rejected.
-    mtd setParent(who: #null *Wnd)
+    mtd setParent(who: *Wnd?)
     {
         if who == .parent do
             return
@@ -736,7 +734,7 @@ impl Wnd
     }
 
     // Returns the explicit owner when present, otherwise the structural parent.
-    mtd ownerOrParent()->#null *Wnd
+    mtd ownerOrParent()->*Wnd?
     {
         return .owner orelse .parent
     }
@@ -805,7 +803,7 @@ impl Wnd
     // Reports whether this window and every structural ancestor are visible.
     mtd isVisible()->bool
     {
-        var toCheck: #null *Wnd = me
+        var toCheck: *Wnd? = me
         while toCheck
         {
             if toCheck.wndFlags.has(.Hidden) do
@@ -825,7 +823,7 @@ impl Wnd
     // Reports whether this window and every structural ancestor are enabled.
     mtd isEnabled()->bool
     {
-        var toCheck: #null *Wnd = me
+        var toCheck: *Wnd? = me
         while toCheck
         {
             if toCheck.wndFlags.has(.Disabled) do
@@ -1488,7 +1486,7 @@ impl Wnd
     }
 
     // Returns this window's rectangle relative to `wnd`, or to the root when `null`.
-    mtd const rectRelativeTo(wnd: #null *Wnd)->Math.Rectangle
+    mtd const rectRelativeTo(wnd: *Wnd?)->Math.Rectangle
     {
         var result: retval = .position
         var p              = .parent
@@ -1845,7 +1843,7 @@ impl Wnd
     }
 
     // Returns the topmost descendant at parent-space coordinates.
-    mtd windowAt(x, y: f32, includeDisabled, includeHidden = false)->#null *Wnd
+    mtd windowAt(x, y: f32, includeDisabled, includeHidden = false)->*Wnd?
     {
         if !.position.contains(x, y) do
             return null
@@ -1873,7 +1871,7 @@ impl Wnd
     }
 
     // Reports whether `child` is a structural descendant of this window.
-    mtd isAncestorOf(child: #null *Wnd)->bool
+    mtd isAncestorOf(child: *Wnd?)->bool
     {
         if !child do
             return false
@@ -1889,7 +1887,7 @@ impl Wnd
     }
 
     // Reports whether `child` reaches this window through owner-or-parent routing.
-    mtd isOwnerOf(child: #null *Wnd)->bool
+    mtd isOwnerOf(child: *Wnd?)->bool
     {
         if !child do
             return false
@@ -1905,7 +1903,7 @@ impl Wnd
     }
 
     // Retrieve the child with the given id
-    mtd childById(childId: string)->#null *Wnd
+    mtd childById(childId: string)->*Wnd?
     {
         for c in .children
         {
@@ -1920,7 +1918,7 @@ impl Wnd
     }
 
     // Retrieve the parent with the given id
-    mtd ancestorById(parentId: string)->#null *Wnd
+    mtd ancestorById(parentId: string)->*Wnd?
     {
         var p = .parent
         while p
@@ -1952,7 +1950,7 @@ impl Wnd
     }
 
     // Returns the window that currently owns pointer capture.
-    mtd mouseCapture()->#null *Wnd
+    mtd mouseCapture()->*Wnd?
     {
         let srfn = .surface!
         return srfn.app.mouseCapture()
@@ -2054,7 +2052,7 @@ impl Wnd
     }
 
     // Returns the keyboard-focused window on this surface, if any.
-    mtd focusedWindow()->#null *Wnd
+    mtd focusedWindow()->*Wnd?
     {
         let surface = .surface
         if !surface do
@@ -2148,7 +2146,7 @@ impl Wnd
     // "start here": a box whose answer is a default action opens on that action, so the first
     // Enter presses what the box says it will and not what happens to read first. It is ignored
     // when it is not a stop of this tree.
-    mtd setInitialFocus(preferred: #null *Wnd = null)
+    mtd setInitialFocus(preferred: *Wnd? = null)
     {
         let order = FocusOrder.collect(me)
         let focus = .focusedWindow()
@@ -2228,7 +2226,7 @@ impl Wnd
     }
 
     // Resolves a shortcut locally, then through the owner or parent chain.
-    mtd keyShortcut(modifiers: Input.KeyModifiers, key: Input.Key)->#null WndId
+    mtd keyShortcut(modifiers: Input.KeyModifiers, key: Input.Key)->WndId?
     {
         for c in .keyShortcuts
         {
@@ -2367,7 +2365,7 @@ impl Wnd
     }
 
     // Posts command event.
-    mtd postCommandEvent(cmdId: #null WndId)
+    mtd postCommandEvent(cmdId: WndId?)
     {
         if cmdId == null do
             return
@@ -2427,7 +2425,7 @@ impl Wnd
 
     // Send the command state event with the given id to the window.
     // Computes and returns presentation state for `cmdId`, including resolved shortcuts.
-    mtd sendComputeCommandStateEvent(cmdId: #null WndId)->CommandStateEvent
+    mtd sendComputeCommandStateEvent(cmdId: WndId?)->CommandStateEvent
     {
         if cmdId == null do
             return {}
@@ -2456,7 +2454,7 @@ impl Wnd
 
     // Send the command event with the given id to the window.
     // The command will be updated first, and if it is not disabled, it will be sent.
-    mtd sendCommandEvent(cmdId: #null WndId)
+    mtd sendCommandEvent(cmdId: WndId?)
     {
         if cmdId == null do
             return

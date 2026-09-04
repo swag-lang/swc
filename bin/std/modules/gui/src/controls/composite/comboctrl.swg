@@ -13,10 +13,8 @@ struct ComboCtrl
         comboWidth: f32 = 60     // Combo width, or zero to fill remaining space.
         spacing:    f32 = 5      // Gap between label and combo box.
 
-        #[Swag.Late]
-        label: *Label     // Descriptive label owned by this control.
-        #[Swag.Late]
-        combo: *ComboBox     // Combo box owned by this control.
+        late label: *Label        // Descriptive label owned by this control.
+        late combo: *ComboBox     // Combo box owned by this control.
     }
 }
 
@@ -24,7 +22,7 @@ impl IWnd for ComboCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !Swag.isSet(.label) do
+        if !(.label != null) do
             return
 
         let rect   = .clientRect()
@@ -40,7 +38,7 @@ impl ComboCtrl
 {
     // Creates a labelled combo box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null)->*ComboCtrl
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*ComboCtrl
     {
         Debug.assert(parent != null)
         let metrics = parent.themeMetrics()

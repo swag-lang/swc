@@ -36,20 +36,19 @@ struct SceneLayout
     rect:  Math.Rectangle
 }
 
-var g_Window:   Env.Window
-var g_Renderer: Pixel.RenderOgl
-#[Swag.Late]
-var g_Render:  Pixel.IRenderer
-var g_Painter: Pixel.Painter
-var g_RC:      Pixel.RenderContext
+var g_Window:      Env.Window
+var g_Renderer:    Pixel.RenderOgl
+late var g_Render: Pixel.IRenderer
+var g_Painter:     Pixel.Painter
+var g_RC:          Pixel.RenderContext
 
-var g_TypeFace:     #null *Pixel.TypeFace
-var g_BoldTypeFace: #null *Pixel.TypeFace
-var g_TitleFont:    #null *Pixel.Font
-var g_SubtitleFont: #null *Pixel.Font
-var g_LabelFont:    #null *Pixel.Font
-var g_SourceFont:   #null *Pixel.Font
-var g_MathFont:     #null *Pixel.Font
+var g_TypeFace:     *Pixel.TypeFace?
+var g_BoldTypeFace: *Pixel.TypeFace?
+var g_TitleFont:    *Pixel.Font?
+var g_SubtitleFont: *Pixel.Font?
+var g_LabelFont:    *Pixel.Font?
+var g_SourceFont:   *Pixel.Font?
+var g_MathFont:     *Pixel.Font?
 var g_Formulas:     [FormulaCount] MathExpression
 
 func initContent() fail

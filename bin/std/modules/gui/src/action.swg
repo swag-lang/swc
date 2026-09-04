@@ -3,8 +3,8 @@ public struct ActionContext
 {
     public
     {
-        wnd: #null *Wnd     // Window receiving the command, when available.
-        id:  WndId          // Command identifier.
+        wnd: *Wnd?     // Window receiving the command, when available.
+        id:  WndId     // Command identifier.
     }
 }
 

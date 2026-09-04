@@ -141,6 +141,50 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdConst:
             return parseVarDecl();
 
+        case TokenId::KwdLate:
+        case TokenId::KwdTls:
+        case TokenId::KwdGlobal:
+        {
+            // A storage modifier directly before a field belongs to that field's
+            // declaration span. Besides preserving the AST source range, this lets the
+            // formatter keep `late field: T` as one declaration. Only a block or access
+            // modifier needs the scoped aggregate state below.
+            if (!nextIsAny(TokenId::KwdPublic, TokenId::KwdInternal, TokenId::KwdPrivate, TokenId::KwdReadOnly, TokenId::SymLeftCurly))
+                return parseVarDecl();
+
+            EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
+            while (true)
+            {
+                AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
+                switch (id())
+                {
+                    case TokenId::KwdLate: storageFlag = AstVarStorageFlagsE::Late; break;
+                    case TokenId::KwdTls: storageFlag = AstVarStorageFlagsE::Tls; break;
+                    case TokenId::KwdGlobal: storageFlag = AstVarStorageFlagsE::Global; break;
+                    default: break;
+                }
+
+                if (storageFlag == AstVarStorageFlagsE::Zero)
+                    break;
+                if (storageFlags.has(storageFlag))
+                    reportError(DiagnosticId::parser_err_duplicate_storage_modifier, ref()).report(*ctx_);
+                storageFlags.add(storageFlag);
+                consume();
+            }
+
+            const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = aggregateStorageFlags_;
+            aggregateStorageFlags_.add(storageFlags);
+            AstNodeRef nodeRef;
+            if (isAny(TokenId::KwdPublic, TokenId::KwdInternal, TokenId::KwdPrivate, TokenId::KwdReadOnly))
+                nodeRef = parseAggregateAccessModifier();
+            else if (is(TokenId::SymLeftCurly))
+                nodeRef = parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
+            else
+                nodeRef = parseVarDecl();
+            aggregateStorageFlags_ = savedStorageFlags;
+            return nodeRef;
+        }
+
         case TokenId::KwdPublic:
         case TokenId::KwdInternal:
         case TokenId::KwdPrivate:
@@ -225,11 +269,17 @@ AstNodeRef Parser::parseAggregateBody()
 {
     const TokenRef savedAccessModifierRef = aggregateAccessModifierRef_;
     const TokenRef savedReadOnlyRef       = aggregateReadOnlyRef_;
+    const EnumFlags<AstVarStorageFlagsE> savedTopLevelStorageFlags = topLevelStorageFlags_;
+    const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = aggregateStorageFlags_;
     aggregateAccessModifierRef_.setInvalid();
     aggregateReadOnlyRef_.setInvalid();
+    topLevelStorageFlags_.clear();
+    aggregateStorageFlags_.clear();
     const AstNodeRef result     = parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
     aggregateAccessModifierRef_ = savedAccessModifierRef;
     aggregateReadOnlyRef_       = savedReadOnlyRef;
+    topLevelStorageFlags_       = savedTopLevelStorageFlags;
+    aggregateStorageFlags_      = savedStorageFlags;
     return result;
 }
 

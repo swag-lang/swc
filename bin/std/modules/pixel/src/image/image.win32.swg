@@ -51,7 +51,7 @@ impl Image
         bi.bmiHeader.biBitCount    = dib.bitsPerPixel
         bi.bmiHeader.biCompression = BI_RGB
 
-        var ppvBits: #null *u8
+        var ppvBits: *u8?
         let hbmp = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
         defer #nofail DeleteObject(cast() hbmp)
 

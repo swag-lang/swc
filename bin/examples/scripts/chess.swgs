@@ -36,8 +36,8 @@ enum ContentEnum: u8
 namespace Res
 {
     var piecesTexture: [2, 6] Texture
-    var font:          #null *Font
-    var smallfont:     #null *Font
+    var font:          *Font?
+    var smallfont:     *Font?
 }
 
 struct Cell

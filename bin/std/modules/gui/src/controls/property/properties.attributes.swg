@@ -9,7 +9,7 @@ using Core, Pixel
 // compile-time constant, so this is what lets a declared wording act as a translation key.
 // Answer `null` for a string the resolver does not own: the module that declared it answers
 // next, and the declared wording is what remains when nobody does.
-alias PropertyTextResolver = func(string)->#null string
+alias PropertyTextResolver = func(string)->string?
 
 impl Properties
 {
@@ -89,7 +89,7 @@ impl Properties
 }
 
 // The resolver every generated label passes through; `null` shows the declared strings.
-private var g_TextResolver: #null PropertyTextResolver
+private var g_TextResolver: PropertyTextResolver?
 
 impl Properties
 {
@@ -106,7 +106,7 @@ impl Properties
     // with — and rebuild the grids that must follow a language switch. GUI thread only.
     //
     // ```swag
-    // Properties.setTextResolver(func(key: string)->#null string
+    // Properties.setTextResolver(func(key: string)->string?
     // {
     //     switch key
     //     {
@@ -115,7 +115,7 @@ impl Properties
     //     return null
     // })
     // ```
-    func setTextResolver(resolver: #null PropertyTextResolver)
+    func setTextResolver(resolver: PropertyTextResolver?)
     {
         g_TextResolver = resolver
     }

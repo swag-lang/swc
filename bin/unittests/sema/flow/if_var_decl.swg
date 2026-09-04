@@ -34,13 +34,13 @@ func semaTest004()
     }
 }
 
-func semaMaybePtr(p: *s32)->#null *s32 => p
+func semaMaybePtr(p: *s32)->*s32? => p
 
 func semaTest005()
 {
     var result = 0
     var base   = 42
-    if var x: #null *s32 = semaMaybePtr(&base) where x != null
+    if var x: *s32? = semaMaybePtr(&base) where x != null
     {
         result = 1
     }
@@ -54,7 +54,7 @@ func semaTest005()
 func semaTest006()
 {
     var result = 0
-    if var x: #null string = null where x == null
+    if var x: string? = null where x == null
     {
         result = 1
     }
@@ -68,7 +68,7 @@ func semaTest006()
 func semaTest007()
 {
     var result = 0
-    if var x: #null [..] s32 = null where x == null
+    if var x: [..] s32? = null where x == null
     {
         result = 1
     }

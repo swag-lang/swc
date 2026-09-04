@@ -280,7 +280,7 @@ namespace
 
         // A null slice materializes nothing, so its element type is never laid out here. Asking for
         // that layout first asks a struct sema has not finished for its size, which is how the
-        // '#null' slice field of an implicit struct default tripped the layout assertion.
+        // 'nullable' slice field of an implicit struct default tripped the layout assertion.
         if (!srcSlice.ptr && !srcSlice.count)
         {
             dstSlice.ptr   = nullptr;

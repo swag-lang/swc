@@ -154,7 +154,7 @@ func showTip(owner: *Wnd, text: string)->*Label
     assertPassiveAndFits(host.app.toolTip.current!, lbl)
 }
 
-var g_LinkOwner: #null *Wnd
+var g_LinkOwner: *Wnd?
 var g_LinkText:  String
 
 // A tip carrying a link is reachable, keeps its markup colors, and says which owner it came from.

@@ -291,13 +291,13 @@ struct InlinePixelProbe
 
 struct InlineJobProbe
 {
-    public contextData: #null *void
+    public contextData: *void?
 }
 
 #[Swag.Macro]
-func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
+func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *void? = null, stmt: #code(var buffer, data))
 {
-    func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
+    func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: *void?)
     {
         var scan    = sliceBuffer.buffer
         let countof = sliceBuffer.count

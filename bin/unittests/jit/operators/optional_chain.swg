@@ -16,7 +16,7 @@ struct OptChainNode
     ok:    bool
     name:  string = ""
     inner: OptChainInner
-    next:  #null *OptChainNode
+    next:  *OptChainNode?
 }
 
 impl OptChainNode
@@ -46,7 +46,7 @@ impl IOptChain for OptChainNode
 var g_optChainNode:  OptChainNode
 var g_optChainOther: OptChainNode
 
-func optChainGet(use: bool)->#null *OptChainNode
+func optChainGet(use: bool)->*OptChainNode?
 {
     if use do
         return &g_optChainNode
@@ -90,13 +90,13 @@ func optChainVoidCall(use: bool)
 }
 
 // Nullable-capable results carry the null outcome in their own type.
-func optChainNullablePtr(use: bool)->#null *OptChainNode
+func optChainNullablePtr(use: bool)->*OptChainNode?
 {
     return optChainGet(use)?.next
 }
 
 // Wide nullable-capable result (string): the null outcome is a null string.
-func optChainString(use: bool)->#null string
+func optChainString(use: bool)->string?
 {
     return optChainGet(use)?.name
 }
@@ -116,13 +116,13 @@ func optChainCondition(use: bool)->bool
 }
 
 // Interface method through '?.'.
-func optChainInterface(itf: #null IOptChain)->s32
+func optChainInterface(itf: IOptChain?)->s32
 {
     return itf?.get() orelse -1
 }
 
 // A redundant '?.' inside a narrowed region stays valid.
-func optChainNarrowedRedundant(p: #null *OptChainNode)->s32
+func optChainNarrowedRedundant(p: *OptChainNode?)->s32
 {
     if p == null do
         return -1

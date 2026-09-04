@@ -9,15 +9,14 @@ public struct Bus
 {
     public readonly
     {
-        channelCount: u32            // Number of channels mixed by this bus.
-        parent:       #null *Bus     // Parent bus, or `null` for the mastering output.
+        channelCount: u32       // Number of channels mixed by this bus.
+        parent:       *Bus?     // Parent bus, or `null` for the mastering output.
     }
 
     internal
     {
-        #[Swag.Late]
-        allocationAllocator: IAllocator      // Allocator that owns this bus.
-        handle:              #null *void     // Backend-owned submix handle.
+        late allocationAllocator: IAllocator     // Allocator that owns this bus.
+        handle: *void?                           // Backend-owned submix handle.
     }
 }
 
@@ -29,7 +28,7 @@ public impl Bus
     // otherwise it sends to the mastering output. The caller owns the returned
     // allocation and must eventually call [[Audio.Bus.destroy]]. The parent
     // must outlive this bus. Success returns a non-null pointer.
-    func create(channelCount: u32, parent: #null *Bus = null)->#null *Bus fail
+    func create(channelCount: u32, parent: *Bus? = null)->*Bus? fail
     {
         if !g_Driver.isCreated do
             fail BadParameterError{"audio engine is not created"}

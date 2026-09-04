@@ -55,7 +55,7 @@ func assertPngHasChunk(bytes: const [..] u8, c0, c1, c2, c3: u8)
     Swag.assert(false)
 }
 
-func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: #null any = null)
+func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: any? = null)
 {
     let cb    = expect src.encode("memory.png", options)
     let bytes = nnBytes(cb.toSlice())
@@ -776,7 +776,7 @@ func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
     Swag.assert(decodeError != null)
 }
 
-func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: const [..] u16, transparency: #null const [..] u16 = null)->Array'u8
+func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: const [..] u16, transparency: const [..] u16? = null)->Array'u8
 {
     var channels: s32
     switch colorType

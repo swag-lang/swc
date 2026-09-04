@@ -35,7 +35,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
 
-    mtd impl begin(sink: *Sink, info: StreamInfo, options: #null any) fail
+    mtd impl begin(sink: *Sink, info: StreamInfo, options: any?) fail
     {
         // The format has one plane layout here and one color range, so it has nothing to
         // configure and ignores what it is handed.

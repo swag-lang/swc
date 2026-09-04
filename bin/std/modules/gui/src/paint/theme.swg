@@ -64,7 +64,7 @@ private var g_DefaultThemeImages: DefaultThemeImages
 
 // Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
 // with a null result instead of a non-defaultable pointer.
-private func defaultTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail
+private func defaultTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail
 {
     return try TypeFace.create(name, bytes)
 }
@@ -93,7 +93,7 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 // The process-wide typeface cache is keyed by name, so an overridden font registers
 // under a disk-flavored key and never collides with the embedded face of the same
 // name. An override that cannot be read or parsed falls back to the embedded face.
-private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->#null *TypeFace fail
+private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->*TypeFace? fail
 {
     if res.isOverridden(name)
     {
@@ -111,7 +111,7 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
     return try defaultTypeFace(name, embedded)
 }
 
-private func systemCjkTypeFace()->#null *TypeFace fail
+private func systemCjkTypeFace()->*TypeFace? fail
 {
     for name in CjkFontCandidates
     {
@@ -178,7 +178,7 @@ struct ThemeResources
         imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
         atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
         icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
-        #[Swag.Late]
+            late
         {
             defaultTypeFaceR:    *TypeFace     // Default type face r associated with this value.
             defaultTypeFaceB:    *TypeFace     // Default type face b associated with this value.
@@ -196,7 +196,7 @@ struct ThemeResources
 
     internal
     {
-        cjkTypeFace:         #null *TypeFace
+        cjkTypeFace:         *TypeFace?
         cjkTypeFaceResolved: bool
     }
 }
@@ -223,8 +223,7 @@ struct Theme
 
     // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
     // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
-    #[Swag.Late]
-    fonts: *Pixel.FontCache
+    late fonts: *Pixel.FontCache
 }
 
 impl Theme
@@ -426,7 +425,7 @@ impl Theme
     {
         with me.res
         {
-            if Swag.isSet(.defaultTypeFaceR) do
+            if .defaultTypeFaceR != null do
                 return
 
             .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)!

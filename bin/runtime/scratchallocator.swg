@@ -4,8 +4,8 @@ impl ScratchAllocator
 {
     struct LeakHeader
     {
-        prev:           #null *LeakHeader
-        next:           #null *LeakHeader
+        prev:           *LeakHeader?
+        next:           *LeakHeader?
         allocation:     *void
         allocationSize: u64
         userSize:       u64
@@ -34,7 +34,7 @@ impl ScratchAllocator
     }
 
     // Allocate a block
-    mtd alloc(size: u64, alignment: u32 = 0)->#null *void
+    mtd alloc(size: u64, alignment: u32 = 0)->*void?
     {
         let allocItf = .allocator!
         var req: AllocatorRequest
@@ -152,7 +152,7 @@ impl IAllocator for ScratchAllocator
         let allocation  = cast([*] u8) .alloc(totalSize, alignment)!
         let leakAddress = ScratchAllocator.align(cast(u64) (allocation + #sizeof(LeakHeader)), alignment) - #sizeof(LeakHeader)
         let ptr         = cast([*] LeakHeader) leakAddress
-        let leak        = cast(#null [*] LeakHeader) .firstLeak
+        let leak        = cast([*] LeakHeader?) .firstLeak
         if leak do
             leak.prev = ptr
         ptr.prev           = null

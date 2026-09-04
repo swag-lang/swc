@@ -7,8 +7,7 @@ struct LateItem
 
 struct LateOwner
 {
-    #[Swag.Late]
-    item: *LateItem
+    late item: *LateItem
 }
 
 func readBeforeSet()->s32

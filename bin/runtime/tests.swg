@@ -8,7 +8,7 @@ var g_TestThreadId:   u64
 var g_TestsExecuted:  u32
 var g_TestsFailedCnt: u32
 
-func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
+func __testPanicHandler(message: string?, loc: Swag.SourceCodeLocation)
 {
     // Drop the hook first so a panic raised while printing takes the default path.
     Swag.getContext().panic = null

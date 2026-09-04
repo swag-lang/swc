@@ -13,7 +13,7 @@ struct DepSelfBufferSet
 {
     public
     {
-        buffer:  #null [*] u8
+        buffer:  [*] u8?
         count:   u32
         storage: [4] u8
     }

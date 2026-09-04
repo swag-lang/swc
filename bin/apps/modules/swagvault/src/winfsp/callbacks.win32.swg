@@ -19,9 +19,9 @@ namespace WinFsp
         eaSize:         u32
     }
 
-    alias EmitDirFn = func(emitContext: #null *void, name: #null const [*] u8, info: const *FileInfo)->u8
+    alias EmitDirFn = func(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
 
-    func cString(value: #null const [*] u8)->string
+    func cString(value: const [*] u8?)->string
     {
         if !value do
             return ""
@@ -57,7 +57,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackGetVolumeInfo(context: #null *void, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
+    func callbackGetVolumeInfo(context: *void?, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
@@ -71,7 +71,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackSetVolumeLabel(context: #null *void, label: #null const [*] u8)->s32
+    func callbackSetVolumeLabel(context: *void?, label: const [*] u8?)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -85,7 +85,7 @@ namespace WinFsp
         return err == null ? StatusSuccess : statusFromError(err)
     }
 
-    func callbackLookup(context: #null *void, path: #null const [*] u8, nodeId: *u64, info: *FileInfo)->s32
+    func callbackLookup(context: *void?, path: const [*] u8?, nodeId: *u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
@@ -97,7 +97,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId[], info)
     }
 
-    func callbackCreate(context: #null *void, path: #null const [*] u8, directory: u8, attributes: u32, allocationSize: u64, security: #null const *void, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
+    func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -125,7 +125,7 @@ namespace WinFsp
         return fillInfo(volume, id, info)
     }
 
-    func callbackOverwrite(context: #null *void, nodeId: u64, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
+    func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -149,7 +149,7 @@ namespace WinFsp
         return err == null ? fillInfo(volume, nodeId, info) : statusFromError(err)
     }
 
-    func callbackCleanup(context: #null *void, nodeId: u64, flags: u32)
+    func callbackCleanup(context: *void?, nodeId: u64, flags: u32)
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -183,7 +183,7 @@ namespace WinFsp
             discard catch volume.commit()
     }
 
-    func callbackRead(context: #null *void, nodeId: u64, buffer: #null *void, offset: u64, length: u32, transferred: *u32)->s32
+    func callbackRead(context: *void?, nodeId: u64, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32
     {
         if !length
         {
@@ -206,7 +206,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackWrite(context: #null *void, nodeId: u64, buffer: #null const *void, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
+    func callbackWrite(context: *void?, nodeId: u64, buffer: const *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
     {
         if !length
         {
@@ -253,7 +253,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
-    func callbackFlush(context: #null *void, nodeId: u64, info: *FileInfo)->s32
+    func callbackFlush(context: *void?, nodeId: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -266,7 +266,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackGetFileInfo(context: #null *void, nodeId: u64, info: *FileInfo)->s32
+    func callbackGetFileInfo(context: *void?, nodeId: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
@@ -274,7 +274,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
-    func callbackSetBasicInfo(context: #null *void, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
+    func callbackSetBasicInfo(context: *void?, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -304,7 +304,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
-    func callbackSetFileSize(context: #null *void, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
+    func callbackSetFileSize(context: *void?, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -326,7 +326,7 @@ namespace WinFsp
         return fillInfo(volume, nodeId, info)
     }
 
-    func callbackCanDelete(context: #null *void, nodeId: u64)->s32
+    func callbackCanDelete(context: *void?, nodeId: u64)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
@@ -344,7 +344,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackRename(context: #null *void, nodeId: u64, oldPath, newPath: #null const [*] u8, replace: u8)->s32
+    func callbackRename(context: *void?, nodeId: u64, oldPath, newPath: const [*] u8?, replace: u8)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -354,7 +354,7 @@ namespace WinFsp
         return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
     }
 
-    func callbackGetSecurity(context: #null *void, nodeId: u64, security: #null *void, securitySize: *u32)->s32
+    func callbackGetSecurity(context: *void?, nodeId: u64, security: *void?, securitySize: *u32)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
@@ -373,7 +373,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackSetSecurity(context: #null *void, nodeId: u64, security: #null const *void, securitySize: u32)->s32
+    func callbackSetSecurity(context: *void?, nodeId: u64, security: const *void?, securitySize: u32)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockExclusive()
@@ -395,7 +395,7 @@ namespace WinFsp
         return Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), .UnicodeNoCase) == 0
     }
 
-    func callbackReadDirectory(context: #null *void, nodeId: u64, marker: #null const [*] u8, emit: EmitDirFn, emitContext: #null *void, complete: *u8)->s32
+    func callbackReadDirectory(context: *void?, nodeId: u64, marker: const [*] u8?, emit: EmitDirFn, emitContext: *void?, complete: *u8)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()
@@ -408,7 +408,7 @@ namespace WinFsp
 
         let markerName = cString(marker)
         var info:  FileInfo
-        var child: #null *Node
+        var child: *Node?
         if !markerName.count
         {
             if nodeId != 1
@@ -455,7 +455,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func callbackGetDirInfoByName(context: #null *void, directoryId: u64, name: #null const [*] u8, info: *FileInfo)->s32
+    func callbackGetDirInfoByName(context: *void?, directoryId: u64, name: const [*] u8?, info: *FileInfo)->s32
     {
         let volume = cast(*Volume) context!
         volume.accessLock.lockShared()

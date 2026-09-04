@@ -15,7 +15,7 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 - Found while: making a written `#[Inline]` honored across files (2026-08-28), which lets the
   analysis see into `Core.Array.opIndexPtr` for the first time.
 - Evidence: `pixel/src/poly/clipper.swg` stops compiling. `getLastOutPt` and `addOutPt` read
-  `.polyOuts[i]` out of an `Array'#null *OutRec`, dereference the pointer they find there, and
+  `.polyOuts[i]` out of an `Array' *OutRec?`, dereference the pointer they find there, and
   return an `OutPt` node that `Memory.new` allocated. The analysis records that return as a view
   of `me.polyOuts`, so a later `.addOutPt` or `.intersectEdges` that grows the array reports
   eleven `sanity_err_borrow_invalidated`. Growing an array of pointers moves the pointers, never

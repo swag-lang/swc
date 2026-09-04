@@ -46,7 +46,7 @@ const SwitchPointerValues = [11, 22, 33]
 
 #test
 {
-    func switchPointer(v: #null const *s32)->s32
+    func switchPointer(v: const *s32?)->s32
     {
         switch v
         {
@@ -234,7 +234,7 @@ const SwitchPointerValues = [11, 22, 33]
 
 #test
 {
-    func switchNullableTypeInfoValue(v: #null typeinfo)->s32
+    func switchNullableTypeInfoValue(v: typeinfo?)->s32
     {
         switch v
         {
@@ -244,8 +244,8 @@ const SwitchPointerValues = [11, 22, 33]
         }
     }
 
-    const T0: #null typeinfo = s32
-    const T1: #null typeinfo = null
+    const T0: typeinfo? = s32
+    const T1: typeinfo? = null
     #assert(#run switchNullableTypeInfoValue(T0) == 1)
     #assert(#run switchNullableTypeInfoValue(T1) == 2)
 }
@@ -255,7 +255,7 @@ const SwitchPointerValues = [11, 22, 33]
 // instead of type identity would silently fall through to 'default'.
 #test
 {
-    alias NullString = #null string
+    alias NullString = string?
 
     func switchNullableTypeInfo(v: typeinfo)->s32
     {

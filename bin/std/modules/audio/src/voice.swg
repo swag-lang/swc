@@ -47,15 +47,14 @@ public struct Voice
 
     internal
     {
-        #[Swag.Late]
-        allocationAllocator: IAllocator                 // Allocator that owns this voice and its buffers.
-        handle:              #null *void                // Identity of the voice inside the driver.
-        file:                #null const *SoundFile     // Borrowed source, alive for the voice's lifetime.
-        dataMutex:           Sync.Mutex                 // Serializes buffer feeding with transport changes.
+        late allocationAllocator: IAllocator            // Allocator that owns this voice and its buffers.
+        handle:                   *void?                // Identity of the voice inside the driver.
+        file:                     const *SoundFile?     // Borrowed source, alive for the voice's lifetime.
+        dataMutex:                Sync.Mutex            // Serializes buffer feeding with transport changes.
 
-        requestedEncoding               = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
-        codec:       #null ICodec       = null                          // Decoder instance for a streamed source.
-        packetCodec: #null IPacketCodec = null                          // Decoder instance for packetized media.
+        requestedEncoding          = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
+        codec:       ICodec?       = null                          // Decoder instance for a streamed source.
+        packetCodec: IPacketCodec? = null                          // Decoder instance for packetized media.
 
         playFlags:         VoicePlayFlags                   // Flags 'play' was given.
         state:             VoiceState                       // Where the voice is in its lifecycle.
@@ -127,7 +126,7 @@ public impl Voice
     // outlive the returned voice. The caller owns the voice and must call
     // [[Audio.Voice.destroy]] unless a later playback uses
     // [[Audio.VoicePlayFlags.DestroyOnStop]]. Success returns a non-null pointer.
-    func create(file: const *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice fail
+    func create(file: const *SoundFile, createFlags = VoiceCreateFlags.Default)->*Voice? fail
     {
         if !g_Driver.isCreated do
             fail BadParameterError{"audio engine is not created"}
@@ -157,7 +156,7 @@ public impl Voice
     // voice for destruction when playback finishes. The returned pointer can be
     // retained to adjust playback while it remains valid.
     #[Swag.Discardable]
-    func play(file: const *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice fail
+    func play(file: const *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->*Voice? fail
     {
         let voice = create(file, createFlags)!
         defer #fail voice.destroy()

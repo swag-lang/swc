@@ -25,7 +25,7 @@ struct(K) HashSet
     #[Swag.NoDoc]
     const HASH_FIRST = 2'u32
 
-    internal allocator: #null IAllocator
+    internal allocator: IAllocator?
 
     // Sizes are reported, never set: the set grows itself when it needs to.
 
@@ -40,8 +40,8 @@ struct(K) HashSet
 
     private
     {
-        table:   #null [*] HashSetEntry     // Contiguous memory block for the slots.
-        deleted: u64                        // The number of slots marked as deleted.
+        table:   [*] HashSetEntry?     // Contiguous memory block for the slots.
+        deleted: u64                   // The number of slots marked as deleted.
     }
 }
 
@@ -531,7 +531,7 @@ impl HashSet
 
 impl StrConv.IConvert for HashSet
 {
-    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string?)
     {
         buf.addBytes("[")
         var first = true

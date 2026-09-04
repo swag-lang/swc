@@ -162,6 +162,12 @@ namespace
             if (cur.hasRole(FormatRoleE::FatArrow) || prev.hasRole(FormatRoleE::FatArrow))
                 return fromBool(opt.spaceAroundFatArrow);
 
+            // `T?` is one type spelling, never a conditional expression. The classifier
+            // gives only nullable-type question marks this role, so ordinary `a ? b : c`
+            // still follows the ternary spacing option below.
+            if (cur.hasRole(FormatRoleE::NullableTypeSuffix))
+                return 0u;
+
             // Ranges (`..` only; keyword ranges always keep their spaces).
             if ((cur.hasRole(FormatRoleE::RangeOp) && cur.is(TokenId::SymDotDot)) ||
                 (prev.hasRole(FormatRoleE::RangeOp) && prev.is(TokenId::SymDotDot)))

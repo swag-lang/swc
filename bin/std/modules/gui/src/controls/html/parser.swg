@@ -73,8 +73,7 @@ public enum HtmlParserMode
 #[Swag.NoDoc]
 public struct HtmlParser
 {
-    #[Swag.Late]
-    document: *HtmlDocument
+    late document: *HtmlDocument
 
     stack:   Array'HtmlOpenElement
     pending: Array'HtmlPendingAttribute

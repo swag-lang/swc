@@ -120,7 +120,7 @@
 }
 
 #[Swag.Strict]
-alias StrictHandle = #null const *void
+alias StrictHandle = const *void?
 
 struct PointerConstCastBox
 {

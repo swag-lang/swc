@@ -1,6 +1,7 @@
 #global public
 
 alias DepCount = s32
+alias DepNullableCallback = func(value: const *u8?)->s32
 
 #[Swag.NoDuplicate]
 enum DepMode: s16

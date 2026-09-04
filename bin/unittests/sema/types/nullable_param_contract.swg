@@ -1,6 +1,6 @@
 #global private
 
-// A parameter declared '#null' advertises that callers may pass null. Every
+// A parameter declared '?' advertises that callers may pass null. Every
 // unguarded dereference of such a parameter (dereference, member access, indexing,
 // call) is rejected AT THE USE SITE: the deref is an error on its own node, so no
 // separate whole-function "dead parameter contract" verdict is needed. The honored
@@ -25,33 +25,33 @@ func npcBoom() fail
     fail Swag.BaseError{"boom"}
 }
 
-func npcCheck(x: #null *s32)->bool => x != null
+func npcCheck(x: *s32?)->bool => x != null
 
 // -----------------------------------------------------------------------------
 // Dead contracts: rejected.
 // -----------------------------------------------------------------------------
 
-func npcErrDeref(x: #null *s32)->s32
+func npcErrDeref(x: *s32?)->s32
 {
     return x[]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
-func npcErrMember(v: #null *NpcItem)->s32
+func npcErrMember(v: *NpcItem?)->s32
 {
     return v.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
-func npcErrIndex(s: #null [*] s32)->s32
+func npcErrIndex(s: [*] s32?)->s32
 {
     return s[0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
-func npcErrCall(f: #null func()->s32)->s32
+func npcErrCall(f: (func()->s32)?)->s32
 {
     return f()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
-func npcErrInterface(i: #null INpcFace)->s32
+func npcErrInterface(i: INpcFace?)->s32
 {
     return i.get()     // swc-expected-error {{sema_err_nullable_member_access}}
 }
@@ -61,7 +61,7 @@ func npcErrInterface(i: #null INpcFace)->s32
 // -----------------------------------------------------------------------------
 
 // Null test first.
-func npcOkGuarded(x: #null *s32)->s32
+func npcOkGuarded(x: *s32?)->s32
 {
     if x == null do
         return 0
@@ -69,7 +69,7 @@ func npcOkGuarded(x: #null *s32)->s32
 }
 
 // Truthiness guard first.
-func npcOkTruthGuard(v: #null *NpcItem)->s32
+func npcOkTruthGuard(v: *NpcItem?)->s32
 {
     if !v do
         return 0
@@ -78,14 +78,14 @@ func npcOkTruthGuard(v: #null *NpcItem)->s32
 
 // Explicit '!' assertion: the caller-visible contract moves to a runtime
 // panic, which is a deliberate choice.
-func npcOkAsserted(v: #null *NpcItem)->s32
+func npcOkAsserted(v: *NpcItem?)->s32
 {
     return v!.value
 }
 
 // The first use hands the parameter to someone else: the body cannot be proven
 // fatal for null. The dereference itself still needs its own local proof.
-func npcOkDelegated(x: #null *s32)->s32
+func npcOkDelegated(x: *s32?)->s32
 {
     if !npcCheck(x) do
         return 0
@@ -95,14 +95,14 @@ func npcOkDelegated(x: #null *s32)->s32
 }
 
 // A failing exit can leave the function before the dereference.
-func npcOkFailFirst(x: #null *s32)->s32 fail
+func npcOkFailFirst(x: *s32?)->s32 fail
 {
     try npcBoom()
     return x![]
 }
 
 // Dereference on one branch only: some executions never touch the parameter.
-func npcOkConditional(x: #null *s32, use: bool)->s32
+func npcOkConditional(x: *s32?, use: bool)->s32
 {
     if use and x != null do
         return x[]
@@ -110,19 +110,19 @@ func npcOkConditional(x: #null *s32, use: bool)->s32
 }
 
 // Never used at all.
-func npcOkUnused(x: #null *s32)->s32
+func npcOkUnused(x: *s32?)->s32
 {
     return 1
 }
 
 // -----------------------------------------------------------------------------
-// Return contracts: a '#null' return type that no return path can produce is
+// Return contracts: a '?' return type that no return path can produce is
 // the dual dead contract.
 // -----------------------------------------------------------------------------
 
 var g_npcStorage: s32
 
-func npcErrReturnNeverNull(c: bool)->#null *s32     // swc-expected-error {{sema_err_nullable_return_contract}}
+func npcErrReturnNeverNull(c: bool)->*s32?     // swc-expected-error {{sema_err_nullable_return_contract}}
 {
     if c do
         return &g_npcStorage
@@ -130,7 +130,7 @@ func npcErrReturnNeverNull(c: bool)->#null *s32     // swc-expected-error {{sema
 }
 
 // An explicit null return keeps the contract alive.
-func npcOkReturnNull(c: bool)->#null *s32
+func npcOkReturnNull(c: bool)->*s32?
 {
     if c do
         return null
@@ -138,13 +138,13 @@ func npcOkReturnNull(c: bool)->#null *s32
 }
 
 // Returning a nullable value keeps it alive too.
-func npcOkReturnNullable(x: #null *s32)->#null *s32
+func npcOkReturnNullable(x: *s32?)->*s32?
 {
     return x
 }
 
 // A fallible function is exempt: its 'catch' error path synthesizes null.
-func npcOkReturnFallible()->#null *s32 fail
+func npcOkReturnFallible()->*s32? fail
 {
     if g_npcStorage == 0 do
         fail Swag.BaseError{"boom"}
@@ -152,20 +152,20 @@ func npcOkReturnFallible()->#null *s32 fail
 }
 
 // -----------------------------------------------------------------------------
-// Local contracts: a '#null' local whose every value is provably non-null wears
+// Local contracts: a '?' local whose every value is provably non-null wears
 // a dead qualifier.
 // -----------------------------------------------------------------------------
 
-func npcMayNull()->#null *s32 => null
+func npcMayNull()->*s32? => null
 
-func npcFillPtrPtr(pp: *#null *s32)
+func npcFillPtrPtr(pp: *(*s32?))
 {
     pp[] = null
 }
 
 func npcErrLocalNeverNull()->s32
 {
-    var p: #null *s32 = &g_npcStorage     // swc-expected-error {{sema_err_nullable_local_contract}}
+    var p: *s32? = &g_npcStorage     // swc-expected-error {{sema_err_nullable_local_contract}}
     if p == null do
         return 0
     return p[]
@@ -174,7 +174,7 @@ func npcErrLocalNeverNull()->s32
 // No initializer: the local defaults to null.
 func npcOkLocalDefaultsNull(use: bool)->s32
 {
-    var p: #null *s32
+    var p: *s32?
     if use do
         p = &g_npcStorage
     return p == null ? 0 : p[]
@@ -183,7 +183,7 @@ func npcOkLocalDefaultsNull(use: bool)->s32
 // Reassigned with a possibly-null value.
 func npcOkLocalNullableValue()->s32
 {
-    var p: #null *s32 = &g_npcStorage
+    var p: *s32? = &g_npcStorage
     p = npcMayNull()
     return p == null ? 0 : p[]
 }
@@ -191,7 +191,7 @@ func npcOkLocalNullableValue()->s32
 // Explicit null assignment.
 func npcOkLocalNullAssign(c: bool)->s32
 {
-    var p: #null *s32 = &g_npcStorage
+    var p: *s32? = &g_npcStorage
     if c do
         p = null
     return p == null ? 0 : p[]
@@ -200,7 +200,7 @@ func npcOkLocalNullAssign(c: bool)->s32
 // Address escape: the callee may store null through it.
 func npcOkLocalEscaped()->s32
 {
-    var p: #null *s32 = &g_npcStorage
+    var p: *s32? = &g_npcStorage
     npcFillPtrPtr(&p)
     return p == null ? 0 : p[]
 }

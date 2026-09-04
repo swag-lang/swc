@@ -81,6 +81,15 @@ AstNodeRef Parser::parseSingleType()
         case TokenId::CompilerDeclType:
             return parseCompilerCallOne();
 
+        case TokenId::SymLeftParen:
+        {
+            const TokenRef openRef = consume();
+            const AstNodeRef typeRef = parseType();
+            if (expectAndConsumeClosing(TokenId::SymRightParen, openRef).isInvalid())
+                return AstNodeRef::invalid();
+            return typeRef;
+        }
+
         default:
             break;
     }
@@ -89,94 +98,52 @@ AstNodeRef Parser::parseSingleType()
     return AstNodeRef::invalid();
 }
 
-namespace
-{
-    struct QualifierDesc
-    {
-        TokenId                           tokenId;
-        EnumFlags<AstQualifiedTypeFlagsE> flag;
-        uint8_t                           order;
-    };
-
-    constexpr QualifierDesc G_QUALIFIER_TABLE[] = {
-        {.tokenId = TokenId::ModifierNullable, .flag = AstQualifiedTypeFlagsE::Nullable, .order = 0},
-        {.tokenId = TokenId::KwdConst, .flag = AstQualifiedTypeFlagsE::Const, .order = 1},
-    };
-
-    const QualifierDesc* findQualifier(TokenId id)
-    {
-        for (const QualifierDesc& q : G_QUALIFIER_TABLE)
-        {
-            if (q.tokenId == id)
-                return &q;
-        }
-
-        return nullptr;
-    }
-}
-
 AstNodeRef Parser::parseSubType()
 {
-    EnumFlags                                          qualifiers  = AstQualifiedTypeFlagsE::Zero;
-    uint8_t                                            lastOrder   = 0;
-    const TokenRef                                     firstTokRef = ref();
-    std::array<TokenRef, std::size(G_QUALIFIER_TABLE)> qualifierRefs{};
-    qualifierRefs.fill(TokenRef::invalid());
-    TokenRef lastQualifierRef = TokenRef::invalid();
+    return parseSubType(true);
+}
 
-    // Qualifiers have a canonical order (nullability before const). Enforce it
-    // while parsing so sema only sees one normalized QualifiedType shape.
-    for (;;)
+AstNodeRef Parser::parseSubType(const bool allowNullableSuffix)
+{
+    const TokenRef constRef = consumeIf(TokenId::KwdConst);
+    while (is(TokenId::KwdConst))
     {
-        const QualifierDesc* qd = findQualifier(id());
-        if (!qd)
-            break;
-
-        const TokenRef tokRef = ref();
-
-        // Duplicate?
-        if (qualifiers.has(qd->flag))
-        {
-            Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_type_qualifier, tokRef);
-            if (qualifierRefs[qd->order].isValid())
-                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, qualifierRefs[qd->order]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
-            diag.report(*ctx_);
-            consume();
-            continue;
-        }
-
-        // Misplaced (violates canonical order)?
-        if (std::cmp_less(qd->order, lastOrder))
-        {
-            Diagnostic diag = reportError(DiagnosticId::parser_err_misplace_type_qualifier, tokRef);
-            if (lastQualifierRef.isValid())
-                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, lastQualifierRef), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
-            diag.report(*ctx_);
-            consume();
-            continue;
-        }
-
-        qualifiers.add(qd->flag);
-        lastOrder                = qd->order;
-        qualifierRefs[qd->order] = tokRef;
-        lastQualifierRef         = tokRef;
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_type_qualifier, ref());
+        diag.report(*ctx_);
         consume();
     }
-
-    // Parse the core subtype (pointers, refs, arrays, base type...)
-    const AstNodeRef subNodeRef = parseSubTypeNoQualifiers();
+    AstNodeRef subNodeRef = parseSubTypeNoQualifiers();
     if (subNodeRef.isInvalid())
         return AstNodeRef::invalid();
 
-    // No qualifiers? Just return the core type.
-    if (qualifiers == AstQualifiedTypeFlagsE::Zero)
-        return subNodeRef;
+    if (constRef.isValid())
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(constRef);
+        nodePtr->nodeTypeRef    = subNodeRef;
+        nodePtr->addFlag(AstQualifiedTypeFlagsE::Const);
+        subNodeRef = nodeRef;
+    }
 
-    // Wrap in a single QualifiedType node with all flags set.
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(firstTokRef);
-    nodePtr->nodeTypeRef    = subNodeRef;
-    nodePtr->flags()        = qualifiers;
-    return nodeRef;
+    // Nullability is a suffix on the complete type. Prefix type constructors parse their
+    // operand without that suffix, so '*T?' is a nullable pointer and '*(T?)' is a pointer
+    // to a nullable value.
+    const TokenRef nullableRef = allowNullableSuffix && is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore) ? consume() : TokenRef::invalid();
+    if (nullableRef.isValid())
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QualifiedType>(nullableRef);
+        nodePtr->nodeTypeRef    = subNodeRef;
+        nodePtr->addFlag(AstQualifiedTypeFlagsE::Nullable);
+        subNodeRef = nodeRef;
+
+        while (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_type_qualifier, ref());
+            diag.report(*ctx_);
+            consume();
+        }
+    }
+
+    return subNodeRef;
 }
 
 AstNodeRef Parser::parseSubTypeNoQualifiers()
@@ -185,7 +152,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     const TokenRef tokMoveRef = consumeIf(TokenId::ModifierMove);
     if (tokMoveRef.isValid())
     {
-        const AstNodeRef child = parseSubType();
+        const AstNodeRef child = parseSubType(false);
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(tokMoveRef);
@@ -204,7 +171,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         else
             fwdSeenParam_ = true;
 
-        const AstNodeRef child = parseSubType();
+        const AstNodeRef child = parseSubType(false);
         if (child.isInvalid())
             return AstNodeRef::invalid();
 
@@ -231,7 +198,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             return parseSubType();
         }
 
-        const AstNodeRef child = parseSubType();
+        const AstNodeRef child = parseSubType(false);
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]   = ast_->makeNode<AstNodeId::SimdType>(tokSimdRef);
@@ -243,7 +210,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     const TokenRef tokStarRef = consumeIf(TokenId::SymAsterisk);
     if (tokStarRef.isValid())
     {
-        const AstNodeRef child = parseSubType();
+        const AstNodeRef child = parseSubType(false);
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(tokStarRef);
@@ -262,7 +229,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const AstNodeRef child = parseSubType();
+            const AstNodeRef child = parseSubType(false);
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::BlockPointerType>(startTok);
@@ -275,7 +242,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const AstNodeRef child = parseSubType();
+            const AstNodeRef child = parseSubType(false);
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::SliceType>(startTok);
@@ -288,7 +255,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const AstNodeRef child = parseSubType();
+            const AstNodeRef child = parseSubType(false);
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>(startTok);
@@ -328,7 +295,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             return AstNodeRef::invalid();
 
         // Recursively parse the rest of the type (handles chaining like [X][Y])
-        const AstNodeRef child = parseSubType();
+        const AstNodeRef child = parseSubType(false);
         if (child.isInvalid())
             return AstNodeRef::invalid();
 
@@ -343,6 +310,11 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
 
 AstNodeRef Parser::parseType()
 {
+    // Quoted generic arguments are parsed through the expression grammar. Keep the
+    // enclosing type context so a suffix '?' attaches to the complete type rather
+    // than accidentally to that generic argument.
+    const PushContextFlags context(this, ParserContextFlagsE::InType);
+
     // 'retval'
     if (is(TokenId::KwdRetVal))
         return parseRetValType();

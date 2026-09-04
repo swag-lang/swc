@@ -37,9 +37,9 @@ namespace Integration
 
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
-        func MoveFileExW(existing, replacement: #null const [*] u16, flags: u32)->s32
-        func SetFileAttributesW(path: #null const [*] u16, attributes: u32)->s32
-        func GetFileAttributesW(path: #null const [*] u16)->u32
+        func MoveFileExW(existing, replacement: const [*] u16?, flags: u32)->s32
+        func SetFileAttributesW(path: const [*] u16?, attributes: u32)->s32
+        func GetFileAttributesW(path: const [*] u16?)->u32
         func GetLastError()->u32
     }
 
@@ -155,7 +155,7 @@ namespace Integration
         source:        String
         recovered:     String
         mountPoint:    String
-        mounted:       #null *WinFsp.MountedVolume
+        mounted:       *WinFsp.MountedVolume?
         mountedActive: bool
     }
 
@@ -496,7 +496,7 @@ namespace Integration
         return true
     }
 
-    func errorMessage(err: #null any)->string
+    func errorMessage(err: any?)->string
     {
         switch err
         {

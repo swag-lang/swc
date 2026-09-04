@@ -22,7 +22,7 @@ struct NativeWithPoint
 
 struct NativeWithHolder
 {
-    ptr: #null *NativeWithPoint
+    ptr: *NativeWithPoint?
 }
 
 struct NativeWithWrapper
@@ -124,7 +124,7 @@ func nativeWithValueAndPointer()->s32
 func nativeWithAssignmentsAndScopes()->s32
 {
     var point = nativeWithMakePoint(2, 4)
-    var ptr:    #null *NativeWithPoint
+    var ptr:    *NativeWithPoint?
     var holder: NativeWithHolder
     var total = 0
 

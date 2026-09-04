@@ -33,7 +33,7 @@ func scoreNameRecord(platformID, encodingID, languageID: u16)->s32
     return score
 }
 
-func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset: u64)->String fail
+func decodeNameRecord(nameTable: const [..] u8?, stringOffset, recordOffset: u64)->String fail
 {
     let platformID = readU16(nameTable, recordOffset + 0)
     let length     = readU16(nameTable, recordOffset + 8)
@@ -52,12 +52,12 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
         return Utf8.fromUtf16(chars.toSlice())
     }
 
-    return String.from(cast(#null string) raw)
+    return String.from(cast(string?) raw)
 }
 
 // Decodes the best-scoring record a 'name' table holds for 'nameID', or an empty
 // string when it declares none this module can read.
-func decodeBestName(nameTable: #null const [..] u8, nameID: u16)->String fail
+func decodeBestName(nameTable: const [..] u8?, nameID: u16)->String fail
 {
     var result: retval
 
@@ -167,7 +167,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
     let cmapTable = getSlice(faceData.fontData.toSlice(), table.offset, table.length)
     let count     = readU16(cmapTable, 2)
 
-    var bestSlice: #null const [..] u8
+    var bestSlice: const [..] u8?
     var bestScore = -1
     var bestFmt   = 0'u16
 
@@ -318,7 +318,7 @@ func initFaceRecords(faceData: *FaceImpl)
 
 // Rejects an offset table this module cannot read, naming the container it found
 // instead of reporting every one of them as an unknown format.
-func checkSfntVersion(data: #null const [..] u8, offset: u64) fail
+func checkSfntVersion(data: const [..] u8?, offset: u64) fail
 {
     let tag = readU32(data, offset)
     if tag == TAG_WOFF or tag == TAG_WOF2 do
@@ -329,7 +329,7 @@ func checkSfntVersion(data: #null const [..] u8, offset: u64) fail
 
 // Returns how many faces the font data holds: the face count of a `ttcf`
 // collection, and one for a bare font file.
-func countFacesIn(data: #null const [..] u8)->u32 fail
+func countFacesIn(data: const [..] u8?)->u32 fail
 {
     if data.count < 12 do
         fault(0x02)
@@ -345,7 +345,7 @@ func countFacesIn(data: #null const [..] u8)->u32 fail
 // A collection stores one such offset per face after a twelve-byte header; every
 // table record inside a member still addresses the whole file, so only the
 // directory moves.
-func findFaceOffset(data: #null const [..] u8, faceIndex: u32)->u64 fail
+func findFaceOffset(data: const [..] u8?, faceIndex: u32)->u64 fail
 {
     if data.count < 12 do
         fault(0x02)
@@ -367,7 +367,7 @@ func findFaceOffset(data: #null const [..] u8, faceIndex: u32)->u64 fail
 }
 
 // Locates one table of the directory at 'faceOffset', without building a face.
-func findTableAt(data: #null const [..] u8, faceOffset: u64, tag: u32)->#null const [..] u8 fail
+func findTableAt(data: const [..] u8?, faceOffset: u64, tag: u32)->const [..] u8? fail
 {
     let numTables = readU16(data, faceOffset + 4)
     for index in numTables
@@ -385,7 +385,7 @@ func findTableAt(data: #null const [..] u8, faceOffset: u64, tag: u32)->#null co
 //
 // Only the offset table and the 'name' table are read, which is what lets a
 // collection be searched for a family without loading each of its faces in turn.
-func familyNameIn(data: #null const [..] u8, faceIndex: u32)->String fail
+func familyNameIn(data: const [..] u8?, faceIndex: u32)->String fail
 {
     let faceOffset = findFaceOffset(data, faceIndex)
     let nameTable  = findTableAt(data, faceOffset, TAG_NAME)

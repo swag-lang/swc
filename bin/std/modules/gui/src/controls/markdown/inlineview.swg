@@ -133,11 +133,10 @@ public struct InlineView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    owner: *View
-    kind:  BlockKind
-    atoms: Array'InlineAtom
-    lines: Array'InlineLine
+    late owner: *View
+    kind:       BlockKind
+    atoms:      Array'InlineAtom
+    lines:      Array'InlineLine
 
     // Where this view sits in the reading order of every text view the document owns, which is
     // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
@@ -145,7 +144,7 @@ public struct InlineView
     textLength:   u64     // Total bytes of the view's text, the upper bound of every offset into it.
     layoutWidth:  f32
     layoutHeight: f32
-    hotAtom:      #null *InlineAtom
+    hotAtom:      *InlineAtom?
     horizontalAlignment = StringHorzAlignment.Left
     searchStart         = Swag.U64.Max
     searchEnd:    u64
@@ -823,7 +822,7 @@ impl InlineView
         }
     }
 
-    mtd atomAt(point: Math.Point)->#null *InlineAtom
+    mtd atomAt(point: Math.Point)->*InlineAtom?
     {
         for &atom in .atoms where atom.visible and atom.flags.has(.Link) and atom.position.contains(point) do
             return atom

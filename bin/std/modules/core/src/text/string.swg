@@ -40,10 +40,10 @@ struct String
 {
     public
     {
-        buffer:    #null [*] u8             // Storage of the string, inline for a small one.
+        buffer:    [*] u8?                  // Storage of the string, inline for a small one.
         length:    u64                      // Number of valid bytes in 'buffer'.
         capacity:  u64                      // Number of bytes 'buffer' can hold.
-        allocator: #null IAllocator         // Allocator used to grow the storage.
+        allocator: IAllocator?              // Allocator used to grow the storage.
         padding:   [StringSmallSize] u8     // Inline storage of a small string.
     }
 }
@@ -59,7 +59,7 @@ impl String
 
     // Returns the underlying data address.
     #[Inline]
-    mtd const opData()->#null const [*] u8
+    mtd const opData()->const [*] u8?
     {
         return .buffer
     }
@@ -67,7 +67,7 @@ impl String
     // Converts this value to another representation.
     // Converts this value to another representation.
     #[Implicit, Inline]
-    mtd const opCast()->#null cstring
+    mtd const opCast()->cstring?
     {
         return .buffer
     }
@@ -86,7 +86,7 @@ impl String
 
     // Assigns a value.
     #[Implicit]
-    mtd opSet(value: #null string)
+    mtd opSet(value: string?)
     {
         if value.buffer == null
         {
@@ -123,7 +123,7 @@ impl String
     }
 
     // Returns whether two values are equal.
-    mtd const opEquals(other: #null string)->bool
+    mtd const opEquals(other: string?)->bool
     {
         if .buffer == other.buffer do
             return true
@@ -181,7 +181,7 @@ impl String
             .append(v)
     }
 
-    mtd(op: Swag.Operator) opAssign(value: #null string)
+    mtd(op: Swag.Operator) opAssign(value: string?)
         where op == .AddAssign
     {
         .append(value)
@@ -372,7 +372,7 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    mtd replace(what: string, by: #null string, comparisonType = Utf8.ComparisonType.Latin1)
+    mtd replace(what: string, by: string?, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = what.count
         if !whatLength or whatLength > .length do
@@ -529,7 +529,7 @@ impl String
     }
 
     // Append a string to the String
-    mtd append(value: #null string)
+    mtd append(value: string?)
     {
         let concatLength = value.count
         if concatLength == 0 do
@@ -691,7 +691,7 @@ impl String
     }
 
     // Convert a literal string to a String
-    func from(value: #null string)->String
+    func from(value: string?)->String
     {
         var val: retval = value
         return val
@@ -777,7 +777,7 @@ impl String
     }
 
     // Returns a new String in lower case
-    func toLower(str: #null string, set = CharacterSet.Latin1)->String
+    func toLower(str: string?, set = CharacterSet.Latin1)->String
     {
         var result: retval = str
         result.makeLower(set)

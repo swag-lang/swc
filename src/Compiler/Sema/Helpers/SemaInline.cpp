@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -2040,7 +2040,7 @@ namespace
         // A narrow-fact materialization is pinned to the PARAMETER type: the binding exists
         // precisely because its value was proven non-null by flow narrowing at the call site
         // (inlineBindingDependsOnNarrowFact). Inferring the `let` type from the un-narrowed
-        // argument would relabel it '#null' inside the callee body, where the parameter is
+        // argument would relabel it 'nullable' inside the callee body, where the parameter is
         // non-null - a false use-site nullability error. Pinning to the parameter type
         // restores the non-null contract the argument was validated against, reusing the
         // same proven type-clone/cast mechanism as the cases below.
@@ -2114,7 +2114,7 @@ namespace
             {
                 // Pin the parameter's non-null pointer type onto a by-address binding whose
                 // argument was proven by flow narrowing: the clone must not re-type it
-                // '#null'. The cast wraps a detached clone, never the caller's expression.
+                // 'nullable'. The cast wraps a detached clone, never the caller's expression.
                 if (mat.narrowDependent && mat.bindsByAddress && param->typeRef().isValid())
                 {
                     const AstNodeRef detachedRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
@@ -2663,7 +2663,7 @@ namespace
                 continue;
             const TypeInfo& paramType = param->type(sema.ctx());
             // Nullable qualification is part of the callee's flow contract. The inline binding
-            // currently adopts the call-site expression type, which can narrow `#null *T` to
+            // currently adopts the call-site expression type, which can narrow `nullable *T` to
             // `*T` and make a valid null test in the cloned body ill-typed.
             if ((bodyHasCalls && paramType.isNullable()) || isInlineAggregateType(paramType))
                 return false;

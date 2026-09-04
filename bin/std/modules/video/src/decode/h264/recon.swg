@@ -13,7 +13,7 @@ const ReconstructionBands = 32'u32
 struct ReconstructionJob
 {
     using base: Jobs.Job
-    decoder:    #null *Decoder
+    decoder:    *Decoder?
     first:      u32
     end:        u32
 }
@@ -638,7 +638,7 @@ impl Slice
     }
 }
 
-private func runReconstructionJob(data: #null *void)
+private func runReconstructionJob(data: *void?)
 {
     let job = cast(*ReconstructionJob) data!
     for index in job.first until job.end

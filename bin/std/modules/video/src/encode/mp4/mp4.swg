@@ -126,7 +126,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
 
-    mtd impl begin(sink: *Sink, info: StreamInfo, options: #null any) fail
+    mtd impl begin(sink: *Sink, info: StreamInfo, options: any?) fail
     {
         if info.width > MaxFrameSide or info.height > MaxFrameSide do
             fail UnsupportedFormatError{"MP4 frame dimensions exceed what the visual sample entry can describe"}

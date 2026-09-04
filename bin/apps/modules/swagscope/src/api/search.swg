@@ -8,10 +8,10 @@ struct SearchOptions
 {
     public
     {
-        matchCase:         bool                     // Whether letter case has to match.
-        wholeWord:         bool                     // Whether word characters may touch either side of a match.
-        regularExpression: bool                     // Whether the query is a regular expression rather than literal text.
-        expression:        #null *Parser.RegExp     // Compiled expression borrowed for one synchronous collection.
+        matchCase:         bool                // Whether letter case has to match.
+        wholeWord:         bool                // Whether word characters may touch either side of a match.
+        regularExpression: bool                // Whether the query is a regular expression rather than literal text.
+        expression:        *Parser.RegExp?     // Compiled expression borrowed for one synchronous collection.
     }
 }
 
@@ -91,7 +91,7 @@ alias PrepareSearch = func(*Wnd, string, *SearchPlan)->EditBoxCheckResult
 alias CollectFileMatches = func(*Wnd, string, u64, *Array'SearchMatch)
 
 // Lets a viewer borrow the host-owned result index while the current query remains active.
-alias UseSearchMatches = func(*Wnd, #null *Array'SearchMatch)
+alias UseSearchMatches = func(*Wnd, *Array'SearchMatch?)
 
 // Configures the optional search behavior of one attached document view.
 //
@@ -101,15 +101,15 @@ struct SearchApi
 {
     public
     {
-        revealMatch:        #null RevealSearchMatch        // Makes one host-selected match visible.
-        matchBounds:        #null SearchMatchBounds        // Reports the revealed match geometry.
-        clear:              #null ClearSearch              // Removes the current match presentation.
-        collectMatches:     #null CollectSearchMatches     // Replaces host file scanning with viewer search.
-        filter:             #null ApplySearchFilter        // Reuses the shared query as a viewer-owned visibility filter.
-        describe:           #null DescribeSearch           // Supplies localized query presentation.
-        prepare:            #null PrepareSearch            // Validates a streamed-file query before scanning.
-        collectFileMatches: #null CollectFileMatches       // Scans one host-owned streamed source window.
-        useMatches:         #null UseSearchMatches         // Borrows the active host result index.
+        revealMatch:        RevealSearchMatch?        // Makes one host-selected match visible.
+        matchBounds:        SearchMatchBounds?        // Reports the revealed match geometry.
+        clear:              ClearSearch?              // Removes the current match presentation.
+        collectMatches:     CollectSearchMatches?     // Replaces host file scanning with viewer search.
+        filter:             ApplySearchFilter?        // Reuses the shared query as a viewer-owned visibility filter.
+        describe:           DescribeSearch?           // Supplies localized query presentation.
+        prepare:            PrepareSearch?            // Validates a streamed-file query before scanning.
+        collectFileMatches: CollectFileMatches?       // Scans one host-owned streamed source window.
+        useMatches:         UseSearchMatches?         // Borrows the active host result index.
     }
 }
 

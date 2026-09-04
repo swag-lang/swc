@@ -54,7 +54,7 @@ internal struct BinaryViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:      *Wnd
         backButton:    *IconButton
@@ -62,24 +62,24 @@ internal struct BinaryViewer
         list:          *ListCtrl
     }
 
-    previewBand:             #null *StackLayoutCtrl
+    previewBand:             *StackLayoutCtrl?
     doc:                     BinaryDocument
     pendingDoc:              BinaryDocument
-    rowLines:                Array'(#null *ListLine)     // Line created for each report row, in row order.
-    fillParents:             Array'(#null *ListLine)
+    rowLines:                Array'(*ListLine?)     // Line created for each report row, in row order.
+    fillParents:             Array'(*ListLine?)
     fillIndex:               u64
     details:                 String
     failureReason:           String
     loadFileName:            String
     loadStrings:             BinaryStrings
     loadThread:              Threading.Thread
-    loadTimer:               #null *Timer
-    filterTimer:             #null *Timer
+    loadTimer:               *Timer?
+    filterTimer:             *Timer?
     loadState:               u32
     loadPublished:           bool
-    reportFailure:           #null Viewer.ReportFailure
-    reportDetails:           #null Viewer.ReportDetails
-    reportLoadingChanged:    #null Viewer.ReportLoadingChanged
+    reportFailure:           Viewer.ReportFailure?
+    reportDetails:           Viewer.ReportDetails?
+    reportLoadingChanged:    Viewer.ReportLoadingChanged?
     retireRequested:         bool
     retired:                 bool
     reloadLanguageRequested: bool
@@ -209,9 +209,9 @@ internal impl BinaryViewer
             if !.filterIncluded.isEmpty() and !.filterIncluded[index] do
                 continue
 
-            let row   = &.doc.report.rows[index]
-            let depth = cast(u64) row.level
-            var parent: #null *ListLine = null
+            let row                = &.doc.report.rows[index]
+            let depth              = cast(u64) row.level
+            var parent: *ListLine? = null
             if depth and depth <= .fillParents.count do
                 parent = .fillParents[depth - 1]
 
@@ -344,7 +344,7 @@ internal impl BinaryViewer
         return true
     }
 
-    private mtd reportIndexOf(line: #null *ListLine)->u64
+    private mtd reportIndexOf(line: *ListLine?)->u64
     {
         if !line do
             return Swag.U64.Max
@@ -655,7 +655,7 @@ internal impl BinaryViewer
     // has no natural width: a flag list is as long as the flags that are set.
     mtd layoutColumns()
     {
-        if !Swag.isSet(.list) do
+        if !(.list != null) do
             return
 
         let room  = Math.max(.list.listView.paddedClientRect().width, 480.0)
@@ -1056,7 +1056,7 @@ internal impl BinaryViewer
         .retired = true
     }
 
-    func create(host: Viewer.Host)->#null *BinaryViewer fail
+    func create(host: Viewer.Host)->*BinaryViewer? fail
     {
         let s        = binStrings()
         let services = host.services()

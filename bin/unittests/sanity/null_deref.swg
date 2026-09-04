@@ -38,7 +38,7 @@ func nullSafetyEnabled()->bool
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     let q = p!
     q.x = 1     // swc-expected-error {{sanity_err_null_deref}}
 }
@@ -47,7 +47,7 @@ func nullSafetyEnabled()->bool
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     let q = p!
     q.y = 2     // swc-expected-error {{sanity_err_null_deref}}
 }
@@ -56,8 +56,8 @@ func nullSafetyEnabled()->bool
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var p: #null *s32 = null
-    let q             = p!
+    var p: *s32? = null
+    let q        = p!
     q[] = 9     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -65,7 +65,7 @@ func nullSafetyEnabled()->bool
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     var q = p!
     q.x = 3     // swc-expected-error {{sanity_err_null_deref}}
 }
@@ -75,7 +75,7 @@ func nullSafetyEnabled()->bool
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     let q = p!
     Swag.assert(q.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
 }
@@ -85,7 +85,7 @@ func nullSafetyEnabled()->bool
 #[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     if p == null
     {
         let q = p!
@@ -102,7 +102,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var v: NullDerefItem
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     if p != null
     {
         p.x = 1
@@ -117,7 +117,7 @@ func nullSafetyEnabled()->bool
 func correlatedGuard(cond: bool)
 {
     var v: NullDerefItem
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     if cond
     {
         p = &v
@@ -148,7 +148,7 @@ func correlatedGuard(cond: bool)
 #test
 {
     var w: NullDerefItem
-    var p: #null *NullDerefItem = null
+    var p: *NullDerefItem? = null
     p   = &w
     p.x = 7
     Swag.assert(w.x == 7)

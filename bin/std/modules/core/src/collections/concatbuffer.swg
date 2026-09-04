@@ -5,11 +5,11 @@ struct ConcatBufferBucket
 {
     public readonly
     {
-        data:        #null [*] u8                  // Pointer to the raw memory of the bucket.
-        next:        #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
-        count:       u64                           // Number of bytes used in this bucket.
-        size:        u64                           // Total allocated size of this bucket in bytes.
-        countBefore: u64                           // Total number of bytes in all preceding buckets.
+        data:        [*] u8?                  // Pointer to the raw memory of the bucket.
+        next:        *ConcatBufferBucket?     // Pointer to the next bucket in the chain.
+        count:       u64                      // Number of bytes used in this bucket.
+        size:        u64                      // Total allocated size of this bucket in bytes.
+        countBefore: u64                      // Total number of bytes in all preceding buckets.
     }
 }
 
@@ -19,8 +19,8 @@ struct ConcatBufferPosition
 {
     public readonly
     {
-        bucket:  #null *ConcatBufferBucket     // The bucket containing the position.
-        pointer: #null [*] u8                  // The exact memory address of the position.
+        bucket:  *ConcatBufferBucket?     // The bucket containing the position.
+        pointer: [*] u8?                  // The exact memory address of the position.
     }
 }
 
@@ -31,8 +31,8 @@ struct ConcatBuffer
 {
     public
     {
-        allocator:   #null Swag.IAllocator     // The allocator to use for all memory operations.
-        granularity: u64 = 1024                // The default size for newly allocated buckets.
+        allocator:   Swag.IAllocator?     // The allocator to use for all memory operations.
+        granularity: u64 = 1024           // The default size for newly allocated buckets.
     }
 
     // The bucket chain and the cursor inside it. Append and seek through the methods, which keep
@@ -40,12 +40,12 @@ struct ConcatBuffer
 
     private
     {
-        firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
-        curBucket:       #null *ConcatBufferBucket     // The bucket the cursor is located in.
-        lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
-        currentSP:       #null [*] u8                  // The cursor inside `curBucket`.
-        isAtEnd:         bool = true                   // Whether the cursor is at the very end.
-        viewFirstBucket: ConcatBufferBucket            // Bucket reused by views, to skip an allocation.
+        firstBucket:     *ConcatBufferBucket?     // The first bucket in the chain.
+        curBucket:       *ConcatBufferBucket?     // The bucket the cursor is located in.
+        lastBucket:      *ConcatBufferBucket?     // The last bucket in the chain.
+        currentSP:       [*] u8?                  // The cursor inside `curBucket`.
+        isAtEnd:         bool = true              // Whether the cursor is at the very end.
+        viewFirstBucket: ConcatBufferBucket       // Bucket reused by views, to skip an allocation.
     }
 }
 
@@ -276,7 +276,7 @@ impl ConcatBuffer
 
     // Appends a slice of bytes to the buffer.
     // If 'contiguous' is false, the slice can be split across multiple buckets if necessary.
-    mtd addBytes(bytes: #null const [..] u8, contiguous = true)
+    mtd addBytes(bytes: const [..] u8?, contiguous = true)
     {
         var num = bytes.count
         if !num do
@@ -478,7 +478,7 @@ impl ConcatBuffer
     // Returns the buffer's content as a slice, but only if the buffer is 'linear'.
     // A buffer is linear if it consists of a single bucket. Returns 'null' otherwise.
     // See [[makeLinear]].
-    mtd toSlice()->#null [..] u8
+    mtd toSlice()->[..] u8?
     {
         if .lastBucket == .firstBucket
         {
@@ -505,7 +505,7 @@ impl ConcatBuffer
     //
     // The buffer remains valid after this call.
     // See [[Core.ConcatBuffer.moveToString]] to reuse linear storage when possible.
-    mtd const toString(alloc: #null Swag.IAllocator = null)->String
+    mtd const toString(alloc: Swag.IAllocator? = null)->String
     {
         var result: retval
         if !.firstBucket do

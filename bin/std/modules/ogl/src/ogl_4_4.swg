@@ -4,15 +4,15 @@ using Swag
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glBindBuffersBase(target: GLenum, first: GLuint, count: GLsizei, buffers: #null const *GLuint)
-    func glBindBuffersRange(target: GLenum, first: GLuint, count: GLsizei, buffers: #null const *GLuint, offsets: #null const *GLintptr, sizes: #null const *GLsizeiptr)
-    func glBindImageTextures(first: GLuint, count: GLsizei, textures: #null const *GLuint)
-    func glBindSamplers(first: GLuint, count: GLsizei, samplers: #null const *GLuint)
-    func glBindTextures(first: GLuint, count: GLsizei, textures: #null const *GLuint)
-    func glBindVertexBuffers(first: GLuint, count: GLsizei, buffers: #null const *GLuint, offsets: #null const *GLintptr, strides: #null const *GLsizei)
-    func glBufferStorage(target: GLenum, size: GLsizeiptr, data: #null const *void, flags: GLbitfield)
-    func glClearTexImage(texture: GLuint, level: GLint, format: GLenum, type: GLenum, data: #null const *void)
-    func glClearTexSubImage(texture: GLuint, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum, data: #null const *void)
+    func glBindBuffersBase(target: GLenum, first: GLuint, count: GLsizei, buffers: const *GLuint?)
+    func glBindBuffersRange(target: GLenum, first: GLuint, count: GLsizei, buffers: const *GLuint?, offsets: const *GLintptr?, sizes: const *GLsizeiptr?)
+    func glBindImageTextures(first: GLuint, count: GLsizei, textures: const *GLuint?)
+    func glBindSamplers(first: GLuint, count: GLsizei, samplers: const *GLuint?)
+    func glBindTextures(first: GLuint, count: GLsizei, textures: const *GLuint?)
+    func glBindVertexBuffers(first: GLuint, count: GLsizei, buffers: const *GLuint?, offsets: const *GLintptr?, strides: const *GLsizei?)
+    func glBufferStorage(target: GLenum, size: GLsizeiptr, data: const *void?, flags: GLbitfield)
+    func glClearTexImage(texture: GLuint, level: GLint, format: GLenum, type: GLenum, data: const *void?)
+    func glClearTexSubImage(texture: GLuint, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum, data: const *void?)
 }
 
 const GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED = 0x8221

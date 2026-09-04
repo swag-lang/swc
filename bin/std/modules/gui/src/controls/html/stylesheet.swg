@@ -155,8 +155,7 @@ public struct HtmlStyleSheet
 #[Swag.NoDoc]
 public struct HtmlMatchContext
 {
-    #[Swag.Late]
-    document: *HtmlDocument
+    late document: *HtmlDocument
 
     target:  String
     mediaOn: Array'bool

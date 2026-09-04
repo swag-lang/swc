@@ -7,7 +7,7 @@ internal impl Properties
         if .hostNtfy and !.hostNtfy.isEnumValueVisible(me, item, enumValue) do
             return false
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf and !scan.ntfyItf.isEnumValueVisible(me, item, enumValue) do
@@ -20,7 +20,7 @@ internal impl Properties
 
     mtd refreshEnumFlags(item: *PropertiesItem)
     {
-        if Swag.isSet(item.checkBox)
+        if item.checkBox != null
         {
             var val1, val2: u64
             switch item.typeValue.pointedType!.sizeof
@@ -53,12 +53,12 @@ internal impl Properties
 
     mtd refreshEnum(item: *PropertiesItem)
     {
-        if Swag.isSet(item.comboBox)
+        if item.comboBox != null
         {
             let typeEnum = cast(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
 
             var val1, val2:   u64
-            var val1s, val2s: #null string
+            var val1s, val2s: string?
             switch typeEnum.rawType!.sizeof
             {
             case 1:  val1 = cast(u64) item.data![as u8]
@@ -107,12 +107,12 @@ internal impl Properties
 
     mtd validateEnumFlags(item: *PropertiesItem)
     {
-        if Swag.isSet(item.checkBox)
+        if item.checkBox != null
         {
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
             let sz   = item.typeValue.pointedType!.sizeof
-            let mask = readEnumBits(cast(#null *u8) item.checkBox.userData, sz)
+            let mask = readEnumBits(cast(*u8?) item.checkBox.userData, sz)
             .writeEnumBit(item, mask, item.checkBox.isChecked())
         }
 
@@ -121,7 +121,7 @@ internal impl Properties
 
     mtd validateEnum(item: *PropertiesItem)
     {
-        if Swag.isSet(item.comboBox)
+        if item.comboBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -155,7 +155,7 @@ internal impl Properties
         .commitItemChange(item)
     }
 
-    mtd constructEnumFlags(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructEnumFlags(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item = .addItem(value, data, parentItem)
         item.flags.add(.NoSeparator | .Expanded)
@@ -201,7 +201,7 @@ internal impl Properties
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
                 .dockStyle = .Left
-                .userData  = cast #unconst (#null *void) v.value
+                .userData  = cast #unconst (*void?) v.value
             }
 
             itemB.assignCheckBox(ed)
@@ -240,7 +240,7 @@ internal impl Properties
         item.numChilds = numChilds
     }
 
-    mtd constructEnum(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructEnum(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: *u8?, parentItem: *PropertiesItem?)
     {
         if Reflection.hasAttribute(value.pointedType, Swag.EnumFlags)
         {
@@ -253,7 +253,7 @@ internal impl Properties
         // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
@@ -291,7 +291,7 @@ internal impl Properties
             if !.isEnumValueShown(item, v) do
                 continue
             let dn = Reflection.attributeValue(v, Properties.Name, "name")
-            item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(#null *void) idx)
+            item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(*void?) idx)
         }
 
         .refreshEnum(item)

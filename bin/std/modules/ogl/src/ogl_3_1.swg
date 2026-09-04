@@ -6,13 +6,13 @@ using Swag
 {
     func glCopyBufferSubData(readTarget: GLenum, writeTarget: GLenum, readOffset: GLintptr, writeOffset: GLintptr, size: GLsizeiptr)
     func glDrawArraysInstanced(mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei)
-    func glDrawElementsInstanced(mode: GLenum, count: GLsizei, type: GLenum, indices: #null const *void, primcount: GLsizei)
-    func glGetActiveUniformBlockName(program: GLuint, uniformBlockIndex: GLuint, bufSize: GLsizei, length: #null *GLsizei, uniformBlockName: #null *GLchar)
-    func glGetActiveUniformBlockiv(program: GLuint, uniformBlockIndex: GLuint, pname: GLenum, params: #null *GLint)
-    func glGetActiveUniformName(program: GLuint, uniformIndex: GLuint, bufSize: GLsizei, length: #null *GLsizei, uniformName: #null *GLchar)
-    func glGetActiveUniformsiv(program: GLuint, uniformCount: GLsizei, uniformIndices: #null const *GLuint, pname: GLenum, params: #null *GLint)
-    func glGetUniformBlockIndex(program: GLuint, uniformBlockName: #null const *GLchar)->GLuint
-    func glGetUniformIndices(program: GLuint, uniformCount: GLsizei, uniformNames: #null const *#null const *GLchar, uniformIndices: #null *GLuint)
+    func glDrawElementsInstanced(mode: GLenum, count: GLsizei, type: GLenum, indices: const *void?, primcount: GLsizei)
+    func glGetActiveUniformBlockName(program: GLuint, uniformBlockIndex: GLuint, bufSize: GLsizei, length: *GLsizei?, uniformBlockName: *GLchar?)
+    func glGetActiveUniformBlockiv(program: GLuint, uniformBlockIndex: GLuint, pname: GLenum, params: *GLint?)
+    func glGetActiveUniformName(program: GLuint, uniformIndex: GLuint, bufSize: GLsizei, length: *GLsizei?, uniformName: *GLchar?)
+    func glGetActiveUniformsiv(program: GLuint, uniformCount: GLsizei, uniformIndices: const *GLuint?, pname: GLenum, params: *GLint?)
+    func glGetUniformBlockIndex(program: GLuint, uniformBlockName: const *GLchar?)->GLuint
+    func glGetUniformIndices(program: GLuint, uniformCount: GLsizei, uniformNames: const *(const *GLchar?)?, uniformIndices: *GLuint?)
     func glPrimitiveRestartIndex(buffer: GLuint)
     func glTexBuffer(target: GLenum, internalFormat: GLenum, buffer: GLuint)
     func glUniformBlockBinding(program: GLuint, uniformBlockIndex: GLuint, uniformBlockBinding: GLuint)

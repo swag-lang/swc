@@ -9,31 +9,25 @@ public struct AboutDlg
 
         readonly
         {
-            #[Swag.Late]
+            late
             {
-                #[Swag.Late]
-                labelIcon: *Label     // Optional large application icon.
-                #[Swag.Late]
-                labelMessageTitle: *Label     // Prominent application or product title.
-                #[Swag.Late]
-                labelMessage: *Label     // Rich descriptive message.
+                late labelIcon:         *Label     // Optional large application icon.
+                late labelMessageTitle: *Label     // Prominent application or product title.
+                late labelMessage:      *Label     // Rich descriptive message.
             }
         }
     }
 
-    #[Swag.Late]
+        late
     {
-        #[Swag.Late]
-        identityView: *Wnd     // Raised product block carrying the mark and heading.
-        #[Swag.Late]
-        identityAccent: *Separator     // Single Swag accent anchoring that product block.
-        #[Swag.Late]
-        contentStack: *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
+        late identityView:   *Wnd                 // Raised product block carrying the mark and heading.
+        late identityAccent: *Separator           // Single Swag accent anchoring that product block.
+        late contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
     }
 
-    sectionsScroll: #null *ScrollWnd           // Bounded column the added sections stand in.
-    sectionsStack:  #null *StackLayoutCtrl     // Stack of headings and paragraphs inside that column.
-    fitsToContent:  bool                       // Whether the caller left the height to the content.
+    sectionsScroll: *ScrollWnd?           // Bounded column the added sections stand in.
+    sectionsStack:  *StackLayoutCtrl?     // Stack of headings and paragraphs inside that column.
+    fitsToContent:  bool                  // Whether the caller left the height to the content.
 
     sourceUrl: String     // Source page owned for the lifetime of an application about dialog.
 }

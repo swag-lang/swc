@@ -39,9 +39,8 @@ struct PropertiesItem
 
     public
     {
-        #[Swag.Late]
-        line: *Wnd          // Window hosting this row's editor.
-        data: #null *u8     // Address of the bound field.
+        late line: *Wnd     // Window hosting this row's editor.
+        data:      *u8?     // Address of the bound field.
     }
 
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
@@ -60,15 +59,13 @@ struct PropertiesItem
     // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
     // current value differs from that default (recomputed on build and after every change);
     // revertButton is the lazily-created revert affordance shown while the row is modified.
-    defaultData: #null *u8
+    defaultData: *u8?
 
     isModified: bool
 
-    #[Swag.Late]
-    revertButton: *IconButton
+    late revertButton: *IconButton
 
-    #[Swag.Late]
-    arrayAddButton: *IconButton
+    late arrayAddButton: *IconButton
 
     // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
     // field, kept per row so commitItemChange can diff the new value against it and record one undo
@@ -78,18 +75,16 @@ struct PropertiesItem
 
     public
     {
-        type:      #null typeinfo            // Bound field type.
-        typeValue: Swag.TypeValue            // Reflection metadata of the bound field.
-        parent:    #null *PropertiesItem     // Parent row, or null for a root.
-        flags:     PropertiesItemFlags       // Presentation and interaction flags.
-        userData0: #null *void               // User data0 associated with this value.
-        userData1: #null *void               // User data1 associated with this value.
+        type:      typeinfo?               // Bound field type.
+        typeValue: Swag.TypeValue          // Reflection metadata of the bound field.
+        parent:    *PropertiesItem?        // Parent row, or null for a root.
+        flags:     PropertiesItemFlags     // Presentation and interaction flags.
+        userData0: *void?                  // User data0 associated with this value.
+        userData1: *void?                  // User data1 associated with this value.
 
-        #[Swag.Late]
-        label:       *Label     // Primary row label.
-        description: String     // Displayed field description.
-        #[Swag.Late]
-        labelDesc: *Label     // Description label.
+        late label:     *Label     // Primary row label.
+        description:    String     // Displayed field description.
+        late labelDesc: *Label     // Description label.
     }
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
@@ -98,12 +93,11 @@ struct PropertiesItem
 
     validationMsg: String
 
-    #[Swag.Late]
-    validationLabel: *Label
+    late validationLabel: *Label
 
     public
     {
-        #[Swag.Late]
+        late
         {
             editBox:   *EditBox         // Edit box associated with this value.
             checkBox:  *CheckButton     // Check box associated with this value.
@@ -115,7 +109,7 @@ struct PropertiesItem
         sigRefresh: SigArray'func||(*PropertiesItem)     // Signal emitted when refresh.
     }
 
-    ntfyItf: #null IPropertyNotify
+    ntfyItf: IPropertyNotify?
 
     aniFocusBk: BlendColor
 
@@ -133,7 +127,7 @@ struct PropertiesItem
 // Keeps public row state read-only while allowing the property-grid implementation to update it.
 internal impl PropertiesItem
 {
-    mtd initialize(line: *Wnd, type: #null typeinfo, typeValue: Swag.TypeValue, data: #null *u8, parent: #null *PropertiesItem)
+    mtd initialize(line: *Wnd, type: typeinfo?, typeValue: Swag.TypeValue, data: *u8?, parent: *PropertiesItem?)
     {
         .line      = line
         .type      = type

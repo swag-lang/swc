@@ -66,21 +66,21 @@ func semaTest006()
 
 struct PointerCastPayload
 {
-    address: #null *void
+    address: *void?
     size:    u64
 }
 
 struct SinglePointerCastPayload
 {
-    address: #null *void
+    address: *void?
 }
 
 func semaTest007()
 {
-    let payload = PointerCastPayload{address: cast(#null *void) 0x1234'u64, size: 16}
+    let payload = PointerCastPayload{address: cast(*void?) 0x1234'u64, size: 16}
     let address = payload.address
     let size    = payload.size
 
-    let single: SinglePointerCastPayload = cast(#null *void) 0x5678'u64
+    let single: SinglePointerCastPayload = cast(*void?) 0x5678'u64
     let singleAddress = single.address
 }

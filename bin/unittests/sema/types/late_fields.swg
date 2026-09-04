@@ -1,8 +1,8 @@
 #global private
 
-// A 'Swag.Late' field defers its initialization: the storage starts null while the
-// declared type stays NON-null. Reads are guarded under null safety, 'Swag.isSet'
-// observes the transition, and the struct remains default-initializable.
+// A 'late' field defers its initialization: the storage starts null while the
+// declared type stays NON-null. Reads are guarded under null safety; a comparison
+// with null observes the transition, and the struct remains default-initializable.
 
 struct SemaLateItem
 {
@@ -11,11 +11,9 @@ struct SemaLateItem
 
 struct SemaLateBox
 {
-    #[Swag.Late]
-    item: *SemaLateItem
-    #[Swag.Late]
-    name:  string
-    count: s32
+    late item: *SemaLateItem
+    late name: string
+    count:     s32
 }
 
 // The struct stays default-initializable: late fields default to null storage.
@@ -29,7 +27,7 @@ func semaLateDefaultConstructible()->bool
 func semaLateLiteralOmits()->bool
 {
     let b = SemaLateBox{count: 2}
-    return !Swag.isSet(b.item)
+    return !(b.item != null)
 }
 
 // The field type is plain non-null at every read: no proof, no '!'.
@@ -42,47 +40,43 @@ func semaLateTypeIsNonNull(it: *SemaLateItem)->bool
     return p == it
 }
 
-// 'Swag.isSet' observes the set transition.
-func semaLateIsSet(it: *SemaLateItem)->bool
+// A null comparison observes the set transition without reading the value.
+func semaLatePresence(it: *SemaLateItem)->bool
 {
     var b: SemaLateBox
-    if Swag.isSet(b.item) do
+    if (b.item != null) do
         return false
     b.item = it
-    return Swag.isSet(b.item)
+    return (b.item != null)
 }
 
 // -----------------------------------------------------------------------------
 // Rejected shapes.
 // -----------------------------------------------------------------------------
 
-// 'Swag.Late' only qualifies struct fields.
+// 'late' only qualifies struct fields.
 func semaLateErrLocal()
 {
-    #[Swag.Late]
-    var x: *s32     // swc-expected-error {{sema_err_late_not_field}}
+    late var x: *s32     // swc-expected-error {{sema_err_late_not_field}}
     Swag.print(x)
 }
 
 // A late field cannot carry an initializer.
 struct SemaLateErrInit
 {
-    #[Swag.Late]
-    name: string = "x"     // swc-expected-error {{sema_err_late_with_initializer}}
+    late name: string = "x"     // swc-expected-error {{sema_err_late_with_initializer}}
 }
 
 // The type must have a null state to borrow as the 'unset' sentinel.
 struct SemaLateErrType
 {
-    #[Swag.Late]
-    v: s32     // swc-expected-error {{sema_err_late_bad_type}}
+    late v: s32     // swc-expected-error {{sema_err_late_bad_type}}
 }
 
-// 'Swag.Late' with '#null' is a contradiction: late fields are non-null by construction.
+// 'late' with '?' is a contradiction: late fields are non-null by construction.
 struct SemaLateErrNullable
 {
-    #[Swag.Late]
-    p: #null *s32     // swc-expected-error {{sema_err_late_bad_type}}
+    late p: *s32?     // swc-expected-error {{sema_err_late_bad_type}}
 }
 
 // A read proven never-assigned on every path is a compile-time fault.
@@ -114,23 +108,12 @@ func semaLateOkEscaped()->bool
 {
     var b: SemaLateBox
     semaLateFill(&b.item)
-    return Swag.isSet(b.item)
+    return (b.item != null)
 }
 
-// 'Swag.isSet' before any assignment is not a read.
-func semaLateOkIsSetFirst()->bool
+// A null comparison before any assignment is not a read.
+func semaLateOkPresenceFirst()->bool
 {
     var b: SemaLateBox
-    return Swag.isSet(b.item)
-}
-
-// 'Swag.isSet' only applies to late field accesses.
-func semaLateErrIsSetValue(v: s32)->bool
-{
-    return Swag.isSet(v)     // swc-expected-error {{sema_err_isset_not_late_field}}
-}
-
-func semaLateErrIsSetPlainField(b: *SemaLateBox)->bool
-{
-    return Swag.isSet(b.count)     // swc-expected-error {{sema_err_isset_not_late_field}}
+    return (b.item != null)
 }

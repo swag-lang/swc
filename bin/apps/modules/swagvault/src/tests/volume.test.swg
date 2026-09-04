@@ -1052,7 +1052,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // Every way in reports the same kind, whether it would have written a byte, a name, or a
     // key slot.
-    func refuses(err: #null any)->bool
+    func refuses(err: any?)->bool
     {
         if err == null do
             return false

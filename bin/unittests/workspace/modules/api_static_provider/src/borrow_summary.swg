@@ -3,7 +3,7 @@
 // Borrow summaries must cross the module boundary through the generated API
 // ('Swag.BorrowSummary'): consumed by 'consumer_exe'.
 var depBorrowGlobalInt:   s32 = 7
-var depBorrowGlobalStash: #null *s32
+var depBorrowGlobalStash: *s32?
 
 // Return summary: the result borrows the parameter.
 func depBorrowPassthrough(p: *s32)->*s32
@@ -24,7 +24,7 @@ func depBorrowStash(p: *s32)
 }
 
 // Globals are not exported in the generated API: read the stash through a function.
-func depBorrowStashed()->#null *s32
+func depBorrowStashed()->*s32?
 {
     return depBorrowGlobalStash
 }
@@ -53,7 +53,7 @@ func depBorrowMakePair(first, second: *s32)->DepBorrowPair
 // Pair summary: the item is stored into storage reachable from 'me'.
 struct DepBorrowContainer
 {
-    public slot: #null *s32
+    public slot: *s32?
 }
 
 impl DepBorrowContainer

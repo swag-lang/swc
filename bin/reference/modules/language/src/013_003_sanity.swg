@@ -73,7 +73,7 @@ again.
 */
 #test
 {
-    func exampleAlloc(size: u64)->#null *void
+    func exampleAlloc(size: u64)->*void?
     {
         var req: Swag.AllocatorRequest
         req.size = size
@@ -82,7 +82,7 @@ again.
         return req.address
     }
 
-    func exampleFree(ptr: #null *void, size: u64)
+    func exampleFree(ptr: *void?, size: u64)
     {
         var req: Swag.AllocatorRequest
         req.address = ptr

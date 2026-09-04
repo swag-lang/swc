@@ -69,8 +69,8 @@ func expectSafetyEnabled()->bool
     #[Swag.Safety(.Expect, true)]
     func expectNullableFailurePanic()->bool
     {
-        let value: #null *s32 = null
-        let ptr               = value!     // swc-expected-error {{safety_err_runtime}}
+        let value: *s32? = null
+        let ptr          = value!     // swc-expected-error {{safety_err_runtime}}
         return ptr != null
     }
 
@@ -96,7 +96,7 @@ struct ExpectAccessNode
 
 var g_expectAccessNode = ExpectAccessNode{value: 42}
 
-func expectAccessNode(present: bool)->#null *ExpectAccessNode => present ? &g_expectAccessNode : null
+func expectAccessNode(present: bool)->*ExpectAccessNode? => present ? &g_expectAccessNode : null
 
 #test
 {
@@ -122,7 +122,7 @@ func expectAccessNode(present: bool)->#null *ExpectAccessNode => present ? &g_ex
 }
 
 // A cast over an asserted source is guarded by the assertion, not by the cast.
-func expectRawNode(present: bool)->#null *void => present ? cast(*void) &g_expectAccessNode : null
+func expectRawNode(present: bool)->*void? => present ? cast(*void) &g_expectAccessNode : null
 
 #test
 {

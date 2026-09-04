@@ -35,7 +35,7 @@ impl DocumentText
         .pages.resize(pageCount)
         .ready      = 0
         .cancel     = 0
-        .job.lambda = func(data: #null *void)
+        .job.lambda = func(data: *void?)
         {
             let text = cast(*DocumentText) data!
             text.extract()

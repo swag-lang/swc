@@ -1,25 +1,25 @@
 #global private
 
 #[Swag.NoInline]
-func fillDynamic(target: #null [*] void, value: u8, size: u64)
+func fillDynamic(target: [*] void?, value: u8, size: u64)
 {
     Swag.memset(target, value, size)
 }
 
 #[Swag.NoInline]
-func copyDynamic(target: #null [*] void, source: #null const [*] void, size: u64)
+func copyDynamic(target: [*] void?, source: const [*] void?, size: u64)
 {
     Swag.memcpy(target, source, size)
 }
 
 #[Swag.NoInline]
-func moveDynamic(target: #null [*] void, source: #null const [*] void, size: u64)
+func moveDynamic(target: [*] void?, source: const [*] void?, size: u64)
 {
     Swag.memmove(target, source, size)
 }
 
 #[Swag.NoInline]
-func compareDynamic(left, right: #null const [*] void, size: u64)->s32
+func compareDynamic(left, right: const [*] void?, size: u64)->s32
 {
     return Swag.memcmp(left, right, size)
 }

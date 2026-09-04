@@ -19,7 +19,7 @@ impl JitConditionalIndex
     }
 }
 
-func jitConditionalMaybe(p: *JitConditionalNonNullItem)->#null *JitConditionalNonNullItem => p
+func jitConditionalMaybe(p: *JitConditionalNonNullItem)->*JitConditionalNonNullItem? => p
 
 func jitConditionalNonNullBranches(flag: bool)->bool
 {
@@ -27,9 +27,9 @@ func jitConditionalNonNullBranches(flag: bool)->bool
     var second  = JitConditionalNonNullItem{value: 22}
     var indexed = JitConditionalIndex'(*JitConditionalNonNullItem){values: [&first]}
 
-    let legacy:   *JitConditionalNonNullItem       = &first
-    let nullable: #null *JitConditionalNonNullItem = jitConditionalMaybe(&first)
-    let required: *JitConditionalNonNullItem       = &second
+    let legacy:   *JitConditionalNonNullItem  = &first
+    let nullable: *JitConditionalNonNullItem? = jitConditionalMaybe(&first)
+    let required: *JitConditionalNonNullItem  = &second
 
     let indexedNullLast       = flag ? indexed[0] : null
     let indexedNullFirst      = flag ? null : indexed[0]
@@ -41,14 +41,14 @@ func jitConditionalNonNullBranches(flag: bool)->bool
     let nullableRequiredLast  = flag ? required : nullable
     let requiredOnly          = flag ? required : required
 
-    #assert(#typeof(indexedNullLast) == #null *JitConditionalNonNullItem)
-    #assert(#typeof(indexedNullFirst) == #null *JitConditionalNonNullItem)
-    #assert(#typeof(requiredNullLast) == #null *JitConditionalNonNullItem)
-    #assert(#typeof(requiredNullFirst) == #null *JitConditionalNonNullItem)
+    #assert(#typeof(indexedNullLast) == *JitConditionalNonNullItem?)
+    #assert(#typeof(indexedNullFirst) == *JitConditionalNonNullItem?)
+    #assert(#typeof(requiredNullLast) == *JitConditionalNonNullItem?)
+    #assert(#typeof(requiredNullFirst) == *JitConditionalNonNullItem?)
     #assert(#typeof(legacyRequiredFirst) == *JitConditionalNonNullItem)
     #assert(#typeof(legacyRequiredLast) == *JitConditionalNonNullItem)
-    #assert(#typeof(nullableRequiredFirst) == #null *JitConditionalNonNullItem)
-    #assert(#typeof(nullableRequiredLast) == #null *JitConditionalNonNullItem)
+    #assert(#typeof(nullableRequiredFirst) == *JitConditionalNonNullItem?)
+    #assert(#typeof(nullableRequiredLast) == *JitConditionalNonNullItem?)
     #assert(#typeof(requiredOnly) == *JitConditionalNonNullItem)
 
     if flag

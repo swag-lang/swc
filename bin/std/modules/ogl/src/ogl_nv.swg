@@ -8,8 +8,8 @@ const GL_NV_bindless_multi_draw_indirect = 1
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glMultiDrawArraysIndirectBindlessNV(mode: GLenum, indirect: #null const *void, drawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
-    func glMultiDrawElementsIndirectBindlessNV(mode: GLenum, type: GLenum, indirect: #null const *void, drawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
+    func glMultiDrawArraysIndirectBindlessNV(mode: GLenum, indirect: const *void?, drawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
+    func glMultiDrawElementsIndirectBindlessNV(mode: GLenum, type: GLenum, indirect: const *void?, drawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
 }
 
 /* --------------- GL_NV_bindless_multi_draw_indirect_count ---------------- */
@@ -18,8 +18,8 @@ const GL_NV_bindless_multi_draw_indirect_count = 1
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glMultiDrawArraysIndirectBindlessCountNV(mode: GLenum, indirect: #null const *void, drawCount: GLsizei, maxDrawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
-    func glMultiDrawElementsIndirectBindlessCountNV(mode: GLenum, type: GLenum, indirect: #null const *void, drawCount: GLsizei, maxDrawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
+    func glMultiDrawArraysIndirectBindlessCountNV(mode: GLenum, indirect: const *void?, drawCount: GLsizei, maxDrawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
+    func glMultiDrawElementsIndirectBindlessCountNV(mode: GLenum, type: GLenum, indirect: const *void?, drawCount: GLsizei, maxDrawCount: GLsizei, stride: GLsizei, vertexBufferCount: GLint)
 }
 
 /* ------------------------ GL_NV_bindless_texture ------------------------- */
@@ -38,9 +38,9 @@ const GL_NV_bindless_texture = 1
     func glMakeTextureHandleNonResidentNV(handle: GLuint64)
     func glMakeTextureHandleResidentNV(handle: GLuint64)
     func glProgramUniformHandleui64NV(program: GLuint, location: GLint, value: GLuint64)
-    func glProgramUniformHandleui64vNV(program: GLuint, location: GLint, count: GLsizei, values: #null const *GLuint64)
+    func glProgramUniformHandleui64vNV(program: GLuint, location: GLint, count: GLsizei, values: const *GLuint64?)
     func glUniformHandleui64NV(location: GLint, value: GLuint64)
-    func glUniformHandleui64vNV(location: GLint, count: GLsizei, value: #null const *GLuint64)
+    func glUniformHandleui64vNV(location: GLint, count: GLsizei, value: const *GLuint64?)
 }
 
 /* --------------------- GL_NV_blend_equation_advanced --------------------- */
@@ -153,19 +153,19 @@ const GL_FRONT_FACE_COMMAND_NV              = 0x0012
     func glCallCommandListNV(list: GLuint)
     func glCommandListSegmentsNV(list: GLuint, segments: GLuint)
     func glCompileCommandListNV(list: GLuint)
-    func glCreateCommandListsNV(n: GLsizei, lists: #null *GLuint)
-    func glCreateStatesNV(n: GLsizei, states: #null *GLuint)
-    func glDeleteCommandListsNV(n: GLsizei, lists: #null const *GLuint)
-    func glDeleteStatesNV(n: GLsizei, states: #null const *GLuint)
-    func glDrawCommandsAddressNV(primitiveMode: GLenum, indirects: #null const *GLuint64, sizes: #null const *GLsizei, count: GLuint)
-    func glDrawCommandsNV(primitiveMode: GLenum, buffer: GLuint, indirects: #null const *GLintptr, sizes: #null const *GLsizei, count: GLuint)
-    func glDrawCommandsStatesAddressNV(indirects: #null const *GLuint64, sizes: #null const *GLsizei, states: #null const *GLuint, fbos: #null const *GLuint, count: GLuint)
-    func glDrawCommandsStatesNV(buffer: GLuint, indirects: #null const *GLintptr, sizes: #null const *GLsizei, states: #null const *GLuint, fbos: #null const *GLuint, count: GLuint)
+    func glCreateCommandListsNV(n: GLsizei, lists: *GLuint?)
+    func glCreateStatesNV(n: GLsizei, states: *GLuint?)
+    func glDeleteCommandListsNV(n: GLsizei, lists: const *GLuint?)
+    func glDeleteStatesNV(n: GLsizei, states: const *GLuint?)
+    func glDrawCommandsAddressNV(primitiveMode: GLenum, indirects: const *GLuint64?, sizes: const *GLsizei?, count: GLuint)
+    func glDrawCommandsNV(primitiveMode: GLenum, buffer: GLuint, indirects: const *GLintptr?, sizes: const *GLsizei?, count: GLuint)
+    func glDrawCommandsStatesAddressNV(indirects: const *GLuint64?, sizes: const *GLsizei?, states: const *GLuint?, fbos: const *GLuint?, count: GLuint)
+    func glDrawCommandsStatesNV(buffer: GLuint, indirects: const *GLintptr?, sizes: const *GLsizei?, states: const *GLuint?, fbos: const *GLuint?, count: GLuint)
     func glGetCommandHeaderNV(tokenID: GLenum, size: GLuint)->GLuint
     func glGetStageIndexNV(shadertype: GLenum)->GLushort
     func glIsCommandListNV(list: GLuint)->GLboolean
     func glIsStateNV(state: GLuint)->GLboolean
-    func glListDrawCommandsStatesClientNV(list: GLuint, segment: GLuint, indirects: #null *#null const *void, sizes: #null const *GLsizei, states: #null const *GLuint, fbos: #null const *GLuint, count: GLuint)
+    func glListDrawCommandsStatesClientNV(list: GLuint, segment: GLuint, indirects: *(const *void?)?, sizes: const *GLsizei?, states: const *GLuint?, fbos: const *GLuint?, count: GLuint)
     func glStateCaptureNV(state: GLuint, mode: GLenum)
 }
 
@@ -250,14 +250,14 @@ const GL_DEPTH_BUFFER_FLOAT_MODE_NV        = 0x8DAF
 
 /* ------------------------ GL_NV_draw_vulkan_image ------------------------ */
 
-alias GLVULKANPROCNV = #null *void
+alias GLVULKANPROCNV = *void?
 
 const GL_NV_draw_vulkan_image = 1
 
 #[Extension, Swag.PlaceHolder]
 {
     func glDrawVkImageNV(vkImage: GLuint64, sampler: GLuint, x0: GLfloat, y0: GLfloat, x1: GLfloat, y1: GLfloat, z: GLfloat, s0: GLfloat, t0: GLfloat, s1: GLfloat, t1: GLfloat)
-    func glGetVkProcAddrNV(name: #null const *GLchar)->GLVULKANPROCNV
+    func glGetVkProcAddrNV(name: const *GLchar?)->GLVULKANPROCNV
     func glSignalVkFenceNV(vkFence: GLuint64)
     func glSignalVkSemaphoreNV(vkSemaphore: GLuint64)
     func glWaitVkSemaphoreNV(vkSemaphore: GLuint64)
@@ -302,8 +302,8 @@ const GL_COVERAGE_MODULATION_TABLE_SIZE_NV  = 0x9333
 #[Extension, Swag.PlaceHolder]
 {
     func glCoverageModulationNV(components: GLenum)
-    func glCoverageModulationTableNV(n: GLsizei, v: #null const *GLfloat)
-    func glGetCoverageModulationTableNV(bufSize: GLsizei, v: #null *GLfloat)
+    func glCoverageModulationTableNV(n: GLsizei, v: const *GLfloat?)
+    func glGetCoverageModulationTableNV(bufSize: GLsizei, v: *GLfloat?)
 }
 
 /* ---------------- GL_NV_framebuffer_multisample_coverage ----------------- */
@@ -359,39 +359,39 @@ const GL_FLOAT16_VEC4_NV        = 0x8FFB
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glGetUniformi64vNV(program: GLuint, location: GLint, params: #null *GLint64EXT)
+    func glGetUniformi64vNV(program: GLuint, location: GLint, params: *GLint64EXT?)
     func glProgramUniform1i64NV(program: GLuint, location: GLint, x: GLint64EXT)
-    func glProgramUniform1i64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glProgramUniform1i64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glProgramUniform1ui64NV(program: GLuint, location: GLint, x: GLuint64EXT)
-    func glProgramUniform1ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glProgramUniform1ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glProgramUniform2i64NV(program: GLuint, location: GLint, x: GLint64EXT, y: GLint64EXT)
-    func glProgramUniform2i64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glProgramUniform2i64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glProgramUniform2ui64NV(program: GLuint, location: GLint, x: GLuint64EXT, y: GLuint64EXT)
-    func glProgramUniform2ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glProgramUniform2ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glProgramUniform3i64NV(program: GLuint, location: GLint, x: GLint64EXT, y: GLint64EXT, z: GLint64EXT)
-    func glProgramUniform3i64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glProgramUniform3i64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glProgramUniform3ui64NV(program: GLuint, location: GLint, x: GLuint64EXT, y: GLuint64EXT, z: GLuint64EXT)
-    func glProgramUniform3ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glProgramUniform3ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glProgramUniform4i64NV(program: GLuint, location: GLint, x: GLint64EXT, y: GLint64EXT, z: GLint64EXT, w: GLint64EXT)
-    func glProgramUniform4i64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glProgramUniform4i64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glProgramUniform4ui64NV(program: GLuint, location: GLint, x: GLuint64EXT, y: GLuint64EXT, z: GLuint64EXT, w: GLuint64EXT)
-    func glProgramUniform4ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glProgramUniform4ui64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glUniform1i64NV(location: GLint, x: GLint64EXT)
-    func glUniform1i64vNV(location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glUniform1i64vNV(location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glUniform1ui64NV(location: GLint, x: GLuint64EXT)
-    func glUniform1ui64vNV(location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glUniform1ui64vNV(location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glUniform2i64NV(location: GLint, x: GLint64EXT, y: GLint64EXT)
-    func glUniform2i64vNV(location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glUniform2i64vNV(location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glUniform2ui64NV(location: GLint, x: GLuint64EXT, y: GLuint64EXT)
-    func glUniform2ui64vNV(location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glUniform2ui64vNV(location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glUniform3i64NV(location: GLint, x: GLint64EXT, y: GLint64EXT, z: GLint64EXT)
-    func glUniform3i64vNV(location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glUniform3i64vNV(location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glUniform3ui64NV(location: GLint, x: GLuint64EXT, y: GLuint64EXT, z: GLuint64EXT)
-    func glUniform3ui64vNV(location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glUniform3ui64vNV(location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glUniform4i64NV(location: GLint, x: GLint64EXT, y: GLint64EXT, z: GLint64EXT, w: GLint64EXT)
-    func glUniform4i64vNV(location: GLint, count: GLsizei, value: #null const *GLint64EXT)
+    func glUniform4i64vNV(location: GLint, count: GLsizei, value: const *GLint64EXT?)
     func glUniform4ui64NV(location: GLint, x: GLuint64EXT, y: GLuint64EXT, z: GLuint64EXT, w: GLuint64EXT)
-    func glUniform4ui64vNV(location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glUniform4ui64vNV(location: GLint, count: GLsizei, value: const *GLuint64EXT?)
 }
 
 /* ------------------- GL_NV_internalformat_sample_query ------------------- */
@@ -404,7 +404,7 @@ const GL_CONFORMANT_NV                  = 0x9374
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glGetInternalformatSampleivNV(target: GLenum, internalformat: GLenum, samples: GLsizei, pname: GLenum, count: GLsizei, params: #null *GLint)
+    func glGetInternalformatSampleivNV(target: GLenum, internalformat: GLenum, samples: GLsizei, pname: GLenum, count: GLsizei, params: *GLint?)
 }
 
 /* ------------------------ GL_NV_memory_attachment ------------------------ */
@@ -424,7 +424,7 @@ const GL_MAX_DETACHED_BUFFERS_NV        = 0x95AD
 #[Extension, Swag.PlaceHolder]
 {
     func glBufferAttachMemoryNV(target: GLenum, memory: GLuint, offset: GLuint64)
-    func glGetMemoryObjectDetachedResourcesuivNV(memory: GLuint, pname: GLenum, first: GLint, count: GLsizei, params: #null *GLuint)
+    func glGetMemoryObjectDetachedResourcesuivNV(memory: GLuint, pname: GLenum, first: GLint, count: GLsizei, params: *GLuint?)
     func glNamedBufferAttachMemoryNV(buffer: GLuint, memory: GLuint, offset: GLuint64)
     func glResetMemoryObjectParameterNV(memory: GLuint, pname: GLenum)
     func glTexAttachMemoryNV(target: GLenum, memory: GLuint, offset: GLuint64)
@@ -663,62 +663,62 @@ const GL_FRAGMENT_INPUT_NV                       = 0x936D
 #[Extension, Swag.PlaceHolder]
 {
     func glCopyPathNV(resultPath: GLuint, srcPath: GLuint)
-    func glCoverFillPathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: #null const *GLfloat)
+    func glCoverFillPathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: const *GLfloat?)
     func glCoverFillPathNV(path: GLuint, coverMode: GLenum)
-    func glCoverStrokePathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: #null const *GLfloat)
+    func glCoverStrokePathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: const *GLfloat?)
     func glCoverStrokePathNV(path: GLuint, coverMode: GLenum)
     func glDeletePathsNV(path: GLuint, range: GLsizei)
     func glGenPathsNV(range: GLsizei)->GLuint
-    func glGetPathCommandsNV(path: GLuint, commands: #null *GLubyte)
-    func glGetPathCoordsNV(path: GLuint, coords: #null *GLfloat)
-    func glGetPathDashArrayNV(path: GLuint, dashArray: #null *GLfloat)
+    func glGetPathCommandsNV(path: GLuint, commands: *GLubyte?)
+    func glGetPathCoordsNV(path: GLuint, coords: *GLfloat?)
+    func glGetPathDashArrayNV(path: GLuint, dashArray: *GLfloat?)
     func glGetPathLengthNV(path: GLuint, startSegment: GLsizei, numSegments: GLsizei)->GLfloat
-    func glGetPathMetricRangeNV(metricQueryMask: GLbitfield, firstPathName: GLuint, numPaths: GLsizei, stride: GLsizei, metrics: #null *GLfloat)
-    func glGetPathMetricsNV(metricQueryMask: GLbitfield, numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, stride: GLsizei, metrics: #null *GLfloat)
-    func glGetPathParameterfvNV(path: GLuint, pname: GLenum, value: #null *GLfloat)
-    func glGetPathParameterivNV(path: GLuint, pname: GLenum, value: #null *GLint)
-    func glGetPathSpacingNV(pathListMode: GLenum, numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, advanceScale: GLfloat, kerningScale: GLfloat, transformType: GLenum, returnedSpacing: #null *GLfloat)
-    func glGetProgramResourcefvNV(program: GLuint, programInterface: GLenum, index: GLuint, propCount: GLsizei, props: #null const *GLenum, count: GLsizei, length: #null *GLsizei, params: #null *GLfloat)
+    func glGetPathMetricRangeNV(metricQueryMask: GLbitfield, firstPathName: GLuint, numPaths: GLsizei, stride: GLsizei, metrics: *GLfloat?)
+    func glGetPathMetricsNV(metricQueryMask: GLbitfield, numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, stride: GLsizei, metrics: *GLfloat?)
+    func glGetPathParameterfvNV(path: GLuint, pname: GLenum, value: *GLfloat?)
+    func glGetPathParameterivNV(path: GLuint, pname: GLenum, value: *GLint?)
+    func glGetPathSpacingNV(pathListMode: GLenum, numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, advanceScale: GLfloat, kerningScale: GLfloat, transformType: GLenum, returnedSpacing: *GLfloat?)
+    func glGetProgramResourcefvNV(program: GLuint, programInterface: GLenum, index: GLuint, propCount: GLsizei, props: const *GLenum?, count: GLsizei, length: *GLsizei?, params: *GLfloat?)
     func glInterpolatePathsNV(resultPath: GLuint, pathA: GLuint, pathB: GLuint, weight: GLfloat)
     func glIsPathNV(path: GLuint)->GLboolean
     func glIsPointInFillPathNV(path: GLuint, mask: GLuint, x: GLfloat, y: GLfloat)->GLboolean
     func glIsPointInStrokePathNV(path: GLuint, x: GLfloat, y: GLfloat)->GLboolean
-    func glMatrixLoad3x2fNV(matrixMode: GLenum, m: #null const *GLfloat)
-    func glMatrixLoad3x3fNV(matrixMode: GLenum, m: #null const *GLfloat)
-    func glMatrixLoadTranspose3x3fNV(matrixMode: GLenum, m: #null const *GLfloat)
-    func glMatrixMult3x2fNV(matrixMode: GLenum, m: #null const *GLfloat)
-    func glMatrixMult3x3fNV(matrixMode: GLenum, m: #null const *GLfloat)
-    func glMatrixMultTranspose3x3fNV(matrixMode: GLenum, m: #null const *GLfloat)
-    func glPathCommandsNV(path: GLuint, numCommands: GLsizei, commands: #null const *GLubyte, numCoords: GLsizei, coordType: GLenum, coords: #null const *void)
-    func glPathCoordsNV(path: GLuint, numCoords: GLsizei, coordType: GLenum, coords: #null const *void)
+    func glMatrixLoad3x2fNV(matrixMode: GLenum, m: const *GLfloat?)
+    func glMatrixLoad3x3fNV(matrixMode: GLenum, m: const *GLfloat?)
+    func glMatrixLoadTranspose3x3fNV(matrixMode: GLenum, m: const *GLfloat?)
+    func glMatrixMult3x2fNV(matrixMode: GLenum, m: const *GLfloat?)
+    func glMatrixMult3x3fNV(matrixMode: GLenum, m: const *GLfloat?)
+    func glMatrixMultTranspose3x3fNV(matrixMode: GLenum, m: const *GLfloat?)
+    func glPathCommandsNV(path: GLuint, numCommands: GLsizei, commands: const *GLubyte?, numCoords: GLsizei, coordType: GLenum, coords: const *void?)
+    func glPathCoordsNV(path: GLuint, numCoords: GLsizei, coordType: GLenum, coords: const *void?)
     func glPathCoverDepthFuncNV(funcValue: GLenum)
-    func glPathDashArrayNV(path: GLuint, dashCount: GLsizei, dashArray: #null const *GLfloat)
-    func glPathGlyphIndexArrayNV(firstPathName: GLuint, fontTarget: GLenum, fontName: #null const *void, fontStyle: GLbitfield, firstGlyphIndex: GLuint, numGlyphs: GLsizei, pathParameterTemplate: GLuint, emScale: GLfloat)->GLenum
-    func glPathGlyphIndexRangeNV(fontTarget: GLenum, fontName: #null const *void, fontStyle: GLbitfield, pathParameterTemplate: GLuint, emScale: GLfloat, baseAndCount: #null *GLuint)->GLenum
-    func glPathGlyphRangeNV(firstPathName: GLuint, fontTarget: GLenum, fontName: #null const *void, fontStyle: GLbitfield, firstGlyph: GLuint, numGlyphs: GLsizei, handleMissingGlyphs: GLenum, pathParameterTemplate: GLuint, emScale: GLfloat)
-    func glPathGlyphsNV(firstPathName: GLuint, fontTarget: GLenum, fontName: #null const *void, fontStyle: GLbitfield, numGlyphs: GLsizei, type: GLenum, charcodes: #null const *void, handleMissingGlyphs: GLenum, pathParameterTemplate: GLuint, emScale: GLfloat)
-    func glPathMemoryGlyphIndexArrayNV(firstPathName: GLuint, fontTarget: GLenum, fontSize: GLsizeiptr, fontData: #null const *void, faceIndex: GLsizei, firstGlyphIndex: GLuint, numGlyphs: GLsizei, pathParameterTemplate: GLuint, emScale: GLfloat)->GLenum
+    func glPathDashArrayNV(path: GLuint, dashCount: GLsizei, dashArray: const *GLfloat?)
+    func glPathGlyphIndexArrayNV(firstPathName: GLuint, fontTarget: GLenum, fontName: const *void?, fontStyle: GLbitfield, firstGlyphIndex: GLuint, numGlyphs: GLsizei, pathParameterTemplate: GLuint, emScale: GLfloat)->GLenum
+    func glPathGlyphIndexRangeNV(fontTarget: GLenum, fontName: const *void?, fontStyle: GLbitfield, pathParameterTemplate: GLuint, emScale: GLfloat, baseAndCount: *GLuint?)->GLenum
+    func glPathGlyphRangeNV(firstPathName: GLuint, fontTarget: GLenum, fontName: const *void?, fontStyle: GLbitfield, firstGlyph: GLuint, numGlyphs: GLsizei, handleMissingGlyphs: GLenum, pathParameterTemplate: GLuint, emScale: GLfloat)
+    func glPathGlyphsNV(firstPathName: GLuint, fontTarget: GLenum, fontName: const *void?, fontStyle: GLbitfield, numGlyphs: GLsizei, type: GLenum, charcodes: const *void?, handleMissingGlyphs: GLenum, pathParameterTemplate: GLuint, emScale: GLfloat)
+    func glPathMemoryGlyphIndexArrayNV(firstPathName: GLuint, fontTarget: GLenum, fontSize: GLsizeiptr, fontData: const *void?, faceIndex: GLsizei, firstGlyphIndex: GLuint, numGlyphs: GLsizei, pathParameterTemplate: GLuint, emScale: GLfloat)->GLenum
     func glPathParameterfNV(path: GLuint, pname: GLenum, value: GLfloat)
-    func glPathParameterfvNV(path: GLuint, pname: GLenum, value: #null const *GLfloat)
+    func glPathParameterfvNV(path: GLuint, pname: GLenum, value: const *GLfloat?)
     func glPathParameteriNV(path: GLuint, pname: GLenum, value: GLint)
-    func glPathParameterivNV(path: GLuint, pname: GLenum, value: #null const *GLint)
+    func glPathParameterivNV(path: GLuint, pname: GLenum, value: const *GLint?)
     func glPathStencilDepthOffsetNV(factor: GLfloat, units: GLfloat)
     func glPathStencilFuncNV(funcValue: GLenum, refValue: GLint, mask: GLuint)
-    func glPathStringNV(path: GLuint, format: GLenum, length: GLsizei, pathString: #null const *void)
-    func glPathSubCommandsNV(path: GLuint, commandStart: GLsizei, commandsToDelete: GLsizei, numCommands: GLsizei, commands: #null const *GLubyte, numCoords: GLsizei, coordType: GLenum, coords: #null const *void)
-    func glPathSubCoordsNV(path: GLuint, coordStart: GLsizei, numCoords: GLsizei, coordType: GLenum, coords: #null const *void)
-    func glPointAlongPathNV(path: GLuint, startSegment: GLsizei, numSegments: GLsizei, distance: GLfloat, x: #null *GLfloat, y: #null *GLfloat, tangentX: #null *GLfloat, tangentY: #null *GLfloat)->GLboolean
-    func glProgramPathFragmentInputGenNV(program: GLuint, location: GLint, genMode: GLenum, components: GLint, coeffs: #null const *GLfloat)
-    func glStencilFillPathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, fillMode: GLenum, mask: GLuint, transformType: GLenum, transformValues: #null const *GLfloat)
+    func glPathStringNV(path: GLuint, format: GLenum, length: GLsizei, pathString: const *void?)
+    func glPathSubCommandsNV(path: GLuint, commandStart: GLsizei, commandsToDelete: GLsizei, numCommands: GLsizei, commands: const *GLubyte?, numCoords: GLsizei, coordType: GLenum, coords: const *void?)
+    func glPathSubCoordsNV(path: GLuint, coordStart: GLsizei, numCoords: GLsizei, coordType: GLenum, coords: const *void?)
+    func glPointAlongPathNV(path: GLuint, startSegment: GLsizei, numSegments: GLsizei, distance: GLfloat, x: *GLfloat?, y: *GLfloat?, tangentX: *GLfloat?, tangentY: *GLfloat?)->GLboolean
+    func glProgramPathFragmentInputGenNV(program: GLuint, location: GLint, genMode: GLenum, components: GLint, coeffs: const *GLfloat?)
+    func glStencilFillPathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, fillMode: GLenum, mask: GLuint, transformType: GLenum, transformValues: const *GLfloat?)
     func glStencilFillPathNV(path: GLuint, fillMode: GLenum, mask: GLuint)
-    func glStencilStrokePathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, reference: GLint, mask: GLuint, transformType: GLenum, transformValues: #null const *GLfloat)
+    func glStencilStrokePathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, reference: GLint, mask: GLuint, transformType: GLenum, transformValues: const *GLfloat?)
     func glStencilStrokePathNV(path: GLuint, reference: GLint, mask: GLuint)
-    func glStencilThenCoverFillPathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, fillMode: GLenum, mask: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: #null const *GLfloat)
+    func glStencilThenCoverFillPathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, fillMode: GLenum, mask: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: const *GLfloat?)
     func glStencilThenCoverFillPathNV(path: GLuint, fillMode: GLenum, mask: GLuint, coverMode: GLenum)
-    func glStencilThenCoverStrokePathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: #null const *void, pathBase: GLuint, reference: GLint, mask: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: #null const *GLfloat)
+    func glStencilThenCoverStrokePathInstancedNV(numPaths: GLsizei, pathNameType: GLenum, paths: const *void?, pathBase: GLuint, reference: GLint, mask: GLuint, coverMode: GLenum, transformType: GLenum, transformValues: const *GLfloat?)
     func glStencilThenCoverStrokePathNV(path: GLuint, reference: GLint, mask: GLuint, coverMode: GLenum)
-    func glTransformPathNV(resultPath: GLuint, srcPath: GLuint, transformType: GLenum, transformValues: #null const *GLfloat)
-    func glWeightPathsNV(resultPath: GLuint, numPaths: GLsizei, paths: #null const *GLuint, weights: #null const *GLfloat)
+    func glTransformPathNV(resultPath: GLuint, srcPath: GLuint, transformType: GLenum, transformValues: const *GLfloat?)
+    func glWeightPathsNV(resultPath: GLuint, numPaths: GLsizei, paths: const *GLuint?, weights: const *GLfloat?)
 }
 
 /* ------------------- GL_NV_path_rendering_shared_edge -------------------- */
@@ -751,8 +751,8 @@ const GL_FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_NV    = 0x9343
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glFramebufferSampleLocationsfvNV(target: GLenum, start: GLuint, count: GLsizei, v: #null const *GLfloat)
-    func glNamedFramebufferSampleLocationsfvNV(framebuffer: GLuint, start: GLuint, count: GLsizei, v: #null const *GLfloat)
+    func glFramebufferSampleLocationsfvNV(target: GLenum, start: GLuint, count: GLsizei, v: const *GLfloat?)
+    func glNamedFramebufferSampleLocationsfvNV(framebuffer: GLuint, start: GLuint, count: GLsizei, v: const *GLfloat?)
     func glResolveDepthValuesNV()
 }
 
@@ -768,7 +768,7 @@ const GL_SCISSOR_BOX_EXCLUSIVE_NV  = 0x9556
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glScissorExclusiveArrayvNV(first: GLuint, count: GLsizei, v: #null const *GLint)
+    func glScissorExclusiveArrayvNV(first: GLuint, count: GLsizei, v: const *GLint?)
     func glScissorExclusiveNV(x: GLint, y: GLint, width: GLsizei, height: GLsizei)
 }
 
@@ -801,10 +801,10 @@ const GL_MAX_SHADER_BUFFER_ADDRESS_NV = 0x8F35
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glGetBufferParameterui64vNV(target: GLenum, pname: GLenum, params: #null *GLuint64EXT)
-    func glGetIntegerui64vNV(value: GLenum, result: #null *GLuint64EXT)
-    func glGetNamedBufferParameterui64vNV(buffer: GLuint, pname: GLenum, params: #null *GLuint64EXT)
-    func glGetUniformui64vNV(program: GLuint, location: GLint, params: #null *GLuint64EXT)
+    func glGetBufferParameterui64vNV(target: GLenum, pname: GLenum, params: *GLuint64EXT?)
+    func glGetIntegerui64vNV(value: GLenum, result: *GLuint64EXT?)
+    func glGetNamedBufferParameterui64vNV(buffer: GLuint, pname: GLenum, params: *GLuint64EXT?)
+    func glGetUniformui64vNV(program: GLuint, location: GLint, params: *GLuint64EXT?)
     func glIsBufferResidentNV(target: GLenum)->GLboolean
     func glIsNamedBufferResidentNV(buffer: GLuint)->GLboolean
     func glMakeBufferNonResidentNV(target: GLenum)
@@ -812,9 +812,9 @@ const GL_MAX_SHADER_BUFFER_ADDRESS_NV = 0x8F35
     func glMakeNamedBufferNonResidentNV(buffer: GLuint)
     func glMakeNamedBufferResidentNV(buffer: GLuint, access: GLenum)
     func glProgramUniformui64NV(program: GLuint, location: GLint, value: GLuint64EXT)
-    func glProgramUniformui64vNV(program: GLuint, location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glProgramUniformui64vNV(program: GLuint, location: GLint, count: GLsizei, value: const *GLuint64EXT?)
     func glUniformui64NV(location: GLint, value: GLuint64EXT)
-    func glUniformui64vNV(location: GLint, count: GLsizei, value: #null const *GLuint64EXT)
+    func glUniformui64vNV(location: GLint, count: GLsizei, value: const *GLuint64EXT?)
 }
 
 /* ----------------------- GL_NV_shader_buffer_store ----------------------- */
@@ -870,11 +870,11 @@ const GL_SHADING_RATE_SAMPLE_ORDER_SAMPLE_MAJOR_NV   = 0x95B0
 #[Extension, Swag.PlaceHolder]
 {
     func glBindShadingRateImageNV(texture: GLuint)
-    func glGetShadingRateImagePaletteNV(viewport: GLuint, entry: GLuint, rate: #null *GLenum)
-    func glGetShadingRateSampleLocationivNV(rate: GLenum, samples: GLuint, index: GLuint, location: #null *GLint)
+    func glGetShadingRateImagePaletteNV(viewport: GLuint, entry: GLuint, rate: *GLenum?)
+    func glGetShadingRateSampleLocationivNV(rate: GLenum, samples: GLuint, index: GLuint, location: *GLint?)
     func glShadingRateImageBarrierNV(synchronize: GLboolean)
-    func glShadingRateImagePaletteNV(viewport: GLuint, first: GLuint, count: GLsizei, rates: #null const *GLenum)
-    func glShadingRateSampleOrderCustomNV(rate: GLenum, samples: GLuint, locations: #null const *GLint)
+    func glShadingRateImagePaletteNV(viewport: GLuint, first: GLuint, count: GLsizei, rates: const *GLenum?)
+    func glShadingRateSampleOrderCustomNV(rate: GLenum, samples: GLuint, locations: const *GLint?)
     func glShadingRateSampleOrderNV(order: GLenum)
 }
 
@@ -912,24 +912,24 @@ const GL_NV_vertex_attrib_integer_64bit = 1
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glGetVertexAttribLi64vNV(index: GLuint, pname: GLenum, params: #null *GLint64EXT)
-    func glGetVertexAttribLui64vNV(index: GLuint, pname: GLenum, params: #null *GLuint64EXT)
+    func glGetVertexAttribLi64vNV(index: GLuint, pname: GLenum, params: *GLint64EXT?)
+    func glGetVertexAttribLui64vNV(index: GLuint, pname: GLenum, params: *GLuint64EXT?)
     func glVertexAttribL1i64NV(index: GLuint, x: GLint64EXT)
-    func glVertexAttribL1i64vNV(index: GLuint, v: #null const *GLint64EXT)
+    func glVertexAttribL1i64vNV(index: GLuint, v: const *GLint64EXT?)
     func glVertexAttribL1ui64NV(index: GLuint, x: GLuint64EXT)
-    func glVertexAttribL1ui64vNV(index: GLuint, v: #null const *GLuint64EXT)
+    func glVertexAttribL1ui64vNV(index: GLuint, v: const *GLuint64EXT?)
     func glVertexAttribL2i64NV(index: GLuint, x: GLint64EXT, y: GLint64EXT)
-    func glVertexAttribL2i64vNV(index: GLuint, v: #null const *GLint64EXT)
+    func glVertexAttribL2i64vNV(index: GLuint, v: const *GLint64EXT?)
     func glVertexAttribL2ui64NV(index: GLuint, x: GLuint64EXT, y: GLuint64EXT)
-    func glVertexAttribL2ui64vNV(index: GLuint, v: #null const *GLuint64EXT)
+    func glVertexAttribL2ui64vNV(index: GLuint, v: const *GLuint64EXT?)
     func glVertexAttribL3i64NV(index: GLuint, x: GLint64EXT, y: GLint64EXT, z: GLint64EXT)
-    func glVertexAttribL3i64vNV(index: GLuint, v: #null const *GLint64EXT)
+    func glVertexAttribL3i64vNV(index: GLuint, v: const *GLint64EXT?)
     func glVertexAttribL3ui64NV(index: GLuint, x: GLuint64EXT, y: GLuint64EXT, z: GLuint64EXT)
-    func glVertexAttribL3ui64vNV(index: GLuint, v: #null const *GLuint64EXT)
+    func glVertexAttribL3ui64vNV(index: GLuint, v: const *GLuint64EXT?)
     func glVertexAttribL4i64NV(index: GLuint, x: GLint64EXT, y: GLint64EXT, z: GLint64EXT, w: GLint64EXT)
-    func glVertexAttribL4i64vNV(index: GLuint, v: #null const *GLint64EXT)
+    func glVertexAttribL4i64vNV(index: GLuint, v: const *GLint64EXT?)
     func glVertexAttribL4ui64NV(index: GLuint, x: GLuint64EXT, y: GLuint64EXT, z: GLuint64EXT, w: GLuint64EXT)
-    func glVertexAttribL4ui64vNV(index: GLuint, v: #null const *GLuint64EXT)
+    func glVertexAttribL4ui64vNV(index: GLuint, v: const *GLuint64EXT?)
     func glVertexAttribLFormatNV(index: GLuint, size: GLint, type: GLenum, stride: GLsizei)
 }
 
@@ -968,7 +968,7 @@ const GL_DRAW_INDIRECT_LENGTH_NV          = 0x8F42
     func glColorFormatNV(size: GLint, type: GLenum, stride: GLsizei)
     func glEdgeFlagFormatNV(stride: GLsizei)
     func glFogCoordFormatNV(type: GLenum, stride: GLsizei)
-    func glGetIntegerui64i_vNV(value: GLenum, index: GLuint, result: #null *GLuint64EXT)
+    func glGetIntegerui64i_vNV(value: GLenum, index: GLuint, result: *GLuint64EXT?)
     func glIndexFormatNV(type: GLenum, stride: GLsizei)
     func glNormalFormatNV(type: GLenum, stride: GLsizei)
     func glSecondaryColorFormatNV(size: GLint, type: GLenum, stride: GLsizei)

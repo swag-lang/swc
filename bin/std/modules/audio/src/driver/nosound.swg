@@ -6,7 +6,7 @@ struct NoSoundVoice
     frequencyRatio: f32 = 1
     isPlaying:      bool
     busCount:       u32
-    buses:          [16] #null *Bus
+    buses:          [16] (*Bus?)
     samplesPlayed:  u64
 }
 
@@ -14,7 +14,7 @@ struct NoSoundBus
 {
     volume:      f32 = 1
     numChannels: u32
-    parent:      #null *Bus
+    parent:      *Bus?
 }
 
 struct NoSoundDriverNative
@@ -49,7 +49,7 @@ impl Voice
 {
     func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
-        voice.handle = cast(#null *void) Memory.new'NoSoundVoice(voice.allocationAllocator)
+        voice.handle = cast(*void?) Memory.new'NoSoundVoice(voice.allocationAllocator)
         let file = voice.file!
         voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
         if !voice.handle do
@@ -67,7 +67,7 @@ impl Voice
 
     mtd updateNoSound()->bool fail
     {
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice?) .handle
         if !handle or !handle.isPlaying do
             return false
 
@@ -92,28 +92,28 @@ impl Voice
 
     mtd playNoSound(batchId: u32 = 0) fail
     {
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice?) .handle
         if handle do
             handle.isPlaying = true
     }
 
     mtd stopNoSound(batchId: u32 = 0) fail
     {
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice?) .handle
         if handle do
             handle.isPlaying = false
     }
 
     mtd resetNoSound() fail
     {
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice?) .handle
         if handle do
             handle.isPlaying = false
     }
 
     mtd playedFramesNoSound()->u64
     {
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice?) .handle
         return handle ? handle.samplesPlayed : 0
     }
 }
@@ -180,13 +180,13 @@ internal impl Voice
 
 impl Bus
 {
-    func createNoSound(bus: *Bus, numChannels: u32, parent: #null *Bus = null) fail
+    func createNoSound(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
     {
         if parent and !parent.handle do
             fail BadParameterError{"parent bus invalid"}
 
         let handle = Memory.new'NoSoundBus(bus.allocationAllocator)
-        bus.handle         = cast(#null *void) handle
+        bus.handle         = cast(*void?) handle
         handle.numChannels = numChannels
         handle.parent      = parent
     }

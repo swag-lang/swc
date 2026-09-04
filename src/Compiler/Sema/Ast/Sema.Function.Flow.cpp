@@ -413,7 +413,7 @@ namespace
     }
 
     // 'catch e as err': capture the caught error into a fresh local 'err' bound in the ENCLOSING
-    // scope (visible after the catch), backed by storage of type '#null any'. Codegen seeds the
+    // scope (visible after the catch), backed by storage of type 'nullable any'. Codegen seeds the
     // slot: null before the call (__clearErr), the error on the failure path (__bindErr). Works for
     // both the statement ('catch f() as err') and the expression ('let x = catch f() as err') forms.
     Result registerCatchErrCapture(Sema& sema, const AstNode& node, TokenRef errNameTokRef)
@@ -434,7 +434,7 @@ namespace
             sema.frame() = savedFrame;
 
             // 'registerSymbol' bound 'err' onto the current node as its single symbol; left as-is,
-            // the node's type view would fall back to 'err' (#null any). Name lookup for 'err' goes
+            // the node's type view would fall back to 'err' (nullable any). Name lookup for 'err' goes
             // through the enclosing scope, not this node payload, so clear the node symbol entirely.
             sema.setSymbolList(sema.curNodeRef(), std::span<Symbol*>{});
             lowering.errBindingSym = errSym;
@@ -476,7 +476,7 @@ namespace
         if (tokenId == TokenId::KwdTry && !canPropagateFallibleResult(sema))
             return reportTryOutsideFallibleContext(sema, sema.curNodeRef());
 
-        // `notnull` asserts a non-nullity invariant: unwrap `#null T` to `T` (panicking
+        // `notnull` asserts a non-nullity invariant: unwrap `nullable T` to `T` (panicking
         // under safety when the value IS null). On an operand that is already non-null
         // (flow narrowing, generic instantiations) it is a tolerated pass-through. It
         // never handles errors: a fallible operand must spell its own `try`/`catch`/`expect`.
@@ -1346,8 +1346,8 @@ namespace
 
         // Use-site nullability: invoking a function value reads its code pointer.
         // Narrowing was already applied to the live callee view, so a remaining
-        // '#null' means no dominating test proves this call safe. A binding to a
-        // nullable slot ('&#null func()->T', what an 'opIndex' hands back) is exactly as
+        // 'nullable' means no dominating test proves this call safe. A binding to a
+        // nullable slot ('&nullable func()->T', what an 'opIndex' hands back) is exactly as
         // nullable as the slot it names, so the reference layer is looked through first.
         if (nodeCallee.typeRef().isValid())
         {

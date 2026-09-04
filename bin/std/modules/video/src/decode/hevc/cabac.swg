@@ -31,7 +31,7 @@ struct CabacState
 // in one step, so the cost of a bin stays flat whatever the bin rate.
 struct CabacReader
 {
-    data:      #null const [*] u8     // Substream bytes, with emulation prevention already removed.
+    data:      const [*] u8?     // Substream bytes, with emulation prevention already removed.
     size:      u64
     position:  u64                   // Next byte to load into the bit buffer.
     padBytes:  u64                   // Synthetic zero bytes loaded past the end of the data.

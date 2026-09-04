@@ -23,7 +23,7 @@ struct HexDocument
     window:        Array'u8
     readFailed:    bool
     failureReason: String
-    reportFailure: #null func||(string)
+    reportFailure: (func||(string))?
 }
 
 impl HexDocument

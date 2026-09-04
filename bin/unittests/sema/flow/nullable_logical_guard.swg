@@ -5,7 +5,7 @@ struct NullableLogicalGuardItem
     value: s32
 }
 
-func nullableLogicalGuardOrFallthrough(item: #null *NullableLogicalGuardItem)->s32
+func nullableLogicalGuardOrFallthrough(item: *NullableLogicalGuardItem?)->s32
 {
     if !item or item.value == 0
     {
@@ -15,7 +15,7 @@ func nullableLogicalGuardOrFallthrough(item: #null *NullableLogicalGuardItem)->s
     return item.value
 }
 
-func nullableLogicalGuardOrElse(item: #null *NullableLogicalGuardItem)->s32
+func nullableLogicalGuardOrElse(item: *NullableLogicalGuardItem?)->s32
 {
     if !item or item.value == 0
     {
@@ -27,7 +27,7 @@ func nullableLogicalGuardOrElse(item: #null *NullableLogicalGuardItem)->s32
     }
 }
 
-func nullableLogicalGuardAndThen(item: #null *NullableLogicalGuardItem)->s32
+func nullableLogicalGuardAndThen(item: *NullableLogicalGuardItem?)->s32
 {
     if item and item.value != 0
     {
@@ -37,7 +37,7 @@ func nullableLogicalGuardAndThen(item: #null *NullableLogicalGuardItem)->s32
     return 0
 }
 
-func nullableLogicalGuardKeepsVarStorageNullable(item: #null *NullableLogicalGuardItem)->#null *NullableLogicalGuardItem
+func nullableLogicalGuardKeepsVarStorageNullable(item: *NullableLogicalGuardItem?)->*NullableLogicalGuardItem?
 {
     if !item
     {

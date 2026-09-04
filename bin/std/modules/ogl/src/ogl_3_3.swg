@@ -4,34 +4,34 @@ using Swag
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glBindFragDataLocationIndexed(program: GLuint, colorNumber: GLuint, index: GLuint, name: #null const *GLchar)
+    func glBindFragDataLocationIndexed(program: GLuint, colorNumber: GLuint, index: GLuint, name: const *GLchar?)
     func glBindSampler(unit: GLuint, sampler: GLuint)
-    func glDeleteSamplers(count: GLsizei, samplers: #null const *GLuint)
-    func glGenSamplers(count: GLsizei, samplers: #null *GLuint)
-    func glGetFragDataIndex(program: GLuint, name: #null const *GLchar)->GLint
-    func glGetQueryObjecti64v(id: GLuint, pname: GLenum, params: #null *GLint64)
-    func glGetQueryObjectui64v(id: GLuint, pname: GLenum, params: #null *GLuint64)
-    func glGetSamplerParameterIiv(sampler: GLuint, pname: GLenum, params: #null *GLint)
-    func glGetSamplerParameterIuiv(sampler: GLuint, pname: GLenum, params: #null *GLuint)
-    func glGetSamplerParameterfv(sampler: GLuint, pname: GLenum, params: #null *GLfloat)
-    func glGetSamplerParameteriv(sampler: GLuint, pname: GLenum, params: #null *GLint)
+    func glDeleteSamplers(count: GLsizei, samplers: const *GLuint?)
+    func glGenSamplers(count: GLsizei, samplers: *GLuint?)
+    func glGetFragDataIndex(program: GLuint, name: const *GLchar?)->GLint
+    func glGetQueryObjecti64v(id: GLuint, pname: GLenum, params: *GLint64?)
+    func glGetQueryObjectui64v(id: GLuint, pname: GLenum, params: *GLuint64?)
+    func glGetSamplerParameterIiv(sampler: GLuint, pname: GLenum, params: *GLint?)
+    func glGetSamplerParameterIuiv(sampler: GLuint, pname: GLenum, params: *GLuint?)
+    func glGetSamplerParameterfv(sampler: GLuint, pname: GLenum, params: *GLfloat?)
+    func glGetSamplerParameteriv(sampler: GLuint, pname: GLenum, params: *GLint?)
     func glIsSampler(sampler: GLuint)->GLboolean
     func glQueryCounter(id: GLuint, target: GLenum)
-    func glSamplerParameterIiv(sampler: GLuint, pname: GLenum, param: #null const *GLint)
-    func glSamplerParameterIuiv(sampler: GLuint, pname: GLenum, param: #null const *GLuint)
+    func glSamplerParameterIiv(sampler: GLuint, pname: GLenum, param: const *GLint?)
+    func glSamplerParameterIuiv(sampler: GLuint, pname: GLenum, param: const *GLuint?)
     func glSamplerParameterf(sampler: GLuint, pname: GLenum, param: GLfloat)
-    func glSamplerParameterfv(sampler: GLuint, pname: GLenum, param: #null const *GLfloat)
+    func glSamplerParameterfv(sampler: GLuint, pname: GLenum, param: const *GLfloat?)
     func glSamplerParameteri(sampler: GLuint, pname: GLenum, param: GLint)
-    func glSamplerParameteriv(sampler: GLuint, pname: GLenum, param: #null const *GLint)
+    func glSamplerParameteriv(sampler: GLuint, pname: GLenum, param: const *GLint?)
     func glVertexAttribDivisor(index: GLuint, divisor: GLuint)
     func glVertexAttribP1ui(index: GLuint, type: GLenum, normalized: GLboolean, value: GLuint)
-    func glVertexAttribP1uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: #null const *GLuint)
+    func glVertexAttribP1uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: const *GLuint?)
     func glVertexAttribP2ui(index: GLuint, type: GLenum, normalized: GLboolean, value: GLuint)
-    func glVertexAttribP2uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: #null const *GLuint)
+    func glVertexAttribP2uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: const *GLuint?)
     func glVertexAttribP3ui(index: GLuint, type: GLenum, normalized: GLboolean, value: GLuint)
-    func glVertexAttribP3uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: #null const *GLuint)
+    func glVertexAttribP3uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: const *GLuint?)
     func glVertexAttribP4ui(index: GLuint, type: GLenum, normalized: GLboolean, value: GLuint)
-    func glVertexAttribP4uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: #null const *GLuint)
+    func glVertexAttribP4uiv(index: GLuint, type: GLenum, normalized: GLboolean, value: const *GLuint?)
 }
 
 const GL_VERTEX_ATTRIB_ARRAY_DIVISOR  = 0x88FE

@@ -30,7 +30,7 @@ namespace
 
     bool isGlobalStorageVariable(const SymbolVariable& symVar)
     {
-        if (symVar.attributes().hasRtFlag(RtAttributeFlagsE::Global))
+        if (symVar.isDeclaredGlobal())
             return true;
 
         const SymbolMap* owner = symVar.ownerSymMap();
@@ -204,7 +204,7 @@ namespace
         // the template every thread copies on first access. What it also needs is a slot to hold
         // the storage index claimed for it at run time; the zero segment owns that, so the index
         // starts at zero and the runtime reads "not claimed yet" from it.
-        if (!isCompilerGlobal && symVar.attributes().hasRtFlag(RtAttributeFlagsE::Tls))
+        if (!isCompilerGlobal && symVar.isDeclaredThreadLocal())
         {
             // The per-thread block is released by the thread-exit destructor, which frees bytes
             // without knowing their type, and shutdown cannot stand in for it: it runs on one
@@ -250,7 +250,7 @@ namespace
 
             if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && needsStandaloneVariableStorage(symVar))
             {
-                if (sema.isCurrentFunction() && !symVar.attributes().hasRtFlag(RtAttributeFlagsE::Global))
+                if (sema.isCurrentFunction() && !symVar.isDeclaredGlobal())
                 {
                     // Local type fields are part of the type layout and must not be rewritten as stack locals.
                     SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, symVar));
@@ -569,6 +569,7 @@ namespace
         AstNodeRef                  nodeInitRef;
         AstNodeRef                  nodeTypeRef;
         EnumFlags<AstVarDeclFlagsE> flags;
+        EnumFlags<AstVarStorageFlagsE> storageFlags;
     };
 
     SourceCodeRef finalTypeErrorRef(Sema& sema, const SemaPostVarDeclArgs& context)
@@ -976,15 +977,28 @@ namespace
         const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
         const bool       isStructField    = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
 
-        // 'Swag.Late' declares a deferred non-null storage: null (zero) storage until the
+        // Thread-local storage is backed by the global-storage allocator. Keeping the
+        // restriction here makes a misplaced `tls` declaration fail instead of silently
+        // behaving like an ordinary local or field.
+        if (context.storageFlags.has(AstVarStorageFlagsE::Tls))
+        {
+            const SymbolVariable* firstTlsVar = !symbols.empty() ? getVariableSymbol(symbols[0]) : nullptr;
+            if (!firstTlsVar || !isGlobalStorageVariable(*firstTlsVar))
+                return SemaError::raise(sema, DiagnosticId::sema_err_tls_not_global, finalTypeErrorRef(sema, context));
+        }
+
+        // 'late' declares deferred non-null storage: null (zero) storage until the
         // first assignment, non-null type at every read (guarded under null safety). It
         // qualifies struct fields and global variables (both have zero-initialized
         // storage that serves as the 'unset' sentinel); a local or parameter has no such
         // storage lifetime, so it cannot use deferred non-null initialization.
         const SymbolVariable* firstLateVar = !symbols.empty() ? getVariableSymbol(symbols[0]) : nullptr;
-        const bool            isLate       = firstLateVar && firstLateVar->attributes().hasRtFlag(RtAttributeFlagsE::Late);
+        const bool            isLate       = context.storageFlags.has(AstVarStorageFlagsE::Late);
         if (isLate)
         {
+            if (!firstLateVar)
+                return SemaError::raise(sema, DiagnosticId::sema_err_late_not_field, finalTypeErrorRef(sema, context));
+
             const bool isGlobalVar = isGlobalStorageVariable(*firstLateVar);
             if (!isStructField && !isGlobalVar)
                 return SemaError::raise(sema, DiagnosticId::sema_err_late_not_field, finalTypeErrorRef(sema, context));
@@ -1014,7 +1028,7 @@ namespace
         {
             SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, finalTypeRef, context.nodeTypeRef));
             requiresExplicitInit = SymbolStruct::typeRequiresExplicitInitialization(sema, finalTypeRef);
-            // A 'Swag.Late' declaration (struct field or global) intentionally has no
+            // A 'late' declaration (struct field or global) intentionally has no
             // initializer: its zero (null) storage is the 'unset' sentinel, guarded at
             // every read. It is exempt from the requires-init rule like a struct field.
             const bool supportsDefiniteInit = sema.isCurrentFunction() && !isConst && !isLet && !isStructField && !isLate;
@@ -1139,7 +1153,7 @@ namespace
             for (Symbol* s : symbols)
             {
                 auto& symVar = s->cast<SymbolVariable>();
-                // A '#null'-typed local gates the pass as well: its qualifier is
+                // A 'nullable'-typed local gates the pass as well: its qualifier is
                 // checked for liveness (dead-contract elimination).
                 if (sema.isCurrentFunction() && finalTypeRef.isValid() &&
                     sema.typeMgr().get(finalTypeRef).isNullable())
@@ -1205,6 +1219,10 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
         auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
         if (hasFlag(AstVarDeclFlagsE::Let))
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
+        if (hasStorageFlag(AstVarStorageFlagsE::Late))
+            symVar.addExtraFlag(SymbolVariableFlagsE::LateInit);
+        symVar.setDeclaredGlobal(hasStorageFlag(AstVarStorageFlagsE::Global));
+        symVar.setDeclaredThreadLocal(hasStorageFlag(AstVarStorageFlagsE::Tls));
 
         stampMemberAccess(sema, symVar);
     }
@@ -1291,7 +1309,7 @@ Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol&                   sym     = *sema.curViewSymbol().sym();
     Symbol*                   one[]   = {&sym};
-    const SemaPostVarDeclArgs context = {this, tokNameRef, nodeInitRef, nodeTypeRef, flags()};
+    const SemaPostVarDeclArgs context = {this, tokNameRef, nodeInitRef, nodeTypeRef, flags(), storageFlags};
     return semaPostVarDeclCommon(sema, context, std::span<Symbol* const>{one});
 }
 
@@ -1315,6 +1333,10 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
             auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             if (hasFlag(AstVarDeclFlagsE::Let))
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
+            if (hasStorageFlag(AstVarStorageFlagsE::Late))
+                symVar.addExtraFlag(SymbolVariableFlagsE::LateInit);
+            symVar.setDeclaredGlobal(hasStorageFlag(AstVarStorageFlagsE::Global));
+            symVar.setDeclaredThreadLocal(hasStorageFlag(AstVarStorageFlagsE::Tls));
             stampMemberAccess(sema, symVar);
         }
     }
@@ -1386,7 +1408,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
     const std::span<Symbol* const> symbols = sema.curViewSymbolList().symList();
-    const SemaPostVarDeclArgs      context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
+    const SemaPostVarDeclArgs      context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags(), storageFlags};
     return semaPostVarDeclCommon(sema, context, symbols);
 }
 
@@ -1504,7 +1526,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     }
 
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
-    const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags()};
+    const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags(), AstVarStorageFlagsE::Zero};
     SWC_RESULT(semaPostVarDeclCommon(sema, context, symbols.span()));
 
     const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);

@@ -382,10 +382,10 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     let bytes       = cast(u32) (nativeValue.count * #sizeof(u16))
 
     if valueName.count == 0 do
-        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(#null const *u8) nativeValue.buffer, bytes) == ERROR_SUCCESS
+        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(const *u8?) nativeValue.buffer, bytes) == ERROR_SUCCESS
 
     let nativeName = Utf16.toZeroTerminated(valueName)
-    return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(#null const *u8) nativeValue.buffer, bytes) == ERROR_SUCCESS
+    return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(const *u8?) nativeValue.buffer, bytes) == ERROR_SUCCESS
 }
 
 var g_StoreArgs: String
@@ -433,9 +433,9 @@ public func enableDpiAwareness()
     discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
 
-private func getWindowFromHandle(hWnd: HWND)->#null *Window
+private func getWindowFromHandle(hWnd: HWND)->*Window?
 {
-    return cast(#null *Window) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
+    return cast(*Window?) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
 }
 
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
@@ -496,7 +496,7 @@ impl Window
 {
     internal mtd setNativeHandle(nativeHandle: HWND)
     {
-        .nativeHandle = cast(#null const *void) nativeHandle
+        .nativeHandle = cast(const *void?) nativeHandle
     }
 
     private mtd const win32Handle()->HWND => cast(HWND) .nativeHandle

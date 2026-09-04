@@ -5,7 +5,7 @@ attr Extension()
 
 struct OneFunc
 {
-    type: #null const *TypeInfoFunc
+    type: const *TypeInfoFunc?
     name: string
 }
 
@@ -46,9 +46,9 @@ var g_Functions: Array'OneFunc
         // Declare a lambda variable for that extension.
         builderVars.appendString("var ext_")
         builderVars.appendString(e.name)
-        builderVars.appendString(": #null ")
+        builderVars.appendString(": (")
         builderVars.appendString(etype.fullname)
-        builderVars.appendString("\n")
+        builderVars.appendString(")?\n")
 
         // Generate the wrapper function body.
         builderVars.appendString("public func ")
@@ -94,9 +94,9 @@ var g_Functions: Array'OneFunc
         // Initialize the variable with the getExtensionAddress.
         builderInit.appendString("\text_")
         builderInit.appendString(e.name)
-        builderInit.appendString(" = cast(#null ")
+        builderInit.appendString(" = cast((")
         builderInit.appendString(etype.fullname)
-        builderInit.appendString(") getExtensionAddress((\"")
+        builderInit.appendString(")?) getExtensionAddress((\"")
         builderInit.appendString(e.name)
         builderInit.appendString("\").buffer)\n")
     }

@@ -7,7 +7,7 @@ using Swag
 // (allocation and deallocation) of the pointed-to objects.
 struct(T) ArrayPtr
 {
-    public using base: Array'(#null *T)     // Embedded base state.
+    public using base: Array'(*T?)     // Embedded base state.
 }
 
 impl ArrayPtr
@@ -67,7 +67,7 @@ impl ArrayPtr
 
     // Deallocates the memory for a single given pointer.
     // The pointer is expected to have been allocated using this array's allocator.
-    mtd destroy(item: #null *T)
+    mtd destroy(item: *T?)
     {
         Memory.delete(item, .allocator)
     }
@@ -96,7 +96,7 @@ impl ArrayPtr
     }
 
     // Returns the first pointer in the array, or null if the array is empty.
-    mtd const first()->#null *T
+    mtd const first()->*T?
     {
         if .count == 0 do
             return null
@@ -105,7 +105,7 @@ impl ArrayPtr
     }
 
     // Returns the last pointer in the array, or null if the array is empty.
-    mtd const last()->#null *T
+    mtd const last()->*T?
     {
         if .count == 0 do
             return null
@@ -114,7 +114,7 @@ impl ArrayPtr
     }
 
     // Returns the index of the given pointer (by identity), or 'Swag.U64.Max' if not present.
-    mtd const indexOf(item: #null *T)->u64
+    mtd const indexOf(item: *T?)->u64
     {
         if .count
         {
@@ -130,7 +130,7 @@ impl ArrayPtr
     }
 
     // True if the given pointer (by identity) is in the array.
-    mtd const contains(item: #null *T)->bool
+    mtd const contains(item: *T?)->bool
     {
         return .indexOf(item) != Swag.U64.Max
     }

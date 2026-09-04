@@ -3,7 +3,7 @@
 func A() {}
 func A(a: s32) {}
 
-func overloadProbe(type: typeinfo, value: string)->#null any
+func overloadProbe(type: typeinfo, value: string)->any?
 {
     return null
 }
@@ -68,10 +68,10 @@ func takesNonNullRef(r: *NullableRefNode) {}
 
 #test
 {
-    // Dereferencing a `#null` pointer is allowed, but binding it to a non-null
+    // Dereferencing a `?` pointer is allowed, but binding it to a non-null
     // reference parameter (not a UFCS receiver) stays a cast error.
     var storage: NullableRefNode
-    var p:       #null *NullableRefNode = &storage
+    var p:       *NullableRefNode? = &storage
     takesNonNullRef(p)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 

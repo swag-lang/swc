@@ -512,8 +512,6 @@ namespace
     {
         Utf8 out;
 
-        if (typeInfo.isNullable())
-            out += "#null ";
         if (typeInfo.isConst())
             out += "const ";
 
@@ -628,21 +626,36 @@ namespace
             case TypeInfoKind::ValuePointer:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("*{}", renderTypeName(type, ctx, mode));
+                out += "*";
+                const Utf8 pointee = renderTypeName(type, ctx, mode);
+                if (type.isNullable())
+                    out += std::format("({})", pointee);
+                else
+                    out += pointee;
                 break;
             }
 
             case TypeInfoKind::BlockPointer:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("[*] {}", renderTypeName(type, ctx, mode));
+                out += "[*] ";
+                const Utf8 pointee = renderTypeName(type, ctx, mode);
+                if (type.isNullable())
+                    out += std::format("({})", pointee);
+                else
+                    out += pointee;
                 break;
             }
 
             case TypeInfoKind::MoveReference:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("#move {}", renderTypeName(type, ctx, mode));
+                out += "#move ";
+                const Utf8 pointee = renderTypeName(type, ctx, mode);
+                if (type.isNullable())
+                    out += std::format("({})", pointee);
+                else
+                    out += pointee;
                 break;
             }
 
@@ -677,7 +690,12 @@ namespace
             case TypeInfoKind::Slice:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("[..] {}", renderTypeName(type, ctx, mode));
+                out += "[..] ";
+                const Utf8 elem = renderTypeName(type, ctx, mode);
+                if (type.isNullable())
+                    out += std::format("({})", elem);
+                else
+                    out += elem;
                 break;
             }
 
@@ -704,7 +722,11 @@ namespace
                 const TypeInfo& elemType = ctx.typeMgr().get(typeInfo.payloadArrayElemTypeRef());
                 if (!elemType.isArray())
                     out += " ";
-                out += renderTypeName(elemType, ctx, mode);
+                const Utf8 elem = renderTypeName(elemType, ctx, mode);
+                if (elemType.isNullable())
+                    out += std::format("({})", elem);
+                else
+                    out += elem;
                 break;
             }
 
@@ -731,6 +753,12 @@ namespace
                 SWC_UNREACHABLE();
         }
 
+        if (typeInfo.isNullable())
+        {
+            if (typeInfo.isFunction())
+                out = std::format("({})", out);
+            out += "?";
+        }
         return out;
     }
 }

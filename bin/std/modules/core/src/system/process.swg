@@ -4,7 +4,7 @@
 using Core.Errors
 
 // Names the process handle type.
-alias ProcessHandle = #null const *void
+alias ProcessHandle = const *void?
 
 // Selects how one standard stream of a child process is connected.
 enum StreamRedirection
@@ -50,7 +50,7 @@ impl ProcessEnvironment
     // Returns the value bound to `name`, or `null` when the environment does not hold it.
     //
     // The result is borrowed from this value and stays valid until the binding changes.
-    mtd const value(name: string)->#null string
+    mtd const value(name: string)->string?
     {
         let entry = .variables.tryFind(ProcessEnvironment.storedName(name))
         if !entry do
@@ -86,15 +86,15 @@ struct StartInfo
 {
     public
     {
-        fileName:         string                              // Executable to start, as a full path or a name to look up.
-        arguments:        #null string                        // Command-line arguments, already quoted, or null for none.
-        workingDirectory: #null string                        // Directory the child starts in, or null to inherit the current one.
-        environment:      #null const *ProcessEnvironment     // Environment the child starts with, or null to inherit the current one. Borrowed for the call only.
-        standardInput:    StreamRedirection = .Inherit        // How the child reads standard input.
-        standardOutput:   StreamRedirection = .Inherit        // How the child writes standard output.
-        standardError:    StreamRedirection = .Inherit        // How the child writes standard error.
-        affinityMask:     u64                                 // Logical processors the child may run on, one bit each. Zero inherits the current set.
-        measureResources: bool                                // Whether to account the child and everything it starts, which [[Core.Env.Process.resources]] answers.
+        fileName:         string                           // Executable to start, as a full path or a name to look up.
+        arguments:        string?                          // Command-line arguments, already quoted, or null for none.
+        workingDirectory: string?                          // Directory the child starts in, or null to inherit the current one.
+        environment:      const *ProcessEnvironment?       // Environment the child starts with, or null to inherit the current one. Borrowed for the call only.
+        standardInput:    StreamRedirection = .Inherit     // How the child reads standard input.
+        standardOutput:   StreamRedirection = .Inherit     // How the child writes standard output.
+        standardError:    StreamRedirection = .Inherit     // How the child writes standard error.
+        affinityMask:     u64                              // Logical processors the child may run on, one bit each. Zero inherits the current set.
+        measureResources: bool                             // Whether to account the child and everything it starts, which [[Core.Env.Process.resources]] answers.
     }
 }
 
@@ -163,7 +163,7 @@ struct Process
 // The child inherits the standard streams, the working directory and the environment of the
 // current process. Use [[Core.Env.startProcess]] with a [[Core.Env.StartInfo]] to change any
 // of that.
-func startProcess(fileName: string, arguments: #null string = null)->Process fail
+func startProcess(fileName: string, arguments: string? = null)->Process fail
 {
     let info = StartInfo{fileName: fileName, arguments: arguments}
     return try startProcess(info)
@@ -181,7 +181,7 @@ func startProcess(fileName: string, arguments: #null string = null)->Process fai
 //     fail Errors.BadParameterError{"the compiler refused to answer"}
 // Swag.print(process.standardOutput())
 // ```
-func runProcess(fileName: string, arguments: #null string = null)->Process fail
+func runProcess(fileName: string, arguments: string? = null)->Process fail
 {
     let info = StartInfo{fileName: fileName, arguments: arguments, standardOutput: .Pipe, standardError: .Pipe}
     return try runProcess(info)

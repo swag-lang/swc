@@ -1,6 +1,6 @@
 #global private
 
-func nativeRetNothing()->#null string => null
+func nativeRetNothing()->string? => null
 
 func nativeIfLetSimple()->s32
 {

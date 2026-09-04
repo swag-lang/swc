@@ -28,7 +28,7 @@ const CodeVop                    = 0xB6'u32
 // the bit reader works straight over the bytes of the plane.
 struct BitReader
 {
-    data:   #null const [*] u8
+    data:   const [*] u8?
     bitEnd: u64
     bitPos: u64
 }

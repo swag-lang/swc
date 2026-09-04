@@ -68,7 +68,7 @@ const MaxDim = 64'u32
 
 struct Warehouse
 {
-    cells:  #null [*] Tile
+    cells:  [*] Tile?
     w:      u32
     h:      u32
     robotR: u32
@@ -79,7 +79,7 @@ func warehouseInit()->Warehouse
 {
     var wh: Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
-    wh.cells = cast(#null [*] Tile) testAlloc(size)
+    wh.cells = cast([*] Tile?) testAlloc(size)
     let cells = wh.cells!
     for index in MaxDim * MaxDim
     {
@@ -109,7 +109,7 @@ func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 struct Parsed
 {
     wh:     Warehouse
-    moves:  #null [*] u8
+    moves:  [*] u8?
     nMoves: u32
 }
 
@@ -194,7 +194,7 @@ func parseInput(text: string)->Parsed
             moveCount += 1
     }
 
-    result.moves  = cast(#null [*] u8) testAlloc(cast(u64) moveCount)
+    result.moves  = cast([*] u8?) testAlloc(cast(u64) moveCount)
     result.nMoves = moveCount
 
     // Swag.makeSlice: create a slice view over the allocated move buffer

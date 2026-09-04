@@ -584,9 +584,9 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
     return Result::Continue;
 }
 
-// Guard for reading a 'Swag.Late' struct field: the storage stays null until the
+// Guard for reading a 'late' struct field: the storage stays null until the
 // first assignment while the declared type is non-null.
-// Guards a read of a 'Swag.Late' field or global: the storage stays zero (null) until the
+// Guards a read of a 'late' field or global: the storage stays zero (null) until the
 // first assignment while the exposed type is non-null. Loads the value at 'addrReg' and
 // panics when it is still null.
 Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef lateTypeRef)
@@ -618,7 +618,7 @@ Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, M
     SWC_ASSERT(panicIdRef.isValid());
     SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(panicIdRef);
     SWC_ASSERT(panicFunction != nullptr);
-    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "read of a 'Swag.Late' value before initialization"));
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "read of a 'late' value before initialization"));
     builder.placeLabel(presentLabel);
     return Result::Continue;
 }

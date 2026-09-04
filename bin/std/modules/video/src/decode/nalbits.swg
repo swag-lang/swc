@@ -20,10 +20,10 @@ using Core, Core.Errors
 // once per syntax structure and reports one error for the whole run.
 struct BitReader
 {
-    data:    #null const [*] u8     // Payload bytes, already free of emulation-prevention bytes.
-    size:    u64                    // Number of payload bytes.
-    bitPos:  u64                    // Read position, in bits from the first byte.
-    overran: bool                   // Whether a read ran past the end of the payload.
+    data:    const [*] u8?     // Payload bytes, already free of emulation-prevention bytes.
+    size:    u64               // Number of payload bytes.
+    bitPos:  u64               // Read position, in bits from the first byte.
+    overran: bool              // Whether a read ran past the end of the payload.
 }
 
 impl BitReader

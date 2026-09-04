@@ -41,13 +41,11 @@ struct RecentView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    main: *MainWnd
-    #[Swag.Late]
-    recentWnd: *RecentWnd
-    items:     ArrayPtr'RecentItem
-    selected:  u64 = Swag.U64.Max
-    hotItem:   u64 = Swag.U64.Max
+    late main:      *MainWnd
+    late recentWnd: *RecentWnd
+    items:          ArrayPtr'RecentItem
+    selected:       u64 = Swag.U64.Max
+    hotItem:        u64 = Swag.U64.Max
 
     // Where the pointer went down on a thumbnail, so a move far enough from it becomes a drag
     // out of the application rather than a click. `Swag.U64.Max` means no press is being tracked.
@@ -108,7 +106,7 @@ impl RecentView
         // read the previous version.
         .main.flushCaptureSave(item.file)
 
-        let capture: #null *Capture = catch Capture.load(item.file)
+        let capture: *Capture? = catch Capture.load(item.file)
         if capture do
             .selectLoaded(idx, capture)
     }
@@ -295,13 +293,11 @@ impl IWnd for RecentView
 
 struct RecentWnd
 {
-    using scrollWnd: ScrollWnd
-    #[Swag.Late]
-    main: *MainWnd
-    #[Swag.Late]
-    recentView:         *RecentView
-    timer:              #null *Gui.Timer
-    loadTimer:          #null *Gui.Timer
+    using scrollWnd:    ScrollWnd
+    late main:          *MainWnd
+    late recentView:    *RecentView
+    timer:              *Gui.Timer?
+    loadTimer:          *Gui.Timer?
     pendingRecentFiles: Array'String
     pendingRecentIndex: u64
     loadDone:           bool
@@ -481,9 +477,9 @@ impl RecentWnd
         if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
 
-        let file                    = .pendingRecentFiles[.pendingRecentIndex]
-        let initialLoad             = !.main.editWnd.editView.capture
-        let capture: #null *Capture = catch Capture.load(file, preview: !initialLoad)
+        let file               = .pendingRecentFiles[.pendingRecentIndex]
+        let initialLoad        = !.main.editWnd.editView.capture
+        let capture: *Capture? = catch Capture.load(file, preview: !initialLoad)
         if capture
         {
             let loaded = capture
@@ -537,7 +533,7 @@ impl RecentWnd
         g_Library.removeFile(item.file)
     }
 
-    mtd addRecent(file: String, front = true, sel = false)->#null *Capture fail
+    mtd addRecent(file: String, front = true, sel = false)->*Capture? fail
     {
         // The strip shows thumbnails: a preview load reads the SCC header and the
         // preview chunk alone, never the image payloads. The full capture is loaded

@@ -18,7 +18,7 @@ func __concreteAlias(type1: typeinfo)->typeinfo
     return __concreteAlias(typeAlias.rawType)
 }
 
-func typeIs(toType, fromType: #null typeinfo)->bool
+func typeIs(toType, fromType: typeinfo?)->bool
 {
     if Swag.typeCmp(toType, fromType, .Strict) do
         return true
@@ -54,7 +54,7 @@ func typeIs(toType, fromType: #null typeinfo)->bool
     return false
 }
 
-func typeAs(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
+func typeAs(toType, fromType: typeinfo?, ptr: *void?)->*void?
 {
     if Swag.typeCmp(toType, fromType, .Strict) do
         return ptr
@@ -83,7 +83,7 @@ func typeAs(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
             if pointedType.kind != .Struct do
                 continue
 
-            let fieldPtrAddr = cast(*#null *void) (cast([*] u8) ptr + ft.offset)
+            let fieldPtrAddr = cast(*(*void?)) (cast([*] u8) ptr + ft.offset)
             let typeStruct   = cast(const *Swag.TypeInfoStruct) pointedType
             let result       = Swag.typeAs(toType, typeStruct, fieldPtrAddr[])
             if result do
@@ -94,7 +94,7 @@ func typeAs(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
     return null
 }
 
-func typeCmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
+func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 {
     if !typeA and !typeB do
         return true
@@ -173,7 +173,7 @@ func typeCmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
 
 ////////////////////////////////////////////////////////////
 
-func tableOf(structType, itfType: #null const *TypeInfoStruct)->#null const *void
+func tableOf(structType, itfType: const *TypeInfoStruct?)->const *void?
 {
     if !structType or !itfType do
         return null
@@ -200,7 +200,7 @@ const __MAX_ARGUMENTS = 512
 var __argv: [__MAX_ARGUMENTS] string = ""
 var __argc = 0'u32
 
-func __convertArgcArgv(args: #null const [*] u8)
+func __convertArgcArgv(args: const [*] u8?)
 {
     if args == null do
         return

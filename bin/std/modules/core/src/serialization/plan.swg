@@ -27,20 +27,20 @@ public struct Plan
 {
     public
     {
-        structType: #null const *Swag.TypeInfoStruct     // The type this plan describes.
-        version:    u32                                  // Value of the 'Serialization.Version' attribute, 0 when absent.
-        hasVersion: bool                                 // Whether the type carries a 'Serialization.Version' attribute.
-        podFinal:   bool                                 // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
-        hasCustom:  bool                                 // Whether the type implements 'ISerialize' and drives its own fields.
-        fields:     Array'PlanField                      // The serializable fields, in declaration order.
-        keyToIndex: HashTable'(string, u64)              // Maps a field key to its index in 'fields'.
+        structType: const *Swag.TypeInfoStruct?     // The type this plan describes.
+        version:    u32                             // Value of the 'Serialization.Version' attribute, 0 when absent.
+        hasVersion: bool                            // Whether the type carries a 'Serialization.Version' attribute.
+        podFinal:   bool                            // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
+        hasCustom:  bool                            // Whether the type implements 'ISerialize' and drives its own fields.
+        fields:     Array'PlanField                 // The serializable fields, in declaration order.
+        keyToIndex: HashTable'(string, u64)         // Maps a field key to its index in 'fields'.
     }
 }
 
 public impl Plan
 {
     // Returns the plan field matching a wire key, or null.
-    mtd const fieldByKey(key: string)->#null const *PlanField
+    mtd const fieldByKey(key: string)->const *PlanField?
     {
         let e = .keyToIndex.tryFind(key)
         if !e do

@@ -7,9 +7,8 @@ struct ThemeStyleRef
 {
     public
     {
-        #[Swag.Late]
-        theme: *Theme     // Theme associated with this value.
-        count: u32        // Count associated with this value.
+        late theme: *Theme     // Theme associated with this value.
+        count:      u32        // Count associated with this value.
     }
 }
 
@@ -25,8 +24,8 @@ struct ThemeStyle
 
     // The shared theme this style resolves against, and whether it must be resolved again.
     // The style takes and releases the reference itself, so its count stays correct.
-    refr:  #null *ThemeStyleRef     // Reference-counted theme this style resolves to.
-    dirty: bool                     // Whether the style sheets must be applied again.
+    refr:  *ThemeStyleRef?     // Reference-counted theme this style resolves to.
+    dirty: bool                // Whether the style sheets must be applied again.
 }
 
 impl ThemeStyle

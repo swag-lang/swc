@@ -5,26 +5,26 @@ using Swag
 #[Extension, Swag.PlaceHolder]
 {
     func glBindVertexBuffer(bindingindex: GLuint, buffer: GLuint, offset: GLintptr, stride: GLsizei)
-    func glClearBufferData(target: GLenum, internalformat: GLenum, format: GLenum, type: GLenum, data: #null const *void)
-    func glClearBufferSubData(target: GLenum, internalformat: GLenum, offset: GLintptr, size: GLsizeiptr, format: GLenum, type: GLenum, data: #null const *void)
+    func glClearBufferData(target: GLenum, internalformat: GLenum, format: GLenum, type: GLenum, data: const *void?)
+    func glClearBufferSubData(target: GLenum, internalformat: GLenum, offset: GLintptr, size: GLsizeiptr, format: GLenum, type: GLenum, data: const *void?)
     func glCopyImageSubData(srcName: GLuint, srcTarget: GLenum, srcLevel: GLint, srcX: GLint, srcY: GLint, srcZ: GLint, dstName: GLuint, dstTarget: GLenum, dstLevel: GLint, dstX: GLint, dstY: GLint, dstZ: GLint, srcWidth: GLsizei, srcHeight: GLsizei, srcDepth: GLsizei)
     func glDispatchCompute(num_groups_x: GLuint, num_groups_y: GLuint, num_groups_z: GLuint)
     func glDispatchComputeIndirect(indirect: GLintptr)
-    func glGetInternalformati64v(target: GLenum, internalformat: GLenum, pname: GLenum, count: GLsizei, params: #null *GLint64)
-    func glGetProgramInterfaceiv(program: GLuint, programInterface: GLenum, pname: GLenum, params: #null *GLint)
-    func glGetProgramResourceIndex(program: GLuint, programInterface: GLenum, name: #null const *GLchar)->GLuint
-    func glGetProgramResourceLocation(program: GLuint, programInterface: GLenum, name: #null const *GLchar)->GLint
-    func glGetProgramResourceLocationIndex(program: GLuint, programInterface: GLenum, name: #null const *GLchar)->GLint
-    func glGetProgramResourceName(program: GLuint, programInterface: GLenum, index: GLuint, bufSize: GLsizei, length: #null *GLsizei, name: #null *GLchar)
-    func glGetProgramResourceiv(program: GLuint, programInterface: GLenum, index: GLuint, propCount: GLsizei, props: #null const *GLenum, count: GLsizei, length: #null *GLsizei, params: #null *GLint)
+    func glGetInternalformati64v(target: GLenum, internalformat: GLenum, pname: GLenum, count: GLsizei, params: *GLint64?)
+    func glGetProgramInterfaceiv(program: GLuint, programInterface: GLenum, pname: GLenum, params: *GLint?)
+    func glGetProgramResourceIndex(program: GLuint, programInterface: GLenum, name: const *GLchar?)->GLuint
+    func glGetProgramResourceLocation(program: GLuint, programInterface: GLenum, name: const *GLchar?)->GLint
+    func glGetProgramResourceLocationIndex(program: GLuint, programInterface: GLenum, name: const *GLchar?)->GLint
+    func glGetProgramResourceName(program: GLuint, programInterface: GLenum, index: GLuint, bufSize: GLsizei, length: *GLsizei?, name: *GLchar?)
+    func glGetProgramResourceiv(program: GLuint, programInterface: GLenum, index: GLuint, propCount: GLsizei, props: const *GLenum?, count: GLsizei, length: *GLsizei?, params: *GLint?)
     func glInvalidateBufferData(buffer: GLuint)
     func glInvalidateBufferSubData(buffer: GLuint, offset: GLintptr, length: GLsizeiptr)
-    func glInvalidateFramebuffer(target: GLenum, numAttachments: GLsizei, attachments: #null const *GLenum)
-    func glInvalidateSubFramebuffer(target: GLenum, numAttachments: GLsizei, attachments: #null const *GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei)
+    func glInvalidateFramebuffer(target: GLenum, numAttachments: GLsizei, attachments: const *GLenum?)
+    func glInvalidateSubFramebuffer(target: GLenum, numAttachments: GLsizei, attachments: const *GLenum?, x: GLint, y: GLint, width: GLsizei, height: GLsizei)
     func glInvalidateTexImage(texture: GLuint, level: GLint)
     func glInvalidateTexSubImage(texture: GLuint, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei)
-    func glMultiDrawArraysIndirect(mode: GLenum, indirect: #null const *void, drawcount: GLsizei, stride: GLsizei)
-    func glMultiDrawElementsIndirect(mode: GLenum, type: GLenum, indirect: #null const *void, drawcount: GLsizei, stride: GLsizei)
+    func glMultiDrawArraysIndirect(mode: GLenum, indirect: const *void?, drawcount: GLsizei, stride: GLsizei)
+    func glMultiDrawElementsIndirect(mode: GLenum, type: GLenum, indirect: const *void?, drawcount: GLsizei, stride: GLsizei)
     func glShaderStorageBlockBinding(program: GLuint, storageBlockIndex: GLuint, storageBlockBinding: GLuint)
     func glTexBufferRange(target: GLenum, internalformat: GLenum, buffer: GLuint, offset: GLintptr, size: GLsizeiptr)
     func glTexStorage2DMultisample(target: GLenum, samples: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei, fixedsamplelocations: GLboolean)

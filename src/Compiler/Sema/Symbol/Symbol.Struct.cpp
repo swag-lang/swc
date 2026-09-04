@@ -428,7 +428,7 @@ namespace
 
     Result lowerTypeImplicitDefaultBytesRec(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
     {
-        // Non-null types reached here are 'Swag.Late' fields (fields requiring explicit
+        // Non-null types reached here are 'late' fields (fields requiring explicit
         // initialization were skipped by the caller): their default is the null
         // 'unset' state. The destination buffer is not always pre-zeroed.
         const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
@@ -501,7 +501,7 @@ namespace
 
     ImplicitDefaultKind classifyFieldImplicitDefault(Sema& sema, const SymbolVariable& field)
     {
-        // A 'Swag.Late' field is typed non-null but its storage legitimately starts
+        // A 'late' field is typed non-null but its storage legitimately starts
         // null: it never blocks default initialization.
         if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
             return ImplicitDefaultKind::AllZero;

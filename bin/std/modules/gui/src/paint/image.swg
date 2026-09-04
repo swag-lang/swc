@@ -5,18 +5,15 @@ using Pixel
 public struct PaintImage
 {
     // Called to paint one image. This is the only thing a caller sets.
-    public paint: #null func||(app: *Application, painter: *Painter)
-
-    // The offscreen application, its painter and the surface backing the render target.
+    public paint: (func||(app: *Application, painter: *Painter))?     // The offscreen application, its painter and the surface backing the render target.
 
     private
     {
-        app:     Application     // Headless application driving the offscreen paint.
-        painter: Painter         // Painter the callback draws into.
-        #[Swag.Late]
-        surface: *Surface     // Surface owning the render target.
-        image:   Image        // Last painted result.
-        w, h:    s32          // Size of the render target, in pixels.
+        app:          Application     // Headless application driving the offscreen paint.
+        painter:      Painter         // Painter the callback draws into.
+        late surface: *Surface        // Surface owning the render target.
+        image:        Image           // Last painted result.
+        w, h:         s32             // Size of the render target, in pixels.
     }
 }
 
@@ -53,7 +50,7 @@ impl PaintImage
     // Releases resources owned by this value.
     public mtd opDrop()
     {
-        if Swag.isSet(.surface) do
+        if .surface != null do
             .surface.destroy()
     }
 

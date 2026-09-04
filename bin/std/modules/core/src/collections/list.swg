@@ -7,8 +7,8 @@ struct(T) ListEntry
 {
     public readonly
     {
-        prev: #null *ListEntry     // Pointer to the previous node in the list.
-        next: #null *ListEntry     // Pointer to the next node in the list.
+        prev: *ListEntry?     // Pointer to the previous node in the list.
+        next: *ListEntry?     // Pointer to the next node in the list.
     }
 
     public value: T     // The value stored in the node.
@@ -20,9 +20,9 @@ struct(T) List
 {
     public readonly
     {
-        head:  #null *ListEntry     // Pointer to the first node in the list.
-        tail:  #null *ListEntry     // Pointer to the last node in the list.
-        count: u64                  // The total number of elements in the list.
+        head:  *ListEntry?     // Pointer to the first node in the list.
+        tail:  *ListEntry?     // Pointer to the last node in the list.
+        count: u64             // The total number of elements in the list.
     }
 }
 

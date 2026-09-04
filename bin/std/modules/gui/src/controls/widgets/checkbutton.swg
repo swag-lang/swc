@@ -47,9 +47,9 @@ impl IWnd for CheckButton
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var subRectBk:     #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
-        var subRectMark:   #null *ThemeImageRect
+        var subRectBk:     *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
+        var subRectMark:   *ThemeImageRect?
         var colorBk:       Color
         var colorBorder:   Color
         var colorMark:     Color
@@ -181,7 +181,7 @@ impl CheckButton
 {
     // Creates a check button with an optional command identifier and initial options.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null, flags = CheckButtonFlags.None)->*CheckButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, flags = CheckButtonFlags.None)->*CheckButton
     {
         Debug.assert(parent != null)
         var pos = position

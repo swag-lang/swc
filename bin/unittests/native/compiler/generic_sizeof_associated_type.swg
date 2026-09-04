@@ -9,7 +9,7 @@ struct(T) NativeGenericSizeEntry
 
 struct(T) NativeGenericSizeBox
 {
-    entries: #null [*] NativeGenericSizeEntry
+    entries: [*] NativeGenericSizeEntry?
 }
 
 alias NativeGenericSizeEntryAlias = NativeGenericSizeEntry

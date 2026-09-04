@@ -149,7 +149,7 @@ func useAfterConditionalFree(cond: bool)->s32
 
 struct UafCarrier
 {
-    owner: #null *UafHost
+    owner: *UafHost?
 }
 
 struct UafHost

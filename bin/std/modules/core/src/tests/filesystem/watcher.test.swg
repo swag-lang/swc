@@ -14,7 +14,7 @@ func cancelWatcherThread(thread: Threading.Thread)
     payload.watcher.cancel()
 }
 
-func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind, path: string, oldPath: #null string = null)->bool fail
+func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind, path: string, oldPath: string? = null)->bool fail
 {
     for 12
     {

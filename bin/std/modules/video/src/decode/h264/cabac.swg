@@ -14,7 +14,7 @@ using Core, Core.Errors
 // renormalization shifts in one step, so the per-bin cost stays flat whatever the bin rate.
 struct CabacReader
 {
-    data:      #null const [*] u8     // Slice data, still carrying emulation prevention removed upstream.
+    data:      const [*] u8?     // Slice data, still carrying emulation prevention removed upstream.
     size:      u64
     position:  u64           // Next data byte to load into the bit buffer.
     padBytes:  u64           // Synthetic zero bytes loaded past the end of the data.

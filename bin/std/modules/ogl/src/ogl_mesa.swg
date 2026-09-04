@@ -15,7 +15,7 @@ const GL_FRAMEBUFFER_FLIP_Y_MESA = 0x8BBB
 #[Extension, Swag.PlaceHolder]
 {
     func glFramebufferParameteriMESA(target: GLenum, pname: GLenum, param: GLint)
-    func glGetFramebufferParameterivMESA(target: GLenum, pname: GLenum, params: #null *GLint)
+    func glGetFramebufferParameterivMESA(target: GLenum, pname: GLenum, params: *GLint?)
 }
 
 /* ---------------------- GL_MESA_framebuffer_swap_xy ---------------------- */

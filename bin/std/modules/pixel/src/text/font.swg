@@ -102,14 +102,13 @@ public struct GlyphCache
 {
     internal
     {
-        #[Swag.Late]
-        typeFace:    *TypeFace          // Typeface borrowed for rasterization and metrics.
-        renderMode:  FontRenderMode     // Concrete atlas representation; never `Auto`.
-        refSize:     u32                // Reference em size in pixels.
-        spread:      u32                // Distance-field range in pixels, or zero for bitmap atlases.
-        forceBold:   bool               // Whether glyph rasterization synthesizes bold weight.
-        forceItalic: bool               // Whether glyph rasterization synthesizes italic slant.
-        hasKerning:  bool               // Whether the typeface advertises kerning information.
+        late typeFace: *TypeFace          // Typeface borrowed for rasterization and metrics.
+        renderMode:    FontRenderMode     // Concrete atlas representation; never `Auto`.
+        refSize:       u32                // Reference em size in pixels.
+        spread:        u32                // Distance-field range in pixels, or zero for bitmap atlases.
+        forceBold:     bool               // Whether glyph rasterization synthesizes bold weight.
+        forceItalic:   bool               // Whether glyph rasterization synthesizes italic slant.
+        hasKerning:    bool               // Whether the typeface advertises kerning information.
 
         ascent:        f32     // Distance from the baseline to the highest recommended extent.
         descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
@@ -162,10 +161,8 @@ public struct Font
 
     internal
     {
-        #[Swag.Late]
-        owner: *FontCache     // Cache that created this view and owns it.
-        #[Swag.Late]
-        cache: *GlyphCache     // Shared glyph storage borrowed by this font view.
+        late owner: *FontCache      // Cache that created this view and owns it.
+        late cache: *GlyphCache     // Shared glyph storage borrowed by this font view.
     }
 }
 

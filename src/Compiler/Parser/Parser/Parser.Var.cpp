@@ -132,8 +132,32 @@ AstNodeRef Parser::parseVarDeclDecomposition()
 
 AstNodeRef Parser::parseVarDecl()
 {
-    EnumFlags      flags    = AstVarDeclFlagsE::Zero;
-    const TokenRef tokStart = ref();
+    EnumFlags<AstVarDeclFlagsE>    flags        = AstVarDeclFlagsE::Zero;
+    EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
+    const TokenRef                 tokStart     = ref();
+
+    for (;;)
+    {
+        AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
+        switch (id())
+        {
+            case TokenId::KwdLate: storageFlag = AstVarStorageFlagsE::Late; break;
+            case TokenId::KwdTls: storageFlag = AstVarStorageFlagsE::Tls; break;
+            case TokenId::KwdGlobal: storageFlag = AstVarStorageFlagsE::Global; break;
+            default: break;
+        }
+
+        if (storageFlag == AstVarStorageFlagsE::Zero)
+            break;
+        if (storageFlags.has(storageFlag))
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_storage_modifier, ref());
+            diag.report(*ctx_);
+        }
+        storageFlags.add(storageFlag);
+        consume();
+    }
+
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDeclFlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
@@ -143,6 +167,8 @@ AstNodeRef Parser::parseVarDecl()
 
     if (hasContextFlag(ParserContextFlagsE::InUsingMemberDecl))
         flags.add(AstVarDeclFlagsE::Using);
+    storageFlags.add(topLevelStorageFlags_);
+    storageFlags.add(aggregateStorageFlags_);
 
     SmallVector<AstNodeRef> vars;
     while (true)
@@ -188,6 +214,7 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SingleVarDecl>(tokStart);
             nodePtr->flags()        = flags;
+            nodePtr->storageFlags   = storageFlags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
@@ -201,6 +228,7 @@ AstNodeRef Parser::parseVarDecl()
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiVarDecl>(tokStart);
             nodePtr->flags()        = flags;
+            nodePtr->storageFlags   = storageFlags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)

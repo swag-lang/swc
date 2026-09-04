@@ -45,10 +45,10 @@ namespace
         uint32_t                   fieldCount           = 0;       // 0 => single slot
         uint64_t                   fullMask             = 1;
         uint64_t                   dropMask             = 0; // bits of fields with a drop lifecycle
-        uint64_t                   lateMask             = 0; // bits of 'Swag.Late' fields ('lateOnly' tracking)
+        uint64_t                   lateMask             = 0; // bits of 'late' fields ('lateOnly' tracking)
         bool                       typeHasDrop          = false;
         bool                       isRetVal             = false;
-        bool                       lateOnly             = false; // tracked only for its 'Swag.Late' fields: regular zero-initialized storage
+        bool                       lateOnly             = false; // tracked only for its 'late' fields: regular zero-initialized storage
         bool                       defaultInitCandidate = false;
         bool                       needsDefiniteInit    = false;
         bool                       fullInitReceiver     = false;
@@ -165,7 +165,7 @@ namespace
                 }
             }
 
-            // A '#null' return type that no return path can produce promises a null
+            // A 'nullable' return type that no return path can produce promises a null
             // that never happens: callers pay guards for nothing.
             if (returnContract_ && returnSeen_ && !mayReturnNull_ && !aborted_)
             {
@@ -175,7 +175,7 @@ namespace
                 diag.report(sema_->ctx());
             }
 
-            // A local annotated '#null' whose every incoming value is provably
+            // A local annotated 'nullable' whose every incoming value is provably
             // non-null (and whose address never escapes) wears a dead qualifier.
             if (!aborted_)
             {
@@ -209,11 +209,11 @@ namespace
         bool                    aborted_               = false;
         bool                    hadError_              = false;
         int32_t                 fullInitReceiverIndex_ = -1;
-        // '#null' return contract tracking.
+        // 'nullable' return contract tracking.
         bool returnContract_ = false;
         bool returnSeen_     = false;
         bool mayReturnNull_  = false;
-        // '#null' local contract tracking (function-global, not path-based): a local
+        // 'nullable' local contract tracking (function-global, not path-based): a local
         // is reported when every value it can ever hold is provably non-null.
         struct NullableLocal
         {
@@ -577,7 +577,7 @@ namespace
                 state.add(path.varIndex, 1ull << path.fieldIndex);
             else
             {
-                // Whole assignment: the source's 'Swag.Late' fields may legally be
+                // Whole assignment: the source's 'late' fields may legally be
                 // unset, so the copy proves nothing for them.
                 state.set(path.varIndex, var.fullMask & ~var.lateMask, var.fullMask);
             }
@@ -603,7 +603,7 @@ namespace
                 return;
             }
 
-            // 'Swag.Late' fields only gain 'may': the callee filling them is possible,
+            // 'late' fields only gain 'may': the callee filling them is possible,
             // never proven (the runtime read guard stays).
             if (path.fieldIndex >= 0)
             {
@@ -662,7 +662,7 @@ namespace
         }
 
         // Records whether a function-level return can produce a null value. The
-        // returned expression is widened IN PLACE to the declared '#null' type, so
+        // returned expression is widened IN PLACE to the declared 'nullable' type, so
         // the proof works on the expression's SHAPE: an address-of is never null, an
         // identifier follows its declared type, a call follows the callee's declared
         // return type. Everything else conservatively counts as nullable.
@@ -684,7 +684,7 @@ namespace
                 return;
             TrackedVar& var = vars_[path.varIndex];
 
-            // 'Swag.Late' field read: proven set on EVERY path elides the runtime read
+            // 'late' field read: proven set on EVERY path elides the runtime read
             // guard; proven never set on ANY path is a compile-time fault; anything
             // in between is the runtime guard's business. Indexed and nested
             // accesses dereference the late field the same way.
@@ -891,8 +891,8 @@ namespace
                 }
                 if (lateMask)
                 {
-                    // The null sentinel of a late field is observable through
-                    // Swag.isSet, so it remains normally initialized.
+                    // The null sentinel of a late field is observable through a
+                    // comparison with null, so it remains normally initialized.
                     var.defaultInitCandidate = false;
                     var.lateOnly             = true;
                     var.lateMask             = lateMask;
@@ -929,7 +929,7 @@ namespace
             }
         }
 
-        // Registers the locals with an EXPLICIT '#null' annotation (an inferred type
+        // Registers the locals with an EXPLICIT 'nullable' annotation (an inferred type
         // has nothing to remove). Without an initializer the storage defaults to
         // null, which keeps the qualifier meaningful.
         void trackNullableLocals(AstNodeRef declRef, const AstVarDeclBase* varBase)
@@ -1299,11 +1299,24 @@ namespace
                     return walkIntrinsicInit(node.cast<AstIntrinsicInit>(), state);
 
                 case AstNodeId::IntrinsicCall:
+                    return walkChildren(node, state);
+
+                case AstNodeId::RelationalExpr:
                 {
-                    // 'Swag.isSet(x.f)' inspects a 'Swag.Late' field's storage: neither a
-                    // read of the value nor an escape of the variable.
-                    if (node.cast<AstIntrinsicCall>().intrinsicId == TokenId::IntrinsicIsSet)
-                        return FlowExit::Normal;
+                    const auto& relational = node.cast<AstRelationalExpr>();
+                    const TokenId op        = tokenIdOf(node, TokenId::Invalid);
+                    if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
+                    {
+                        // Promotion casts the null literal to its counterpart's type before
+                        // this flow pass runs, so inspect the syntax rather than its final
+                        // semantic type. A `late` slot compared to literal null is a presence
+                        // query, never a read of that slot.
+                        const bool leftIsNull  = sema_->node(relational.nodeLeftRef).is(AstNodeId::NullLiteral);
+                        const bool rightIsNull = sema_->node(relational.nodeRightRef).is(AstNodeId::NullLiteral);
+                        if ((leftIsNull && SemaHelpers::isLateInitAccess(*sema_, relational.nodeRightRef)) ||
+                            (rightIsNull && SemaHelpers::isLateInitAccess(*sema_, relational.nodeLeftRef)))
+                            return FlowExit::Normal;
+                    }
                     return walkChildren(node, state);
                 }
 
@@ -1644,7 +1657,7 @@ namespace
             AccessPath path;
             if (!accessPath(leftRef, path))
             {
-                // A whole assignment into a '#null' local feeds its contract; a
+                // A whole assignment into a 'nullable' local feeds its contract; a
                 // compound one keeps the qualifier (conservative).
                 noteNullableLocalWrite(leftRef, tokenId == TokenId::SymEqual ? assignStmt.nodeRightRef : AstNodeRef::invalid(), false);
 
@@ -1659,7 +1672,7 @@ namespace
                 walk(leftNode.cast<AstIndexExpr>().nodeArgRef, state);
 
             // Writing THROUGH a field ('b.item.value = x', 'b.name[i] = c') dereferences it:
-            // a read of that field, never an initialization of the variable. A 'Swag.Late'
+            // a read of that field, never an initialization of the variable. A 'late'
             // field answers the same way even when its own type is not pointer-like, because
             // its storage is the null sentinel until it is set.
             if (path.fieldIndex >= 0 && (path.nestedField || path.indexed) &&

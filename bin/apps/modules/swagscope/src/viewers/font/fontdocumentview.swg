@@ -96,7 +96,7 @@ internal struct FontDocumentView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         scroll:     *ScrollWnd
         typeFace:   *TypeFace
@@ -108,7 +108,7 @@ internal struct FontDocumentView
     }
 
     fontBytes: Array'u8
-    face:      #null *Face
+    face:      *Face?
 
     cells:     Array'FontDocumentCell
     layout:    FontDocumentLayout
@@ -213,7 +213,7 @@ internal impl IWnd for FontDocumentView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if !Swag.isSet(.scroll) do
+        if !(.scroll != null) do
             return
         .refreshLayout()
     }

@@ -231,7 +231,7 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
     mathLayoutNode(radicand, font, style, variant, options)
 
     var contentX = 0.46'f32 * em
-    var index: #null *MathNode
+    var index: *MathNode?
     if node.flag
     {
         index = node.children[1]
@@ -269,7 +269,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
     let scriptStyle = mathNextStyle(style)
     var childIndex  = 1'u64
-    var sub, sup:           #null *MathNode
+    var sub, sup:           *MathNode?
     var subIndex, supIndex: u64
     if node.flag
     {

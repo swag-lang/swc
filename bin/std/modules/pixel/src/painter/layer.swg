@@ -55,17 +55,17 @@ struct Layer
 {
     public
     {
-        renderer:      #null IRenderer         // Borrowed renderer used to allocate targets.
-        painter:       #null *Painter          // Borrowed painter receiving layer commands.
-        paintTarget:   #null *RenderTarget     // Supersampled recording target, if allocated.
-        contentTarget: #null *RenderTarget     // Resolved content target, if allocated.
-        shadowTarget:  #null *RenderTarget     // Shadow-composited target, if allocated.
-        width:         s32                     // Logical content width, in pixels.
-        height:        s32                     // Logical content height, in pixels.
-        renderScale:   s32 = 1                 // Active supersampling factor.
-        deviceScale:   f32 = 1                 // Painter content scale captured at `begin`.
-        active:        bool                    // Whether recording is between `begin` and `end`.
-        resolved:      bool                    // Whether content is at logical resolution.
+        renderer:      IRenderer?         // Borrowed renderer used to allocate targets.
+        painter:       *Painter?          // Borrowed painter receiving layer commands.
+        paintTarget:   *RenderTarget?     // Supersampled recording target, if allocated.
+        contentTarget: *RenderTarget?     // Resolved content target, if allocated.
+        shadowTarget:  *RenderTarget?     // Shadow-composited target, if allocated.
+        width:         s32                // Logical content width, in pixels.
+        height:        s32                // Logical content height, in pixels.
+        renderScale:   s32 = 1            // Active supersampling factor.
+        deviceScale:   f32 = 1            // Painter content scale captured at `begin`.
+        active:        bool               // Whether recording is between `begin` and `end`.
+        resolved:      bool               // Whether content is at logical resolution.
     }
 }
 

@@ -6,9 +6,9 @@ using Swag, Win32
 
 #[Swag.Strict]
 {
-    alias HGDIOBJ = #null const *void
-    alias HFONT   = #null const *void
-    alias HPEN    = #null const *void
+    alias HGDIOBJ = const *void?
+    alias HFONT   = const *void?
+    alias HPEN    = const *void?
 }
 
 const GDI_ERROR = 0xFFFFFFFF
@@ -509,7 +509,7 @@ internal namespace Gdi32Priv
         func CreateFontIndirectW(lplf: const *LOGFONTW)->HFONT
         func CreateSolidBrush(color: COLORREF)->HBRUSH
         func CreatePen(iStyle: s32, cWidth: s32, color: COLORREF)->HPEN
-        func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP
+        func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *(*void?), hSection: HANDLE, offset: DWORD)->HBITMAP
         func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: *BITMAPINFO, usage: UINT)->s32
     }
 }
@@ -659,7 +659,7 @@ internal namespace Gdi32Priv
         return res
     }
 
-    func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP fail
+    func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *(*void?), hSection: HANDLE, offset: DWORD)->HBITMAP fail
     {
         let res = Gdi32Priv.CreateDIBSection(hdc, pbmi, usage, ppvBits, hSection, offset)
         if res == null do

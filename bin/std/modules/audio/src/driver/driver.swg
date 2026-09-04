@@ -12,9 +12,8 @@ struct Driver
 {
     using native: DriverNative
 
-    isCreated: bool
-    #[Swag.Late]
-    allocationAllocator: IAllocator
+    isCreated:                bool
+    late allocationAllocator: IAllocator
 
     updateTh:            Threading.Thread
     wakeupUpdate:        Sync.Event
@@ -230,7 +229,7 @@ impl Driver
 
     mtd createVoice()->*Voice
     {
-        var back: #null *Voice
+        var back: *Voice?
         .mutexRecycleVoices.lock()
         if !.toRecycleVoices.isEmpty() do
             back = .toRecycleVoices.popBack()

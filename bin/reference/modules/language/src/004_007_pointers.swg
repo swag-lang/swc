@@ -10,8 +10,8 @@ Pointers can address any type of data and are fundamental for efficient memory a
 */
 #test
 {
-    var ptr1: #null *u8            // Pointer to a single 'u8' value
-    var ptr2: #null *#null *u8     // Pointer to another pointer to 'u8'
+    var ptr1: *u8?         // Pointer to a single 'u8' value
+    var ptr2: *(*u8?)?     // Pointer to another pointer to 'u8'
 }
 
 /**
@@ -24,7 +24,7 @@ It is good practice to check for null pointers before dereferencing them to avoi
 */
 #test
 {
-    var ptr1: #null *u8
+    var ptr1: *u8?
     Swag.assert(ptr1 == null)     // Uninitialized pointers are null by default
 }
 
@@ -35,22 +35,23 @@ Nullable-capable types — single-value and block pointers, slices, `string`, `c
 `any`, and `typeinfo` — are non-null by default: a bare `*u8` or `string` cannot be
 initialized with `null` and has no implicit default. A struct field of such a type must
 therefore be supplied by an aggregate initializer unless it declares an explicit non-null
-default. Use `#null` to opt into nullability when null is part of the intended contract.
+default. Add the `?` suffix â€” `*u8?`, `string?`, `[ ..] u8?` â€” when null is part of
+the intended contract.
 
 Because these types answer a condition by testing their first pointer-sized word against
-null, only a `#null` one asks a real question there. A bare `*u8`, `[*] u8`, slice,
+null, only a nullable value (for example `*u8?`) asks a real question there. A bare `*u8`, `[*] u8`, slice,
 `string`, `cstring`, `func` value, `interface` or `typeinfo` in a condition is a constant
 that can only be true, and every boolean context rejects it. A slice and a string test
 their data pointer, never their count, so an empty one is still present: emptiness is
 `x.count == 0`.
 
-A `#null` value cannot flow into a bare (non-null) slot directly, and it cannot be
+A `T?` value cannot flow into a bare (non-null) slot directly, and it cannot be
 dereferenced, indexed, member-accessed or called while it is still nullable: every use
 site needs a proof. Flow narrowing provides it implicitly (a dominating null test such
 as `if p == null do return`, `if p do ...`, `Swag.assert(p != null)`, or the left side of
 `and`/`or`), the postfix `!` asserts it explicitly (a safety check panics at runtime if
 the value is still null), and `?.` skips the access entirely when the value is null.
-Comparisons between `#null` and bare values of the same type are always allowed.
+Comparisons between `T?` and bare values of the same type are always allowed.
 Every declared value begins with its type's safe default; the compiler may elide
 that initialization only after proving that it cannot be observed.
 
@@ -81,7 +82,7 @@ otherwise the value cannot be moved from safely.
 /**
 # Use-Site Nullability, `?.` and `!`
 
-Dereferencing a value whose type is still `#null` is a compile-time error: the flow
+Dereferencing a value whose type is still `T?` is a compile-time error: the flow
 must prove the value non-null first. The sanctioned routes are a dominating null test
 (flow narrowing), the `?.` guarded access, and the postfix `!` assertion.
 
@@ -96,7 +97,7 @@ chain when the tested value is null; `!` claims the value is there and panics un
 `Swag.SafetyWhat.Expect` when it is not. Being postfix, `!` binds tighter than every
 prefix form and chains freely: `p!.count`, `buffer![i]`, `handler!()`. Because it cannot
 produce an absent result, what follows keeps its plain type — `node!.count` is an `s64`,
-never a `#null` one, and needs no fallback.
+never a nullable one, and needs no fallback.
 
 `try`, `catch` and `expect` swallow everything to their right, so a `!` written after one
 of them applies to its **result**: `expect load(path)!` asserts the loaded value, not the
@@ -123,7 +124,7 @@ region is dead, not wrong.
     struct OptChainRefDoc
     {
         count: s64
-        next:  #null *OptChainRefDoc
+        next:  *OptChainRefDoc?
     }
 
     var first:  OptChainRefDoc
@@ -132,7 +133,7 @@ region is dead, not wrong.
     first.next   = &second
     second.count = 7
 
-    var p: #null *OptChainRefDoc = &first
+    var p: *OptChainRefDoc? = &first
 
     // Narrowing: the null test dominates the dereference.
     if p != null do
@@ -262,9 +263,9 @@ impl ElemBoxDoc
 /**
 # Pointers to Nullable Slots
 
-Taking an address never invents a proof. The address of a `#null` slot is a non-null
+Taking an address never invents a proof. The address of a `T?` slot is a non-null
 pointer TO that slot, and the slot's own nullability waits inside: reading the slot
-with `[]` hands back the `#null` value, and every use of that value needs the same
+with `[]` hands back the nullable value, and every use of that value needs the same
 proof it would need on the slot itself.
 */
 struct SlotTargetDoc
@@ -272,7 +273,7 @@ struct SlotTargetDoc
     count: s64
 }
 
-alias DocSlot = #null *SlotTargetDoc
+alias DocSlot = *SlotTargetDoc?
 
 struct SlotBoxDoc
 {
@@ -291,7 +292,7 @@ impl SlotBoxDoc
     target.count = 3
     var box = SlotBoxDoc{slot: &target}
 
-    // The address itself is non-null; the slot's '#null' waits behind one '[]'.
+    // The address itself is non-null; the slot's nullability waits behind one '[]'.
     let bound = box.slotPtr()
     #assert(#typeof(bound) == #type *DocSlot)
 
@@ -305,19 +306,20 @@ impl SlotBoxDoc
 }
 
 /**
-# Deferred Initialization with `Swag.Late`
+# Deferred Initialization with `late`
 
-The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage
+The `late` keyword declares a **non-null** field or **global variable** whose storage
 starts unset (zero/null) and receives its value during setup — an initialization function,
-a constructor, the first stage of `main`. It replaces the `#null ... = null` +
+a constructor, the first stage of `main`. It replaces a nullable `T? = null` +
 `!`-at-every-use pattern for values that are guaranteed to be set before first use but
 cannot be initialized at their declaration.
 
 The exposed type is non-null, so uses need no `!`; every read is guarded (a runtime
-null panic when still unset). `Swag.isSet` tests whether the value has been assigned, without
-reading it. `Swag.Late` needs a nullable-capable type (pointer, slice, `string`, `cstring`,
-interface, function): it uses the null bit pattern as the 'unset' sentinel. A local or
-parameter uses `` definite assignment instead.
+null panic when still unset). `late` needs a nullable-capable type (pointer, slice, `string`,
+`cstring`, interface, function): it uses the null bit pattern as the 'unset' sentinel. A normal
+`slot != null` comparison inspects that sentinel without reading the value. If absence is an
+ordinary state that code carries beyond construction, declare the field as `T?` instead. A local or
+parameter uses definite assignment instead.
 */
 struct LateDocResource
 {
@@ -326,8 +328,7 @@ struct LateDocResource
 
 var g_lateDocStorage: LateDocResource
 
-#[Swag.Late]
-var g_lateDocResource: *LateDocResource     // non-null type, set later
+late var g_lateDocResource: *LateDocResource     // non-null type, set later
 
 func setupLateDocResource()
 {
@@ -340,10 +341,7 @@ func setupLateDocResource()
     // The type is non-null: no '!', no null test needed at the use site.
     #assert(#typeof(g_lateDocResource) == *LateDocResource)
 
-    // Unset until setup runs, and 'Swag.isSet' says so without reading the value.
-    Swag.assert(!Swag.isSet(g_lateDocResource))
     setupLateDocResource()
-    Swag.assert(Swag.isSet(g_lateDocResource))
 
     // Guarded read yields the value directly.
     Swag.assert(g_lateDocResource.weight == 5)
@@ -453,9 +451,9 @@ that follows it, exactly one level down.
 */
 #test
 {
-    var ptr:  #null *#null const *u8           // The 'u8' is read-only, the inner pointer is writable
-    var ptr1: #null const *#null const *u8     // Both the inner pointer and the 'u8' are read-only
-    var ptr2: #null const *#null *u8           // The inner pointer is read-only, the 'u8' is writable
+    var ptr:  *(const *u8?)?           // The 'u8' is read-only, the inner pointer is writable
+    var ptr1: const *(const *u8?)?     // Both the inner pointer and the 'u8' are read-only
+    var ptr2: const *(*u8?)?           // The inner pointer is read-only, the 'u8' is writable
 }
 
 /**
@@ -470,8 +468,8 @@ allowing indexed access and pointer movement through memory.
 #[Swag.Sanity(Swag.SafetyWhat.All, false)]
 #test
 {
-    var ptr: #null [*] u8     // Pointer to a block of 'u8' values
-    ptr = ptr - 1             // Move the pointer back by one element
+    var ptr: [*] u8?     // Pointer to a block of 'u8' values
+    ptr = ptr - 1        // Move the pointer back by one element
 }
 
 /**

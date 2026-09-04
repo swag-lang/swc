@@ -20,12 +20,11 @@ struct RichChunk
         visible:      bool                          // Whether layout retained the chunk for painting.
         colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
 
-        boundRect: Math.Rectangle     // Bounds local to `pos`, in pixels.
-        pos:       Math.Point         // Chunk origin in the containing layout.
-        #[Swag.Late]
-        font:   *Font                     // Borrowed font selected for this chunk.
-        shaped: ShapedRun                 // Positioned glyphs for the chunk.
-        under:  UnderlineStyle = None     // Underline or strikeout decoration.
+        boundRect: Math.Rectangle            // Bounds local to `pos`, in pixels.
+        pos:       Math.Point                // Chunk origin in the containing layout.
+        late font: *Font                     // Borrowed font selected for this chunk.
+        shaped:    ShapedRun                 // Positioned glyphs for the chunk.
+        under:     UnderlineStyle = None     // Underline or strikeout decoration.
     }
 }
 
@@ -149,7 +148,7 @@ impl RichString
     // ```swag
     // <b>this is bold</b> but this is normal <i>and this is italic</i>
     // ```swag
-    mtd set(text: #null string)
+    mtd set(text: string?)
     {
         if .chunks.count and .raw == text do
             return
@@ -211,7 +210,7 @@ impl RichString
 
     // Get the url chunk at position 'at'.
     // If an url does not exists, returns 'null'.
-    mtd getUrlChunkAt(at: Math.Point)->#null *RichChunk
+    mtd getUrlChunkAt(at: Math.Point)->*RichChunk?
     {
         if !.hasUrl do
             return null

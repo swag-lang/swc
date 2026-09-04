@@ -16,7 +16,7 @@ using Core, Pixel
 interface IPropertyEditor
 {
     // Return true if this editor should handle a field of type 'type'.
-    mtd canEdit(type: #null typeinfo)->bool
+    mtd canEdit(type: typeinfo?)->bool
 
     // Build the editor row(s) for 'value' (the field at 'data') under 'parent' and return the
     // created item — exactly like the built-in construct* methods. The recipe: call
@@ -27,7 +27,7 @@ interface IPropertyEditor
     // An editor is a stateless singleton: it is invoked on a null instance (like canEdit), so
     // 'me' carries no per-field state — read any per-field configuration from 'value' (its
     // attributes), and wire 'data'/'item'/'list' into the widget callbacks.
-    mtd construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
+    mtd construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
 }
 
 // One registered editor: the implementing type (used to instantiate a fresh editor per field)
@@ -75,9 +75,9 @@ impl Properties
     // Find the editor that claims 'type', or null. Scans newest-first so a later registration
     // overrides an earlier one for the same type — this is what lets a user editor replace a
     // built-in (Color/vector) editor, which all live in this one registry.
-    internal func findEditor(type: #null typeinfo)->#null *PropertyEditorReg
+    internal func findEditor(type: typeinfo?)->*PropertyEditorReg?
     {
-        var found: #null *PropertyEditorReg
+        var found: *PropertyEditorReg?
         var i = Properties.editors.count
         while i > 0
         {

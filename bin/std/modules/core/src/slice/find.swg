@@ -59,7 +59,7 @@ private func verifyByteCandidates(values, subslice: const [*] u8, subCount, base
 // Find 'value' in a slice by performing a binary search.
 // The slice must be sorted in ascending order
 // Returns Swag.U64.Max if not found.
-func(T, V) findSorted(values: #null const [..] T, value: V)->u64
+func(T, V) findSorted(values: const [..] T?, value: V)->u64
 {
     var lower = 0'u64
     var upper = values.count
@@ -86,7 +86,7 @@ func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 // Find 'value' in a slice by performing a linear search.
 // O^n, but slice does not have to be sorted.
 // Returns Swag.U64.Max if not found.
-func findLinear(values: #null const [..] u8, value: u8)->u64
+func findLinear(values: const [..] u8?, value: u8)->u64
 {
     let count = values.count
     if !count do
@@ -94,7 +94,7 @@ func findLinear(values: #null const [..] u8, value: u8)->u64
     return findByte((values!).buffer, count, value)
 }
 
-func(T, V) findLinear(values: #null const [..] T, value: V)->u64
+func(T, V) findLinear(values: const [..] T?, value: V)->u64
 {
     for &v, i in values where v[] == value do
         return i
@@ -174,20 +174,20 @@ func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
 // Returns true if the given slice contains the 'value'.
 // The slice must be sorted in ascending order
 #[Swag.ConstExpr]
-func(T, V) containsSorted(values: #null const [..] T, value: V)->bool
+func(T, V) containsSorted(values: const [..] T?, value: V)->bool
 {
     return findSorted(values, value) != Swag.U64.Max
 }
 
 // Returns true if the given slice contains the 'value'
 #[Swag.ConstExpr]
-func contains(values: #null const [..] u8, value: u8)->bool
+func contains(values: const [..] u8?, value: u8)->bool
 {
     return findLinear(values, value) != Swag.U64.Max
 }
 
 #[Swag.ConstExpr]
-func(T, V) contains(values: #null const [..] T, value: V)->bool
+func(T, V) contains(values: const [..] T?, value: V)->bool
 {
     for v in values where v == value do
         return true
@@ -196,7 +196,7 @@ func(T, V) contains(values: #null const [..] T, value: V)->bool
 
 // Returns true if two slices are equal
 #[Swag.ConstExpr]
-func equals(dst, src: #null const [..] u8)->bool
+func equals(dst, src: const [..] u8?)->bool
 {
     if dst.count != src.count do
         return false
@@ -206,7 +206,7 @@ func equals(dst, src: #null const [..] u8)->bool
 }
 
 #[Swag.ConstExpr]
-func(T) equals(dst, src: #null const [..] T)->bool
+func(T) equals(dst, src: const [..] T?)->bool
 {
     if dst.count != src.count do
         return false

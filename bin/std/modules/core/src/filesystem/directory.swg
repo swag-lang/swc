@@ -6,15 +6,15 @@ struct EnumerationOptions
 {
     public
     {
-        matchExtension: #null string                          // Optional extension to match (e.g. ".txt")
-        matchFileName:  #null string                          // Optional file name pattern to match
+        matchExtension: string?                               // Optional extension to match (e.g. ".txt")
+        matchFileName:  string?                               // Optional file name pattern to match
         skipAttributes         = File.FileAttributes.None     // Attributes to skip during enumeration
         recurse                = false                        // Whether to recurse into subdirectories
         wantFiles              = true                         // Whether to include files in the results
         wantDirectories        = true                         // Whether to include directories in the results
         wantSpecialDirectories = false                        // Whether to include "." and ".." in the results
 
-        filterLambda: #null func(File.FileInfo)->bool     // Optional lambda to filter results
+        filterLambda: (func(File.FileInfo)->bool)?     // Optional lambda to filter results
     }
 }
 
@@ -53,7 +53,7 @@ func delete(dirName: string, recurse = false) fail
 }
 
 // Enumerates a directory and applies recursion and filters in platform-neutral code.
-func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.FileInfo) fail
+func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileInfo) fail
 {
     var result: retval
     if dirName == null do
@@ -102,7 +102,7 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
 }
 
 // Gets all files in the specified directory
-func enumerateFiles(dirName: string, matchExtension: #null string = null, recurse = false)->Array'(File.FileInfo) fail
+func enumerateFiles(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail
 {
     var options: EnumerationOptions
     options.matchExtension  = matchExtension
@@ -112,7 +112,7 @@ func enumerateFiles(dirName: string, matchExtension: #null string = null, recurs
 }
 
 // Gets all directories in the specified directory
-func enumerateDirectories(dirName: string, matchExtension: #null string = null, recurse = false)->Array'(File.FileInfo) fail
+func enumerateDirectories(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail
 {
     var options: EnumerationOptions
     options.matchExtension = matchExtension

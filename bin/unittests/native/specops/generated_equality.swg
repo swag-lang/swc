@@ -104,7 +104,7 @@ impl Counted
 {
     // An 'opEquals' declared against another type adds a comparison beside the built-in one
     // instead of replacing it, so two 'Counted' values still compare as the storage they are.
-    mtd const opEquals(other: #null string)->bool
+    mtd const opEquals(other: string?)->bool
     {
         return .length == other.count
     }

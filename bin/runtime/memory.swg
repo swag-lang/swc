@@ -82,7 +82,7 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
     }
 }
 
-func memset(dst: #null [*] void, value: u8, size: u64)
+func memset(dst: [*] void?, value: u8, size: u64)
 {
     if !size do
         return
@@ -121,13 +121,13 @@ func memset(dst: #null [*] void, value: u8, size: u64)
     }
 }
 
-func memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
 {
     if size do
         __memoryCopyForward(cast([*] u8) dst!, cast(const [*] u8) src!, size)
 }
 
-func memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 {
     if !size or dst == src do
         return
@@ -142,7 +142,7 @@ func memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
         __memoryCopyBackward(target, source, size)
 }
 
-func memcmp(left, right: #null const [*] void, size: u64)->s32
+func memcmp(left, right: const [*] void?, size: u64)->s32
 {
     if !size do
         return 0

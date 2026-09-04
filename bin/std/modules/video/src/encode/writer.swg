@@ -41,7 +41,7 @@ interface IEncoder
     //
     // `options` is `null` for defaults, or points to the encoder-specific options structure —
     // [[Avi.EncodeOptions]] for AVI. A format with nothing to configure ignores it.
-    mtd begin(sink: *Sink, info: StreamInfo, options: #null any) fail
+    mtd begin(sink: *Sink, info: StreamInfo, options: any?) fail
 
     // Encodes one frame and appends it to the stream.
     //
@@ -64,13 +64,13 @@ struct Writer
 {
     internal
     {
-        sink:        Sink                                 // Bytes of the encoded stream.
-        info:        StreamInfo                           // Geometry and rate the stream was opened with.
-        format:      StreamFormat                         // Format claimed by the selected encoder.
-        encoder:     #null IEncoder                       // Encoder instance owned by this writer.
-        encoderType: #null const *Swag.TypeInfoStruct     // Concrete encoder type, used to release it.
-        frames:      u64                                  // Number of frames appended so far.
-        isEnded:     bool                                 // Whether the stream was finished.
+        sink:        Sink                            // Bytes of the encoded stream.
+        info:        StreamInfo                      // Geometry and rate the stream was opened with.
+        format:      StreamFormat                    // Format claimed by the selected encoder.
+        encoder:     IEncoder?                       // Encoder instance owned by this writer.
+        encoderType: const *Swag.TypeInfoStruct?     // Concrete encoder type, used to release it.
+        frames:      u64                             // Number of frames appended so far.
+        isEnded:     bool                            // Whether the stream was finished.
     }
 }
 
@@ -116,7 +116,7 @@ impl Writer
     func canCreate(fileName: string)->bool => findEncoder(fileName) != null
 
     // Returns the registered encoder claiming `fileName`, or `null` when none does.
-    internal func findEncoder(fileName: string)->#null const *EncoderDesc
+    internal func findEncoder(fileName: string)->const *EncoderDesc?
     {
         for encoder in encoders where encoder.format.matches(fileName) do
             return encoder
@@ -145,7 +145,7 @@ impl Writer
     //
     // try writer.end()
     // ```
-    func create(fileName: string, width, height: s32, frameRate: FrameRate, options: #null any = null)->Writer fail
+    func create(fileName: string, width, height: s32, frameRate: FrameRate, options: any? = null)->Writer fail
     {
         var result: retval
         result.validate(fileName, width, height, frameRate)
@@ -159,7 +159,7 @@ impl Writer
     // `fileName` selects the encoder by extension; no file is opened. `buffer` is borrowed,
     // must stay valid until the writer is ended, and holds the whole encoded stream, so this
     // is for a stream a caller already knows is bounded.
-    func createMemory(fileName: string, buffer: *ConcatBuffer, width, height: s32, frameRate: FrameRate, options: #null any = null)->Writer fail
+    func createMemory(fileName: string, buffer: *ConcatBuffer, width, height: s32, frameRate: FrameRate, options: any? = null)->Writer fail
     {
         var result: retval
         result.validate(fileName, width, height, frameRate)
@@ -184,7 +184,7 @@ impl Writer
     }
 
     // Selects the encoder for `fileName`, creates its instance, and writes the stream header.
-    private mtd start(fileName: string, options: #null any) fail
+    private mtd start(fileName: string, options: any?) fail
     {
         let selected = findEncoder(fileName)!
         .format      = selected.format

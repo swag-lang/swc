@@ -132,13 +132,13 @@ impl IPropertyNotify for SceneCard
 // ---------------------------------------------------------------------------
 
 var app:           Application
-var g_Surface:     #null *Surface
-var g_View:        #null *Wnd
-var g_Title:       #null *Label
-var g_SubTitle:    #null *Label
-var g_ThemeButton: #null *PushButton
-var g_PageView:    #null *Wnd
-var g_Footer:      #null *Label
+var g_Surface:     *Surface?
+var g_View:        *Wnd?
+var g_Title:       *Label?
+var g_SubTitle:    *Label?
+var g_ThemeButton: *PushButton?
+var g_PageView:    *Wnd?
+var g_Footer:      *Label?
 var g_DarkTheme:   bool
 var g_StatusText:  String
 
@@ -147,12 +147,12 @@ var g_CardCount:   s32            = 2
 var g_DisplayMode: PropertiesKind = .Grid
 var g_Filter:      String
 
-var g_ObjHost:      #null *Wnd
-var g_PropCtrl:     #null *PropertiesCtrl
-var g_Props:        #null *Properties
-var g_Preview:      #null *Wnd
-var g_DisplayCombo: #null *ComboBox
-var g_CountCombo:   #null *ComboBox
+var g_ObjHost:      *Wnd?
+var g_PropCtrl:     *PropertiesCtrl?
+var g_Props:        *Properties?
+var g_Preview:      *Wnd?
+var g_DisplayCombo: *ComboBox?
+var g_CountCombo:   *ComboBox?
 
 var g_TestFrame: s32
 var g_TestStep:  s32
@@ -473,15 +473,15 @@ struct RatingEditor {}
 
 impl IPropertyEditor for RatingEditor
 {
-    mtd impl canEdit(type: #null typeinfo)->bool
+    mtd impl canEdit(type: typeinfo?)->bool
     {
         return type == Rating
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
         let item   = list.addItem(value, data, parent)
-        let rating = cast(#null *Rating) data
+        let rating = cast(*Rating?) data
         let prop   = list
 
         let line = Wnd.create'Wnd(item.line, {0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
@@ -534,7 +534,7 @@ impl IPropertyEditor for RatingEditor
 // Root view / app
 // ---------------------------------------------------------------------------
 
-func updateStatus(item: #null *PropertiesItem)
+func updateStatus(item: *PropertiesItem?)
 {
     if item == null do
         return
@@ -542,7 +542,7 @@ func updateStatus(item: #null *PropertiesItem)
     // Owned: 'RichString.plainText' returns a 'String' whose view would dangle once
     // the temporary is dropped at the end of the statement.
     var name: String = item.typeValue.name
-    if name == "" and Swag.isSet(item.label) do
+    if name == "" and (item.label != null) do
         name = RichString.plainText(item.label.text())
     if name == "" do
         name = "section"

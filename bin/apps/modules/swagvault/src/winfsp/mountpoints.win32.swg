@@ -4,7 +4,7 @@ using Core
 
 namespace WinFsp
 {
-    alias HKEY = #null *void
+    alias HKEY = *void?
 
     const KEY_READ             = 0x0002_0019'u32
     const ERROR_FILE_NOT_FOUND = 2'u32

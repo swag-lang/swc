@@ -8,8 +8,8 @@ struct EmbeddedResource
 {
     public
     {
-        name:  String                  // Resource name, with `/` separators.
-        bytes: #null const [..] u8     // Compile-time bytes, owned by the program image.
+        name:  String             // Resource name, with `/` separators.
+        bytes: const [..] u8?     // Compile-time bytes, owned by the program image.
     }
 }
 
@@ -158,7 +158,7 @@ impl Bundle
         return ""
     }
 
-    private mtd const findEmbedded(name: string)->#null const *EmbeddedResource
+    private mtd const findEmbedded(name: string)->const *EmbeddedResource?
     {
         for &entry in .embedded where entry.name == name do
             return entry

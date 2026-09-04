@@ -436,7 +436,7 @@ internal impl IRichEditLexer for GenericCodeLexer
         return false
     }
 
-    mtd impl compute(linePrev: #null *RichEditLine, line: *RichEditLine, lineNext: #null *RichEditLine)
+    mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
         let length = line.length()
         codePaint(line, 0, length, .Default)

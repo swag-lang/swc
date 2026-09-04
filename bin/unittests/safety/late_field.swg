@@ -7,12 +7,11 @@ struct LateItem
 
 struct LateBox
 {
-    #[Swag.Late]
-    item: *LateItem
+    late item: *LateItem
 }
 
 // =============================================
-// Reading a 'Swag.Late' field before initialization panics under null safety.
+// Reading a 'late' field before initialization panics under null safety.
 // The conditional assignment keeps the fault a runtime matter: a read proven
 // never-set on every path is a compile-time error instead (see the sema tests).
 // =============================================
@@ -53,23 +52,23 @@ struct LateBox
 }
 
 // =============================================
-// 'Swag.isSet' and pure stores never trip the guard
+// Presence comparisons and pure stores never trip the guard
 // =============================================
 
 #test
 {
     #[Swag.Safety(.Null, true)]
-    func lateIsSetNoPanic()->bool
+    func latePresenceNoPanic()->bool
     {
         var item = LateItem{value: 1}
         var b: LateBox
-        if Swag.isSet(b.item) do
+        if (b.item != null) do
             return false
         b.item = &item
-        return Swag.isSet(b.item)
+        return (b.item != null)
     }
 
-    const value = #run lateIsSetNoPanic()
+    const value = #run latePresenceNoPanic()
     #assert(value == true)
 }
 
@@ -83,7 +82,7 @@ struct LateBox
     func lateNoSafety()->bool
     {
         var b: LateBox
-        return Swag.isSet(b.item) == false
+        return (b.item != null) == false
     }
 
     const value = #run lateNoSafety()

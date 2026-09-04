@@ -500,7 +500,7 @@ impl IAudioDecoder for Decoder
 {
     mtd impl audioTrackCount()->u32 => cast(u32) .soundTracks.count
 
-    mtd impl audioTrack(index: u32)->#null const *SoundFile
+    mtd impl audioTrack(index: u32)->const *SoundFile?
     {
         if index >= .soundTracks.count do
             return null

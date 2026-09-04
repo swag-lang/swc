@@ -165,7 +165,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.assert(host.app.keyboardFocusWnd == null)
     Swag.assert(!edit.hasFocus())
     Swag.assert(edit.timerCaret == null)
-    Swag.assert(host.surface.focusWnd == cast(#null *Wnd) edit)
+    Swag.assert(host.surface.focusWnd == cast(*Wnd?) edit)
     Swag.assert(lostCount == 1)
 
     Swag.assert(host.surface.restoreFocus())
@@ -263,11 +263,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     password.setFocus()
     Swag.assert(password.hasFocus())
-    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) password.edit)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) password.edit)
 
     host.keyPress(Input.Key.Tab)
     Swag.assert(list.hasFocus())
-    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) list.listView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) list.listView)
 }
 
 // A group of options is one stop, entered on the option that is checked.

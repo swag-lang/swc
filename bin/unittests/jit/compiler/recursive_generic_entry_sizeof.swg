@@ -2,8 +2,8 @@
 
 struct(T) RecursiveAssocPayload
 {
-    first:  #null *T
-    second: #null *T
+    first:  *T?
+    second: *T?
     count:  u64
 }
 
@@ -16,7 +16,7 @@ struct(K, V) RecursiveAssocEntry
 
 struct(K, V) RecursiveAssocTable
 {
-    table:    #null [*] RecursiveAssocEntry
+    table:    [*] RecursiveAssocEntry?
     count:    u64
     capacity: u64
     deleted:  u64
@@ -119,7 +119,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->#null *RecursiveAssocEntry'(K, V)
+    mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->*RecursiveAssocEntry'(K, V)?
     {
         .grow()
 
@@ -144,7 +144,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd add(key: K, value: V)->#null *RecursiveAssocEntry'(K, V)
+    mtd add(key: K, value: V)->*RecursiveAssocEntry'(K, V)?
     {
         let hashVal = recursiveHash(cast(u32) key)
         return .emplaceInternal(hashVal, &key, &value)
@@ -155,7 +155,7 @@ impl RecursiveAssocTable
         return .tryFind(key) != null
     }
 
-    mtd tryFind(key: K)->#null *RecursiveAssocEntry'(K, V)
+    mtd tryFind(key: K)->*RecursiveAssocEntry'(K, V)?
     {
         if .table == null do
             return null

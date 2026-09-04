@@ -145,7 +145,7 @@ struct RenderOgl
         chromaPlanes: HashTable'(TextureHandle, ChromaPlanes)
 
         // The program a planar texture displaced, restored as soon as one stops being drawn.
-        planarPrevShader: #null *ShaderBase
+        planarPrevShader: *ShaderBase?
 
         gradientTexture:         GLuint                                       // Dynamically sized gradient-stop table.
         gradientTextureCapacity: u64                                          // Stop slots allocated in `gradientTexture`.
@@ -155,26 +155,26 @@ struct RenderOgl
         colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
         curRC:                   RenderContext                                // Active drawable and viewport.
 
-        stackReleasedRT: Array'#null *RenderTarget     // Targets queued for deferred release.
-        stackRT:         Array'#null *RenderTarget     // Nested bound render targets.
-        curRT:           #null *RenderTarget           // Active off-screen target, if any.
-        curShader:       #null *ShaderBase             // Active shader, or the default shader.
-        overlapMode:     bool                          // Whether overlap-safe alpha drawing is active.
-        alphaReplay:     bool                          // Whether commands are being replayed to rebuild a target's alpha plane.
-        contentScale:    f32 = 1                       // Device pixels per unit of the painter stream being drawn.
+        stackReleasedRT: Array'(*RenderTarget?)     // Targets queued for deferred release.
+        stackRT:         Array'(*RenderTarget?)     // Nested bound render targets.
+        curRT:           *RenderTarget?             // Active off-screen target, if any.
+        curShader:       *ShaderBase?               // Active shader, or the default shader.
+        overlapMode:     bool                       // Whether overlap-safe alpha drawing is active.
+        alphaReplay:     bool                       // Whether commands are being replayed to rebuild a target's alpha plane.
+        contentScale:    f32 = 1                    // Device pixels per unit of the painter stream being drawn.
 
         // The clipping region, rendered as coverage into a texture the size of the target and read
         // by every fragment at its device position. The hardware stencil holds one bit per pixel,
         // and a region cut along a curve needs the fraction of each pixel its edge covers.
-        clipMasks:             Array'ClipMask        // One mask per target size a region was drawn for.
-        clipMaskIndex:         s32 = -1              // Mask of the region in force, or none yet.
-        clipMaskOn:            bool                  // Whether fragments are cut by the region.
-        clipMaskWriting:       bool                  // Whether fragments are writing the region.
-        stackClipMaskOn:       Array'bool            // Regions suspended by the render targets bound inside them.
-        nativeContext:         #null const *void     // Shared native OpenGL context owned by interface-created drawables.
-        contextCount:          u32                   // Number of live interface-created drawables.
-        advancedBlending:      u8                    // Advanced blend-equation family supplied by the current context.
-        advancedBarrierActive: bool                  // Whether this context must keep later framebuffer touches in separate passes.
+        clipMasks:             Array'ClipMask     // One mask per target size a region was drawn for.
+        clipMaskIndex:         s32 = -1           // Mask of the region in force, or none yet.
+        clipMaskOn:            bool               // Whether fragments are cut by the region.
+        clipMaskWriting:       bool               // Whether fragments are writing the region.
+        stackClipMaskOn:       Array'bool         // Regions suspended by the render targets bound inside them.
+        nativeContext:         const *void?       // Shared native OpenGL context owned by interface-created drawables.
+        contextCount:          u32                // Number of live interface-created drawables.
+        advancedBlending:      u8                 // Advanced blend-equation family supplied by the current context.
+        advancedBarrierActive: bool               // Whether this context must keep later framebuffer touches in separate passes.
     }
 }
 
@@ -778,7 +778,7 @@ impl RenderOgl
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
 
         // Vertex buffer layout
-        var offset: #null const [*] u8 = null
+        var offset: const [*] u8? = null
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
         offset += #sizeof(Vector2)
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
@@ -839,7 +839,7 @@ impl RenderOgl
     }
 
     // Set the current render target
-    internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: #null *Math.Rectangle = null)
+    internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: *Math.Rectangle? = null)
     {
         Debug.assert(rt != null)
         if !rt.colorBuffer.isValid() do
@@ -1818,7 +1818,7 @@ impl RenderOgl
     }
 
     // Set the current shader
-    mtd setShader(shader: #null *ShaderBase = null)
+    mtd setShader(shader: *ShaderBase? = null)
     {
         .curShader = shader orelse &.shaderAA
         glUseProgram(cast(GLuint) .curShader.handle)
@@ -1945,7 +1945,7 @@ impl RenderOgl
     }
 
     // Release the given render target
-    internal mtd releaseRenderTargetImpl(tgt: #null *RenderTarget)
+    internal mtd releaseRenderTargetImpl(tgt: *RenderTarget?)
     {
         if !tgt do
             return

@@ -9,7 +9,7 @@ struct RadioButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        groupId: #null WndId     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
+        groupId: WndId?     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
 
         readonly
         {
@@ -39,9 +39,9 @@ impl IWnd for RadioButton
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var subRectBk:     #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
-        var subRectMark:   #null *ThemeImageRect
+        var subRectBk:     *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
+        var subRectMark:   *ThemeImageRect?
         var colorBk:       Color
         var colorBorder:   Color
         var colorMark:     Color
@@ -177,7 +177,7 @@ impl RadioButton
 {
     // Creates a radio button with an optional command identifier and initial options.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null, flags = RadioButtonFlags.None)->*RadioButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, flags = RadioButtonFlags.None)->*RadioButton
     {
         Debug.assert(parent != null)
         var pos = position

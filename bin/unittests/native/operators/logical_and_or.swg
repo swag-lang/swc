@@ -192,23 +192,23 @@ impl LogicalNullableGuardItem
     mtd isExpected()->bool => .value == 17
 }
 
-func logicalNullableGuardOr(item: #null *LogicalNullableGuardItem)->bool
+func logicalNullableGuardOr(item: *LogicalNullableGuardItem?)->bool
 {
     return !item or item.isExpected()
 }
 
-func logicalNullableGuardAnd(item: #null *LogicalNullableGuardItem)->bool
+func logicalNullableGuardAnd(item: *LogicalNullableGuardItem?)->bool
 {
     return item and item.isExpected()
 }
 
-func logicalNullableMaybe(p: *LogicalNullableGuardItem)->#null *LogicalNullableGuardItem => p
+func logicalNullableMaybe(p: *LogicalNullableGuardItem)->*LogicalNullableGuardItem? => p
 
 #test
 {
     var item = LogicalNullableGuardItem{value: 17}
-    let ptr:   #null *LogicalNullableGuardItem = logicalNullableMaybe(&item)
-    let empty: #null *LogicalNullableGuardItem = null
+    let ptr:   *LogicalNullableGuardItem? = logicalNullableMaybe(&item)
+    let empty: *LogicalNullableGuardItem? = null
 
     Swag.assert(logicalNullableGuardOr(empty))
     Swag.assert(logicalNullableGuardOr(ptr))

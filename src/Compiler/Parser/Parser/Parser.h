@@ -33,6 +33,7 @@ enum class ParserContextFlagsE : uint32_t
     InAttribute       = 1 << 5,
     InClosureCapture  = 1 << 6,
     InNamespace       = 1 << 7,
+    InType            = 1 << 8,
 };
 using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
 
@@ -74,8 +75,10 @@ private:
     uint32_t           closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
     TokenRef           lastErrorToken_                 = TokenRef::invalid();
     TokenRef           topLevelAccessRef_              = TokenRef::invalid();
+    EnumFlags<AstVarStorageFlagsE> topLevelStorageFlags_ = AstVarStorageFlagsE::Zero;
     TokenRef           aggregateAccessModifierRef_     = TokenRef::invalid();
     TokenRef           aggregateReadOnlyRef_           = TokenRef::invalid();
+    EnumFlags<AstVarStorageFlagsE> aggregateStorageFlags_ = AstVarStorageFlagsE::Zero;
 
     FwdParseMode fwdPassMode_     = FwdParseMode::Copy; // variant emitted by the current statement pass
     FwdParseMode fwdCurMode_      = FwdParseMode::Copy; // mode of the innermost '#fwd'-declaring function
@@ -262,10 +265,12 @@ private:
     AstNodeRef parseSingleType();
     AstNodeRef parseStructDecl();
     AstNodeRef parseSubType();
+    AstNodeRef parseSubType(bool allowNullableSuffix);
     AstNodeRef parseSubTypeNoQualifiers();
     AstNodeRef parseSwitch();
     AstNodeRef parseSwitchCaseDefault();
     AstNodeRef parseTopLevelCall();
+    AstNodeRef parseTopLevelStorageModifier();
     AstNodeRef parseTopLevelDeclOrBlock();
     AstNodeRef parseTopLevelStmt();
     AstNodeRef parseType();

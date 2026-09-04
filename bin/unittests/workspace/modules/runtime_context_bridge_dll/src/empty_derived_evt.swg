@@ -10,7 +10,7 @@ struct DepEvtBase
 {
     public
     {
-        type: #null typeinfo
+        type: typeinfo?
         tag:  s32
     }
 }

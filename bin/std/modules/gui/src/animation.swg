@@ -94,7 +94,7 @@ struct AnimationOptions
         // The scheduler borrows it rather than copying it, so it has to outlive every track it was
         // given to — a curve owned by the animated window, by its theme, or by the application all
         // qualify, and a temporary declared next to the call does not. Leave it null to use `easing`.
-        curve: #null const *Math.Curve
+        curve: const *Math.Curve?
     }
 }
 
@@ -137,12 +137,11 @@ private enum AnimationGroupKind
 
 private struct AnimationTrack
 {
-    #[Swag.Late]
-    target:  *Wnd
-    channel: AnimationChannel
-    options: AnimationOptions
-    kind:    AnimationValueKind
-    step:    u32
+    late target: *Wnd
+    channel:     AnimationChannel
+    options:     AnimationOptions
+    kind:        AnimationValueKind
+    step:        u32
 
     elapsedSeconds: f64
     finished:       bool
@@ -153,12 +152,12 @@ private struct AnimationTrack
     fromVector4, toVector4, currentVector4:       Math.Vector4
     fromRectangle, toRectangle, currentRectangle: Math.Rectangle
 
-    updateF32:       #null AnimationF32Update
-    updateColor:     #null AnimationColorUpdate
-    updatePoint:     #null AnimationPointUpdate
-    updateVector4:   #null AnimationVector4Update
-    updateRectangle: #null AnimationRectangleUpdate
-    completion:      #null AnimationCompletion
+    updateF32:       AnimationF32Update?
+    updateColor:     AnimationColorUpdate?
+    updatePoint:     AnimationPointUpdate?
+    updateVector4:   AnimationVector4Update?
+    updateRectangle: AnimationRectangleUpdate?
+    completion:      AnimationCompletion?
 }
 
 // Collects tracks that start together or one after another.
@@ -171,7 +170,7 @@ struct AnimationGroup
     {
         kind:       AnimationGroupKind
         tracks:     ArrayPtr'AnimationTrack
-        completion: #null AnimationCompletion
+        completion: AnimationCompletion?
     }
 }
 
@@ -216,13 +215,13 @@ impl AnimationGroup
     }
 
     // Sets the callback invoked once after the complete group ends.
-    mtd setCompletion(completion: #null AnimationCompletion)
+    mtd setCompletion(completion: AnimationCompletion?)
     {
         .completion = completion
     }
 
     // Adds a scalar track.
-    mtd addF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)
+    mtd addF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .F32)
         track.fromF32, track.currentF32 = from
@@ -232,7 +231,7 @@ impl AnimationGroup
     }
 
     // Adds a color track, including alpha.
-    mtd addColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)
+    mtd addColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Color)
         track.fromColor, track.currentColor = from.toVector4()
@@ -242,7 +241,7 @@ impl AnimationGroup
     }
 
     // Adds a two-dimensional point track.
-    mtd addPoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)
+    mtd addPoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Point)
         track.fromPoint, track.currentPoint = from
@@ -252,7 +251,7 @@ impl AnimationGroup
     }
 
     // Adds a four-component vector track.
-    mtd addVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)
+    mtd addVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Vector4)
         track.fromVector4, track.currentVector4 = from
@@ -262,7 +261,7 @@ impl AnimationGroup
     }
 
     // Adds a rectangle track.
-    mtd addRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)
+    mtd addRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)
     {
         let track = .addTrack(target, channel, options, .Rectangle)
         track.fromRectangle, track.currentRectangle = from
@@ -278,7 +277,7 @@ private struct AnimationRun
     currentStep:     u32
     cancelRequested: bool
     tracks:          ArrayPtr'AnimationTrack
-    completion:      #null AnimationCompletion
+    completion:      AnimationCompletion?
 }
 
 // Advances finite GUI animations and owns their callbacks until completion or cancellation.
@@ -287,7 +286,7 @@ struct Animator
 {
     internal
     {
-        app:           #null *Application
+        app:           *Application?
         animations:    ArrayPtr'AnimationRun
         nextId:        u64 = 1
         duringAdvance: bool
@@ -457,7 +456,7 @@ private impl Animator
         Memory.delete(run)
     }
 
-    mtd findTrack(target: *Wnd, channel: AnimationChannel)->#null *AnimationTrack
+    mtd findTrack(target: *Wnd, channel: AnimationChannel)->*AnimationTrack?
     {
         for run in .animations
         {
@@ -816,7 +815,7 @@ impl Animator
     }
 
     // Starts one scalar track.
-    mtd animateF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)->AnimationHandle
+    mtd animateF32(target: *Wnd, channel: AnimationChannel, from, destination: f32, update: AnimationF32Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.parallel()
         group.addF32(target, channel, from, destination, update, options, completion)
@@ -824,7 +823,7 @@ impl Animator
     }
 
     // Starts one color track.
-    mtd animateColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)->AnimationHandle
+    mtd animateColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.parallel()
         group.addColor(target, channel, from, destination, update, options, completion)
@@ -832,7 +831,7 @@ impl Animator
     }
 
     // Starts one point track.
-    mtd animatePoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)->AnimationHandle
+    mtd animatePoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.parallel()
         group.addPoint(target, channel, from, destination, update, options, completion)
@@ -840,7 +839,7 @@ impl Animator
     }
 
     // Starts one four-component vector track.
-    mtd animateVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)->AnimationHandle
+    mtd animateVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.parallel()
         group.addVector4(target, channel, from, destination, update, options, completion)
@@ -848,7 +847,7 @@ impl Animator
     }
 
     // Starts one rectangle track.
-    mtd animateRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: #null AnimationCompletion = null)->AnimationHandle
+    mtd animateRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.parallel()
         group.addRectangle(target, channel, from, destination, update, options, completion)
@@ -987,7 +986,7 @@ impl Animator
     // the final page throughout the decorative transition. The outgoing page fades out under
     // the incoming page until the handoff completes, so the page area is never empty.
     // `direction` is normally `1` for forward navigation and `-1` for backward navigation.
-    mtd transitionPage(outgoing: #null *Wnd, incoming: *Wnd, direction = 1'f32)->AnimationHandle
+    mtd transitionPage(outgoing: *Wnd?, incoming: *Wnd, direction = 1'f32)->AnimationHandle
     {
         Debug.assert(incoming != null)
         if outgoing == incoming

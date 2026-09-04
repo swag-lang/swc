@@ -195,12 +195,7 @@ namespace Swag
 
     // The following definition is deprecated and should not be used
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]
-    attr Deprecated(msg: #null string = null)
-
-    // Put the following global variable in the 'tls' segment.
-    // A copy of the variable will be available for each thread.
-    #[AttrUsage(AttributeUsage.GlobalVariable)]
-    attr Tls()
+    attr Deprecated(msg: string? = null)
 
     // 'struct' packing information
     #[AttrUsage(AttributeUsage.Struct)]
@@ -218,13 +213,6 @@ namespace Swag
     // The field offset in the struct should be the same as the variable 'name'
     #[AttrUsage(AttributeUsage.StructVariable)]
     attr Offset(name: string)
-
-    // The following struct field or global variable is initialized after construction: the
-    // type stays non-null, the storage starts null, and a read is only accepted once the
-    // declaration is provably set. A local has no such storage lifetime and is rejected with
-    // its own diagnostic, so the usage stays at the coarse 'any variable' level here.
-    #[AttrUsage(AttributeUsage.Variable)]
-    attr Late()
 
     // The following enum is a set of flags
     #[AttrUsage(AttributeUsage.Enum)]
@@ -331,10 +319,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Alias)]
     attr Strict()
 
-    // Give the following local declaration static storage
-    #[AttrUsage(AttributeUsage.Variable)]
-    attr Global()
-
     // Alignment of the following struct or struct field
     #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
     attr Align(value: u8)
@@ -424,8 +408,8 @@ namespace Swag
     {
         public
         {
-            name:  #null string                               // Name of the module
-            types: #null const [..] #null const *TypeInfo     // All exported types
+            name:  string?                            // Name of the module
+            types: const [..] (const *TypeInfo?)?     // All exported types
         }
     }
 
@@ -434,8 +418,8 @@ namespace Swag
     {
         public
         {
-            modules: #null const [..] Module     // The list of all modules
-            args:    #null string                // The application arguments, as returned by [[Swag.args()]]
+            modules: const [..] Module?     // The list of all modules
+            args:    string?                // The application arguments, as returned by [[Swag.args()]]
         }
     }
 
@@ -444,10 +428,10 @@ namespace Swag
     {
         public
         {
-            ptr:    *void                 // Pointer to the global variable memory
-            opDrop: func(#null *void)     // The 'opDrop' function to call when the process must exit
-            sizeOf: u32                   // Size of one element
-            count:  u32                   // Number of elements to drop
+            ptr:    *void            // Pointer to the global variable memory
+            opDrop: func(*void?)     // The 'opDrop' function to call when the process must exit
+            sizeOf: u32              // Size of one element
+            count:  u32              // Number of elements to drop
         }
     }
 
@@ -479,8 +463,8 @@ namespace Swag
         public
         {
             callerLoc: SourceCodeLocation     // The caller code, to help tracking leaks. Optional.
-            hint:      #null string           // A hint message, to help tracking leaks. Optional.
-            address:   #null *void            // The returned address or the address to deal with.
+            hint:      string?                // A hint message, to help tracking leaks. Optional.
+            address:   *void?                 // The returned address or the address to deal with.
             size:      u64                    // The requested size or the size to deal with.
             oldSize:   u64                    // When reallocating.
             alignment: u32                    // Alignment constraint.
@@ -512,12 +496,12 @@ namespace Swag
     {
         public
         {
-            allocator: #null IAllocator
-            block:     #null [*] u8
+            allocator: IAllocator?
+            block:     [*] u8?
             capacity:  u64
             used:      u64
             maxUsed:   u64
-            firstLeak: #null *void
+            firstLeak: *void?
             totalLeak: u64
             maxLeak:   u64
         }
@@ -542,7 +526,7 @@ namespace Swag
     // This is the base of all errors
     struct BaseError
     {
-        public message: #null string
+        public message: string?
     }
 
     // An error raised by the system
@@ -558,7 +542,7 @@ namespace Swag
     // Store a 'fail' error information
     struct ErrorValue
     {
-        public value: #null any     // Error value (or null)
+        public value: any?     // Error value (or null)
 
         // What the error stack must restore when this entry is popped. The runtime writes it
         // when an error is pushed and reads it back on 'catch'.
@@ -566,7 +550,7 @@ namespace Swag
         pushTraceIndex: u32     // Stack-trace depth at the push.
         pushHasError:   u32     // Whether an error was already pending at the push.
         padding:        u32
-        pushCurError:   #null any     // Current handled error at the push.
+        pushCurError:   any?     // Current handled error at the push.
     }
 
     // Thread context as returned by [Swag.getContext].
@@ -576,31 +560,31 @@ namespace Swag
         {
             // Must stay first, in that order, for backend generation
 
-            allocator: #null IAllocator     // The current allocator interface
+            allocator: IAllocator?     // The current allocator interface
 
             // Other fields, can be in any order
 
-            tempAllocator:    ScratchAllocator                                 // A temporary allocator for the user
-            errorAllocator:   ScratchAllocator                                 // A temporary allocator to store the error values
-            runtimeFlags:     RuntimeFlags                                     // As initialized by the runtime
-            defaultAllocator: #null IAllocator                                 // The default allocator, to restore after a temporary change of 'allocator'
-            user0:            u64                                              // For user usage
-            user1:            u64                                              // For user usage
-            user2:            u64                                              // For user usage
-            user3:            u64                                              // For user usage
-            traces:           [MaxTraces] SourceCodeLocation                   // Stack trace, in case of errors
-            errors:           [MaxErrors] ErrorValue                           // All errors
-            exceptionLoc:     SourceCodeLocation                               // When an exception is raised, this is the code location
-            exceptionParams:  [4] #null const *void                            // When an exception is raised, this are the parameters
-            panic:            #null func(#null string, SourceCodeLocation)     // A function to call if there's a panic
-            curError:         #null any                                        // The current raised error
-            errorIndex:       u32                                              // Number of errors in the array
-            traceIndex:       u32                                              // Number of traces in the array
-            hasError:         u32                                              // <> 0 if an error is raised
+            tempAllocator:    ScratchAllocator                         // A temporary allocator for the user
+            errorAllocator:   ScratchAllocator                         // A temporary allocator to store the error values
+            runtimeFlags:     RuntimeFlags                             // As initialized by the runtime
+            defaultAllocator: IAllocator?                              // The default allocator, to restore after a temporary change of 'allocator'
+            user0:            u64                                      // For user usage
+            user1:            u64                                      // For user usage
+            user2:            u64                                      // For user usage
+            user3:            u64                                      // For user usage
+            traces:           [MaxTraces] SourceCodeLocation           // Stack trace, in case of errors
+            errors:           [MaxErrors] ErrorValue                   // All errors
+            exceptionLoc:     SourceCodeLocation                       // When an exception is raised, this is the code location
+            exceptionParams:  [4] (const *void?)                       // When an exception is raised, this are the parameters
+            panic:            (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
+            curError:         any?                                     // The current raised error
+            errorIndex:       u32                                      // Number of errors in the array
+            traceIndex:       u32                                      // Number of traces in the array
+            hasError:         u32                                      // <> 0 if an error is raised
             #[Swag.NoDoc]
             runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
             #[Swag.NoDoc]
-            panicStack: [64] #null *void     // Native call stack captured before entering a panic hook.
+            panicStack: [64] (*void?)     // Native call stack captured before entering a panic hook.
             #[Swag.NoDoc]
             panicStackCount: u32     // Number of valid addresses in panicStack.
         }
@@ -696,8 +680,8 @@ namespace Swag
     {
         public
         {
-            obj:    #null *void                        // Pointer to the associated struct instance
-            itable: #null const [*] #null [*] void     // Pointer to the table: [0] type descriptor, then method pointers
+            obj:    *void?                     // Pointer to the associated struct instance
+            itable: const [*] ([*] void?)?     // Pointer to the table: [0] type descriptor, then method pointers
         }
     }
 
@@ -707,7 +691,7 @@ namespace Swag
     {
         public
         {
-            invoke:  #null *void
+            invoke:  *void?
             capture: [ClosureCaptureBufferSize] u8
         }
     }
@@ -716,8 +700,8 @@ namespace Swag
     {
         public
         {
-            name:  #null string     // Name of the attribute parameter
-            value: #null any        // Optional default value
+            name:  string?     // Name of the attribute parameter
+            value: any?        // Optional default value
         }
     }
 
@@ -725,8 +709,8 @@ namespace Swag
     {
         public
         {
-            type:   #null const *TypeInfo
-            params: #null const [..] AttributeParam     // Attribute parameters
+            type:   const *TypeInfo?
+            params: const [..] AttributeParam?     // Attribute parameters
         }
     }
 
@@ -736,7 +720,7 @@ namespace Swag
         Zero = 0
         AutoName
         HasUsing
-        LateInit     // 'Swag.Late' field: starts null, receives its value later
+        LateInit     // 'late' field: starts null, receives its value later
         ReadOnly     // 'readonly' field: read anywhere, written only by the declaring type
         Internal     // 'internal' field: reached only inside the declaring module
         Private      // 'private' field: reached only by the declaring type
@@ -747,13 +731,13 @@ namespace Swag
     {
         public
         {
-            name:        #null string                   // Name of the value
-            pointedType: #null const *TypeInfo          // Type of the value
-            value:       #null const *void              // Pointer to the constant value
-            attributes:  #null const [..] Attribute     // Associated attributes
-            offset:      u32                            // Offset, in bytes
-            crc:         u32                            // Unique CRC
-            flags:       TypeValueFlags                 // Associated flags
+            name:        string?                   // Name of the value
+            pointedType: const *TypeInfo?          // Type of the value
+            value:       const *void?              // Pointer to the constant value
+            attributes:  const [..] Attribute?     // Associated attributes
+            offset:      u32                       // Offset, in bytes
+            crc:         u32                       // Unique CRC
+            flags:       TypeValueFlags            // Associated flags
             padding:     u32
         }
     }
@@ -763,8 +747,8 @@ namespace Swag
     {
         public
         {
-            fullname: #null string           // The full scoped name of the type
-            name:     #null string           // The unscoped name
+            fullname: string?                // The full scoped name of the type
+            name:     string?                // The unscoped name
             sizeof:   u32                    // Size in bytes
             crc:      u32                    // A unique CRC to identify the type
             flags = TypeInfoFlags.Zero       // Some additional flags
@@ -814,18 +798,18 @@ namespace Swag
         public
         {
             using base:  TypeInfo
-            opInit:      #null func(#null *void)        // Initialization hook; null when zero-initialization suffices or explicit initialization is required
-            opDrop:      #null func(#null *void)        // Pointer to the function to drop an instance of that struct
-            opPostCopy:  #null func(#null *void)        // Pointer to the function to call after a copy
-            opPostMove:  #null func(#null *void)        // Pointer to the function to call after a move
-            structName:  #null string                   // User name of the struct
-            fromGeneric: #null const *TypeInfo          // If it comes from a generic instantiation, this is the original generic struct
-            generics:    #null const [..] TypeValue     // Generic parameters
-            fields:      #null const [..] TypeValue     // All the fields
-            usingFields: #null const [..] TypeValue     // All the fields marked with 'using'
-            methods:     #null const [..] TypeValue     // All the methods, if exported
-            interfaces:  #null const [..] TypeValue     // All the interfaces
-            attributes:  #null const [..] Attribute     // All the attributes
+            opInit:      (func(*void?))?           // Initialization hook; null when zero-initialization suffices or explicit initialization is required
+            opDrop:      (func(*void?))?           // Pointer to the function to drop an instance of that struct
+            opPostCopy:  (func(*void?))?           // Pointer to the function to call after a copy
+            opPostMove:  (func(*void?))?           // Pointer to the function to call after a move
+            structName:  string?                   // User name of the struct
+            fromGeneric: const *TypeInfo?          // If it comes from a generic instantiation, this is the original generic struct
+            generics:    const [..] TypeValue?     // Generic parameters
+            fields:      const [..] TypeValue?     // All the fields
+            usingFields: const [..] TypeValue?     // All the fields marked with 'using'
+            methods:     const [..] TypeValue?     // All the methods, if exported
+            interfaces:  const [..] TypeValue?     // All the interfaces
+            attributes:  const [..] Attribute?     // All the attributes
         }
     }
 
@@ -834,10 +818,10 @@ namespace Swag
         public
         {
             using base: TypeInfo
-            generics:   #null const [..] TypeValue     // Generic parameters
-            parameters: #null const [..] TypeValue     // Parameters
-            returnType: #null const *TypeInfo          // The return type, or 'null'
-            attributes: #null const [..] Attribute     // All the attributes
+            generics:   const [..] TypeValue?     // Generic parameters
+            parameters: const [..] TypeValue?     // Parameters
+            returnType: const *TypeInfo?          // The return type, or 'null'
+            attributes: const [..] Attribute?     // All the attributes
         }
     }
 
@@ -846,9 +830,9 @@ namespace Swag
         public
         {
             using base: TypeInfo
-            values:     #null const [..] TypeValue     // All the values
-            rawType:    #null const *TypeInfo          // The underlying enum type
-            attributes: #null const [..] Attribute     // All the attributes
+            values:     const [..] TypeValue?     // All the values
+            rawType:    const *TypeInfo?          // The underlying enum type
+            attributes: const [..] Attribute?     // All the attributes
         }
     }
 
@@ -1011,26 +995,26 @@ namespace Swag
         public
         {
             kind                     = BuildCfgDocKind.None      // The kind of documentation to generate
-            outputName:          #null string                    // The name of the HTML output file (without extension)
-            titleToc:            #null string                    // Title for the table of content
-            titleContent:        #null string                    // Title for the main document content
-            css:                 #null string                    // Relative output path of the generated stylesheet
-            icon:                #null string                    // The icon path of the page
-            morePages:           #null string                    // Additional external file pages to process (separated with ';')
-            quoteIconNote:       #null string                    // The icon for the note blockquote
-            quoteIconTip:        #null string                    // The icon for the tip blockquote
-            quoteIconWarning:    #null string                    // The icon for the warning blockquote
-            quoteIconAttention:  #null string                    // The icon for the attention blockquote
-            quoteIconExample:    #null string                    // The icon for the example blockquote
-            quoteTitleNote:      #null string                    // The title for the note blockquote
-            quoteTitleTip:       #null string                    // The title for the tip blockquote
-            quoteTitleWarning:   #null string                    // The title for the warning blockquote
-            quoteTitleAttention: #null string                    // The title for the attention blockquote
-            quoteTitleExample:   #null string                    // The title for the example blockquote
-            brandName:           #null string                    // The wordmark shown at the left of the page header
-            brandUrl:            #null string                    // The page the wordmark links to
-            navLinks:            #null string                    // Header navigation, as 'Label=Url' entries separated with ';'
-            footer:              #null string                    // Extra text placed in the page footer
+            outputName:          string?                         // The name of the HTML output file (without extension)
+            titleToc:            string?                         // Title for the table of content
+            titleContent:        string?                         // Title for the main document content
+            css:                 string?                         // Relative output path of the generated stylesheet
+            icon:                string?                         // The icon path of the page
+            morePages:           string?                         // Additional external file pages to process (separated with ';')
+            quoteIconNote:       string?                         // The icon for the note blockquote
+            quoteIconTip:        string?                         // The icon for the tip blockquote
+            quoteIconWarning:    string?                         // The icon for the warning blockquote
+            quoteIconAttention:  string?                         // The icon for the attention blockquote
+            quoteIconExample:    string?                         // The icon for the example blockquote
+            quoteTitleNote:      string?                         // The title for the note blockquote
+            quoteTitleTip:       string?                         // The title for the tip blockquote
+            quoteTitleWarning:   string?                         // The title for the warning blockquote
+            quoteTitleAttention: string?                         // The title for the attention blockquote
+            quoteTitleExample:   string?                         // The title for the example blockquote
+            brandName:           string?                         // The wordmark shown at the left of the page header
+            brandUrl:            string?                         // The page the wordmark links to
+            navLinks:            string?                         // Header navigation, as 'Label=Url' entries separated with ';'
+            footer:              string?                         // Extra text placed in the page footer
             syntaxDefaultColor:  u32 = 0x00222222                // Code syntax default color (if not colorized)
             syntaxColorLum:      f32 = 0.5                       // Code syntax color luminosity in range ]0, 1]
             accentColor:         u32 = 0                         // Accent color of the pages, as 0xRRGGBB; 0 keeps the swag accent
@@ -1058,9 +1042,9 @@ namespace Swag
     {
         public
         {
-            asErrors:   #null string     // Warnings reported as errors
-            asWarnings: #null string     // Warnings reported as warnings
-            disabled:   #null string     // Warnings not reported at all
+            asErrors:   string?     // Warnings reported as errors
+            asWarnings: string?     // Warnings reported as warnings
+            disabled:   string?     // Warnings not reported at all
         }
     }
 
@@ -1070,13 +1054,13 @@ namespace Swag
     {
         public
         {
-            moduleVersion:   u32 = 0          // The module version
-            moduleRevision:  u32 = 0          // The module revision
-            moduleBuildNum:  u32 = 0          // The module build value
-            moduleNamespace: #null string     // The namespace name of the module
-            embeddedImports      = false      // Module should embed all its dependencies
-            ignoreInWorkspace    = false      // Skip this module when building a workspace
-            publishDependencies  = false      // Place the shared libraries an executable needs beside it, so it runs without the compiler
+            moduleVersion:   u32 = 0         // The module version
+            moduleRevision:  u32 = 0         // The module revision
+            moduleBuildNum:  u32 = 0         // The module build value
+            moduleNamespace: string?         // The namespace name of the module
+            embeddedImports      = false     // Module should embed all its dependencies
+            ignoreInWorkspace    = false     // Skip this module when building a workspace
+            publishDependencies  = false     // Place the shared libraries an executable needs beside it, so it runs without the compiler
 
             tempAllocatorCapacity     = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
             errorAllocatorCapacity    = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
@@ -1094,18 +1078,18 @@ namespace Swag
             backendKind    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
             backendSubKind = BuildCfgBackendSubKind.Console     // Backend sub kind
 
-            name:    #null string     // Artifact name
-            outDir:  #null string     // Artifact output directory
-            workDir: #null string     // Work directory
+            name:    string?     // Artifact name
+            outDir:  string?     // Artifact output directory
+            workDir: string?     // Work directory
 
             backend: BuildCfgBackend     // Backend options
 
-            repoPath:          #null string                   // Repository access path to the module
-            resAppIcoFileName: #null string                   // For an executable, the associated icon file name. Relative paths start at the module folder.
-            resAppName:        #null string                   // For an executable, the associated application name
-            resAppDescription: #null string                   // For an executable, the associated application description
-            resAppCompany:     #null string                   // For an executable, the associated company name
-            resAppCopyright:   #null string                   // For an executable, the associated copyright notice
+            repoPath:          string?                        // Repository access path to the module
+            resAppIcoFileName: string?                        // For an executable, the associated icon file name. Relative paths start at the module folder.
+            resAppName:        string?                        // For an executable, the associated application name
+            resAppDescription: string?                        // For an executable, the associated application description
+            resAppCompany:     string?                        // For an executable, the associated company name
+            resAppCopyright:   string?                        // For an executable, the associated copyright notice
             genDoc:            BuildCfgGenDoc                 // Parameters for document generation
             registeredConfigs: string = "devmode|release"     // Registered build configuration names used by --build-cfg and #cfg
         }
@@ -1153,10 +1137,10 @@ namespace Swag
     {
         public
         {
-            moduleName: #null string              // Name of the module for which the message is sent.
-            name:       #null string              // Depends on 'kind'
-            type:       #null const *TypeInfo     // Depends on 'kind'
-            kind:       CompilerMsgKind           // Kind of the message
+            moduleName: string?              // Name of the module for which the message is sent.
+            name:       string?              // Depends on 'kind'
+            type:       const *TypeInfo?     // Depends on 'kind'
+            kind:       CompilerMsgKind      // Kind of the message
         }
     }
 
@@ -1165,8 +1149,8 @@ namespace Swag
     // The intrinsic 'Swag.compiler()' will return that interface at compile-time, and 'null' at runtime.
     interface ICompiler
     {
-        mtd getMessage()->#null const *CompilerMessage     // Returns the compiler message in a '#message' function
-        mtd getBuildCfg()->#null *BuildCfg                 // Returns the build configuration of the current module
+        mtd getMessage()->const *CompilerMessage?     // Returns the compiler message in a '#message' function
+        mtd getBuildCfg()->*BuildCfg?                 // Returns the build configuration of the current module
         mtd compileString(str: string)
     }
 
@@ -1177,12 +1161,12 @@ namespace Swag
     {
         public
         {
-            fileName:  #null string     // Full path name of the source file
-            funcName:  #null string     // Name of the function
-            lineStart: u32              // Start line (starts at 0)
-            colStart:  u32              // Start column
-            lineEnd:   u32              // End line
-            colEnd:    u32              // End column
+            fileName:  string?     // Full path name of the source file
+            funcName:  string?     // Name of the function
+            lineStart: u32         // Start line (starts at 0)
+            colStart:  u32         // Start column
+            lineEnd:   u32         // End line
+            colEnd:    u32         // End column
         }
     }
 
@@ -1209,25 +1193,25 @@ func setContext(context: const *Swag.Context)
 func processInfos()->*Swag.ProcessInfos
 
 // Returns the list of all loaded modules.
-func modules()->#null const [..] Swag.Module
+func modules()->const [..] Swag.Module?
 
 // Returns the list of all global variables.
-func gvtd()->#null const [..] Swag.Gvtd
+func gvtd()->const [..] Swag.Gvtd?
 
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func compiler()->Swag.ICompiler
 
 // Set all bytes of a given memory block to 'value'
-func memset(dst: #null [*] void, value: u8, size: u64)
+func memset(dst: [*] void?, value: u8, size: u64)
 
 // Copy one memory block to another address.
-func memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
 
 // Move one memory block to another address.
-func memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 
 // Compare two memory blocks, and returns -1, 0 if equal, or 1.
-func memcmp(dst, src: #null const [*] void, size: u64)->s32
+func memcmp(dst, src: const [*] void?, size: u64)->s32
 
 // Atomic operations
 #[Swag.Discardable]

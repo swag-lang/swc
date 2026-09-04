@@ -44,7 +44,7 @@ const MaxEdges = 4096'u32
 
 struct Graph
 {
-    adj:      #null [*] bool        // MaxNodes * MaxNodes adjacency matrix
+    adj:      [*] bool?             // MaxNodes * MaxNodes adjacency matrix
     names:    [MaxEdges] [2] u8     // node names (2 chars each)
     nodeUsed: [MaxNodes] bool
     count:    u32
@@ -53,7 +53,7 @@ struct Graph
 func graphInit()->Graph
 {
     var g: Graph
-    g.adj = cast(#null [*] bool) testAlloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
+    g.adj = cast([*] bool?) testAlloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
     let adj = g.adj!
     for index in MaxNodes * MaxNodes { adj[index] = false }
     return g

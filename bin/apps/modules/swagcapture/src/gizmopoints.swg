@@ -9,7 +9,7 @@ struct GizmoPoints
     firstMoving: bool
     movingRect:  Math.Rectangle
     movingStart: Math.Point
-    sigChanged:  #null func||(Math.Point, u32, bool)
+    sigChanged:  (func||(Math.Point, u32, bool))?
 
     minSizeX: f32 = 2
     minSizeY: f32 = 2
@@ -82,7 +82,7 @@ impl GizmoPoints
         return false
     }
 
-    mtd paint(_app: #null *Application, painter: *Painter, hot: bool, col: Color = Argb.White)
+    mtd paint(_app: *Application?, painter: *Painter, hot: bool, col: Color = Argb.White)
     {
         let anchorSize2 = .anchorSize * 0.5
         let color       = Color.lerp(Argb.Black, col, hot ? 0.8 : 1)

@@ -86,7 +86,7 @@ func buildFontCollection(fileNames: const [..] string)->Array'u8
 struct FaceScope
 {
     bytes: Array'u8
-    face:  #null *Face
+    face:  *Face?
 }
 
 impl FaceScope
@@ -109,7 +109,7 @@ impl FaceScope
     }
 }
 
-func getFaceData(face: #null *Face)->*FaceImpl
+func getFaceData(face: *Face?)->*FaceImpl
 {
     let safeFace = face!
     return cast(*FaceImpl) cast(*void) safeFace

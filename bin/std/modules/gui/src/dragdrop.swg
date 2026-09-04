@@ -33,9 +33,9 @@ struct DragContent
 
     internal
     {
-        bytes:    Array'u8                     // Content, once it exists.
-        producer: #null func||()->Array'u8     // Produces the content on the first read.
-        produced: bool                         // Whether the producer already ran.
+        bytes:    Array'u8                  // Content, once it exists.
+        producer: (func||()->Array'u8)?     // Produces the content on the first read.
+        produced: bool                      // Whether the producer already ran.
     }
 }
 
@@ -138,7 +138,7 @@ impl DragData
     //
     // This is what a control accepting a single document asks: a drag of three files is not a
     // drop it can honour, and answering `null` says so without the caller counting first.
-    mtd const singleFile()->#null string
+    mtd const singleFile()->string?
     {
         if .files.count != 1 do
             return null
@@ -149,7 +149,7 @@ impl DragData
     //
     // The first call decodes and every later one returns the same value. A payload that fails to
     // decode answers `null` from then on. The image belongs to this payload and dies with it.
-    mtd image()->#null *Pixel.Image
+    mtd image()->*Pixel.Image?
     {
         if !.imageDecoded
         {
@@ -280,10 +280,9 @@ struct DragDropEvent
             Drop      // The payload was released over this window.
         }
 
-        using base: Event     // Embedded base state.
-        kind:       Kind      // Gesture phase being reported.
-        #[Swag.Late]
-        data:       *DragData                     // Payload being dragged, borrowed for this call.
+        using base: Event                         // Embedded base state.
+        kind:       Kind                          // Gesture phase being reported.
+        late data:  *DragData                     // Payload being dragged, borrowed for this call.
         surfacePos: Math.Point                    // Pointer position in surface coordinates.
         modifiers:  Input.KeyModifiers = None     // Modifiers held during the gesture.
         allowed:    DropEffect         = None     // Effects the source permits.
@@ -353,7 +352,7 @@ impl Application
 
     // Same, for a target already resolved. A harness driving a gesture without a desktop under it
     // says which window the pointer is over instead of hit-testing a surface it never registered.
-    internal mtd dragUpdateTo(target: #null *Wnd, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
+    internal mtd dragUpdateTo(target: *Wnd?, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
     {
         .dragScreenPos = screenPos
 
@@ -393,7 +392,7 @@ impl Application
     }
 
     // Same, for a target already resolved. See [[Gui.Application.dragUpdateTo]].
-    internal mtd dragDropTo(target: #null *Wnd, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
+    internal mtd dragDropTo(target: *Wnd?, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
     {
         .dragScreenPos = screenPos
 

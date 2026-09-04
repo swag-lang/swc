@@ -127,7 +127,7 @@ func rootLength(fullname: string)->u32
 
 // Returns the root part of the path, null if not found
 #[ConstExpr]
-func rootName(fullname: #null string)->#null string
+func rootName(fullname: string?)->string?
 {
     if fullname == null do
         return null
@@ -141,7 +141,7 @@ func rootName(fullname: #null string)->#null string
 
 // Returns true if the given path is rooted (starts with a separator or a drive letter and colon)
 #[ConstExpr]
-func isRooted(fullname: #null string)->bool
+func isRooted(fullname: string?)->bool
 {
     if fullname == null do
         return false
@@ -157,7 +157,7 @@ func isRooted(fullname: #null string)->bool
 
 // Returns the directory part of the path, null if not found
 #[ConstExpr]
-func directoryName(fullname: #null string)->#null string
+func directoryName(fullname: string?)->string?
 {
     if fullname == null do
         return null
@@ -185,7 +185,7 @@ func directoryName(fullname: #null string)->#null string
 
 // Returns the file name part of the path, null if not found
 #[ConstExpr]
-func fileName(fullname: #null string)->#null string
+func fileName(fullname: string?)->string?
 {
     if fullname == null do
         return null
@@ -211,7 +211,7 @@ func fileName(fullname: #null string)->#null string
 
 // Returns the file name without its extension, null if not found
 #[ConstExpr]
-func fileNameWithoutExtension(fullname: #null string)->#null string
+func fileNameWithoutExtension(fullname: string?)->string?
 {
     if fullname == null do
         return null
@@ -243,7 +243,7 @@ func fileNameWithoutExtension(fullname: #null string)->#null string
 // Returns the file name extension, including the '.' character
 // Returns null if no extension was found
 #[ConstExpr]
-func extension(fullname: #null string)->#null string
+func extension(fullname: string?)->string?
 {
     if fullname == null do
         return null
@@ -266,7 +266,7 @@ func extension(fullname: #null string)->#null string
 
 // Returns the file name extension in lower case, including the '.' character
 // Returns null if no extension was found
-func lowercaseExtension(fullname: #null string)->String
+func lowercaseExtension(fullname: string?)->String
 {
     return String.toLower(extension(fullname))
 }
@@ -281,7 +281,7 @@ func hasExtension(fullname, expectedExtension: string)->bool
 
 // Returns true if the file name contains an extension
 #[ConstExpr]
-func hasExtension(fullname: #null string)->bool
+func hasExtension(fullname: string?)->bool
 {
     if fullname == null do
         return false
@@ -303,7 +303,7 @@ func hasExtension(fullname: #null string)->bool
 }
 
 // Combines multiple path segments into one, adding a directory separator between them if necessary
-func combine(fullnames: #null string...)->String
+func combine(fullnames: (string?)...)->String
 {
     var result: retval
     for one in fullnames

@@ -129,7 +129,7 @@ struct HexAnalysisView
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         titleLabel:    *Label
         analyzeButton: *IconButton
@@ -404,7 +404,7 @@ impl HexAnalysisView
     }
 }
 
-private func fillHexAnalysisStringLine(list: *ListCtrl, line: #null *ListLine, index: u32)
+private func fillHexAnalysisStringLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line do
         (cast(*HexAnalysisView) list.parent!).fillStringLine(line!, index)

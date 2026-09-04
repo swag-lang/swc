@@ -110,7 +110,7 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
 public struct PacketDurationProbe
 {
     encoding: SoundFileEncoding
-    vorbis:   #null *void     // The Vorbis stream state, which the module keeps to itself.
+    vorbis:   *void?     // The Vorbis stream state, which the module keeps to itself.
 }
 
 public impl PacketDurationProbe
@@ -243,9 +243,9 @@ public func registerPacketCodecImplementation(type: const *Swag.TypeInfoStruct, 
 }
 
 // Find the codec that can treat the given encoding
-func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *CodecDesc
+func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->*CodecDesc?
 {
-    var found: #null *CodecDesc
+    var found: *CodecDesc?
     for &codec in g_Codecs
     {
         if codec.itf.canEncode(destinationEncoding) and codec.itf.canDecode(sourceEncoding)
@@ -258,7 +258,7 @@ func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *C
     return found
 }
 
-func findPacketCodec(sourceEncoding: SoundFileEncoding)->#null *PacketCodecDesc
+func findPacketCodec(sourceEncoding: SoundFileEncoding)->*PacketCodecDesc?
 {
     for &codec in g_PacketCodecs where codec.itf.canDecode(sourceEncoding) do
         return codec
@@ -277,10 +277,8 @@ public struct Codec
     internal
     {
         // Concrete codec type used for destruction.
-        #[Swag.Late]
-        type: const *Swag.TypeInfoStruct
-        #[Swag.Late]
-        allocationAllocator: IAllocator
+        late type:                const *Swag.TypeInfoStruct
+        late allocationAllocator: IAllocator
     }
 }
 

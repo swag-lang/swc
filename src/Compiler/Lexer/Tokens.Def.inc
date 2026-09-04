@@ -158,6 +158,9 @@ SWC_TOKEN_DEF(KwdAttr, "attr", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdVar, "var", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdLet, "let", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdConst, "const", TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdLate, "late", TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdTls, "tls", TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdGlobal, "global", TokenIdKindE::Keyword)
 
 // RESERVED
 
@@ -196,7 +199,6 @@ SWC_TOKEN_DEF(ModifierNoDrop, "#nodrop", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierMove, "#move", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierRelocate, "#relocate", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierFwd, "#fwd", TokenIdKindE::Modifier)
-SWC_TOKEN_DEF(ModifierNullable, "#null", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierComplete, "#complete", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierFail, "#fail", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierNoFail, "#nofail", TokenIdKindE::Modifier)
@@ -286,8 +288,6 @@ SWC_TOKEN_DEF(IntrinsicPostCopy, "Swag.postCopy", TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicKindOf, "Swag.kindOf", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicCountOf, ".count", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicDataOf, ".buffer", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicIsSet, "Swag.isSet", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-
 // INTRINSICS - CONSTRUCTORS
 
 SWC_TOKEN_DEF(IntrinsicMakeSlice, "Swag.makeSlice", TokenIdKindE::Intrinsic | TokenIdKindE::Return)

@@ -26,10 +26,9 @@ private func contourPointKey(point: Vector2)->u64
 #[Swag.NoDoc]
 public struct FillRegion
 {
-    #[Swag.Late]
-    flush: *LinePath     // Contour the region's tessellation is cached on.
-    first: u64           // Index of the region's first contour.
-    count: u64           // Contours the region is made of.
+    late flush: *LinePath     // Contour the region's tessellation is cached on.
+    first:      u64           // Index of the region's first contour.
+    count:      u64           // Contours the region is made of.
 }
 
 // Groups the contours of a fill-prepared list into the regions a fill triangulates.
@@ -45,7 +44,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'(*LinePath),
 
     var serial = 0
     var first  = 0'u64
-    var flush: #null *LinePath
+    var flush: *LinePath?
 
     for p in pathList.paths
     {
@@ -167,7 +166,7 @@ public impl Painter
         }
     }
 
-    private mtd fillPathTriangulated(t: #null *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush, island: const [..] *LinePath, ruled: bool)
+    private mtd fillPathTriangulated(t: *Poly2Tri.Tessellate?, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush, island: const [..] *LinePath, ruled: bool)
     {
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()

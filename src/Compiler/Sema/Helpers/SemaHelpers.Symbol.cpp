@@ -32,7 +32,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
 
-    // A binding to a nullable slot ('&#null *T', what an 'opIndex' hands back) is exactly
+    // A binding to a nullable slot ('&nullable *T', what an 'opIndex' hands back) is exactly
     // as nullable as the slot it names. References are transparent, so the layer must be
     // looked through before deciding whether a use site still needs a proof.
     bool useSiteTypeIsNullable(Sema& sema, const SemaNodeView& view)
@@ -1310,9 +1310,9 @@ namespace
             const TypeInfo&       fieldRealType = unwrappedRef.isValid() ? sema.typeMgr().get(unwrappedRef) : fieldType;
             if (fieldRealType.isFunction())
                 canExtractConstantMember = false;
-            // A 'Swag.Late' field's value only exists at runtime: extracting the
+            // A 'late' field's value only exists at runtime: extracting the
             // constant would leak the null 'unset' state into a non-null type
-            // and bypass both the read guard and 'Swag.isSet'.
+            // and bypass the read guard.
             if (fieldVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
                 canExtractConstantMember = false;
         }
@@ -1327,10 +1327,10 @@ namespace
         if (throughPointerOrRef || sema.isLValue(node.nodeLeftRef))
             sema.setIsLValue(node);
 
-        // Reading a 'Swag.Late' field is guarded: its storage stays null until the first
+        // Reading a 'late' field is guarded: its storage stays null until the first
         // assignment while its type is non-null. Request the null-safety payload;
         // consumers that never read the value (pure assignment target, address-of,
-        // 'Swag.isSet') clear it back.
+        // null comparison) clear it back.
         if (finalSymCount == 1 && symbols[0]->isVariable() &&
             symbols[0]->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
         {
@@ -1519,7 +1519,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     // Use-site nullability: reaching a member through a value whose type is still
     // nullable dereferences it (struct receiver, interface itable, typeinfo payload)
     // or binds it as a UFCS receiver. Narrowing was already applied to the live left
-    // view, so a remaining '#null' means no dominating test proves this access safe.
+    // view, so a remaining 'nullable' means no dominating test proves this access safe.
     if (node.hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
     {
         // '?.' takes the guarded route: it requires a left side that can actually be

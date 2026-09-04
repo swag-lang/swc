@@ -28,18 +28,17 @@ struct PasswordEdit
         readonly flags = PasswordEditFlags.RevealButton     // Active interaction and presentation options.
     }
 
-    #[Swag.Late]
-    edit: *EditBox     // Mask-only child owned by this control.
+    late edit: *EditBox     // Mask-only child owned by this control.
 
     public
     {
-        revealButton: #null *IconButton     // Optional press-and-hold reveal action.
-        storage:      [1024] u8             // Fixed storage avoids reallocating plaintext through a general allocator.
-        byteCount:    u64                   // Number of occupied plaintext bytes.
-        runeCount:    u64                   // Number of entered Unicode code points.
-        savedSelBeg:  u64                   // Mask selection start saved while plaintext is visible.
-        savedSelEnd:  u64                   // Mask selection end saved while plaintext is visible.
-        isRevealed:   bool                  // Whether the child currently contains plaintext for painting.
+        revealButton: *IconButton?     // Optional press-and-hold reveal action.
+        storage:      [1024] u8        // Fixed storage avoids reallocating plaintext through a general allocator.
+        byteCount:    u64              // Number of occupied plaintext bytes.
+        runeCount:    u64              // Number of entered Unicode code points.
+        savedSelBeg:  u64              // Mask selection start saved while plaintext is visible.
+        savedSelEnd:  u64              // Mask selection end saved while plaintext is visible.
+        isRevealed:   bool             // Whether the child currently contains plaintext for painting.
     }
 }
 
@@ -259,7 +258,7 @@ impl IWnd for PasswordEdit
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if Swag.isSet(.edit) do
+        if .edit != null do
             .layoutChildren()
     }
 
@@ -304,7 +303,7 @@ impl PasswordEdit
     // [[Gui.PasswordEditFlags.RevealButton]] is enabled by default. Passing
     // [[Gui.PasswordEditFlags.None]] omits the button and leaves the field permanently masked.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         Debug.assert(parent != null)
         var pos = position
@@ -360,7 +359,7 @@ impl PasswordEdit
     mtd selectAll() => .edit.selectAll()
 
     // Changes the placeholder displayed while the password is empty.
-    mtd setPlaceholder(placeholder: #null string) => .edit.setPlaceholder(placeholder)
+    mtd setPlaceholder(placeholder: string?) => .edit.setPlaceholder(placeholder)
 
     // Changes the edit-box background and border form.
     mtd setForm(form: EditBoxForm) => .edit.setForm(form)

@@ -56,8 +56,8 @@ impl IWnd for PushButton
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var subRectBk:     #null *ThemeImageRect
-        var subRectBorder: #null *ThemeImageRect
+        var subRectBk:     *ThemeImageRect?
+        var subRectBorder: *ThemeImageRect?
         var colorBk:       Color
         var colorBorder:   Color
         var colorText:     Color
@@ -270,7 +270,7 @@ impl PushButton
 
     // Creates a push button with optional command identifier and visual emphasis.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null, form = PushButtonForm.Normal)->*PushButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
     {
         Debug.assert(parent != null)
         var pos = position

@@ -31,11 +31,9 @@ struct Context
     normal:          Math.Vector2
     prim1, prim2:    u64
     prev:            Math.Vector2
-    #[Swag.Late]
-    path: const *LinePath
-    #[Swag.Late]
-    pen:        const *Pen
-    offsetPath: f32
+    late path:       const *LinePath
+    late pen:        const *Pen
+    offsetPath:      f32
 
     // Squared distance below which a contour point is not worth a segment of its own,
     // because the one before it already covers the same place on the device grid. Zero
@@ -52,9 +50,8 @@ struct Context
     patternIndex:        s32
     error:               f32
     divError:            f32
-    #[Swag.Late]
-    pattern:      const [*] f32
-    patternCount: s32
+    late pattern:        const [*] f32
+    patternCount:        s32
 }
 
 impl Context

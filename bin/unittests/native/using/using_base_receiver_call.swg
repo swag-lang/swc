@@ -35,7 +35,7 @@ impl Box
 
 struct(T) BoxPtr
 {
-    using base: Box'(#null *T)
+    using base: Box'(*T?)
 }
 
 #test
@@ -64,7 +64,7 @@ struct(T) BoxPtr
     b.addFwd(&i)
     Swag.assert(b.count == 1)
     Swag.assert(b.slot == &i)
-    b.addFwd(cast(#null *s32) null)
+    b.addFwd(cast(*s32?) null)
     Swag.assert(b.count == 2)
     Swag.assert(b.slot == null)
 }
@@ -73,7 +73,7 @@ struct(T) BoxPtr
 {
     // Control: the same calls on the base struct directly.
     var i = 7's32
-    var b: Box'(#null *s32)
+    var b: Box'(*s32?)
     b.bump()
     b.addValue(&i)
     b.addFwd(&i)

@@ -33,7 +33,7 @@ public struct HtmlPseudoStyle
 #[Swag.NoDoc]
 public struct HtmlStyleResolver
 {
-    #[Swag.Late]
+    late
     {
         document: *HtmlDocument
         sheet:    *HtmlStyleSheet
@@ -387,7 +387,7 @@ impl HtmlStyleResolver
     // Applies the sorted declarations, in the three rounds the language requires: the custom
     // properties they may reference, then the font size every relative length depends on, then
     // everything else.
-    private mtd applyEntries(style: *HtmlComputedStyle, context: *HtmlDeclarationContext, inlineBlock: #null const *HtmlDeclarationBlock)->u64
+    private mtd applyEntries(style: *HtmlComputedStyle, context: *HtmlDeclarationContext, inlineBlock: const *HtmlDeclarationBlock?)->u64
     {
         var pushed = 0'u64
         for entry in .entries
@@ -571,7 +571,7 @@ impl HtmlStyleResolver
     }
 
     // Returns the style of a generated box, or null when the document generates none there.
-    mtd const pseudoStyle(element: u32, which: HtmlPseudoElement)->#null const *HtmlComputedStyle
+    mtd const pseudoStyle(element: u32, which: HtmlPseudoElement)->const *HtmlComputedStyle?
     {
         let found = .pseudoIndex.tryFind(HtmlStyleResolver.pseudoKey(element, which))
         if !found do

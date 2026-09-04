@@ -9,11 +9,9 @@ public struct MessageDlg
 
         readonly
         {
-            #[Swag.Late]
-            labelIcon: *Label     // Optional large icon label.
-            #[Swag.Late]
-            label:     *Label         // Rich message label.
-            extension: #null *Wnd     // Optional caller-owned extension docked below the message.
+            late labelIcon: *Label     // Optional large icon label.
+            late label:     *Label     // Rich message label.
+            extension:      *Wnd?      // Optional caller-owned extension docked below the message.
         }
     }
 }
@@ -28,7 +26,7 @@ public struct MessageDlgOptions
         iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
         textHorizontalAlignment = StringHorzAlignment.Left       // Horizontal message alignment.
         textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
-        onCreated: #null func||(*MessageDlg)                     // Optional callback invoked before icon setup and layout.
+        onCreated: (func||(*MessageDlg))?                        // Optional callback invoked before icon setup and layout.
     }
 }
 
@@ -103,7 +101,7 @@ public impl MessageDlg
 
         // The room the message loses to the frame and to the standard body inset, on each side.
         let chrome   = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
-        let iconRoom = Swag.isSet(.labelIcon) ? .labelIcon.position.width : 0
+        let iconRoom = (.labelIcon != null) ? .labelIcon.position.width : 0
 
         // Width: what the actions need side by side, then whatever more the message wants, up to
         // the width it is allowed to run before wrapping. The label answers with its own format
@@ -134,7 +132,7 @@ public impl MessageDlg
         .applyLayout()
 
         var contentHeight = Math.min(MaxMessageHeight, .label.itf.measureContent({.label.position.width, 0}).y)
-        if Swag.isSet(.labelIcon) do
+        if .labelIcon != null do
             contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
 
         let ext = .extension
@@ -159,7 +157,7 @@ public impl MessageDlg
     // Changes the large icon tint.
     mtd setIconColor(color: Color)
     {
-        Debug.assert(Swag.isSet(.labelIcon))
+        Debug.assert((.labelIcon != null))
         .labelIcon.setIconColor(color)
     }
 
@@ -170,7 +168,7 @@ public impl MessageDlg
             return
 
         let gap = .themeMetrics().dialog_BtnPadding * 2
-        if !Swag.isSet(.labelIcon) do
+        if !(.labelIcon != null) do
             .labelIcon = Label.create(.label.parent!, "", {0, 0, icon.sizeX + gap, 0})
 
         with me.labelIcon
@@ -274,7 +272,7 @@ public impl MessageDlg
     }
 
     // Shows a standardized confirmation question with Yes and No actions.
-    func confirm(from: *Surface, message: string, question: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
+    func confirm(from: *Surface, message: string, question: string? = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var txt = String.from(message)
         while !txt.isEmpty() and txt.back() == '\n' do
@@ -300,7 +298,7 @@ public impl MessageDlg
 
     // Message box to show a raised error. The caller captures the error ('catch f() as err') and
     // hands it in; when a SystemError is passed its message is appended to the shown text.
-    func error(from: *Surface, message: #null string = null, err: #null any = null, options: MessageDlgOptions = {})
+    func error(from: *Surface, message: string? = null, err: any? = null, options: MessageDlgOptions = {})
     {
         // The detail is a paragraph under the message, and only when there is one: appended
         // unconditionally, the separator left an empty line the box still had to be tall

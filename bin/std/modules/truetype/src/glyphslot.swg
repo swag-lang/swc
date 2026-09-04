@@ -61,8 +61,7 @@ public struct GlyphSlot
 
     public readonly
     {
-        #[Swag.Late]
-        face:       *Face                              // Borrowed pointer to the owning face.
+        late face:  *Face                              // Borrowed pointer to the owning face.
         index:      u32                                // Glyph index represented by this slot.
         metrics:    GlyphMetrics                       // Scaled measurements for the glyph.
         advance:    Vector                             // Pen displacement after drawing this glyph.
@@ -118,7 +117,7 @@ public impl GlyphSlot
         .bitmapTop  = 0
     }
 
-    internal mtd setBitmap(rows, width: u32, pitch: s32, buffer: #null [*] u8, pixelMode: PixelMode, left, top: s32)
+    internal mtd setBitmap(rows, width: u32, pitch: s32, buffer: [*] u8?, pixelMode: PixelMode, left, top: s32)
     {
         .bitmap.set(rows, width, pitch, buffer, pixelMode)
         .bitmapLeft = left

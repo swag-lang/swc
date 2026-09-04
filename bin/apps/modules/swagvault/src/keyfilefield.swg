@@ -10,7 +10,7 @@ struct KeyFileField
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         files:    *ComboBox
         add:      *IconButton
@@ -43,7 +43,7 @@ impl IWnd for KeyFileField
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if !Swag.isSet(.remove) do
+        if !(.remove != null) do
             return
         let room = .clientRect()
         let gap  = .themeMetrics().dialog_BtnPadding

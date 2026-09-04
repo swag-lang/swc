@@ -3,13 +3,13 @@
 
 using Core, Gui, Pixel, Core.Math
 
-var g_FontTxt:      #null *Font
-var g_FontBtn:      #null *Font
-var g_Edit:         #null *EditBox
+var g_FontTxt:      *Font?
+var g_FontBtn:      *Font?
+var g_Edit:         *EditBox?
 var g_ComputeValue: s64
 var g_CurValue:     s64
 var g_Op:           String
-var g_Error:        #null string
+var g_Error:        string?
 var g_Start:        bool = true
 
 func validateOp(str: string)

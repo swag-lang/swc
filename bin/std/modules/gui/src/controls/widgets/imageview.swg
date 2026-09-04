@@ -142,7 +142,7 @@ private impl ImageView
         .app().renderer.updateTexture(.uploadedTexture, nnPixels(.movie.frame.pixels.buffer))
     }
 
-    mtd applyZoom(value: f32, anchor: #null const *Math.Point = null)
+    mtd applyZoom(value: f32, anchor: const *Math.Point? = null)
     {
         let oldZoom = .effectiveZoom()
         let oldRect = .contentRect()
@@ -326,7 +326,7 @@ impl ImageView
 
     // Creates an empty image viewer.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ImageView
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageView
     {
         Debug.assert(parent != null)
         let result = Wnd.create'ImageView(parent, null, position, id)

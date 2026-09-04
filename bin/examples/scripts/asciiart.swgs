@@ -5,12 +5,11 @@ using Gui, Core, Pixel
 var g_Img:     Image
 var g_Texture: Texture
 
-// 'Swag.Late': the font is created in the CreateEvent handler, non-null everywhere after.
-// The deferred-init global removes the '#null' + per-read '!' boilerplate.
-#[Swag.Late]
-var g_Font: *Font
+// 'late': the font is created in the CreateEvent handler, non-null everywhere after.
+// The deferred-init global removes the '?' + per-read '!' boilerplate.
+late var g_Font: *Font
 
-func openImage(surface: #null *Surface)
+func openImage(surface: *Surface?)
 {
     var opt: FileDlgOptions
     with opt

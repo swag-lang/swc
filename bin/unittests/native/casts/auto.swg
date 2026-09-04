@@ -4,7 +4,7 @@ const A: s32  = 1
 const B: bool = cast() A
 #assert(B == true)
 
-var gAutoPtr: #null *u32
+var gAutoPtr: *u32?
 var gAutoS32: s32
 var gAutoU64: u64
 var gAutoF64: f64

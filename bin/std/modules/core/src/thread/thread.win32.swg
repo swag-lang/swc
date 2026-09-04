@@ -15,7 +15,7 @@ func yieldNative()
     SwitchToThread()
 }
 
-func createSuspendedNative(entry: func(#null *void)->u32, param: *void, id: *u64)->ThreadHandle fail
+func createSuspendedNative(entry: func(*void?)->u32, param: *void, id: *u64)->ThreadHandle fail
 {
     var nativeId: DWORD
     let handle = try CreateThread(null, 0, entry, param, CREATE_SUSPENDED, &nativeId)

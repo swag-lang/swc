@@ -18,7 +18,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // The type a dereference operates on. A reference bound to a POINTER slot — '&#null *T',
+    // The type a dereference operates on. A reference bound to a POINTER slot — '&nullable *T',
     // what a container's 'opIndex' hands back — dereferences like the pointer it names, so the
     // reference layers are looked through and the nullability of the slot is the nullability
     // of the dereference. A reference to anything else keeps its own type: it already IS the
@@ -421,7 +421,7 @@ namespace
             return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
 
         // Use-site nullability: narrowing was already applied to the live view, so a
-        // remaining '#null' means no dominating test proves this dereference safe. A
+        // remaining 'nullable' means no dominating test proves this dereference safe. A
         // non-null compile-time constant is proof.
         if (type.isNullable() && (!view.hasConstant() || view.cst()->isNull()))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, view.nodeRef(), view.typeRef());
@@ -602,7 +602,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
                 SemaHelpers::killNarrowPathAfterStatement(sema, nodeExprRef, false);
                 view.recompute(sema);
             }
-            // '&x.field' consumes the address, never the value: no 'Swag.Late' read guard.
+            // '&x.field' consumes the address, never the value: no 'late' read guard.
             SemaHelpers::clearLateFieldReadGuard(sema, nodeExprRef);
             return semaTakeAddress(sema, *this, view);
         case TokenId::SymBang:

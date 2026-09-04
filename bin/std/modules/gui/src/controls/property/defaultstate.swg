@@ -30,8 +30,8 @@ public struct PropDefaultRoot
 {
     public
     {
-        base: #null *u8          // Base associated with this value.
-        type: #null typeinfo     // Type associated with this value.
+        base: *u8?          // Base associated with this value.
+        type: typeinfo?     // Type associated with this value.
     }
 }
 
@@ -83,7 +83,7 @@ internal impl Properties
             if !canHaveDefault(it.type) do
                 continue
 
-            let off = cast(#null [*] u8) it.data - base0
+            let off = cast([*] u8?) it.data - base0
             if off < 0 or cast(u64) off >= rootSize do
                 continue
 
@@ -118,7 +118,7 @@ internal impl Properties
         if !.canReset(item) do
             return false
 
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf
@@ -152,7 +152,7 @@ internal impl Properties
 
         for k in n
         {
-            if Memory.compare(cast(#null const [*] void) .instanceAddr(item, k), cast(#null const [*] void) item.defaultData, sz) != 0 do
+            if Memory.compare(cast(const [*] void?) .instanceAddr(item, k), cast(const [*] void?) item.defaultData, sz) != 0 do
                 return true
         }
 
@@ -163,7 +163,7 @@ internal impl Properties
     // chain) may take over; otherwise the declared default is written into every edited instance.
     mtd resetItemDefault(item: *PropertiesItem)
     {
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if scan.ntfyItf and scan.ntfyItf.resetItemToDefault(me, item)
@@ -191,7 +191,7 @@ internal impl Properties
         {
             let sz = .fieldSize(item)
             for k in n do
-                Memory.copy(cast(#null [*] void) .instanceAddr(item, k), cast(#null const [*] void) item.defaultData, sz)
+                Memory.copy(cast([*] void?) .instanceAddr(item, k), cast(const [*] void?) item.defaultData, sz)
         }
 
         .refreshItem(item)
@@ -220,7 +220,7 @@ internal impl Properties
     // (compared/assigned by content) and any POD value (native, enum, bool, color, vector, a POD
     // struct, a static array of POD). Non-POD aggregates (dynamic arrays, structs owning heap
     // buffers) are left out — a raw byte copy would corrupt them.
-    func canHaveDefault(type: #null typeinfo)->bool
+    func canHaveDefault(type: typeinfo?)->bool
     {
         if !type do
             return false
@@ -251,7 +251,7 @@ internal impl Properties
 
         if .canReset(item) do
             .ensureRevertButton(item)
-        if !Swag.isSet(item.revertButton) do
+        if !(item.revertButton != null) do
             return false
 
         let btn = item.revertButton
@@ -278,7 +278,7 @@ internal impl Properties
     // the painted modified bar instead (see updateItemDefaultState).
     mtd ensureRevertButton(item: *PropertiesItem)
     {
-        if Swag.isSet(item.revertButton) or !.isGridLike() do
+        if (item.revertButton != null) or !.isGridLike() do
             return
 
         let host = .rowActionArea(item)

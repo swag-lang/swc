@@ -298,7 +298,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expectedAssigned: [4] s32 = [5, 9, 5, 3]
     Swag.assert(assertIntArray(values, expectedAssigned))
 
-    var none: #null [..] s32 = null
+    var none: [..] s32? = null
     values.add(none)
     Swag.assert(assertIntArray(values, expectedAssigned))
 

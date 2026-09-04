@@ -1,8 +1,7 @@
 struct EditWnd
 {
     using scrollWnd: ScrollWnd
-    #[Swag.Late]
-    editView: *EditView
+    late editView:   *EditView
 }
 
 impl EditWnd
@@ -18,7 +17,7 @@ impl EditWnd
         return scroll
     }
 
-    mtd getCapture()->#null *Capture
+    mtd getCapture()->*Capture?
     {
         return .editView.capture
     }

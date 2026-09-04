@@ -332,7 +332,7 @@ func ordered(value: f32) {}
 struct Counter
 {
     public value: s32           // Current counter value.
-    public next:  #null *Counter // Optional next counter in a caller-owned chain.
+    public next:  *Counter? // Optional next counter in a caller-owned chain.
 
     public using storage: union // Active numeric storage.
     {

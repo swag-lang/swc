@@ -15,7 +15,7 @@ private struct WatcherNative
     cancelled:     u32
 }
 
-private func watcherNative(value: #null *void)->*WatcherNative => cast(*WatcherNative) value!
+private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative) value!
 
 private func watchFilterNative(filter: WatchFilter)->DWORD
 {
@@ -39,7 +39,7 @@ private func watchFilterNative(filter: WatchFilter)->DWORD
     return result
 }
 
-private func appendChange(changes: *Array'Change, kind: ChangeKind, root, relative: string, oldPath: #null string = null)
+private func appendChange(changes: *Array'Change, kind: ChangeKind, root, relative: string, oldPath: string? = null)
 {
     var change: Change
     change.kind = kind

@@ -12,7 +12,7 @@ struct(K) OrderedSet
     private
     {
         keys:       Array'K
-        comparator: #null *void
+        comparator: *void?
     }
 
     public readonly count: u64     // The number of keys in the set.

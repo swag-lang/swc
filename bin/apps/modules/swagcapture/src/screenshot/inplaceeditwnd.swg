@@ -14,16 +14,15 @@ enum InPlaceEditMode
 struct InPlaceEditWnd
 {
     using wnd: Wnd
-    #[Swag.Late]
+        late
     {
         editWnd:   *EditWnd
         actionBar: *IconBar
         editBar:   *IconBar
     }
 
-    capture: #null *Capture
-    #[Swag.Late]
-    newMain:          *MainWnd
+    capture:          *Capture?
+    late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
     editColor:        Color           = Argb.Red
     editColorHilight: Color           = Argb.Yellow

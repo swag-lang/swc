@@ -2,8 +2,8 @@
 
 using Swag, Core
 
-private func createNullableTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
-private func renderNullableGlyph(face: *TypeFace)->#null const *Bitmap fail => try face.renderGlyph('A', 16, false)
+private func createNullableTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
+private func renderNullableGlyph(face: *TypeFace)->const *Bitmap? fail => try face.renderGlyph('A', 16, false)
 
 // A rejected face must not try to destroy the uninitialized native face during failure cleanup.
 #test

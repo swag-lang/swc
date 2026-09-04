@@ -8,7 +8,7 @@ struct NonNullRequiredFieldItem
 struct NonNullRequiredFieldHolder
 {
     required: *NonNullRequiredFieldItem
-    optional: #null *NonNullRequiredFieldItem
+    optional: *NonNullRequiredFieldItem?
     legacy:   *NonNullRequiredFieldItem
     count:    s32 = 7
 }

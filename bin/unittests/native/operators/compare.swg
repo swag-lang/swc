@@ -45,9 +45,9 @@ func touch(flag: bool, delta: s32)->bool
 // Pointer equality and null comparison
 #test
 {
-    var a: #null *s32 = null
-    let b             = a == null
-    let c             = a != null
+    var a: *s32? = null
+    let b        = a == null
+    let c        = a != null
     #assert(#typeof(b) == bool)
     #assert(#typeof(c) == bool)
     Swag.assert(b)
@@ -329,7 +329,7 @@ impl ICompareAllocator for CompareAllocator
 
 struct CompareAllocatorHolder
 {
-    allocator: #null ICompareAllocator
+    allocator: ICompareAllocator?
 }
 
 impl CompareAllocatorHolder

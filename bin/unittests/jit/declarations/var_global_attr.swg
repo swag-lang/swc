@@ -4,8 +4,7 @@
 {
     func counter()->s32
     {
-        #[Swag.Global]
-        var count = 0
+        global var count = 0
         count += 1
         return count
     }
@@ -19,8 +18,7 @@
 {
     func accumulate(v: s32)->s32
     {
-        #[Swag.Global]
-        var total: s32 = 0
+        global var total: s32 = 0
         total += v
         return total
     }
@@ -34,8 +32,7 @@
 {
     func toggle()->bool
     {
-        #[Swag.Global]
-        var state = false
+        global var state = false
         state = !state
         return state
     }

@@ -10,7 +10,7 @@ func resetDropHooks()
     DropTrace = 0
 }
 
-func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
+func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
 {
     if !buffer do
         return
@@ -23,7 +23,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     talloc.free(&req)
 }
 
-func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null)->#null [*] void
+func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null)->[*] void?
 {
     var req: AllocatorRequest
     req.address = buffer
@@ -35,7 +35,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     return req.address
 }
 
-func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func memoryLikeFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -50,7 +50,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     talloc.free(&req)
 }
 
-func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
+func memoryLikeRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null, alignment: u16 = 0, hint: string? = null, loc = #callerlocation)->[*] void?
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -65,7 +65,7 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
     return req.address
 }
 
-func encodeByteTrace(buffer: #null [*] u8, count: u64)->u64
+func encodeByteTrace(buffer: [*] u8?, count: u64)->u64
 {
     var result: u64 = 0
     if buffer != null
@@ -76,7 +76,7 @@ func encodeByteTrace(buffer: #null [*] u8, count: u64)->u64
     return result * 100 + count
 }
 
-func encodeTrackedTrace(buffer: #null [*] DropTracked, count: u64)->u64
+func encodeTrackedTrace(buffer: [*] DropTracked?, count: u64)->u64
 {
     var result: u64 = 0
     if buffer != null
@@ -120,8 +120,8 @@ impl DropTracked
 
 struct DirectByteBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] u8
+    allocator: IAllocator?
+    buffer:    [*] u8?
     count:     u64
     capacity:  u64
 }
@@ -143,7 +143,7 @@ impl DirectByteBuffer
         req.oldSize = .capacity
         let talloc = .allocator!
         talloc.realloc(&req)
-        .buffer   = cast(#null [*] u8) req.address
+        .buffer   = cast([*] u8?) req.address
         .capacity = newCapacity
     }
 
@@ -183,8 +183,8 @@ impl DirectByteBuffer
 
 struct HelperByteBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] u8
+    allocator: IAllocator?
+    buffer:    [*] u8?
     count:     u64
     capacity:  u64
 }
@@ -200,7 +200,7 @@ impl HelperByteBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast(#null [*] u8) helperRealloc(.buffer, newCapacity, .capacity, .allocator)
+        .buffer   = cast([*] u8?) helperRealloc(.buffer, newCapacity, .capacity, .allocator)
         .capacity = newCapacity
     }
 
@@ -235,8 +235,8 @@ impl HelperByteBuffer
 
 struct MemoryTrackedBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] DropTracked
+    allocator: IAllocator?
+    buffer:    [*] DropTracked?
     count:     u64
     capacity:  u64
 }
@@ -252,7 +252,7 @@ impl MemoryTrackedBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast(#null [*] DropTracked) memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator)
+        .buffer   = cast([*] DropTracked?) memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator)
         .capacity = newCapacity
     }
 

@@ -95,7 +95,7 @@ impl Clip
     //
     // `options` is `null` for the defaults of the selected format, or points to that format's
     // options structure, such as [[Avi.EncodeOptions]].
-    mtd const encode(fileName: string, options: #null any = null)->ConcatBuffer fail
+    mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
         .validateEncode(fileName)
 
@@ -106,7 +106,7 @@ impl Clip
     }
 
     // Encodes the clip to one contiguous owned byte array.
-    mtd const encodeToBytes(fileName: string, options: #null any = null)->Array'u8 fail
+    mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
     {
         var buffer = try .encode(fileName, options)
         buffer.makeLinear()
@@ -126,7 +126,7 @@ impl Clip
     // ```swag
     // try clip.save("preview.avi", Video.Avi.EncodeOptions{quality: 80})
     // ```
-    mtd const save(fileName: string, options: #null any = null) fail
+    mtd const save(fileName: string, options: any? = null) fail
     {
         .validateEncode(fileName)
 

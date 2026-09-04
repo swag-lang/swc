@@ -195,7 +195,7 @@ func print(params: ...)
         }
 
         // Dispatch on the native kind, not on type identity: a qualified payload such as
-        // '#null string' carries its own typeinfo, so matching the bare type would send it to
+        // 'string?' carries its own typeinfo, so matching the bare type would send it to
         // the '?' fallback and silently drop the value it was asked to print.
         if ko.kind == .Native
         {
@@ -229,7 +229,7 @@ func print(params: ...)
 ////////////////////////////////////////////////////////////
 
 // Compares two strings, and returns 'true' if they are equal.
-func stringCmp(str1: #null string, str2: #null string)->bool
+func stringCmp(str1: string?, str2: string?)->bool
 {
     let num1 = str1.count
     let num2 = str2.count
@@ -249,7 +249,7 @@ func stringCmp(str1: #null string, str2: #null string)->bool
 // Compares the content of two slices, and returns 'true' if they hold the same elements.
 // '==' between two slices of the same element type lowers to this call, so it answers the
 // same question as 'Swag.stringCmp' does for two strings.
-func __sliceCmp(data1, data2: #null const [*] void, count1, count2, sizeOf: u64)->bool
+func __sliceCmp(data1, data2: const [*] void?, count1, count2, sizeOf: u64)->bool
 {
     if count1 != count2 do
         return false

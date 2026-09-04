@@ -4,7 +4,7 @@ using Swag
 
 /* ----------------------------- GL_KHR_debug ------------------------------ */
 
-alias GLDEBUGPROC = func(GLenum, GLenum, GLuint, GLenum, GLsizei, #null const *GLchar, #null const *void)
+alias GLDEBUGPROC = func(GLenum, GLenum, GLuint, GLenum, GLsizei, const *GLchar?, const *void?)
 
 const GL_CONTEXT_FLAG_DEBUG_BIT           = 0x00000002
 const GL_DEBUG_OUTPUT_SYNCHRONOUS         = 0x8242
@@ -46,20 +46,20 @@ const GL_DEBUG_SEVERITY_LOW               = 0x9148
 const GL_DEBUG_OUTPUT                     = 0x92E0
 const GL_KHR_debug                        = 1
 
-// alias GLDEBUGPROC = func(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, message: #null const *GLchar, userParam: #null const *void)
+// alias GLDEBUGPROC = func(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, message: ? const *GLchar, userParam: ? const *void)
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glDebugMessageCallback(callback: GLDEBUGPROC, userParam: #null const *void)
-    func glDebugMessageControl(source: GLenum, type: GLenum, severity: GLenum, count: GLsizei, ids: #null const *GLuint, enabled: GLboolean)
-    func glDebugMessageInsert(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, buf: #null const *GLchar)
-    func glGetDebugMessageLog(count: GLuint, bufSize: GLsizei, sources: #null *GLenum, types: #null *GLenum, ids: #null *GLuint, severities: #null *GLenum, lengths: #null *GLsizei, messageLog: #null *GLchar)->GLuint
-    func glGetObjectLabel(identifier: GLenum, name: GLuint, bufSize: GLsizei, length: #null *GLsizei, label: #null *GLchar)
-    func glGetObjectPtrLabel(ptr: #null const *void, bufSize: GLsizei, length: #null *GLsizei, label: #null *GLchar)
-    func glObjectLabel(identifier: GLenum, name: GLuint, length: GLsizei, label: #null const *GLchar)
-    func glObjectPtrLabel(ptr: #null *void, length: GLsizei, label: #null const *GLchar)
+    func glDebugMessageCallback(callback: GLDEBUGPROC, userParam: const *void?)
+    func glDebugMessageControl(source: GLenum, type: GLenum, severity: GLenum, count: GLsizei, ids: const *GLuint?, enabled: GLboolean)
+    func glDebugMessageInsert(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, buf: const *GLchar?)
+    func glGetDebugMessageLog(count: GLuint, bufSize: GLsizei, sources: *GLenum?, types: *GLenum?, ids: *GLuint?, severities: *GLenum?, lengths: *GLsizei?, messageLog: *GLchar?)->GLuint
+    func glGetObjectLabel(identifier: GLenum, name: GLuint, bufSize: GLsizei, length: *GLsizei?, label: *GLchar?)
+    func glGetObjectPtrLabel(ptr: const *void?, bufSize: GLsizei, length: *GLsizei?, label: *GLchar?)
+    func glObjectLabel(identifier: GLenum, name: GLuint, length: GLsizei, label: const *GLchar?)
+    func glObjectPtrLabel(ptr: *void?, length: GLsizei, label: const *GLchar?)
     func glPopDebugGroup()
-    func glPushDebugGroup(source: GLenum, id: GLuint, length: GLsizei, message: #null const *GLchar)
+    func glPushDebugGroup(source: GLenum, id: GLuint, length: GLsizei, message: const *GLchar?)
 }
 
 /* -------------------- GL_KHR_blend_equation_advanced --------------------- */

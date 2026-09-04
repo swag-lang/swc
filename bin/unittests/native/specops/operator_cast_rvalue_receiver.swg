@@ -6,7 +6,7 @@
 // pointer value. Mirrors `g_StoreArgs = Utf8.fromUtf16(...)` in core's premain.
 struct CastFat
 {
-    buf: #null const [*] u8
+    buf: const [*] u8?
     len: u64
 }
 
@@ -29,7 +29,7 @@ struct CastSink
 impl CastSink
 {
     #[Swag.Implicit]
-    mtd opSet(value: #null string)
+    mtd opSet(value: string?)
     {
         .total = value.count
         .first = value.count ? value![0] : 0

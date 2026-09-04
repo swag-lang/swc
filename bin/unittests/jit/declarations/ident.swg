@@ -315,9 +315,9 @@ alias BigArray   = [5] s32
 
 #test
 {
-    func passPointerFail(x: #null *void) => x
+    func passPointerFail(x: *void?) => x
     const V = #run passPointerFail(null)
-    #assert(#typeof(V) == #null *void)
+    #assert(#typeof(V) == *void?)
     #assert(V == null)
 }
 

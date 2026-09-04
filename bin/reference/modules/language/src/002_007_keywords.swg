@@ -8,8 +8,8 @@ page is an index; the surrounding chapters explain each active construct.
 # Declarations and Organization
 
 ```swag
-alias  attr  const  enum  func  impl  interface  internal
-let  mtd  namespace  private  public  readonly  struct  union  using  var  with
+alias  attr  const  enum  func  global  impl  interface  internal  late
+let  mtd  namespace  private  public  readonly  struct  tls  union  using  var  with
 ```
 
 'readonly' applies to an aggregate field only.
@@ -89,7 +89,7 @@ follows them. They annotate what carries no symbol; a declaration takes an
 attribute instead.
 
 ```swag
-#bit  #complete  #fail  #fwd  #move  #nodrop  #nofail  #null
+#bit  #complete  #fail  #fwd  #move  #nodrop  #nofail
 #prom  #raw  #relocate  #simd  #unconst  #wrap
 ```
 
@@ -106,7 +106,7 @@ Type, value, lifecycle, and control intrinsics:
 
 ```swag
 Swag.typeAs  Swag.assert  Swag.breakpoint  Swag.compilerError  Swag.compilerWarning
-.count  .buffer  Swag.drop  Swag.getContext  Swag.init  Swag.typeIs  Swag.isSet
+.count  .buffer  Swag.drop  Swag.getContext  Swag.init  Swag.typeIs
 Swag.kindOf  Swag.makeAny  Swag.makeInterface  Swag.makeSlice  Swag.makeString  Swag.panic
 Swag.postCopy  Swag.postMove  Swag.print  Swag.safetyPanic  Swag.setContext
 Swag.stringCmp  Swag.tableOf  Swag.typeCmp

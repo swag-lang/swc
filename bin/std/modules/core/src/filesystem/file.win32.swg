@@ -85,7 +85,7 @@ func openNative(fullName: string, mode: FileMode, access: FileAccess, share: Fil
         wShare |= FILE_SHARE_DELETE
 
     var security:    SECURITY_ATTRIBUTES
-    var securityPtr: #null *SECURITY_ATTRIBUTES
+    var securityPtr: *SECURITY_ATTRIBUTES?
     if share.has(.Inheritable)
     {
         security.nLength        = #sizeof(SECURITY_ATTRIBUTES)

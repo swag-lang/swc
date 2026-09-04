@@ -47,7 +47,7 @@ struct LibraryItem
 {
     fi:       File.FileInfo
     kind:     LibraryItemKind
-    capture:  #null *Capture
+    capture:  *Capture?
     image:    Image
     width:    s32
     height:   s32
@@ -72,26 +72,25 @@ impl LibraryItem
 struct LibraryView
 {
     using wnd: Wnd
-    #[Swag.Late]
+        late
     {
         scrollWnd: *ScrollWnd
         libWnd:    *LibraryWnd
         mainWnd:   *MainWnd
     }
 
-    allItems:    ArrayPtr'LibraryItem
-    items:       Array'*LibraryItem
-    mutexLoaded: Sync.Mutex
-    thread:      Thread
+    allItems:     ArrayPtr'LibraryItem
+    items:        Array'*LibraryItem
+    mutexLoaded:  Sync.Mutex
+    thread:       Thread
     hotItem   = Swag.U32.Max
     focusItem = Swag.U32.Max
-    selModel:    SelModel
-    filterYear:  u64
-    filterMonth: u64
-    filterDay:   u64
-    listRefresh: Time.Stopwatch
-    #[Swag.Late]
-    imgSpin: *Spinner
+    selModel:     SelModel
+    filterYear:   u64
+    filterMonth:  u64
+    filterDay:    u64
+    listRefresh:  Time.Stopwatch
+    late imgSpin: *Spinner
 }
 
 impl IWnd for LibraryView
@@ -467,7 +466,7 @@ impl LibraryView
         }
 
         g_UpdatingLib = true
-        if Swag.isSet(.imgSpin) do
+        if .imgSpin != null do
             .imgSpin.show()
         try
         {
@@ -556,7 +555,7 @@ impl LibraryView
     // Case-insensitive substring test used by the library search box. Matches the
     // capture title, the linked image path and the capture file name so the user can
     // find a capture by any of the names it is known under.
-    mtd const matchSearch(it: *LibraryItem, capture: #null *Capture, search: String)->bool
+    mtd const matchSearch(it: *LibraryItem, capture: *Capture?, search: String)->bool
     {
         if search.isEmpty() do
             return true
@@ -698,7 +697,7 @@ impl LibraryView
     {
         if it.kind == .Capture
         {
-            let capture:       #null *Capture = catch Capture.load(it.fi.fullname, preview: true, deferPreviewDecode: true)
+            let capture:       *Capture? = catch Capture.load(it.fi.fullname, preview: true, deferPreviewDecode: true)
             var haar:          ImageStatistics.HaarFeatures
             var width, height: s32
             if capture
@@ -796,7 +795,7 @@ impl LibraryView
 
         var nitems: Array'*LibraryItem
 
-        var toCompare: #null *LibraryItem
+        var toCompare: *LibraryItem?
         while !remaining.isEmpty()
         {
             // A capture with no Haar features (no preview) can't anchor a similarity

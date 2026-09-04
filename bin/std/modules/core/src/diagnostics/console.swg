@@ -43,7 +43,7 @@ func silent(value: bool)
 }
 
 // Writes a formatted message unless console output is silent.
-func printf(message: #null string, params: ...)
+func printf(message: string?, params: ...)
 {
     if g_SilentMode or message == null do
         return

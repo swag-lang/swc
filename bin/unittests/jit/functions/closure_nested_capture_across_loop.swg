@@ -15,8 +15,8 @@
 
 struct Box { v: u32; a: u8 }
 
-var g_outer: #null func||(u32)
-var g_inner: #null func||(u32)
+var g_outer: (func||(u32))?
+var g_inner: (func||(u32))?
 var g_sink:  u32
 
 // The closures under test are stored in globals, so what they capture has to outlive the
@@ -30,7 +30,7 @@ var g_item:  Box
 #[Swag.NoInline]
 func blend(x, y: u32)->u32 => ((x << 1) ^ (y >> 1) ^ (x & y)) & 0xFFFFFF
 
-struct Owner { tag: u32; pop: #null *Box }
+struct Owner { tag: u32; pop: *Box? }
 
 impl Owner
 {

@@ -1,8 +1,8 @@
 #global private
 
-var A: #null [..] s32
-#assert(#typeof(A) == #null [..] s32)
-#assert(#nameof(#typeof(A)) == "#null [..] s32")
+var A: [..] s32?
+#assert(#typeof(A) == [..] s32?)
+#assert(#nameof(#typeof(A)) == "[..] s32?")
 
 #test
 {

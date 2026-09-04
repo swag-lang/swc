@@ -17,17 +17,17 @@ impl NullableUseSiteItem
 
 var g_nullableUseSiteStorage: s32
 
-func nullableUseSiteMember(p: #null *NullableUseSiteItem)->s32
+func nullableUseSiteMember(p: *NullableUseSiteItem?)->s32
 {
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
-func nullableUseSiteMethod(p: #null *NullableUseSiteItem)->s32
+func nullableUseSiteMethod(p: *NullableUseSiteItem?)->s32
 {
     return p.touch()     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
-func nullableUseSiteInterface(itf: #null IsItf)->s32
+func nullableUseSiteInterface(itf: IsItf?)->s32
 {
     return itf.get()     // swc-expected-error {{sema_err_nullable_member_access}}
 }
@@ -37,41 +37,41 @@ interface IsItf
     mtd get()->s32
 }
 
-func nullableUseSiteDeref(p: #null *s32)->s32
+func nullableUseSiteDeref(p: *s32?)->s32
 {
     return p[]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
-func nullableUseSiteDerefCast(p: #null *s32)->u32
+func nullableUseSiteDerefCast(p: *s32?)->u32
 {
     return p[as u32]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
-func nullableUseSiteIndexBlock(p: #null [*] s32)->s32
+func nullableUseSiteIndexBlock(p: [*] s32?)->s32
 {
     return p[0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
-func nullableUseSiteIndexSlice(s: #null [..] s32)->s32
+func nullableUseSiteIndexSlice(s: [..] s32?)->s32
 {
     return s[0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
-func nullableUseSiteIndexString(s: #null string)->u8
+func nullableUseSiteIndexString(s: string?)->u8
 {
     return s[0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
-func nullableUseSiteCall(f: #null func()->s32)->s32
+func nullableUseSiteCall(f: (func()->s32)?)->s32
 {
     return f()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
 // A pointer to a nullable slot is as unproven as the slot it names: the outer pointer
 // must not smuggle the inner value past the use-site rules.
-alias NullableUseSiteSlot      = #null *NullableUseSiteItem
-alias NullableUseSiteBlockSlot = #null [*] s32
-alias NullableUseSiteFnSlot    = #null func()->s32
+alias NullableUseSiteSlot      = *NullableUseSiteItem?
+alias NullableUseSiteBlockSlot = [*] s32?
+alias NullableUseSiteFnSlot    = (func()->s32)?
 
 struct NullableUseSiteBox
 {
@@ -112,7 +112,7 @@ func nullableUseSiteCallThroughRef(box: *NullableUseSiteBox)->s32
 }
 
 // A guard kills the fact after reassignment: the second access is unproven again.
-func nullableUseSiteKilled(p: #null *NullableUseSiteItem, q: #null *NullableUseSiteItem)->s32
+func nullableUseSiteKilled(p: *NullableUseSiteItem?, q: *NullableUseSiteItem?)->s32
 {
     var cur = p
     if cur == null do
@@ -123,7 +123,7 @@ func nullableUseSiteKilled(p: #null *NullableUseSiteItem, q: #null *NullableUseS
 }
 
 // An 'Swag.assert' proof is scoped to its own block and does not outlive it.
-func nullableUseSiteAssertScoped(p: #null *NullableUseSiteItem)->s32
+func nullableUseSiteAssertScoped(p: *NullableUseSiteItem?)->s32
 {
     {
         Swag.assert(p != null)
@@ -134,7 +134,7 @@ func nullableUseSiteAssertScoped(p: #null *NullableUseSiteItem)->s32
 }
 
 // An assertion on another path proves nothing about this one.
-func nullableUseSiteAssertOtherPath(p: #null *NullableUseSiteItem, q: #null *NullableUseSiteItem)->s32
+func nullableUseSiteAssertOtherPath(p: *NullableUseSiteItem?, q: *NullableUseSiteItem?)->s32
 {
     Swag.assert(q != null)
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
@@ -143,7 +143,7 @@ func nullableUseSiteAssertOtherPath(p: #null *NullableUseSiteItem, q: #null *Nul
 // An assignment inside a branch is a proof for that branch alone: the other path never ran it.
 func nullableUseSiteAssignedInBranch(flag: bool, q: *NullableUseSiteItem)->s32
 {
-    var p: #null *NullableUseSiteItem
+    var p: *NullableUseSiteItem?
     if flag do
         p = q
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
@@ -152,7 +152,7 @@ func nullableUseSiteAssignedInBranch(flag: bool, q: *NullableUseSiteItem)->s32
 // The same holds whichever side spells the assignment.
 func nullableUseSiteAssignedInElse(flag: bool, q: *NullableUseSiteItem)->s32
 {
-    var p: #null *NullableUseSiteItem
+    var p: *NullableUseSiteItem?
     if flag do
         p = null
     else do

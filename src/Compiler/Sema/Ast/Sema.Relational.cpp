@@ -88,8 +88,8 @@ namespace
     // the generated code compares — reflection exports it as 'TypeInfo.crc', and both
     // 'CodeGenCompareHelpers::emitTypeInfoEqualJump' and 'Swag.typeCmp' answer from it — so folding the
     // comparison on anything stricter would let one expression report 'false' where the same
-    // expression reports 'true' at run time. The hash deliberately ignores the '#null' qualifier at
-    // every nesting depth, which is exactly the pair that used to disagree: '#null string' against
+    // expression reports 'true' at run time. The hash deliberately ignores the 'nullable' qualifier at
+    // every nesting depth, which is exactly the pair that used to disagree: 'nullable string' against
     // 'string'.
     bool sameTypeValuePayload(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
@@ -801,7 +801,7 @@ namespace
     }
 
     // Comparisons never write through their operands, so a bare (non-null) operand can
-    // always be compared against a #null one: widen the bare side to nullable and let
+    // always be compared against a nullable one: widen the bare side to nullable and let
     // the regular promotion unify the base types.
     Result widenNullableCompareOperand(Sema& sema, SemaNodeView& bareView, const SemaNodeView& nullableView)
     {
@@ -929,6 +929,18 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaHelpers::normalizeTypeOperandToConstant(sema, nodeLeftView);
     SemaHelpers::normalizeTypeOperandToConstant(sema, nodeRightView);
     sema.setIsValue(*this);
+
+    // A `late` slot exposes a non-null type, but its backing storage is deliberately
+    // zero until setup assigns it. Comparing that storage to `null` is a presence test,
+    // not a value read, so it must bypass the late-read safety guard. This keeps the
+    // lifecycle query in ordinary syntax and avoids a dedicated presence intrinsic.
+    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
+    {
+        if (nodeLeftView.type() && nodeLeftView.type()->isNull())
+            SemaHelpers::clearLateFieldReadGuard(sema, nodeRightRef);
+        if (nodeRightView.type() && nodeRightView.type()->isNull())
+            SemaHelpers::clearLateFieldReadGuard(sema, nodeLeftRef);
+    }
 
     bool handledSpecialOp = false;
     SWC_RESULT(SemaSpecOp::tryResolveRelational(sema, *this, nodeLeftView, handledSpecialOp));

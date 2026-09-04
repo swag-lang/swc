@@ -76,7 +76,7 @@ internal struct HexViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:       *Wnd
         analysisButton: *IconButton
@@ -88,19 +88,19 @@ internal struct HexViewer
         grid:           *HexGridView
     }
 
-    info:                 #null *Wnd
-    inspectorLabel:       #null *Label
-    zoomLabel:            #null *IconButton
+    info:                 *Wnd?
+    inspectorLabel:       *Label?
+    zoomLabel:            *IconButton?
     searchPattern:        HexSearchPattern
     analysis:             HexAnalysisOperation
-    analysisTimer:        #null *Timer
+    analysisTimer:        *Timer?
     fileName:             String
     details:              String
     load:                 Viewer.BackgroundLoad'HexDocument
-    loadTimer:            #null *Timer
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    loadTimer:            *Timer?
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 }
 

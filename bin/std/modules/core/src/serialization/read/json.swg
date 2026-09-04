@@ -309,7 +309,7 @@ public impl Json
     }
 
     // Begins an array.
-    mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: *u64)->bool fail
+    mtd beginSequence(_typeElem: typeinfo?, _data: *u8?, _countElem: *u64)->bool fail
     {
         .zapBlanks()
         .expectByte('[', "JSON array is missing its opening bracket")
@@ -359,7 +359,7 @@ public impl Json
     }
 
     // Begins a reflected struct object.
-    mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool fail
+    mtd beginStruct(_structType: typeinfo?, _structData: const *u8?)->bool fail
     {
         .beginObject()
         return false

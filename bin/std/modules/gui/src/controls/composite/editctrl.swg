@@ -13,10 +13,8 @@ struct EditCtrl
         editWidth:  f32 = 60     // Edit width, or zero to fill remaining space.
         spacing:    f32 = 5      // Gap between label and edit box.
 
-        #[Swag.Late]
-        label: *Label     // Descriptive label owned by this control.
-        #[Swag.Late]
-        edit: *EditBox     // Edit box owned by this control.
+        late label: *Label       // Descriptive label owned by this control.
+        late edit:  *EditBox     // Edit box owned by this control.
     }
 }
 
@@ -24,7 +22,7 @@ impl IWnd for EditCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !Swag.isSet(.label) do
+        if !(.label != null) do
             return
 
         let rect   = .clientRect()
@@ -40,7 +38,7 @@ impl EditCtrl
 {
     // Creates a labelled single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, text: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = .None)->*EditCtrl
+    func create(parent: *Wnd, name: string?, text: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditCtrl
     {
         Debug.assert(parent != null)
         let metrics = parent.themeMetrics()

@@ -6,14 +6,13 @@ namespace WinFsp
 {
     struct NativeMountContext
     {
-        #[Swag.Late]
-        volume:          *Volume
-        defaultSecurity: #null *void
+        late volume:     *Volume
+        defaultSecurity: *void?
     }
 
     struct FspEmitContext
     {
-        buffer:      #null *void
+        buffer:      *void?
         length:      u32
         transferred: *u32
     }
@@ -24,10 +23,10 @@ namespace WinFsp
     func mountedVolume(fileSystem: *FspFileSystem)->*Volume
         => mountContext(fileSystem).volume
 
-    func idFromContext(context: #null *void)->u64 => cast(u64) context
-    func contextFromId(nodeId: u64)->#null *void  => cast(#null *void) nodeId
+    func idFromContext(context: *void?)->u64 => cast(u64) context
+    func contextFromId(nodeId: u64)->*void?  => cast(*void?) nodeId
 
-    func stringFromWide(value: #null [*] u16)->String
+    func stringFromWide(value: [*] u16?)->String
     {
         if !value do
             return ""
@@ -35,7 +34,7 @@ namespace WinFsp
         return Utf8.fromUtf16(Swag.makeSlice(validValue, Utf16.lengthZeroTerminated(validValue)))
     }
 
-    func copySecurity(fileSystem: *FspFileSystem, nodeId: u64, security: #null *void, securitySize: *u64)->s32
+    func copySecurity(fileSystem: *FspFileSystem, nodeId: u64, security: *void?, securitySize: *u64)->s32
     {
         let context = mountContext(fileSystem)
         context.volume.accessLock.lockShared()
@@ -80,14 +79,14 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func fspSetVolumeLabel(fileSystem: *FspFileSystem, label: #null [*] u16, info: *FspVolumeInfo)->s32
+    func fspSetVolumeLabel(fileSystem: *FspFileSystem, label: [*] u16?, info: *FspVolumeInfo)->s32
     {
         let value  = stringFromWide(label)
         let status = callbackSetVolumeLabel(mountedVolume(fileSystem), value.buffer)
         return status == StatusSuccess ? fspGetVolumeInfo(fileSystem, info) : status
     }
 
-    func fspGetSecurityByName(fileSystem: *FspFileSystem, path: #null [*] u16, attributes: #null *u32, security: #null *void, securitySize: #null *u64)->s32
+    func fspGetSecurityByName(fileSystem: *FspFileSystem, path: [*] u16?, attributes: *u32?, security: *void?, securitySize: *u64?)->s32
     {
         let value  = stringFromWide(path)
         var nodeId: u64
@@ -100,7 +99,7 @@ namespace WinFsp
         return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize!) : StatusSuccess
     }
 
-    func fspCreate(fileSystem: *FspFileSystem, path: #null [*] u16, createOptions, grantedAccess, attributes: u32, security: #null *void, allocationSize: u64, fileContext: *#null *void, info: *FileInfo)->s32
+    func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, grantedAccess, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
     {
         discard grantedAccess
         let value        = stringFromWide(path)
@@ -114,7 +113,7 @@ namespace WinFsp
         return status
     }
 
-    func fspOpen(fileSystem: *FspFileSystem, path: #null [*] u16, createOptions, grantedAccess: u32, fileContext: *#null *void, info: *FileInfo)->s32
+    func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, grantedAccess: u32, fileContext: *(*void?), info: *FileInfo)->s32
     {
         discard createOptions
         discard grantedAccess
@@ -126,65 +125,65 @@ namespace WinFsp
         return status
     }
 
-    func fspOverwrite(fileSystem: *FspFileSystem, fileContext: #null *void, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
+    func fspOverwrite(fileSystem: *FspFileSystem, fileContext: *void?, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
         => callbackOverwrite(mountedVolume(fileSystem), idFromContext(fileContext), attributes, replaceAttributes, allocationSize, info)
 
-    func fspCleanup(fileSystem: *FspFileSystem, fileContext: #null *void, path: #null [*] u16, flags: u32)
+    func fspCleanup(fileSystem: *FspFileSystem, fileContext: *void?, path: [*] u16?, flags: u32)
     {
         discard path
         callbackCleanup(mountedVolume(fileSystem), idFromContext(fileContext), flags)
     }
 
-    func fspClose(fileSystem: *FspFileSystem, fileContext: #null *void)
+    func fspClose(fileSystem: *FspFileSystem, fileContext: *void?)
     {
         discard fileSystem
         discard fileContext
     }
 
-    func fspRead(fileSystem: *FspFileSystem, fileContext: #null *void, buffer: #null *void, offset: u64, length: u32, transferred: *u32)->s32
+    func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32
     {
         return callbackRead(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, transferred)
     }
 
-    func fspWrite(fileSystem: *FspFileSystem, fileContext: #null *void, buffer: #null *void, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
+    func fspWrite(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
     {
         return callbackWrite(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, writeToEnd, constrained, transferred, info)
     }
 
-    func fspFlush(fileSystem: *FspFileSystem, fileContext: #null *void, info: #null *FileInfo)->s32
+    func fspFlush(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo?)->s32
     {
         var scratch: FileInfo
         return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info! : &scratch)
     }
 
-    func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: #null *void, info: *FileInfo)->s32
+    func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo)->s32
     {
         return callbackGetFileInfo(mountedVolume(fileSystem), idFromContext(fileContext), info)
     }
 
-    func fspSetBasicInfo(fileSystem: *FspFileSystem, fileContext: #null *void, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
+    func fspSetBasicInfo(fileSystem: *FspFileSystem, fileContext: *void?, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
         => callbackSetBasicInfo(mountedVolume(fileSystem), idFromContext(fileContext), attributes, creationTime, lastAccessTime, lastWriteTime, changeTime, info)
 
-    func fspSetFileSize(fileSystem: *FspFileSystem, fileContext: #null *void, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
+    func fspSetFileSize(fileSystem: *FspFileSystem, fileContext: *void?, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
         => callbackSetFileSize(mountedVolume(fileSystem), idFromContext(fileContext), newSize, setAllocationSize, info)
 
-    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: #null *void, path: #null [*] u16)->s32
+    func fspCanDelete(fileSystem: *FspFileSystem, fileContext: *void?, path: [*] u16?)->s32
     {
         discard path
         return callbackCanDelete(mountedVolume(fileSystem), idFromContext(fileContext))
     }
 
-    func fspRename(fileSystem: *FspFileSystem, fileContext: #null *void, oldPath, newPath: #null [*] u16, replace: u8)->s32
+    func fspRename(fileSystem: *FspFileSystem, fileContext: *void?, oldPath, newPath: [*] u16?, replace: u8)->s32
     {
         let oldValue = stringFromWide(oldPath)
         let newValue = stringFromWide(newPath)
         return callbackRename(mountedVolume(fileSystem), idFromContext(fileContext), oldValue.buffer, newValue.buffer, replace)
     }
 
-    func fspGetSecurity(fileSystem: *FspFileSystem, fileContext: #null *void, security: #null *void, securitySize: *u64)->s32
+    func fspGetSecurity(fileSystem: *FspFileSystem, fileContext: *void?, security: *void?, securitySize: *u64)->s32
         => copySecurity(fileSystem, idFromContext(fileContext), security, securitySize)
 
-    func fspSetSecurity(fileSystem: *FspFileSystem, fileContext: #null *void, information: u32, modification: #null *void)->s32
+    func fspSetSecurity(fileSystem: *FspFileSystem, fileContext: *void?, information: u32, modification: *void?)->s32
     {
         let context = mountContext(fileSystem)
         let nodeId  = idFromContext(fileContext)
@@ -198,8 +197,8 @@ namespace WinFsp
             stored.add(node!.security.toSlice())
         }
 
-        let input  = stored.count ? cast(#null const *void) stored.buffer : context.defaultSecurity
-        var updated: #null *void
+        let input  = stored.count ? cast(const *void?) stored.buffer : context.defaultSecurity
+        var updated: *void?
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)
         if status != StatusSuccess do
             return status
@@ -210,7 +209,7 @@ namespace WinFsp
         return result
     }
 
-    func emitFspDir(emitContext: #null *void, name: #null const [*] u8, info: const *FileInfo)->u8
+    func emitFspDir(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
     {
         let context = cast(*FspEmitContext) emitContext!
         let name16  = Utf16.toZeroTerminated(cString(name))
@@ -229,7 +228,7 @@ namespace WinFsp
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)
     }
 
-    func fspReadDirectory(fileSystem: *FspFileSystem, fileContext: #null *void, pattern, marker: #null [*] u16, buffer: #null *void, length: u32, transferred: *u32)->s32
+    func fspReadDirectory(fileSystem: *FspFileSystem, fileContext: *void?, pattern, marker: [*] u16?, buffer: *void?, length: u32, transferred: *u32)->s32
     {
         discard pattern
         let markerValue = stringFromWide(marker)
@@ -241,7 +240,7 @@ namespace WinFsp
         return status
     }
 
-    func fspGetDirInfoByName(fileSystem: *FspFileSystem, fileContext: #null *void, name: #null [*] u16, dirInfo: *FspDirInfo)->s32
+    func fspGetDirInfoByName(fileSystem: *FspFileSystem, fileContext: *void?, name: [*] u16?, dirInfo: *FspDirInfo)->s32
     {
         let value  = stringFromWide(name)
         var info: FileInfo

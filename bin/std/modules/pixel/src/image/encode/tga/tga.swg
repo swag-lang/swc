@@ -127,7 +127,7 @@ internal impl IImageEncoder for Encoder
 {
     mtd impl format()->ImageFormat => {"TGA - Truevision Targa", ".tga"}
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         var userOptions: EncodeOptions
         if options.buffer != null

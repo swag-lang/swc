@@ -34,8 +34,8 @@ func popupExtent(count, size: f32)->f32
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
-func(T) enumToUserData(value: T)->*void        => cast(*void) cast(u64) value
-func(T) enumFromUserData(data: #null *void)->T => cast(T) cast(u64) data
+func(T) enumToUserData(value: T)->*void   => cast(*void) cast(u64) value
+func(T) enumFromUserData(data: *void?)->T => cast(T) cast(u64) data
 
 // Reports whether a line end is one the "Start Size" and "End Size" rows can resize.
 //
@@ -115,19 +115,15 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 struct PropWnd
 {
     using frameWnd: FrameWnd
-    #[Swag.Late]
+        late
     {
-        #[Swag.Late]
-        topLayout: *StackLayoutCtrl
-        #[Swag.Late]
-        grid: *Properties
-        #[Swag.Late]
-        main: *MainWnd
+        late topLayout: *StackLayoutCtrl
+        late grid:      *Properties
+        late main:      *MainWnd
     }
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
-    #[Swag.Late]
-    gridBindType: typeinfo
+    late gridBindType: typeinfo
 
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
@@ -136,7 +132,7 @@ struct PropWnd
     // The chooser a style cell opens when what it lists are samples of a stroke. It is a
     // temporary list attached to the panel's top view, and it does not become a button grid just
     // because its entries are drawn rather than written.
-    stylePopup: #null *PopupListCtrl
+    stylePopup: *PopupListCtrl?
 }
 
 impl PropWnd
@@ -167,7 +163,7 @@ impl PropWnd
     // survives to the kind the editor was made for reads one form's bytes as another's, and a
     // field the two do not share comes back as whatever lay at that offset — which is how a
     // '#complete switch' over a three-value enum ends up with a value it has no case for.
-    mtd(T) getSelectedForm()->#null *T
+    mtd(T) getSelectedForm()->*T?
     {
         if .getSelectedFormType() != T do
             return null
@@ -331,7 +327,7 @@ impl PropWnd
     // row rather than by filling it: an accent ground behind a sample that is itself a horizontal
     // line reads as a second, much louder line, and the row stops showing the value it exists to
     // show. Answers null when the call closed the open list rather than opening one.
-    mtd createStylePopup(btn: *IconButton, rowHeight, width: f32)->#null *PopupListCtrl
+    mtd createStylePopup(btn: *IconButton, rowHeight, width: f32)->*PopupListCtrl?
     {
         if .stylePopup
         {
@@ -890,14 +886,14 @@ impl PropWnd
     mtd bindGrid()
     {
         let capture = .main.getCapture()
-        var bases: Array'(#null *u8)
+        var bases: Array'(*u8?)
 
         if !capture or !capture.selection.count
         {
             // Tool model: direct edition, no undo (as before)
             let mdl = .main.editModeToModel(.main.editMode)
             .gridBindType = Swag.kindOf(mdl)
-            bases.add(cast(#null *u8) mdl.buffer)
+            bases.add(cast(*u8?) mdl.buffer)
             .grid.setExternalUndoMgr(null)
             .grid.setUndoEnabled(false)
         }
@@ -907,7 +903,7 @@ impl PropWnd
             // a line/arrow mix (an arrow embeds a line), BaseForm otherwise
             var allSame  = true
             var lineOnly = true
-            var firstType: #null typeinfo
+            var firstType: typeinfo?
 
             foreachSelected'BaseForm(capture, capture.selection)
             {
@@ -918,7 +914,7 @@ impl PropWnd
                     allSame = false
                 if t != FormLine and t != FormArrow do
                     lineOnly = false
-                bases.add(cast(#null *u8) form)
+                bases.add(cast(*u8?) form)
             }
 
             if allSame do
@@ -942,7 +938,7 @@ impl PropWnd
             for item in .grid.items
             {
                 let it = item!
-                if it.typeValue.name != #nameof(BaseForm.borderSize) or !Swag.isSet(it.sliderBox) do
+                if it.typeValue.name != #nameof(BaseForm.borderSize) or !(it.sliderBox != null) do
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
@@ -977,12 +973,12 @@ impl PropWnd
         for item in .grid.items where item!.line.isVisible()
         {
             let it = item!
-            var label: #null *Label
-            if Swag.isSet(it.sliderBox) do
+            var label: *Label?
+            if it.sliderBox != null do
                 label = it.sliderBox.label
-            elif Swag.isSet(it.comboBox) and it.comboBox.parent!.type == ComboCtrl do
+            elif (it.comboBox != null) and it.comboBox.parent!.type == ComboCtrl do
                 label = (cast(*ComboCtrl) it.comboBox.parent!).label
-            elif Swag.isSet(it.editBox) and it.editBox.parent!.type == EditCtrl do
+            elif (it.editBox != null) and it.editBox.parent!.type == EditCtrl do
                 label = (cast(*EditCtrl) it.editBox.parent!).label
 
             if label do
@@ -993,17 +989,17 @@ impl PropWnd
         for item in .grid.items where item!.line.isVisible()
         {
             let it = item!
-            if Swag.isSet(it.sliderBox)
+            if it.sliderBox != null
             {
                 let ctrl = it.sliderBox
                 ctrl.setLayoutMetrics(width, ctrl.valueWidth, ctrl.spacing)
             }
-            elif Swag.isSet(it.comboBox) and it.comboBox.parent!.type == ComboCtrl
+            elif (it.comboBox != null) and it.comboBox.parent!.type == ComboCtrl
             {
                 let ctrl = cast(*ComboCtrl) it.comboBox.parent!
                 ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
             }
-            elif Swag.isSet(it.editBox) and it.editBox.parent!.type == EditCtrl
+            elif (it.editBox != null) and it.editBox.parent!.type == EditCtrl
             {
                 let ctrl = cast(*EditCtrl) it.editBox.parent!
                 ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
@@ -1179,7 +1175,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl itemHasChanged(list: *Properties, item: #null *PropertiesItem)
+    mtd impl itemHasChanged(list: *Properties, item: *PropertiesItem?)
     {
         let capture = .main.getCapture()
         if capture and capture.selection.count

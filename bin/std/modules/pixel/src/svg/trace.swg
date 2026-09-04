@@ -185,7 +185,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
 
             // Trace one closed contour starting at this top-edge crossing.
             visited[cast(u64) cy * cast(u64) gw + cast(u64) cx] = true
-            var path: #null *LinePath
+            var path: *LinePath?
 
             var x      = cx
             var y      = cy

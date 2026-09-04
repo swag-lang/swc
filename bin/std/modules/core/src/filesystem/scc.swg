@@ -292,7 +292,7 @@ private func decodeHeader(bytes: const [..] u8)->Header fail
     return #move decoded[]
 }
 
-private func findCodec(codecs: Array'ICodec, id: Guid128)->#null ICodec
+private func findCodec(codecs: Array'ICodec, id: Guid128)->ICodec?
 {
     for codec in codecs where sameId(codec.id(), id) do
         return codec
@@ -626,7 +626,7 @@ impl Reader
     mtd const chunks()->const [..] ChunkInfo => .header.chunks.toSlice()
 
     // Finds a chunk by identifier, or returns `null` when it is absent.
-    mtd const findChunk(id: Guid128)->#null const *ChunkInfo
+    mtd const findChunk(id: Guid128)->const *ChunkInfo?
     {
         for &chunk in .header.chunks where sameId(chunk.id, id) do
             return chunk
@@ -634,7 +634,7 @@ impl Reader
     }
 
     // Finds the first chunk carrying `roleId`, or returns `null` when it is absent.
-    mtd const findRole(roleId: Guid128)->#null const *ChunkInfo
+    mtd const findRole(roleId: Guid128)->const *ChunkInfo?
     {
         for &chunk in .header.chunks where sameId(chunk.roleId, roleId) do
             return chunk

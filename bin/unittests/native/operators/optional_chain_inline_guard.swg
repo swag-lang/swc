@@ -27,7 +27,7 @@ impl OptGuardNode
 
 var g_optGuardNode: OptGuardNode
 
-func optGuardGet(use: bool)->#null *OptGuardNode
+func optGuardGet(use: bool)->*OptGuardNode?
 {
     if use do
         return &g_optGuardNode

@@ -7,13 +7,13 @@
 // the two disagree about which sequence was greater.
 
 #[Swag.NoInline]
-func compareDynamic(left, right: #null const [*] void, size: u64)->s32
+func compareDynamic(left, right: const [*] void?, size: u64)->s32
 {
     return Swag.memcmp(left, right, size)
 }
 
 #[Swag.NoInline]
-func fillDynamic(target: #null [*] void, value: u8, size: u64)
+func fillDynamic(target: [*] void?, value: u8, size: u64)
 {
     Swag.memset(target, value, size)
 }

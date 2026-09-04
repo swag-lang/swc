@@ -11,8 +11,8 @@ struct Point
 
 struct Base
 {
-    type:     #null typeinfo
-    target:   #null *Base
+    type:     typeinfo?
+    target:   *Base?
     accepted: bool
 }
 

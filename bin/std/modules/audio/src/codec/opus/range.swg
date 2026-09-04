@@ -25,7 +25,7 @@ internal func ilog(value: u32)->u32 => value ? 32 - cast(u32) Swag.bitCountLz(va
 // back as raw bits.
 internal struct RangeDecoder
 {
-    data:      #null const [*] u8
+    data:      const [*] u8?
     storage:   u32
     offset:    u32     // Next byte read from the front.
     endOffset: u32     // Bytes consumed from the back.

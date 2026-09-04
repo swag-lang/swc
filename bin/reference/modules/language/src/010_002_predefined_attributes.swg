@@ -89,7 +89,7 @@ the test does not belong to a named campaign.
 | 'CalleeReturn()' | Make 'return' in a macro or mixin return from the caller |
 | 'Implicit()' | Permit an 'opCast' overload as an implicit conversion |
 | 'Discardable()' | Permit a function result to be ignored |
-| 'Deprecated(msg: #null string = null)' | Mark an API as deprecated |
+| 'Deprecated(msg: string? = null)' | Mark an API as deprecated |
 
 # Operators, Matching, and Enums
 
@@ -116,9 +116,6 @@ requested with the 'switch #complete' modifier.
 | 'NoCopy()' | Forbid copying a struct |
 | 'Opaque()' | Hide a struct's contents from exported module APIs |
 | 'ExportType(what: ExportWhat)' | Export selected runtime reflection data |
-| 'Tls()' | Give each thread its own instance of a global |
-| 'Global()' | Give a local declaration static storage |
-| 'Late()' | Defer the initialization of a non-null field or global |
 | 'Strict()' | Keep an alias distinct for implicit-conversion purposes |
 
 'Swag.ExportWhat' currently provides '.Methods' and '.NoZero' flags, plus

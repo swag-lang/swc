@@ -316,14 +316,12 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
         typeFlags.add(TypeInfoFlagsE::Const);
     }
 
-    // Non-null is the default: only #null carries information.
+    // Non-null is the default: only the '?' suffix carries information.
     if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
     {
         if (!qualifiedType.isSupportsNullableQualifier())
         {
-            const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
-            const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
-            auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
             diag.report(sema.ctx());
             return Result::Error;

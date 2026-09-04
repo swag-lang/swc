@@ -213,10 +213,23 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
 };
 
 // ----------------------------------------------------------------------------
+enum class AstVarStorageFlagsE : uint8_t
+{
+    Zero   = 0,
+    Late   = 1 << 0,
+    Tls    = 1 << 1,
+    Global = 1 << 2,
+};
+
+// ----------------------------------------------------------------------------
 struct AstVarDeclBase
 {
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeInitRef;
+    EnumFlags<AstVarStorageFlagsE> storageFlags;
+
+    bool hasStorageFlag(AstVarStorageFlagsE flag) const { return storageFlags.has(flag); }
+    void addStorageFlag(AstVarStorageFlagsE flag) { storageFlags.add(flag); }
 
     void collectVarChildren(SmallVector<AstNodeRef>& out) const
     {

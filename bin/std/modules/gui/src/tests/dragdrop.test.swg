@@ -130,7 +130,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
 
     let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
     discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
-    Swag.assert(host.app.dragEnterWnd == cast(#null *Wnd) catcher)
+    Swag.assert(host.app.dragEnterWnd == cast(*Wnd?) catcher)
 
     catcher.destroy()
     host.pump()

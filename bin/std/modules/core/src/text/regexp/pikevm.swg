@@ -23,11 +23,11 @@ const RestoreStep = 0x8000_0000'u32
 // per program counter per byte would cost more than the step it is part of.
 struct Frame
 {
-    insts:     const [*] Inst                 // The program.
-    byteSets:  #null const [*] ByteBitmap     // The sets its 'ByteSet' instructions name.
-    hay:       const [..] u8                  // The subject, whole, because the assertions read around a position.
-    limit:     u64                            // Offset the run may not read past.
-    slotCount: u64                            // Capture slots per branch.
+    insts:     const [*] Inst            // The program.
+    byteSets:  const [*] ByteBitmap?     // The sets its 'ByteSet' instructions name.
+    hay:       const [..] u8             // The subject, whole, because the assertions read around a position.
+    limit:     u64                       // Offset the run may not read past.
+    slotCount: u64                       // Capture slots per branch.
 
     pcs:      [2] [*] u32         // Program counters alive now and next, in priority order.
     slots:    [2] [*] u64         // Their capture slots.

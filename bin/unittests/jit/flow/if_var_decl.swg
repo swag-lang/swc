@@ -92,12 +92,12 @@
 
 #test
 {
-    func ifDeclMaybePtr(p: *s32)->#null *s32 => p
+    func ifDeclMaybePtr(p: *s32)->*s32? => p
 
     func ifDeclNullablePointer()->s32
     {
         var base = 42
-        if var x: #null *s32 = ifDeclMaybePtr(&base) where x != null
+        if var x: *s32? = ifDeclMaybePtr(&base) where x != null
         {
             return 1
         }
@@ -113,7 +113,7 @@
 {
     func ifDeclNullableStringNull()->s32
     {
-        if var x: #null string = null where x == null
+        if var x: string? = null where x == null
         {
             return 1
         }
@@ -128,7 +128,7 @@
 {
     func ifDeclNullableSliceNull()->s32
     {
-        if var x: #null [..] s32 = null where x == null
+        if var x: [..] s32? = null where x == null
         {
             return 1
         }

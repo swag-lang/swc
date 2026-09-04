@@ -2,7 +2,7 @@
 
 struct CallbackDialog
 {
-    sigPressed: #null func||(*CallbackDialog, string)->bool
+    sigPressed: (func||(*CallbackDialog, string)->bool)?
 }
 
 struct CallbackOwner

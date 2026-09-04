@@ -2,17 +2,17 @@
 
 #test
 {
-    var a: #null *s32
+    var a: *s32?
     if !a {}
-    var b: #null string
+    var b: string?
     if !b {}
-    var c: #null [..] s32
+    var c: [..] s32?
     if !c {}
-    var d: #null [*] bool
+    var d: [*] bool?
     if !d {}
-    var e: #null func()
+    var e: (func())?
     if !e {}
-    var f: #null typeinfo
+    var f: typeinfo?
     if !f {}
     Swag.assert(!a)
     Swag.assert(!b)
@@ -24,8 +24,8 @@
 
 #test
 {
-    var a: #null *s32
-    var b: #null *s32
+    var a: *s32?
+    var b: *s32?
     if !a or !b {}
     Swag.assert(!a or !b)
 }
@@ -39,8 +39,8 @@
 
 #test
 {
-    var a: #null *s32
-    var b: #null *s32
+    var a: *s32?
+    var b: *s32?
 
     Swag.assert(!a or !b)
 
@@ -69,7 +69,7 @@
 
 #test
 {
-    var a: #null *s32
+    var a: *s32?
 
     Swag.assert((a and a) == false)
     Swag.assert(a or !a)
@@ -84,18 +84,18 @@
 
 #test
 {
-    var s: #null string
+    var s: string?
     Swag.assert(!s)
 
     s = "abc"
     Swag.assert(!s == false)
 }
 
-// A slice answers a condition with its data pointer, so only a '#null' slice asks a question.
+// A slice answers a condition with its data pointer, so only a '?' slice asks a question.
 #test
 {
     var a: [2] s32
-    var s: #null [..] s32 = a
+    var s: [..] s32? = a
     Swag.assert(!s == false)
 
     s = null

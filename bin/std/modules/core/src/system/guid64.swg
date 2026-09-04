@@ -2,8 +2,8 @@
 
 using Core.Errors
 
-// Thread-local storage for identifier generation.
-#[Swag.Tls]
+    // Thread-local storage for identifier generation.
+    tls
 {
     private var g_Rng:     Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
     private var g_RngInit: bool                         // Flag indicating whether the RNG has been initialized
@@ -212,7 +212,7 @@ impl StrConv.IConvert for Guid64
 {
     // Convert the GUID to its hexadecimal string representation.
     // Produces a 16-character uppercase hex string without separators.
-    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string?)
     {
         buf.addBytes(.toString())
     }

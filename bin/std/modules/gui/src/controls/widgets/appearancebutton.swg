@@ -61,7 +61,7 @@ impl AppearanceButton
     // Creates the standard application appearance action immediately before the native caption
     // buttons. Register every supported language before calling this function.
     #[Swag.Discardable]
-    func create(surface: *Surface, id: #null WndId = null)->*AppearanceButton
+    func create(surface: *Surface, id: WndId? = null)->*AppearanceButton
     {
         let parent      = cast(*SurfaceWnd) surface.wnd
         with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
@@ -141,7 +141,7 @@ impl AppearanceButton
         return root
     }
 
-    internal mtd applyAppearanceSelection(selected: #null WndId)
+    internal mtd applyAppearanceSelection(selected: WndId?)
     {
         if selected == AppearanceThemeSwagDarkId do
             .setAppearanceTheme(.SwagDark, notify: true)

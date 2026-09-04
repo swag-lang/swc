@@ -16,13 +16,12 @@ struct SplitterItem
 {
     public
     {
-        #[Swag.Late]
-        view:         *Wnd             // Pane content window.
-        size:         f32              // Current size along the splitting axis.
-        minimumSize:  f32 = 5          // Minimum size along the splitting axis.
-        maximumSize:  f32 = 0          // Maximum size, or zero for no upper bound.
-        label:        #null *Label     // Optional pane title managed by the splitter.
-        preserveSize: bool             // Whether other panes absorb resize changes first.
+        late view:    *Wnd        // Pane content window.
+        size:         f32         // Current size along the splitting axis.
+        minimumSize:  f32 = 5     // Minimum size along the splitting axis.
+        maximumSize:  f32 = 0     // Maximum size, or zero for no upper bound.
+        label:        *Label?     // Optional pane title managed by the splitter.
+        preserveSize: bool        // Whether other panes absorb resize changes first.
     }
 
     visible = true     // Whether the pane participates in layout.
@@ -448,7 +447,7 @@ impl SplitterCtrl
 {
     // Creates an empty horizontal or vertical splitter.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: #null WndId = null)->*SplitterCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: WndId? = null)->*SplitterCtrl
     {
         Debug.assert(parent != null)
 
@@ -521,7 +520,7 @@ impl SplitterCtrl
 
         .numVisiblePanes += visible ? 1 : -1
         pane.visible     = visible
-        if Swag.isSet(pane.view) do
+        if pane.view != null do
             pane.view.show(visible)
         if pane.label do
             pane.label.show(visible)

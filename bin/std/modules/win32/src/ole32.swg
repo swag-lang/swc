@@ -102,7 +102,7 @@ struct FORMATETC
     public
     {
         cfFormat: CLIPFORMAT
-        ptd:      #null *DVTARGETDEVICE
+        ptd:      *DVTARGETDEVICE?
         dwAspect: DWORD
         lindex:   LONG
         tymed:    DWORD
@@ -118,10 +118,10 @@ struct STGMEDIUM
         tymed:                DWORD
         using DUMMYUNIONNAME: union
         {
-            hGlobal: HANDLE             // Memory block, for `TYMED_HGLOBAL`.
-            pstm:    #null *IStream     // Stream, for `TYMED_ISTREAM`.
+            hGlobal: HANDLE        // Memory block, for `TYMED_HGLOBAL`.
+            pstm:    *IStream?     // Stream, for `TYMED_ISTREAM`.
         }
-        pUnkForRelease: #null *void
+        pUnkForRelease: *void?
     }
 }
 
@@ -129,7 +129,7 @@ struct STATSTG
 {
     public
     {
-        pwcsName:          #null LPWSTR
+        pwcsName:          LPWSTR?
         type:              DWORD
         cbSize:            ULARGE_INTEGER
         mtime:             FILETIME
@@ -172,9 +172,7 @@ struct IDataObjectVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
-    #[Swag.Late]
-
-    public
+    late public
     {
         QueryInterface:        func(*IDataObject, const *GUID, *LPVOID)->HRESULT
         AddRef:                func(*IDataObject)->ULONG
@@ -185,7 +183,7 @@ struct IDataObjectVtbl
         GetCanonicalFormatEtc: func(*IDataObject, const *FORMATETC, *FORMATETC)->HRESULT
         SetData:               func(*IDataObject, const *FORMATETC, *STGMEDIUM, BOOL)->HRESULT
         EnumFormatEtc:         func(*IDataObject, DWORD, *LPVOID)->HRESULT
-        DAdvise:               func(*IDataObject, const *FORMATETC, DWORD, #null *void, *DWORD)->HRESULT
+        DAdvise:               func(*IDataObject, const *FORMATETC, DWORD, *void?, *DWORD)->HRESULT
         DUnadvise:             func(*IDataObject, DWORD)->HRESULT
         EnumDAdvise:           func(*IDataObject, *LPVOID)->HRESULT
     }
@@ -205,11 +203,11 @@ struct IStreamVtbl
         QueryInterface: func(*IStream, const *GUID, *LPVOID)->HRESULT
         AddRef:         func(*IStream)->ULONG
         Release:        func(*IStream)->ULONG
-        Read:           func(*IStream, LPVOID, ULONG, #null *ULONG)->HRESULT
-        Write:          func(*IStream, LPCVOID, ULONG, #null *ULONG)->HRESULT
-        Seek:           func(*IStream, LARGE_INTEGER, DWORD, #null *ULARGE_INTEGER)->HRESULT
+        Read:           func(*IStream, LPVOID, ULONG, *ULONG?)->HRESULT
+        Write:          func(*IStream, LPCVOID, ULONG, *ULONG?)->HRESULT
+        Seek:           func(*IStream, LARGE_INTEGER, DWORD, *ULARGE_INTEGER?)->HRESULT
         SetSize:        func(*IStream, ULARGE_INTEGER)->HRESULT
-        CopyTo:         func(*IStream, *IStream, ULARGE_INTEGER, #null *ULARGE_INTEGER, #null *ULARGE_INTEGER)->HRESULT
+        CopyTo:         func(*IStream, *IStream, ULARGE_INTEGER, *ULARGE_INTEGER?, *ULARGE_INTEGER?)->HRESULT
         Commit:         func(*IStream, DWORD)->HRESULT
         Revert:         func(*IStream)->HRESULT
         LockRegion:     func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
@@ -228,17 +226,15 @@ struct IDropTargetVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
-    #[Swag.Late]
-
-    public
+    late public
     {
         QueryInterface: func(*IDropTarget, const *GUID, *LPVOID)->HRESULT
         AddRef:         func(*IDropTarget)->ULONG
         Release:        func(*IDropTarget)->ULONG
-        DragEnter:      func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
+        DragEnter:      func(*IDropTarget, *IDataObject?, DWORD, POINTL, *DWORD)->HRESULT
         DragOver:       func(*IDropTarget, DWORD, POINTL, *DWORD)->HRESULT
         DragLeave:      func(*IDropTarget)->HRESULT
-        Drop:           func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
+        Drop:           func(*IDropTarget, *IDataObject?, DWORD, POINTL, *DWORD)->HRESULT
     }
 }
 
@@ -251,9 +247,7 @@ struct IDropSourceVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
-    #[Swag.Late]
-
-    public
+    late public
     {
         QueryInterface:    func(*IDropSource, const *GUID, *LPVOID)->HRESULT
         AddRef:            func(*IDropSource)->ULONG
@@ -272,14 +266,12 @@ struct IEnumFORMATETCVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
     // null and receives its function on the way in.
-    #[Swag.Late]
-
-    public
+    late public
     {
         QueryInterface: func(*IEnumFORMATETC, const *GUID, *LPVOID)->HRESULT
         AddRef:         func(*IEnumFORMATETC)->ULONG
         Release:        func(*IEnumFORMATETC)->ULONG
-        Next:           func(*IEnumFORMATETC, ULONG, *FORMATETC, #null *ULONG)->HRESULT
+        Next:           func(*IEnumFORMATETC, ULONG, *FORMATETC, *ULONG?)->HRESULT
         Skip:           func(*IEnumFORMATETC, ULONG)->HRESULT
         Reset:          func(*IEnumFORMATETC)->HRESULT
         Clone:          func(*IEnumFORMATETC, *LPVOID)->HRESULT
@@ -288,14 +280,14 @@ struct IEnumFORMATETCVtbl
 
 #[Foreign("ole32", callconv: Swag.CallConv.C)]
 {
-    func CoInitializeEx(pvReserved: #null *void, dwCoInit: DWORD)->HRESULT
+    func CoInitializeEx(pvReserved: *void?, dwCoInit: DWORD)->HRESULT
     func CoUninitialize()
-    func CoCreateInstance(rclsid: const *GUID, pUnkOuter: #null *void, dwClsContext: DWORD, riid: const *GUID, ppv: *LPVOID)->HRESULT
+    func CoCreateInstance(rclsid: const *GUID, pUnkOuter: *void?, dwClsContext: DWORD, riid: const *GUID, ppv: *LPVOID)->HRESULT
     func CreateStreamOnHGlobal(hGlobal: HGLOBAL, fDeleteOnRelease: BOOL, ppstm: *LPVOID)->HRESULT
     func GetHGlobalFromStream(pstm: *IStream, phglobal: *HGLOBAL)->HRESULT
-    func CoTaskMemAlloc(cb: SIZE_T)->#null [*] void
-    func CoTaskMemFree(pv: #null *void)
-    func OleInitialize(pvReserved: #null *void)->HRESULT
+    func CoTaskMemAlloc(cb: SIZE_T)->[*] void?
+    func CoTaskMemFree(pv: *void?)
+    func OleInitialize(pvReserved: *void?)->HRESULT
     func OleUninitialize()
     func RegisterDragDrop(hwnd: HWND, pDropTarget: *IDropTarget)->HRESULT
     func RevokeDragDrop(hwnd: HWND)->HRESULT

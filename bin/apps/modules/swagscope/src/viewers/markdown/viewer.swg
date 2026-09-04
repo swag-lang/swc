@@ -144,7 +144,7 @@ internal struct MarkdownZoomButton
 {
     using button: IconButton
 
-    #[Swag.Late]
+        late
     {
         view:       *Markdown.View
         themeCombo: *ComboBox

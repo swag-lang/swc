@@ -100,7 +100,7 @@ This structure ensures efficient text manipulation and full Unicode compatibilit
     let a: string = "string 是"     // UTF-8 encoded string
 
     Swag.assert(a == "string 是")
-    Swag.assert(#sizeof(a) == 2 * #sizeof(#null *void))     // Pointer + length
+    Swag.assert(#sizeof(a) == 2 * #sizeof(*void?))     // Pointer + length
 }
 
 /**

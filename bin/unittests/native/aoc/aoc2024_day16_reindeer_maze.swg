@@ -43,7 +43,7 @@ const End:   u8 = 'E'
 
 struct Maze
 {
-    cells: #null [*] u8
+    cells: [*] u8?
     w:     u32
     h:     u32
     sr:    u32
@@ -55,7 +55,7 @@ struct Maze
 func mazeInit()->Maze
 {
     var m: Maze
-    m.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxCells)
+    m.cells = cast([*] u8?) testAlloc(cast(u64) MaxCells)
     let cells = m.cells!
     for index in MaxCells { cells[index] = 0 }
     return m

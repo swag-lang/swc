@@ -467,7 +467,7 @@ private struct IndesignPreviewLoad
     fileName:        String
     preview:         IndesignPreview
     value:           Image
-    error:           #null any
+    error:           any?
 }
 
 private impl IndesignPreviewLoad
@@ -477,7 +477,7 @@ private impl IndesignPreviewLoad
         Debug.assert(!.started)
         .fileName   = fileName
         .preview    = preview[]
-        .job.lambda = func(data: #null *void)
+        .job.lambda = func(data: *void?)
         {
             let operation = cast(*IndesignPreviewLoad) data!
             operation.value = catch loadIndesignPreview(operation.fileName.toString(), &operation.preview) as loadError
@@ -619,17 +619,17 @@ internal struct IndesignViewer
     requestedPreviewIndex      = IndesignNoPreview
     loadingPreviewIndex        = IndesignNoPreview
     load:                 Viewer.BackgroundLoad'IndesignViewerDocument
-    loadTimer:            #null *Timer
+    loadTimer:            *Timer?
     previewLoad:          IndesignPreviewLoad
-    previewLoadTimer:     #null *Timer
+    previewLoadTimer:     *Timer?
     previewLoadPending:   bool
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportChromeChanged:  #null Viewer.ReportChromeChanged
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportChromeChanged:  Viewer.ReportChromeChanged?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 
-    #[Swag.Late]
+        late
     {
         commands:       *Wnd
         info:           *Wnd
@@ -640,7 +640,7 @@ internal struct IndesignViewer
         imageView:      *ImageView
     }
 
-    htmlView: #null *HtmlView
+    htmlView: *HtmlView?
 }
 
 private impl IndesignViewer

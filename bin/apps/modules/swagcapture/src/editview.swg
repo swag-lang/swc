@@ -1,14 +1,12 @@
 struct EditView
 {
-    using wnd: Wnd
-    #[Swag.Late]
-    main: *MainWnd
-    #[Swag.Late]
-    scroll:     *ScrollWnd
-    capture:    #null *Capture
-    zoom:       f32 = 1
-    viewMargin: f32 = 32
-    firstPaint      = true
+    using wnd:   Wnd
+    late main:   *MainWnd
+    late scroll: *ScrollWnd
+    capture:     *Capture?
+    zoom:        f32 = 1
+    viewMargin:  f32 = 32
+    firstPaint       = true
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool
@@ -217,7 +215,7 @@ impl EditView
         .capture = c
         if .capture do
             .capture.setup(me)
-        if Swag.isSet(.main)
+        if .main != null
         {
             .main.captureHasChanged()
             .main.updateState()

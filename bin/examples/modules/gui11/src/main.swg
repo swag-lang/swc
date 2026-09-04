@@ -31,62 +31,62 @@ const SmokeFramesPerPage = 40
 
 var app: Application
 
-var g_Surface:     #null *Surface
-var g_View:        #null *Wnd
-var g_Title:       #null *Label
-var g_SubTitle:    #null *Label
-var g_Footer:      #null *Label
-var g_ThemeButton: #null *PushButton
-var g_Reduced:     #null *CheckButton
-var g_Tabs:        #null *Tab
+var g_Surface:     *Surface?
+var g_View:        *Wnd?
+var g_Title:       *Label?
+var g_SubTitle:    *Label?
+var g_Footer:      *Label?
+var g_ThemeButton: *PushButton?
+var g_Reduced:     *CheckButton?
+var g_Tabs:        *Tab?
 
 var g_DarkTheme = true
 var g_SmokeFrame: u32
 
 // Curves page.
-var g_CurvePage: #null *Wnd
-var g_CurveNote: #null *Label
-var g_Wall:      #null *CurveWall
+var g_CurvePage: *Wnd?
+var g_CurveNote: *Label?
+var g_Wall:      *CurveWall?
 
 // Choreography page.
-var g_StagePage:     #null *Wnd
-var g_StageNote:     #null *Label
-var g_StageControls: #null *PanelWnd
-var g_StageEasing:   #null *ComboBox
-var g_StageDuration: #null *Slider
-var g_StageStagger:  #null *Slider
-var g_StageReadout:  #null *Label
-var g_StageReplay:   #null *PushButton
-var g_StageHint:     #null *Label
+var g_StagePage:     *Wnd?
+var g_StageNote:     *Label?
+var g_StageControls: *PanelWnd?
+var g_StageEasing:   *ComboBox?
+var g_StageDuration: *Slider?
+var g_StageStagger:  *Slider?
+var g_StageReadout:  *Label?
+var g_StageReplay:   *PushButton?
+var g_StageHint:     *Label?
 var g_StageCaptions: Array'(*Label)
 var g_Cards:         Array'(*MotionCard)
 
 // Interruption page.
-var g_FieldPage:     #null *Wnd
-var g_FieldNote:     #null *Label
-var g_FieldControls: #null *PanelWnd
-var g_FieldEasing:   #null *ComboBox
-var g_FieldDuration: #null *Slider
-var g_FieldReadout:  #null *Label
-var g_FieldPreserve: #null *CheckButton
-var g_FieldClear:    #null *PushButton
-var g_FieldCaption:  #null *Label
-var g_Field:         #null *MotionField
+var g_FieldPage:     *Wnd?
+var g_FieldNote:     *Label?
+var g_FieldControls: *PanelWnd?
+var g_FieldEasing:   *ComboBox?
+var g_FieldDuration: *Slider?
+var g_FieldReadout:  *Label?
+var g_FieldPreserve: *CheckButton?
+var g_FieldClear:    *PushButton?
+var g_FieldCaption:  *Label?
+var g_Field:         *MotionField?
 
 // Preference page.
-var g_PrefPage:       #null *Wnd
-var g_PrefNote:       #null *Label
-var g_Decorative:     #null *PanelWnd
-var g_DecorativeBtn:  #null *PushButton
-var g_DecorativeNote: #null *Label
-var g_Essential:      #null *PanelWnd
-var g_EssentialLbl:   #null *Label
-var g_EssentialNote:  #null *Label
-var g_Expander:       #null *PanelWnd
-var g_ExpandBtn:      #null *PushButton
-var g_ExpandHost:     #null *Wnd
-var g_Detail:         #null *Wnd
-var g_DetailText:     #null *Label
+var g_PrefPage:       *Wnd?
+var g_PrefNote:       *Label?
+var g_Decorative:     *PanelWnd?
+var g_DecorativeBtn:  *PushButton?
+var g_DecorativeNote: *Label?
+var g_Essential:      *PanelWnd?
+var g_EssentialLbl:   *Label?
+var g_EssentialNote:  *Label?
+var g_Expander:       *PanelWnd?
+var g_ExpandBtn:      *PushButton?
+var g_ExpandHost:     *Wnd?
+var g_Detail:         *Wnd?
+var g_DetailText:     *Label?
 var g_Expanded:       bool
 
 const StageCardCount = 6

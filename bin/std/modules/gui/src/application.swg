@@ -58,8 +58,7 @@ struct Application
 
         readonly
         {
-            #[Swag.Late]
-            renderer: Pixel.IRenderer     // Renderer selected before the first surface is created.
+            late renderer: Pixel.IRenderer     // Renderer selected before the first surface is created.
         }
     }
 
@@ -67,12 +66,11 @@ struct Application
 
     public
     {
-        #[Swag.Late]
-        theme:       *Theme             // Active application theme.
+        late theme:  *Theme             // Active application theme.
         style:       ThemeStyle         // Root style inherited by surface window trees.
         keyboard:    Input.Keyboard     // Keyboard state for the current and previous frames.
         mouse:       Input.Mouse        // Mouse state for the current and previous frames.
-        mainSurface: #null *Surface     // First surface, whose destruction requests application shutdown.
+        mainSurface: *Surface?          // First surface, whose destruction requests application shutdown.
 
         // The surface list is maintained by the application: create and destroy surfaces through
         // its own API so the modal stack and the render loop stay consistent.
@@ -91,14 +89,14 @@ struct Application
     }
 
     // Focus tracking, moved by the windows themselves as events are dispatched.
-    keyboardFocusWnd:      #null *Wnd     // Window currently holding the keyboard focus.
-    mouseCaptureWnd:       #null *Wnd     // Window currently holding the mouse capture.
-    mouseEnterWnd:         #null *Wnd     // Window the mouse last entered.
-    nativeFocusTransition: bool           // Whether a logical focus move is synchronously changing the native focus.
+    keyboardFocusWnd:      *Wnd?     // Window currently holding the keyboard focus.
+    mouseCaptureWnd:       *Wnd?     // Window currently holding the mouse capture.
+    mouseEnterWnd:         *Wnd?     // Window the mouse last entered.
+    nativeFocusTransition: bool      // Whether a logical focus move is synchronously changing the native focus.
 
     // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
     // window it is over and the position it reached are followed apart from the pointer state.
-    dragEnterWnd:  #null *Wnd     // Window the drag last entered, or `null` outside a gesture.
+    dragEnterWnd:  *Wnd?          // Window the drag last entered, or `null` outside a gesture.
     dragScreenPos: Math.Point     // Last position a drag reported, in physical screen pixels.
 
     public
@@ -122,23 +120,23 @@ struct Application
     }
 
     // Run-loop state. It only means something to the loop that owns it.
-    postedEvents:        Array'(IEvent)                                             // Events queued from any thread, drained each frame.
-    postDestroy:         Array'(*Wnd)                                               // Windows to destroy once the frame is over.
-    hookOnEvent:         Array'(*Wnd)                                               // Windows watching every event of the application.
-    endModalExit:        #null WndId                                                // Result the innermost modal loop exits with.
-    inModalLoop:         u32                                                        // Depth of the modal loop nesting.
-    quitCode:            s32                                                        // Exit code the run loop returns.
-    mustQuit:            bool                                                       // Whether the run loop stops at the end of the frame.
-    endModal:            bool                                                       // Whether the innermost modal loop stops.
-    mutexPostedEvents:   Sync.Mutex                                                 // Guards 'postedEvents' against other threads.
-    duringTimerEvents:   bool                                                       // Whether timer callbacks are running, so lists defer.
-    timers:              Array'(*Timer)                                             // Active timers.
-    timersToAdd:         Array'(*Timer)                                             // Timers added while callbacks were running.
-    timersToDelete:      Array'(*Timer)                                             // Timers removed while callbacks were running.
-    frameEvents:         Array'(*Wnd)                                               // Windows asking for a per-frame event.
-    modalSurfaces:       Array'(*Surface)                                           // Surface stack of the nested modal loops.
-    toDelete:            Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
-    systemReducedMotion: bool                                                       // Platform client-area-animation preference.
+    postedEvents:        Array'(IEvent)                                        // Events queued from any thread, drained each frame.
+    postDestroy:         Array'(*Wnd)                                          // Windows to destroy once the frame is over.
+    hookOnEvent:         Array'(*Wnd)                                          // Windows watching every event of the application.
+    endModalExit:        WndId?                                                // Result the innermost modal loop exits with.
+    inModalLoop:         u32                                                   // Depth of the modal loop nesting.
+    quitCode:            s32                                                   // Exit code the run loop returns.
+    mustQuit:            bool                                                  // Whether the run loop stops at the end of the frame.
+    endModal:            bool                                                  // Whether the innermost modal loop stops.
+    mutexPostedEvents:   Sync.Mutex                                            // Guards 'postedEvents' against other threads.
+    duringTimerEvents:   bool                                                  // Whether timer callbacks are running, so lists defer.
+    timers:              Array'(*Timer)                                        // Active timers.
+    timersToAdd:         Array'(*Timer)                                        // Timers added while callbacks were running.
+    timersToDelete:      Array'(*Timer)                                        // Timers removed while callbacks were running.
+    frameEvents:         Array'(*Wnd)                                          // Windows asking for a per-frame event.
+    modalSurfaces:       Array'(*Surface)                                      // Surface stack of the nested modal loops.
+    toDelete:            Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
+    systemReducedMotion: bool                                                  // Platform client-area-animation preference.
 
     public
     {
@@ -180,7 +178,7 @@ private impl Application
     }
 
     // Send and process an event
-    mtd sendEventPrivate(evt: IEvent, stopAt: #null *Wnd)
+    mtd sendEventPrivate(evt: IEvent, stopAt: *Wnd?)
     {
         // Global hook events
         for hook in .hookOnEvent do
@@ -258,7 +256,7 @@ private impl Application
         let mousePos = .mouse.position()
 
         // Wnd that will receive the message
-        var targetWnd: #null *Wnd
+        var targetWnd: *Wnd?
         if .mouseCaptureWnd do
             targetWnd = .mouseCaptureWnd
         else do
@@ -746,7 +744,7 @@ private impl Application
     // because a box that opens ready for the keyboard has already moved it onto itself by the
     // time this runs: what was read here was a rank inside the box, applied to the ring of the
     // form underneath it. See `Surface.focusWnd`.
-    public mtd doModalLoop(surface: #null *Surface, cb: #null func||(*Application) = null, restoreTo: #null *Surface = null)->WndId
+    public mtd doModalLoop(surface: *Surface?, cb: (func||(*Application))? = null, restoreTo: *Surface? = null)->WndId
     {
         .endModal     = false
         .endModalExit = null
@@ -805,7 +803,7 @@ private impl Application
         // A box opened over another box gives the keyboard back to that one; otherwise it goes to
         // the surface that raised it. The last surface re-enabled is only a last resort: it is the
         // end of the application's list, which is not necessarily where the reader was.
-        var restoreSurface: #null *Surface
+        var restoreSurface: *Surface?
         if .modalSurfaces.count do
             restoreSurface = .modalSurfaces.back()
         elif restoreTo and restoreTo != surface do
@@ -836,7 +834,7 @@ internal impl Application
     }
 
     // Finds the visible surface at a screen position.
-    mtd surfaceAt(x, y: f32)->#null *Surface
+    mtd surfaceAt(x, y: f32)->*Surface?
     {
         if .renderer.needsNativeWindow() do
             return .surfaceAtNative(x, y)
@@ -882,7 +880,7 @@ impl Application
                 .appIconTileList.release(.renderer)
         }
 
-        if Swag.isSet(.theme) do
+        if .theme != null do
             .theme.freeDefault()
     }
 
@@ -965,7 +963,7 @@ impl Application
     //
     // A smoke run stops on its own after the frame budget its launcher set, so an example
     // written with this needs nothing special to be exercised by the test suite.
-    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: #null HookEvent = null, init: #null func(*Application) = null, testFrames: u32 = 50)
+    func runSurface(x, y, width, height: s32, title: string? = null, view: *Wnd? = null, borders = true, canSize = true, hook: HookEvent? = null, init: (func(*Application))? = null, testFrames: u32 = 50)
     {
         var app: Application
 
@@ -989,7 +987,7 @@ impl Application
     // `width` and `height` are logical units: on a scaled display the native window is
     // created proportionally larger, in physical pixels. `x` and `y` are physical
     // desktop pixels.
-    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceId: #null string = null)->#null *Surface fail
+    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: *Wnd? = null, hook: HookEvent? = null, surfaceId: string? = null)->*Surface? fail
     {
         let surface = Memory.new'Surface()
         var surfaceCreated: bool
@@ -1007,9 +1005,9 @@ impl Application
         if !.mainSurface
         {
             .refreshSystemMotionPreference()
-            if !Swag.isSet(.renderer) do
+            if !(.renderer != null) do
                 .setRenderer(&.rendererOgl)
-            if !Swag.isSet(.theme) do
+            if !(.theme != null) do
                 .theme = Memory.new'Theme()
             .style.set(.theme)
             registerDefaultThemeResources(&.resources)
@@ -1129,7 +1127,7 @@ impl Application
     // makes a sheet a delta over whatever palette is already applied.
     mtd loadTheme(name: string) fail
     {
-        Debug.assert(Swag.isSet(.theme), "the theme exists once the first surface is created")
+        Debug.assert((.theme != null), "the theme exists once the first surface is created")
 
         var resName: String = "themes/"
         resName += name
@@ -1325,7 +1323,7 @@ impl Application
     }
 
     // Returns the window currently holding mouse capture.
-    mtd const mouseCapture()->#null *Wnd
+    mtd const mouseCapture()->*Wnd?
     {
         return .mouseCaptureWnd
     }
@@ -1334,7 +1332,7 @@ impl Application
     //
     // 'captureMouse' is the way a window takes the mouse; this one exists for the headless
     // host and its tests, which simulate the platform side themselves.
-    internal mtd setMouseCaptureRaw(wnd: #null *Wnd)
+    internal mtd setMouseCaptureRaw(wnd: *Wnd?)
     {
         .mouseCaptureWnd = wnd
     }
@@ -1363,7 +1361,7 @@ impl Application
         }
     }
 
-    internal mtd windowAtMouse()->#null *Wnd => .windowAt(.mouse.position())
+    internal mtd windowAtMouse()->*Wnd? => .windowAt(.mouse.position())
 
     // Returns the deepest window under a physical screen position, or `null` when none is there.
     //
@@ -1371,7 +1369,7 @@ impl Application
     // has only a position — the pointer. A caller that already knows the surface asks it
     // directly through [[Gui.Surface.windowAt]]: the desktop's answer is about whatever window
     // happens to be topmost there, which during a drag is the shell's own drag image.
-    internal mtd windowAt(screenPos: Math.Point)->#null *Wnd
+    internal mtd windowAt(screenPos: Math.Point)->*Wnd?
     {
         let targetSurface = .surfaceAt(screenPos.x, screenPos.y)
         if !targetSurface do
@@ -1380,7 +1378,7 @@ impl Application
     }
 
     // Returns `wnd` or its closest enabled ancestor, or `null` when nothing there takes input.
-    internal func skipDisabled(wnd: #null *Wnd)->#null *Wnd
+    internal func skipDisabled(wnd: *Wnd?)->*Wnd?
     {
         if !wnd do
             return null
@@ -1630,7 +1628,7 @@ impl Application
         .hotKeys.clear()
     }
 
-    internal mtd hotKeyShortcut(modifiers: Input.KeyModifiers, key: Input.Key)->{ id: #null WndId, wnd: #null *Wnd }
+    internal mtd hotKeyShortcut(modifiers: Input.KeyModifiers, key: Input.Key)->{ id: WndId?, wnd: *Wnd? }
     {
         for c in .hotKeys
         {

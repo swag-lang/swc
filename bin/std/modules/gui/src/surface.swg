@@ -30,12 +30,10 @@ struct Surface
     public
     {
         using native: NativeSurface     // Platform-specific window state.
-        #[Swag.Late]
-        app: *Application     // Application that owns the surface.
-        #[Swag.Late]
-        wnd:       *SurfaceWnd     // Root window containing the surface view.
-        userData:  #null *void     // Optional caller-owned data.
-        surfaceId: String          // Identifier used by cross-process custom messages.
+        late app:     *Application      // Application that owns the surface.
+        late wnd:     *SurfaceWnd       // Root window containing the surface view.
+        userData:     *void?            // Optional caller-owned data.
+        surfaceId:    String            // Identifier used by cross-process custom messages.
 
         minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
         maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.
@@ -46,9 +44,9 @@ struct Surface
         // Enter runs the dominant action of the surface, Escape backs out of it. A focused button
         // always answers Enter itself, so these two only speak for a keyboard that is somewhere else —
         // in a field, in a list. Both are borrowed and never owned.
-        defaultButton: #null *Wnd
+        defaultButton: *Wnd?
 
-        cancelButton: #null *Wnd     // Window Escape stands for, or `null` when the surface cannot be dismissed.
+        cancelButton: *Wnd?     // Window Escape stands for, or `null` when the surface cannot be dismissed.
 
         flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
         colorDisabled: Color                   // Animated tint used while the surface is disabled.
@@ -92,9 +90,9 @@ struct Surface
     // the keyboard goes back to when it is still in that tree, and the rank that answers when it
     // is gone — a row removed, a field hidden. The window is only ever compared against the stops
     // that exist now, never followed, so a stale one cannot be read.
-    focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
-    focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
-    focusIndex: s64 = -1       // Its rank in that tree's ring, for when it is gone.
+    focusRoot:  *Wnd?        // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
+    focusWnd:   *Wnd?        // Last window that held the keyboard on this surface.
+    focusIndex: s64 = -1     // Its rank in that tree's ring, for when it is gone.
 
     public
     {
@@ -137,7 +135,7 @@ impl Surface
     //
     // A position outside the surface answers the sizing border, or `null`, exactly as a pointer
     // over the same spot would.
-    internal mtd windowAt(screenPos: Math.Point)->#null *Wnd
+    internal mtd windowAt(screenPos: Math.Point)->*Wnd?
     {
         var surfacePos = screenPos
         .screenToSurface(&surfacePos)
@@ -166,7 +164,7 @@ impl Surface
         .dpiScale = scale
 
         // A move to a denser monitor must resharpen the shared theme atlas.
-        if Swag.isSet(.app.theme) and .app.theme.initialized and Swag.isSet(.app.renderer) do
+        if (.app.theme != null) and .app.theme.initialized and (.app.renderer != null) do
             .app.theme.ensureAtlasScale(.app.renderer, scale)
     }
 
@@ -222,7 +220,7 @@ impl Surface
         .wnd.sendResizeEvent()
     }
 
-    internal func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) fail
+    internal func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: *Surface?) fail
     {
         with surface
         {
@@ -296,7 +294,7 @@ impl Surface
     }
 
     // Changes the surface title, or clears it when `name` is `null`.
-    mtd setTitle(name: #null string)
+    mtd setTitle(name: string?)
     {
         .wnd.name.set(name)
         .invalidate()
@@ -724,7 +722,7 @@ impl Surface
     // The button is pressed the way Enter presses a focused one, so a widget that answers keys
     // at all can stand for the default or the cancel action, and a button that is down or gone
     // simply does not answer.
-    private mtd pressStandardButton(button: #null *Wnd)->bool
+    private mtd pressStandardButton(button: *Wnd?)->bool
     {
         if !button do
             return false
@@ -872,9 +870,9 @@ impl Surface
     // Replaces and destroys the current user view, then attaches `view` to this surface.
     mtd setView(view: *Wnd)
     {
-        if Swag.isSet(.wnd.view) and .wnd.view == view do
+        if (.wnd.view != null) and .wnd.view == view do
             return
-        if Swag.isSet(.wnd.view) do
+        if .wnd.view != null do
             .wnd.view.destroy()
         view.setParent(.wnd)
         .wnd.view = view
@@ -884,7 +882,7 @@ impl Surface
     private mtd serializeState(ser: *Serializer) fail
     {
         // Save position and surface state
-        if Swag.isSet(.wnd.view) and .wnd.view.id != null
+        if (.wnd.view != null) and .wnd.view.id != null
         {
             // What is persisted is the window the user sized, with the transparent margin taken
             // back out of it. The margin is chrome the theme owns: left in the stored rectangle,

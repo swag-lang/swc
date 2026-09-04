@@ -1189,7 +1189,7 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
 }
 
 // Return true if the string starts with 'str'
-func startsWith(src: #null const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
+func startsWith(src: const [..] u8?, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = src.count
     if !length do

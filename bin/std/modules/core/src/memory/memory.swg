@@ -6,7 +6,7 @@ using Swag
 // Copies bytes between non-overlapping memory regions.
 // A null pointer is accepted only when size is zero.
 #[Inline]
-func copy(destination: #null [*] void, source: #null const [*] void, size: u64)
+func copy(destination: [*] void?, source: const [*] void?, size: u64)
 {
     if size do
         Swag.memcpy(destination, source, size)
@@ -15,7 +15,7 @@ func copy(destination: #null [*] void, source: #null const [*] void, size: u64)
 // Copies bytes between memory regions that may overlap.
 // A null pointer is accepted only when size is zero.
 #[Inline]
-func copyOverlapping(destination: #null [*] void, source: #null const [*] void, size: u64)
+func copyOverlapping(destination: [*] void?, source: const [*] void?, size: u64)
 {
     if size do
         Swag.memmove(destination, source, size)
@@ -23,7 +23,7 @@ func copyOverlapping(destination: #null [*] void, source: #null const [*] void, 
 
 // Compares two byte sequences lexicographically.
 #[Inline]
-func compare(left, right: #null const [*] void, size: u64)->s32
+func compare(left, right: const [*] void?, size: u64)->s32
 {
     if !size do
         return 0
@@ -79,7 +79,7 @@ func releaseTemporaryAllocations()
 
 // Runs a code block with allocator installed as the current allocator.
 #[Swag.Macro]
-func withAllocator(allocator: #null Swag.IAllocator, stmt: #code)
+func withAllocator(allocator: Swag.IAllocator?, stmt: #code)
 {
     let prev = Swag.getContext()
     defer Swag.setContext(prev)

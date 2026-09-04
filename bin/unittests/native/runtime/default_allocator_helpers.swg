@@ -6,7 +6,7 @@ internal struct TestAllocationHeader
 
 internal const TestAllocationHeaderSize = #sizeof(TestAllocationHeader)
 
-internal func testAlloc(size: u64)->#null [*] void
+internal func testAlloc(size: u64)->[*] void?
 {
     if size > Swag.U64.Max - TestAllocationHeaderSize do
         return null
@@ -25,7 +25,7 @@ internal func testAlloc(size: u64)->#null [*] void
     return cast([*] void) (cast([*] u8) header + TestAllocationHeaderSize)
 }
 
-internal func testRealloc(ptr: #null [*] void, size: u64)->#null [*] void
+internal func testRealloc(ptr: [*] void?, size: u64)->[*] void?
 {
     if !ptr do
         return testAlloc(size)
@@ -54,7 +54,7 @@ internal func testRealloc(ptr: #null [*] void, size: u64)->#null [*] void
     return cast([*] void) (cast([*] u8) replacement + TestAllocationHeaderSize)
 }
 
-internal func testFree(ptr: #null [*] void)
+internal func testFree(ptr: [*] void?)
 {
     if !ptr do
         return

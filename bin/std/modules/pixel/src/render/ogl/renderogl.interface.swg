@@ -12,13 +12,13 @@ struct OglContext
 {
     public
     {
-        hDC:    #null const *void     // Platform device context.
-        hRC:    #null const *void     // OpenGL rendering context.
-        hWnd:   #null const *void     // Associated drawable, or `null` for an externally supplied context.
-        width:  s32                   // Drawable width, in pixels.
-        height: s32                   // Drawable height, in pixels.
-        ownsDC: bool                  // Whether dropping the context must release `hDC`.
-        ownsRC: bool                  // Whether dropping the context must delete `hRC`.
+        hDC:    const *void?     // Platform device context.
+        hRC:    const *void?     // OpenGL rendering context.
+        hWnd:   const *void?     // Associated drawable, or `null` for an externally supplied context.
+        width:  s32              // Drawable width, in pixels.
+        height: s32              // Drawable height, in pixels.
+        ownsDC: bool             // Whether dropping the context must release `hDC`.
+        ownsRC: bool             // Whether dropping the context must delete `hRC`.
     }
 }
 
@@ -26,7 +26,7 @@ impl IRenderer for RenderOgl
 {
     mtd const impl needsNativeWindow()->bool => true
 
-    mtd impl createContext(renderHandle: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
+    mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
     {
         Debug.assert(renderHandle != null, "OpenGL renderer contexts need a platform drawable")
         Debug.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
@@ -127,7 +127,7 @@ impl IRenderer for RenderOgl
         .drawImpl(painter)
     }
 
-    mtd impl bindRenderTarget(target: *RenderTarget, vp: #null *Math.Rectangle = null)
+    mtd impl bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null)
     {
         .bindRenderTargetImpl(target, vp)
     }
@@ -227,7 +227,7 @@ impl IRenderer for RenderOgl
         return .acquireRenderTargetImpl(width, height)
     }
 
-    mtd impl releaseRenderTarget(target: #null *RenderTarget)
+    mtd impl releaseRenderTarget(target: *RenderTarget?)
     {
         .releaseRenderTargetImpl(target)
     }

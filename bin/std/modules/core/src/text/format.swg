@@ -111,7 +111,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
             }
 
             // Optional string format, like '%{whatever}'
-            var strFormat: #null const [..] u8
+            var strFormat: const [..] u8?
             if ptr[nextIdx] == '{'u8
             {
                 nextIdx += 1
@@ -150,7 +150,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
             // Deal with the parameter
             Debug.assert(useIdx < numParams, "not enough 'format' parameters")
-            StrConv.convertAny(buf, values[useIdx], convFmt, cast(#null string) strFormat)
+            StrConv.convertAny(buf, values[useIdx], convFmt, cast(string?) strFormat)
         }
         else
         {

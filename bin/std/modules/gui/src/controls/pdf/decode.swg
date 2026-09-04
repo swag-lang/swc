@@ -229,7 +229,7 @@ private func colorComponents(parser: *PdfParser, operands: const [..] ContentOpe
     return cast(u32) count
 }
 
-private func currentPath(path: *LinePathList, current: *#null *LinePath, start: Vector2)->*LinePath
+private func currentPath(path: *LinePathList, current: *(*LinePath?), start: Vector2)->*LinePath
 {
     let result = path.newPath()
     result.start(start.x, start.y)
@@ -755,7 +755,7 @@ private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: 
 //
 // The group's marks are read into a page of the same dimensions as the one being decoded, so its
 // coverage is expressed in the same coordinates as the marks it covers.
-private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, depth: u32)->#null *SoftMaskGroup fail
+private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, depth: u32)->*SoftMaskGroup? fail
 {
     let key    = mask.cacheKey()
     let cached = parser.softMaskCache.tryFind(key)
@@ -917,14 +917,14 @@ private func applyGroupTransparency(parser: *PdfParser, page: *Page, first: u64,
     }
 }
 
-private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, bytes: const [..] u8, decode: PageDecode, initialState: #null const *GraphicsState = null, depth = 0'u32) fail
+private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, bytes: const [..] u8, decode: PageDecode, initialState: const *GraphicsState? = null, depth = 0'u32) fail
 {
     var content = PdfParser{bytes: bytes}
     var operands: Array'ContentOperand
     var state   = initialState ? initialState![] : GraphicsState{}
     var stack:    Array'GraphicsState
     var path:     LinePathList
-    var current:  #null *LinePath
+    var current:  *LinePath?
 
     // A `W` operator names the path under construction as the next clip, and the painting
     // operator that ends the path is what puts it into effect.

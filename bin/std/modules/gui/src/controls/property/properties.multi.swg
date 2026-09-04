@@ -27,7 +27,7 @@ internal impl Properties
     }
 
     // Field address in instance 'k'. Falls back to the single 'data' pointer.
-    mtd instanceAddr(item: *PropertiesItem, k: u64)->#null *u8
+    mtd instanceAddr(item: *PropertiesItem, k: u64)->*u8?
     {
         if k < item.dataInstances.count do
             return item.dataInstances[k]
@@ -43,7 +43,7 @@ internal impl Properties
     // True when the item (or an ancestor) is a dynamic array.
     mtd isUnderDynamicArray(item: *PropertiesItem)->bool
     {
-        var scan = cast(#null *PropertiesItem) item
+        var scan = cast(*PropertiesItem?) item
         while scan
         {
             if isDynamicArrayType(scan.type) do
@@ -78,10 +78,10 @@ internal impl Properties
         if sz == 0 do
             return false
 
-        let a0 = cast(#null const [*] void) item.dataInstances[0]
+        let a0 = cast(const [*] void?) item.dataInstances[0]
         for i in 1 until n
         {
-            if Memory.compare(a0, cast(#null const [*] void) item.dataInstances[i], sz) != 0 do
+            if Memory.compare(a0, cast(const [*] void?) item.dataInstances[i], sz) != 0 do
                 return true
         }
 
@@ -107,7 +107,7 @@ internal impl Properties
             return
 
         for i in 1 until n do
-            Memory.copy(cast(#null [*] void) item.dataInstances[i], cast(#null const [*] void) item.dataInstances[0], sz)
+            Memory.copy(cast([*] void?) item.dataInstances[i], cast(const [*] void?) item.dataInstances[0], sz)
     }
 
     // Show the value box as "mixed" when the instances disagree (blank text + dash note),
@@ -135,10 +135,10 @@ internal impl Properties
         if n <= 1 or sz == 0 do
             return false
 
-        let a0 = cast(#null const [*] void) (cast(#null [*] u8) item.dataInstances[0] + byteOffset)
+        let a0 = cast(const [*] void?) (cast([*] u8?) item.dataInstances[0] + byteOffset)
         for i in 1 until n
         {
-            let ai = cast(#null const [*] void) (cast(#null [*] u8) item.dataInstances[i] + byteOffset)
+            let ai = cast(const [*] void?) (cast([*] u8?) item.dataInstances[i] + byteOffset)
             if Memory.compare(a0, ai, sz) != 0 do
                 return true
         }
@@ -167,7 +167,7 @@ internal impl Properties
     {
         let n = .instanceCount(item)
         for k in n do
-            (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset)![as f32] = val
+            (cast([*] u8?) .instanceAddr(item, k) + byteOffset)![as f32] = val
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -211,7 +211,7 @@ internal impl Properties
 
 private impl Properties
 {
-    func readEnumBits(addr: #null *u8, sz: u64)->u64
+    func readEnumBits(addr: *u8?, sz: u64)->u64
     {
         switch sz
         {
@@ -224,7 +224,7 @@ private impl Properties
         return 0
     }
 
-    func writeEnumBits(addr: #null *u8, sz, val: u64)
+    func writeEnumBits(addr: *u8?, sz, val: u64)
     {
         switch sz
         {
@@ -246,12 +246,12 @@ private impl Properties
         return item.type.sizeof
     }
 
-    func isDynamicArrayType(t: #null typeinfo)->bool
+    func isDynamicArrayType(t: typeinfo?)->bool
     {
         if !t do
             return false
         if !Reflection.isStruct(t) do
             return false
-        return (cast(#null const *Swag.TypeInfoStruct) t).fromGeneric == Array
+        return (cast(const *Swag.TypeInfoStruct?) t).fromGeneric == Array
     }
 }

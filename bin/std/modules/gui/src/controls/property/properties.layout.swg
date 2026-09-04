@@ -10,9 +10,9 @@ internal impl Properties
     // The window into which a row's trailing action widgets are placed. Grid docks them on the row
     // cell; list places them on the name label in local content coordinates. Null for rows with no
     // label in list mode.
-    mtd rowActionArea(item: *PropertiesItem)->#null *Wnd
+    mtd rowActionArea(item: *PropertiesItem)->*Wnd?
     {
-        return .isGridLike() ? item.line : cast(#null *Wnd) item.label
+        return .isGridLike() ? item.line : cast(*Wnd?) item.label
     }
 }
 
@@ -98,7 +98,7 @@ internal impl Properties
         return .listContentWidthFromUseful(.listUsefulWidth())
     }
 
-    mtd setListContentPadding(wnd: #null *Wnd)
+    mtd setListContentPadding(wnd: *Wnd?)
     {
         if .isGridLike() or !wnd do
             return
@@ -114,9 +114,9 @@ internal impl Properties
         return .listContentWidthFromUseful(cast(f32) .editorWidth) - PropRevertGap
     }
 
-    mtd positionListActionButton(item: *PropertiesItem, btn: #null *IconButton)
+    mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton?)
     {
-        if .isGridLike() or !btn or !Swag.isSet(item.label) do
+        if .isGridLike() or !btn or !(item.label != null) do
             return
 
         btn.position.x = Math.round(.listActionRight() - btn.position.width)
@@ -210,7 +210,7 @@ internal impl Properties
 
     mtd syncColumnLabel(item: *PropertiesItem)
     {
-        if !Swag.isSet(item.label) do
+        if !(item.label != null) do
             return
 
         // Note rows own their layout (a full-width info bar with custom paddings), so leave them be.

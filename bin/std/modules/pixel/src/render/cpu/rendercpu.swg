@@ -24,9 +24,9 @@ struct RenderCpu
 
         surface: Image
 
-        stackReleasedRT: Array'#null *RenderTarget
-        stackRT:         Array'#null *RenderTarget
-        curRT:           #null *RenderTarget
+        stackReleasedRT: Array'(*RenderTarget?)
+        stackRT:         Array'(*RenderTarget?)
+        curRT:           *RenderTarget?
 
         worldTransform: Transform2 = Transform2.Identity
         modelTransform: Transform2 = Transform2.Identity
@@ -39,7 +39,7 @@ struct RenderCpu
         colorMask:    ColorMask    = {true, true, true, false}
 
         paintCommand:  Command
-        gradientStops: #null const [..] GradientStop
+        gradientStops: const [..] GradientStop?
         paintOn:       bool
         program:       u8
 
@@ -52,7 +52,7 @@ struct RenderCpu
         stencilMode:    ClippingMode = Set
         stackStencilOn: Array'bool     // Regions suspended by the render targets bound inside them.
 
-        font:           #null *Font
+        font:           *Font?
         fontAtlasIndex: s32 = -1
         fontEffect:     FontEffectParams
         overlapMode:    bool
@@ -142,17 +142,16 @@ private func ensureFontGammaLut()
 // re-deriving transforms, clips, formats, paint textures, and font atlases per pixel.
 private struct RasterBatch
 {
-    image:     #null *Image
-    painter:   #null *Painter
+    image:     *Image?
+    painter:   *Painter?
     start:     u32
     count:     u32
     transform: Transform2
 
-    #[Swag.Late]
-    pixels:    [*] u8     // Target pixel base; rows are stored bottom-up.
-    rowStride: s32
-    width:     s32
-    height:    s32
+    late pixels: [*] u8     // Target pixel base; rows are stored bottom-up.
+    rowStride:   s32
+    width:       s32
+    height:      s32
 
     // Device clip, target bounds and scissor folded into one inclusive pixel rectangle.
     clipMinX: s32
@@ -160,14 +159,13 @@ private struct RasterBatch
     clipMaxX: s32
     clipMaxY: s32
 
-    #[Swag.Late]
-    stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
+    late stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
 
-    solidPaint: bool                        // The paint multiplies by opaque white, which is the identity.
-    paintImage: #null *Image                // Storage of a bound texture paint, resolved once.
-    atlas:      #null const *GlyphAtlas     // Glyph atlas of the bound font, resolved once.
+    solidPaint: bool                   // The paint multiplies by opaque white, which is the identity.
+    paintImage: *Image?                // Storage of a bound texture paint, resolved once.
+    atlas:      const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
 
-    blurWeights:     #null const [*] f32     // Gaussian tap weights owned by the active draw call.
+    blurWeights:     const [*] f32?     // Gaussian tap weights owned by the active draw call.
     blurWeightCount: u64
 }
 
@@ -179,7 +177,7 @@ private struct FontLinearSample
 
 private impl RenderCpu
 {
-    mtd findTexture(handle: TextureHandle)->#null *CpuTexture
+    mtd findTexture(handle: TextureHandle)->*CpuTexture?
     {
         for &texture in .textures where texture.handle == handle do
             return texture
@@ -195,7 +193,7 @@ private impl RenderCpu
         }
     }
 
-    mtd currentImage()->#null *Image
+    mtd currentImage()->*Image?
     {
         if .curRT
         {
@@ -1072,7 +1070,7 @@ private impl RenderCpu
         return Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
     }
 
-    mtd fontAtlas()->#null *GlyphAtlas
+    mtd fontAtlas()->*GlyphAtlas?
     {
         if !.font or .fontAtlasIndex < 0 do
             return null
@@ -2695,7 +2693,7 @@ impl RenderCpu
     //
     // `target` must be a currently unbound pointer returned by
     // [[Pixel.RenderCpu.acquireRenderTarget]]. Ownership transfers back to the renderer.
-    internal mtd releaseRenderTargetImpl(target: #null *RenderTarget)
+    internal mtd releaseRenderTargetImpl(target: *RenderTarget?)
     {
         if target do
             .stackReleasedRT.add(target)

@@ -18,7 +18,7 @@ const InlineCap = 4'u64
 struct SmallVec
 {
     inline:   [InlineCap] s32
-    ptr:      #null [*] s32
+    ptr:      [*] s32?
     count:    u64
     capacity: u64
 }

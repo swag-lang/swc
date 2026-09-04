@@ -35,7 +35,7 @@ impl RichEditCtrl
     }
 
     // Advances the cached horizontal position by one rune.
-    mtd advanceRuneX(line: #null *RichEditLine, i: u64, x: f32)->f32
+    mtd advanceRuneX(line: *RichEditLine?, i: u64, x: f32)->f32
     {
         if !line do
             return x
@@ -62,7 +62,7 @@ impl RichEditCtrl
     }
 
     // Returns rune size.
-    mtd runeSize(line: #null *RichEditLine, i: u64, x: f32)->Math.Point
+    mtd runeSize(line: *RichEditLine?, i: u64, x: f32)->Math.Point
     {
         var size: retval
         size.x = .advanceRuneX(line, i, x) - x
@@ -138,7 +138,7 @@ impl RichEditCtrl
     }
 
     // Returns tab offset.
-    mtd tabAdvance(x: s32, numBlanks: #null *s32 = null)->s32
+    mtd tabAdvance(x: s32, numBlanks: *s32? = null)->s32
     {
         let of        = cast(s32) (x - .leftMargin())
         let fontR     = .font().getFont(.styles[0].fontMode)

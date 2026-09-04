@@ -11,7 +11,7 @@
 struct(T) VisitBag
 {
     count:  u64
-    buffer: #null [*] T
+    buffer: [*] T?
 }
 
 impl VisitBag

@@ -29,7 +29,7 @@ const MaxFormCacheRefresh = 3
 // [Capture.pruneFormCaches] before the form's memory can be recycled.
 struct FormCache
 {
-    form:    #null IForm     // The rendered form; the key of this entry. Set at creation.
+    form:    IForm?          // The rendered form; the key of this entry. Set at creation.
     layer:   Layer           // Retained targets: resolved content, plus the shadow once built.
     zoom:    f32             // View zoom the content was rendered at.
     scale:   f32             // Painter content scale the content was rendered at.
@@ -187,7 +187,7 @@ struct Capture
 
         changed:   bool
         mouseMode: MouseMode = None
-        editView:  #null *EditView
+        editView:  *EditView?
         gizmo:     GizmoRect
         undoMgr:   UndoManager
         hotForm:   u64       = Swag.U64.Max
@@ -242,7 +242,7 @@ struct CaptureSaveJob
 // file flushes this slot first, which keeps one writer per file at all times.
 struct CaptureSaveQueue
 {
-    pending: #null *CaptureSaveJob
+    pending: *CaptureSaveJob?
 }
 
 var g_CaptureSaves: CaptureSaveQueue
@@ -288,7 +288,7 @@ impl CaptureSaveQueue
     // Waits for the save in flight when it targets `file` (any file when null), then
     // returns the file it failed to write, empty otherwise. Every other reader or
     // writer of a capture file goes through here before touching it.
-    mtd flush(file: #null string = null)->String
+    mtd flush(file: string? = null)->String
     {
         if !.pending do
             return ""
@@ -404,7 +404,7 @@ impl CaptureClipboardForm
         }
     }
 
-    mtd toForm(capture: *Capture)->#null IForm
+    mtd toForm(capture: *Capture)->IForm?
     {
         var result: retval
 
@@ -837,7 +837,7 @@ impl Capture
     }
 
     // Job-worker entry of the automatic save.
-    private func saveJobEntry(data: #null *void)
+    private func saveJobEntry(data: *void?)
     {
         let job = cast(*CaptureSaveJob) data!
         catch writeScc(job) else do
@@ -993,7 +993,7 @@ impl Capture
         return capture
     }
 
-    func load(file: String, preview = false, deferPreviewDecode = false)->#null *Capture fail
+    func load(file: String, preview = false, deferPreviewDecode = false)->*Capture? fail
     {
         return try loadScc(file, preview, deferPreviewDecode)
     }
@@ -1140,7 +1140,7 @@ impl Capture
     //////////////////////////////
 
     // Finds the retained rendering of `f`, or null when it has none yet.
-    mtd findFormCache(f: IForm)->#null *FormCache
+    mtd findFormCache(f: IForm)->*FormCache?
     {
         for c in .formCaches
         {
@@ -1713,7 +1713,7 @@ impl Capture
     // SNAP
     //////////////////////////////
 
-    mtd getSnapPoint(bound: Math.Rectangle, right, bottom: bool, nx, ny: s32, idxPt: u32, editForm: #null IForm = null)->Math.Point
+    mtd getSnapPoint(bound: Math.Rectangle, right, bottom: bool, nx, ny: s32, idxPt: u32, editForm: IForm? = null)->Math.Point
     {
         var result: retval
 
@@ -1754,7 +1754,7 @@ impl Capture
         return result
     }
 
-    mtd getSelectionBoundRect(editForm: #null IForm = null)->Math.Rectangle
+    mtd getSelectionBoundRect(editForm: IForm? = null)->Math.Rectangle
     {
         if editForm do
             return editForm.boundRect()
@@ -1772,7 +1772,7 @@ impl Capture
         return bound
     }
 
-    mtd snap(x, y: #null *s32, right, bottom: bool, idxPt: u32 = 0, editForm: #null IForm = null)
+    mtd snap(x, y: *s32?, right, bottom: bool, idxPt: u32 = 0, editForm: IForm? = null)
     {
         const SnapToler = 10
 
@@ -2166,7 +2166,7 @@ impl Capture
                 // A body-drag move ends here (it does NOT go through GizmoRect/sigHasChanged,
                 // unlike a resize). Refresh the Properties panel so x/y reflect the new
                 // position, mirroring the rotate path.
-                if wasMoving and Swag.isSet(view.main.propWnd) do
+                if wasMoving and (view.main.propWnd != null) do
                     view.main.propWnd.selectionHasChanged()
             }
         }
@@ -2375,14 +2375,14 @@ impl Capture
     // SELECTION
     //////////////////////////////
 
-    mtd getSelectedBaseForm()->#null *BaseForm
+    mtd getSelectedBaseForm()->*BaseForm?
     {
         if .selection.isEmpty() do
             return null
         return cast(*BaseForm) (.forms[.selection.back()]).buffer
     }
 
-    mtd getSelectedFormType()->#null typeinfo
+    mtd getSelectedFormType()->typeinfo?
     {
         if .selection.isEmpty() do
             return null

@@ -63,12 +63,10 @@ const LOSSLESS_ALPHABET_SIZES: [LOSSLESS_HUFFMAN_TREES] u32 = [
 
 struct LosslessBitReader
 {
-    #[Swag.Late]
-    ptr: const [*] u8
-    #[Swag.Late]
-    last:  const [*] u8
-    bits:  u64
-    nBits: u32
+    late ptr:  const [*] u8
+    late last: const [*] u8
+    bits:      u64
+    nBits:     u32
 }
 
 impl LosslessBitReader
@@ -382,7 +380,7 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
     }
 }
 
-func losslessDecodeHuffmanTree(reader: *LosslessBitReader, tree: #null *LosslessHuffmanTree, alphabetSize: u32) fail
+func losslessDecodeHuffmanTree(reader: *LosslessBitReader, tree: *LosslessHuffmanTree?, alphabetSize: u32) fail
 {
     if reader.read(1)
     {
@@ -539,7 +537,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
     let groupData = groups.buffer!
     for realIndex in maxGroupIndex + 1
     {
-        var group: #null *LosslessHuffmanGroup
+        var group: *LosslessHuffmanGroup?
         if mapping.count == 0 do
             group = groupData + realIndex
         elif mapping[realIndex] != -1 do
@@ -551,7 +549,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
             if treeIndex == LOSSLESS_HUFF_GREEN and colorCacheBits do
                 alphabetSize += 1 << colorCacheBits
 
-            var tree: #null *LosslessHuffmanTree
+            var tree: *LosslessHuffmanTree?
             if group do
                 tree = &group.trees[treeIndex]
             losslessDecodeHuffmanTree(reader, tree, alphabetSize)

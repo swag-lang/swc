@@ -208,7 +208,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    var cb: #null LambdaUnary
+    var cb: LambdaUnary?
     Swag.assert(cb == null)
 
     cb = &plusTen

@@ -21,7 +21,7 @@ func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 }
 
 // Creates one plugin through the same host API used by the application window.
-func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: #null *Wnd = null, actionParent: #null *Wnd = null, infoParent: #null *Wnd = null, icon: Icon = {}, services: Viewer.HostServices = {})->ViewerSession
+func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = {}, services: Viewer.HostServices = {})->ViewerSession
 {
     var result: retval
     if plugin.attach do
@@ -51,7 +51,7 @@ func collectViewerMatches(collect: Viewer.CollectSearchMatches, view: *Wnd, text
 }
 
 // Completes a viewer worker deterministically, then lets the headless GUI publish its result.
-func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation, timer: #null *Timer)
+func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation, timer: *Timer?)
 {
     Swag.assert(load.started and timer != null)
     Jobs.wait(&load.job)

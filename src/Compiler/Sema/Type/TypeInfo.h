@@ -114,7 +114,7 @@ public:
     bool isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
     // Non-null is the default for nullable-capable types: a bare `*T`, `string`, `[..] T`,
-    // `any`, `cstring`, `[*] T` or `typeinfo` cannot hold null unless qualified with #null.
+    // `any`, `cstring`, `[*] T` or `typeinfo` cannot hold null unless qualified with nullable.
     bool isNonNullable() const noexcept { return isSupportsNullableQualifier() && !flags_.has(TypeInfoFlagsE::Nullable); }
     bool isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
     bool isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }

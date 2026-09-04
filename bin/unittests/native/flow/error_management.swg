@@ -134,7 +134,7 @@ func alwaysFailStrictEnum(code: s32)->FailStrictEnumAlias fail
     fail ErrValue{code: code}
 }
 
-func currentErrCode(err: #null any)->s32
+func currentErrCode(err: any?)->s32
 {
     if err == null do
         return 0
@@ -206,17 +206,17 @@ func aggregateFailure(code: s32)->AggregateResult fail
     fail ErrValue{base: Swag.BaseError{"aggregate failure"}, code: code}
 }
 
-func nullablePointerFailure(code: s32)->#null *s32 fail
+func nullablePointerFailure(code: s32)->*s32? fail
 {
     fail ErrValue{code: code}
 }
 
-func nullableStringFailure(code: s32)->#null string fail
+func nullableStringFailure(code: s32)->string? fail
 {
     fail ErrValue{code: code}
 }
 
-func nullableSliceFailure(code: s32)->#null [..] s32 fail
+func nullableSliceFailure(code: s32)->[..] s32? fail
 {
     fail ErrValue{code: code}
 }
@@ -425,7 +425,7 @@ func dismissAggregateFailureInfo()->AggregateInfo
     return result
 }
 
-func recordExpectPanic(message: #null string, loc: SourceCodeLocation)
+func recordExpectPanic(message: string?, loc: SourceCodeLocation)
 {
     let cxt = Swag.getContext()
     cxt.user0 += 1
@@ -480,7 +480,7 @@ func repeatedCatchFailureSum()->s32
 func catchNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null *s32 = catch nullablePointerFailure(73) as err
+    let value:  *s32? = catch nullablePointerFailure(73) as err
     result.isNull = value == null
     result.hasErr = err != null
     result.code   = currentErrCode(err)
@@ -490,7 +490,7 @@ func catchNullablePointerFailureInfo()->NullInfo
 func catchNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null string = catch nullableStringFailure(74) as err
+    let value:  string? = catch nullableStringFailure(74) as err
     result.isNull = value == null
     result.hasErr = err != null
     result.code   = currentErrCode(err)
@@ -500,7 +500,7 @@ func catchNullableStringFailureInfo()->NullInfo
 func catchNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null [..] s32 = catch nullableSliceFailure(75) as err
+    let value:  [..] s32? = catch nullableSliceFailure(75) as err
     result.isNull = value == null
     result.hasErr = err != null
     result.code   = currentErrCode(err)
@@ -510,7 +510,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func dismissNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null *s32 = catch nullablePointerFailure(76)
+    let value:  *s32? = catch nullablePointerFailure(76)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -520,7 +520,7 @@ func dismissNullablePointerFailureInfo()->NullInfo
 func dismissNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null string = catch nullableStringFailure(77)
+    let value:  string? = catch nullableStringFailure(77)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -530,7 +530,7 @@ func dismissNullableStringFailureInfo()->NullInfo
 func dismissNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null [..] s32 = catch nullableSliceFailure(78)
+    let value:  [..] s32? = catch nullableSliceFailure(78)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -631,22 +631,22 @@ func errIsAsNullInfo()->ErrNullCastInfo
     return result
 }
 
-func notNullMaybePtr(p: *s32)->#null *s32 => p
+func notNullMaybePtr(p: *s32)->*s32? => p
 
 func notNullPointerSuccess()->s32
 {
-    var storage: s32        = 91
-    let maybe:   #null *s32 = notNullMaybePtr(&storage)
-    let ptr                 = maybe!
+    var storage: s32   = 91
+    let maybe:   *s32? = notNullMaybePtr(&storage)
+    let ptr            = maybe!
     #assert(#typeof(ptr) == *s32)
     return ptr[]
 }
 
 func notNullSliceSuccess()->s32
 {
-    var values: [3] s32        = [4, 5, 6]
-    let maybe:  #null [..] s32 = values
-    let slice                  = maybe!
+    var values: [3] s32   = [4, 5, 6]
+    let maybe:  [..] s32? = values
+    let slice             = maybe!
     #assert(#typeof(slice) == [..] s32)
     return slice[1] + cast(s32) slice.count
 }

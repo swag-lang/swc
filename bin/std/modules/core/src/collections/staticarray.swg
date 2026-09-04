@@ -299,7 +299,7 @@ impl StaticArray
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.
     // Asserts if the array does not have enough capacity. Order is preserved.
-    mtd insertAt(index: u64, values: #null const [..] T)
+    mtd insertAt(index: u64, values: const [..] T?)
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
@@ -388,7 +388,7 @@ impl StaticArray
 
     // Appends all elements from a slice to the end of the array.
     // Asserts if the array does not have enough capacity.
-    mtd add(values: #null const [..] T)
+    mtd add(values: const [..] T?)
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count

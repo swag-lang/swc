@@ -8,8 +8,7 @@ struct Pair
 
 struct Holder
 {
-    cb: #null func||(s32)->s32
-}
+    cb: (func||(s32)->s32)?}
 
 struct Capture24
 {
@@ -23,12 +22,12 @@ struct PathTarget
 
 struct PathHolder
 {
-    target: #null *PathTarget
+    target: *PathTarget?
 }
 
 struct PathOwner
 {
-    target: #null *PathTarget
+    target: *PathTarget?
     bias:   s32
 }
 
@@ -39,7 +38,7 @@ var GlobalSeed = 41
 
 func addOne(value: s32)->s32 => value + 1
 func acceptUnary(cb: ClosureUnary)->ClosureUnary => cb
-func acceptNullary(cb: #null ClosureNullary = null)->#null ClosureNullary => cb
+func acceptNullary(cb: ClosureNullary? = null)->ClosureNullary? => cb
 
 impl PathOwner
 {
@@ -51,13 +50,13 @@ impl PathOwner
 
 func semaTest001()
 {
-    var cb: #null ClosureUnary = null
+    var cb: ClosureUnary? = null
     cb = func(value: s32)->s32 { return value + 1 }
     cb = &addOne
     let offset = 7
     cb = func|offset|(value: s32)->s32 { return offset + value }
 
-    #assert(#typeof(cb) == #null ClosureUnary)
+    #assert(#typeof(cb) == ClosureUnary?)
 }
 
 func semaTest002()
@@ -68,7 +67,7 @@ func semaTest002()
     let pair: Pair = {base: 4, step: 6}
     holders[1].cb = func|pair|(value: s32)->s32 { return pair.base + pair.step + value }
 
-    #assert(#typeof(holders[0].cb) == #null ClosureUnary)
+    #assert(#typeof(holders[0].cb) == ClosureUnary?)
     #assert(#typeof(acceptUnary(holders[1].cb!)) == ClosureUnary)
 }
 
@@ -80,7 +79,7 @@ func semaTest003()
 
     #assert(#typeof(globalReader) == ClosureNullary)
     #assert(#typeof(fromLambda) == ClosureUnary)
-    #assert(#typeof(fromNull) == #null ClosureNullary)
+    #assert(#typeof(fromNull) == ClosureNullary?)
 }
 
 func semaTest004()

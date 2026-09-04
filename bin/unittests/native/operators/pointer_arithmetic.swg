@@ -41,7 +41,7 @@ alias PointerArithmeticStrictU8     = u8
     Swag.assert((p - c2) == 1)
 }
 
-#assert(#typeof((cast(#null [*]s32) null) - (cast(#null [*]s32) null)) == s64)
+#assert(#typeof((cast([*] s32?) null) - (cast([*] s32?) null)) == s64)
 
 #test
 {

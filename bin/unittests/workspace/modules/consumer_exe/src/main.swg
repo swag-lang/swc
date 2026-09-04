@@ -68,7 +68,7 @@ func verifyImportedInterfaceTablePreparation()
     let runtimeScore = cast(*Swag.Interface) &dynamicScore
     Swag.assert(runtimeScore != null)
     Swag.assert(runtimeScore.itable == table)
-    Swag.assert(cast(#null const *Swag.TypeInfoStruct) runtimeScore.itable![] == objectInfo)
+    Swag.assert(cast(const *Swag.TypeInfoStruct?) runtimeScore.itable![] == objectInfo)
 
     var concreteScore             = DepTableScore{value: 32}
     var castScore: IDepTableScore = concreteScore
@@ -282,11 +282,11 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassOffsets(offsets0) == 10'u64)
 
     let p0 = ctxSharedPassPointer(null)
-    let p1 = ctxSharedPassPointer(cast(#null *void) 0x1234'u64)
+    let p1 = ctxSharedPassPointer(cast(*void?) 0x1234'u64)
     Swag.assert(p0 == null)
-    Swag.assert(p1 == cast(#null *void) 0x1234'u64)
+    Swag.assert(p1 == cast(*void?) 0x1234'u64)
     Swag.assert(ctxSharedPassMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(#null *void) 0x4567'u64) == 330)
+    Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void?) 0x4567'u64) == 330)
 
     const pairRef: CtxAbiPair = {a: 6, b: 7}
     Swag.assert(ctxSharedPassConstRef(pairRef) == 13)
@@ -307,7 +307,7 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassSlice(values0, 2) == 33)
     Swag.assert(ctxSharedPassSlice(values1, 3) == 404)
     Swag.assert(ctxSharedPassSlice(values2, 0) == -1)
-    Swag.assert(ctxSharedPassAggregatePositions(cast(#null *void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
+    Swag.assert(ctxSharedPassAggregatePositions(cast(*void?) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
     Swag.assert(ctxSharedPassAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
     Swag.assert(ctxSharedPassNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
     Swag.assert(ctxSharedPassKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], CtxAbiEnum.A))

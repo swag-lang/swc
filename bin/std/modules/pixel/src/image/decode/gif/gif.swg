@@ -72,32 +72,32 @@ public struct Decoder
 
     private
     {
-        fd:         s32                // Frame delay of the frame being decoded, in hundredths of a second.
-        width:      u16                // Width of the logical screen.
-        height:     u16                // Height of the logical screen.
-        depth:      u16                // Bit depth declared by the stream.
-        loopCount:  u16                // Loop count from the animation extension, zero for endless.
-        numFrames:  s32                // Number of frames decoded so far.
-        gce:        Gce                // Graphic control extension of the current frame.
-        palette:    #null *Palette     // Palette the current frame resolves against.
-        lct:        Palette            // Local color table of the current frame.
-        gct:        Palette            // Global color table of the stream.
-        fx:         u16                // Left edge of the current frame in the logical screen.
-        fy:         u16                // Top edge of the current frame in the logical screen.
-        fw:         u16                // Width of the current frame.
-        fh:         u16                // Height of the current frame.
-        bgIndex:    u8                 // Background color index of the logical screen.
-        canvas:     #null [*] u8       // Composited logical screen, reused across frames.
-        frame:      Array'u8           // Indices of the frame being decoded.
-        table:      Table              // LZW dictionary of the current frame.
-        animStart:  u64                // Stream offset the animation starts at, for looping.
-        animRemain: u64                // Bytes remaining from 'animStart', for looping.
-        reachEnd:   bool               // Whether the trailer was reached.
-        initDone:   bool               // Whether the header was parsed.
+        fd:         s32           // Frame delay of the frame being decoded, in hundredths of a second.
+        width:      u16           // Width of the logical screen.
+        height:     u16           // Height of the logical screen.
+        depth:      u16           // Bit depth declared by the stream.
+        loopCount:  u16           // Loop count from the animation extension, zero for endless.
+        numFrames:  s32           // Number of frames decoded so far.
+        gce:        Gce           // Graphic control extension of the current frame.
+        palette:    *Palette?     // Palette the current frame resolves against.
+        lct:        Palette       // Local color table of the current frame.
+        gct:        Palette       // Global color table of the stream.
+        fx:         u16           // Left edge of the current frame in the logical screen.
+        fy:         u16           // Top edge of the current frame in the logical screen.
+        fw:         u16           // Width of the current frame.
+        fh:         u16           // Height of the current frame.
+        bgIndex:    u8            // Background color index of the logical screen.
+        canvas:     [*] u8?       // Composited logical screen, reused across frames.
+        frame:      Array'u8      // Indices of the frame being decoded.
+        table:      Table         // LZW dictionary of the current frame.
+        animStart:  u64           // Stream offset the animation starts at, for looping.
+        animRemain: u64           // Bytes remaining from 'animStart', for looping.
+        reachEnd:   bool          // Whether the trailer was reached.
+        initDone:   bool          // Whether the header was parsed.
 
-        streamStart: #null const [*] u8     // Start of the input, kept for looping.
-        stream:      #null const [*] u8     // Current read position in the input.
-        streamLen:   u64                    // Bytes remaining from 'stream'.
+        streamStart: const [*] u8?     // Start of the input, kept for looping.
+        stream:      const [*] u8?     // Current read position in the input.
+        streamLen:   u64               // Bytes remaining from 'stream'.
     }
 }
 

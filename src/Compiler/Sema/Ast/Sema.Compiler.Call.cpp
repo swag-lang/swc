@@ -1117,7 +1117,7 @@ namespace
     }
 
     // Type introspection reflects the DECLARED type of its operand: metaprogramming that
-    // branches on `#typeof(x) == #null T` must not observe flow narrowing.
+    // branches on `#typeof(x) == nullable T` must not observe flow narrowing.
     void unNarrowIntrospectionView(Sema& sema, AstNodeRef childRef, SemaNodeView& view)
     {
         if (!sema.frame().hasNarrowFacts() || !view.typeRef().isValid())

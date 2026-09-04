@@ -785,6 +785,31 @@ namespace
         }
     }
 
+    bool isStorageModifier(const FormatPiece& piece)
+    {
+        return piece.is(TokenId::KwdLate) || piece.is(TokenId::KwdTls) || piece.is(TokenId::KwdGlobal);
+    }
+
+    // Storage modifiers govern the declaration that follows them. Keep that relationship
+    // visible on one line (`late field: T`, `tls private var value`) while preserving a
+    // braced group as its own section.
+    void normalizeStorageModifiers(FormatModel& model)
+    {
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            const FormatPiece& modifier = model.piece(i);
+            if (modifier.removed || modifier.frozen || !isStorageModifier(modifier))
+                continue;
+
+            const uint32_t next = model.nextPiece(i);
+            if (next == INVALID_PIECE || model.piece(next).isComment || model.piece(next).is(TokenId::SymLeftCurly) ||
+                !model.gapHasNewline(next) || !FormatPassUtil::canEditGap(model, next))
+                continue;
+
+            model.setGapSpaces(next, 1);
+        }
+    }
+
     // An unbraced access modifier governs exactly one declaration. Keeping the
     // two on one line makes that scope visible and leaves braced access groups
     // as the only section-shaped form.
@@ -918,6 +943,7 @@ namespace FormatPass
         splitSameLineStatements(model);
         normalizeUsingFields(model);
         normalizeAggregateMembers(model);
+        normalizeStorageModifiers(model);
         normalizeAccessModifiers(model);
         removeTrailingCommas(model);
     }

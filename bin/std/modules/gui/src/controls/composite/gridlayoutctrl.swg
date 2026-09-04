@@ -46,9 +46,9 @@ struct GridLayoutCtrl
         verticalSpacing:   f32 = 5       // Gap between adjacent rows.
     }
 
-    layout:       Array'(#null *Wnd)     // Window assigned to each cell.
-    columnTracks: Array'GridTrack        // Column definitions.
-    rowTracks:    Array'GridTrack        // Row definitions.
+    layout:       Array'(*Wnd?)       // Window assigned to each cell.
+    columnTracks: Array'GridTrack     // Column definitions.
+    rowTracks:    Array'GridTrack     // Row definitions.
 }
 
 impl IWnd for GridLayoutCtrl
@@ -146,7 +146,7 @@ private impl GridLayoutCtrl
         for count do
             result.add(0)
 
-        var done: Array'(#null *Wnd)
+        var done: Array'(*Wnd?)
         let client = .paddedClientRect()
         for row in .numRows
         {
@@ -322,7 +322,7 @@ impl GridLayoutCtrl
         let colWidths  = .computeTrackSizes(.columnTracks.toSlice(), colContent.toSlice(), client.width, .horizontalSpacing, .flags.has(.EqualColumnWidths))
         let rowHeights = .computeTrackSizes(.rowTracks.toSlice(), rowContent.toSlice(), client.height, .verticalSpacing, .flags.has(.EqualRowHeights))
 
-        var done: Array'(#null *Wnd)
+        var done: Array'(*Wnd?)
         var maxW, maxH = 0'f32
         for row in .numRows
         {

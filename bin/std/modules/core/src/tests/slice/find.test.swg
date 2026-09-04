@@ -8,8 +8,8 @@ using Swag
 
 #test
 {
-    var empty:  #null [..] s32 = null
-    let values: [6] s32        = [1, 3, 5, 7, 9, 11]
+    var empty:  [..] s32? = null
+    let values: [6] s32   = [1, 3, 5, 7, 9, 11]
 
     Swag.assert(Slice.findSorted(empty, 1) == Swag.U64.Max)
     Swag.assert(Slice.findSorted(values, 1) == 0)
@@ -46,11 +46,11 @@ using Swag
 
 #test
 {
-    var emptyA: #null [..] s32 = null
-    var emptyB: #null [..] s32 = null
-    let left:   [4] s32        = [1, 2, 3, 4]
-    let same:   [4] s32        = [1, 2, 3, 4]
-    let other:  [4] s32        = [1, 2, 4, 3]
+    var emptyA: [..] s32? = null
+    var emptyB: [..] s32? = null
+    let left:   [4] s32   = [1, 2, 3, 4]
+    let same:   [4] s32   = [1, 2, 3, 4]
+    let other:  [4] s32   = [1, 2, 4, 3]
 
     Swag.assert(Slice.equals(emptyA, emptyB))
     Swag.assert(Slice.equals(left, same))

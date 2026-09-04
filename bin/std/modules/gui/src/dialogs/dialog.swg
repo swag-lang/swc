@@ -8,18 +8,17 @@ struct Dialog
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         // Called before a button result closes the dialog; return false to keep it open.
-        validateResult: #null func||(*Dialog, WndId)->bool
+        validateResult: (func||(*Dialog, WndId)->bool)?
 
         readonly
         {
-            #[Swag.Late]
-            buttonBar:     *StackLayoutCtrl        // Bottom action bar owned by the dialog.
-            buttons:       Array'(*PushButton)     // Buttons in insertion order.
-            parentSurface: #null *Surface          // Surface that owns the modal dialog.
+            late buttonBar: *StackLayoutCtrl        // Bottom action bar owned by the dialog.
+            buttons:        Array'(*PushButton)     // Buttons in insertion order.
+            parentSurface:  *Surface?               // Surface that owns the modal dialog.
         }
     }
 
-    internal contentView: #null *Wnd     // Standard padded body created by the predefined dialog family.
+    internal contentView: *Wnd?     // Standard padded body created by the predefined dialog family.
 }
 
 impl IWnd for Dialog
@@ -41,7 +40,7 @@ impl Dialog
 
     // Creates and centers a compact-caption dialog surface owned by `from`.
     #[Swag.Discardable]
-    func create(from: *Surface, width = 512, height = 300, title: #null string = null, flags = SurfaceFlags.None)->*Dialog
+    func create(from: *Surface, width = 512, height = 300, title: string? = null, flags = SurfaceFlags.None)->*Dialog
     {
         let dlg = Wnd.create'Dialog()
         let srf = dlg.createSurface(from, 0, 0, width, height, flags)
@@ -63,7 +62,7 @@ impl Dialog
     // `No` would have answered `Yes`, and how one carrying a `Do not ask again` option opened on
     // the option instead of on the question. Tab still reaches everything; this is only where the
     // keyboard starts.
-    mtd keyboardEntry()->#null *Wnd
+    mtd keyboardEntry()->*Wnd?
     {
         for stop in FocusOrder.collect(.surface!.wnd).stops where !stop.wndFlags.has(.ActivatesOnKey) do
             return stop
@@ -72,7 +71,7 @@ impl Dialog
 
     // Returns the button Escape and the close cross stand for, or null when the box offers
     // no way out other than answering it.
-    mtd const cancelButton()->#null *PushButton
+    mtd const cancelButton()->*PushButton?
     {
         for btn in .buttons where btn.id == BtnCancel or btn.id == BtnNo do
             return btn
@@ -242,7 +241,7 @@ impl Dialog
 
     // Validates and submits a modal result, returning whether the dialog was allowed to close.
     #[Swag.Discardable]
-    mtd closeWithResult(result: #null WndId)->bool
+    mtd closeWithResult(result: WndId?)->bool
     {
         let safeResult = result orelse ""
         let validator  = .validateResult

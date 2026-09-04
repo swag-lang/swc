@@ -32,8 +32,8 @@ func fallbackString()->string
 #test
 {
     GNullShortCounter = 0
-    var ptr: #null *s32 = null
-    let value           = ptr orelse fallbackPointer()
+    var ptr: *s32? = null
+    let value      = ptr orelse fallbackPointer()
     Swag.assert(value == &GNullShortValue)
     Swag.assert(value[] == 33)
     Swag.assert(GNullShortCounter == 1)
@@ -51,8 +51,8 @@ func fallbackString()->string
 #test
 {
     GNullShortCounter = 0
-    var value: #null string = null
-    let resolved            = value orelse fallbackString()
+    var value: string? = null
+    let resolved       = value orelse fallbackString()
     Swag.assert(resolved == "fallback")
     Swag.assert(GNullShortCounter == 1)
 }

@@ -14,7 +14,7 @@ private const AutoUnmountSubclassId = 0x7353_4372'u64
 private const WmPowerBroadcast      = 0x0218'u32
 private const WmWtsSessionChange    = 0x02B1'u32
 
-private alias NativeWindow = #null const *void
+private alias NativeWindow = const *void?
 
 private struct LastInputInfo
 {

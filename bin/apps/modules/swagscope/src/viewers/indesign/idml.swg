@@ -225,7 +225,7 @@ struct IdmlDocument
     pages:    Array'IdmlPage
 }
 
-private func idmlFindEntry(archive: const *ZipArchive, path: string)->#null const *ZipEntry
+private func idmlFindEntry(archive: const *ZipArchive, path: string)->const *ZipEntry?
 {
     for entry in archive.entries where entry.path == path do
         return entry
@@ -1428,7 +1428,7 @@ private func idmlAppendMasterItems(masters: const *Array'IdmlMaster, pages: *Arr
 // A story is one text flow, potentially crossing several positioned text frames and pages. The
 // package stores its text once; duplicating it in every frame is both visually wrong and expensive
 // for long editorial copy. Preserve paragraph markup and partition it across the linked frames.
-private func idmlFindTextFrame(pages: *Array'IdmlPage, self: string)->#null *IdmlItem
+private func idmlFindTextFrame(pages: *Array'IdmlPage, self: string)->*IdmlItem?
 {
     for &page in pages
     {
@@ -1518,7 +1518,7 @@ private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTab
                 continue
 
             var frames: Array'*IdmlItem
-            var frame:  #null *IdmlItem = item
+            var frame:  *IdmlItem? = item
             while frame and frames.count < IdmlFrameLimit
             {
                 var repeated: bool

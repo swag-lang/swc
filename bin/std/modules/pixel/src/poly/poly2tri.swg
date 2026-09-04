@@ -64,14 +64,14 @@ public struct Tessellate
         // point set. See 'dupRegister'.
         dupCells: HashTable'(u64, u32)     // Cell key to the first slot filed in it.
         dupNext:  Array'u32                // Slot to the next slot filed in the same cell.
-        dupPoint: Array'(#null *Point)     // Slot to its point, or null once forgotten.
+        dupPoint: Array'(*Point?)          // Slot to its point, or null once forgotten.
 
         front:     AdvancingFront     // The advancing front itself.
-        head:      #null *Point       // Left artificial point of the front.
-        tail:      #null *Point       // Right artificial point of the front.
-        afHead:    #null *Node        // Node holding 'head'.
-        afMiddle:  #null *Node        // Node the sweep last searched from.
-        afTail:    #null *Node        // Node holding 'tail'.
+        head:      *Point?            // Left artificial point of the front.
+        tail:      *Point?            // Right artificial point of the front.
+        afHead:    *Node?             // Node holding 'head'.
+        afMiddle:  *Node?             // Node the sweep last searched from.
+        afTail:    *Node?             // Node holding 'tail'.
         polyStart: u64                // Index the current polygon starts at in 'points'.
     }
 }
@@ -85,76 +85,71 @@ public struct Result
 // Stores one tessellation point and its incident constrained edges.
 struct Point
 {
-    using v: Math.Vector2        // Point coordinates in path space.
-    edges:   Array'(*Edge)       // Incident constrained edges.
-    border:  [2] #null *Edge     // Up to two boundary edges.
+    using v: Math.Vector2      // Point coordinates in path space.
+    edges:   Array'(*Edge)     // Incident constrained edges.
+    border:  [2] (*Edge?)      // Up to two boundary edges.
 }
 
 // Connects two tessellation points with a constrained edge.
 struct Edge
 {
-    #[Swag.Late]
-    p: *Point     // Lower endpoint according to Poly2Tri ordering.
-    #[Swag.Late]
-    q: *Point     // Upper endpoint according to Poly2Tri ordering.
+    late p: *Point     // Lower endpoint according to Poly2Tri ordering.
+    late q: *Point     // Upper endpoint according to Poly2Tri ordering.
 }
 
 // Stores one triangle and its adjacency/classification state.
 struct Triangle
 {
-    constrainedEdge: [3] bool                // Whether each opposite edge is constrained.
-    delaunayEdge:    [3] bool                // Temporary Delaunay edge markers.
-    points:          [3] *Point              // Counter-clockwise triangle vertices.
-    neighbors:       [3] #null *Triangle     // Adjacent triangles opposite each point.
-    idx:             u64                     // Result-local triangle index.
-    interior:        bool                    // Whether the triangle belongs to the output interior.
+    constrainedEdge: [3] bool             // Whether each opposite edge is constrained.
+    delaunayEdge:    [3] bool             // Temporary Delaunay edge markers.
+    points:          [3] *Point           // Counter-clockwise triangle vertices.
+    neighbors:       [3] (*Triangle?)     // Adjacent triangles opposite each point.
+    idx:             u64                  // Result-local triangle index.
+    interior:        bool                 // Whether the triangle belongs to the output interior.
 }
 
 struct EdgeEvent
 {
-    constrainedEdge: #null *Edge
+    constrainedEdge: *Edge?
     right:           bool
 }
 
 struct Basin
 {
-    leftNode:    #null *Node
-    bottomNode:  #null *Node
-    rightNode:   #null *Node
+    leftNode:    *Node?
+    bottomNode:  *Node?
+    rightNode:   *Node?
     width:       f64
     leftHighest: bool
 }
 
 struct Node
 {
-    #[Swag.Late]
-    point: *Point
-    #[Swag.Late]
-    triangle: *Triangle
-    next:     #null *Node
-    prev:     #null *Node
-    value:    f64
+    late point:    *Point
+    late triangle: *Triangle
+    next:          *Node?
+    prev:          *Node?
+    value:         f64
 }
 
 struct AdvancingFront
 {
-    head: #null *Node
-    tail: #null *Node
-    #[Swag.Late]
-    searchNode: *Node
+    head:            *Node?
+    tail:            *Node?
+    late searchNode: *Node
 }
 
-func nnPoint(p: #null *Point)->*Point
+func nnPoint(p: *Point?)->*Point
 {
     return p!
 }
 
-func nnNode(n: #null *Node)->*Node
+func nnNode(n: *Node?)->*Node
 {
     return n!
 }
 
-func nnTriangle(t: #null *Triangle)->*Triangle
+func nnTriangle(t: *Triangle?)->*Triangle
 {
     return t!
 }
@@ -278,7 +273,7 @@ impl Triangle
         return -1
     }
 
-    mtd neighborAcross(point: *Point)->#null *Triangle
+    mtd neighborAcross(point: *Point)->*Triangle?
     {
         let idx = .index(point)
         if idx == 0 do
@@ -291,7 +286,7 @@ impl Triangle
         return null
     }
 
-    mtd neighborCW(point: *Point)->#null *Triangle
+    mtd neighborCW(point: *Point)->*Triangle?
     {
         let idx = .index(point)
         if idx == 0 do
@@ -304,7 +299,7 @@ impl Triangle
         return null
     }
 
-    mtd neighborCCW(p: *Point)->#null *Triangle
+    mtd neighborCCW(p: *Point)->*Triangle?
     {
         let idx = .index(p)
         if idx == 0 do
@@ -579,12 +574,12 @@ impl Triangle
 
 impl AdvancingFront
 {
-    mtd locatePoint(point: *Point)->#null *Node
+    mtd locatePoint(point: *Point)->*Node?
     {
-        let px                = point.x
-        let start             = nnNode(.searchNode)
-        var node: #null *Node = start
-        let nx                = start.point.x
+        let px           = point.x
+        let start        = nnNode(.searchNode)
+        var node: *Node? = start
+        let nx           = start.point.x
 
         if px == nx
         {
@@ -626,8 +621,8 @@ impl AdvancingFront
 
     mtd locateNode(x: f32)->*Node
     {
-        let start             = nnNode(.searchNode)
-        var node: #null *Node = start
+        let start        = nnNode(.searchNode)
+        var node: *Node? = start
         if x < start.value
         {
             node = start.prev
@@ -1748,9 +1743,9 @@ impl Tessellate
 
     mtd finalizationPolygon()
     {
-        let headNext           = nnNode(nnNode(.front.head).next)
-        var t: #null *Triangle = headNext.triangle
-        let p                  = headNext.point
+        let headNext      = nnNode(nnNode(.front.head).next)
+        var t: *Triangle? = headNext.triangle
+        let p             = headNext.point
         while t and !t.getConstrainedEdgeCW(p) do
             t = t.neighborCCW(p)
         if t do
@@ -1759,7 +1754,7 @@ impl Tessellate
 
     mtd meshClean(triangle: *Triangle)
     {
-        var stack: Array'#null *Triangle
+        var stack: Array'(*Triangle?)
         stack.add(triangle)
 
         .triIndices.clear()

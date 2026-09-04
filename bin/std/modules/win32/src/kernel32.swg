@@ -4,7 +4,7 @@
 using Swag
 
 alias ATOM                   = u16
-alias HANDLE                 = #null const [*] void
+alias HANDLE                 = const [*] void?
 alias HGLOBAL                = HANDLE
 alias HLOCAL                 = HANDLE
 alias HINSTANCE              = HANDLE
@@ -15,17 +15,17 @@ alias DWORD                  = u32
 alias BOOL                   = s32
 alias BOOLEAN                = u8
 alias BYTE                   = u8
-alias LPBYTE                 = #null *BYTE
+alias LPBYTE                 = *BYTE?
 alias LONG                   = s32
 alias ULONG                  = u32
-alias LPVOID                 = #null [*] void
-alias LPCVOID                = #null const [*] void
-alias LPCSTR                 = #null const [*] u8
-alias PCSTR                  = #null const [*] u8
-alias LPCWSTR                = #null const [*] u16
-alias PCWSTR                 = #null const [*] u16
-alias LPCTSTR                = #null const [*] u16
-alias LPDWORD                = #null *DWORD
+alias LPVOID                 = [*] void?
+alias LPCVOID                = const [*] void?
+alias LPCSTR                 = const [*] u8?
+alias PCSTR                  = const [*] u8?
+alias LPCWSTR                = const [*] u16?
+alias PCWSTR                 = const [*] u16?
+alias LPCTSTR                = const [*] u16?
+alias LPDWORD                = *DWORD?
 alias DWORD_PTR              = u64
 alias ULONG_PTR              = u64
 alias UINT                   = u32
@@ -36,19 +36,19 @@ alias LARGE_INTEGER          = s64
 alias ULARGE_INTEGER         = u64
 alias DWORD64                = u64
 alias ULONG64                = u64
-alias PLONG                  = #null *LONG
+alias PLONG                  = *LONG?
 alias LONG_PTR               = s64
 alias CHAR                   = u8
 alias WCHAR                  = u16
-alias LPSTR                  = #null [*] CHAR
-alias LPWSTR                 = #null [*] WCHAR
-alias LPCH                   = #null [*] CHAR
-alias LPWCH                  = #null [*] WCHAR
+alias LPSTR                  = [*] CHAR?
+alias LPWSTR                 = [*] WCHAR?
+alias LPCH                   = [*] CHAR?
+alias LPWCH                  = [*] WCHAR?
 alias SIZE_T                 = u64
-alias va_list                = #null [*] u8
+alias va_list                = [*] u8?
 
-alias LPTHREAD_START_ROUTINE = func(#null *void)->DWORD
-alias WAITORTIMERCALLBACK    = func(#null *void, BOOL)
+alias LPTHREAD_START_ROUTINE = func(*void?)->DWORD
+alias WAITORTIMERCALLBACK    = func(*void?, BOOL)
 
 const STD_INPUT_HANDLE      = cast #bit (DWORD) -10
 const STD_OUTPUT_HANDLE     = cast #bit (DWORD) -11
@@ -190,7 +190,7 @@ const THREAD_PRIORITY_ERROR_RETURN = 0x7FFFFFFF
 func LOWORD(l: u64) => cast(u32) (l & 0xFFFF)
 func HIWORD(l: u64) => cast(u32) ((l >> 16) & 0xFFFF)
 
-alias SRWLOCK = #null *void
+alias SRWLOCK = *void?
 const SRWLOCK_INIT = cast(SRWLOCK) null
 
 const GMEM_FIXED          = 0x0000
@@ -309,7 +309,7 @@ struct OVERLAPPED
         using data:   union
         {
             fileOffset: OVERLAPPED_OFFSET
-            Pointer:    #null *void
+            Pointer:    *void?
         }
         hEvent: HANDLE
     }
@@ -326,7 +326,7 @@ struct FILE_NOTIFY_INFORMATION
     }
 }
 
-alias LPOVERLAPPED = #null *OVERLAPPED
+alias LPOVERLAPPED = *OVERLAPPED?
 alias LPOVERLAPPED_COMPLETION_ROUTINE = func(DWORD, DWORD, LPOVERLAPPED)
 
 #assert(#sizeof(ATOM) == 2)
@@ -550,26 +550,26 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 {
     func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
     func GetLastError()->DWORD
-    func FormatMessageA(dwFlags: DWORD, lpSource: LPCVOID, dwMessageId: DWORD, dwLanguageId: DWORD, lpBuffer: LPCSTR, nSize: DWORD, Arguments: #null *va_list)->DWORD
+    func FormatMessageA(dwFlags: DWORD, lpSource: LPCVOID, dwMessageId: DWORD, dwLanguageId: DWORD, lpBuffer: LPCSTR, nSize: DWORD, Arguments: *va_list?)->DWORD
     func IsDebuggerPresent()->BOOL
     func DebugBreak()
     func OutputDebugStringA(lpOutputString: LPCSTR)
     func OutputDebugStringW(lpOutputString: LPCWSTR)
     func DebugActiveProcess(procId: DWORD)
-    func GetCommandLineA()->#null const [*] u8
-    func GetCommandLineW()->#null const [*] u16
-    func GetEnvironmentStringsW()->#null [*] WCHAR
-    func FreeEnvironmentStringsW(penv: #null [*] WCHAR)->BOOL
-    func GetEnvironmentVariableW(lpName: LPCWSTR, lpBuffer: #null LPWSTR, nSize: DWORD)->DWORD
+    func GetCommandLineA()->const [*] u8?
+    func GetCommandLineW()->const [*] u16?
+    func GetEnvironmentStringsW()->[*] WCHAR?
+    func FreeEnvironmentStringsW(penv: [*] WCHAR?)->BOOL
+    func GetEnvironmentVariableW(lpName: LPCWSTR, lpBuffer: LPWSTR?, nSize: DWORD)->DWORD
 
-    func GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR)->#null const *void
+    func GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR)->const *void?
     func GetCurrentProcess()->HANDLE
     func GetCurrentProcessId()->DWORD
     func GetModuleFileNameW(hModule: HMODULE, lpFilename: LPWSTR, nSize: DWORD)->DWORD
     func GetModuleHandleA(lpModuleName: LPCSTR)->HMODULE
     func GetModuleHandleW(lpModuleName: LPCWSTR)->HMODULE
     func GetStdHandle(nStdHandle: DWORD)->HANDLE
-    func CreateConsoleScreenBuffer(dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, dwFlags: DWORD, lpScreenBufferData: LPVOID)->HANDLE
+    func CreateConsoleScreenBuffer(dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: const *SECURITY_ATTRIBUTES?, dwFlags: DWORD, lpScreenBufferData: LPVOID)->HANDLE
     func SetConsoleActiveScreenBuffer(hConsoleOutput: HANDLE)
     func WriteConsoleOutputCharacterA(hConsoleOutput: HANDLE, lpCharacter: LPCSTR, nLength: DWORD, dwWriteCoord: DWORD, lpNumberOfCharsWritten: LPDWORD)->BOOL
     func WriteConsoleOutputCharacterW(hConsoleOutput: HANDLE, lpCharacter: LPCTSTR, nLength: DWORD, dwWriteCoord: DWORD, lpNumberOfCharsWritten: LPDWORD)->BOOL
@@ -605,13 +605,13 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func TryAcquireSRWLockExclusive(SRWLock: *SRWLOCK)->BOOL
     func TryAcquireSRWLockShared(SRWLock: *SRWLOCK)->BOOL
 
-    func CreateWaitableTimerA(lpTimerAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCSTR)->HANDLE
-    func CreateWaitableTimerW(lpTimerAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR)->HANDLE
+    func CreateWaitableTimerA(lpTimerAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, lpTimerName: LPCSTR)->HANDLE
+    func CreateWaitableTimerW(lpTimerAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, lpTimerName: LPCWSTR)->HANDLE
     func CancelWaitableTimer(hTimer: HANDLE)->BOOL
-    func SetWaitableTimer(hTimer: HANDLE, lpDueTime: const *LARGE_INTEGER, lPeriod: LONG, pfnCompletionRoutine: #null *void, lpArgToCompletionRoutine: LPVOID, fResume: BOOL)->BOOL
+    func SetWaitableTimer(hTimer: HANDLE, lpDueTime: const *LARGE_INTEGER, lPeriod: LONG, pfnCompletionRoutine: *void?, lpArgToCompletionRoutine: LPVOID, fResume: BOOL)->BOOL
 
     func ReadFile(hFile: HANDLE, lpBuffer: LPVOID, nNumberOfBytesToRead: DWORD, lpNumberOfBytesRead: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
-    func PeekNamedPipe(hNamedPipe: HANDLE, lpBuffer: #null LPVOID, nBufferSize: DWORD, lpBytesRead: #null LPDWORD, lpTotalBytesAvail: #null LPDWORD, lpBytesLeftThisMessage: #null LPDWORD)->BOOL
+    func PeekNamedPipe(hNamedPipe: HANDLE, lpBuffer: LPVOID?, nBufferSize: DWORD, lpBytesRead: LPDWORD?, lpTotalBytesAvail: LPDWORD?, lpBytesLeftThisMessage: LPDWORD?)->BOOL
     func CloseHandle(handle: HANDLE)
     func RtlZeroMemory(destination: LPVOID, length: SIZE_T)->LPVOID
     func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL
@@ -627,7 +627,7 @@ internal namespace Win32Priv
         func SetConsoleTextAttribute(hConsoleOutput: HANDLE, wAttributes: WORD)->BOOL
         func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO)->BOOL
 
-        func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
+        func CreateThread(lpThreadAttributes: *SECURITY_ATTRIBUTES?, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
         func GetThreadPriority(hThread: HANDLE)->s32
         func ResumeThread(hThread: HANDLE)->DWORD
         func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL
@@ -637,52 +637,52 @@ internal namespace Win32Priv
         func ResetEvent(hEvent: HANDLE)->BOOL
         func SetEvent(hEvent: HANDLE)->BOOL
 
-        func CreateJobObjectW(lpJobAttributes: #null *SECURITY_ATTRIBUTES, lpName: #null LPCWSTR)->HANDLE
+        func CreateJobObjectW(lpJobAttributes: *SECURITY_ATTRIBUTES?, lpName: LPCWSTR?)->HANDLE
         func AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE)->BOOL
-        func QueryInformationJobObject(hJob: HANDLE, JobObjectInformationClass: DWORD, lpJobObjectInformation: LPVOID, cbJobObjectInformationLength: DWORD, lpReturnLength: #null *DWORD)->BOOL
+        func QueryInformationJobObject(hJob: HANDLE, JobObjectInformationClass: DWORD, lpJobObjectInformation: LPVOID, cbJobObjectInformationLength: DWORD, lpReturnLength: *DWORD?)->BOOL
         func SetProcessAffinityMask(hProcess: HANDLE, dwProcessAffinityMask: ULONG_PTR)->BOOL
 
-        func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
-        func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
+        func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
+        func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
         func GetExitCodeProcess(hProcess: HANDLE, lpExitCode: LPDWORD)->BOOL
         func TerminateProcess(hProcess: HANDLE, uExitCode: UINT)->BOOL
-        func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: #null const *SECURITY_ATTRIBUTES, nSize: DWORD)->BOOL
+        func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: const *SECURITY_ATTRIBUTES?, nSize: DWORD)->BOOL
         func SetHandleInformation(hObject: HANDLE, dwMask: DWORD, dwFlags: DWORD)->BOOL
-        func CreateEventA(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE
-        func CreateEventW(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE
-        func CreateMutexA(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE
-        func CreateMutexW(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCWSTR)->HANDLE
-        func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: #null *void, dueTime: DWORD, period: DWORD, flags: ULONG)->BOOL
+        func CreateEventA(lpEventAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE
+        func CreateEventW(lpEventAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE
+        func CreateMutexA(lpMutexAttributes: *SECURITY_ATTRIBUTES?, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE
+        func CreateMutexW(lpMutexAttributes: *SECURITY_ATTRIBUTES?, bInitialOwner: BOOL, lpName: LPCWSTR)->HANDLE
+        func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: *void?, dueTime: DWORD, period: DWORD, flags: ULONG)->BOOL
         func DeleteTimerQueueTimer(timerQueue: HANDLE, timer: HANDLE, completionEvent: HANDLE)->BOOL
 
         func WriteFile(hFile: HANDLE, lpBuffer: LPCVOID, nNumberOfBytesToWrite: DWORD, lpNumberOfBytesWritten: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
         func DeleteFileA(lpFileName: LPCSTR)->BOOL
-        func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: #null LPCWSTR, dwFlags: DWORD)->BOOL
+        func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: LPCWSTR?, dwFlags: DWORD)->BOOL
         func DeleteFileW(lpFileName: LPCWSTR)->BOOL
         func GetFileAttributesA(lpFileName: LPCSTR)->DWORD
         func GetFileAttributesW(lpFileName: LPCWSTR)->DWORD
         func GetFileAttributesExA(lpFileName: LPCSTR, fInfoLevelId: GET_FILEEX_INFO_LEVELS, lpFileInformation: LPVOID)->BOOL
         func GetFileAttributesExW(lpFileName: LPCWSTR, fInfoLevelId: GET_FILEEX_INFO_LEVELS, lpFileInformation: LPVOID)->BOOL
-        func CreateFileA(lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
-        func CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
+        func CreateFileA(lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: *SECURITY_ATTRIBUTES?, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
+        func CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: *SECURITY_ATTRIBUTES?, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
         func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD
-        func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: #null *LARGE_INTEGER, dwMoveMethod: DWORD)->BOOL
+        func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: *LARGE_INTEGER?, dwMoveMethod: DWORD)->BOOL
         func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD
         func GetFileSizeEx(hFile: HANDLE, lpFileSize: *LARGE_INTEGER)->BOOL
         func SetEndOfFile(hFile: HANDLE)->BOOL
         func FlushFileBuffers(hFile: HANDLE)->BOOL
-        func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: #null *SECURITY_ATTRIBUTES, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE
+        func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: *SECURITY_ATTRIBUTES?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE
         func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID
         func UnmapViewOfFile(lpBaseAddress: LPCVOID)->BOOL
         func FlushViewOfFile(lpBaseAddress: LPCVOID, dwNumberOfBytesToFlush: SIZE_T)->BOOL
         func DuplicateHandle(hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE, hTargetProcessHandle: HANDLE, lpTargetHandle: *HANDLE, dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwOptions: DWORD)->BOOL
-        func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: #null LPOVERLAPPED_COMPLETION_ROUTINE)->BOOL
+        func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: LPOVERLAPPED_COMPLETION_ROUTINE?)->BOOL
         func GetOverlappedResult(hFile: HANDLE, lpOverlapped: *OVERLAPPED, lpNumberOfBytesTransferred: *DWORD, bWait: BOOL)->BOOL
         func CancelIoEx(hFile: HANDLE, lpOverlapped: LPOVERLAPPED)->BOOL
 
         func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME)->BOOL
         func SystemTimeToFileTime(lpSystemTime: const *SYSTEMTIME, lpFileTime: *FILETIME)->BOOL
-        func SetFileTime(hFile: HANDLE, lpCreationTime: #null const *FILETIME, lpLastAccessTime: #null const *FILETIME, lpLastWriteTime: #null const *FILETIME)->BOOL
+        func SetFileTime(hFile: HANDLE, lpCreationTime: const *FILETIME?, lpLastAccessTime: const *FILETIME?, lpLastWriteTime: const *FILETIME?)->BOOL
 
         func FindFirstFileA(lpFileName: LPCSTR, lpFindFileData: *WIN32_FIND_DATAA)->HANDLE
         func FindFirstFileW(lpFileName: LPCWSTR, lpFindFileData: *WIN32_FIND_DATAW)->HANDLE
@@ -699,8 +699,8 @@ internal namespace Win32Priv
         func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD)->BOOL
         func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD)->BOOL
 
-        func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL
-        func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL
+        func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?)->BOOL
+        func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?)->BOOL
         func RemoveDirectoryA(lpPathName: LPCSTR)->BOOL
         func RemoveDirectoryW(lpPathName: LPCWSTR)->BOOL
         func GetCurrentDirectoryA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD
@@ -709,8 +709,8 @@ internal namespace Win32Priv
         func GetTempPathW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD
         func SetCurrentDirectoryA(lpPathName: LPCSTR)->BOOL
         func SetCurrentDirectoryW(lpPathName: LPCWSTR)->BOOL
-        func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: #null *LPSTR)->DWORD
-        func GetFullPathNameW(lpFileName: LPCTSTR, nBufferLength: DWORD, lpBuffer: LPWSTR, lpFilePart: #null *LPWSTR)->DWORD
+        func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: *LPSTR?)->DWORD
+        func GetFullPathNameW(lpFileName: LPCTSTR, nBufferLength: DWORD, lpBuffer: LPWSTR, lpFilePart: *LPWSTR?)->DWORD
         func GetUserDefaultLocaleName(lpLocaleName: LPWSTR, cchLocaleName: s32)->s32
     }
 }
@@ -747,7 +747,7 @@ internal namespace Win32Priv
             failWinError(GetLastError())
     }
 
-    func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE fail
+    func CreateThread(lpThreadAttributes: *SECURITY_ATTRIBUTES?, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE fail
     {
         let h = Win32Priv.CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
         if h == null do
@@ -814,19 +814,19 @@ internal namespace Win32Priv
             failWinError(GetLastError())
     }
 
-    func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION) fail
+    func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION) fail
     {
         if !Win32Priv.CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
             failWinError(GetLastError())
     }
 
-    func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION) fail
+    func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION) fail
     {
         if !Win32Priv.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
             failWinError(GetLastError())
     }
 
-    func CreateJobObjectW(lpJobAttributes: #null *SECURITY_ATTRIBUTES, lpName: #null LPCWSTR)->HANDLE
+    func CreateJobObjectW(lpJobAttributes: *SECURITY_ATTRIBUTES?, lpName: LPCWSTR?)->HANDLE
     {
         return Win32Priv.CreateJobObjectW(lpJobAttributes, lpName)
     }
@@ -838,7 +838,7 @@ internal namespace Win32Priv
     }
 
     #[Discardable]
-    func QueryInformationJobObject(hJob: HANDLE, JobObjectInformationClass: DWORD, lpJobObjectInformation: LPVOID, cbJobObjectInformationLength: DWORD, lpReturnLength: #null *DWORD)->bool
+    func QueryInformationJobObject(hJob: HANDLE, JobObjectInformationClass: DWORD, lpJobObjectInformation: LPVOID, cbJobObjectInformationLength: DWORD, lpReturnLength: *DWORD?)->bool
     {
         return Win32Priv.QueryInformationJobObject(hJob, JobObjectInformationClass, lpJobObjectInformation, cbJobObjectInformationLength, lpReturnLength) != FALSE
     }
@@ -861,13 +861,13 @@ internal namespace Win32Priv
             failWinError(GetLastError())
     }
 
-    func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: #null LPCWSTR, dwFlags: DWORD) fail
+    func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: LPCWSTR?, dwFlags: DWORD) fail
     {
         if !Win32Priv.MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags) do
             failWinError(GetLastError())
     }
 
-    func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: #null const *SECURITY_ATTRIBUTES, nSize: DWORD) fail
+    func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: const *SECURITY_ATTRIBUTES?, nSize: DWORD) fail
     {
         if !Win32Priv.CreatePipe(hReadPipe, hWritePipe, lpPipeAttributes, nSize) do
             failWinError(GetLastError())
@@ -879,7 +879,7 @@ internal namespace Win32Priv
             failWinError(GetLastError())
     }
 
-    func CreateEventA(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE fail
+    func CreateEventA(lpEventAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateEventA(lpEventAttributes, bManualReset, bInitialState, lpName)
         if !h do
@@ -887,7 +887,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func CreateEventW(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE fail
+    func CreateEventW(lpEventAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateEventW(lpEventAttributes, bManualReset, bInitialState, lpName)
         if !h do
@@ -895,7 +895,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func CreateMutexA(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE fail
+    func CreateMutexA(lpMutexAttributes: *SECURITY_ATTRIBUTES?, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateMutexA(lpMutexAttributes, bInitialOwner, lpName)
         if !h do
@@ -903,7 +903,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func CreateMutexW(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCWSTR)->HANDLE fail
+    func CreateMutexW(lpMutexAttributes: *SECURITY_ATTRIBUTES?, bInitialOwner: BOOL, lpName: LPCWSTR)->HANDLE fail
     {
         let h = Win32Priv.CreateMutexW(lpMutexAttributes, bInitialOwner, lpName)
         if !h do
@@ -911,7 +911,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: #null *void, dueTime: DWORD, period: DWORD, flags: ULONG) fail
+    func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: *void?, dueTime: DWORD, period: DWORD, flags: ULONG) fail
     {
         if !Win32Priv.CreateTimerQueueTimer(phNewTimer, timerQueue, callback, parameter, dueTime, period, flags) do
             failWinError(GetLastError())
@@ -936,7 +936,7 @@ internal namespace Win32Priv
         return res
     }
 
-    func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: #null *SECURITY_ATTRIBUTES, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE fail
+    func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: *SECURITY_ATTRIBUTES?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE fail
     {
         let result = Win32Priv.CreateFileMappingW(hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
         if !result do
@@ -971,7 +971,7 @@ internal namespace Win32Priv
     }
 
     #[Discardable]
-    func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: #null LPOVERLAPPED_COMPLETION_ROUTINE)->BOOL fail
+    func ReadDirectoryChangesW(hDirectory: HANDLE, lpBuffer: LPVOID, nBufferLength: DWORD, bWatchSubtree: BOOL, dwNotifyFilter: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED, lpCompletionRoutine: LPOVERLAPPED_COMPLETION_ROUTINE?)->BOOL fail
     {
         let result = Win32Priv.ReadDirectoryChangesW(hDirectory, lpBuffer, nBufferLength, bWatchSubtree, dwNotifyFilter, lpBytesReturned, lpOverlapped, lpCompletionRoutine)
         if !result and GetLastError() != ERROR_IO_PENDING do
@@ -1003,7 +1003,7 @@ internal namespace Win32Priv
             failWinError(GetLastError())
     }
 
-    func SetFileTime(hFile: HANDLE, lpCreationTime: #null const *FILETIME, lpLastAccessTime: #null const *FILETIME, lpLastWriteTime: #null const *FILETIME) fail
+    func SetFileTime(hFile: HANDLE, lpCreationTime: const *FILETIME?, lpLastAccessTime: const *FILETIME?, lpLastWriteTime: const *FILETIME?) fail
     {
         if !Win32Priv.SetFileTime(hFile, lpCreationTime, lpLastAccessTime, lpLastWriteTime) do
             failWinError(GetLastError())
@@ -1093,7 +1093,7 @@ internal namespace Win32Priv
             failWinError(GetLastError())
     }
 
-    func CreateFileA(lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE fail
+    func CreateFileA(lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: *SECURITY_ATTRIBUTES?, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE fail
     {
         let h = Win32Priv.CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
         if h == INVALID_HANDLE_VALUE do
@@ -1101,7 +1101,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE fail
+    func CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: *SECURITY_ATTRIBUTES?, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE fail
     {
         let h = Win32Priv.CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile)
         if h == INVALID_HANDLE_VALUE do
@@ -1222,7 +1222,7 @@ internal namespace Win32Priv
         return low
     }
 
-    func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: #null *LARGE_INTEGER, dwMoveMethod: DWORD) fail
+    func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: *LARGE_INTEGER?, dwMoveMethod: DWORD) fail
     {
         if !Win32Priv.SetFilePointerEx(hFile, liDistanceToMove, lpNewFilePointer, dwMoveMethod) do
             failWinError(GetLastError())
@@ -1255,7 +1255,7 @@ internal namespace Win32Priv
     }
 
     #[Discardable]
-    func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: #null *LPSTR)->DWORD fail
+    func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: *LPSTR?)->DWORD fail
     {
         let res = Win32Priv.GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, lpFilePart)
         if !res do
@@ -1264,7 +1264,7 @@ internal namespace Win32Priv
     }
 
     #[Discardable]
-    func GetFullPathNameW(lpFileName: LPCTSTR, nBufferLength: DWORD, lpBuffer: LPWSTR, lpFilePart: #null *LPWSTR)->DWORD fail
+    func GetFullPathNameW(lpFileName: LPCTSTR, nBufferLength: DWORD, lpBuffer: LPWSTR, lpFilePart: *LPWSTR?)->DWORD fail
     {
         let res = Win32Priv.GetFullPathNameW(lpFileName, nBufferLength, lpBuffer, lpFilePart)
         if !res do
@@ -1272,14 +1272,14 @@ internal namespace Win32Priv
         return res
     }
 
-    func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES) fail
+    func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?) fail
     {
         let res = Win32Priv.CreateDirectoryA(lpPathName, lpSecurityAttributes)
         if !res do
             failWinError(GetLastError())
     }
 
-    func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES) fail
+    func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: *SECURITY_ATTRIBUTES?) fail
     {
         let res = Win32Priv.CreateDirectoryW(lpPathName, lpSecurityAttributes)
         if !res do

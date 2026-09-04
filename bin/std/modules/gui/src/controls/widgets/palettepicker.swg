@@ -146,7 +146,7 @@ impl PalettePicker
 {
     // Creates an empty palette picker.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*PalettePicker
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PalettePicker
     {
         Debug.assert(parent != null)
         let result = Wnd.create'PalettePicker(parent, null, position, id)

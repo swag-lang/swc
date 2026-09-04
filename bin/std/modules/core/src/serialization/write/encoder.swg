@@ -39,7 +39,7 @@ interface IEncoder
     mtd write(data: const [*] void, type: typeinfo) fail
 
     // Writes buffer u8.
-    mtd writeBufferU8(data: #null const [*] u8, count: u64) fail
+    mtd writeBufferU8(data: const [*] u8?, count: u64) fail
 
     // Writes bool.
     mtd writeBool(value: bool)
@@ -75,7 +75,7 @@ interface IEncoder
     mtd writeF64(value: f64)
 
     // Writes string.
-    mtd writeString(value: #null string)
+    mtd writeString(value: string?)
 }
 
 /*
@@ -139,7 +139,7 @@ impl Encoder
     }
 
     // Write a given Swag.TypeValue.
-    mtd writeTypeValue(typeVal: TypeValue, data: #null const [*] void) fail
+    mtd writeTypeValue(typeVal: TypeValue, data: const [*] void?) fail
     {
         if !typeVal.pointedType do
             fail SerializationError{"missing type value pointed type"}
@@ -151,7 +151,7 @@ impl Encoder
     }
 
     // Write a given value with a given type.
-    mtd writeValue(data: const [*] void, dataType: #null typeinfo) fail
+    mtd writeValue(data: const [*] void, dataType: typeinfo?) fail
     {
         if !dataType do
             fail SerializationError{"missing data type"}
@@ -168,7 +168,7 @@ impl Encoder
                 let itf = cast(const *Swag.Interface) data
                 if !itf.itable and type.flags & .Nullable == 0 do
                     fail SerializationError{"non-null interface value is missing"}
-                let objType = itf.itable ? cast(#null const *Swag.TypeInfoStruct) itf.itable![] : null
+                let objType = itf.itable ? cast(const *Swag.TypeInfoStruct?) itf.itable![] : null
                 discard .serializer.interfaceTypeKey(objType)
             }
         }
@@ -200,7 +200,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = data![as #null typeinfo]
+            let typeType = data![as typeinfo?]
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
@@ -212,10 +212,10 @@ impl Encoder
             .serializer.beginSection(.Raw)
             defer #nofail .serializer.endSection()
 
-            var objType, itfType: #null typeinfo
+            var objType, itfType: typeinfo?
             if itf.itable
             {
-                objType = cast(#null const *Swag.TypeInfoStruct) itf.itable![]
+                objType = cast(const *Swag.TypeInfoStruct?) itf.itable![]
                 itfType = type
             }
 
@@ -235,7 +235,7 @@ impl Encoder
             }
 
             var typeVal: TypeValue
-            typeVal.pointedType = #typeof(#null typeinfo)
+            typeVal.pointedType = #typeof(typeinfo?)
             .writeTypeValue(typeVal, &objType)
 
             if objType
@@ -278,7 +278,7 @@ impl Encoder
 
                 if !treated
                 {
-                    var bufArr = cast(#null const [*] u8) ptrArr.buffer
+                    var bufArr = cast(const [*] u8?) ptrArr.buffer
                     for i in ptrArr.count
                     {
                         .writeValue(bufArr!, safeValueType)
@@ -310,9 +310,9 @@ impl Encoder
             let plan = planFor(structType)
             for &pf in plan.fields
             {
-                if !itf or !itf.writeElement(pf.value, cast(#null const [*] u8) data + pf.value.offset, cast(IEncoder) me[])
+                if !itf or !itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, cast(IEncoder) me[])
                 {
-                    .writeTypeValue(pf.value, cast(#null const [*] u8) data + pf.value.offset)
+                    .writeTypeValue(pf.value, cast(const [*] u8?) data + pf.value.offset)
                 }
             }
 
@@ -408,7 +408,7 @@ impl IEncoder for Encoder
     }
 
     // Writes buffer u8.
-    mtd impl writeBufferU8(data: #null const [*] u8, count: u64) fail
+    mtd impl writeBufferU8(data: const [*] u8?, count: u64) fail
     {
         if !data
         {
@@ -468,5 +468,5 @@ impl IEncoder for Encoder
     mtd impl writeF64(value: f64) => .serializer.writeNative(value)
 
     // Writes string.
-    mtd impl writeString(value: #null string) => .serializer.writeNative(value)
+    mtd impl writeString(value: string?) => .serializer.writeNative(value)
 }

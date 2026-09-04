@@ -154,9 +154,8 @@ private enum FontFamilyKind
 
 private struct SvgTextRun
 {
-    text: String
-    #[Swag.Late]
-    typeFace:      *TypeFace
+    text:          String
+    late typeFace: *TypeFace
     x, y:          f32
     dx, dy:        f32
     fontSize:      f32
@@ -292,7 +291,7 @@ private struct Parser
     filters:   HashTable'(String, SvgFilter)
     styles:    Array'StyleRule
     options:   ParseOptions
-    typeFaces: [FontFamilyKind.count] #null *TypeFace
+    typeFaces: [FontFamilyKind.count] (*TypeFace?)
     svgDepth:  u32
     inDefs:    bool     // Whether parsing currently sits inside a `defs` element.
 }
@@ -1342,7 +1341,7 @@ private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
 }
 
 // Records the vertex a segment just reached, and the direction it left the previous one along.
-private func addMarkerVertex(vertices: #null *Array'MarkerVertex, point, inDir, previousOutDir: Vector2)
+private func addMarkerVertex(vertices: *Array'MarkerVertex?, point, inDir, previousOutDir: Vector2)
 {
     if !vertices do
         return
@@ -1355,7 +1354,7 @@ private func addMarkerVertex(vertices: #null *Array'MarkerVertex, point, inDir, 
 //
 // `vertices` collects the authored vertices markers are placed on; pass null when the element
 // carries none, which is the common case and skips the bookkeeping entirely.
-private func parsePathData(list: *LinePathList, data: string, state: *GroupState, vertices: #null *Array'MarkerVertex = null)
+private func parsePathData(list: *LinePathList, data: string, state: *GroupState, vertices: *Array'MarkerVertex? = null)
 {
     let len = data.count
     var pos = 0'u64
@@ -1366,7 +1365,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
     var ctlX, ctlY: f32     // Last cubic/quadratic control point, for S/T reflection.
     var lastCurve:  u8      // 'c' when the previous command was cubic-ish, 'q' for quadratic.
 
-    var path:    #null *LinePath
+    var path:    *LinePath?
     var started: bool
 
     func number(data: string, pos: *u64, valid: *bool)->f32

@@ -9,9 +9,8 @@ struct SelfRefPool
 {
     public
     {
-        #[Swag.Late]
-        items: [*] SelfRefNode
-        count: u64
+        late items: [*] SelfRefNode
+        count:      u64
     }
 }
 
@@ -19,9 +18,8 @@ struct SelfRefNode
 {
     public
     {
-        #[Swag.Late]
-        parent: *SelfRefNode
-        pool:   SelfRefPool
+        late parent: *SelfRefNode
+        pool:        SelfRefPool
     }
 }
 

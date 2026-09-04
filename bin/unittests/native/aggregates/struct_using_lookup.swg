@@ -6,7 +6,7 @@ struct Inner
 }
 
 #[Swag.Strict]
-alias StructUsingStrictInnerPtr = #null *Inner
+alias StructUsingStrictInnerPtr = *Inner?
 
 struct OuterValue
 {
@@ -15,7 +15,7 @@ struct OuterValue
 
 struct OuterPtr
 {
-    using p: #null *Inner
+    using p: *Inner?
 }
 
 struct OuterStrictPtr

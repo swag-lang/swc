@@ -66,7 +66,7 @@ impl Separator
     // `dock` names that edge, and `form` gives the rule its thickness on the docked axis, so a
     // caller passes no measurement of its own.
     #[Swag.Discardable]
-    func create(parent: *Wnd, dock: DockStyle, form = SeparatorForm.Hairline, id: #null WndId = null)->*Separator
+    func create(parent: *Wnd, dock: DockStyle, form = SeparatorForm.Hairline, id: WndId? = null)->*Separator
     {
         Debug.assert(parent != null)
         Debug.assert(dock == .Top or dock == .Bottom or dock == .Left or dock == .Right, "a separator docks against one edge")

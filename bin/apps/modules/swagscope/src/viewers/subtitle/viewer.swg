@@ -27,14 +27,14 @@ internal struct SubtitleViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         editor:         *RichEditCtrl
         cueButton:      *IconButton
         durationButton: *IconButton
     }
 
-    track:      #null *Subtitle.Track
+    track:      *Subtitle.Track?
     transcript: String
     cueText:    Array'SubtitleViewerCue
     duration:   f64
@@ -242,7 +242,7 @@ func subtitleTimeSeconds(text: string, result: *f64)->bool
     return true
 }
 
-private func loadSubtitleViewer(host: Viewer.Host)->#null *SubtitleViewer fail => try SubtitleViewer.create(host)
+private func loadSubtitleViewer(host: Viewer.Host)->*SubtitleViewer? fail => try SubtitleViewer.create(host)
 
 // Creates the integrated timed-subtitle document view.
 func createSubtitleViewer(host: Viewer.Host)

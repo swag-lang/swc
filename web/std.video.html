@@ -1556,12 +1556,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Encodes the clip to an owned segmented memory buffer.</p>
 <p><span class="code-inline">fileName</span> selects the codec by extension; no file is opened. The result holds the whole encoded stream, which is what a clip already is; <a href="#Video_Clip_save">Video.Clip.save</a> streams to a file instead. Fails when the clip has no frame.</p>
 <p><span class="code-inline">options</span> is <span class="code-inline">null</span> for the defaults of the selected format, or points to that format's options structure, such as <a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.encodeToBytes</span> <a class="api-item-permalink" href="#Video_Clip_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L110">src</a></div>
 <p>Encodes the clip to one contiguous owned byte array.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_frame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.frame</span> <a class="api-item-permalink" href="#Video_Clip_frame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L84">src</a></div>
@@ -1595,7 +1595,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Frames are encoded and written one at a time, so saving never holds the encoded stream in addition to the clip.</p>
 <h2 id="Video_Clip_save_0_Example">Example</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"preview.avi"</span>, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst">EncodeOptions</span>{quality: <span class="SNum">80</span>})</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_width" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.width</span> <a class="api-item-permalink" href="#Video_Clip_width" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L47">src</a></div>
@@ -1641,7 +1641,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_IAudioDecoder_audioTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAudioDecoder.audioTrack</span> <a class="api-item-permalink" href="#Video_IAudioDecoder_audioTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L83">src</a></div>
 <p>Returns a sound track owned by the decoder, or <span class="code-inline">null</span> past the end.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">audioTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="std.audio.html#Audio_SoundFile">SoundFile</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">audioTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.audio.html#Audio_SoundFile">SoundFile</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_IAudioDecoder_audioTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAudioDecoder.audioTrackCount</span> <a class="api-item-permalink" href="#Video_IAudioDecoder_audioTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L80">src</a></div>
@@ -1689,7 +1689,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Writes the stream header for a stream of the geometry and rate <span class="code-inline">info</span> describes.</p>
 <p><span class="code-inline">info.frameCount</span> is zero here: a writer accepts frames until it is ended, so the count is not known when the header is written.</p>
 <p><span class="code-inline">options</span> is <span class="code-inline">null</span> for defaults, or points to the encoder-specific options structure — <a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a> for AVI. A format with nothing to configure ignores it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(sink: *<span class="SCst"><a href="#Video_Sink">Sink</a></span>, info: <span class="SCst"><a href="#Video_StreamInfo">StreamInfo</a></span>, options: <span class="SItr">#null</span> <span class="STpe">any</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(sink: *<span class="SCst"><a href="#Video_Sink">Sink</a></span>, info: <span class="SCst"><a href="#Video_StreamInfo">StreamInfo</a></span>, options: <span class="STpe">any</span>?)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_IEncoder_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IEncoder.end</span> <a class="api-item-permalink" href="#Video_IEncoder_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L54">src</a></div>
@@ -1717,7 +1717,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_ISubtitleDecoder_subtitleTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ISubtitleDecoder.subtitleTrack</span> <a class="api-item-permalink" href="#Video_ISubtitleDecoder_subtitleTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L93">src</a></div>
 <p>Returns a subtitle track owned by the decoder, or <span class="code-inline">null</span> past the end.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">subtitleTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#namespace_Video_Subtitle">Subtitle</a></span>.<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">subtitleTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#namespace_Video_Subtitle">Subtitle</a></span>.<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_ISubtitleDecoder_subtitleTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ISubtitleDecoder.subtitleTrackCount</span> <a class="api-item-permalink" href="#Video_ISubtitleDecoder_subtitleTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L90">src</a></div>
@@ -1770,7 +1770,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Reader_audioTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.audioTrack</span> <a class="api-item-permalink" href="#Video_Reader_audioTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L334">src</a></div>
 <p>Returns sound track <span class="code-inline">index</span>, owned by this reader, or <span class="code-inline">null</span> past the end.</p>
 <p>The track streams from its own file cursor and remains valid until the reader is closed.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="std.audio.html#Audio_SoundFile">SoundFile</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.audio.html#Audio_SoundFile">SoundFile</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_audioTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.audioTrackCount</span> <a class="api-item-permalink" href="#Video_Reader_audioTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L329">src</a></div>
@@ -1918,7 +1918,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Reader_subtitleTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.subtitleTrack</span> <a class="api-item-permalink" href="#Video_Reader_subtitleTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L346">src</a></div>
 <p>Returns subtitle track <span class="code-inline">index</span>, owned by this reader, or <span class="code-inline">null</span> past the end.</p>
 <p>The returned track remains valid until the reader is closed. Its cues use the same media timeline as <a href="#Video_Reader_frameTimestamp">Video.Reader.frameTimestamp</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">subtitleTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#namespace_Video_Subtitle">Subtitle</a></span>.<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">subtitleTrack</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#namespace_Video_Subtitle">Subtitle</a></span>.<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_subtitleTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.subtitleTrackCount</span> <a class="api-item-permalink" href="#Video_Reader_subtitleTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L340">src</a></div>
@@ -2104,7 +2104,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cue</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L484">src</a></div>
 <p>Borrows one cue, or returns null when <span class="code-inline">index</span> is outside the track.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cue</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Subtitle_Cue">Cue</a></span> =&gt; index &lt; .cues.count</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cue</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Subtitle_Cue">Cue</a></span>? =&gt; index &lt; .cues.count</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueContent</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L488">src</a></div>
@@ -2134,7 +2134,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueTextData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueTextData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueTextData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L515">src</a></div>
 <p>Borrows the UTF-8 bytes for one cue. The pointer remains valid while the track is alive.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueTextData</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span></span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueTextData</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueTextLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueTextLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueTextLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L524">src</a></div>
@@ -2169,7 +2169,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayNameData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayNameData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayNameData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L528">src</a></div>
 <p>Borrows the display-name bytes. Use <a href="#Video_Subtitle_Track_displayNameLength">Video.Subtitle.Track.displayNameLength</a> for the size.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameData</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span> =&gt; .name</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>? =&gt; .name</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayNameLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayNameLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayNameLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L532">src</a></div>
@@ -2192,7 +2192,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTagData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTagData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTagData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L536">src</a></div>
 <p>Borrows the language-tag bytes. Use <a href="#Video_Subtitle_Track_languageTagLength">Video.Subtitle.Track.languageTagLength</a> for the size.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagData</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span> =&gt; .language</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>? =&gt; .language</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTagLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTagLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTagLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L540">src</a></div>
@@ -2216,7 +2216,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Loads a track whose lifetime remains owned by the video module.</p>
 <p>A successful call returns a non-null pointer. Call <a href="#Video_Subtitle_Track_destroy">Video.Subtitle.Track.destroy</a> when the track is no longer needed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">func</span> <span class="SFct">loadOwned</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">func</span> <span class="SFct">loadOwned</span>(fileName: <span class="STpe">string</span>)-&gt;*<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>? <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_presentationAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.presentationAt</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_presentationAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L709">src</a></div>
@@ -2261,13 +2261,13 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 }
 
 <span class="SKwd">try</span> writer.<span class="SFct">end</span>()</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(fileName: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, frameRate: <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Writer">Writer</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(fileName: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, frameRate: <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Writer">Writer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_createMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.createMemory</span> <a class="api-item-permalink" href="#Video_Writer_createMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L163">src</a></div>
 <p>Encodes into <span class="code-inline">buffer</span> instead of a file.</p>
 <p><span class="code-inline">fileName</span> selects the encoder by extension; no file is opened. <span class="code-inline">buffer</span> is borrowed, must stay valid until the writer is ended, and holds the whole encoded stream, so this is for a stream a caller already knows is bounded.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createMemory</span>(fileName: <span class="STpe">string</span>, buffer: *<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span>, width, height: <span class="STpe">s32</span>, frameRate: <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Writer">Writer</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createMemory</span>(fileName: <span class="STpe">string</span>, buffer: *<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span>, width, height: <span class="STpe">s32</span>, frameRate: <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Writer">Writer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_encodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.encodableFormats</span> <a class="api-item-permalink" href="#Video_Writer_encodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L107">src</a></div>
@@ -2310,7 +2310,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.344</div>
 </footer>
 </section>
 </main>

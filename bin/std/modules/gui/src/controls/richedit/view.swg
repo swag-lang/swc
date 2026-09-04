@@ -10,12 +10,12 @@ public struct RichEditView
 
     internal
     {
-        ed:               #null *RichEditCtrl     // Control owning the document.
-        visibleCaret:     bool                    // Whether the blinking caret is currently drawn.
-        selMode:          bool                    // Whether a mouse selection gesture is in progress.
-        timerCaret:       #null *Timer            // Timer driving the caret blink.
-        firstLineSelMode: u64                     // Line the current selection gesture started on.
-        lastClientRect:   Math.Rectangle          // Client rectangle of the last layout.
+        ed:               *RichEditCtrl?     // Control owning the document.
+        visibleCaret:     bool               // Whether the blinking caret is currently drawn.
+        selMode:          bool               // Whether a mouse selection gesture is in progress.
+        timerCaret:       *Timer?            // Timer driving the caret blink.
+        firstLineSelMode: u64                // Line the current selection gesture started on.
+        lastClientRect:   Math.Rectangle     // Client rectangle of the last layout.
     }
 }
 

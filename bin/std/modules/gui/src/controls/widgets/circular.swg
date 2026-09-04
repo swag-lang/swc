@@ -674,7 +674,7 @@ impl Circular
 
     // Creates a circular slider, optionally with independent range markers.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false)->*Circular
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, range = false)->*Circular
     {
         Debug.assert(parent != null)
         var pos = position

@@ -58,13 +58,13 @@ struct Decoder
     nalLengthSize: u32
     rbsp:          Array'u8     // Unescape scratch, reused across NAL units.
 
-    sps: #null *Sps     // Active sequence set of the current picture.
-    pps: #null *Pps     // Active picture set of the current picture.
+    sps: *Sps?     // Active sequence set of the current picture.
+    pps: *Pps?     // Active picture set of the current picture.
 
     pool:      Array'*Frame     // Every allocated frame, owned by the decoder.
     shortRefs: Array'*Frame     // Short-term references, most recent first.
     longRefs:  Array'*Frame     // Long-term references, ascending index.
-    current:   #null *Frame     // Picture being decoded.
+    current:   *Frame?          // Picture being decoded.
 
     // Per-macroblock state of the current picture.
     mbInfo:  Array'MbInfo
@@ -251,7 +251,7 @@ impl Decoder
     //
     // The returned frame stays valid until it is both released with [[releaseFrame]] and no
     // longer referenced by the stream itself.
-    mtd decodeAccessUnit(sample: const [..] u8)->#null *Frame fail
+    mtd decodeAccessUnit(sample: const [..] u8)->*Frame? fail
     {
         .frameThreaded = false
         if !try .parseAccessUnit(sample, false) do
@@ -306,7 +306,7 @@ impl Decoder
     }
 
     // Completes entropy parsing and the picture work started by [[prepareAccessUnit]].
-    mtd decodePreparedAccessUnit()->#null *Frame fail
+    mtd decodePreparedAccessUnit()->*Frame? fail
     {
         if .preparedData
         {
@@ -516,7 +516,7 @@ impl Decoder
     }
 
     // Returns the first stored sequence parameter set, which carries the stream geometry.
-    mtd const firstSps()->#null *Sps
+    mtd const firstSps()->*Sps?
     {
         for &stored in .spsSet where stored.valid do
             return stored
@@ -667,7 +667,7 @@ impl Decoder
     // Allocates or reuses a frame for the picture that starts decoding.
     mtd startPicture(frameNum: u32, poc: s32) fail
     {
-        var found: #null *Frame
+        var found: *Frame?
         for candidate in .pool where Atomic.get(&candidate.heldByCaller) == 0 and Atomic.get(&candidate.reconstructionHolds) == 0 and !candidate.isReference()
         {
             found = candidate

@@ -48,13 +48,13 @@ const GL_PERFQUERY_GPA_EXTENDED_COUNTERS_INTEL   = 0x9500
 #[Extension, Swag.PlaceHolder]
 {
     func glBeginPerfQueryINTEL(queryHandle: GLuint)
-    func glCreatePerfQueryINTEL(queryId: GLuint, queryHandle: #null *GLuint)
+    func glCreatePerfQueryINTEL(queryId: GLuint, queryHandle: *GLuint?)
     func glDeletePerfQueryINTEL(queryHandle: GLuint)
     func glEndPerfQueryINTEL(queryHandle: GLuint)
-    func glGetFirstPerfQueryIdINTEL(queryId: #null *GLuint)
-    func glGetNextPerfQueryIdINTEL(queryId: GLuint, nextQueryId: #null *GLuint)
-    func glGetPerfCounterInfoINTEL(queryId: GLuint, counterId: GLuint, counterNameLength: GLuint, counterName: #null *GLchar, counterDescLength: GLuint, counterDesc: #null *GLchar, counterOffset: #null *GLuint, counterDataSize: #null *GLuint, counterTypeEnum: #null *GLuint, counterDataTypeEnum: #null *GLuint, rawCounterMaxValue: #null *GLuint64)
-    func glGetPerfQueryDataINTEL(queryHandle: GLuint, flags: GLuint, dataSize: GLsizei, data: #null *void, bytesWritten: #null *GLuint)
-    func glGetPerfQueryIdByNameINTEL(queryName: #null *GLchar, queryId: #null *GLuint)
-    func glGetPerfQueryInfoINTEL(queryId: GLuint, queryNameLength: GLuint, queryName: #null *GLchar, dataSize: #null *GLuint, noCounters: #null *GLuint, noInstances: #null *GLuint, capsMask: #null *GLuint)
+    func glGetFirstPerfQueryIdINTEL(queryId: *GLuint?)
+    func glGetNextPerfQueryIdINTEL(queryId: GLuint, nextQueryId: *GLuint?)
+    func glGetPerfCounterInfoINTEL(queryId: GLuint, counterId: GLuint, counterNameLength: GLuint, counterName: *GLchar?, counterDescLength: GLuint, counterDesc: *GLchar?, counterOffset: *GLuint?, counterDataSize: *GLuint?, counterTypeEnum: *GLuint?, counterDataTypeEnum: *GLuint?, rawCounterMaxValue: *GLuint64?)
+    func glGetPerfQueryDataINTEL(queryHandle: GLuint, flags: GLuint, dataSize: GLsizei, data: *void?, bytesWritten: *GLuint?)
+    func glGetPerfQueryIdByNameINTEL(queryName: *GLchar?, queryId: *GLuint?)
+    func glGetPerfQueryInfoINTEL(queryId: GLuint, queryNameLength: GLuint, queryName: *GLchar?, dataSize: *GLuint?, noCounters: *GLuint?, noInstances: *GLuint?, capsMask: *GLuint?)
 }

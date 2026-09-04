@@ -146,7 +146,7 @@ impl Frame
 
     // Returns a pointer to luma sample `(x, y)`, which may sit in the padding.
     #[Swag.Inline]
-    mtd const lumaAt(x, y: s32)->#null const [*] u16 => .luma.buffer! + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
+    mtd const lumaAt(x, y: s32)->const [*] u16? => .luma.buffer! + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)
 
     #[Swag.Inline]
     mtd lumaAtMutable(x, y: s32)->[*] u16 => .luma.buffer! + (cast(u64) (y + cast(s32) FramePadding)) * .strideLuma + cast(u64) (x + cast(s32) FramePadding)

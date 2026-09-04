@@ -16,7 +16,7 @@ struct Sink
     internal
     {
         stream:       File.FileStream          // Open file, when the sink writes to a file.
-        buffer:       #null *ConcatBuffer      // Borrowed destination, when the sink writes to memory.
+        buffer:       *ConcatBuffer?           // Borrowed destination, when the sink writes to memory.
         origin:       ConcatBufferPosition     // Cursor the borrowed buffer held when the sink took it.
         path:         String                   // File the sink writes, empty for a memory sink.
         pending:      Array'u8                 // Write window holding bytes not yet handed to the file.

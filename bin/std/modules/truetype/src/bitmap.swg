@@ -32,7 +32,7 @@ impl Bitmap
         .grayCount = 256
     }
 
-    mtd set(rows, width: u32, pitch: s32, buffer: #null [*] u8, pixelMode: PixelMode)
+    mtd set(rows, width: u32, pitch: s32, buffer: [*] u8?, pixelMode: PixelMode)
     {
         .rows      = rows
         .width     = width
@@ -56,11 +56,11 @@ public struct Bitmap
 
     public readonly
     {
-        rows:      u32              // Number of pixel rows.
-        width:     u32              // Number of pixels in each row.
-        pitch:     s32              // Byte distance between consecutive rows.
-        buffer:    #null [*] u8     // Borrowed address of the first pixel, or null when empty.
-        grayCount: u16              // Number of representable coverage levels.
-        pixelMode: PixelMode        // Encoding used by `buffer`.
+        rows:      u32           // Number of pixel rows.
+        width:     u32           // Number of pixels in each row.
+        pitch:     s32           // Byte distance between consecutive rows.
+        buffer:    [*] u8?       // Borrowed address of the first pixel, or null when empty.
+        grayCount: u16           // Number of representable coverage levels.
+        pixelMode: PixelMode     // Encoding used by `buffer`.
     }
 }

@@ -7,16 +7,16 @@
 ////////////////////////////////////////////////////////////
 namespace __Win32RT
 {
-    alias HANDLE                 = #null *void
+    alias HANDLE                 = *void?
     alias DWORD                  = u32
-    alias SRWLOCK                = #null *void
+    alias SRWLOCK                = *void?
     alias USHORT                 = u16
     alias ULONG                  = u32
     alias ULONG64                = u64
     alias CHAR                   = u8
     alias WCHAR                  = u16
     alias BOOL                   = u8
-    alias PFLS_CALLBACK_FUNCTION = func(#null *void)
+    alias PFLS_CALLBACK_FUNCTION = func(*void?)
     alias RtlDecompressBufferFn  = func(USHORT, [*] u8, ULONG, const [*] u8, ULONG, *ULONG)->s32
 
     const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
@@ -41,51 +41,51 @@ namespace __Win32RT
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func RtlCaptureContext(contextRecord: *void)
-        func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void)
-        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT
-        func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void
-        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL
-        func GetProcAddress(hModule: HANDLE, lpProcName: const [*] u8)->#null const *void
-        func GetCommandLineA()->#null const [*] u8
-        func GetCommandLineW()->#null const [*] u16
-        func WideCharToMultiByte(codePage, dwFlags: DWORD, lpWideCharStr: const [*] u16, cchWideChar: s32, lpMultiByteStr: #null [*] u8, cbMultiByte: s32, lpDefaultChar: #null const *u8, lpUsedDefaultChar: #null *s32)->s32
+        func RtlRestoreContext(contextRecord: *void, exceptionRecord: *void?)
+        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: *ULONG?)->USHORT
+        func GetModuleHandleA(lpModuleName: const *u8?)->*void?
+        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: const *u8?, phModule: *(*void?))->BOOL
+        func GetProcAddress(hModule: HANDLE, lpProcName: const [*] u8)->const *void?
+        func GetCommandLineA()->const [*] u8?
+        func GetCommandLineW()->const [*] u16?
+        func WideCharToMultiByte(codePage, dwFlags: DWORD, lpWideCharStr: const [*] u16, cchWideChar: s32, lpMultiByteStr: [*] u8?, cbMultiByte: s32, lpDefaultChar: const *u8?, lpUsedDefaultChar: *s32?)->s32
         func GetStdHandle(nStdHandle: u32)->HANDLE
-        func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32
+        func WriteFile(hFile: HANDLE, lpBuffer: const *void?, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: *u32?, lpOverlapped: *void?)->u32
         func GetCurrentProcess()->HANDLE
         func GetCurrentThreadId()->DWORD
-        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->#null *void
+        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: *void?)->*void?
         func ExitProcess(uExitCode: u32)
         func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void)
         func DebugBreak()
-        func LoadLibraryA(name: const *u8)->#null *void
+        func LoadLibraryA(name: const *u8)->*void?
         func TlsAlloc()->u32
-        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void)->BOOL
-        func TlsGetValue(dwTlsIndex: u32)->#null *void
-        func FlsAlloc(lpCallback: #null PFLS_CALLBACK_FUNCTION)->u32
+        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: *void?)->BOOL
+        func TlsGetValue(dwTlsIndex: u32)->*void?
+        func FlsAlloc(lpCallback: PFLS_CALLBACK_FUNCTION?)->u32
         func FlsFree(dwFlsIndex: u32)->BOOL
-        func FlsSetValue(dwFlsIndex: u32, lpFlsData: #null *void)->BOOL
-        func FlsGetValue(dwFlsIndex: u32)->#null *void
+        func FlsSetValue(dwFlsIndex: u32, lpFlsData: *void?)->BOOL
+        func FlsGetValue(dwFlsIndex: u32)->*void?
         func AcquireSRWLockExclusive(SRWLock: *SRWLOCK)
         func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK)
-        func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void
-        func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
+        func VirtualAlloc(lpAddress: *void?, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->*void?
+        func VirtualFree(lpAddress: *void?, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
         func IsProcessorFeaturePresent(processorFeature: DWORD)->BOOL
     }
 
     #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
     {
-        func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32
+        func MessageBoxA(hWnd: const *void?, lpText: const *void, lpCaption: const *void, uType: u32)->s32
     }
 }
 
 // Windows implementation of the host primitives used by common allocator and TLS policy.
 const AllocatorHostCommitGranularity = 4096'u64
 
-func __hostTlsAlloc()->u64                           => __Win32RT.TlsAlloc()
-func __hostTlsGet(id: u64)->#null *void              => __Win32RT.TlsGetValue(cast(u32) id)
-func __hostTlsSet(id: u64, value: #null *void)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
+func __hostTlsAlloc()->u64                      => __Win32RT.TlsAlloc()
+func __hostTlsGet(id: u64)->*void?              => __Win32RT.TlsGetValue(cast(u32) id)
+func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
 
-func __hostThreadStorageAlloc(cleanup: #null func(#null *void))->u64
+func __hostThreadStorageAlloc(cleanup: (func(*void?))?)->u64
 {
     let slot = __Win32RT.FlsAlloc(cleanup)
     return slot == 0xFFFF_FFFF ? 0 : cast(u64) slot + 1
@@ -97,34 +97,34 @@ func __hostThreadStorageFree(id: u64)
         discard __Win32RT.FlsFree(cast(u32) (id - 1))
 }
 
-func __hostThreadStorageGet(id: u64)->#null *void
+func __hostThreadStorageGet(id: u64)->*void?
 {
     return id ? __Win32RT.FlsGetValue(cast(u32) (id - 1)) : null
 }
 
-func __hostThreadStorageSet(id: u64, value: #null *void)->bool
+func __hostThreadStorageSet(id: u64, value: *void?)->bool
 {
     return id != 0 and __Win32RT.FlsSetValue(cast(u32) (id - 1), value) != 0
 }
 
 func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
 
-func __hostPageReserve(size: u64)->#null [*] u8
+func __hostPageReserve(size: u64)->[*] u8?
 {
-    return cast(#null [*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+    return cast([*] u8?) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
 }
 
-func __hostPageCommit(address: #null *void, size: u64)->bool
+func __hostPageCommit(address: *void?, size: u64)->bool
 {
     return __Win32RT.VirtualAlloc(address, size, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE) != null
 }
 
-func __hostPageDecommit(address: #null *void, size: u64)
+func __hostPageDecommit(address: *void?, size: u64)
 {
     discard __Win32RT.VirtualFree(address, size, __Win32RT.MEM_DECOMMIT)
 }
 
-func __hostPageRelease(address: #null *void, _size: u64)
+func __hostPageRelease(address: *void?, _size: u64)
 {
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }
@@ -247,7 +247,7 @@ namespace __Win32RT
 // The command line this process was launched with, still owned by the operating system and
 // therefore valid for the whole run. The buffer holds the executable path followed by the
 // arguments, which is the shape 'Swag.args()' parses.
-func __osCommandLine()->#null string
+func __osCommandLine()->string?
 {
     // The system states the command line in both eight-bit and wide forms, and only the wide one
     // carries what the user actually typed: the eight-bit one is folded into the machine's legacy
@@ -262,7 +262,7 @@ func __osCommandLine()->#null string
         let bytes = WideCharToMultiByte(CP_UTF8, 0, wide!, -1, null, 0, null, null)
         if bytes > 1
         {
-            let buffer = cast(#null [*] u8) VirtualAlloc(null, cast(u64) bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
+            let buffer = cast([*] u8?) VirtualAlloc(null, cast(u64) bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
             if buffer and WideCharToMultiByte(CP_UTF8, 0, wide!, -1, buffer, bytes, null, null) == bytes do
                 return Swag.makeString(buffer!, cast(u64) (bytes - 1))
         }
@@ -279,7 +279,7 @@ func __osCommandLine()->#null string
 func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_AVX2_INSTRUCTIONS_AVAILABLE) != __Win32RT.FALSE
 
 ////////////////////////////////////////////////////////////
-func __printString(message: #null string)
+func __printString(message: string?)
 {
     if !message or !message.count do
         return
@@ -289,7 +289,7 @@ func __printString(message: #null string)
 }
 
 ////////////////////////////////////////////////////////////
-func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
+func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
@@ -314,7 +314,7 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
     let cxt = Swag.getContext()
     cxt.exceptionLoc       = loc
     cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
-    cxt.exceptionParams[1] = cast(#null const *void) message.buffer
+    cxt.exceptionParams[1] = cast(const *void?) message.buffer
     cxt.exceptionParams[2] = cast(const *void) cast(u64) message.count
     cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
@@ -368,8 +368,8 @@ private struct __HostExceptionRecord
 {
     code:           u32
     flags:          u32
-    nested:         #null *void
-    address:        #null *void
+    nested:         *void?
+    address:        *void?
     parameterCount: u32
     padding:        u32
     information:    [15] u64
@@ -399,17 +399,17 @@ private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
     return 0
 }
 
-func __hostTestInstallHardwareFilter()->#null *void
+func __hostTestInstallHardwareFilter()->*void?
 {
     return __Win32RT.SetUnhandledExceptionFilter(cast() &__hostTestUnhandledFilter)
 }
 
-func __hostTestRestoreHardwareFilter(previous: #null *void)
+func __hostTestRestoreHardwareFilter(previous: *void?)
 {
     discard __Win32RT.SetUnhandledExceptionFilter(previous)
 }
 
-func __captureStack(skip: u32, wh: [..] #null *void)->u32
+func __captureStack(skip: u32, wh: [..] (*void?))->u32
 {
     using __Win32RT
     let nb = RtlCaptureStackBackTrace(skip + 1, cast() wh.count, cast() wh.buffer, null)
@@ -417,9 +417,9 @@ func __captureStack(skip: u32, wh: [..] #null *void)->u32
 }
 
 // Returns the image that owns an address without changing its loader reference count.
-func __hostImageBaseForAddress(address: *void)->#null *void
+func __hostImageBaseForAddress(address: *void)->*void?
 {
-    var result: #null *void
+    var result: *void?
     if __Win32RT.GetModuleHandleExA(6, cast(const *u8) address, &result) == 0 do
         return null
     return result
@@ -429,7 +429,7 @@ private func __peU16(p: [*] u8, off: u64)->u16 => (&p[off])[as u16]
 private func __peU32(p: [*] u8, off: u64)->u32 => (&p[off])[as u32]
 
 // Locates the linker-owned `.swagdbg` payload in one Windows PE image.
-func __hostDebugSection(base: *void)->#null [*] u8
+func __hostDebugSection(base: *void)->[*] u8?
 {
     let image   = cast([*] u8) base
     let ntOff   = cast(u64) __peU32(image, 0x3C)
@@ -461,7 +461,7 @@ func __hostDebugSection(base: *void)->#null [*] u8
 
 // Expands the linker-owned version-2 debug table on first use. Version 1 remains a
 // direct image view for compatibility with artifacts produced by older compilers.
-func __hostDecodeDebugSection(section: [*] u8)->#null [*] u8
+func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
 {
     if __peU32(section, 0) != 0x4244_5753 do
         return null
@@ -485,7 +485,7 @@ func __hostDecodeDebugSection(section: [*] u8)->#null [*] u8
         return null
     let decompress = cast(__Win32RT.RtlDecompressBufferFn) decompressAddress!
 
-    let decoded = cast(#null [*] u8) __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+    let decoded = cast([*] u8?) __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
     if !decoded do
         return null
 
@@ -500,7 +500,7 @@ func __hostDecodeDebugSection(section: [*] u8)->#null [*] u8
     return decoded
 }
 
-func __hostReleaseDecodedDebugSection(section: #null [*] u8)
+func __hostReleaseDecodedDebugSection(section: [*] u8?)
 {
     if section do
         discard __Win32RT.VirtualFree(section, 0, __Win32RT.MEM_RELEASE)

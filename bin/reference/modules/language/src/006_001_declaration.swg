@@ -11,7 +11,7 @@ Each field is defined with a specific type.
 {
     struct MyStruct
     {
-        name: #null string     // Field 'name' of type 'string'
+        name: string?     // Field 'name' of type 'string'
     }
 
     struct MyStruct1
@@ -34,7 +34,7 @@ The trailing separator is optional and can be omitted.
     // Fields separated by commas
     struct MyStruct
     {
-        name: #null string
+        name: string?
         val1: bool
     }
 

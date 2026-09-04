@@ -50,7 +50,7 @@ impl Voice
         return Math.min(target, .decodedBufferCapacity())
     }
 
-    mtd readBuffer()->{ buffer: #null [*] void, size: u64 } fail
+    mtd readBuffer()->{ buffer: [*] void?, size: u64 } fail
     {
         let file = .file!
 

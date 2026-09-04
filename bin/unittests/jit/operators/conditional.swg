@@ -125,13 +125,13 @@ struct CondPair
 
 #test
 {
-    func ternaryCondPointer(cond: #null *void)->s32
+    func ternaryCondPointer(cond: *void?)->s32
     {
         return cond ? 7 : 9
     }
 
     const V0 = #run ternaryCondPointer(cast(*void) 0x1'u64)
-    const V1 = #run ternaryCondPointer(cast(#null *void) 0'u64)
+    const V1 = #run ternaryCondPointer(cast(*void?) 0'u64)
     #assert(V0 == 7)
     #assert(V1 == 9)
 }
@@ -237,8 +237,8 @@ var g_CondSt: CondSt
     func takeF(x: f32)->f32 { return x }
     func retF(c: bool, i: s32)->f32 { return c ? i : 200 }
 
-    let p: #null *CondSt = g_CondTrue ? &g_CondSt : null
-    let f: f32           = p ? p.col : 200
+    let p: *CondSt? = g_CondTrue ? &g_CondSt : null
+    let f: f32      = p ? p.col : 200
     Swag.assert(f == 200.0)
 
     Swag.assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)

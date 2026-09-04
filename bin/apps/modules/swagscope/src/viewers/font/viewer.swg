@@ -23,8 +23,8 @@ private const FontCommandWidth = 456.0
 struct FontViewerContent
 {
     bytes:    Array'u8
-    face:     #null *Face
-    typeFace: #null *TypeFace
+    face:     *Face?
+    typeFace: *TypeFace?
     details:  String
 }
 
@@ -58,7 +58,7 @@ internal struct FontViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:       *Wnd
         sampleEdit:     *EditBox
@@ -71,10 +71,10 @@ internal struct FontViewer
     details:              String
     sampleDefault:        String
     load:                 Viewer.BackgroundLoad'FontViewerContent
-    loadTimer:            #null *Timer
-    reportFailure:        #null Viewer.ReportFailure
-    reportDetails:        #null Viewer.ReportDetails
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    loadTimer:            *Timer?
+    reportFailure:        Viewer.ReportFailure?
+    reportDetails:        Viewer.ReportDetails?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
 }
 
@@ -183,7 +183,7 @@ internal impl FontViewer
         return true
     }
 
-    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure, reportDetails: #null Viewer.ReportDetails, reportLoadingChanged: #null Viewer.ReportLoadingChanged)->*FontViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*FontViewer
     {
         let result = Wnd.create'FontViewer(contentParent, "scope.font")
         result.backgroundStyle      = .View

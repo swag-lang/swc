@@ -2,17 +2,17 @@
 
 // A slice and a string answer a condition with their data pointer, never with their count, so an
 // empty one still answers true. A type that cannot hold null makes that test a constant, while
-// the spelling reads like a test of emptiness, so every boolean context rejects it. A '#null'
+// the spelling reads like a test of emptiness, so every boolean context rejects it. A '?'
 // slice or string keeps all of those spellings: there the test asks a real question.
 
-func boolTestEmptinessNullableString(text: #null string)->s32
+func boolTestEmptinessNullableString(text: string?)->s32
 {
     if text do
         return cast(s32) (text!).count
     return 0
 }
 
-func boolTestEmptinessNullableSlice(values: #null const [..] s32)->s32
+func boolTestEmptinessNullableSlice(values: const [..] s32?)->s32
 {
     while values
     {

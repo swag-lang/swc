@@ -11,5 +11,5 @@ public interface IRichEditLexer
     mtd insertRune(ed: *RichEditCtrl, ch: rune)->bool
 
     // Recomputes lexical state and styles for `line`, with adjacent-line context.
-    mtd compute(linePrev: #null *RichEditLine, line: *RichEditLine, lineNext: #null *RichEditLine)
+    mtd compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
 }

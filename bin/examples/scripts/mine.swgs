@@ -23,7 +23,7 @@ struct Cell
 }
 
 var g_Grid:       [GridSize, GridSize] Cell
-var g_FontCell:   #null *Font
+var g_FontCell:   *Font?
 var g_Lost:       bool
 var g_Win:        bool
 var g_NumMines:   s32

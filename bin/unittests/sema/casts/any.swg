@@ -61,13 +61,13 @@ func semaTest006()
     Swag.assert(x == AnyCompareType)
 }
 
-func acceptNullableStringFromAny(value: #null string)
+func acceptNullableStringFromAny(value: string?)
 {
     Swag.assert(value == "desc")
 }
 
 func semaTest007()
 {
-    var value: #null any = "desc"
+    var value: any? = "desc"
     acceptNullableStringFromAny(value)
 }

@@ -188,7 +188,7 @@ func writeFixture(name: string, bytes: const [..] u8)->String
 }
 
 // Returns the first row carrying `label`, or `null` when the report never wrote one.
-func findRow(report: const *BinaryReport, label: string)->#null const *BinaryRow
+func findRow(report: const *BinaryReport, label: string)->const *BinaryRow?
 {
     for row in report.rows where row.label == label do
         return row

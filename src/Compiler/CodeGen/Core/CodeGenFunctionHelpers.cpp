@@ -828,9 +828,9 @@ namespace
 
         const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field.offset());
 
-        // A 'Swag.Late' field is typed non-null, so the generic implicit-default
+        // A 'late' field is typed non-null, so the generic implicit-default
         // path would skip it ("needs explicit initialization"). Its storage
-        // must instead start as null so 'Swag.isSet' reads false: zero it.
+        // must instead start as null so a presence comparison reads false: zero it.
         if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
         {
             CodeGenMemoryHelpers::emitMemZero(codeGen, fieldAddressReg, fieldSize);

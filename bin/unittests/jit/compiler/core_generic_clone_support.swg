@@ -3,7 +3,7 @@ using Swag
 
 namespace GenericCloneCodegenSupport
 {
-    func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
+    func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
     {
         if !buffer do
             return
@@ -16,7 +16,7 @@ namespace GenericCloneCodegenSupport
         talloc.free(&req)
     }
 
-    func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null)->#null [*] void
+    func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null)->[*] void?
     {
         var req: AllocatorRequest
         req.address = buffer
@@ -30,8 +30,8 @@ namespace GenericCloneCodegenSupport
 
     struct(T) BufferBox
     {
-        allocator: #null IAllocator
-        buffer:    #null [*] T
+        allocator: IAllocator?
+        buffer:    [*] T?
         count:     u64
         capacity:  u64
     }
@@ -43,7 +43,7 @@ namespace GenericCloneCodegenSupport
             if newCapacity <= .capacity do
                 return
 
-            .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 

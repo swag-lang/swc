@@ -10,14 +10,14 @@ using Core, Pixel
 #[Swag.NoDoc]
 public struct HtmlLayout
 {
-    #[Swag.Late]
+    late
     {
         document: *HtmlDocument
         pool:     *HtmlValuePool
         theme:    *Theme
     }
 
-    images: #null *HtmlImageCache
+    images: *HtmlImageCache?
 
     defaults:     HtmlStyleDefaults
     styles:       Array'HtmlComputedStyle
@@ -42,7 +42,7 @@ public struct HtmlLayout
 
     // The face each style resolves to, filled lazily; painting asks once per drawn run and the
     // theme lookup is not free at that rate.
-    fontCache: Array'(#null *Font)
+    fontCache: Array'(*Font?)
 
     // The next ordinal of each list being built, so a ten-thousand-item list does not walk its
     // siblings once per item.
@@ -220,7 +220,7 @@ impl HtmlLayout
     }
 
     // Builds the whole box tree from a styled document.
-    mtd build(document: *HtmlDocument, resolver: *HtmlStyleResolver, theme: *Theme, images: #null *HtmlImageCache)
+    mtd build(document: *HtmlDocument, resolver: *HtmlStyleResolver, theme: *Theme, images: *HtmlImageCache?)
     {
         .document = document
         .theme    = theme

@@ -10,7 +10,7 @@ namespace WinFsp
         return args.count >= 2 and args[1] == WinFspGuardianArgument
     }
 
-    func guardianErrorText(err: #null any)->string
+    func guardianErrorText(err: any?)->string
     {
         switch err
         {

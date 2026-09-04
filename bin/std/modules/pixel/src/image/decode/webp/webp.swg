@@ -45,7 +45,7 @@ func vp8YuvToB(y, u: s32)->u8
 struct Chunk
 {
     kind: u32
-    data: #null const [*] u8
+    data: const [*] u8?
     size: u32
 }
 

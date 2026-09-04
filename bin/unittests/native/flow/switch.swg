@@ -49,7 +49,7 @@ alias StrictSwitchF32       = f32
 
 #test
 {
-    func switchPointer(v: #null const *s32)->s32
+    func switchPointer(v: const *s32?)->s32
     {
         switch v
         {

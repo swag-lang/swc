@@ -50,7 +50,7 @@ impl IValue for Counter
 // Interface stored as struct field and dispatched through it.
 struct Holder
 {
-    itf: #null IValue
+    itf: IValue?
 }
 
 func increment(h: *Holder)

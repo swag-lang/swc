@@ -50,7 +50,7 @@ impl BreadcrumbCtrl
 {
     // Creates an empty breadcrumb control.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*BreadcrumbCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*BreadcrumbCtrl
     {
         Debug.assert(parent != null)
         var pos = position
@@ -74,7 +74,7 @@ impl BreadcrumbCtrl
 
     // Appends a level and returns its index.
     #[Swag.Discardable]
-    mtd addItem(name: string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: #null string = null)->u64
+    mtd addItem(name: string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: string? = null)->u64
     {
         let index = .items.count
         var it: BreadcrumbItem

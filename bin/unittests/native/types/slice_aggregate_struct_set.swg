@@ -11,7 +11,7 @@
 struct Wrapped
 {
     length: u64
-    ptr:    #null const *u8
+    ptr:    const *u8?
 }
 
 impl Wrapped

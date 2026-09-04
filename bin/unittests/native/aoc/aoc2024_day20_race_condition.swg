@@ -33,8 +33,8 @@ const Unvisited = 0xFFFFFFFF'u32
 
 struct Grid
 {
-    cells:   #null [*] u8
-    dist:    #null [*] u32     // distance from S along the single path
+    cells:   [*] u8?
+    dist:    [*] u32?     // distance from S along the single path
     w:       u32
     h:       u32
     sr:      u32
@@ -47,8 +47,8 @@ struct Grid
 func gridInit()->Grid
 {
     var g: Grid
-    g.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxCells)
-    g.dist  = cast(#null [*] u32) testAlloc(cast(u64) MaxCells * #sizeof(u32))
+    g.cells = cast([*] u8?) testAlloc(cast(u64) MaxCells)
+    g.dist  = cast([*] u32?) testAlloc(cast(u64) MaxCells * #sizeof(u32))
     let cells = g.cells!
     let dist  = g.dist!
     for index in MaxCells

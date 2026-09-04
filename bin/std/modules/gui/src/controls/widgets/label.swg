@@ -39,7 +39,7 @@ struct Label
     }
 
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
-    hotChunk: #null *RichChunk
+    hotChunk: *RichChunk?
 }
 
 impl IWnd for Label
@@ -240,7 +240,7 @@ impl Label
 
     // Creates a label with optional wrapping, sizing, and link behavior.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .None)->*Label
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: LabelFlags = .None)->*Label
     {
         Debug.assert(parent != null)
         var pos = position
@@ -255,7 +255,7 @@ impl Label
     }
 
     // Replaces the displayed rich text and reapplies automatic sizing.
-    mtd setText(text: #null string)
+    mtd setText(text: string?)
     {
         if .name == (text orelse "") do
             return

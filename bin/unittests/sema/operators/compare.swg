@@ -2,25 +2,25 @@
 
 func semaTest001()
 {
-    var a: #null *s32
-    var b: #null *s8
+    var a: *s32?
+    var b: *s8?
     let c = a == b
     let d = a <= b
 }
 
 func semaTest002()
 {
-    var a: #null *s32 = null
-    let b             = a == null
-    let c             = a != null
+    var a: *s32? = null
+    let b        = a == null
+    let c        = a != null
     #assert(#typeof(b) == bool)
     #assert(#typeof(c) == bool)
 }
 
 func semaTest003()
 {
-    var a: #null *s32
-    var b: #null *s8
+    var a: *s32?
+    var b: *s8?
     let c = a < b
     let d = a > b
     let e = a >= b
@@ -92,7 +92,7 @@ impl ICompareAllocator for CompareAllocator
 
 struct CompareAllocatorHolder
 {
-    allocator: #null ICompareAllocator
+    allocator: ICompareAllocator?
 }
 
 impl CompareAllocatorHolder

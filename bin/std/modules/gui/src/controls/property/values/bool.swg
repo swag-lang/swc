@@ -2,7 +2,7 @@ internal impl Properties
 {
     mtd refreshBool(item: *PropertiesItem)
     {
-        if Swag.isSet(item.checkBox)
+        if item.checkBox != null
         {
             // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
             if .fieldIsMixed(item) do
@@ -11,7 +11,7 @@ internal impl Properties
                 item.checkBox.setState(item.data![as bool] ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
-        elif Swag.isSet(item.comboBox)
+        elif item.comboBox != null
         {
             // Multi-selection: clear the selection when the instances disagree.
             if .fieldIsMixed(item) do
@@ -24,9 +24,9 @@ internal impl Properties
     mtd validateBool(item: *PropertiesItem)
     {
         var data = cast(*bool) item.data!
-        if Swag.isSet(item.checkBox) do
+        if item.checkBox != null do
             data[] = item.checkBox.isChecked()
-        elif Swag.isSet(item.comboBox)
+        elif item.comboBox != null
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
             let sel = item.comboBox.selectedIndex
@@ -40,13 +40,13 @@ internal impl Properties
 
     // Bool shown as a two-entries combo (the BoolCombo attribute): 'off' labels false,
     // 'on' labels true.
-    mtd constructBoolCombo(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructBoolCombo(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         let item = .addItem(value, data, parentItem)
 
         if .kind == .Panel
         {
-            if Swag.isSet(item.label) do
+            if item.label != null do
                 item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
@@ -83,7 +83,7 @@ internal impl Properties
         item.comboBox.sigChanged += func|prop = me, item|(ed, n) { prop.validateBool(item) }
     }
 
-    mtd constructBool(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructBool(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?)
     {
         if Reflection.hasAttribute(value, .BoolCombo)
         {
@@ -95,7 +95,7 @@ internal impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
-            if Swag.isSet(itemP.label) do
+            if itemP.label != null do
                 itemP.label.hide()
             with let ed = CheckButton.create(itemP.line!, itemDisplayName(value).toString())
             {
@@ -131,7 +131,7 @@ internal impl Properties
         else do
             line.layoutSpec.alignX = .Stretch
 
-        if !Swag.isSet(item.label)
+        if !(item.label != null)
         {
             line.margin.y = .listNameMarginBefore
             line.margin.w = .listNameMarginAfter

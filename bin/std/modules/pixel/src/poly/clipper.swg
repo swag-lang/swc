@@ -90,18 +90,16 @@ struct IntRect
 
 struct IntersectNode
 {
-    #[Swag.Late]
-    edge1: *Edge
-    #[Swag.Late]
-    edge2: *Edge
-    pt:    IntPoint
+    late edge1: *Edge
+    late edge2: *Edge
+    pt:         IntPoint
 }
 
 struct LocalMinimum
 {
     y:          CInt
-    leftBound:  #null *Edge
-    rightBound: #null *Edge
+    leftBound:  *Edge?
+    rightBound: *Edge?
 }
 
 impl LocalMinimum
@@ -124,13 +122,13 @@ struct Edge
     windCnt:   s32
     windCnt2:  s32
     outIdx:    s32
-    next:      #null *Edge
-    prev:      #null *Edge
-    nextInLML: #null *Edge
-    nextInAEL: #null *Edge
-    prevInAEL: #null *Edge
-    nextInSEL: #null *Edge
-    prevInSEL: #null *Edge
+    next:      *Edge?
+    prev:      *Edge?
+    nextInLML: *Edge?
+    nextInAEL: *Edge?
+    prevInAEL: *Edge?
+    nextInSEL: *Edge?
+    prevInSEL: *Edge?
 }
 
 struct OutRec
@@ -138,18 +136,18 @@ struct OutRec
     idx:       s32
     isHole:    bool
     isOpen:    bool
-    firstLeft: #null *OutRec
-    polyNd:    #null *PolyNode
-    pts:       #null *OutPt
-    bottomPt:  #null *OutPt
+    firstLeft: *OutRec?
+    polyNd:    *PolyNode?
+    pts:       *OutPt?
+    bottomPt:  *OutPt?
 }
 
 struct OutPt
 {
     idx:  s32
     pt:   IntPoint
-    next: #null *OutPt
-    prev: #null *OutPt
+    next: *OutPt?
+    prev: *OutPt?
 }
 
 struct PolyNode
@@ -159,7 +157,7 @@ struct PolyNode
     jointype: JoinType
     contour:  ClipperPath
     childs:   Array'(*PolyNode)
-    parent:   #null *PolyNode
+    parent:   *PolyNode?
 }
 
 impl PolyNode
@@ -175,10 +173,9 @@ impl PolyNode
 
 struct Join
 {
-    #[Swag.Late]
-    outPt1: *OutPt
-    outPt2: #null *OutPt
-    offPt:  IntPoint
+    late outPt1: *OutPt
+    outPt2:      *OutPt?
+    offPt:       IntPoint
 }
 
 // Performs integer polygon clipping and Boolean operations.
@@ -221,18 +218,18 @@ public struct Transform
         usingPolyTree:     bool                                    // Whether the result is built as a hierarchy.
         edgeList:          Array'{ edge: [*] Edge, rank: u64 }     // Edge pool of the input paths.
         minimaList:        Array'LocalMinimum                      // Local minima, in scanbeam order.
-        polyOuts:          Array'#null *OutRec                     // Output records being stitched.
-        joinList:          Array'#null *Join                       // Pending joins between output points.
-        ghostJoinList:     Array'#null *Join                       // Joins deferred to a later scanbeam.
-        intersectList:     Array'#null *IntersectNode              // Intersections of the current scanbeam.
+        polyOuts:          Array'(*OutRec?)                        // Output records being stitched.
+        joinList:          Array'(*Join?)                          // Pending joins between output points.
+        ghostJoinList:     Array'(*Join?)                          // Joins deferred to a later scanbeam.
+        intersectList:     Array'(*IntersectNode?)                 // Intersections of the current scanbeam.
         scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
         maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
         clipFillType:      PolyFillType                            // Fill rule of the clip paths.
         subjFillType:      PolyFillType                            // Fill rule of the subject paths.
         clipType:          ClipType                                // Boolean operation being performed.
         currentLM:         u64                                     // Index of the next local minimum to enter.
-        activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
-        sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.
+        activeEdges:       *Edge?                                  // Active edge list of the current scanbeam.
+        sortedEdges:       *Edge?                                  // Sorted edge list used while resolving intersections.
 
         // Output records and points live exactly as long as one clipping operation: the sweep
         // creates them, tidying the result unlinks some of them, and the rest are released
@@ -251,13 +248,13 @@ public struct Transform
 impl Transform
 {
     #[Swag.Inline]
-    func nnEdge(e: #null *Edge)->*Edge => e!
+    func nnEdge(e: *Edge?)->*Edge => e!
     #[Swag.Inline]
-    func nnOutPt(p: #null *OutPt)->*OutPt => p!
+    func nnOutPt(p: *OutPt?)->*OutPt => p!
     #[Swag.Inline]
-    func nnOutRec(r: #null *OutRec)->*OutRec => r!
+    func nnOutRec(r: *OutRec?)->*OutRec => r!
     #[Swag.Inline]
-    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => n!
+    func nnIntersect(n: *IntersectNode?)->*IntersectNode => n!
 
     // Records carved per block. Large enough that a whole ordinary operation fits in one.
     private const RecordBlockSize = 512'u64
@@ -430,7 +427,7 @@ impl Transform
             e = nnEdge(ef.next)
 
         var leftBoundIsForward: bool
-        var eMin:               #null *Edge
+        var eMin:               *Edge?
         for
         {
             e = findNextLocMin(e!)
@@ -831,7 +828,7 @@ impl Transform
         e.nextInSEL, e.prevInSEL = null
     }
 
-    mtd popEdgeFromSEL(edge: *#null *Edge)->bool
+    mtd popEdgeFromSEL(edge: *(*Edge?))->bool
     {
         if !.sortedEdges do
             return false
@@ -842,7 +839,7 @@ impl Transform
 
     mtd processHorizontals()
     {
-        var horzEdge: #null *Edge
+        var horzEdge: *Edge?
         while .popEdgeFromSEL(&horzEdge) do
             .processHorizontal(nnEdge(horzEdge))
     }
@@ -863,7 +860,7 @@ impl Transform
         }
     }
 
-    func getMaximaPair(e: *Edge)->#null *Edge
+    func getMaximaPair(e: *Edge)->*Edge?
     {
         let next = nnEdge(e.next)
         let prev = nnEdge(e.prev)
@@ -874,7 +871,7 @@ impl Transform
         return null
     }
 
-    func getNextInAEL(e: *Edge, dir: Direction)->#null *Edge
+    func getNextInAEL(e: *Edge, dir: Direction)->*Edge?
     {
         return dir == .LeftToRight ? e.nextInAEL : e.prevInAEL
     }
@@ -911,7 +908,7 @@ impl Transform
         while eLastHorz.nextInLML and isHorizontal(nnEdge(eLastHorz.nextInLML)) do
             eLastHorz = nnEdge(eLastHorz.nextInLML)
 
-        var eMaxPair: #null *Edge
+        var eMaxPair: *Edge?
         if !eLastHorz.nextInLML do
             eMaxPair = getMaximaPair(eLastHorz)
 
@@ -937,7 +934,7 @@ impl Transform
             }
         }
 
-        var op1: #null *OutPt
+        var op1: *OutPt?
         for
         {
             let isLastHorz = (horzEdge == eLastHorz)
@@ -1346,7 +1343,7 @@ impl Transform
         var pp          = nnOutPt(outrec.pts)
         let preserveCol = .preserveCollinear or .strictSimple
 
-        var lastOK: #null *OutPt
+        var lastOK: *OutPt?
         for
         {
             if pp.prev == pp or pp.prev == pp.next
@@ -1751,7 +1748,7 @@ impl Transform
         return result
     }
 
-    func poly2ContainsPoly1(outPt1, outPt2: #null *OutPt)->bool
+    func poly2ContainsPoly1(outPt1, outPt2: *OutPt?)->bool
     {
         var op = nnOutPt(outPt1)
         for
@@ -1767,9 +1764,9 @@ impl Transform
         return true
     }
 
-    func parseFirstLeft(fl: *OutRec)->#null *OutRec
+    func parseFirstLeft(fl: *OutRec)->*OutRec?
     {
-        var firstLeft: #null *OutRec = fl
+        var firstLeft: *OutRec? = fl
         while firstLeft and !firstLeft.pts do
             firstLeft = firstLeft.firstLeft
         return firstLeft
@@ -1906,7 +1903,7 @@ impl Transform
         return e.top.y == y and !e.nextInLML
     }
 
-    func getMaximaPairEx(e: *Edge)->#null *Edge
+    func getMaximaPairEx(e: *Edge)->*Edge?
     {
         let result = getMaximaPair(e)
         if result and
@@ -2031,7 +2028,7 @@ impl Transform
         {
             if isIntermediate(nnEdge(e), topY)
             {
-                var op: #null *OutPt
+                var op: *OutPt?
                 if e.outIdx >= 0 do
                     op = .addOutPt(nnEdge(e), nnEdge(e).top)
                 e = .updateEdgeIntoAEL(e)
@@ -2350,7 +2347,7 @@ impl Transform
             return e2.curr.x < e1.curr.x
     }
 
-    mtd insertEdgeIntoAEL(edge: *Edge, startE: #null *Edge)
+    mtd insertEdgeIntoAEL(edge: *Edge, startE: *Edge?)
     {
         var startEdge = startE
         if !.activeEdges
@@ -2590,7 +2587,7 @@ impl Transform
     mtd setHoleState(e: *Edge, outrec: *OutRec)
     {
         var e2 = e.prevInAEL
-        var eTmp: #null *Edge
+        var eTmp: *Edge?
         while e2
         {
             if e2.outIdx >= 0 and e2.windDelta != 0
@@ -2664,7 +2661,7 @@ impl Transform
     {
         var result: *OutPt
         var e:      *Edge
-        var prevE:  #null *Edge
+        var prevE:  *Edge?
 
         if isHorizontal(e2) or (e1.dx > e2.dx)
         {
@@ -2740,7 +2737,7 @@ impl Transform
 
     func outRec1RightOfOutRec2(o1, outRec2: *OutRec)->bool
     {
-        var outRec1: #null *OutRec = o1
+        var outRec1: *OutRec? = o1
         while outRec1
         {
             outRec1 = outRec1.firstLeft
@@ -2803,7 +2800,7 @@ impl Transform
 
     func getBottomPt(pp1: *OutPt)->*OutPt
     {
-        var dups: #null *OutPt
+        var dups: *OutPt?
         var pp = pp1
         var p  = nnOutPt(pp.next)
         while p != pp
@@ -3160,14 +3157,14 @@ impl Transform
 
     mtd insertLocalMinimaIntoAEL(botY: CInt)
     {
-        var lm: #null const *LocalMinimum
+        var lm: const *LocalMinimum?
         while .popLocalMinima(botY, &lm)
         {
             let lmn = lm!
             let lb  = lmn.leftBound
             let rb  = lmn.rightBound
 
-            var op1: #null *OutPt
+            var op1: *OutPt?
             if !lb
             {
                 .insertEdgeIntoAEL(nnEdge(rb), null)
@@ -3210,7 +3207,7 @@ impl Transform
             if !lb or !rb do
                 continue
 
-            // if #null any output polygons share an edge, they'll need joining later ...
+            // if ? any output polygons share an edge, they'll need joining later ...
             if op1 and isHorizontal(nnEdge(rb)) and !.ghostJoinList.isEmpty() and (rb.windDelta != 0)
             {
                 for i in .ghostJoinList.count
@@ -3253,7 +3250,7 @@ impl Transform
         }
     }
 
-    func pointCount(pts: #null *OutPt)->s32
+    func pointCount(pts: *OutPt?)->s32
     {
         if !pts do
             return 0

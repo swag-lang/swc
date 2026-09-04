@@ -2,37 +2,37 @@
 
 func typedNullString()->bool
 {
-    let value = cast(#null string) null
+    let value = cast(string?) null
     return value == null and value.count == 0
 }
 
 func typedNullSlice()->bool
 {
-    let value = cast(#null [..] s32) null
+    let value = cast([..] s32?) null
     return value == null and value.count == 0
 }
 
 func typedNullAny()->bool
 {
-    let value = cast(#null any) null
+    let value = cast(any?) null
     return value == null
 }
 
 func typedNullCString()->bool
 {
-    let value = cast(#null cstring) null
+    let value = cast(cstring?) null
     return value == null and value.count == 0
 }
 
 func typedNullConstBytes()->bool
 {
-    let value = cast(#null const [..] u8) null
+    let value = cast(const [..] u8?) null
     return value == null and value.count == 0
 }
 
 func typedNullPointerOrelse()->bool
 {
-    let value         = cast(#null *s32) null
+    let value         = cast(*s32?) null
     var fallback: s32 = 19
     let resolved      = value orelse &fallback
     return value == null and resolved == &fallback and resolved[] == 19
@@ -40,7 +40,7 @@ func typedNullPointerOrelse()->bool
 
 func typedNullConditional(flag: bool)->bool
 {
-    let left          = cast(#null string) null
+    let left          = cast(string?) null
     let right: string = "ok"
     let resolved      = flag ? left : right
     if flag do
@@ -50,7 +50,7 @@ func typedNullConditional(flag: bool)->bool
 
 func typedNullSliceConditional(flag: bool)->bool
 {
-    let left = cast(#null const [..] s32) null
+    let left = cast(const [..] s32?) null
     const storage: [2] s32 = [7, 8]
     let right: const [..] s32 = storage
     let resolved              = flag ? left : right
@@ -62,8 +62,8 @@ func typedNullSliceConditional(flag: bool)->bool
 
 func typedNullDataOf()->bool
 {
-    let str = cast(#null string) null
-    let slc = cast(#null [..] s32) null
+    let str = cast(string?) null
+    let slc = cast([..] s32?) null
     return str.buffer == null and slc.buffer == null
 }
 

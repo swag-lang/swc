@@ -1,18 +1,16 @@
 #global private
 
-// 'Swag.Late' global: accepted without an initializer (unlike a bare non-null global),
-// exposed as a non-null type, guarded at every read, and inspectable with 'Swag.isSet'.
+// 'late' global: accepted without an initializer (unlike a bare non-null global),
+// exposed as a non-null type, guarded at every read, and inspectable with a null comparison.
 
 struct LateGlobalSemaItem
 {
     value: s32
 }
 
-var g_lateSemaStorage: LateGlobalSemaItem
-#[Swag.Late]
-var g_lateSemaItem: *LateGlobalSemaItem
-#[Swag.Late]
-var g_lateSemaName: string
+var g_lateSemaStorage:   LateGlobalSemaItem
+late var g_lateSemaItem: *LateGlobalSemaItem
+late var g_lateSemaName: string
 
 // The exposed type is non-null.
 #assert(#typeof(g_lateSemaItem) == *LateGlobalSemaItem)
@@ -26,10 +24,10 @@ func lateSemaRead()->s32
     return lateSemaTakesNonNull(g_lateSemaItem)
 }
 
-// 'Swag.isSet' inspects the storage without reading the value.
-func lateSemaIsSet()->bool
+// A null comparison inspects the storage without reading the value.
+func lateSemaPresence()->bool
 {
-    return Swag.isSet(g_lateSemaItem) and Swag.isSet(g_lateSemaName)
+    return (g_lateSemaItem != null) and (g_lateSemaName != null)
 }
 
 // Assignment sets it; the target is not a guarded read.

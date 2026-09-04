@@ -58,7 +58,7 @@ func fakeClear()
     g_Fake.enabled = enabled
 }
 
-func fakeFind(fmt: ValueFormat)->#null *FakeTypedData
+func fakeFind(fmt: ValueFormat)->*FakeTypedData?
 {
     for i in g_Fake.typed.count
     {
@@ -69,7 +69,7 @@ func fakeFind(fmt: ValueFormat)->#null *FakeTypedData
     return null
 }
 
-func fakeAddTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
+func fakeAddTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 {
     var entry = fakeFind(fmt)
     if !entry
@@ -84,7 +84,7 @@ func fakeAddTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u
     e.data.add(data)
 }
 
-func fakeGetTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
+func fakeGetTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 {
     var result: retval
     let entry = fakeFind(fmt)

@@ -34,7 +34,7 @@ struct GdiplusStartupInput
     public
     {
         GdiplusVersion:           u32
-        DebugEventCallback:       #null *void
+        DebugEventCallback:       *void?
         SuppressBackgroundThread: BOOL
         SuppressExternalCodecs:   BOOL
     }
@@ -53,32 +53,32 @@ struct GpRectF
 
 #[Foreign("Gdiplus", callconv: Swag.CallConv.C)]
 {
-    func GdiplusStartup(token: *u64, input: const *GdiplusStartupInput, output: #null *void)->GpStatus
+    func GdiplusStartup(token: *u64, input: const *GdiplusStartupInput, output: *void?)->GpStatus
     func GdiplusShutdown(token: u64)
 }
 
 #[Foreign("Gdiplus", callconv: Swag.CallConv.C), Discardable]
 {
-    func GdipCreateBitmapFromScan0(width, height, stride: s32, format: s32, scan0: #null [*] u8, bitmap: *#null *GpBitmap)->GpStatus
+    func GdipCreateBitmapFromScan0(width, height, stride: s32, format: s32, scan0: [*] u8?, bitmap: *(*GpBitmap?))->GpStatus
     func GdipDisposeImage(image: *GpImage)->GpStatus
-    func GdipGetImageGraphicsContext(image: *GpImage, graphics: *#null *GpGraphics)->GpStatus
+    func GdipGetImageGraphicsContext(image: *GpImage, graphics: *(*GpGraphics?))->GpStatus
     func GdipDeleteGraphics(graphics: *GpGraphics)->GpStatus
     func GdipSetSmoothingMode(graphics: *GpGraphics, smoothingMode: s32)->GpStatus
     func GdipSetPixelOffsetMode(graphics: *GpGraphics, pixelOffsetMode: s32)->GpStatus
     func GdipSetTextRenderingHint(graphics: *GpGraphics, mode: s32)->GpStatus
     func GdipGraphicsClear(graphics: *GpGraphics, color: u32)->GpStatus
-    func GdipCreateFontFamilyFromName(name: LPCWSTR, collection: #null *void, fontFamily: *#null *GpFontFamily)->GpStatus
+    func GdipCreateFontFamilyFromName(name: LPCWSTR, collection: *void?, fontFamily: *(*GpFontFamily?))->GpStatus
     func GdipDeleteFontFamily(fontFamily: *GpFontFamily)->GpStatus
-    func GdipCreateStringFormat(formatAttributes: s32, language: u16, format: *#null *GpStringFormat)->GpStatus
+    func GdipCreateStringFormat(formatAttributes: s32, language: u16, format: *(*GpStringFormat?))->GpStatus
     func GdipDeleteStringFormat(format: *GpStringFormat)->GpStatus
-    func GdipCreatePath(fillMode: s32, path: *#null *GpPath)->GpStatus
+    func GdipCreatePath(fillMode: s32, path: *(*GpPath?))->GpStatus
     func GdipDeletePath(path: *GpPath)->GpStatus
     func GdipAddPathString(path: *GpPath, text: LPCWSTR, length: s32, family: *GpFontFamily, style: s32, emSize: f32, layoutRect: const *GpRectF, format: *GpStringFormat)->GpStatus
-    func GdipGetPathWorldBounds(path: *GpPath, bounds: *GpRectF, matrix: #null *GpMatrix, pen: #null *GpPen)->GpStatus
-    func GdipCreatePen1(color: u32, width: f32, unit: s32, pen: *#null *GpPen)->GpStatus
+    func GdipGetPathWorldBounds(path: *GpPath, bounds: *GpRectF, matrix: *GpMatrix?, pen: *GpPen?)->GpStatus
+    func GdipCreatePen1(color: u32, width: f32, unit: s32, pen: *(*GpPen?))->GpStatus
     func GdipSetPenLineJoin(pen: *GpPen, lineJoin: s32)->GpStatus
     func GdipDeletePen(pen: *GpPen)->GpStatus
-    func GdipCreateSolidFill(color: u32, brush: *#null *GpSolidFill)->GpStatus
+    func GdipCreateSolidFill(color: u32, brush: *(*GpSolidFill?))->GpStatus
     func GdipDeleteBrush(brush: *GpBrush)->GpStatus
     func GdipDrawPath(graphics: *GpGraphics, pen: *GpPen, path: *GpPath)->GpStatus
     func GdipFillPath(graphics: *GpGraphics, brush: *GpBrush, path: *GpPath)->GpStatus

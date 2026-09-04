@@ -1232,7 +1232,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // The generated Pixel API page stays progressive, preserves its independently scrolled rail
 // across partial rebuilds, resolves a fragment from the next chunk, and keeps the browser's
-// one-line header. The test deliberately stops after that second 48 KiB chunk: exercising a
+// one-line header. The test deliberately stops after that third 48 KiB chunk: exercising a
 // progressive frame must not turn every GUI configuration into a full megabyte-layout benchmark.
 #test
 {
@@ -1255,6 +1255,12 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(view.elementById("api-reference") == HtmlNoNode)
     Swag.assert(view.navigateToFragment("#api-reference"))
     Swag.assert(view.scrollRegion(rail, 180))
+
+    view.streamStep()
+    Swag.assert(view.isLoading())
+    rail = view.boxOfNode(findClass(&view.document, "left"))
+    Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollTop == 180)
+    Swag.assert(view.elementById("api-reference") == HtmlNoNode)
 
     view.streamStep()
     Swag.assert(view.isLoading())

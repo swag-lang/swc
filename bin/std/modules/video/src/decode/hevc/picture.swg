@@ -16,14 +16,14 @@ using Core, Core.Errors
 private struct WppRowJob
 {
     using base:    Jobs.Job
-    owner:         #null *Decoder
-    worker:        #null *Decoder
-    bounds:        #null const [*] u64
-    jobs:          #null [*] WppRowJob
-    progress:      #null [*] u32
-    states:        #null [*] CabacState
-    events:        #null [*] Sync.Event
-    failed:        #null *u32
+    owner:         *Decoder?
+    worker:        *Decoder?
+    bounds:        const [*] u64?
+    jobs:          [*] WppRowJob?
+    progress:      [*] u32?
+    states:        [*] CabacState?
+    events:        [*] Sync.Event?
+    failed:        *u32?
     row:           u32
     rowCount:      u32
     width:         u32
@@ -149,7 +149,7 @@ impl Decoder
     }
 
     // Completes the picture header published by [[prepareNalUnit]].
-    mtd decodePreparedPicture()->#null *Frame fail
+    mtd decodePreparedPicture()->*Frame? fail
     {
         if !.preparedPicture do
             return null
@@ -276,7 +276,7 @@ impl Decoder
     // Finishes the open picture: loop filters, edge extension, and publication.
     //
     // Returns the picture that finished, or nothing when none was open.
-    mtd finishPicture()->#null *Frame fail
+    mtd finishPicture()->*Frame? fail
     {
         let frame = .current
         if !frame do
@@ -712,7 +712,7 @@ impl Decoder
     }
 }
 
-private func runWppRow(data: #null *void)
+private func runWppRow(data: *void?)
 {
     let job = cast(*WppRowJob) data!
     if Atomic.get(job.failed!) != 0

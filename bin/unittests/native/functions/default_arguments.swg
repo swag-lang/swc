@@ -80,7 +80,7 @@ func stringDefaultTag(value: string = "abc")->s32
     return 0
 }
 
-func pointerDefaultIsNull(ptr: #null *s32 = null)->bool
+func pointerDefaultIsNull(ptr: *s32? = null)->bool
 {
     return ptr == null
 }

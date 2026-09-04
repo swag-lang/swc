@@ -22,18 +22,17 @@ struct TextCase
     scale: f32
 }
 
-var g_Window:   Env.Window
-var g_Renderer: Pixel.RenderOgl
-#[Swag.Late]
-var g_Render:    Pixel.IRenderer
-var g_Painter:   Pixel.Painter
-var g_RC:        Pixel.RenderContext
-var g_TypeFace:  #null *Pixel.TypeFace
-var g_TitleFont: #null *Pixel.Font
-var g_LabelFont: #null *Pixel.Font
-var g_HelpFont:  #null *Pixel.Font
-var g_GdiToken:  u64
-var g_GdiText:   [SampleCount] Texture
+var g_Window:      Env.Window
+var g_Renderer:    Pixel.RenderOgl
+late var g_Render: Pixel.IRenderer
+var g_Painter:     Pixel.Painter
+var g_RC:          Pixel.RenderContext
+var g_TypeFace:    *Pixel.TypeFace?
+var g_TitleFont:   *Pixel.Font?
+var g_LabelFont:   *Pixel.Font?
+var g_HelpFont:    *Pixel.Font?
+var g_GdiToken:    u64
+var g_GdiText:     [SampleCount] Texture
 
 const Samples = [
     TextCase{"50%", 0.50},
@@ -138,12 +137,12 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     let face16  = Utf16.toZeroTerminated("Segoe UI")
     let count16 = cast(s32) (text16.count - 1)
 
-    var family: #null *GpFontFamily
-    var format: #null *GpStringFormat
+    var family: *GpFontFamily?
+    var format: *GpStringFormat?
     gdipCheck(GdipCreateFontFamilyFromName(face16.buffer, null, &family))
     gdipCheck(GdipCreateStringFormat(0, 0, &format))
 
-    var measurePath: #null *GpPath
+    var measurePath: *GpPath?
     var bounds:      GpRectF
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &measurePath))
     Swag.assert(format != null)
@@ -160,8 +159,8 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     var image = Image.create(localW, localH, .BGRA8)
     image.clear()
 
-    var bitmap:   #null *GpBitmap
-    var graphics: #null *GpGraphics
+    var bitmap:   *GpBitmap?
+    var graphics: *GpGraphics?
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
     Swag.assert(bitmap != null)
     gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) bitmap, &graphics))
@@ -171,13 +170,13 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     gdipCheck(GdipSetTextRenderingHint(graphics, GdipTextRenderingHintAAGridFit))
     gdipCheck(GdipGraphicsClear(graphics, 0))
 
-    var path: #null *GpPath
+    var path: *GpPath?
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
     Swag.assert(path != null)
     addGdiPathText(path, text16.buffer!, count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
-    var pen:   #null *GpPen
-    var brush: #null *GpSolidFill
+    var pen:   *GpPen?
+    var brush: *GpSolidFill?
     gdipCheck(GdipCreatePen1(cast(u32) Argb.Crimson, border * 2, GdipUnitPixel, &pen))
     Swag.assert(pen != null)
     gdipCheck(GdipSetPenLineJoin(pen, GdipLineJoinRound))

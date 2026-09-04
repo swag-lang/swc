@@ -128,13 +128,13 @@ private func writeZipFixture()->String
     let rootFile = list.createLine(null)
     rootFile.setItem(0, "a.txt")
     rootFile.setItem(1, "1 B")
-    rootFile.userData0 = cast(#null *void) 1
+    rootFile.userData0 = cast(*void?) 1
 
     let rootFolder = list.createLine("z-folder")
     let childFile  = list.createLine(rootFolder)
     childFile.setItem(0, "a.txt")
     childFile.setItem(1, "1 B")
-    childFile.userData0 = cast(#null *void) 2
+    childFile.userData0 = cast(*void?) 2
     let childFolder = list.createLine("z-empty", parentLine: rootFolder)
 
     list.sort(0, persistent: true)

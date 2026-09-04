@@ -3,7 +3,7 @@
 
 using Win32
 
-private func timerEntryNative(param: #null *void, _timerOrWaitFired: BOOL)
+private func timerEntryNative(param: *void?, _timerOrWaitFired: BOOL)
 {
     timerEntry(param)
 }

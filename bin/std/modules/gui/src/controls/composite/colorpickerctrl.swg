@@ -38,7 +38,7 @@ struct ColorPickerCtrl
             flags = ColorPickerFlags.All                        // Available optional channels.
             mode  = ColorPickerViewMode.SaturationLightness     // Active plane and slider arrangement.
 
-            #[Swag.Late]
+                late
             {
                 preview:   *Wnd             // Side-by-side original and selected color preview.
                 pickBox:   *ColorPicker     // Two-dimensional channel picker.
@@ -137,7 +137,7 @@ impl ColorPickerCtrl
 {
     // Creates a color picker with channel planes, numeric editors, and an eyedropper.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
+    func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: WndId? = null)->*ColorPickerCtrl
     {
         Debug.assert(parent != null)
         var pos = position
@@ -374,7 +374,7 @@ impl ColorPickerCtrl
     // Creates a color picker with a nine-item palette above it.
     // Missing entries are completed with the built-in default colors.
     #[Swag.Discardable]
-    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
+    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: WndId? = null)->*ColorPickerCtrl
     {
         let picker = ColorPickerCtrl.create(parent, position, flags, id)
 

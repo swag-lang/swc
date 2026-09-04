@@ -70,11 +70,11 @@ struct FileBrowserCtrl
 
         readonly
         {
-            treeCtrl:      #null *ListCtrl     // Optional recent, shortcut and drive locations list.
-            options:       FileDlgOptions      // Effective browsing and selection options.
-            currentFolder: String              // Normalized folder currently displayed.
+            treeCtrl:      *ListCtrl?         // Optional recent, shortcut and drive locations list.
+            options:       FileDlgOptions     // Effective browsing and selection options.
+            currentFolder: String             // Normalized folder currently displayed.
 
-            #[Swag.Late]
+                late
             {
                 listCtrl:        *ListCtrl       // Sortable file and folder list.
                 comboPath:       *ComboBox       // Current-folder and ancestor selector.
@@ -207,7 +207,7 @@ private impl FileBrowserCtrl
     {
         let treeCtrl = .treeCtrl!
         let l        = treeCtrl.createLine(name, icon)
-        l.userData0      = cast(#null *void) .treePathStr.count
+        l.userData0      = cast(*void?) .treePathStr.count
         l.leftTextMargin = 10
         .treePathStr.add(String.from(path))
     }
@@ -631,7 +631,7 @@ impl FileBrowserCtrl
                 .addItem(strings().browser_Folders)
             else do
                 for f, idx in fileBrowser.options.filters do
-                    .addItem(f.name, userData0: cast(#null *void) idx)
+                    .addItem(f.name, userData0: cast(*void?) idx)
             .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
@@ -780,7 +780,7 @@ impl FileBrowserCtrl
 
         // SelectFolder mode has no file filters (it lists folders only): avoid
         // indexing the empty 'filters' array.
-        var filterExtensions: #null string
+        var filterExtensions: string?
         if me.options.mode != .SelectFolder and .options.filters.count
         {
             let item        = .comboType.selectedItem()!
@@ -847,7 +847,7 @@ impl FileBrowserCtrl
     }
 
     // Changes the contents of the file or folder name editor.
-    mtd setFileName(name: #null string)
+    mtd setFileName(name: string?)
     {
         .editFile.setText(name)
     }
@@ -934,7 +934,7 @@ impl FileBrowserCtrl
         var result: retval
 
         // SelectFolder mode has no filters: do not index the empty 'filters' array.
-        var filterExtensions: #null string
+        var filterExtensions: string?
         if me.options.mode != .SelectFolder and .options.filters.count
         {
             let item        = .comboType.selectedItem()!

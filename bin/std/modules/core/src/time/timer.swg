@@ -3,7 +3,7 @@
 
 // Internal native timer handle required by the public value layout.
 #[Swag.NoDoc]
-alias TimerHandle = #null const *void
+alias TimerHandle = const *void?
 
 // Owns an operating-system timer that invokes a callback on a worker thread.
 #[Swag.NoCopy]
@@ -11,13 +11,13 @@ struct Timer
 {
     internal
     {
-        callback: #null func(*Timer)
+        callback: (func(*Timer))?
         handle:   TimerHandle
         context:  Swag.Context
     }
 }
 
-private func timerEntry(param: #null *void)
+private func timerEntry(param: *void?)
 {
     let timer = cast(*Timer) param!
 

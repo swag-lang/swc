@@ -52,7 +52,7 @@ enum AssignEqEnum: u16
 {
     func assignPointer()->bool
     {
-        var p: #null *void = null
+        var p: *void? = null
         p = cast(*void) 0x1234'u64
         return p != null
     }

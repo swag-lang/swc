@@ -10,15 +10,15 @@ struct __SwagSym
     line:    u32    = 0
 }
 
-var __dbgCacheBase:    #null *void  = null
-var __dbgCacheSection: #null [*] u8 = null
-var __dbgCacheDecoded: #null [*] u8 = null
-var __dbgCacheCount:   u32          = 0
-var __dbgCacheValid:   bool         = false
+var __dbgCacheBase:    *void?  = null
+var __dbgCacheSection: [*] u8? = null
+var __dbgCacheDecoded: [*] u8? = null
+var __dbgCacheCount:   u32     = 0
+var __dbgCacheValid:   bool    = false
 
 func __dbgU32(p: [*] u8, off: u64)->u32 => (&p[off])[as u32]
 
-func __dbgFindSection(base: #null *void)
+func __dbgFindSection(base: *void?)
 {
     __hostReleaseDecodedDebugSection(__dbgCacheDecoded)
     __dbgCacheBase    = base
@@ -96,14 +96,14 @@ func __symbolize(addr: *void)->__SwagSym
 //
 // Native release artifacts may deliberately carry no such table. In that case an empty heading
 // says only that symbolization was unavailable, so the panic report leaves the whole section out.
-func __hasStackTraceSymbols(wh: const [..] #null *void)->bool
+func __hasStackTraceSymbols(wh: const [..] (*void?))->bool
 {
     for address in wh where address and __symbolize(address!).found do
         return true
     return false
 }
 
-func __logStackTrace(wh: const [..] #null *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
+func __logStackTrace(wh: const [..] (*void?), startAfter: *Swag.SourceCodeLocation? = null, printNoLine = true)
 {
     var hasStarted = false
 

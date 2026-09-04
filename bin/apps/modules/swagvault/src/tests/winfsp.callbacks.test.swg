@@ -9,7 +9,7 @@ struct DirectoryCapture
     limit: u64     // Zero accepts every entry; a non-zero value models a full WinFsp buffer.
 }
 
-func captureDirectoryEntry(context: #null *void, name: #null const [*] u8, info: const *WinFsp.FileInfo)->u8
+func captureDirectoryEntry(context: *void?, name: const [*] u8?, info: const *WinFsp.FileInfo)->u8
 {
     discard info
     let capture = cast(*DirectoryCapture) context!

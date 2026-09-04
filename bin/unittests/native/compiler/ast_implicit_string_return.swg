@@ -2,7 +2,7 @@
 
 struct AstGeneratedString
 {
-    buffer: #null [*] u8
+    buffer: [*] u8?
     length: u64
 }
 
@@ -17,7 +17,7 @@ impl AstGeneratedString
 
 struct AstGeneratedBuilder
 {
-    buffer:   #null [*] u8
+    buffer:   [*] u8?
     length:   u64
     capacity: u64
 }
@@ -39,7 +39,7 @@ impl AstGeneratedBuilder
         if !.buffer
         {
             .capacity = 128
-            .buffer   = cast(#null [*] u8) testAlloc(.capacity)
+            .buffer   = cast([*] u8?) testAlloc(.capacity)
         }
 
         Swag.assert(.length + cast(u64) value.count <= .capacity)

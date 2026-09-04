@@ -249,8 +249,8 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(reader.pageCount() == 1)
     var page = expect reader.loadPage(0)
 
-    var fax:   #null const *Image
-    var photo: #null const *Image
+    var fax:   const *Image?
+    var photo: const *Image?
     for item in page.items where item.kind == .Image
     {
         let image = item.imageValue()!

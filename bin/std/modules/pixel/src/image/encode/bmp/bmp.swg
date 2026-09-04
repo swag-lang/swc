@@ -14,7 +14,7 @@ internal impl IImageEncoder for Encoder
 {
     mtd impl format()->ImageFormat => {"BMP - Windows Bitmap", ".bmp"}
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}

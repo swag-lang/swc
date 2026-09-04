@@ -9,7 +9,7 @@ struct EmbeddedViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         header:      *Wnd
         titleLabel:  *Label
@@ -19,19 +19,18 @@ struct EmbeddedViewer
         commandBar:  *ViewerActionBar
     }
 
-    #[Swag.Late]
-    owner:             *ViewerWindow
+    late owner:        *ViewerWindow
     fileName:          String
     title:             String
     choices:           Array'ViewerPluginChoice
     instances:         Array'ViewerSession
     activeIndex = Swag.U32.Max
-    currentView:       #null *Wnd
-    currentActions:    #null *Wnd
-    currentInfo:       #null *Wnd
-    currentCommands:   #null *Wnd
-    currentSidePanel:  #null *Wnd
-    currentSideButton: #null *IconButton
+    currentView:       *Wnd?
+    currentActions:    *Wnd?
+    currentInfo:       *Wnd?
+    currentCommands:   *Wnd?
+    currentSidePanel:  *Wnd?
+    currentSideButton: *IconButton?
 }
 
 private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer

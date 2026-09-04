@@ -44,7 +44,7 @@ impl Image
     var decoders: Array'ImageDecoder
 
     // Find the decoder that can treat 'fileName'
-    func getDecoder(fileName: string)->#null *ImageDecoder
+    func getDecoder(fileName: string)->*ImageDecoder?
     {
         for &decoder in decoders where decoder.format.matches(fileName) do
             return decoder
@@ -103,7 +103,7 @@ public impl Image
     func canLoad(fileName: string)->bool => getDecoder(fileName) != null
 
     // Decode the given image buffer
-    func decode(fileName: string, bytes: #null const [..] u8, options: DecodeOptions = {})->Image fail
+    func decode(fileName: string, bytes: const [..] u8?, options: DecodeOptions = {})->Image fail
     {
         if !bytes do
             fail InvalidFormatError{"invalid image buffer"}

@@ -66,18 +66,18 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
             return "x, y: " ++ #typeof(T).name
         }
 
-        z: #null string
+        z: string?
     }
 
     let v: MyStruct'bool
     #assert(#typeof(v.x) == bool)
     #assert(#typeof(v.y) == bool)
-    #assert(#typeof(v.z) == #null string)
+    #assert(#typeof(v.z) == string?)
 
     let v1: MyStruct'f64
     #assert(#typeof(v1.x) == f64)
     #assert(#typeof(v1.y) == f64)
-    #assert(#typeof(v1.z) == #null string)
+    #assert(#typeof(v1.z) == string?)
 }
 
 /**

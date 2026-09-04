@@ -369,7 +369,7 @@ private func reportElfSections(image: *BinaryImage, report: *BinaryReport, secti
 // Adds the dynamic section, which is the whole of what a shared library asks of its loader.
 private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection, is64: bool)
 {
-    var dynamic: #null const *ElfSection
+    var dynamic: const *ElfSection?
     for section in sections where section.kind == 6
     {
         dynamic = section

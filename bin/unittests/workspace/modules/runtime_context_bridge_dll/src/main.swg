@@ -132,7 +132,7 @@ public struct CtxSelfBufferSet
 {
     public
     {
-        buffer:  #null [*] u8
+        buffer:  [*] u8?
         count:   u32
         storage: [4] u8
     }
@@ -285,12 +285,12 @@ public func ctxSharedPassOffsets(value: CtxAbiOffsets)->u64
     return cast(u64) value.a + cast(u64) value.b + cast(u64) value.c + value.d
 }
 
-public func ctxSharedPassPointer(value: #null *void)->#null *void
+public func ctxSharedPassPointer(value: *void?)->*void?
 {
     return value
 }
 
-public func ctxSharedPassMixed(a: s32, b: string, c: CtxAbiPair, d: [2] s32, e: #null *void)->s32
+public func ctxSharedPassMixed(a: s32, b: string, c: CtxAbiPair, d: [2] s32, e: *void?)->s32
 {
     return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
 }
@@ -320,7 +320,7 @@ public func ctxSharedPassSlice(values: const [..] s32, idx: s32)->s32
     return values[idx]
 }
 
-public func ctxSharedPassAggregatePositions(a: #null *void, b: [2] s32, c: string, d: CtxAbiPair, e: CtxAbiPayload)->u64
+public func ctxSharedPassAggregatePositions(a: *void?, b: [2] s32, c: string, d: CtxAbiPair, e: CtxAbiPayload)->u64
 {
     return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
 }
@@ -330,9 +330,9 @@ public func ctxSharedPassNested(value: CtxAbiNested, extra: s32)->u64
     return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
 }
 
-public func ctxSharedPassKindof(value: CtxAbiPair, payload: CtxAbiPayload, text: string, p: #null *void, values: [2] s32, e: CtxAbiEnum)->bool
+public func ctxSharedPassKindof(value: CtxAbiPair, payload: CtxAbiPayload, text: string, p: *void?, values: [2] s32, e: CtxAbiEnum)->bool
 {
-    return #typeof(value) == CtxAbiPair and #typeof(payload) == CtxAbiPayload and #typeof(text) == string and #typeof(p) == #null *void and #typeof(values[1]) == s32 and #typeof(e) == CtxAbiEnum
+    return #typeof(value) == CtxAbiPair and #typeof(payload) == CtxAbiPayload and #typeof(text) == string and #typeof(p) == *void? and #typeof(values[1]) == s32 and #typeof(e) == CtxAbiEnum
 }
 
 public func ctxSharedPassNestedArray(value: CtxAbiNested, array0: [2] CtxAbiPair)->s32

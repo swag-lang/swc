@@ -7,10 +7,9 @@ public struct EditDlg
 
     public readonly
     {
-        #[Swag.Late]
-        label:    *Label                  // Optional explanatory message.
-        edit:     #null *EditBox          // Single-line editor, when created in single-line mode.
-        richEdit: #null *RichEditCtrl     // Rich editor, when created in multi-line mode.
+        late label: *Label             // Optional explanatory message.
+        edit:       *EditBox?          // Single-line editor, when created in single-line mode.
+        richEdit:   *RichEditCtrl?     // Rich editor, when created in multi-line mode.
     }
 }
 
@@ -122,7 +121,7 @@ public impl EditDlg
 
         let edit          = .edit
         var contentHeight = edit ? edit.position.height : .richEdit!.position.height
-        if Swag.isSet(.label)
+        if .label != null
         {
             // The explanation is as tall as its own wording at the width it has, floored by the
             // band the caller asked to keep for it. Read back from the layout instead, the band
@@ -178,7 +177,7 @@ public impl EditDlg
     mtd setMessage(message: string, height: s32 = 40)
     {
         Debug.assert(height > 0, "message height must be positive")
-        if !Swag.isSet(.label)
+        if !(.label != null)
         {
             Swag.assert(.surface != null)
             .label = Label.create(.contentView!, message, {0, 0, 0, height}, flags: .WordWrap | .SecondaryText)

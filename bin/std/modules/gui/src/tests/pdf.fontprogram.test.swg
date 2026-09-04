@@ -2,7 +2,7 @@
 
 using Core, Pixel, Pdf
 
-private func createProgramTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
+private func createProgramTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
 
 private struct ProgramReport
 {
@@ -20,11 +20,11 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     var reader = expect Reader.open(corpusPdfPath(name))
     var page   = expect reader.loadPage(pageIndex)
 
-    var faces: Array'(#null *TypeFace)
+    var faces: Array'(*TypeFace?)
     result.fonts = page.fonts.count
     for font in page.fonts
     {
-        var face: #null *TypeFace
+        var face: *TypeFace?
         if !font.bytes.isEmpty()
         {
             result.embedded += 1

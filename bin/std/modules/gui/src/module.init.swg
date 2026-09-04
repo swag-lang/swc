@@ -2,7 +2,7 @@
 
 using Pixel
 
-func nnFont(font: #null *Font)->*Font
+func nnFont(font: *Font?)->*Font
 {
     return font!
 }
@@ -18,7 +18,7 @@ func nnFont(font: #null *Font)->*Font
 // A widget that centers its line on the capitals — a field, a cell, anything with a frame the
 // reader sees — needs no offset at all: see [[Pixel.Font.opticalLineTop]] and center the glyph on
 // the same point.
-func opticalTop(family: #null const *FontFamily, centerY, size: f32)->f32
+func opticalTop(family: const *FontFamily?, centerY, size: f32)->f32
 {
     if !family do
         return centerY - size * 0.5
@@ -28,7 +28,7 @@ func opticalTop(family: #null const *FontFamily, centerY, size: f32)->f32
     return font.opticalTop(centerY, size)
 }
 
-func nnPixels(pixels: #null [*] u8)->const *u8
+func nnPixels(pixels: [*] u8?)->const *u8
 {
     return cast(const *u8) pixels!
 }

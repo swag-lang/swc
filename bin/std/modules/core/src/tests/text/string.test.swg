@@ -74,19 +74,19 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(value.isEmpty())
     Swag.assert(value.isNullOrEmpty())
     Swag.assert(assertString(value, ""))
-    let emptyCstr = cast(#null cstring) value
+    let emptyCstr = cast(cstring?) value
     Swag.assert(emptyCstr.count == 0)
 
     value = "abc"
     Swag.assert(assertString(value, "abc"))
-    let cstr = cast(#null cstring) value
+    let cstr = cast(cstring?) value
     Swag.assert(cstr.count == 3)
 
-    let nullText: #null string = null
+    let nullText: string? = null
     value = nullText
     Swag.assert(value.isEmpty())
     Swag.assert(assertString(value, ""))
-    let nullCstr = cast(#null cstring) value
+    let nullCstr = cast(cstring?) value
     Swag.assert(nullCstr.count == 0)
 }
 

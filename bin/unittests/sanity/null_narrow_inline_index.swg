@@ -2,7 +2,7 @@
 
 struct NullNarrowInlineIndexItem
 {
-    buffer: #null [*] u8
+    buffer: [*] u8?
 }
 
 struct NullNarrowInlineIndexHolder

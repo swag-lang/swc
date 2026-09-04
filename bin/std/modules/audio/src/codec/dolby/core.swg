@@ -301,7 +301,7 @@ private func lowCompensation(value, first, second, bin: s32)->s32
     return Math.max(0, value - 128)
 }
 
-private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: #null const *DeltaAllocation, result: [*] s32)
+private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32)
 {
     var currentFastLeak = fastLeak
     var currentSlowLeak = slowLeak

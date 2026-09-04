@@ -63,7 +63,7 @@ internal func warmSoundEngine()
         return
 
     g_SoundEngineWarming       = true
-    g_SoundEngineWarmUp.lambda = func(data: #null *void)
+    g_SoundEngineWarmUp.lambda = func(data: *void?)
     {
         discard data
         discard catch createEngine()
@@ -402,7 +402,7 @@ internal struct SoundViewer
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+        late
     {
         commands:       *Wnd
         playButton:     *IconButton
@@ -428,8 +428,8 @@ internal struct SoundViewer
     waveformLock:   Sync.Mutex
     waveformBuilt:  u64
 
-    voice:       #null *Voice
-    timer:       #null *Timer
+    voice:       *Voice?
+    timer:       *Timer?
     duration:    f32
     elapsed:     f32
     engineReady: bool
@@ -441,9 +441,9 @@ internal struct SoundViewer
     retired:         bool
 
     details:              String
-    reportDetails:        #null Viewer.ReportDetails
-    reportFailure:        #null Viewer.ReportFailure
-    reportLoadingChanged: #null Viewer.ReportLoadingChanged
+    reportDetails:        Viewer.ReportDetails?
+    reportFailure:        Viewer.ReportFailure?
+    reportLoadingChanged: Viewer.ReportLoadingChanged?
 }
 
 internal impl SoundViewer
@@ -927,7 +927,7 @@ private func runSoundViewerOpen(thread: Thread)
 }
 
 // Creates the integrated sound playback and waveform view.
-private func loadSoundViewer(host: Viewer.Host)->#null *SoundViewer fail => try SoundViewer.create(host)
+private func loadSoundViewer(host: Viewer.Host)->*SoundViewer? fail => try SoundViewer.create(host)
 
 func createSoundViewer(host: Viewer.Host)
 {

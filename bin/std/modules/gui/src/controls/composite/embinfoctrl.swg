@@ -37,14 +37,12 @@ struct InfoBar
             flags:            InfoBarFlags            // Current placement and lifetime options.
             autoDismissDelay: Time.Duration = 4's     // Delay used by [[InfoBarFlags.AutoDismiss]].
 
-            #[Swag.Late]
-            label: *Label     // Message label owned by this bar.
-            #[Swag.Late]
-            closeButton: *IconButton     // Dismiss button owned by this bar.
+            late label:       *Label          // Message label owned by this bar.
+            late closeButton: *IconButton     // Dismiss button owned by this bar.
         }
     }
 
-    timer: #null *Timer     // Active auto-dismiss timer.
+    timer: *Timer?     // Active auto-dismiss timer.
 }
 
 impl IWnd for InfoBar
@@ -128,7 +126,7 @@ impl InfoBar
 {
     // Creates and lays out an information bar.
     #[Swag.Discardable]
-    func create(parent: *Wnd, message: #null string, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4's)->*InfoBar
+    func create(parent: *Wnd, message: string?, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4's)->*InfoBar
     {
         Debug.assert(parent != null)
         Debug.assert(height > 0, "information bar height must be positive")
@@ -171,7 +169,7 @@ impl InfoBar
     }
 
     // Changes the displayed message.
-    mtd setText(message: #null string)
+    mtd setText(message: string?)
     {
         .label.setText(message)
     }

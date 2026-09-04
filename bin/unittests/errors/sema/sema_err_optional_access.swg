@@ -24,12 +24,12 @@ func optionalAccessValueLeft(v: OptionalAccessItem)->s32
     return v?.value orelse 0     // swc-expected-error {{sema_err_optional_access_not_nullable}}
 }
 
-func optionalAccessScalarNoFallback(p: #null *OptionalAccessItem)->s32
+func optionalAccessScalarNoFallback(p: *OptionalAccessItem?)->s32
 {
     return p?.value     // swc-expected-error {{sema_err_optional_access_result_type}}
 }
 
-func optionalAccessStructResult(p: #null *OptionalAccessItem)->OptionalAccessInner
+func optionalAccessStructResult(p: *OptionalAccessItem?)->OptionalAccessInner
 {
     return p?.inner     // swc-expected-error {{sema_err_optional_access_result_type}}
 }

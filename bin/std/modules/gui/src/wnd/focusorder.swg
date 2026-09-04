@@ -55,7 +55,7 @@ impl FocusOrder
     //
     // A window that is not itself a stop answers for the stop that owns it, so a focus sitting
     // on the inner editor of a composite still reports the position of the composite.
-    mtd const indexOf(wnd: #null *Wnd)->s64
+    mtd const indexOf(wnd: *Wnd?)->s64
     {
         var scan = wnd
         while scan
@@ -84,7 +84,7 @@ impl FocusOrder
     //
     // A `from` that belongs to no stop starts the traversal at the first stop going forward and
     // at the last one going backward, so a surface whose focus was cleared still answers Tab.
-    mtd const next(from: #null *Wnd, forward = true)->#null *Wnd
+    mtd const next(from: *Wnd?, forward = true)->*Wnd?
     {
         let count = cast(s64) .stops.count
         if !count do
@@ -109,7 +109,7 @@ impl FocusOrder
     // A stop alone in its group has no group to walk, and answering nothing would make the arrows
     // read as broken on exactly the surfaces that place one control per row. It falls back to the
     // full ring, which is [[Gui.FocusOrder.next]].
-    mtd const nextInGroup(from: #null *Wnd, forward = true)->#null *Wnd
+    mtd const nextInGroup(from: *Wnd?, forward = true)->*Wnd?
     {
         let index = .indexOf(from)
         if index < 0 do
@@ -134,16 +134,16 @@ impl FocusOrder
     }
 
     // Returns the first stop, or `null` when the tree holds none.
-    mtd const first()->#null *Wnd => .stops.count ? .stops[0] : null
+    mtd const first()->*Wnd? => .stops.count ? .stops[0] : null
 
     // Returns the last stop, or `null` when the tree holds none.
-    mtd const last()->#null *Wnd => .stops.count ? .stops.back() : null
+    mtd const last()->*Wnd? => .stops.count ? .stops.back() : null
 }
 
 private impl FocusOrder
 {
     // Returns the position of `wnd` in the ring, or `-1` when it is not a stop of it.
-    mtd const rank(wnd: #null *Wnd)->s64
+    mtd const rank(wnd: *Wnd?)->s64
     {
         for stop, index in .stops where stop == wnd do
             return cast(s64) index
@@ -250,7 +250,7 @@ private impl FocusOrder
     //
     // Radio buttons of one group are one stop: Tab enters the group on the option that is
     // checked, and the arrow keys move the selection inside it.
-    func groupRepresentative(wnd: *Wnd)->#null *Wnd
+    func groupRepresentative(wnd: *Wnd)->*Wnd?
     {
         if wnd.type != RadioButton do
             return null
@@ -259,7 +259,7 @@ private impl FocusOrder
         if radio.groupId.count == 0 or !radio.parent do
             return null
 
-        var first: #null *Wnd
+        var first: *Wnd?
         for sibling in radio.parent.children
         {
             if sibling.type != RadioButton do

@@ -102,15 +102,15 @@ independently; a dynamic index conservatively overlaps every element.
 {
     struct Views
     {
-        local:  *s32
-        global: *s32
+        local:     *s32
+        globalPtr: *s32
     }
 
     var local: s32
     var views: Views
-    views.local  = &local
-    views.global = &borrowGlobalValue
-    Swag.assert(views.global == &borrowGlobalValue)
+    views.local     = &local
+    views.globalPtr = &borrowGlobalValue
+    Swag.assert(views.globalPtr == &borrowGlobalValue)
 }
 
 /**
@@ -140,7 +140,7 @@ for line in lines
 A plain '*T' field is deliberately not treated this way: a single-object pointer inside
 an owner is just as often a back-reference to something it does not own.
 */
-var borrowGlobalStash: #null *s32
+var borrowGlobalStash: *s32?
 
 func borrowStash(p: *s32)
 {

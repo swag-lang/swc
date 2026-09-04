@@ -21,10 +21,10 @@ func audioAssertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     return true
 }
 
-func audioAssertBufferBytes(actual: #null [*] void, actualSize: u64, expected: const [..] u8)
+func audioAssertBufferBytes(actual: [*] void?, actualSize: u64, expected: const [..] u8)
 {
     Swag.assert(actualSize == expected.count)
-    Swag.assert(audioAssertBytes(Swag.makeSlice(cast(#null const [*] u8) actual, actualSize), expected))
+    Swag.assert(audioAssertBytes(Swag.makeSlice(cast(const [*] u8?) actual, actualSize), expected))
 }
 
 func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)

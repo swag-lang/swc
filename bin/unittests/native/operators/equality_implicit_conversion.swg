@@ -18,7 +18,7 @@ struct EqualityPoint
     Swag.assert(mutableView == [1'u8, 2'u8, 3'u8, 4'u8])
     Swag.assert([1'u8, 2'u8, 3'u8, 4'u8] == readOnlyView)
 
-    let missing: #null const [..] u8 = null
+    let missing: const [..] u8? = null
     Swag.assert(missing != mutableView)
     Swag.assert(mutableView != missing)
 }

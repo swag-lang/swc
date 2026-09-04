@@ -1,10 +1,10 @@
 #global namespace Swag
 
 // Releases the copy a thread made of a thread-local global.
-private func __releaseTlsVar(value: #null *void)
+private func __releaseTlsVar(value: *void?)
 {
     if value do
-        __bootstrapFree(cast(#null [*] void) value)
+        __bootstrapFree(cast([*] void?) value)
 }
 
 // Allocates one host thread-storage slot for a runtime thread-local global.
@@ -16,12 +16,12 @@ func __tlsAlloc()->u64
     return slot
 }
 
-func __tlsGetValue(id: u64)->#null *void              => __hostTlsGet(id)
-func __tlsSetValue(id: u64, value: #null *void)->bool => __hostTlsSet(id, value)
+func __tlsGetValue(id: u64)->*void?              => __hostTlsGet(id)
+func __tlsSetValue(id: u64, value: *void?)->bool => __hostTlsSet(id, value)
 
 // Returns the current thread's runtime context, lazily creating it on a thread the runtime has
 // never seen (an operating-system-owned callback thread, for example).
-func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
+func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void?
 {
     var ptr = __tlsGetValue(id)
     if ptr do
@@ -32,7 +32,7 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
     Swag.memcpy(ptr, init, size)
     if !__tlsSetValue(id, ptr)
     {
-        __bootstrapFree(cast(#null [*] void) ptr)
+        __bootstrapFree(cast([*] void?) ptr)
         return null
     }
 
@@ -47,7 +47,7 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
 //
 // `idSlot` is module storage holding the host slot for that global. The copy uses bootstrap
 // allocation because the normal Swag allocator itself reaches this path.
-func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
+func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
 {
     var id = Swag.atomcmpxchg(idSlot, 0, 0)
     if id == 0
@@ -77,7 +77,7 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
     Swag.memcpy(created, init, size)
     if !__hostThreadStorageSet(id, created)
     {
-        __bootstrapFree(cast(#null [*] void) created)
+        __bootstrapFree(cast([*] void?) created)
         return null
     }
 

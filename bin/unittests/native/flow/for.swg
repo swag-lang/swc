@@ -550,7 +550,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 
 #test
 {
-    var str: #null string
+    var str: string?
     var count0 = 0
     for it in str.count { count0 += 1 }
     var v: u32

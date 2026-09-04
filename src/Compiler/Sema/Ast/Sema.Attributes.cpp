@@ -174,15 +174,12 @@ namespace
             {.name = IdentifierManager::PredefinedName::EnumFlags, .flag = RtAttributeFlagsE::EnumFlags},
             {.name = IdentifierManager::PredefinedName::NoDuplicate, .flag = RtAttributeFlagsE::NoDuplicate},
             {.name = IdentifierManager::PredefinedName::FullInit, .flag = RtAttributeFlagsE::FullInit},
-            {.name = IdentifierManager::PredefinedName::Late, .flag = RtAttributeFlagsE::Late},
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
-            {.name = IdentifierManager::PredefinedName::Tls, .flag = RtAttributeFlagsE::Tls},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
             {.name = IdentifierManager::PredefinedName::Opaque, .flag = RtAttributeFlagsE::Opaque},
             {.name = IdentifierManager::PredefinedName::NoDoc, .flag = RtAttributeFlagsE::NoDoc},
             {.name = IdentifierManager::PredefinedName::Strict, .flag = RtAttributeFlagsE::Strict},
-            {.name = IdentifierManager::PredefinedName::Global, .flag = RtAttributeFlagsE::Global},
             {.name = IdentifierManager::PredefinedName::OperatorIgnore, .flag = RtAttributeFlagsE::OperatorIgnore},
         };
 

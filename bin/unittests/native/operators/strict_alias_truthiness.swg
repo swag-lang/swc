@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Strict]
-alias Handle = #null const *void
+alias Handle = const *void?
 
 func runtimeHandleTruthy()->bool
 {

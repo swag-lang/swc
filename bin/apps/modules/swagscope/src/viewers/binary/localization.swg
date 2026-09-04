@@ -268,17 +268,16 @@ private const FrenchStrings     = #include("../../../datas/lang/fr/scope.binary.
 
 private var g_BinaryStrings: BinaryStrings
 
-// A decoder keeps the language snapshot it started with even when the GUI changes language while
-// it is running. Only a borrowed pointer lives in TLS; the owning viewer waits for the worker
-// before replacing that snapshot.
-#[Swag.Tls]
-private var g_BinaryStringsOverride: #null const *BinaryStrings
+    // A decoder keeps the language snapshot it started with even when the GUI changes language while
+    // it is running. Only a borrowed pointer lives in TLS; the owning viewer waits for the worker
+    // before replacing that snapshot.
+    tls private var g_BinaryStringsOverride: const *BinaryStrings?
 
 // Returns the visible strings of the binary viewer in the active language.
 func binStrings()->const *BinaryStrings => g_BinaryStringsOverride ? g_BinaryStringsOverride! : &g_BinaryStrings
 
 // Selects a stable string-table snapshot for the current background decoder.
-func setBinaryStringsOverride(strings: #null const *BinaryStrings)
+func setBinaryStringsOverride(strings: const *BinaryStrings?)
 {
     g_BinaryStringsOverride = strings
 }

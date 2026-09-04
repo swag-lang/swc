@@ -8,7 +8,7 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
-    func attributeString(value: #null any)->string
+    func attributeString(value: any?)->string
     {
         return cast(string) value!
     }
@@ -16,7 +16,7 @@ internal impl Properties
     // The string an attribute declares, as the reader sees it: an attribute value is a
     // compile-time constant, so the installed resolver is what can turn it into a
     // translation. See Properties.setTextResolver.
-    func attributeText(value: #null any)->string
+    func attributeText(value: any?)->string
     {
         return resolveText(attributeString(value))
     }
@@ -43,9 +43,9 @@ internal impl Properties
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
     // Public so custom editors registered with registerEditor (possibly authored in another
     // module) can build their row the same way the built-in editors do.
-    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = PropertiesAddItemFlags.Name | PropertiesAddItemFlags.Description)->*PropertiesItem
+    public mtd addItem(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?, height: f32 = 0, flags = PropertiesAddItemFlags.Name | PropertiesAddItemFlags.Description)->*PropertiesItem
     {
-        var rowWnd: #null *Wnd
+        var rowWnd: *Wnd?
 
         if .isGridLike() do
             rowWnd = Wnd.create'Wnd(.edView, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
@@ -165,7 +165,7 @@ internal impl Properties
         return item
     }
 
-    mtd addValue(value: Swag.TypeValue, data: #null [*] u8, parentItem: #null *PropertiesItem)
+    mtd addValue(value: Swag.TypeValue, data: [*] u8?, parentItem: *PropertiesItem?)
     {
         // The editor registry is the single dispatch for custom representations: the built-in
         // struct editors (Color, the vector family) register here too, and a later registration
@@ -249,7 +249,7 @@ internal impl Properties
         }
     }
 
-    mtd addStructInternal(typeStruct: const *Swag.TypeInfoStruct, addr: #null [*] u8, parentItem: #null *PropertiesItem, bindNotify = true)
+    mtd addStructInternal(typeStruct: const *Swag.TypeInfoStruct, addr: [*] u8?, parentItem: *PropertiesItem?, bindNotify = true)
     {
         var newParent = parentItem
 
@@ -260,7 +260,7 @@ internal impl Properties
         // Currently open category path (nested subgroups). Each entry pairs a "/"-split name segment
         // with the header row created for it, so consecutive fields sharing a common prefix reuse the
         // same headers instead of recreating them.
-        var categPath: Array'{ name: #null string, item: #null *PropertiesItem }
+        var categPath: Array'{ name: string?, item: *PropertiesItem? }
 
         // Walk order: declaration order, except when 'usingFieldsLast' pushes the 'using' base
         // structs after the struct's own fields — a derived type then edits its most specific
@@ -376,7 +376,7 @@ internal impl Properties
     // A thin horizontal separator row, the same look as a Panel category divider. Public so a
     // host appending hand-made rows (addItem) after the generated content can separate them;
     // call endAppendRows once done. 'name' feeds the notify visibility dispatch and the filter.
-    public mtd addSeparator(name: #null string = null, parentItem: #null *PropertiesItem = null)->*PropertiesItem
+    public mtd addSeparator(name: string? = null, parentItem: *PropertiesItem? = null)->*PropertiesItem
     {
         let v         = Swag.TypeValue{name: name}
         with let item = .addItem(v, null, parentItem, 1, .None)
@@ -405,7 +405,7 @@ internal impl Properties
     // The row keeps the declared segment as its identity — a host looks a category up by the name
     // it wrote, and the nested-path matching in addStructInternal compares against it — so only
     // the header shown to the reader goes through the text resolver.
-    mtd addCategoryHeader(name: #null string, parentForCateg: #null *PropertiesItem)->*PropertiesItem
+    mtd addCategoryHeader(name: string?, parentForCateg: *PropertiesItem?)->*PropertiesItem
     {
         let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
@@ -420,7 +420,7 @@ internal impl Properties
 
     // Inject the decorator rows declared on 'value' (Space, Header, HelpBox) above the field, in a
     // fixed visual order. Grid modes only — list mode already stacks its own per-row description.
-    mtd addDecorators(value: Swag.TypeValue, parentItem: #null *PropertiesItem)
+    mtd addDecorators(value: Swag.TypeValue, parentItem: *PropertiesItem?)
     {
         if !.isGridLike() do
             return
@@ -434,7 +434,7 @@ internal impl Properties
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
-    mtd addSpacerRow(parentItem: #null *PropertiesItem, size: s32)->*PropertiesItem
+    mtd addSpacerRow(parentItem: *PropertiesItem?, size: s32)->*PropertiesItem
     {
         with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .None)
         {
@@ -447,12 +447,12 @@ internal impl Properties
 
     // A non-collapsible bold divider label spanning the row (Unity [Header]-style), aligned with the
     // sibling fields it introduces.
-    mtd addHeaderRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
+    mtd addHeaderRow(text: string?, parentItem: *PropertiesItem?)->*PropertiesItem
     {
         let v         = Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
         {
-            if Swag.isSet(.label) do
+            if .label != null do
                 .label.style.setFont(&me.fontCategory)
             .level = parentItem!.level
             .flags.add(.Header | .NoSeparator | .NoFocus)
@@ -464,7 +464,7 @@ internal impl Properties
     // An informational note spanning the row, styled like the info validation bar (icon + text on a
     // soft info background). The bar is painted by paintBackItem on the .Note flag; the label drawn
     // on top carries the icon and text.
-    mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
+    mtd addNoteRow(text: string?, parentItem: *PropertiesItem?)->*PropertiesItem
     {
         let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .None)
         item.level = parentItem!.level

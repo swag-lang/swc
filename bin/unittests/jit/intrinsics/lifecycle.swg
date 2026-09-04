@@ -20,7 +20,7 @@ func resetLifecycleHooks()
     PostMoveCount    = 0
 }
 
-func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
+func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
 {
     if !buffer do
         return
@@ -33,7 +33,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     talloc.free(&req)
 }
 
-func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null)->#null [*] void
+func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null)->[*] void?
 {
     var req: AllocatorRequest
     req.address = buffer
@@ -45,7 +45,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     return req.address
 }
 
-func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func memoryLikeFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -60,7 +60,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     talloc.free(&req)
 }
 
-func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
+func memoryLikeRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null, alignment: u16 = 0, hint: string? = null, loc = #callerlocation)->[*] void?
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -261,8 +261,8 @@ impl RemoveBuffer
 
 struct OwnedDropBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] DropOnlyTracked
+    allocator: IAllocator?
+    buffer:    [*] DropOnlyTracked?
     count:     u64
     capacity:  u64
 }
@@ -287,8 +287,8 @@ impl OwnedDropBuffer
 
 struct ReallocDropBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] DropOnlyTracked
+    allocator: IAllocator?
+    buffer:    [*] DropOnlyTracked?
     count:     u64
     capacity:  u64
 }
@@ -311,7 +311,7 @@ impl ReallocDropBuffer
         req.address = .buffer
         let allocItf = .allocator!
         allocItf.realloc(&req)
-        .buffer   = cast(#null [*] DropOnlyTracked) req.address
+        .buffer   = cast([*] DropOnlyTracked?) req.address
         .capacity = newCapacity
     }
 
@@ -341,8 +341,8 @@ impl ReallocDropBuffer
 
 struct(T) GenericOwnedBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] T
+    allocator: IAllocator?
+    buffer:    [*] T?
     count:     u64
     capacity:  u64
 }
@@ -365,7 +365,7 @@ impl GenericOwnedBuffer
         req.address = .buffer
         let allocItf = .allocator!
         allocItf.realloc(&req)
-        .buffer   = cast(#null [*] T) req.address
+        .buffer   = cast([*] T?) req.address
         .capacity = newCapacity
     }
 
@@ -395,8 +395,8 @@ impl GenericOwnedBuffer
 
 struct(T) LazyAllocatorGenericBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] T
+    allocator: IAllocator?
+    buffer:    [*] T?
     count:     u64
     capacity:  u64
 }
@@ -421,7 +421,7 @@ impl LazyAllocatorGenericBuffer
         req.address = .buffer
         let allocItf = .allocator!
         allocItf.realloc(&req)
-        .buffer   = cast(#null [*] T) req.address
+        .buffer   = cast([*] T?) req.address
         .capacity = newCapacity
     }
 
@@ -451,8 +451,8 @@ impl LazyAllocatorGenericBuffer
 
 struct(T) HelperAllocatorGenericBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] T
+    allocator: IAllocator?
+    buffer:    [*] T?
     count:     u64
     capacity:  u64
 }
@@ -471,7 +471,7 @@ impl HelperAllocatorGenericBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -496,8 +496,8 @@ impl HelperAllocatorGenericBuffer
 
 struct(T) MemoryAllocatorGenericBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] T
+    allocator: IAllocator?
+    buffer:    [*] T?
     count:     u64
     capacity:  u64
 }
@@ -516,7 +516,7 @@ impl MemoryAllocatorGenericBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast(#null [*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast([*] T?) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -566,8 +566,8 @@ impl MemoryAllocatorGenericBuffer
 
 struct(T) PostCopyAllocatorGenericBuffer
 {
-    allocator: #null IAllocator
-    buffer:    #null [*] T
+    allocator: IAllocator?
+    buffer:    [*] T?
     count:     u64
     capacity:  u64
 }
@@ -588,7 +588,7 @@ impl PostCopyAllocatorGenericBuffer
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast([*] T?) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -1306,7 +1306,7 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    var values = OwnedDropBuffer{itf, cast(#null [*] DropOnlyTracked) req.address, 3, 3}
+    var values = OwnedDropBuffer{itf, cast([*] DropOnlyTracked?) req.address, 3, 3}
     let buffer = values.buffer!
     for i in 3 do
         buffer[i].value = cast(s32) (i + 1)

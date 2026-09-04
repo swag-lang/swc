@@ -383,7 +383,7 @@ public impl Voice
 
 impl Bus
 {
-    func createNative(bus: *Bus, numChannels: u32, parent: #null *Bus = null) fail
+    func createNative(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
     {
         switch g_Driver.kind
         {

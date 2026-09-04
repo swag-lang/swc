@@ -9,25 +9,25 @@ const ViewerZoomSlotWidth    = ViewerZoomButtonWidth + 2 * ViewerInfoControlInse
 // One plugin instance and every contribution the host owns with it.
 struct ViewerSession
 {
-    view:                #null *Wnd
-    actions:             #null *Wnd
-    info:                #null *Wnd
-    commands:            #null *Wnd
-    sidePanelHost:       #null *Wnd
-    sidePanel:           #null *Wnd
-    sidePanelButton:     #null *IconButton
-    revealMatch:         #null Viewer.RevealSearchMatch
-    searchBounds:        #null Viewer.SearchMatchBounds
-    clearSearch:         #null Viewer.ClearSearch
-    collectMatches:      #null Viewer.CollectSearchMatches
-    filterSearch:        #null Viewer.ApplySearchFilter
-    describeSearch:      #null Viewer.DescribeSearch
-    prepareSearch:       #null Viewer.PrepareSearch
-    collectFileMatches:  #null Viewer.CollectFileMatches
-    useSearchMatches:    #null Viewer.UseSearchMatches
-    isLoading:           #null Viewer.IsLoading
-    needsLoadingOverlay: #null Viewer.NeedsLoadingOverlay
-    retire:              #null Viewer.Retire
+    view:                *Wnd?
+    actions:             *Wnd?
+    info:                *Wnd?
+    commands:            *Wnd?
+    sidePanelHost:       *Wnd?
+    sidePanel:           *Wnd?
+    sidePanelButton:     *IconButton?
+    revealMatch:         Viewer.RevealSearchMatch?
+    searchBounds:        Viewer.SearchMatchBounds?
+    clearSearch:         Viewer.ClearSearch?
+    collectMatches:      Viewer.CollectSearchMatches?
+    filterSearch:        Viewer.ApplySearchFilter?
+    describeSearch:      Viewer.DescribeSearch?
+    prepareSearch:       Viewer.PrepareSearch?
+    collectFileMatches:  Viewer.CollectFileMatches?
+    useSearchMatches:    Viewer.UseSearchMatches?
+    isLoading:           Viewer.IsLoading?
+    needsLoadingOverlay: Viewer.NeedsLoadingOverlay?
+    retire:              Viewer.Retire?
     details:             String
     failureReason:       String
 }
@@ -70,7 +70,7 @@ struct ViewerPluginHost
     sourceFileName:  string
     pluginIcon:      Icon
     hostServices:    Viewer.HostServices
-    window:          #null *ViewerWindow
+    window:          *ViewerWindow?
 }
 
 // One group a viewer contributes to the information band, sized to what it actually shows.

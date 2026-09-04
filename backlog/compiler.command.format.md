@@ -108,3 +108,22 @@ Evidence about defects in the `format` command and its formatting passes.
   the comment's record is dropped — `canEditGap`, or an anchor that is invalid for a comment line —
   because the code line alone is repaired by `Pass.Align::repairHangingLines`.
 - Related: compiler.command.format.004
+
+### compiler.command.format.008 — A `fail` function type gains a space before the closing parenthesis
+
+- Area: compiler
+- Found while: the repository-wide format pass of a health reset, reviewing the diff it produced
+- Observation: when a function type ending in `fail` is the last thing inside a parenthesis, the
+  formatter inserts a space between `fail` and `)`. The result is stable — a second pass changes
+  nothing — so the only effect is that canonical output reads `fail )`.
+- Evidence: format a file holding
+  `#assert(#nameof(#type func(s32)->s32 fail) == "x")` and the line comes back as
+  `#assert(#nameof(#type func(s32)->s32 fail ) == "x")`. Three repository sources carry that shape
+  today: `bin/unittests/sema/types/lambda.swg` (twice) and
+  `bin/unittests/sema/compiler/stringof.swg`.
+- Next step: `Pass.Spacing::desiredSpaces` already excludes a closing token after a control
+  keyword through `isClosingId`, so the space comes from another rule reached first. Find which
+  rule answers for the `(fail, ')')` pair — the classifier gives `AstNodeId::FailExpr` the
+  `ControlKeyword` role, and the `fail` of a *function type* is not that node.
+- Complete when: formatting the line above leaves `fail)` untouched, and the three sources named
+  are canonical without the space.

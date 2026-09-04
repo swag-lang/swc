@@ -64,3 +64,27 @@ being compiled by it.
   paths instead — then look for what disagreed under the gate.
 - Complete when: a relaunched tool is marked as such and never relaunches again, proven by the
   four-condition reproducer above running once.
+
+### repo.tooling.005 — An incremental Release build can mix two versions of the diagnostic table
+
+- Area: tooling
+- Found while: the Release rung of a repository health reset, on sources whose only recent change
+  was in semantic analysis
+- Observation: the Release compiler built incrementally over an object tree left by an earlier
+  session reported the wrong diagnostic for an unknown symbol: `var v: MissingType` came back as
+  `modifier 'MissingType' needs an integer type, found` — the message of the id that follows
+  `sema_err_unknown_symbol` in `Errors.Sema.msg`. The DevMode compiler built from the same sources
+  reported it correctly. A translation unit compiled against an older precompiled header raises
+  the ordinal that enum had then, while `Diagnostic.cpp` maps ordinals through the table it was
+  compiled with: the two disagree by however many ids were added in between.
+- Evidence: 2026-09-04, sources at `SWC_BUILD_NUM` 343. `MSBuild swc.sln /p:Configuration=Release`
+  produced a binary that failed nine `bin/unittests/errors/sema` fixtures whose expected ids never
+  matched; recompiling `Diagnostic.cpp` alone changed nothing; `MSBuild /t:Rebuild` on the same
+  sources produced a binary that reports `unknown symbol 'MissingType'` and passes the suite.
+- Next: find what the Release configuration fails to invalidate — the precompiled header is the
+  first suspect, since the diagnostic enum reaches every translation unit through `pch.h` and the
+  message table reaches only `Diagnostic.cpp`. Either make the header dependency explicit, or make
+  the id-to-message mapping independent of the enum's ordinals.
+- Complete when: an incremental Release build after ids are added to a `.msg` file either
+  recompiles what depends on them, or cannot produce a binary whose reported id and printed text
+  disagree.

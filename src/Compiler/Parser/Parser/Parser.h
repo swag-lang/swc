@@ -217,7 +217,7 @@ private:
     AstNodeRef parseForInfinite();
     AstNodeRef parseFunctionDecl(bool isInterfaceDefinition = false);
     AstNodeRef parseFunctionBody();
-    uint32_t   computeAutoInlineBodyCost(bool& outHasCalls, AstNodeRef bodyRef, TokenRef bodyStartRef) const;
+    uint32_t   computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticStorage, AstNodeRef bodyRef, TokenRef bodyStartRef) const;
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();

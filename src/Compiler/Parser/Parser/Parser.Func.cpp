@@ -7,8 +7,9 @@ namespace
 {
     struct AutoInlineBodyShape
     {
-        uint32_t numCalls = 0;
-        bool     blocked  = false;
+        uint32_t numCalls      = 0;
+        bool     blocked       = false;
+        bool     staticStorage = false;
     };
 
     // A local function or closure re-binds its outer-scope access and owns a distinct code symbol.
@@ -38,6 +39,18 @@ namespace
             result.blocked = true;
             return;
         }
+        // A `global` or `tls` declaration owns one storage for the whole program, and cloning
+        // the body gives every copy a storage of its own.
+        const AstVarDeclBase* varDecl = node.safeCast<AstSingleVarDecl>();
+        if (!varDecl)
+            varDecl = node.safeCast<AstMultiVarDecl>();
+        if (varDecl && (varDecl->hasStorageFlag(AstVarStorageFlagsE::Global) || varDecl->hasStorageFlag(AstVarStorageFlagsE::Tls)))
+        {
+            result.staticStorage = true;
+            result.blocked       = true;
+            return;
+        }
+
         if (node.is(AstNodeId::CallExpr))
             result.numCalls++;
         else if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
@@ -60,9 +73,10 @@ namespace
 
 // Measure the body's stable parse-time cost. Sema rewrites body nodes in place, so the same walk
 // run during analysis can read nodes whose id and payload disagree.
-uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, AstNodeRef bodyRef, TokenRef bodyStartRef) const
+uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticStorage, AstNodeRef bodyRef, TokenRef bodyStartRef) const
 {
-    outHasCalls = false;
+    outHasCalls      = false;
+    outStaticStorage = false;
     if (bodyRef.isInvalid() || bodyStartRef.isInvalid())
         return UINT32_MAX;
 
@@ -72,7 +86,8 @@ uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, AstNodeRef bodyRef
 
     AutoInlineBodyShape shape;
     measureAutoInlineBody(shape, *ast_, bodyRef, firstToken_);
-    outHasCalls = shape.numCalls != 0;
+    outHasCalls      = shape.numCalls != 0;
+    outStaticStorage = shape.staticStorage;
     if (shape.blocked)
         return UINT32_MAX;
 
@@ -367,10 +382,12 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
         nodePtr->nodeBodyRef = AstNodeRef::invalid();
     }
 
-    bool autoInlineHasCalls = false;
-    nodePtr->autoInlineCost = computeAutoInlineBodyCost(autoInlineHasCalls, nodePtr->nodeBodyRef, bodyStartRef);
+    bool autoInlineHasCalls    = false;
+    bool autoInlineStaticStore = false;
+    nodePtr->autoInlineCost    = computeAutoInlineBodyCost(autoInlineHasCalls, autoInlineStaticStore, nodePtr->nodeBodyRef, bodyStartRef);
     if (autoInlineHasCalls)
         nodePtr->addFlag(AstFunctionFlagsE::AutoInlineHasCalls);
+    nodePtr->ownsStaticStorage = autoInlineStaticStore;
 
     fwdSeenParam_  = savedFwdSeen;
     fwdDeclActive_ = savedFwdActive;

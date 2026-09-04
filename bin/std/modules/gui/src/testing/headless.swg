@@ -1019,16 +1019,17 @@ impl HeadlessHost
         .pump()
     }
 
-    // Returns mouse target.
+    // Returns the window a pointer gesture at that screen position is delivered to.
+    //
+    // A capture wins over the position, and a disabled window under the pointer hands the
+    // gesture to the nearest enabled ancestor, the way the application routes one.
     mtd mouseTargetAt(pt: Math.Point)->*Wnd?
     {
         if .app.mouseCaptureWnd do
             return .app.mouseCaptureWnd
 
-        // A disabled window under the pointer is not the target, but it does not swallow the
-        // gesture either: the application hands it to the nearest enabled ancestor, and a test
-        // driving the same gesture has to reach the same window. A viewer's own drop overlay,
-        // disabled so it never takes the pointer, is exactly that shape.
+        // A viewer's drop overlay is disabled precisely so it never takes the pointer: walking
+        // up to the enabled ancestor is what stops it from swallowing the gesture.
         return Application.skipDisabled(.wndAt(pt))
     }
 

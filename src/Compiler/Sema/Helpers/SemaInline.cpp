@@ -2590,6 +2590,20 @@ namespace
                ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice() || ti.isFunction();
     }
 
+    // Reports whether the callee's body declares storage that must exist exactly once.
+    //
+    // A cross-module callee's declaration belongs to another Ast, which may be under analysis on
+    // another thread; the parser's verdict is written before any of that and never changes, so it
+    // is the one thing safe to read from here.
+    bool declaresStaticStorage(const Sema& sema, const SymbolFunction& fn)
+    {
+        const AstFunctionDecl* decl    = nullptr;
+        const Ast*             declAst = nullptr;
+        if (!resolveFunctionDecl(sema, fn, decl, declAst))
+            return false;
+        return decl->ownsStaticStorage;
+    }
+
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
     {
         if (fn.isGenericRoot() || fn.isGenericInstance())
@@ -2740,9 +2754,16 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     const AttributeList& attributes = fn.attributes();
 
     // Macros and mixins are not ordinary functions: they must always be expanded, regardless
-    // of the inline mode.
+    // of the inline mode. A macro's `global` is one storage per expansion by construction, which
+    // is what splicing means; the guard below is about a function that is CALLED.
     if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
         return true;
+
+    // A body declaring `global` or `tls` owns one storage for the whole program, and inlining
+    // clones a body rather than sharing it: each copy would allocate a storage of its own, so a
+    // counter kept in a function-local `global` answered 1 at every call site.
+    if (declaresStaticStorage(sema, fn))
+        return false;
 
     const Runtime::BuildCfgBackendInlineMode mode = sema.buildCfgBackend().inlineMode;
     if (mode == Runtime::BuildCfgBackendInlineMode::Never)

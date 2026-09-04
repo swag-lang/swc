@@ -41,3 +41,21 @@
     Swag.assert(toggle() == false)
     Swag.assert(toggle() == true)
 }
+
+// A function-local `global` owns ONE storage for the whole program, so a body that declares one
+// cannot be cloned into its call sites. Marking it `#[Swag.Inline]` must not change that: each
+// copy would count on a storage of its own.
+#test
+{
+    #[Swag.Inline]
+    func marked()->s32
+    {
+        global var value = 100
+        value += 1
+        return value
+    }
+
+    Swag.assert(marked() == 101)
+    Swag.assert(marked() == 102)
+    Swag.assert(marked() == 103)
+}

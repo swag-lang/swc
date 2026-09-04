@@ -263,7 +263,14 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE
 // -----------------------------------------------------------------------------
 struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlagsE>
 {
-    TokenId    intrinsicId    = TokenId::Invalid;
+    TokenId intrinsicId = TokenId::Invalid;
+
+    // The body declares a `global` or `tls` variable, which owns ONE storage for the whole
+    // program. Inlining clones a body instead of sharing it, so every copy would allocate a
+    // storage of its own and a counter written as a function-local `global` would answer 1 at
+    // every call site. The parser decides this for the same reason it decides the cost.
+    bool ownsStaticStorage = false;
+
     uint32_t   autoInlineCost = UINT32_MAX;
     SpanRef    spanGenericParamsRef;
     AstNodeRef nodeParamsRef;

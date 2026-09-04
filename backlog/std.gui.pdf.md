@@ -378,7 +378,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   back on. On the corpus's densest vector page that first frame costs 3.5 ms against 1.3 ms warm.
 - Complete when: turning a page never blocks the GUI thread for longer than a frame, whatever the
   page holds, and returning to a page just left costs no decode.
-- Related: std.gui.pdf.025, std.gui.pdf.033
+- Related: std.gui.pdf.025, std.gui.pdf.035
 
 ### std.gui.pdf.026 — An image is copied once per page item that shows it
 
@@ -455,28 +455,35 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
   budget.
 
-### std.gui.pdf.033 — A stroked page still records several times what a filled one does
+### std.gui.pdf.035 — Stroking a page costs four times filling the same geometry
 
-- Intent: what a warm frame spends is now the flat per-mark cost of recording, and on a page of
-  vector art most of it is stroking. A fill keeps its tessellation inside the contour it filled,
-  so a page drawn again only appends vertices; a stroke keeps nothing at all, and its geometry —
-  caps, joins, miters, dashes, and the antialiasing along each of them — is rebuilt from the
-  contour on every frame.
-- Evidence: measured on `llvm-polly-impact-2011-slides.pdf` page 0, the corpus's densest vector
-  page at 207 items over 252 contours, timing `drawPageItems` alone against a CPU renderer in
-  release configuration. The best of five warm frames costs 0.83 to 1.0 ms, and one of them
-  splits as fill 0.63 ms, stroke 0.53 ms, text 0.06 ms, and under 0.12 ms for the rest of the
-  loop; inside the fill, the solid costs 0.17 ms and the antialiasing band 0.34 ms. Scaled per
-  mark that is 4 us, so a page of a few thousand marks lands at 13 to 16 ms and misses the bar; a
-  page of text alone does not — `llvm-polly-impact-2011-paper.pdf` page 3, 3 733 text runs,
-  records in 2.2 ms.
-- Next: give a stroke the cache a fill has. The generated geometry depends on the contour, the
-  pen, and the antialiasing half-width in path space, so it can be keyed the way a fill's
-  triangulation is keyed on `LinePath.revision`; measure the same page afterwards and check what
-  the fill's remaining 0.63 ms is made of.
-- Complete when: a page of a few thousand marks records in single-digit milliseconds on a warm
-  cache, whether its marks are filled or stroked.
-- Related: std.gui.pdf.034
+- Intent: a fill keeps its tessellation inside the contour it filled, so a page drawn again only
+  appends vertices. A stroke keeps nothing: every frame rebuilds a quad per segment and, between
+  each pair of them, a join — two triangles and an antialiasing band along each of its outer
+  edges. Eighteen vertices for the join against six for the segment it bridges, on a contour
+  flattened from a curve where every turn is shallow.
+- Evidence: measured against a CPU renderer in release configuration, timing `drawPageItems`
+  alone, best of twenty-five warm frames on an idle machine. A page of 3 300 glyph-sized marks —
+  5 000 contours, 132 000 points, the shape a document that draws every glyph through a form of
+  its own produces — records in 8.9 ms filled and 39 to 46 ms stroked. Removing every join takes
+  the stroked page from 6.0 to 3.3 times the filled one, and to 1.8 times when the segments also
+  measure their coverage from the centre line, so the join alone is about half of a stroke's
+  recording.
+- Note: two shortcuts were measured and rejected. Skipping a join whose outer corners fall closer
+  than a tenth of a device pixel — which a minified pass already does — scallops every rounded
+  corner at normal scale, because a curve's corner is a run of such turns and dropping all of them
+  leaves the outer side unjoined; four focus-ring goldens and two stroke goldens caught it, with
+  channel differences up to 235. Drawing a page's strokes under
+  [[Pixel.PaintParams.DistanceStrokes]], as the SVG renderer does, was worth 7% of a stroked
+  page's recording and moved 0.08% to 0.9% of a rendered page's pixels, by up to a full channel:
+  the ink of a document is not ours to trade for that.
+- Next: lay a contour's stroke down as one mitered ribbon rather than a quad per segment and a
+  join between them, the way [[Pixel.Painter.fillPath]]'s antialiasing band already shares its
+  mitered corners between adjacent edges. A turn past the miter limit still needs a join; every
+  other turn stops needing one.
+- Complete when: stroking a page costs the same order as filling the same contours, and a page of
+  a few thousand stroked marks records in single-digit milliseconds on a warm cache.
+- Related: std.gui.pdf.030
 
 ---
 

@@ -27,9 +27,15 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     expect serializer.end()
 }
 
+// The window canonicalizes what it opens, so the fixture is spelled the way it will be read
+// back: `#curlocation` gives its directory with the host separator, which no comparison
+// against `currentFile` would survive.
 func viewerFixturePath()->String
 {
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
+    var result: retval
+    result = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
+    Path.normalize(&result)
+    return result
 }
 
 // A golden can look plausibly rounded at fit-to-window scale while a square child has actually

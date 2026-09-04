@@ -291,7 +291,10 @@ func pushButtonHeadlessResetCounters()
     Swag.assert(button.aniBk.themeCrc == Swag.U32.Max)
     Swag.assert(button.aniBorder.themeCrc == Swag.U32.Max)
     Swag.assert(button.aniText.themeCrc == Swag.U32.Max)
-    Swag.assert(host.app.mouseEnterWnd == null)
+
+    // A disabled window does not swallow the pointer: the application hands the gesture to
+    // the nearest enabled ancestor, so the root is what the pointer is now over.
+    Swag.assert(host.app.mouseEnterWnd == &host.root)
     Swag.assert(host.app.mouseCaptureWnd == null)
 }
 

@@ -368,3 +368,37 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     Swag.assert(host.dropFiles(pt, ["c:/tmp/a.vault", "c:/tmp/b.vault"]) == DropEffect.None)
     Swag.assert(edit.text() == "c:/tmp/one.vault")
 }
+
+// An application parents its main window to the surface window, the way `SurfaceWnd.create`
+// parents the view it is handed, so that tree is not under the host's `root`. The gesture has to
+// reach it all the same, or every pointer helper is blind to the shape a real application builds.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    let catcher = makeCatcher(&host.surfaceWnd, {10, 10, 100, 100})
+    let effect  = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
+
+    Swag.assert(effect == DropEffect.Copy)
+    Swag.assert(catcher.drops == 1)
+    Swag.assert(catcher.lastFiles.count == 1)
+}
+
+// A disabled window over the target does not swallow the gesture: the application walks up to the
+// nearest enabled ancestor, and so does the harness. A drop overlay a viewer keeps disabled so it
+// never takes the pointer is exactly that shape.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    let catcher = makeCatcher(&host.root, {10, 10, 100, 100})
+    let overlay = Wnd.create'Wnd(catcher, {0, 0, 100, 100})
+    overlay.disable()
+
+    Swag.assert(host.dropFiles({50, 50}, ["c:/tmp/one.txt"]) == DropEffect.Copy)
+    Swag.assert(catcher.drops == 1)
+}

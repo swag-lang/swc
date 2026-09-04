@@ -448,6 +448,14 @@ impl HeadlessHost
             return surface.wnd.windowAt(surfacePt.x, surfacePt.y, true)
         }
 
+        // The host keeps its surface off the application's list, so nothing above answers for it.
+        // An application parents its main window to the surface window itself, the way
+        // `SurfaceWnd.create` parents the view it is given, so that tree lives outside `root`:
+        // search the surface window first, and let `root` answer for a tree the test built there.
+        let hosted = .surfaceWnd.windowAt(pt.x, pt.y, true)
+        if hosted and hosted! != cast(*Wnd) &.surfaceWnd do
+            return hosted
+
         return .root.windowAt(pt.x, pt.y, true)
     }
 
@@ -1017,11 +1025,11 @@ impl HeadlessHost
         if .app.mouseCaptureWnd do
             return .app.mouseCaptureWnd
 
-        let target = .wndAt(pt)
-        if !target or !target.isEnabled() do
-            return null
-
-        return target
+        // A disabled window under the pointer is not the target, but it does not swallow the
+        // gesture either: the application hands it to the nearest enabled ancestor, and a test
+        // driving the same gesture has to reach the same window. A viewer's own drop overlay,
+        // disabled so it never takes the pointer, is exactly that shape.
+        return Application.skipDisabled(.wndAt(pt))
     }
 
     // Sends mouse event.

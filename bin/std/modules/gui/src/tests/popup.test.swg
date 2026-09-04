@@ -133,7 +133,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     host.pump()
 
     let marked = PopupListCtrl.create(&host.root)
-    marked.reserveSelectionMark = true
+    marked.markSelectionOnly = true
     marked.addItem("A")
     marked.addItem("B")
     marked.setSelectedIndex(1)

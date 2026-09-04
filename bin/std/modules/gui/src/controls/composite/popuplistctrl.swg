@@ -7,8 +7,8 @@ struct PopupListCtrlItem
 {
     public
     {
-        using base:      Item     // Embedded label, icon, identifier, and user data.
-        isSeparator:     bool     // Whether this entry separates groups and cannot be selected.
+        using base:  Item     // Embedded label, icon, identifier, and user data.
+        isSeparator: bool     // Whether this entry separates groups and cannot be selected.
 
         // Optional content painter, called inside this entry's selection ground instead of its
         // icon and wording. It receives Checked for the stored selection and Hot for the row
@@ -33,12 +33,11 @@ struct PopupListCtrl
         fitHorizontally: bool          // Whether fitting may mirror horizontal placement around the owner.
         fitVertically:   bool          // Whether fitting may mirror vertical placement around the owner.
 
-        // Reserves a permanent trailing column for the selected-item check mark, and makes that
-        // mark the only thing that says which entry is current. Use for visual presets: their
-        // painted sample keeps identical bounds whatever the selection is, and the list opens
-        // with nothing highlighted, so a sample is never buried under the accent ground the
-        // opening highlight would put behind it.
-        reserveSelectionMark: bool
+        // Leaves the check mark alone to say which entry is current, so the list opens with
+        // nothing highlighted. Use it when the entries are painted samples rather than wording:
+        // the opening highlight would put its accent ground behind one of them, and a sample of a
+        // stroke drawn on that ground reads as a bar of colour instead of as the stroke it draws.
+        markSelectionOnly: bool
 
         // Emitted when the popup closes; the index is U32.Max when the action was canceled.
         sigClosed: #null func||(*PopupListCtrl, u32)
@@ -198,9 +197,9 @@ internal impl IWnd for PopupListView
             }
 
             // Back selection
-            var colorSel: Color
-            var colorCheck = colors.popupList_CheckMark
-            let isHot      = .hotIdx == idx
+            var colorSel:   Color
+            var colorCheck                 = colors.popupList_CheckMark
+            let isHot                      = .hotIdx == idx
             var paintFlags: PaintItemFlags = .None
             if idx == .list.selectedIndex do
                 paintFlags.add(.Checked)
@@ -215,10 +214,28 @@ internal impl IWnd for PopupListView
             theme.drawSubRect(painter, labelPos, &rects.selectionBox_Bk, colorSel)
             labelPos.moveLeft(metrics.popupList_Padding)
 
+            // The mark leads the row, the way a menu marks a checked entry: it is found before
+            // the content it qualifies rather than after crossing the whole row, and one rule
+            // then covers every list the application opens.
+            //
+            // Its lane is kept on every row of a list that has a selection, so all of them start
+            // at the same place — reserved on the marked row alone, that row was the one whose
+            // wording ran out of room. And the lane is its own, in front of the icon rather than
+            // over it: an icon here names the entry, where a menu's only decorates its command.
             let fntHeight = .font().regular!.height
-            let reserveCheckMark = .list.reserveSelectionMark or idx == .list.selectedIndex
-            if reserveCheckMark do
-                labelPos.setRight(labelPos.right() - fntHeight - metrics.popupList_IconTextMargin)
+            if .list.selectedIndex < .list.items.count
+            {
+                if idx == .list.selectedIndex
+                {
+                    var checkPos = labelPos
+                    checkPos.y      = checkPos.vertCenter() - fntHeight * 0.5
+                    checkPos.width  = fntHeight
+                    checkPos.height = fntHeight
+                    theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, colorCheck)
+                }
+
+                labelPos.moveLeft(fntHeight + metrics.popupList_IconTextMargin)
+            }
 
             // Icon, plainly centered, because the entry beside it is centered on its capitals: a
             // drop-down shows the very entries the field above it shows, so the two have to place
@@ -248,17 +265,6 @@ internal impl IWnd for PopupListView
                 format.flags         = .Clip
                 format.font          = .font()
                 painter.drawRichString(labelPos, &it.name, format)
-            }
-
-            // Check mark
-            if idx == .list.selectedIndex
-            {
-                var checkPos = labelPos
-                checkPos.x      = checkPos.right()
-                checkPos.y      = checkPos.vertCenter() - fntHeight * 0.5
-                checkPos.width  = fntHeight
-                checkPos.height = fntHeight
-                theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, colorCheck)
             }
 
             y += .list.itemHeight
@@ -415,7 +421,7 @@ impl PopupListCtrl
         // stroke must not become. The keyboard still starts from the selection, which `moveHot`
         // reads on its own while nothing is highlighted.
         let startView = cast(*PopupListView) .scrollWnd.view!
-        startView.hotIdx = .reserveSelectionMark ? Swag.U32.Max : .selectedIndex
+        startView.hotIdx = .markSelectionOnly ? Swag.U32.Max : .selectedIndex
 
         let pt  = .parent!.surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}

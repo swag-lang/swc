@@ -9551,11 +9551,11 @@ view.<span class="SFct">setZoom</span>(<span class="SNum">2.0</span>)</span></di
 </td></tr>
 <tr><td id="Gui_PopupListCtrl_items" class="code-type">items</td><td class="code-type"><a href="std.core.html#Core_ArrayPtr">Core.ArrayPtr</a>'(<a href="#Gui_PopupListCtrlItem">Gui.PopupListCtrlItem</a>)</td><td><p>Entries in display order.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_PopupListCtrl_markSelectionOnly">markSelectionOnly</a></td><td class="code-type">bool</td><td><p>Leaves the check mark alone to say which entry is current, so the list opens with</p>
+</td></tr>
 <tr><td id="Gui_PopupListCtrl_maximumHeight" class="code-type">maximumHeight</td><td class="code-type">f32</td><td><p>Maximum popup height in logical units.</p>
 </td></tr>
 <tr><td id="Gui_PopupListCtrl_minimumWidth" class="code-type">minimumWidth</td><td class="code-type">f32</td><td><p>Minimum popup width in logical units.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Gui_PopupListCtrl_reserveSelectionMark">reserveSelectionMark</a></td><td class="code-type">bool</td><td><p>Reserves a permanent trailing column for the selected-item check mark, and makes that</p>
 </td></tr>
 <tr><td id="Gui_PopupListCtrl_scrollWnd" class="code-type">scrollWnd</td><td class="code-type">*<a href="#Gui_ScrollWnd">Gui.ScrollWnd</a></td><td><p>Scrollable viewport owned by the popup.</p>
 </td></tr>
@@ -9569,8 +9569,8 @@ view.<span class="SFct">setZoom</span>(<span class="SNum">2.0</span>)</span></di
 </table>
 <h3 id="Gui_PopupListCtrl_member-details">Field details</h3>
 <div class="api-member-details">
-<section class="api-member-detail"><h4 id="Gui_PopupListCtrl_reserveSelectionMark"><span class="api-member-name">reserveSelectionMark</span><a class="api-member-permalink" href="#Gui_PopupListCtrl_reserveSelectionMark" aria-label="Permalink">#</a></h4>
-<p>Reserves a permanent trailing column for the selected-item check mark, and makes that mark the only thing that says which entry is current. Use for visual presets: their painted sample keeps identical bounds whatever the selection is, and the list opens with nothing highlighted, so a sample is never buried under the accent ground the opening highlight would put behind it.</p>
+<section class="api-member-detail"><h4 id="Gui_PopupListCtrl_markSelectionOnly"><span class="api-member-name">markSelectionOnly</span><a class="api-member-permalink" href="#Gui_PopupListCtrl_markSelectionOnly" aria-label="Permalink">#</a></h4>
+<p>Leaves the check mark alone to say which entry is current, so the list opens with nothing highlighted. Use it when the entries are painted samples rather than wording: the opening highlight would put its accent ground behind one of them, and a sample of a stroke drawn on that ground reads as a bar of colour instead of as the stroke it draws.</p>
 </section>
 </div>
 <h3 id="Gui_PopupListCtrl_methods">Methods</h3>
@@ -20178,54 +20178,54 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zoomToFit</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_addItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.addItem</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_addItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L434">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_addItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.addItem</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_addItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L440">src</a></div>
 <p>Appends a selectable item and returns its stable heap object.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addItem</span>(name: <span class="STpe">string</span>, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {}, userData0: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, userData1: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PopupListCtrlItem">PopupListCtrlItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_addSeparator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.addSeparator</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_addSeparator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L458">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_addSeparator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.addSeparator</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_addSeparator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L464">src</a></div>
 <p>Appends a non-selectable separator and returns its stable heap object.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addSeparator</span>()-&gt;*<span class="SCst"><a href="#Gui_PopupListCtrlItem">PopupListCtrlItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.cancel</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L392">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.cancel</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L398">src</a></div>
 <p>Closes the popup and reports cancellation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_commitHighlighted" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.commitHighlighted</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_commitHighlighted" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L399">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_commitHighlighted" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.commitHighlighted</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_commitHighlighted" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L405">src</a></div>
 <p>Closes the popup and commits the highlighted item, if any.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">commitHighlighted</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.create</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L352">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.create</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L358">src</a></div>
 <p>Creates a hidden popup list owned by the top view of <span class="code-inline">owner</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;*<span class="SCst"><a href="#Gui_PopupListCtrl">PopupListCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_highlightFirst" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.highlightFirst</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_highlightFirst" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L378">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_highlightFirst" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.highlightFirst</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_highlightFirst" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L384">src</a></div>
 <p>Highlights the first selectable item.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">highlightFirst</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_highlightLast" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.highlightLast</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_highlightLast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L385">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_highlightLast" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.highlightLast</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_highlightLast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L391">src</a></div>
 <p>Highlights the last selectable item.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">highlightLast</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_moveHighlight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.moveHighlight</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_moveHighlight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L371">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_moveHighlight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.moveHighlight</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_moveHighlight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L377">src</a></div>
 <p>Moves the highlighted item by a signed distance, skipping separators.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">moveHighlight</span>(direction: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_setSelectedIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.setSelectedIndex</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_setSelectedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L467">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_setSelectedIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.setSelectedIndex</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_setSelectedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L473">src</a></div>
 <p>Sets the item highlighted when the popup opens, or clears it with U32.Max.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSelectedIndex</span>(index: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.show</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L406">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_PopupListCtrl_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.show</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/popuplistctrl.swg#L412">src</a></div>
 <p>Shows the popup at the supplied surface coordinates and requested width.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>(x, y: <span class="STpe">f32</span>, width: <span class="STpe">f32</span> = <span class="SNum">10</span>)</span></div>
 </section>
@@ -23532,9 +23532,9 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.PopupListCtrl.iconSize|Gui_PopupListCtrl_iconSize|Square size used for every item icon; zero uses each descriptor's own size.",
 "v|Gui.PopupListCtrl.itemHeight|Gui_PopupListCtrl_itemHeight|Height of selectable rows in logical units.",
 "v|Gui.PopupListCtrl.items|Gui_PopupListCtrl_items|Entries in display order.",
+"v|Gui.PopupListCtrl.markSelectionOnly|Gui_PopupListCtrl_markSelectionOnly|Leaves the check mark alone to say which entry is current, so the list opens with",
 "v|Gui.PopupListCtrl.maximumHeight|Gui_PopupListCtrl_maximumHeight|Maximum popup height in logical units.",
 "v|Gui.PopupListCtrl.minimumWidth|Gui_PopupListCtrl_minimumWidth|Minimum popup width in logical units.",
-"v|Gui.PopupListCtrl.reserveSelectionMark|Gui_PopupListCtrl_reserveSelectionMark|Reserves a permanent trailing column for the selected-item check mark, and makes that",
 "v|Gui.PopupListCtrl.scrollWnd|Gui_PopupListCtrl_scrollWnd|Scrollable viewport owned by the popup.",
 "v|Gui.PopupListCtrl.selectedIndex|Gui_PopupListCtrl_selectedIndex|Initially highlighted item, or U32.Max.",
 "v|Gui.PopupListCtrl.separatorHeight|Gui_PopupListCtrl_separatorHeight|Height of separator rows in logical units.",

@@ -46,7 +46,7 @@ command uses `compiler.command.doc`. A deliberately cross-cutting domain can rem
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
-| [compiler.safety.md](compiler.safety.md) | Borrow, lifetime, and sanity analysis |
+| [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |
 | [language.design.md](language.design.md) | The Swag language and its syntax |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable |

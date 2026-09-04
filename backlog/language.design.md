@@ -29,6 +29,9 @@ ships; history lives in git, not here.
   `--warn-*`) — without one, the only two answers available are "error" and "silence".
 - Complete when: enum-switch exhaustiveness has one documented default, one explicit opt-out, and
   compiler and reference tests covering a member added after the switch was written.
+- Related: compiler.safety.009 (a `switch #complete` lowers to an unguarded jump in `release`) and
+  compiler.safety.010 (an integer converts to an enum value no member names) are the safety half of
+  the same subject, and are decided independently of this default.
 
 ### language.design.002 — There is no tagged union
 
@@ -52,7 +55,9 @@ ships; history lives in git, not here.
   destructure it in a switch, and diagnose a missing or mismatched arm in focused reference tests.
 - Related: it interacts with language.design.001 (a tagged union is where exhaustive matching earns its keep) and with
   the error-handling design already shipped (`fail`/`try`/`catch`), which chose a different axis
-  and should not be re-litigated by the same feature.
+  and should not be re-litigated by the same feature. It also removes one entry from the unsafe
+  operation list in compiler.safety.006: reading the member that was not written is how an integer
+  becomes a pointer today, with no cast to mark it.
 
 ## Generic contracts and execution semantics
 

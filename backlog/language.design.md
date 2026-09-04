@@ -144,7 +144,7 @@ ships; history lives in git, not here.
   `where Reflection.hasInterface(T, IFoo)`. `Reflection.hasInterface` is a public `#[ConstExpr]`
   predicate ([struct.swg:145-168](../bin/std/modules/core/src/reflection/struct.swg#L145-L168)),
   just as generic operations already use predicates such as `where Reflection.canCompare(T)`
-  ([array.swg:732](../bin/std/modules/core/src/collections/array.swg#L732)).
+  ([array.swg:730](../bin/std/modules/core/src/collections/array.swg#L730)).
   What is missing is a first-class bound that declares the contract, participates directly in
   overload diagnostics, and lets the generic body be checked against the interface rather than
   waiting for each concrete instantiation.
@@ -232,7 +232,7 @@ with exactly one language and keeps deliberately.
 - Complete when: reordered field-looking positional patterns cannot silently bind the wrong fields,
   and the reference and compiler tests show the positional and named spellings side by side.
 - Related: the same pattern syntax is what `let {r, g, b} = getWhite()` uses in
-  [007_008_retval.swg:49](../bin/reference/modules/language/src/007_008_retval.swg#L49), where the
+  [007_008_retval.swg:50](../bin/reference/modules/language/src/007_008_retval.swg#L50), where the
   names read as field names and happen to be in order.
 
 ### language.design.007 — One default in a grouped declaration silently defaults every name in the group
@@ -637,10 +637,10 @@ with exactly one language and keeps deliberately.
   ([003_002_number_literals.swg:38-57](../bin/reference/modules/language/src/003_002_number_literals.swg#L38-L57)))
   as a fact about magnitude, and says nothing about it being a fact about signedness.
 - Evidence: `Sema.Literal.cpp` builds a decimal literal with `TypeInfo::Sign::Unknown`
-  ([Sema.Literal.cpp:546](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L546)) and a hex or binary one
+  ([Sema.Literal.cpp:540](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L540)) and a hex or binary one
   with `Sign::Unsigned`
-  ([Sema.Literal.cpp:458](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L458),
-  [Sema.Literal.cpp:498](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L498)). An isolated probe,
+  ([Sema.Literal.cpp:452](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L452),
+  [Sema.Literal.cpp:492](../src/Compiler/Sema/Ast/Sema.Literal.cpp#L492)). An isolated probe,
   `swc test -d <dir>`, prints two types for one value:
 
   ```swag

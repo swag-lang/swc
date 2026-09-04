@@ -132,6 +132,7 @@ external formatter or documentation generator.
 | `swc doc` | Generate the HTML documentation of a module |
 | `swc sema` | Analyze source semantics, including type checking, without a backend |
 | `swc syntax` | Check source syntax only |
+| `swc clean` | Remove the generated directories of a workspace, a module, or the script dependency cache |
 
 `swc help` and `swc help <command>` print the authoritative option list.
 

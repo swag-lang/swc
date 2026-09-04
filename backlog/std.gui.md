@@ -457,7 +457,7 @@ as [app.capture.md](app.capture.md).
 - Area: std/gui
 - Found while: fixing the same defect in `ListView`, which is what a file box opens the keyboard on.
 - Observation: `RichEditView.onKeyEvent` marks every pressed key handled
-  ([view.swg:133](../bin/std/modules/gui/src/controls/richedit/view.swg#L133)) and declines
+  ([view.swg:132](../bin/std/modules/gui/src/controls/richedit/view.swg#L132)) and declines
   Escape and Enter only when the editor carries `RichEditFlags.AutoLoseFocus`. An editor without
   that flag therefore eats Escape, Tab, and Shift+Tab, so a box built around one can be neither
   dismissed nor traversed without the pointer.
@@ -466,7 +466,7 @@ as [app.capture.md](app.capture.md).
   route `ListView` was blocking until this task.
 - Next step: decide which keys a rich edit really claims. Tab is deliberate and documented;
   Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
-  way `EditBox.keyPressed` already does ([editbox.swg:372](../bin/std/modules/gui/src/controls/widgets/editbox.swg#L372)).
+  way `EditBox.keyPressed` already does ([editbox.swg:493](../bin/std/modules/gui/src/controls/widgets/editbox.swg#L493)).
 
 ## Layout invalidation and alignment
 
@@ -503,7 +503,7 @@ as [app.capture.md](app.capture.md).
   unchanged, which is the common case for a re-labelled control — the band keeps its width and the
   caption inside it needs more room.
 - Evidence: `grep -rn layoutDirty bin --include=*.swg` returns three sites, all writes
-  ([wnd.swg:301](../bin/std/modules/gui/src/wnd/wnd.swg#L301),
+  ([wnd.swg:302](../bin/std/modules/gui/src/wnd/wnd.swg#L302),
   [wnd.swg:914](../bin/std/modules/gui/src/wnd/wnd.swg#L914),
   [wnd.swg:980](../bin/std/modules/gui/src/wnd/wnd.swg#L980)). Measured directly: with
   `FormLayoutCtrl` arranging only from `onResizeEvent`, Swag Vault's French "Parcourir" button stayed at

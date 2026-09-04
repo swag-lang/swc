@@ -19,7 +19,7 @@ an explicit opt-out (`--style preserve`) and a `style` key that rebases a config
 ([FormatStyle.cpp](../src/Format/FormatStyle.cpp)); a cascading `.swc-format` resolved from the
 file's directory upward with parent inheritance
 ([FormatOptionsLoader.cpp](../src/Format/FormatOptionsLoader.cpp)); `--dump-config`;
-`swc-format off`/`on` regions; eleven passes over a token-and-AST model; and C++ tests over 224
+`swc-format off`/`on` regions; eleven passes over a token-and-AST model; and C++ tests over 239
 cases, the best-tested subsystem in the compiler. On option count it is already in clang-format's
 league.
 
@@ -76,54 +76,8 @@ range expands to syntactic boundaries and which returned edits may fall outside 
 ### compiler.command.format.005 — Format source that is temporarily invalid
 
 A file that fails to parse is counted and skipped
-([FormatJob.cpp:40](../src/Format/FormatJob.cpp#L40)). Define and implement the token-level recovery
+([FormatJob.cpp:34](../src/Format/FormatJob.cpp#L34)). Define and implement the token-level recovery
 contract needed for format-on-type, without making successful parsing a prerequisite.
 
 - Related: compiler.command.format.002, compiler.command.format.003
 
----
-
-The entries below were open investigations when the unified backlog was introduced. Update their
-next action in place as the evidence matures. They retain their former order until re-triaged, so
-position in this imported block carries no priority claim.
-
-Evidence about defects in the `format` command and its formatting passes.
-
-### compiler.command.format.007 — A comment inside a bracket needs two format passes to settle its column
-
-- Area: compiler
-- Found while: a mangling campaign over `bin/` sources, feeding `swc format` badly indented but
-  valid Swag and checking that one pass reaches a fixed point
-- Observation: a whole-line comment sitting between the rows of a multi-line literal reaches its
-  final column only on the second run of the formatter, when the rows around it carry indentation
-  the formatter preserves rather than recomputes. The output is stable from the second pass on, so
-  the only visible effect is that one run is not enough.
-- Evidence: take `bin/std/modules/core/src/text/utf8.swg`, re-indent every line inside the `First`
-  table at random, and format twice with the canonical style: the first pass leaves
-  `// 0x80-0x8F` one column left of the row below it, and the second moves it. Same shape in
-  `bin/examples/modules/opengl3/src/main.swg` around `// Right face (+X) - yellow`. Both need the
-  rows of one table to disagree about their indentation, which only a rewrite produces.
-- Next step: `IndentPass::flushComments` places a pending comment at the column computed for the
-  next code line, and `recordHangingLine` then records both against the same anchor. Check whether
-  the comment's record is dropped — `canEditGap`, or an anchor that is invalid for a comment line —
-  because the code line alone is repaired by `Pass.Align::repairHangingLines`.
-- Related: compiler.command.format.004
-
-### compiler.command.format.008 — A `fail` function type gains a space before the closing parenthesis
-
-- Area: compiler
-- Found while: the repository-wide format pass of a health reset, reviewing the diff it produced
-- Observation: when a function type ending in `fail` is the last thing inside a parenthesis, the
-  formatter inserts a space between `fail` and `)`. The result is stable — a second pass changes
-  nothing — so the only effect is that canonical output reads `fail )`.
-- Evidence: format a file holding
-  `#assert(#nameof(#type func(s32)->s32 fail) == "x")` and the line comes back as
-  `#assert(#nameof(#type func(s32)->s32 fail ) == "x")`. Three repository sources carry that shape
-  today: `bin/unittests/sema/types/lambda.swg` (twice) and
-  `bin/unittests/sema/compiler/stringof.swg`.
-- Next step: `Pass.Spacing::desiredSpaces` already excludes a closing token after a control
-  keyword through `isClosingId`, so the space comes from another rule reached first. Find which
-  rule answers for the `(fail, ')')` pair — the classifier gives `AstNodeId::FailExpr` the
-  `ControlKeyword` role, and the `fail` of a *function type* is not that node.
-- Complete when: formatting the line above leaves `fail)` untouched, and the three sources named
-  are canonical without the space.

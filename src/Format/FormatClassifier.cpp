@@ -269,7 +269,12 @@ namespace
                     i = nextCode(piece.match);
                     continue;
                 }
-                if (piece.isNot(TokenId::SymRightParen) && piece.isNot(TokenId::SymRightBracket) && piece.isNot(TokenId::SymRightCurly))
+                // `fail` closes a function type the same way a bracket closes a
+                // list: `#nameof(#type func()->s32 fail)` reports a span ending
+                // at `s32`, and stopping on the marker would name it the
+                // operator of the expression the call sits in.
+                if (piece.isNot(TokenId::SymRightParen) && piece.isNot(TokenId::SymRightBracket) &&
+                    piece.isNot(TokenId::SymRightCurly) && piece.isNot(TokenId::KwdFail))
                     break;
                 i = nextCode(i);
             }

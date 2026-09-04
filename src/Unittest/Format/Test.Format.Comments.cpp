@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Format/FormatOptions.h"
+#include "Format/FormatOptionsLoader.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
 #include "Unittest/Unittest.h"
@@ -246,6 +247,35 @@ SWC_TEST_BEGIN(FormatComments_BeforeCaseLabelKeepsLabelIndent)
     options.indentWidth      = 4;
     options.indentCaseLabels = false;
     options.indentCaseBlocks = true;
+    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+// A hand-packed table keeps the distance its rows were written at, so a
+// comment between two rows that disagree has to settle on the row below it
+// in the FIRST pass, not the second.
+SWC_TEST_BEGIN(FormatComments_InsideABracketSettleInOnePass)
+{
+    static constexpr std::string_view SOURCE =
+        "const T: [8] u8 = [\n"
+        "      1, 2,\n"
+        "     // second row\n"
+        "       3, 4,\n"
+        "   // third row\n"
+        "     5, 6,\n"
+        "    7, 8]\n";
+
+    static constexpr std::string_view EXPECTED =
+        "const T: [8] u8 = [\n"
+        "      1, 2,\n"
+        "       // second row\n"
+        "       3, 4,\n"
+        "     // third row\n"
+        "     5, 6,\n"
+        "    7, 8]\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
     return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

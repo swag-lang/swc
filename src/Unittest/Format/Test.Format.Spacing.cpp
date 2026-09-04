@@ -482,6 +482,20 @@ SWC_TEST_BEGIN(FormatSpacing_InsideBracesOfLiterals)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatSpacing_FailClosesAFunctionTypeNotAnOperand)
+{
+    static constexpr std::string_view SOURCE =
+        "#assert(#nameof(#type func(s32)->s32 fail) == \"x\")\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#assert(#nameof(#type func(s32)->s32 fail) == \"x\")\n";
+
+    FormatOptions options;
+    options.spaceAroundBinaryOperators = true;
+    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

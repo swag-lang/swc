@@ -142,10 +142,12 @@ func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
         let sizes = line.paintSizes(cxt)
         let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
         let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
-        let room  = Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l)) + line.paintOutlineSize(cxt)
 
-        // The sample runs corner to corner, so what stands across it lands on both axes at
-        // the cosine of that diagonal.
+        // The sample runs corner to corner, so both axes of an end land on both axes of the cell
+        // at the cosine of that diagonal: what stands across the line and what reaches past its
+        // point add up there, and an end reserving only the larger of the two lost its far corner
+        // to the edge of the cell.
+        let room = Math.max(beg.w + beg.l, end.w + end.l) + line.paintOutlineSize(cxt)
         return room * Math.ConstF32.OneBySqrt2
     }
 

@@ -14,12 +14,14 @@ const DashSize       = 6.0
 
 // Geometry of the popups the style cells open. A popup is sized from what it lists, so a
 // style added to an enum widens or lengthens its own list instead of falling outside it.
-const PopupRowHeight    = 36.0     // One row of the dash list.
-const PopupCapRowHeight = 44.0     // One row of the line-end list; its samples need the room.
-const PopupCellSize     = 48.0     // One square cell of the shape list.
-const PopupPadding      = 6.0      // Air the list keeps inside its frame.
-const PopupSpacing      = 5.0      // Gap a stack and a wrap layout leave between two items by default.
-const PopupFrameInset   = 5.0      // Room the frame itself takes around its view (frameWnd_SquarePadding).
+const PopupRowHeight    = 36.0      // One row of the dash list.
+const PopupCapRowHeight = 44.0      // One row of the line-end list; its samples need the room.
+const PopupCapWidth     = 120.0     // Width of the line-end list.
+const PopupDashWidth    = 180.0     // Width of the dash list; its samples run along it.
+const PopupCellSize     = 48.0      // One square cell of the shape list.
+const PopupPadding      = 6.0       // Air the list keeps inside its frame.
+const PopupSpacing      = 5.0       // Gap a stack and a wrap layout leave between two items by default.
+const PopupFrameInset   = 5.0       // Room the frame itself takes around its view (frameWnd_SquarePadding).
 
 // Room `count` items of `size` need along one axis, the air around them included.
 //
@@ -127,9 +129,10 @@ struct PropWnd
     // never from inside the grid's own change notification.
     needRebuild: bool
 
-    // The line-end chooser is a temporary list attached to the panel's top view. It does not
-    // become a button grid just because its entries are visual samples.
-    capPopup: #null *PopupListCtrl
+    // The chooser a style cell opens when what it lists are samples of a stroke. It is a
+    // temporary list attached to the panel's top view, and it does not become a button grid just
+    // because its entries are drawn rather than written.
+    stylePopup: #null *PopupListCtrl
 }
 
 impl PropWnd
@@ -318,22 +321,36 @@ impl PropWnd
         layout.computeLayout()
     }
 
+    // Opens the list a style cell owns, or closes the one already open.
+    //
+    // The entries are samples of a stroke, and the selected one is marked in a lane reserved
+    // beside them instead of by filling its row: an accent ground behind a sample that is itself
+    // a horizontal line reads as a second, much louder line, and the row stops showing the value
+    // it exists to show. Answers null when the call closed the open list rather than opening one.
+    mtd createStylePopup(btn: *IconButton, rowHeight, width: f32)->#null *PopupListCtrl
+    {
+        if .stylePopup
+        {
+            .stylePopup!.cancel()
+            return null
+        }
+
+        let popup = PopupListCtrl.create(cast(*Wnd) btn)
+        .stylePopup                = popup
+        popup.itemHeight           = rowHeight
+        popup.minimumWidth         = width
+        popup.fitVertically        = true
+        popup.reserveSelectionMark = true
+        return popup
+    }
+
     // One popup for both line ends: 'begin' selects the beginCap or endCap field
     // and mirrors the sample stroke accordingly.
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {
-        if .capPopup
-        {
-            .capPopup!.cancel()
+        let popup = .createStylePopup(btn, PopupCapRowHeight, PopupCapWidth)
+        if !popup do
             return
-        }
-
-        let popup = PopupListCtrl.create(cast(*Wnd) btn)
-        .capPopup                  = popup
-        popup.itemHeight           = PopupCapRowHeight
-        popup.minimumWidth         = 120
-        popup.fitVertically        = true
-        popup.reserveSelectionMark = true
 
         let fieldName = begin ? #nameof(FormLine.beginCap) : #nameof(FormLine.endCap)
 
@@ -369,72 +386,65 @@ impl PropWnd
                 prop.pushTypedValue(cast(u32) cap, FormLine, fieldName, true)
             }
 
-            prop.capPopup = null
+            prop.stylePopup = null
             btn.setChecked(false)
             list.destroy()
         }
 
         let rect = btn.surfaceRect()
-        popup.show(rect.x, rect.bottom(), 120)
+        popup.show(rect.x, rect.bottom(), PopupCapWidth)
     }
 
+    // The dash chooser lists one sample of the stroke per style, marked the way the line ends
+    // are: a filled row behind a sample that is itself a dashed line hid the very thing the row
+    // is showing.
     mtd createPopupDashStyle(btn: *IconButton)
     {
-        // The frame is as tall as what it lists. Written by hand, the height stopped
-        // matching the list the day a style was added and the last row fell outside it.
-        var count = 0'f32
-        for i in DashStyle where i != .Pattern do
-            count += 1
-
-        let frame  = btn.createAnchorPopup(180, popupExtent(count, PopupRowHeight))
-        let layout = StackLayoutCtrl.create(frame, .Top)
-        frame.setView(layout)
-
-        func updateBtnState(prop: *PropWnd, layout: *Wnd)
-        {
-            let curSel = prop.getSelectedBaseForm()
-            for c in layout.children
-            {
-                let btn  = cast(*IconButton) c
-                let dash = enumFromUserData'DashStyle(btn.userData)
-                btn.setChecked(curSel.dashStyle == dash)
-                btn.invalidate()
-            }
-        }
+        let popup = .createStylePopup(btn, PopupRowHeight, PopupDashWidth)
+        if !popup do
+            return
 
         let curSel = .getSelectedBaseForm()
-        for i in DashStyle
+        var cur    = 0'u32
+
+        // `Pattern` takes its lengths from the pen and has nothing to show on its own.
+        for i in DashStyle where i != .Pattern
         {
-            if i == .Pattern do
-                continue
+            if curSel.dashStyle == i do
+                cur = cast(u32) popup.items.count
 
-            let btn0 = IconButton.create(layout, {}, {0, 0, 0, PopupRowHeight})
-            btn0.userData = enumToUserData(i)
-            btn0.setForm(.Rectangle)
-            btn0.updateFlags(.Radio)
-            btn0.setChecked(curSel.dashStyle == i)
-
-            btn0.iconPainter = func|prop = me|(btn, bc, pos, flags)
+            let item = popup.addItem("")
+            item.userData0      = enumToUserData(i)
+            item.contentPainter = func|btn|(item, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
                 var rect = pos
-                rect.inflate(-9, -9)
-                var dash  = enumFromUserData'DashStyle(btn.userData)
-                let color = flags & .Checked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
+                rect.inflate(-DashSize, 0)
+
+                let dash  = enumFromUserData'DashStyle(item.userData0)
+                let color = flags & .Hot ? btn.themeColors().popupList_HotText : btn.themeColors().popupList_Text
                 var pen   = Pen.createDash(dash, color, DashSize)
                 pen.dashBlankScale = 0.25
                 bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
             }
-
-            btn0.sigPressed += func|prop = me, layout|(btn)
-            {
-                let kind = enumFromUserData'u64(btn.userData)
-                prop.pushTypedValue(cast() kind, BaseForm, #nameof(BaseForm.dashStyle), true, true)
-                updateBtnState(prop, layout)
-            }
         }
 
-        layout.computeLayout()
+        popup.setSelectedIndex(cur)
+        popup.sigClosed = func|prop = me, btn|(list, idx)
+        {
+            if idx != Swag.U32.Max
+            {
+                let dash = enumFromUserData'DashStyle(list.items[idx]!.userData0)
+                prop.pushTypedValue(cast(u32) dash, BaseForm, #nameof(BaseForm.dashStyle), true, true)
+            }
+
+            prop.stylePopup = null
+            btn.setChecked(false)
+            list.destroy()
+        }
+
+        let rect = btn.surfaceRect()
+        popup.show(rect.x, rect.bottom(), PopupDashWidth)
     }
 
     mtd propBorderColor(stack: *Wnd)
@@ -1000,8 +1010,8 @@ impl PropWnd
 
     mtd selectionHasChanged()
     {
-        if .capPopup do
-            .capPopup!.cancel()
+        if .stylePopup do
+            .stylePopup!.cancel()
 
         for it in .topLayout.children do
             it.destroy()

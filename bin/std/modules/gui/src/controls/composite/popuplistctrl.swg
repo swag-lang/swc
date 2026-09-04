@@ -33,8 +33,11 @@ struct PopupListCtrl
         fitHorizontally: bool          // Whether fitting may mirror horizontal placement around the owner.
         fitVertically:   bool          // Whether fitting may mirror vertical placement around the owner.
 
-        // Reserves a permanent trailing column for the selected-item check mark. Use for visual
-        // presets when their painted sample must keep identical bounds while selection changes.
+        // Reserves a permanent trailing column for the selected-item check mark, and makes that
+        // mark the only thing that says which entry is current. Use for visual presets: their
+        // painted sample keeps identical bounds whatever the selection is, and the list opens
+        // with nothing highlighted, so a sample is never buried under the accent ground the
+        // opening highlight would put behind it.
         reserveSelectionMark: bool
 
         // Emitted when the popup closes; the index is U32.Max when the action was canceled.
@@ -406,9 +409,13 @@ impl PopupListCtrl
             contentHeight += item!.isSeparator ? .separatorHeight : .itemHeight
         .scrollWnd.setScrollSize(0, contentHeight)
 
-        // Highlight the current selection as the keyboard starting point.
+        // Highlight the current selection as the keyboard starting point. A list whose entries
+        // are painted samples says which one is current with its check mark instead: filling that
+        // row as well turns the sample into a bar of accent, which is the one thing a sample of a
+        // stroke must not become. The keyboard still starts from the selection, which `moveHot`
+        // reads on its own while nothing is highlighted.
         let startView = cast(*PopupListView) .scrollWnd.view!
-        startView.hotIdx = .selectedIndex
+        startView.hotIdx = .reserveSelectionMark ? Swag.U32.Max : .selectedIndex
 
         let pt  = .parent!.surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}

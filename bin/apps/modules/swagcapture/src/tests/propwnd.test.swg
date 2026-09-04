@@ -185,7 +185,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
 
     let startButton = testFindStyleButton(prop, appStrings().ui_PropStart)!
     prop.createPopupCapStyle(startButton, begin: true)
-    let popup = prop.capPopup!
+    let popup = prop.stylePopup!
     Swag.assert(popup.selectedIndex == cast(u32) LineCapStyle.SquareAnchor)
     Swag.assert(popup.items.count == LineCapStyle.count)
     Swag.assert(popup.reserveSelectionMark)
@@ -197,8 +197,46 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     view.surface!.surfaceToScreen(&pt)
     f.gui.click(pt)
     f.gui.pump()
-    Swag.assert(prop.capPopup == null)
+    Swag.assert(prop.stylePopup == null)
     Swag.assert(arrow.beginCap == .ArrowAnchor)
+}
+
+// The dash chooser marks its selection the way the line-end chooser does.
+//
+// Its entries are samples of the stroke itself, so a filled row behind one hid the sample the row
+// is there to show; the mark sits in a lane reserved beside them instead.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    let line = testAddLine(f.capture, 10, 30, 100, 30)
+    line.dashStyle = .DashDot
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let dashButton = testFindStyleButton(prop, appStrings().ui_PropDash)!
+    prop.createPopupDashStyle(dashButton)
+    let popup = prop.stylePopup!
+    Swag.assert(popup.reserveSelectionMark)
+
+    // Every style but `Pattern`, which takes its lengths from the pen and has nothing to show.
+    Swag.assert(popup.items.count == DashStyle.count - 1)
+    Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
+    Swag.assert(enumFromUserData'DashStyle(popup.items[popup.selectedIndex]!.userData0) == .DashDot)
+
+    // `Pattern` is not listed, so the rows are None, Dot, Dash, DashDot: the second one is Dot.
+    let view  = popup.scrollWnd.view!
+    let local = Math.Point{12, popup.itemHeight * 1.5}
+    var pt    = view.localToSurface(local)
+    view.surface!.surfaceToScreen(&pt)
+    f.gui.click(pt)
+    f.gui.pump()
+    Swag.assert(prop.stylePopup == null)
+    Swag.assert(line.dashStyle == .Dot)
 }
 
 // A selected text form generates the full grid: retargeted outline slider, joins combo
@@ -511,3 +549,4 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     Swag.assert(prop.getSelectedForm'FormCallout() == null)
     Swag.assert(prop.getSelectedForm'FormText() != null)
 }
+

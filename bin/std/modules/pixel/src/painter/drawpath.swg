@@ -1278,26 +1278,70 @@ public impl Painter
         .drawPath(pathList, pen, mode)
     }
 
-    // Returns the extent in both directions of a given LineCapStyle.
+    // Returns the extent of a cap in the frame of the line it terminates.
     //
-    // - 'lineSize' is the supposed line drawing size
-    // - 'capScale' is the supposed LineCapStyle scale
+    // `lineSize` is the stroke width the cap is measured against, and `capScaleX`/`capScaleY` are
+    // the scales the pen applies to an anchor. `w` is how far the cap stands across the line and
+    // `l` how far it reaches past the point it is placed on; an arrow head answers zero for `l`,
+    // because its tip is that point and its body lies back along the line.
     //
-    // Returns the width and the length.
-    func capStyleExtent(capStyle: LineCapStyle, lineSize, capScale: f32)->{ w: f32, l: f32 }
+    // These are the two axes of the line, not of the drawing. A layer or a cell reserving room
+    // around a cap wants [[Pixel.Painter.capStyleRadius]] instead, unless it knows which way the
+    // line runs.
+    func capStyleExtent(capStyle: LineCapStyle, lineSize, capScaleX: f32, capScaleY: f32 = 2)->{ w: f32, l: f32 }
     {
+        let half = lineSize * 0.5
         switch #complete capStyle
         {
-        case .None:         return {lineSize * 0.5, 0}
-        case .Triangle:     return {lineSize * 0.5, lineSize * 0.5}
-        case .Round:        return {lineSize * 0.5, lineSize * 0.5}
-        case .Square:       return {lineSize * 0.5, lineSize * 0.5}
-        case .ArrowAnchor:  return {lineSize * 0.5 * capScale, 0}
-        case .ArrowAnchor2: return {lineSize * 0.5 * capScale, 0}
-        case .SquareAnchor: return {lineSize * 0.5 * capScale, lineSize * 0.5 * capScale}
-        case .RoundAnchor:  return {lineSize * 0.5 * capScale, lineSize * 0.5 * capScale}
+        case .None:         return {half, 0}
+        case .Triangle:     return {half, half}
+        case .Round:        return {half, half}
+        case .Square:       return {half, half}
+        case .ArrowAnchor:  return {half * capScaleX, 0}
+        case .ArrowAnchor2: return {half * capScaleX, 0}
+        case .SquareAnchor: return {half * capScaleX, half * capScaleX * capScaleY * 0.5}
+        case .RoundAnchor:  return {half * capScaleX, half * capScaleX}
         }
 
         return {0, 0}
+    }
+
+    // Returns how far a cap reaches from the point it is placed on, in any direction.
+    //
+    // A cap stands across its line as well as along it, so its far corner sits at the diagonal of
+    // the two and lands anywhere on the drawing depending on which way the line runs. This is the
+    // radius that holds it whatever that direction is, which is what an axis-aligned box around
+    // the geometry has to reserve: measured from the two axes alone, that box cuts the corner off
+    // a square end or an arrow head as soon as the line stops being axis aligned.
+    func capStyleRadius(capStyle: LineCapStyle, lineSize, capScaleX: f32, capScaleY: f32 = 2)->f32
+    {
+        func hypot(a, b: f32)->f32 => Math.sqrt(a * a + b * b)
+
+        let half  = lineSize * 0.5
+        let width = half * capScaleX
+        switch #complete capStyle
+        {
+        case .None, .Triangle, .Round:
+            return half
+
+        case .Square:
+            return hypot(half, half)
+
+        case .SquareAnchor:
+            return hypot(width, width * capScaleY * 0.5)
+
+        case .RoundAnchor:
+            return width
+
+        case .ArrowAnchor:
+            return hypot(width, width * capScaleY)
+
+        // The alternate head pulls its two back corners further along the line than the head
+        // itself reaches, by a length the scales set on their own.
+        case .ArrowAnchor2:
+            return hypot(width, width * capScaleY + capScaleX * capScaleY * 2)
+        }
+
+        return 0
     }
 }

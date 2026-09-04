@@ -5,7 +5,7 @@ using Swag, Core
 
 const PopupHeadless_Item2 = "PopupHeadless.Item2"
 
-var PopupHeadlessChangedCount: u32
+var PopupHeadlessChangedCount:  u32
 var PopupListContentPaintCount: u32
 var PopupListContentPaintFlags: PaintItemFlags
 
@@ -106,6 +106,48 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     host.app.setMouseCaptureRaw(null)
 
     popup.destroy()
+    host.pump()
+}
+
+// A list whose entries are painted samples opens with nothing highlighted.
+//
+// Its check mark already says which entry is current, and the opening highlight would put the
+// accent ground behind that entry's sample as well: a sample of a stroke then reads as a bar of
+// colour rather than as the stroke it draws.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 200)
+    defer host.shutdown()
+
+    let popup = PopupListCtrl.create(&host.root)
+    popup.addItem("A")
+    popup.addItem("B")
+    popup.setSelectedIndex(1)
+    popup.show(20, 20, 100)
+
+    let view = cast(*PopupListView) popup.scrollWnd.view!
+    Swag.assert(view.hotIdx == 1)
+    host.app.setMouseCaptureRaw(null)
+    popup.destroy()
+    host.pump()
+
+    let marked = PopupListCtrl.create(&host.root)
+    marked.reserveSelectionMark = true
+    marked.addItem("A")
+    marked.addItem("B")
+    marked.setSelectedIndex(1)
+    marked.show(20, 20, 100)
+
+    let markedView = cast(*PopupListView) marked.scrollWnd.view!
+    Swag.assert(markedView.hotIdx == Swag.U32.Max)
+
+    // The keyboard still starts from the selection, so the first step up lands before it.
+    marked.moveHighlight(-1)
+    Swag.assert(markedView.hotIdx == 0)
+
+    host.app.setMouseCaptureRaw(null)
+    marked.destroy()
     host.pump()
 }
 

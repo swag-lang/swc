@@ -52,7 +52,7 @@ private func subtitleClockText(seconds: f64)->String
 
 private func subtitleFormatText(format: Subtitle.Format)->string
 {
-    switch format
+    switch #complete format
     {
     case .SubRip:          return "SubRip"
     case .WebVtt:          return "WebVTT"

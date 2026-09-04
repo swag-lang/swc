@@ -17,6 +17,12 @@ The reference states the line between them
 rules are the language and no attribute turns them off; everything else is tooling a caller can
 switch off, and a guarantee a caller can switch off is not a guarantee.
 
+The runtime guards are deliberately absent from `release`, and no entry here proposes putting one
+back by default. `release` is the configuration that costs nothing, a build that wants the guards
+turns them on — `buildCfg.safetyGuards`, or a target of its own — and a fix that adds an
+instruction to a guard-free build is not a fix. What the entries below ask for instead is more
+proof at compile time, where the cost is the compiler's rather than the program's.
+
 Measured against that line, the frame is in good shape and the heap is not. Escapes, view
 invalidation, iterator invalidation, definite initialization, non-null types and mandatory error
 handling are all enforced without a single annotation. Ownership of heap memory is not modelled at
@@ -59,7 +65,10 @@ like ordinary code. The entries below are ordered by how much of that gap each o
   the reference states the rule next to `opDrop`, and `bin/unittests` covers the inferred case, the
   `opPostCopy` opt-in, the `#move` transfer, and a type that owns through a member.
 - Related: compiler.safety.003 and compiler.safety.004 are the same fault caught later and less
-  reliably; this entry is the one that removes the fault instead.
+  reliably; this entry is the one that removes the fault instead. language.design.002 depends on it:
+  a tagged union with an owning payload is exactly this shape, and the compiler would be the one
+  generating its drop, so shipping one before this rule turns an author's double-free into the
+  compiler's.
 
 ### compiler.safety.003 — The use-after-free proof does not survive a cast, an offset, or the standard allocator
 
@@ -164,8 +173,11 @@ like ordinary code. The entries below are ordered by how much of that gap each o
 - Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
   them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
   states which faults the safe subset excludes.
-- Related: language.design.002 (a tagged union removes the union entry from this list rather than
-  gating it); compiler.safety.007; compiler.safety.014.
+- Related: language.design.002 narrows the union bullet rather than removing it. The census in that
+  entry found eight anonymous unions in `bin/`: two sum types that a tag would check, five C-ABI
+  bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
+  survives at the interop and bit-punning boundary, which is where the marker belongs and where it
+  joins compiler.safety.007. Also compiler.safety.014.
 
 ### compiler.safety.007 — A foreign function is opaque to every safety analysis
 
@@ -210,49 +222,51 @@ like ordinary code. The entries below are ordered by how much of that gap each o
   elimination that makes the safe choice affordable.
 - Next: implement bound-check elimination as a backend pass (induction-variable range against the
   container's `.count`, dominating comparisons, constant indices), then re-measure the two loops
-  above with guards on. The `release` default is the user's call and stays open until that number
-  exists; the pass is worth having either way, since `devmode` pays the same cost today.
-- Complete when: a bound-check-elimination pass exists, the residual cost of `.BoundCheck` on the
-  two measured loops is recorded next to the 2026-07-08 numbers, and the release default is decided
-  against that number rather than against the current one.
+  above with guards on. The deliverable is the pass, not a change of default: `release` stays
+  guard-free, `devmode` pays this cost on every index today, and a build that turns the guards on
+  deliberately is exactly the build the pass is for.
+- Complete when: a bound-check-elimination pass exists, `devmode` compile time and generated code
+  are measured before and after, and the residual cost of `.BoundCheck` on the two loops above is
+  recorded next to the 2026-07-08 numbers.
 - Related: compiler.optimization.md owns the pass once it is scoped.
 
-### compiler.safety.009 — A `switch #complete` compiles to an unguarded jump in release
+### compiler.safety.009 — An enum value outside its members walks past a `switch #complete`
 
-- Area: compiler/codegen
+- Area: language, compiler/codegen
 - Evidence: `switch #complete c` over a three-member enum, reached with `cast(Color) 99`, panics in
-  `devmode` under the `.Switch` guard and in `release` jumps through the table to a computed address
-  — verified as `EXCEPTION_ACCESS_VIOLATION` at an address derived from the value. The documented
-  behavior is that the guard covers `switch #complete` only, and it is right that a plain `switch`
-  needs no guard; what is not acceptable is that switching the guard off turns a range check into an
-  indirect jump to a caller-controlled address.
-- Consequence: the only place found where a `release` build turns a wrong value into arbitrary
-  control flow rather than a wrong result. Every other unchecked operation reads or writes memory;
-  this one transfers to it.
-- Next: separate the two things the guard currently does. The panic on an uncovered value is a
-  runtime guard and may follow `safetyGuards`; clamping the jump-table index to the table's extent
-  is a lowering requirement and must hold in every configuration. Emit the clamp unconditionally and
-  keep the diagnostic behind the guard.
-- Complete when: an out-of-range value reaching a `switch #complete` in `release` falls out of the
-  switch or panics, never jumps, and a native test pins it.
-- Related: compiler.safety.010 is where the out-of-range value comes from; language.design.001 is the
-  separate question of whether exhaustiveness should be the default.
+  `devmode` under the `.Switch` guard; with the guard off the value matches no case and continues
+  after the switch. That is the same behavior as a plain `switch`, and it is the right one: the
+  point of `#complete` is that the dispatch carries no range test at all, so the "outside the set"
+  case costs zero branches and is faster, and a caller who wants the check builds a target that
+  keeps `.Switch` on.
+- What is left is what the value does after walking past. The missing-return rule now rejects a
+  function that relied on the switch to produce its result, so the fall-off-the-epilogue case is
+  closed; a `switch` that assigns rather than returns simply leaves the previous value in place.
+- Next: nothing here on its own. The remaining exposure is that the out-of-range value existed at
+  all, which is compiler.safety.010, and that a `release` build does not have to keep the guard,
+  which is the deliberate design compiler.safety.008 records. Delete this entry once
+  compiler.safety.010 is decided.
+- Complete when: converting an integer to an enum has a rule (compiler.safety.010), or a measured
+  reason to reopen the guard default appears.
+- Related: compiler.safety.010 is where the out-of-range value comes from; language.design.001 is
+  the separate question of whether exhaustiveness should be the default.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
 - Area: language
 - Evidence: `cast(Color) 99` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
-  declared member. Combined with compiler.safety.009 it is a jump to a computed address; on its own
-  it is a value that fails every invariant the enum was declared to express.
+  declared member. It is a value that fails every invariant the enum was declared to express, and
+  it is what walks past a `switch #complete` (compiler.safety.009).
 - Elsewhere: Rust makes an out-of-range enum discriminant undefined behavior and forbids the
   conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
   returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
   majority position and the only one that composes with exhaustive matching.
 - Next: decide the spelling. `cast(Color) i` becoming a guarded conversion under `.DynCast` costs a
-  compare in `devmode` and nothing in `release`, which leaves compiler.safety.009 doing the real
-  work; a fallible `Color.from(i)` returning `#null` puts the check in the type and needs no guard.
-  `#[Swag.EnumFlags]` types accept combinations and must be excluded either way.
+  compare in `devmode` and nothing in `release`; a fallible `Color.from(i)` returning `#null` puts
+  the check in the type and needs no guard at all, which is the only form that also holds in a
+  build with the dynamic guards off. `#[Swag.EnumFlags]` types accept combinations and must be
+  excluded either way.
 - Complete when: converting an integer to an enum has one documented rule, the flags case is
   specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
   combination.
@@ -269,14 +283,17 @@ like ordinary code. The entries below are ordered by how much of that gap each o
   where it is hardest to reproduce. `!` is the spelling the language recommends for "an invariant
   makes this present, and a null here is a bug worth stopping on"; in `release` it stops on nothing
   it can name.
-- Elsewhere: Rust's `unwrap` panics with a message in every profile, and the cost of that check is
-  never listed among the reasons people avoid it. The check is a compare and a branch on a value
-  already in a register.
-- Next: measure `.Expect` on its own — separately from the rest of `safetyGuards` — on an application
-  workload. A guard that costs nothing measurable has no reason to be off, and `!` being trustworthy
-  in `release` is worth more than the branch.
-- Complete when: `.Expect` has its own measured cost recorded, and the `release` default for it is
-  decided against that number.
+- Elsewhere: Rust's `unwrap` panics with a message in every profile. Zig makes it the difference
+  between `ReleaseSafe` and `ReleaseFast`, which is the shape Swag already has — except that Swag
+  has no named configuration for it, so every project that wants the guards has to discover
+  `buildCfg.safetyGuards` and assemble one.
+- Next: this is a packaging gap, not a default to flip. A guarded release — optimized code with
+  `safetyGuards` on — should be a configuration the compiler registers and the reference names, so
+  "ship it with the checks" is one flag rather than a build file nobody writes. Then measure it
+  once, on an application, so the trade is a number and not a guess.
+- Complete when: a guarded release configuration exists and is documented, and its cost on one
+  application workload is recorded.
+- Related: compiler.safety.008 is what makes that configuration affordable.
 
 ### compiler.safety.012 — Stack exhaustion has no defined behavior and no diagnostic
 

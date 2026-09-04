@@ -141,7 +141,7 @@ private func parseHeader(line: string)->Header fail
 private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
 {
     let lumaSize = cast(u64) width * cast(u64) height
-    switch chromaMode
+    switch #complete chromaMode
     {
     case .Yuv420:
         let chromaSize = (cast(u64) width + 1) / 2 * ((cast(u64) height + 1) / 2)

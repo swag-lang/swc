@@ -59,7 +59,7 @@ struct TriageDecision
 
 func routeQueue(ticket: SupportTicket)->string
 {
-    switch ticket.area
+    switch #complete ticket.area
     {
     case .Billing:
         return "finance-ops"

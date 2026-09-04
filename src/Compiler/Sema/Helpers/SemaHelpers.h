@@ -67,10 +67,16 @@ namespace SemaHelpers
     // under '#run', where the compiler decides whether execution continues
     // ('Swag.panic' in bin/runtime/error.swg). 'unreachable' lowers to nothing once
     // '#[Swag.Safety(.Unreachable, false)]' turns its guard off.
+    //
+    // 'Function' asks the stronger question: does control leave the FUNCTION. 'break',
+    // 'continue' and 'fallthrough' leave a block and stay in the frame, so they answer no;
+    // a 'switch' and an infinite loop answer yes when no path out of them reaches the
+    // statement after. It is what decides whether a body can complete without returning.
     enum class LocalFlowStop : uint8_t
     {
         Guaranteed,
         Declared,
+        Function,
     };
 
     bool stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Declared);

@@ -8,12 +8,17 @@
 using Core, Core.Errors, Pixel
 
 // Returns the red, green and blue channels of one pixel, whatever order its format stores them in.
+//
+// Only the four interleaved 8-bit layouts are read here; 'addFrame' rejects every other format
+// before a pixel is touched, so the default arm exists to give the switch a value and is never
+// the one that runs.
 private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s32 }
 {
     switch image.pixelFormat
     {
     case .RGB8, .RGBA8: return {source[0], source[1], source[2]}
     case .BGR8, .BGRA8: return {source[2], source[1], source[0]}
+    default:            return {}
     }
 }
 
@@ -47,6 +52,16 @@ impl IEncoder for Encoder
 
     mtd impl addFrame(sink: *Sink, image: Image) fail
     {
+        // The frame is read pixel by pixel as interleaved 8-bit colour: any other layout would
+        // be read at the wrong stride and with the wrong channel meaning.
+        switch image.pixelFormat
+        {
+        case .RGB8, .RGBA8, .BGR8, .BGRA8:
+            break
+        default:
+            fail UnsupportedFormatError{"Y4M frames need an interleaved 8-bit RGB or BGR image"}
+        }
+
         let planeSize = cast(u64) .info.width * cast(u64) .info.height
         if .payload.count != planeSize * 3 do
             .payload.resize(planeSize * 3)

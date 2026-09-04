@@ -405,7 +405,7 @@ internal impl HexViewer
 
     private mtd activeValueTag()->string
     {
-        switch .grid.grouping
+        switch #complete .grid.grouping
         {
         case .Bytes:      return "x8"
         case .Hex16:      return "x16"
@@ -489,7 +489,7 @@ internal impl HexViewer
     mtd prepareSearch(query: string, result: *Viewer.SearchPlan)->EditBoxCheckResult
     {
         var parsed = parseHexSearch(query, .grid.grouping, .grid.bigEndian)
-        switch parsed.state
+        switch #complete parsed.state
         {
         case .Incomplete:
             return .Incomplete

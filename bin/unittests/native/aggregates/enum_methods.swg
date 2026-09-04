@@ -15,7 +15,7 @@ impl Direction
     func opposite(val: Direction)->Direction
     {
         using Direction
-        switch val
+        switch #complete val
         {
         case .North: return South
         case .South: return North

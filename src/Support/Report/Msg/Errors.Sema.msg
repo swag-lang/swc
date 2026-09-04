@@ -252,6 +252,8 @@ SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from a
 SWC_DIAG_DEF(sema_err_return_missing_value, Error, "return statement is missing a value for function returning '{requested-type}'; [help] return a value of type '{requested-type}', or change the function return type to 'void'")
 SWC_DIAG_DEF(sema_err_return_value_must_be_used, Error, "unused return value from call to '{sym}'; [help] use 'discard' to ignore, or mark the function '#[Swag.Discardable]'")
 SWC_DIAG_DEF(sema_err_return_value_must_be_used, Error, "unused return value; [help] use 'discard' to ignore, or mark the function '#[Swag.Discardable]'")
+SWC_DIAG_DEF(sema_err_missing_return, Error, "function '{sym}' can reach its end without returning a '{requested-type}'; [help] return a value on every path, or end the function with 'unreachable'")
+SWC_DIAG_DEF(sema_err_missing_return, Error, "the function can reach its end without returning a '{requested-type}'; [help] return a value on every path, or end the function with 'unreachable'")
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "implementation block needs a struct, but '{sym}' is {a-sym-fam}; [help] name a struct after 'impl'")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "implementation block needs an interface, but '{sym}' is {a-sym-fam}; [help] name an interface in the implementation header")
 SWC_DIAG_DEF(sema_err_interface_already_implemented, Error, "interface '{sym}' is already implemented for struct '{what}'; [help] remove the duplicate implementation")

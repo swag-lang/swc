@@ -1509,8 +1509,7 @@ namespace
         {
             walk(switchStmt.nodeExprRef, state);
 
-            const SwitchPayload* payload    = sema_->semaPayload<SwitchPayload>(switchRef);
-            bool                 exhaustive = payload && (payload->isComplete || payload->firstDefaultRef.isValid());
+            const bool exhaustive = SemaSwitch::alwaysMatchesACase(*sema_, switchRef, switchStmt);
 
             BreakCtx ctx;
             ctx.acceptsContinue = false;
@@ -1519,29 +1518,6 @@ namespace
 
             SmallVector<AstNodeRef> children;
             collectChildren(switchStmt, children);
-
-            // The sema payload does not record the default of an expressionless
-            // switch: detect it structurally (a case with no match expression and no
-            // 'where' guard).
-            if (!exhaustive)
-            {
-                for (const AstNodeRef childRef : children)
-                {
-                    if (childRef.isInvalid())
-                        continue;
-                    const AstNodeRef caseRef = resolve(childRef);
-                    if (sema_->node(caseRef).isNot(AstNodeId::SwitchCaseStmt))
-                        continue;
-                    const auto&             caseStmt = sema_->node(caseRef).cast<AstSwitchCaseStmt>();
-                    SmallVector<AstNodeRef> matchExprs;
-                    AstNode::collectChildren(matchExprs, sema_->ast(), caseStmt.spanExprRef);
-                    if (matchExprs.empty() && caseStmt.nodeWhereRef.isInvalid())
-                    {
-                        exhaustive = true;
-                        break;
-                    }
-                }
-            }
 
             SmallVector<FlowState, 4> exitStates;
             FlowState                 fellState;

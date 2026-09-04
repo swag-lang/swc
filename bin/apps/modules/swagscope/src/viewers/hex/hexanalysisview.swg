@@ -171,7 +171,7 @@ private impl HexAnalysisView
 
     mtd stringKind(kind: HexAnalysisStringKind)->string
     {
-        switch kind
+        switch #complete kind
         {
         case .Ascii:       return hexStrings().ui_AnalysisAscii
         case .Utf16Little: return hexStrings().ui_AnalysisUtf16Little

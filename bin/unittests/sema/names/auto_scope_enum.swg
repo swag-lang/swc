@@ -62,7 +62,7 @@ alias BindingDirectionAlias = BindingDirection
 
 func reverseDirection(dir: BindingDirectionAlias)->BindingDirection
 {
-    switch dir
+    switch #complete dir
     {
     case .North: return South
     case .South: return North

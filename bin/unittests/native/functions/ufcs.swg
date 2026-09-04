@@ -71,7 +71,7 @@ impl Direction
     func opposite(me)->Direction
     {
         using Direction
-        switch me
+        switch #complete me
         {
         case .North: return South
         case .South: return North

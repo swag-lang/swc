@@ -574,6 +574,7 @@ impl Volume
         }
 
         failWith("Every key slot is already in use.", .DiskFull)
+        unreachable
     }
 
     // Removes the password that opens a slot.

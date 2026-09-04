@@ -1785,16 +1785,17 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
+    const auto& declNode = sema.curNode().cast<AstFunctionDecl>();
     if (SemaInitFlow::wantsCheck(sema, sym))
     {
         // The return contract only binds a signature the function owns: interface
         // impls conform to the interface, and a fallible function's 'catch' error
         // path synthesizes a zero (null) result.
-        const auto& declNode            = sema.curNode().cast<AstFunctionDecl>();
-        const bool  checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isFallible();
+        const bool checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isFallible();
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
     }
 
+    SWC_RESULT(SemaCheck::missingReturn(sema, sym, declNode.nodeBodyRef));
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
     SemaPurity::computePurityFlag(sema, sym);
@@ -1815,6 +1816,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (SemaInitFlow::wantsCheck(sema, sym))
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
+    SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
+
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
     SemaPurity::computePurityFlag(sema, sym);
@@ -1834,6 +1837,8 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 
     if (SemaInitFlow::wantsCheck(sema, sym))
         SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
+
+    SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());

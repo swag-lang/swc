@@ -131,7 +131,7 @@ impl FaceImpl
     mtd glyphIndexByName(name: string)->u32
     {
         let key = String.from(name)
-        switch .outlineSource
+        switch #complete .outlineSource
         {
         case .Cff:   return .cff.nameToGid.getOrDefault(key, 0)
         case .Type1: return .type1.nameToGid.getOrDefault(key, 0)
@@ -142,7 +142,7 @@ impl FaceImpl
     // Returns the glyph the font's own built-in encoding places at one code.
     mtd glyphIndexByCode(code: u32)->u32
     {
-        switch .outlineSource
+        switch #complete .outlineSource
         {
         case .Cff:   return .cff.codeToGid.getOrDefault(code, 0)
         case .Type1: return .type1.codeToGid.getOrDefault(code, 0)

@@ -12,7 +12,7 @@ public impl PixelMode
     // Returns the number of bytes occupied by one pixel in this mode.
     mtd bytesPerPixel()->u32
     {
-        switch me
+        switch #complete me
         {
         case .Gray: return 1
         case .Rgba: return 4

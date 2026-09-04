@@ -1680,7 +1680,7 @@ private impl OpenDocumentViewer
 
     mtd kindName()->string
     {
-        switch .document.kind
+        switch #complete .document.kind
         {
         case .Text:         return openDocumentStrings().ui_Text
         case .Spreadsheet:  return openDocumentStrings().ui_Spreadsheet
@@ -1861,7 +1861,7 @@ private impl OpenDocumentViewer
 
     mtd showPage(index: u64, clearSearch: bool)->bool
     {
-        switch .document.kind
+        switch #complete .document.kind
         {
         case .Spreadsheet:  return .showSheet(index, clearSearch)
         case .Presentation: return .showSlide(index, clearSearch)

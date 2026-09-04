@@ -964,7 +964,7 @@ private impl RenderCpu
     mtd samplePaintBatch(batch: *RasterBatch, paintPos: Vector2)->Color
     {
         let p = &.paintCommand.texture0
-        switch p.type
+        switch #complete p.type
         {
         case .SolidColor:
             return Color.fromArgb(Argb.White)

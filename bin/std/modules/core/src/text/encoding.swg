@@ -26,7 +26,7 @@ enum Encoding
 // many bytes at offset zero and never inside.
 func bomLength(encoding: Encoding)->u64
 {
-    switch encoding
+    switch #complete encoding
     {
     case .Utf8:              return 3
     case .Utf16Le, .Utf16Be: return 2
@@ -234,7 +234,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     if !bytes.count do
         return result
 
-    switch encoding
+    switch #complete encoding
     {
     case .Utf8:
         result = Swag.makeString(bytes.buffer, bytes.count)

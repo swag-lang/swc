@@ -8,6 +8,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolFunction;
 class SymbolVariable;
 class Sema;
+struct AstSwitchStmt;
 struct SemaNodeView;
 
 // Case constant -> the node that introduced it. Shared by the runtime 'switch' and the
@@ -21,6 +22,11 @@ namespace SemaSwitch
     Result  normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
     Result  validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef);
     Result  checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef);
+    // Whether some case always matches: '#complete' promises it for an enum, and a 'default'
+    // arm provides it for anything. The payload only records the default of a switch that has
+    // an expression, so the expressionless form - a case with neither a match expression nor a
+    // 'where' guard - is recognized structurally.
+    bool    alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt);
 }
 
 struct SwitchPayload

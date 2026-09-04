@@ -195,7 +195,7 @@ internal func codeLanguage(fileName: string)->CodeLanguage
 
 internal func codeLanguageName(language: CodeLanguage)->string
 {
-    switch language
+    switch #complete language
     {
     case .C:           return "C"
     case .Cpp:         return "C++"

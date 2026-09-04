@@ -159,7 +159,7 @@ internal impl BinaryViewer
     private mtd cellText(rowIndex, column: u64)->String
     {
         let row = &.doc.report.rows[rowIndex]
-        switch cast(BinaryColumn) column
+        switch #complete cast(BinaryColumn) column
         {
         case .Field:  return String.from(row.label.toString())
         case .Value:  return String.from(row.value.toString())

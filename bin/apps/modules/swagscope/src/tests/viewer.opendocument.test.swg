@@ -77,7 +77,7 @@ private func openDocumentMimeType(kind: OpenDocumentKind, template = false)->str
 {
     if template
     {
-        switch kind
+        switch #complete kind
         {
         case .Text:         return "application/vnd.oasis.opendocument.text-template"
         case .Spreadsheet:  return "application/vnd.oasis.opendocument.spreadsheet-template"
@@ -86,7 +86,7 @@ private func openDocumentMimeType(kind: OpenDocumentKind, template = false)->str
         }
     }
 
-    switch kind
+    switch #complete kind
     {
     case .Text:         return "application/vnd.oasis.opendocument.text"
     case .Spreadsheet:  return "application/vnd.oasis.opendocument.spreadsheet"

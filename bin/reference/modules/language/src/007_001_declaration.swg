@@ -20,6 +20,40 @@ func toto1()->s32
 }
 
 /**
+# Every Path Must Produce the Value
+
+A function that declares a return type is rejected when its body can reach the end without
+returning: the promise is part of the signature, and a value the caller reads has to exist.
+
+What counts as leaving the function is 'return', 'fail', 'unreachable' and 'Swag.panic', an
+'if' whose branches all leave, a loop with no way out of it, and a 'switch' where every case
+leaves and some case always matches — a 'default' arm, or 'switch #complete' over an enum. A
+plain 'switch' is deliberately not exhaustive whatever its cases cover, so a value outside the
+set walks past it: writing '#complete' is what states the promise, and it stays free of any
+range test in the generated code.
+
+'unreachable' is the escape hatch when a path cannot happen for a reason the compiler cannot
+see. It costs nothing once its guard is off.
+*/
+enum Season { Summer, Winter }
+
+func seasonLength(season: Season)->s32
+{
+    // Without '#complete' this switch would not end the function, and the missing return
+    // would be reported.
+    switch #complete season
+    {
+    case .Summer: return 92
+    case .Winter: return 90
+    }
+}
+
+#test
+{
+    Swag.assert(seasonLength(Season.Winter) == 90)
+}
+
+/**
 # Inferring Return Types
 
 Use '=>' for simple expressions when the return type can be inferred automatically.

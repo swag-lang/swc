@@ -328,7 +328,7 @@ const SwitchPointerValues = [11, 22, 33]
 {
     func switchEnum(v: RunSwitchEnum)->s32
     {
-        switch v
+        switch #complete v
         {
         case .A:
             return 7

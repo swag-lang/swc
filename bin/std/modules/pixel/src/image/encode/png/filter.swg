@@ -358,7 +358,7 @@ impl Encoder
 
         let scanline     = .scanline!
         let prevScanline = .prevScanline!
-        switch filter
+        switch #complete filter
         {
         case .None:    return filterSumIndependent(scanline, prevScanline, size, false)
         case .Sub:     return filterSumSub(scanline, size, .bytesPerPixel)

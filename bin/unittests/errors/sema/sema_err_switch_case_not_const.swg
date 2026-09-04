@@ -190,7 +190,7 @@ enum RunSwitchEnum: s32
 {
     func switchEnum(v: RunSwitchEnum)->s32
     {
-        switch v
+        switch #complete v
         {
         case .A:
             return 7

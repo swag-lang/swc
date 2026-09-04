@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct SemaNodeView;
 struct SourceCodeRef;
+class SymbolFunction;
 class SymbolVariable;
 
 namespace SemaCheck
@@ -27,6 +28,11 @@ namespace SemaCheck
     Result noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds);
     Result checkMoveSourceCanReset(Sema& sema, AstNodeRef srcRef, TypeRef typeRef, AstModifierFlags modifierFlags);
     void   unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef);
+    // A function that promises a value must produce one on every path: falling off the end of a
+    // block body emits no 'ret' at all, so control runs into whatever was emitted next. An
+    // expression body ('=> expr', and every short lambda) is the value, and never asks the
+    // question.
+    Result missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef);
 }
 
 SWC_END_NAMESPACE();

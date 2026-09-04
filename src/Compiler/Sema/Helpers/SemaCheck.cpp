@@ -28,6 +28,26 @@ namespace
         return SemaHelpers::stopsLocalFlow(sema, childRef, SemaHelpers::LocalFlowStop::Guaranteed);
     }
 
+    // The written return type of a function, a lambda or a closure. Invalid when the return
+    // type was inferred rather than written.
+    AstNodeRef functionReturnTypeNodeRef(const AstNode* decl)
+    {
+        if (!decl)
+            return AstNodeRef::invalid();
+
+        switch (decl->id())
+        {
+            case AstNodeId::FunctionDecl:
+                return decl->cast<AstFunctionDecl>().nodeReturnTypeRef;
+            case AstNodeId::FunctionExpr:
+                return decl->cast<AstFunctionExpr>().nodeReturnTypeRef;
+            case AstNodeId::ClosureExpr:
+                return decl->cast<AstClosureExpr>().nodeReturnTypeRef;
+            default:
+                return AstNodeRef::invalid();
+        }
+    }
+
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
 
     Diagnostic reportReadOnlyAssignment(Sema& sema, AstNodeRef leftExprRef)
@@ -883,6 +903,43 @@ void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef chil
     diag.addNote(DiagnosticId::sema_note_flow_stops_here);
     SemaError::addSpan(sema, diag.last(), childRef);
     diag.report(sema.ctx());
+}
+
+Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
+{
+    // A body that is not a block is the returned expression itself, whatever spelling brought
+    // it here: '=> expr' on a declaration, and a short lambda, which carries no flag at all.
+    if (bodyRef.isInvalid() || sym.isForeign() || sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock))
+        return Result::Continue;
+
+    // A macro or a mixin has no frame of its own: its body is spliced into the caller, which
+    // is where the flow question belongs.
+    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        return Result::Continue;
+
+    const TypeRef returnTypeRef = sym.returnTypeRef();
+    if (!returnTypeRef.isValid())
+        return Result::Continue;
+
+    const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+    if (returnType.isVoid())
+        return Result::Continue;
+
+    if (SemaHelpers::stopsLocalFlow(sema, bodyRef, SemaHelpers::LocalFlowStop::Function))
+        return Result::Continue;
+
+    // The declared return type is the promise being broken, so that is where the report goes.
+    const AstNode*   decl              = sym.decl();
+    const AstNodeRef returnTypeNodeRef = functionReturnTypeNodeRef(decl);
+    auto             diag              = SemaError::report(sema, DiagnosticId::sema_err_missing_return, returnTypeNodeRef.isValid() ? returnTypeNodeRef : bodyRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
+
+    // A lambda or a closure has no name a reader would recognize, so it takes the wording
+    // that does not try to print one.
+    if (decl && decl->is(AstNodeId::FunctionDecl))
+        diag.addArgument(Diagnostic::ARG_SYM, sym.name(sema.ctx()));
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 SWC_END_NAMESPACE();

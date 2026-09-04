@@ -528,6 +528,34 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     return SemaSwitch::checkEnumExhaustive(sema, payload->seen, payload->exprTypeRef, sema.curNodeRef());
 }
 
+bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt)
+{
+    const auto* payload = sema.semaPayload<SwitchPayload>(switchRef);
+    if (payload && (payload->isComplete || payload->firstDefaultRef.isValid()))
+        return true;
+
+    SmallVector<AstNodeRef> children;
+    Ast::nodeIdInfos(switchStmt.id()).collectChildren(children, sema.ast(), switchStmt);
+    for (const AstNodeRef childRef : children)
+    {
+        if (childRef.isInvalid())
+            continue;
+
+        const AstNodeRef caseRef  = sema.viewZero(childRef).nodeRef();
+        const AstNodeRef resolved = caseRef.isValid() ? caseRef : childRef;
+        if (sema.node(resolved).isNot(AstNodeId::SwitchCaseStmt))
+            continue;
+
+        const auto&             caseStmt = sema.node(resolved).cast<AstSwitchCaseStmt>();
+        SmallVector<AstNodeRef> matchExprs;
+        AstNode::collectChildren(matchExprs, sema.ast(), caseStmt.spanExprRef);
+        if (matchExprs.empty() && caseStmt.nodeWhereRef.isInvalid())
+            return true;
+    }
+
+    return false;
+}
+
 Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef)
 {
     if (exprTypeRef.isInvalid())

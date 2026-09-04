@@ -90,7 +90,7 @@ internal var g_VideoSubtitleSettings: VideoSubtitleSettings
 
 private func videoSubtitleFontSize(size: VideoSubtitleSize)->u32
 {
-    switch size
+    switch #complete size
     {
     case .Small:     return 20
     case .Normal:    return 27
@@ -1060,7 +1060,7 @@ internal impl VideoViewer
 
     mtd const subtitleTrack()->#null const *Subtitle.Track
     {
-        switch .subtitleSource
+        switch #complete .subtitleSource
         {
         case .Embedded: return .video.subtitleTrack(.subtitleTrackIndex)
         case .Sidecar:  return .subtitleTrackIndex < .subtitleOverlay.sidecars.count ? .subtitleOverlay.sidecars[.subtitleTrackIndex] : null

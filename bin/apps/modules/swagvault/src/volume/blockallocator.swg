@@ -134,6 +134,7 @@ impl BlockAllocator
         }
 
         failWith("The smaller container has no room for every used block.", .DiskFull)
+        unreachable
     }
 
     // Discards free extents outside a new, smaller geometry.

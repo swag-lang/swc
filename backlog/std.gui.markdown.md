@@ -19,7 +19,7 @@ ships; history lives in git, not here.
 
 ## Where the engine already stands
 
-About 4 150 lines across seven files, split cleanly into a parser and a renderer. The block
+About 4 400 lines across seven files, split cleanly into a parser and a renderer. The block
 parser is line-based and single-pass: ATX and setext headings, fenced code with a language label,
 GFM pipe tables with per-column alignment, ordered, unordered and task lists with soft-wrap
 continuation, block quotes carrying the five GitHub alerts, thematic breaks, YAML front matter,

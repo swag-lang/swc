@@ -188,7 +188,7 @@ proves it.
 
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
-- Evidence: all fifteen viewers now have focused tests and a viewer-specific golden, but fixture
+- Evidence: all seventeen viewers now have focused tests and a viewer-specific golden, but fixture
   depth still ranges from two owning Text tests plus host integration cases to the large Binary,
   Hexadecimal, and Video suites. The audit still found no declared matrix for real-world variants,
   malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or

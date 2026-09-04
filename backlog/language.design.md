@@ -66,7 +66,7 @@ ships; history lives in git, not here.
 - Consequence: nothing checks any of those sentences, and the untagged form costs more than the missing
   check. A struct containing a union compares as raw bytes — `structComparesAsBytes` answers true for a
   union because "there is no member-wise answer to give", and `shouldGenerateEqualityOperator` then generates
-  nothing ([SemaSpecOp.Generated.cpp:598](../src/Compiler/Sema/Helpers/SemaSpecOp.Generated.cpp#L598)) — so
+  nothing ([SemaSpecOp.Generated.cpp:719](../src/Compiler/Sema/Helpers/SemaSpecOp.Generated.cpp#L719)) — so
   two equal commands whose dead bytes differ compare unequal. And a wide struct keeps every payload alive at
   once: `MetadataValue` holds a `String` and an `Array'u8` whatever its `kind` says. Rust, Swift, Zig and
   modern C# all consider the checked version table stakes; it is arguably the single largest expressiveness

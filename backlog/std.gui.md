@@ -21,7 +21,7 @@ Qt makes you build it yourself, and most toolkits never ship one.
 Underneath: a two-pass measure and arrange layout engine, per-monitor DPI awareness with a vector
 theme atlas rasterized per scale, list virtualization through `virtualCount` and
 `onFillVirtualLine`, an action and command system with automatic state updates, an undo manager,
-keyboard traversal of a whole surface in reading order, and a headless test host with fifty-nine
+keyboard traversal of a whole surface in reading order, and a headless test host with seventy-one
 test files and command-stream visual regression goldens.
 
 That is a real toolkit. The gaps below are not about widget count.
@@ -401,7 +401,7 @@ as [app.capture.md](app.capture.md).
   reads exactly like "the dialog never opened" even though it opened and was answered.
 - Evidence: `swc tools/apps.swgs dm test swagcapture` before the fix reported 2 of 126 not passing on
   `Swag.assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
-  modal surface and a missing button ([headless.swg:191](../bin/std/modules/gui/src/testing/headless.swg#L191)),
+  modal surface and a missing button ([headless.swg:242](../bin/std/modules/gui/src/testing/headless.swg#L242)),
   and only the frame ceiling distinguishes them, after the fact.
 - Next step: separate the two outcomes in the driver. Remember, per stage, whether any modal
   surface was ever seen while it was armed; on the timeout path report which of the two happened —

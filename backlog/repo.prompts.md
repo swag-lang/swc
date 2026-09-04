@@ -356,12 +356,12 @@ Where it stands, reproducible from src/:
   find . \( -name "*.cpp" -o -name "*.h" -o -name "*.inc" \) \
        -not -path "./Support/Memory/mimalloc/*" -not -path "./Unittest/*" -exec cat {} + | wc -l
 
-  As of 2026-08-09: 224 337 lines across 615 files, excluding vendored mimalloc and the C++ unit
-  tests. Compiler 125 908 · Backend 54 082 · Support 17 018 · Main 13 430 · Format 8 442 ·
-  Doc 5 261. Recompute this baseline before starting a campaign.
-  The largest single files: SemaEscape.cpp 3989, Pass.RegisterAllocation.cpp 3748,
-  X64Encoder.cpp 3702, Match.Func.cpp 3032, CompilerInstance.Module.cpp 2801,
-  SemaInline.cpp 2591, SemaClone.cpp 2520.
+  As of 2026-09-04: 246 030 lines across 642 files, excluding vendored mimalloc and the C++ unit
+  tests. Compiler 134 802 · Backend 64 173 · Support 17 128 · Main 14 715 · Format 9 179 ·
+  Doc 5 846. Recompute this baseline before starting a campaign.
+  The largest single files: SemaEscape.cpp 4702, Pass.RegisterAllocation.cpp 4551,
+  X64Encoder.cpp 4025, CompilerInstance.Module.cpp 3741, Match.Func.cpp 3162,
+  SemaInline.cpp 3105, CodeGen.Intrinsic.Call.cpp 2684, SemaClone.cpp 2574.
 
 THE ONLY KIND OF CHANGE ALLOWED
 
@@ -417,7 +417,7 @@ THE LOOP
   4. Run the four-part proof.
   5. Commit the round on its own so it can be reverted alone.
 
-Sema is 81 570 physical lines across 150 files and has two focused C++ test units totaling only
+Sema is 85 710 physical lines across 154 files and has two focused C++ test units totaling only
 374 physical lines. It remains dangerous to refactor blind. The table-driven tests for overload
 ranking, cast legality, and generic deduction live in
 src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp; extend them before changing those decision

@@ -62,7 +62,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 
     // The line ends are shaped from the stroke and the contour is pushed out around them, so
     // the anchor reserves 5/2 * 20 and the contour adds its own 3 once: 50 + 3, plus the
-    // antialiasing margin.
+    // antialiasing margin. A round anchor is a disc, so its radius is that same 50 whatever
+    // direction the line runs in.
     var line: FormLine
     line.borderSize  = 5
     line.outlineSize = 3
@@ -80,7 +81,10 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     arrow.endSize     = 8
     arrow.endCap      = .ArrowAnchor
     let arrowItf: IForm = &arrow
-    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 25)
+
+    // An arrow head stands 5/2 * 8 across the line and reaches twice that back along it, so the
+    // corner between the two is at their diagonal, 44.7, wherever the line points.
+    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 50)
 }
 
 // Stroke contours participate in both painting and hit testing; a point outside the core must
@@ -194,6 +198,74 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Swag.assert(step.index == 7)
     Swag.assert(f.capture.nextStepIndex == 8)
     Swag.assert(step.isDirty)
+}
+
+// The margin a form's layer reserves holds everything that form paints, at every angle.
+//
+// The line ends stand across the line as well as along it, so the corner of a square one, or of
+// an arrow head, lands at the diagonal of the two: reserving the larger of the two axes alone cut
+// that corner off as soon as the line stopped being axis aligned, and a cap grown by its size row
+// lost more of itself the larger it got.
+func testAssertFormFitsItsMargin(itf: IForm)
+{
+    var painter: Painter
+    painter.begin(layoutOnly: true)
+    painter.setAntialiased()
+
+    var cxt: FormPaintContext
+    cxt.z = 1
+    itf.paint(&painter, cxt)
+    painter.end()
+
+    var minimum = Math.Vector2{Swag.F32.Max, Swag.F32.Max}
+    var maximum = Math.Vector2{-Swag.F32.Max, -Swag.F32.Max}
+    for cmd in painter.commandBuffer
+    {
+        if cmd.id != .DrawTriangles do
+            continue
+        for i in cmd.drawTriangles.count
+        {
+            let pos = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
+            minimum = Math.Vector2.min(minimum, pos)
+            maximum = Math.Vector2.max(maximum, pos)
+        }
+    }
+
+    if minimum.x > maximum.x do
+        return
+
+    var room = itf.boundRect()
+    room.inflate(BaseForm.paintOverdraw(itf, false))
+    Swag.assert(minimum.x >= room.x and minimum.y >= room.y)
+    Swag.assert(maximum.x <= room.right() and maximum.y <= room.bottom())
+}
+
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    const Angles = [0.0, 23.0, 45.0, 67.0, 90.0, 143.0, 200.0, 300.0]
+    for cap in LineCapStyle
+    {
+        for a in Angles.count
+        {
+            let angle = Math.toRadians(Angles[a])
+            let line  = testAddLine(f.capture, 200, 200, 200 + Math.cos(angle) * 120, 200 + Math.sin(angle) * 120)
+            line.borderSize  = 18
+            line.outlineSize = 4
+            line.beginCap    = cap
+            line.endCap      = cap
+            line.startSize   = MaxCapSize
+            line.endSize     = MaxCapSize
+            testAssertFormFitsItsMargin(line)
+
+            line.dashStyle = .Dash
+            line.dashCap   = .Square
+            testAssertFormFitsItsMargin(line)
+        }
+    }
 }
 
 // Line-like forms keep endpoint, control-point and bound-rect state consistent.

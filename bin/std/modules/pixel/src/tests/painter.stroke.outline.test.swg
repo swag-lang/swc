@@ -167,3 +167,55 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
             Swag.assert(img.pixelColor(cast(s32) x, cast(s32) y).r == 255)
     }
 }
+
+// A cap stays inside the radius `capStyleRadius` promises, whatever direction its line runs in.
+//
+// It stands across the line as well as along it, so its far corner sits at the diagonal of the
+// two and lands anywhere on the drawing as the line turns. A caller reserving room around a
+// stroke has nothing else to go by: measured from the two axes of the line instead, the box it
+// reserves cuts that corner off as soon as the line stops being axis aligned.
+#test
+{
+    const Angles = [0.0, 23.0, 45.0, 67.0, 90.0, 143.0, 200.0, 300.0]
+    const Stroke = 14.0
+    const ScaleX = 3.0
+    const ScaleY = 2.0
+    const Centre = Math.Vector2{200, 200}
+
+    for cap in LineCapStyle
+    {
+        let radius = Painter.capStyleRadius(cap, Stroke, ScaleX, ScaleY)
+        for a in Angles.count
+        {
+            let angle = Math.toRadians(Angles[a])
+            let end   = Centre + Math.Vector2{Math.cos(angle), Math.sin(angle)} * 120
+
+            var painter: Painter
+            painter.begin(layoutOnly: true)
+
+            var pen = Pen.createSolid(Color.fromArgb(Argb.White), Stroke)
+            pen.begCapStyle  = .None
+            pen.endCapStyle  = cap
+            pen.capEndScaleX = ScaleX
+            pen.capEndScaleY = ScaleY
+            painter.drawLine(Centre, end, pen)
+            painter.end()
+
+            // Everything the walk lays down is either the shaft, within half the stroke of the
+            // segment, or the cap, within its radius of the point it is placed on. A fringe of
+            // antialiasing reaches half a pixel past both.
+            for cmd in painter.commandBuffer
+            {
+                if cmd.id != .DrawTriangles do
+                    continue
+                for i in cmd.drawTriangles.count
+                {
+                    let pos     = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
+                    let inShaft = Math.Geometry.distanceFromPointToSegment(pos, Centre, end) <= Stroke * 0.5 + 1
+                    let inCap   = pos.distanceTo(end) <= radius + 1
+                    Swag.assert(inShaft or inCap)
+                }
+            }
+        }
+    }
+}

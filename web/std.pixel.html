@@ -222,7 +222,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">445</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">446</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -494,6 +494,7 @@
 <li><a href="#Pixel_Painter_bindRenderTarget">Painter.bindRenderTarget</a></li>
 <li><a href="#Pixel_Painter_blendingMode">Painter.blendingMode</a></li>
 <li><a href="#Pixel_Painter_capStyleExtent">Painter.capStyleExtent</a></li>
+<li><a href="#Pixel_Painter_capStyleRadius">Painter.capStyleRadius</a></li>
 <li><a href="#Pixel_Painter_clear">Painter.clear</a></li>
 <li><a href="#Pixel_Painter_clippingRect">Painter.clippingRect</a></li>
 <li><a href="#Pixel_Painter_computeLayout">Painter.computeLayout</a></li>
@@ -1916,7 +1917,9 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_blendingMode">Painter.blendingMode</a></td><td><p>Returns the color blend operation subsequent drawing commands use.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Painter_capStyleExtent">Painter.capStyleExtent</a></td><td><p>Returns the extent in both directions of a given LineCapStyle.</p>
+<tr><td class="code-type"><a href="#Pixel_Painter_capStyleExtent">Painter.capStyleExtent</a></td><td><p>Returns the extent of a cap in the frame of the line it terminates.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_capStyleRadius">Painter.capStyleRadius</a></td><td><p>Returns how far a cap reaches from the point it is placed on, in any direction.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_clear">Painter.clear</a></td><td><p>Records a clear of the active rendering surface.</p>
 </td></tr>
@@ -4265,7 +4268,9 @@ painter.<span class="SFct">end</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_blendingMode">blendingMode</a></td><td><p>Returns the color blend operation subsequent drawing commands use.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Painter_capStyleExtent">capStyleExtent</a></td><td><p>Returns the extent in both directions of a given LineCapStyle.</p>
+<tr><td class="code-type"><a href="#Pixel_Painter_capStyleExtent">capStyleExtent</a></td><td><p>Returns the extent of a cap in the frame of the line it terminates.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_capStyleRadius">capStyleRadius</a></td><td><p>Returns how far a cap reaches from the point it is placed on, in any direction.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_clear">clear</a></td><td><p>Records a clear of the active rendering surface.</p>
 </td></tr>
@@ -8585,14 +8590,17 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">blendingMode</span>()-&gt;<span class="SCst"><a href="#Pixel_BlendingMode">BlendingMode</a></span> =&gt; .curState</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_capStyleExtent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.capStyleExtent</span> <a class="api-item-permalink" href="#Pixel_Painter_capStyleExtent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawpath.swg#L1288">src</a></div>
-<p>Returns the extent in both directions of a given LineCapStyle.</p>
-<ul>
-<li><span class="code-inline">lineSize</span> is the supposed line drawing size</li>
-<li><span class="code-inline">capScale</span> is the supposed LineCapStyle scale</li>
-</ul>
-<p>Returns the width and the length.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">capStyleExtent</span>(capStyle: <span class="SCst"><a href="#Pixel_LineCapStyle">LineCapStyle</a></span>, lineSize, capScale: <span class="STpe">f32</span>)-&gt;{ w: <span class="STpe">f32</span>, l: <span class="STpe">f32</span> }</span></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_capStyleExtent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.capStyleExtent</span> <a class="api-item-permalink" href="#Pixel_Painter_capStyleExtent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawpath.swg#L1292">src</a></div>
+<p>Returns the extent of a cap in the frame of the line it terminates.</p>
+<p><span class="code-inline">lineSize</span> is the stroke width the cap is measured against, and <span class="code-inline">capScaleX</span>/<span class="code-inline">capScaleY</span> are the scales the pen applies to an anchor. <span class="code-inline">w</span> is how far the cap stands across the line and <span class="code-inline">l</span> how far it reaches past the point it is placed on; an arrow head answers zero for <span class="code-inline">l</span>, because its tip is that point and its body lies back along the line.</p>
+<p>These are the two axes of the line, not of the drawing. A layer or a cell reserving room around a cap wants <a href="#Pixel_Painter_capStyleRadius">Pixel.Painter.capStyleRadius</a> instead, unless it knows which way the line runs.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">capStyleExtent</span>(capStyle: <span class="SCst"><a href="#Pixel_LineCapStyle">LineCapStyle</a></span>, lineSize, capScaleX: <span class="STpe">f32</span>, capScaleY: <span class="STpe">f32</span> = <span class="SNum">2</span>)-&gt;{ w: <span class="STpe">f32</span>, l: <span class="STpe">f32</span> }</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Painter_capStyleRadius" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.capStyleRadius</span> <a class="api-item-permalink" href="#Pixel_Painter_capStyleRadius" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawpath.swg#L1317">src</a></div>
+<p>Returns how far a cap reaches from the point it is placed on, in any direction.</p>
+<p>A cap stands across its line as well as along it, so its far corner sits at the diagonal of the two and lands anywhere on the drawing depending on which way the line runs. This is the radius that holds it whatever that direction is, which is what an axis-aligned box around the geometry has to reserve: measured from the two axes alone, that box cuts the corner off a square end or an arrow head as soon as the line stops being axis aligned.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">capStyleRadius</span>(capStyle: <span class="SCst"><a href="#Pixel_LineCapStyle">LineCapStyle</a></span>, lineSize, capScaleX: <span class="STpe">f32</span>, capScaleY: <span class="STpe">f32</span> = <span class="SNum">2</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Painter_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.clear</span> <a class="api-item-permalink" href="#Pixel_Painter_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L1090">src</a></div>
@@ -11020,7 +11028,8 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.Painter.begin|Pixel_Painter_begin|Starts a fresh recording scope and resets drawing state.",
 "f|Pixel.Painter.bindRenderTarget|Pixel_Painter_bindRenderTarget|Bind a render target",
 "f|Pixel.Painter.blendingMode|Pixel_Painter_blendingMode|Returns the color blend operation subsequent drawing commands use.",
-"f|Pixel.Painter.capStyleExtent|Pixel_Painter_capStyleExtent|Returns the extent in both directions of a given LineCapStyle.",
+"f|Pixel.Painter.capStyleExtent|Pixel_Painter_capStyleExtent|Returns the extent of a cap in the frame of the line it terminates.",
+"f|Pixel.Painter.capStyleRadius|Pixel_Painter_capStyleRadius|Returns how far a cap reaches from the point it is placed on, in any direction.",
 "f|Pixel.Painter.clear|Pixel_Painter_clear|Records a clear of the active rendering surface.",
 "f|Pixel.Painter.clippingRect|Pixel_Painter_clippingRect|Returns the current clipping rectangle, or an unbounded rectangle when clipping is disabled.",
 "f|Pixel.Painter.computeLayout|Pixel_Painter_computeLayout|Recompute the layout for a given rectangle",

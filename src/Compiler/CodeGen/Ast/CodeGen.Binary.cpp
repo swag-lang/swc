@@ -477,9 +477,9 @@ namespace
         {
             MicroReg rightReg;
             materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
-            if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
+            if (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent)
             {
-                SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, tokId == TokenId::SymPercent));
+                SWC_RESULT(CodeGenSafety::emitDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, isSigned, tokId == TokenId::SymPercent));
             }
             else
             {

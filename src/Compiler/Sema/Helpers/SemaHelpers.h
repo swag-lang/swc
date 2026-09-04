@@ -157,6 +157,20 @@ namespace SemaHelpers
     bool                     functionExposesReturnSlot(const SymbolFunction& function, const SymbolVariable* ignoreSym = nullptr);
     bool                     typeHasLifecycle(TaskContext& ctx, TypeRef typeRef);
     const SemaInlinePayload* effectiveInlinePayload(const Sema& sema);
+    // Whether the node being analysed belongs to an ordinary inline expansion, whose body was
+    // already judged as a standalone function before it was cloned here.
+    //
+    // The use-site nullability checks read the LIVE type of what they reach through, and an
+    // expansion re-walks the body without the flow facts the original pass established: a
+    // guard that dominated the access in the callee is not in scope for the clone, so a
+    // correct body is rejected — in 'release' only, since that is where a function is inlined
+    // without being written '#[Swag.Inline]'. Skipping the check there is sound because the
+    // body already passed it; a body that had not would have made its own function ignored
+    // long before any call site could clone it.
+    //
+    // A macro or a mixin is excluded: its body is spliced into the caller's scope and was
+    // never judged on its own, so it is judged here.
+    bool nullabilityValidatedBeforeInlining(const Sema& sema);
     const SymbolFunction*    currentLocationFunction(const Sema& sema);
     AstNodeRef               defaultArgumentExprRef(const SymbolVariable& param);
     bool                     isCallerLocationDefaultInitializer(Sema& sema, AstNodeRef initRef);

@@ -732,20 +732,57 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitSignedDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool zeroOnOverflow)
+// Lowers an integer division or remainder together with the two faults it can carry: a zero
+// divisor, and the signed minimum divided by -1.
+//
+// Both faults report through a CALL, and a panic is not guaranteed to end the program - a
+// '#test' installs a hook and '@panic' then returns to its caller. So neither report may fall
+// through into the divide: the operands would be read after the call clobbered them, and on
+// x86 the divide additionally wants its dividend in a fixed register pair. Every failing path
+// therefore produces the zero result and jumps past the operation, which is the shape the
+// signed-overflow arm already used and the reason it was written that way.
+Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool isSigned, const bool zeroOnOverflow)
 {
+    const auto* nodePayload   = codeGen.loweringPayload(codeGen.curNodeRef());
+    const bool  guardZero     = nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math);
+    const bool  guardOverflow = isSigned;
+    if (!guardZero && !guardOverflow)
+    {
+        codeGen.builder().emitOpBinaryRegReg(leftReg, rightReg, op, opBits);
+        return Result::Continue;
+    }
+
     MicroBuilder&       builder   = codeGen.builder();
     const MicroLabelRef doOpLabel = builder.createLabel();
     const MicroLabelRef doneLabel = builder.createLabel();
-    builder.emitCmpRegImm(rightReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
-    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
-    builder.emitCmpRegImm(leftReg, minSignedImmediate(opBits), opBits);
-    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
-    if (hasOverflowRuntimeSafety(codeGen))
-        SWC_RESULT(emitOverflowCheck(codeGen, node));
-    if (zeroOnOverflow)
+
+    if (guardZero)
+    {
+        SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
+        SWC_ASSERT(panicFunction != nullptr);
+
+        const MicroLabelRef nonZeroLabel = builder.createLabel();
+        builder.emitCmpRegImm(rightReg, ApInt(0, 64), opBits);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nonZeroLabel);
+        SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_division_zero));
         builder.emitClearReg(leftReg, opBits);
-    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(nonZeroLabel);
+    }
+
+    if (guardOverflow)
+    {
+        builder.emitCmpRegImm(rightReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), opBits);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
+        builder.emitCmpRegImm(leftReg, minSignedImmediate(opBits), opBits);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
+        if (hasOverflowRuntimeSafety(codeGen))
+            SWC_RESULT(emitOverflowCheck(codeGen, node));
+        if (zeroOnOverflow)
+            builder.emitClearReg(leftReg, opBits);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    }
+
     builder.placeLabel(doOpLabel);
     builder.emitOpBinaryRegReg(leftReg, rightReg, op, opBits);
     builder.placeLabel(doneLabel);

@@ -107,7 +107,7 @@ namespace
 
         // Use-site nullability: narrowing was already applied to the live view, so a
         // remaining 'nullable' means no dominating test proves this dereference safe.
-        if (srcType.isNullable() && (!exprView.hasConstant() || exprView.cst()->isNull()))
+        if (srcType.isNullable() && (!exprView.hasConstant() || exprView.cst()->isNull()) && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, exprView.nodeRef(), exprView.typeRef());
 
         const TypeRef resultTypeRef = typeView.typeRef();

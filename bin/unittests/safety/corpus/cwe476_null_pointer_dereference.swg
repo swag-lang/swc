@@ -85,12 +85,7 @@ func derefProvenNull()->s32
 
 // --- Sound ---
 
-// The '#[Swag.NoInline]' on this group is a WORKAROUND for compiler.core.028, not part of the
-// case: in 'release', auto-inlining re-runs a body without the flow facts that dominated it,
-// and rejects these correct programs. Remove the attributes when that entry closes.
-
 // A dominating test narrows the value for the rest of the block.
-#[Swag.NoInline]
 func narrowedByTest(node: *Node?)->s32
 {
     if node == null do
@@ -99,7 +94,6 @@ func narrowedByTest(node: *Node?)->s32
 }
 
 // 'Swag.assert' is a dominating test like any other, and reads as a precondition.
-#[Swag.NoInline]
 func narrowedByAssert(node: *Node?)->s32
 {
     Swag.assert(node != null)
@@ -107,14 +101,12 @@ func narrowedByAssert(node: *Node?)->s32
 }
 
 // The left side of 'and' narrows the right side.
-#[Swag.NoInline]
 func narrowedByConjunction(node: *Node?)->bool
 {
     return node != null and node.value == 5
 }
 
 // Every path assigns a present value, so what follows needs no assertion.
-#[Swag.NoInline]
 func narrowedByJoin(ready: bool)->s32
 {
     var node: *Node?
@@ -126,14 +118,12 @@ func narrowedByJoin(ready: bool)->s32
 }
 
 // '?.' skips the access and 'orelse' supplies the scalar fallback.
-#[Swag.NoInline]
 func guardedAccess(node: *Node?)->s32
 {
     return node?.value orelse -1
 }
 
 // A bare pointer needs no ceremony at all, which is the point of the default.
-#[Swag.NoInline]
 func bareNeedsNothing(node: *Node)->s32
 {
     return node.value

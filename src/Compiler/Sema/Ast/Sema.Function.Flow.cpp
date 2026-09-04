@@ -1355,7 +1355,7 @@ namespace
             if (calleeTypeRef.isValid())
             {
                 const TypeInfo& calleeType = sema.typeMgr().get(calleeTypeRef);
-                if (calleeType.isFunction() && calleeType.isNullable())
+                if (calleeType.isFunction() && calleeType.isNullable() && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
                     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_call, node.nodeExprRef, nodeCallee.typeRef());
             }
         }

@@ -1040,6 +1040,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.notify(.LanguageChanged)
     Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Ouvrir (Ctrl+O)")
+    Swag.assert(window.fileReceipt.statusLabel.text() == "Ouverture du fichier déposé…")
     Swag.assert(host.openedSurfaceCount() == 0)
 }
 
@@ -1845,6 +1846,49 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "surface")
+}
+
+// A desktop drop publishes the received file immediately, before worker classification and the
+// first viewer can replace the document. This acknowledgement makes a drag feel accepted rather
+// than silently consumed.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let file   = viewerFixturePath()
+    window.resize(960, 680)
+
+    Swag.assert(host.dropFilesOnWnd(window, [file.toString()]) == DropEffect.Copy)
+    Swag.assert(window.pendingFile == file and window.startupTimer != null)
+    Swag.assert(window.fileReceipt.isLocallyVisible())
+    Swag.assert(window.fileReceipt.nameLabel.text() == (Path.fileName(file.toString()) orelse file.toString()))
+    Swag.assert(window.fileReceipt.nameLabel.toolTip == file)
+    Swag.assert(window.fileReceipt.statusLabel.text() == appStrings().ui_DropAccepted)
+    Swag.assert(window.fileReceipt.card.backgroundStyle == .InformationPanel)
+    Swag.assert(window.fileReceipt.iconLabel.icon.isValid())
+    Swag.assert(window.fileReceipt.parent == window.documentPanel)
+
+    window.applyLayout()
+    Swag.assert(Math.abs(window.fileReceipt.card.position.center().x - window.fileReceipt.clientRect().center().x) <= 1)
+    Testing.assertContentFits(window)
+    host.settleAnimations(window, 4)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "drop-receipt")
+
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.fileReceipt.isLocallyVisible() and window.fileReceiptTimer != null and window.fileReceiptWaitingToHide)
+    host.fireTimer(window.fileReceiptTimer)
+    Swag.assert(!window.fileReceipt.isLocallyVisible())
 }
 
 // Pins the open-document composition in Swag dark and neutral light: global navigation and file

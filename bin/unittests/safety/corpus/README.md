@@ -36,11 +36,6 @@ is the current scorecard. A gap disappears by being uncommented, not by being de
 other markers exist and are deliberately not gaps: `NO GAP` records that the class has no Swag
 form at all, and `BY DESIGN` records a documented miss with a stated reason.
 
-Two cases are blocked by compiler defects rather than by a safety hole, and say so:
-compiler.core.028 (release-only inlining loses null narrowing) and compiler.core.029 (a
-release-only compiler assertion). The `#[Swag.NoInline]` attributes in this folder are their
-workarounds and come out when those entries close.
-
 A few gaps are left **live** instead, when the fault is a wrong value rather than a memory
 fault — a leak, a forged enum value, a switch that silently falls through. Those pin today's
 behavior with an assertion, so the change shows up as a test failure when the rule lands.
@@ -60,6 +55,7 @@ behavior with an assertion, so the change shows up as a test failure when the ru
 | 665 | Improper initialization | **Proven** (definite assignment) + guarded (`late`) |
 | 121, 125, 129, 193, 787 | Out-of-bounds on a sized value | Proven when constant, **guarded** otherwise |
 | 190, 191, 197, 195 | Overflow, truncation, sign conversion | Proven when constant, **guarded** otherwise; never undefined |
+| 369 | Integer divide by zero | Proven when constant, **guarded** otherwise |
 | 843 | Type confusion, dynamic half (`any`) | **Guarded** |
 | 672 | Use after move | Proven, plus runtime poison for what it misses |
 | 415, 416 | Double free, use after free | **Partial** — see the gaps in those files |

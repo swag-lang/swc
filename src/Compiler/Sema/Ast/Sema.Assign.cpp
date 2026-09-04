@@ -108,6 +108,22 @@ namespace
         return SemaHelpers::binaryOpNeedsOverflowSafety(binaryOp, node.modifierFlags);
     }
 
+    // The compound form of the same question as 'needsBinaryDivideRuntimeSafety'.
+    bool needsAssignDivideRuntimeSafety(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        const TokenId binaryOp = Token::canonicalBinary(op);
+        if (binaryOp != TokenId::SymSlash && binaryOp != TokenId::SymPercent)
+            return false;
+
+        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
+        if (!targetLeftView.type() || !nodeRightView.type())
+            return false;
+        if (nodeRightView.hasConstant())
+            return false;
+
+        return SemaHelpers::aliasType(sema, nodeRightView).isIntLike();
+    }
+
     void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView)
     {
         if (!leftView.sym() || !leftView.sym()->isVariable() || !leftView.type())
@@ -478,6 +494,8 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     }
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
+    if (needsAssignDivideRuntimeSafety(sema, tok.id, nodeLeftView, nodeRightView))
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, codeRef()));
 
     // Flow-narrowing gen/kill: assigning a nullable-declared path either re-nullifies it
     // or proves it non-null when the right side statically is. The right side's stored

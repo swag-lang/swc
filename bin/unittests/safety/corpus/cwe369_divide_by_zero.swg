@@ -29,44 +29,51 @@ func divideByProvenZero()->s32
     #run divideByProvenZero()
 }
 
-// GAP compiler.safety.015 - '.Math' does not guard DIVISION at run time, in any form. The
-// reference documents that it does ("Swag panics for invalid math, such as division by zero",
-// bin/reference/modules/language/src/013_002_safety.swg, with a worked example) and with the
-// guard explicitly on: an integer division reaches the hardware and raises #DE, taking the
-// compile-time JIT down with it, and a float division quietly produces an infinity. What
-// '.Math' really guards today is the intrinsic domains below. The static proof covers a
-// divisor it can fold, so the hole is exactly the divisor that only exists at run time.
-// Left commented because the integer form really does fault.
-//
-// #[Swag.Safety(.Math, true)]
-// func divideByComputedZero(value, divisor: s32)->s32
-// {
-//     return value / divisor     // expected: safety_err_runtime
-// }
-//
-// #test
-// {
-//     #run divideByComputedZero(opaqueS32(10), opaqueS32(0))
-// }
-//
-// #[Swag.Safety(.Math, true)]
-// func remainderByZero(value, divisor: s32)->s32
-// {
-//     return value % divisor     // expected: safety_err_runtime
-// }
-//
-// #test
-// {
-//     #run remainderByZero(opaqueS32(10), opaqueS32(0))
-// }
+// Only known at run time: the guard answers. Without it the division reaches the hardware,
+// which traps with no location and no message.
+#[Swag.Safety(.Math, true)]
+func divideByComputedZero(value, divisor: s32)->s32
+{
+    return value / divisor     // swc-expected-error {{safety_err_runtime}}
+}
 
-// The float half of the same gap, kept live because it does not fault: it produces an
-// infinity where the reference says it panics. Pinned so the change is visible when the
-// guard is restored.
+#test
+{
+    #run divideByComputedZero(opaqueS32(10), opaqueS32(0))
+}
+
+// The remainder operator has the same domain.
+#[Swag.Safety(.Math, true)]
+func remainderByZero(value, divisor: s32)->s32
+{
+    return value % divisor     // swc-expected-error {{safety_err_runtime}}
+}
+
+#test
+{
+    #run remainderByZero(opaqueS32(10), opaqueS32(0))
+}
+
+// The compound form is guarded at the same place.
+#[Swag.Safety(.Math, true)]
+func divideAssignByZero(value, divisor: s32)->s32
+{
+    var result = value
+    result /= divisor     // swc-expected-error {{safety_err_runtime}}
+    return result
+}
+
+#test
+{
+    #run divideAssignByZero(opaqueS32(10), opaqueS32(0))
+}
+
+// Float division by zero is NOT this class: it is IEEE-defined and yields an infinity, so it
+// carries no guard and needs none. Pinned so a future rule that changes it shows up here.
 #[Swag.Safety(.Math, true)]
 func divideFloatByZero(value, divisor: f32)->f32
 {
-    return value / divisor     // GAP compiler.safety.015: expected safety_err_runtime
+    return value / divisor
 }
 
 #test

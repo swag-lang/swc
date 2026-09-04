@@ -45,6 +45,23 @@ namespace
         return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
 
+    // An INTEGER division needs the '.Math' guard when the divisor is only known at run time:
+    // a zero divisor traps in hardware, with no location and no message, and under the
+    // compile-time JIT it ends the compiler. A constant divisor needs nothing - a zero one is
+    // already a static error and a nonzero one cannot fail - and a float division needs
+    // nothing either, since dividing by zero there is IEEE-defined and yields an infinity.
+    bool needsBinaryDivideRuntimeSafety(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        if (op != TokenId::SymSlash && op != TokenId::SymPercent)
+            return false;
+        if (!nodeLeftView.type() || !nodeRightView.type())
+            return false;
+        if (nodeRightView.hasConstant())
+            return false;
+
+        return SemaHelpers::aliasType(sema, nodeRightView).isIntLike();
+    }
+
     bool mapTokenToFoldBinaryOp(Math::FoldBinaryOp& outOp, TokenId op)
     {
         switch (op)
@@ -553,6 +570,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));
     if (needsBinaryOverflowRuntimeSafety(sema, *this, op, nodeLeftView, nodeRightView))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
+    if (needsBinaryDivideRuntimeSafety(sema, op, nodeLeftView, nodeRightView))
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, codeRef()));
 
     return Result::Continue;
 }

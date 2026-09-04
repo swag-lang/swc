@@ -388,7 +388,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     // slice or string data pointer). Narrowing was already applied to the live view,
     // so a remaining 'nullable' means no dominating test proves this access safe. A
     // non-null compile-time constant (e.g. reflection's 'typeinfo.fields') is proof.
-    if (indexedType.isNullable() && (!nodeExprView.hasConstant() || nodeExprView.cst()->isNull()))
+    if (indexedType.isNullable() && (!nodeExprView.hasConstant() || nodeExprView.cst()->isNull()) && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_index, nodeExprRef, nodeExprView.typeRef());
 
     if (sema.node(nodeArgRef).is(AstNodeId::RangeExpr))

@@ -45,26 +45,29 @@ func writeAfterFree()
     #run writeAfterFree()
 }
 
-// GAP compiler.safety.016 - the release goes through one more wrapper, and the transitive
-// FREES bit does not reach the backend check when the freeing function lives in another file
-// of the same module. The identical shape written in ONE file is reported, which is what says
-// the rule is right and its timing is not. Every real program puts its allocator wrapper in
-// its own file, so this is the shape that decides whether the check exists in practice.
-// Left commented because it really does read released memory.
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func releaseWrapper(pointer: *s32)
-// {
-//     heapFree(pointer, 4)
-// }
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func readAfterWrappedFree()->s32
-// {
-//     let pointer = cast(*s32) heapAlloc(4)
-//     releaseWrapper(pointer)     // expected: sanity_note_pointer_released_here
-//     return pointer[]            // expected: sanity_err_use_after_free
-// }
+// The release goes through one more wrapper, which inherits the summary through the fixpoint
+// that chains them. Note the absence of '#run' here: the summaries are final only once the
+// module is drained, so a body forced through the compile-time JIT before that is judged
+// against summaries that are still growing (compiler.safety.016). Reaching the body the
+// ordinary way is what exercises the rule.
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseWrapper(pointer: *s32)
+{
+    heapFree(pointer, 4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func readAfterWrappedFree()->s32
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    releaseWrapper(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return pointer[]     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#test
+{
+    discard readAfterWrappedFree()
+}
 
 // --- Known misses ---
 

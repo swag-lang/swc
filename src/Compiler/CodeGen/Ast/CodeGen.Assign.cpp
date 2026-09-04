@@ -315,9 +315,9 @@ namespace
         else
         {
             const MicroReg rightReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
-            if (isSigned && (assignOp == TokenId::SymSlashEqual || assignOp == TokenId::SymPercentEqual))
+            if (assignOp == TokenId::SymSlashEqual || assignOp == TokenId::SymPercentEqual)
             {
-                SWC_RESULT(CodeGenSafety::emitSignedDivOrModIntLike(codeGen, node, leftReg, rightReg, op, encodeCtx.opBits, assignOp == TokenId::SymPercentEqual));
+                SWC_RESULT(CodeGenSafety::emitDivOrModIntLike(codeGen, node, leftReg, rightReg, op, encodeCtx.opBits, isSigned, assignOp == TokenId::SymPercentEqual));
             }
             else
             {

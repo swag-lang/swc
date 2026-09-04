@@ -193,9 +193,13 @@ Slice operations are checked for bounds.
 /**
 ## Safety on Loop Ranges
 
-A 'for' range whose bounds are not both constant is checked when the loop starts. Swag panics
-when the lower bound is above the upper bound. An 'until' range whose bounds are equal is
-empty, not inverted, so it runs zero iterations without panicking.
+A 'for' range asks a predicate rather than a length, and the loop lowering answers it before
+the first iteration: an inverted range is EMPTY, not a fault, and runs zero times. That is why
+no guard applies here. A range whose bounds are both constant is different — the inversion is
+certain rather than merely possible — and it is rejected at compile time.
+
+Slicing keeps its check, because 'x[a to b]' asks for a length: a range that runs off the end
+of the sliced value panics under '.BoundCheck'.
 */
 #test
 {
@@ -218,16 +222,26 @@ empty, not inverted, so it runs zero iterations without panicking.
 # Math Safety
 Example:
 #[Swag.Safety(.Math, true)]
-Swag panics for invalid math, such as division by zero or invalid intrinsic
-arguments.
+Swag panics on an INTEGER division or remainder by zero, and on an intrinsic argument outside
+its domain.
+
+A float division by zero is not covered, and needs no cover: it is defined by IEEE 754 and
+yields an infinity rather than trapping. What can go wrong afterwards is a 'NaN', which
+'.NaN' watches.
+
+A divisor the compiler can fold to zero is rejected at compile time by the static half instead
+('#[Swag.Sanity(.Math)]'), which is what covers a build with the dynamic guards off. The two
+never both report: the guard lowers to a test of the divisor, and past that test the divisor is
+no longer provably zero, so whichever layer is enabled is the one that speaks.
 */
 #test
 {
-    var x = 1'f32
-    var y = 0'f32
+    var value   = 10's32
+    var divisor = 2's32
+    Swag.assert(value / divisor == 5)
 
-// var z = x / y  // Would panic: division by zero
-// Swag.print(z)
+// divisor = 0
+// Swag.print(value / divisor)  // Would panic: division by zero
 }
 
 /**

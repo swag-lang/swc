@@ -591,6 +591,7 @@ struct ViewerWindow
         documentPanel:       *Wnd
         loadingOverlay:      *ViewerLoadingOverlay
         searchOverlay:       *ViewerSearchOverlay
+        fileReceipt:         *ViewerFileReceipt
         viewerBar:           *ViewerActionBar
         emptyView:           *StackLayoutCtrl
         emptyIconLabel:      *Label
@@ -608,56 +609,58 @@ struct ViewerWindow
         folderList:          *ListCtrl
     }
 
-    index:                   ViewerPluginRegistry
-    pluginIcons:             Array'ViewerPluginIcons
-    currentView:             *Wnd?
-    currentActions:          *Wnd?
-    currentInfo:             *Wnd?
-    currentCommands:         *Wnd?
-    currentSidePanelHost:    *Wnd?
-    currentSidePanelButton:  *IconButton?
-    outgoingView:            *Wnd?
-    outgoingActions:         *Wnd?
-    outgoingInfo:            *Wnd?
-    outgoingCommands:        *Wnd?
-    outgoingSidePanelHost:   *Wnd?
-    outgoingSidePanelButton: *IconButton?
-    choices:                 Array'ViewerPluginChoice
-    instances:               Array'ViewerSession
-    activeChoiceIndex             = Swag.U32.Max
-    startupTimer:            *Timer?
-    searchTimer:             *Timer?
-    searchBoundsTimer:       *Timer?
-    loadingTimer:            *Timer?
-    choiceLoad:              ViewerChoiceLoad
-    smokeTimer:              *Timer?
-    searchStream:            File.FileStream
-    searchQuery:             String
-    searchToolTip:           String
-    searchError:             String
-    searchCarry:             String
-    searchCarryBase:         u64
-    searchProcessed:         u64
-    searchProgress:          u64
-    searchSpan:              u64
-    searchMatches:           Array'Viewer.SearchMatch
-    searchIndex:             u64  = Swag.U64.Max
-    searchMatch:             u64  = Swag.U64.Max
-    searchComplete:          bool
-    searchSelectLast:        bool
-    searchMatchCaseOption:   bool
-    searchWholeWordOption:   bool
-    searchRegexOption:       bool
-    searchFilterMode:        bool
-    pendingFile:             String
-    pendingEmpty:            String
-    pendingRemember:         bool = true
-    currentFile:             String
-    currentFileSize:         String
-    folderFiles:             Array'String
-    siblings:                Array'String
-    siblingIndex:            u64
-    siblingsDirty                 = true
+    index:                    ViewerPluginRegistry
+    pluginIcons:              Array'ViewerPluginIcons
+    currentView:              *Wnd?
+    currentActions:           *Wnd?
+    currentInfo:              *Wnd?
+    currentCommands:          *Wnd?
+    currentSidePanelHost:     *Wnd?
+    currentSidePanelButton:   *IconButton?
+    outgoingView:             *Wnd?
+    outgoingActions:          *Wnd?
+    outgoingInfo:             *Wnd?
+    outgoingCommands:         *Wnd?
+    outgoingSidePanelHost:    *Wnd?
+    outgoingSidePanelButton:  *IconButton?
+    choices:                  Array'ViewerPluginChoice
+    instances:                Array'ViewerSession
+    activeChoiceIndex              = Swag.U32.Max
+    startupTimer:             *Timer?
+    searchTimer:              *Timer?
+    searchBoundsTimer:        *Timer?
+    loadingTimer:             *Timer?
+    fileReceiptTimer:         *Timer?
+    choiceLoad:               ViewerChoiceLoad
+    smokeTimer:               *Timer?
+    searchStream:             File.FileStream
+    searchQuery:              String
+    searchToolTip:            String
+    searchError:              String
+    searchCarry:              String
+    searchCarryBase:          u64
+    searchProcessed:          u64
+    searchProgress:           u64
+    searchSpan:               u64
+    searchMatches:            Array'Viewer.SearchMatch
+    searchIndex:              u64  = Swag.U64.Max
+    searchMatch:              u64  = Swag.U64.Max
+    searchComplete:           bool
+    searchSelectLast:         bool
+    searchMatchCaseOption:    bool
+    searchWholeWordOption:    bool
+    searchRegexOption:        bool
+    searchFilterMode:         bool
+    pendingFile:              String
+    pendingEmpty:             String
+    pendingRemember:          bool = true
+    fileReceiptWaitingToHide: bool
+    currentFile:              String
+    currentFileSize:          String
+    folderFiles:              Array'String
+    siblings:                 Array'String
+    siblingIndex:             u64
+    siblingsDirty                  = true
 
     // Whether next/previous and the folder list keep only the neighbours the current file's
     // viewer would open, so a reader flips through the pictures of a folder without landing on
@@ -761,7 +764,7 @@ impl IWnd for ViewerWindow
         // decoding a first picture happen on the next turn of the event loop, by which time the
         // drag is over and both windows can paint again.
         if evt.kind == .Drop do
-            .queueFile(fileName)
+            .queueFile(fileName, showDropReceipt: true)
         evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
     }
 
@@ -814,6 +817,19 @@ impl IWnd for ViewerWindow
             return
         }
 
+        if evt.timer == .fileReceiptTimer
+        {
+            .removeTimer(evt.timer)
+            .fileReceiptTimer = null
+            if .fileReceiptWaitingToHide
+            {
+                .fileReceiptWaitingToHide = false
+                .fileReceipt.hide()
+            }
+
+            return
+        }
+
         if evt.timer == .searchTimer
         {
             .removeTimer(evt.timer)
@@ -854,6 +870,7 @@ impl IWnd for ViewerWindow
         catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
+        .clearFileReceipt()
         for &set in .pluginIcons do
             set.icons.free()
         if .startupTimer
@@ -920,14 +937,18 @@ impl IWnd for ViewerWindow
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
+            .fileReceipt.retranslate()
+        }
         elif evt.kind == .ThemeChanged
         {
             for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
                 (cast(*ViewerErrorView) instance.view!).refreshTheme()
             .refreshArtwork()
             .refreshEmptyArtwork()
+            .fileReceipt.refreshTheme()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -1571,6 +1592,7 @@ impl ViewerWindow
 
         result.loadingOverlay = ViewerLoadingOverlay.create(result.documentPanel)
         result.searchOverlay  = ViewerSearchOverlay.create(result.documentPanel)
+        result.fileReceipt    = ViewerFileReceipt.create(result.documentPanel)
 
         result.hookOnChildEvent = func|window = result|(wnd, evt)
         {
@@ -1640,8 +1662,42 @@ impl ViewerWindow
         return result
     }
 
+    // Shows a dropped file long enough to register without making classification wait for it.
+    private mtd showFileReceipt(fileName: string)
+    {
+        .clearFileReceipt()
+        .fileReceipt.showFile(fileName)
+        .fileReceiptTimer = .addTimer(ViewerFileReceiptMinDuration)
+    }
+
+    // Ends a drag acknowledgement once its minimum exposure has passed. A viewer can publish
+    // behind it immediately, so the short confirmation does not make file opening feel slower.
+    private mtd finishFileReceipt()
+    {
+        if .fileReceiptTimer
+        {
+            .fileReceiptWaitingToHide = true
+            return
+        }
+
+        .fileReceipt.hide()
+    }
+
+    // Cancels an acknowledgement when another action supersedes the drop or the window closes.
+    private mtd clearFileReceipt()
+    {
+        if .fileReceiptTimer
+        {
+            .removeTimer(.fileReceiptTimer!)
+            .fileReceiptTimer = null
+        }
+
+        .fileReceiptWaitingToHide = false
+        .fileReceipt.hide()
+    }
+
     // Opens `fileName` after the surface has had a chance to paint its first frame.
-    mtd queueFile(fileName: string, remember = true)
+    mtd queueFile(fileName: string, remember = true, showDropReceipt = false)
     {
         // A query belongs to the document it was started against. Stop its file stream as soon as
         // another document is requested instead of letting it scan the old file while the new one
@@ -1659,11 +1715,18 @@ impl ViewerWindow
         .pendingEmpty.clear()
         .pendingRemember = remember
 
+        if showDropReceipt do
+            .showFileReceipt(fileName)
+        else do
+            .clearFileReceipt()
+
         // The hint to drop a file is not what a window opening one should paint first: hidden
         // now, the first frame shows the surface the document is about to fill, and the hint's
         // glyph is never rasterized for a launch that names its file.
         .emptyView.hide()
         .updateLoadingIndicator()
+        if showDropReceipt do
+            .fileReceipt.bringToFront()
         if !.startupTimer do
             .startupTimer = .addTimer(1'ms)
     }
@@ -1874,6 +1937,7 @@ impl ViewerWindow
 
     mtd showEmpty(message: string)
     {
+        .finishFileReceipt()
         .stopSearch()
         .searchQuery.clear()
         .searchMatches.clear()
@@ -3174,6 +3238,7 @@ impl ViewerWindow
         }
 
         .emptyView.hide()
+        .finishFileReceipt()
 
         if remember
         {

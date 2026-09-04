@@ -233,6 +233,16 @@ IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& co
     return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 }
 
+bool SemaHelpers::nullabilityValidatedBeforeInlining(const Sema& sema)
+{
+    const SemaInlinePayload* inlinePayload = effectiveInlinePayload(sema);
+    if (!inlinePayload || !inlinePayload->sourceFunction)
+        return false;
+
+    const AttributeList& attributes = inlinePayload->sourceFunction->attributes();
+    return !attributes.hasRtFlag(RtAttributeFlagsE::Macro) && !attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+}
+
 const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
 {
     // Walk the visit path from the current node outward and let the CLOSEST inline
@@ -1039,16 +1049,6 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, leftRef, symbols.span());
     }
 
-    bool optionalAccessWasValidatedBeforeInlining(Sema& sema)
-    {
-        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
-        if (!inlinePayload || !inlinePayload->sourceFunction)
-            return false;
-
-        const AttributeList& attributes = inlinePayload->sourceFunction->attributes();
-        return !attributes.hasRtFlag(RtAttributeFlagsE::Macro) && !attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
-    }
-
     Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef)
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
@@ -1527,7 +1527,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         // narrowed region stays valid (the flow proof makes the test dead, not wrong). An
         // ordinary inline clone has already passed this check in the callee; its substituted
         // left payload can carry the non-null call-site type instead of the declared one.
-        if (!optionalAccessWasValidatedBeforeInlining(sema))
+        if (!SemaHelpers::nullabilityValidatedBeforeInlining(sema))
         {
             const TypeRef storedLeftTypeRef = sema.viewStored(node.nodeLeftRef, SemaNodeViewPartE::Type).typeRef();
             const TypeRef unwrappedLeftRef  = storedLeftTypeRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedLeftTypeRef) : TypeRef::invalid();
@@ -1535,7 +1535,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
                 return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_not_nullable, node.nodeLeftRef, nodeLeftView.typeRef());
         }
     }
-    else if (useSiteTypeIsNullable(sema, nodeLeftView))
+    else if (useSiteTypeIsNullable(sema, nodeLeftView) && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
     {
         // A compile-time constant that is not null is the strongest proof there is:
         // reflection data (e.g. 'typeinfo.fields') is typed nullable but folds to a

@@ -423,7 +423,7 @@ namespace
         // Use-site nullability: narrowing was already applied to the live view, so a
         // remaining 'nullable' means no dominating test proves this dereference safe. A
         // non-null compile-time constant is proof.
-        if (type.isNullable() && (!view.hasConstant() || view.cst()->isNull()))
+        if (type.isNullable() && (!view.hasConstant() || view.cst()->isNull()) && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, view.nodeRef(), view.typeRef());
         return Result::Continue;
     }

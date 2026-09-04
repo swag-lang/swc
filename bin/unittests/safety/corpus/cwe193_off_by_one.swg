@@ -45,28 +45,20 @@ func loopOnePastEnd(count: u64)->s32
     #run loopOnePastEnd(opaqueU64(3))
 }
 
-// GAP compiler.safety.015 - an inverted range is DOCUMENTED to panic when the loop starts
-// ("Swag panics when the lower bound is above the upper bound",
-// bin/reference/modules/language/src/013_002_safety.swg), and it does not: with
-// '.BoundCheck' explicitly on, 'for 4 until 2' and 'for 4 to 2' both run zero turns and
-// return quietly. 'CodeGenSafety::emitLoopBoundCheck' exists and its comparison is right, so
-// the check is emitted-but-dead rather than missing. Uncomment when the guard fires again.
+// An inverted range with CONSTANT bounds is rejected outright: the inversion is certain, so
+// it does not wait for run time.
 //
-// #[Swag.Safety(.BoundCheck, true)]
-// func invertedRange(low, high: s32)->s32
+// func constantInvertedRange()->s32
 // {
 //     var total = 0's32
-//     for index in low until high do     // expected: safety_err_runtime
+//     for index in 4 until 2 do     // error: range lower bound 4 is greater than upper bound 2
 //         total += index
 //     return total
 // }
-//
-// #test
-// {
-//     #run invertedRange(opaqueS32(4), opaqueS32(2))
-// }
 
-// What the inverted range does today, pinned so the change is visible when it is fixed.
+// With computed bounds an inverted range is EMPTY, not a fault: the loop asks a predicate and
+// the entry test answers it, so the body runs zero times. Only slicing keeps a range check,
+// because it asks for a length rather than a predicate.
 #[Swag.Safety(.BoundCheck, true)]
 func invertedRangeRunsEmpty(low, high: s32)->s32
 {

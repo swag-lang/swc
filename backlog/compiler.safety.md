@@ -104,32 +104,28 @@ is the current scorecard.
 - Related: compiler.safety.002 removes the commonest source of these; compiler.safety.004 covers
   what the proof will never see.
 
-### compiler.safety.016 — The transitive FREES summary does not reach the backend across files
+### compiler.safety.016 — Compile-time execution is judged against summaries that are still growing
 
-- Area: compiler/sema, compiler/backend
-- Found while: building the CWE corpus (`bin/unittests/safety/corpus`), whose first wrapper
-  case would not fire.
-- Evidence: a release reached through ONE wrapper is reported when the freeing function and
-  its wrapper are in the same file, and silent when they are in different files of the same
-  module. Reduced to a two-file probe: `heapFree` in one file; a direct call to it from the
-  other IS reported (`sanity_err_use_after_free`), while `wrapper(p) { heapFree(p, 4) }` is
-  not — and it stays silent whichever of the two files the wrapper itself lives in. Only the
-  transitive bit is lost; the base bit crosses files fine.
-- Consequence: the FREES summary is computed by a mask fixpoint at the end of `Sema::waitDone`,
-  and the backend check reads `SymbolFunction::freesParamsMask()` at code generation. Within
-  one file the two happen to order correctly. Across files they do not, so the transitive bit
-  is zero when the check asks for it. Every real program puts its allocator wrapper in its own
-  file, which makes this the shape that decides whether use-after-free and double-free
-  detection exist in practice at all.
-- Next: establish the ordering rather than the propagation — the masks are already right, they
-  are read too early. Either gate code generation of a function on the fixpoint having run, or
-  move the FREES half of the check out of the backend and into the deferred sema judgement
-  that already runs after the fixpoint.
-- Complete when: the two wrapper cases in `cwe416_use_after_free.swg` and
-  `cwe415_double_free.swg` are uncommented and reported, and a two-file case is pinned in
-  `bin/unittests/sanity/use_after_free.swg`.
-- Related: compiler.safety.003 is the same feature failing for three unrelated reasons; this
-  is the fourth and the one that hides the other three.
+- Area: compiler/sema, `SemaEscape`
+- Found while: building the CWE corpus, whose first wrapper cases would not fire.
+- Evidence: a release reached through one wrapper is reported when the body is code generated
+  the ordinary way, and silent when the same body is forced through `#run`. The difference is
+  timing, not analysis: the per-function summaries are chained by a mask fixpoint at the end of
+  `Sema::waitDone`, and a `#run` compiles its callee DURING sema, before the wrapper has been
+  given the transitive FREES bit its callee seeds. The base bit is set when the summary is
+  first recorded, which is why a direct call to the freeing function is judged either way.
+- Consequence: narrower than it first looked - ordinary programs get the check - but
+  compile-time execution is exactly where a missed use-after-free hurts most, because the fault
+  lands in the compiler's own heap and surfaces later inside an unrelated allocation.
+- Next: decide what a `#run` is entitled to. Either accept the weaker judgement and say so in
+  the reference next to `#run`, or make the JIT path run the fixpoint over the edges recorded so
+  far before compiling a body - the masks only grow, so an early pass is sound and merely
+  incomplete.
+- Complete when: the two wrapper cases in the corpus are reported through `#run` as well as
+  through ordinary code generation, or the reference states which checks a `#run` body does not
+  get and the corpus notes say so.
+- Related: compiler.safety.003 lists the three shapes that defeat the same feature for reasons
+  that are about the analysis rather than about when it runs.
 
 ### compiler.safety.017 — Memory leaks are not modelled at all
 
@@ -331,44 +327,15 @@ is the current scorecard.
   combination.
 - Related: compiler.safety.009.
 
-### compiler.safety.015 — Two documented runtime guards never fire
-
-- Area: compiler/codegen, `CodeGenSafety`
-- Found while: building the CWE corpus, whose cases are written from what the reference says
-  each guard does.
-- Evidence: two guards the reference documents are dead, verified with the guard turned on
-  explicitly at the site.
-  - The loop-range check. "A `for` range whose bounds are not both constant is checked when
-    the loop starts. Swag panics when the lower bound is above the upper bound"
-    ([013_002_safety.swg](../bin/reference/modules/language/src/013_002_safety.swg)). With
-    `#[Swag.Safety(.BoundCheck, true)]`, `for 4 until 2` and `for 4 to 2` both run zero turns
-    and return quietly. `CodeGenSafety::emitLoopBoundCheck` exists and its comparison is
-    right, so the check is emitted-but-dead — the likely cause is that it reads the lowering
-    payload of the range EXPRESSION node, which does not carry the safety flags the `for`
-    statement's attribute scope does.
-  - Division by zero under `.Math`. "Swag panics for invalid math, such as division by zero",
-    with a worked example, in the same page. With the guard on, an integer division by a
-    run-time zero reaches the hardware and raises #DE — no located diagnostic, and under the
-    compile-time JIT it ends the compiler — while a float division quietly yields an infinity.
-    What `.Math` really guards today is the intrinsic domains (`sqrt`, `asin`, `log`, `pow`),
-    which do fire. The static proof covers a divisor it can fold, so the hole is exactly the
-    divisor that only exists at run time.
-- Consequence: a guard nobody notices is missing is worse than one that was never claimed,
-  because the reference is what a reader uses to decide whether a check is needed in their own
-  code. Both are cheap and neither costs anything in a guard-free build.
-- Next: fix the payload lookup for the loop range, and emit the divisor test for integer and
-  float division under `.Math`. Then uncomment the cases in `cwe193_off_by_one.swg` and
-  `cwe369_divide_by_zero.swg`, which already name the expected diagnostics.
-- Complete when: both guards fire with `.Safety` on, both stay absent with it off, and the
-  corpus cases are live.
-
 ### compiler.safety.011 — `!` and `Swag.Late` stop asserting in release
 
 - Area: language, runtime guards
-- Evidence: both are documented as guarded by `Swag.SafetyWhat.Expect`, which is off in `release`. A
-  `p!` on a null value and a read of an unset `Swag.Late` global each panic with a located message in
-  `devmode` and, in `release`, dereference null — a hardware fault at a low address for a small
-  offset, and an unmapped-in-practice-but-not-guaranteed address for a large one.
+- Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
+  assertions under two different flags, both off in `release` by default. Each panics with a
+  located message in `devmode` and, in `release`, dereferences null: a hardware fault at a low
+  address for a small offset, and an unmapped-in-practice-but-not-guaranteed address for a large
+  one. Naming either flag in `#[Swag.Safety]` restores its guard in `release`, so the gap is the
+  default rather than the mechanism.
 - Consequence: the fault is not silent, which is what matters, but the diagnostic disappears exactly
   where it is hardest to reproduce. `!` is the spelling the language recommends for "an invariant
   makes this present, and a null here is a bug worth stopping on"; in `release` it stops on nothing

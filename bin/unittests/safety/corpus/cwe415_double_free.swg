@@ -29,22 +29,26 @@ func freeTwice()
     #run freeTwice()
 }
 
-// GAP compiler.safety.016 - through a wrapper the summary has to chain, and the transitive
-// bit does not reach the backend across files. See the same note in cwe416.
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func releaseWrapper(pointer: *s32)
-// {
-//     heapFree(pointer, 4)
-// }
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func freeTwiceThroughWrapper()
-// {
-//     let pointer = cast(*s32) heapAlloc(4)
-//     releaseWrapper(pointer)     // expected: sanity_note_pointer_released_here
-//     releaseWrapper(pointer)     // expected: sanity_err_double_free
-// }
+// Through a wrapper, so the summary has to chain. As in cwe416, the body is reached the
+// ordinary way rather than through '#run'.
+#[Swag.Sanity(.Lifecycle, true)]
+func releaseWrapper(pointer: *s32)
+{
+    heapFree(pointer, 4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func freeTwiceThroughWrapper()
+{
+    let pointer = cast(*s32) heapAlloc(4)
+    releaseWrapper(pointer)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    releaseWrapper(pointer)     // swc-expected-error {{sanity_err_double_free}}
+}
+
+#test
+{
+    freeTwiceThroughWrapper()
+}
 
 // --- Known misses ---
 

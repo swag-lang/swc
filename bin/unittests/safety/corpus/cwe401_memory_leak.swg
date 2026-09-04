@@ -56,29 +56,25 @@ func leakByOverwrite()
 
 // GAP compiler.safety.017 - a type that owns an allocation is not required to have an
 // 'opDrop', so forgetting one leaks every instance and nothing says so.
-//
-// Also blocked by compiler.core.029: in 'release' this exact shape - a cross-file call
-// assigned into a struct field - trips a compiler assertion. Uncomment when that entry
-// closes; the three cases above cover the same class meanwhile.
-//
-// struct LeakyOwner
-// {
-//     pointer: *s32?
-// }
-//
-// #[Swag.Sanity(.Lifecycle, true)]
-// func leakThroughOwnerWithoutDrop()
-// {
-//     var owner: LeakyOwner
-//     owner.pointer = cast(*s32) heapAlloc(4)
-//     // 'LeakyOwner' has no 'opDrop': not reported
-// }
+struct LeakyOwner
+{
+    pointer: *s32?
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func leakThroughOwnerWithoutDrop()
+{
+    var owner: LeakyOwner
+    owner.pointer = cast(*s32) heapAlloc(4)
+    // 'LeakyOwner' has no 'opDrop': not reported
+}
 
 #test
 {
     leakOnEveryPath()
     leakOnOnePath(opaqueBool(false))
     leakByOverwrite()
+    leakThroughOwnerWithoutDrop()
 }
 
 // --- Sound ---

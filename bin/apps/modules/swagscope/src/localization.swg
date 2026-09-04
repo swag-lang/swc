@@ -41,6 +41,7 @@ struct AppStrings
     ui_Searching:                      string = "Searching…"                                  // Status line while a search scans the file.
     ui_DropTitle:                      string = "Drop a file to view it"                      // Invitation shown while no file is open.
     ui_DropHint:                       string = "or open one with Ctrl+O"                     // Secondary invitation shown while no file is open.
+    ui_DropAccepted:                   string = "Opening dropped file…"                       // Status in the receipt that confirms a file was accepted from a desktop drag.
     ui_Unsupported:                    string = "No viewer can show this file."               // No viewer claimed the file.
     ui_OpenStopped:                    string = "The file could not be shown."                // A viewer refused the file it claimed.
     ui_ViewerError:                    string = "This viewer could not decode the file."      // Heading above a viewer's exact decoder error.

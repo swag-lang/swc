@@ -49,23 +49,19 @@ func readPartiallyInitialized()->s32
 
 late var lateResource: *Resource
 
-// GAP compiler.safety.011 - a 'late' global read before its setup ran is guarded in 'devmode'
-// and NOT in 'release', even with '#[Swag.Safety(.Expect, true)]' written on the reading
-// function: the read faults instead. The same attribute DOES re-enable the postfix '!' guard
-// in 'release', so the two halves of '.Expect' do not read the same mask - the 'late' read
-// appears to consult the build-config default rather than the effective per-scope one.
-// Left commented because it really does fault in 'release'.
-//
-// #[Swag.Safety(.Expect, true)]
-// func readLateBeforeSetup()->s32
-// {
-//     return lateResource.weight     // expected: safety_err_runtime
-// }
-//
-// #test
-// {
-//     #run readLateBeforeSetup()
-// }
+// A 'late' global read before its setup ran: the exposed type is non-null, so the read is
+// guarded rather than rejected. The guard is '.Null', not '.Expect' - '!' and 'late' are two
+// different assertions and follow two different flags.
+#[Swag.Safety(.Null, true)]
+func readLateBeforeSetup()->s32
+{
+    return lateResource.weight     // swc-expected-error {{safety_err_runtime}}
+}
+
+#test
+{
+    #run readLateBeforeSetup()
+}
 
 // --- Sound ---
 

@@ -505,7 +505,13 @@ namespace
 
 Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed)
 {
-    const AstModifierFlags unsupported = mods.maskInvert(allowed);
+    AstModifierFlags unsupported = mods.maskInvert(allowed);
+
+    // 'FirstInit' has no source token: flow analysis sets it on an assignment it proved to be
+    // the first write after a dead default initialization. A node carrying it can be checked
+    // again - an inline expansion re-walks a body that was already analysed - and reporting it
+    // would ask for a spelling that does not exist.
+    unsupported.remove(AstModifierFlagsE::FirstInit);
     if (unsupported.none())
         return Result::Continue;
 

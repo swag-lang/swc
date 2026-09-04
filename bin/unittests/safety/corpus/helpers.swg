@@ -44,10 +44,7 @@ func opaqueBool(v: bool)->bool => v
 // called. These two are what seed the FREES summary the lifetime analysis reads.
 // -----------------------------------------------------------------------------
 
-// '#[Swag.NoInline]' is a WORKAROUND for compiler.core.029, not part of the contract: in
-// 'release', inlining this across a file boundary into a struct-field assignment trips a
-// compiler assertion. Remove it when that entry closes.
-#[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
+#[Swag.Sanity(.Lifecycle, true)]
 func heapAlloc(size: u64)->*void
 {
     var req: AllocatorRequest

@@ -30,6 +30,12 @@ all: a value that owns a resource is copied like an integer, the use-after-free 
 survives contact with real code, and the operations that forge a pointer out of nothing are spelled
 like ordinary code. The entries below are ordered by how much of that gap each one closes.
 
+Every entry below is backed by a compilable case in
+[bin/unittests/safety/corpus](../bin/unittests/safety/corpus): one file per CWE, a fault half
+that names the diagnostic it expects and a sound half that must stay silent, with each gap
+commented out and tagged with the entry that owns it. `grep -rn "GAP " bin/unittests/safety/corpus`
+is the current scorecard.
+
 [README.md](README.md) defines the shared backlog conventions.
 
 ## Ownership of the heap
@@ -97,6 +103,59 @@ like ordinary code. The entries below are ordered by how much of that gap each o
   generic release.
 - Related: compiler.safety.002 removes the commonest source of these; compiler.safety.004 covers
   what the proof will never see.
+
+### compiler.safety.016 — The transitive FREES summary does not reach the backend across files
+
+- Area: compiler/sema, compiler/backend
+- Found while: building the CWE corpus (`bin/unittests/safety/corpus`), whose first wrapper
+  case would not fire.
+- Evidence: a release reached through ONE wrapper is reported when the freeing function and
+  its wrapper are in the same file, and silent when they are in different files of the same
+  module. Reduced to a two-file probe: `heapFree` in one file; a direct call to it from the
+  other IS reported (`sanity_err_use_after_free`), while `wrapper(p) { heapFree(p, 4) }` is
+  not — and it stays silent whichever of the two files the wrapper itself lives in. Only the
+  transitive bit is lost; the base bit crosses files fine.
+- Consequence: the FREES summary is computed by a mask fixpoint at the end of `Sema::waitDone`,
+  and the backend check reads `SymbolFunction::freesParamsMask()` at code generation. Within
+  one file the two happen to order correctly. Across files they do not, so the transitive bit
+  is zero when the check asks for it. Every real program puts its allocator wrapper in its own
+  file, which makes this the shape that decides whether use-after-free and double-free
+  detection exist in practice at all.
+- Next: establish the ordering rather than the propagation — the masks are already right, they
+  are read too early. Either gate code generation of a function on the fixpoint having run, or
+  move the FREES half of the check out of the backend and into the deferred sema judgement
+  that already runs after the fixpoint.
+- Complete when: the two wrapper cases in `cwe416_use_after_free.swg` and
+  `cwe415_double_free.swg` are uncommented and reported, and a two-file case is pinned in
+  `bin/unittests/sanity/use_after_free.swg`.
+- Related: compiler.safety.003 is the same feature failing for three unrelated reasons; this
+  is the fourth and the one that hides the other three.
+
+### compiler.safety.017 — Memory leaks are not modelled at all
+
+- Area: compiler/sema, language
+- Evidence: nothing in the language or the tooling tracks whether an allocation is released.
+  Not the borrow rules, not the lifetime proofs, not a runtime guard. Four shapes were written
+  in `cwe401_memory_leak.swg` and all four are silent in every configuration: an allocation
+  never released; one released on a single path; a pointer overwritten before its block is
+  released; and a type that owns an allocation without an `opDrop` to release it.
+- Consequence: this is the third of SV-COMP's memory-safety sub-properties (`valid-memtrack`,
+  next to `valid-deref` and `valid-free`), and the only one Swag does not attempt. A leak is
+  not a memory-safety fault in the exploitable sense, which is why it sits below the other
+  entries, but a systems language that says nothing about it cannot claim the property.
+- Elsewhere: Rust ties release to ownership, so the default is no leak and `mem::forget` is
+  the deliberate exception; C++ has the same through RAII plus a linter for the rest; Go and
+  Java collect instead. Zig makes the allocator explicit and ships a debug allocator that
+  reports leaks at shutdown — which is the cheapest useful answer and the one that fits Swag's
+  own `IAllocator`.
+- Next: the runtime answer before the static one. A `devmode` allocator that counts live
+  blocks and reports what is still held at shutdown costs nothing in `release`, needs no
+  analysis, and finds real leaks the day it lands. Whether a static rule follows — a type that
+  allocates and has no `opDrop` — is a separate decision, and depends on how much
+  compiler.safety.002 changes about ownership first.
+- Complete when: a `devmode` run reports the blocks an application leaked, and the four cases
+  in `cwe401_memory_leak.swg` are either reported or documented as out of scope with a reason.
+- Related: compiler.safety.002 and compiler.safety.004.
 
 ### compiler.safety.004 — Nothing makes a missed use-after-free fail deterministically
 
@@ -271,6 +330,37 @@ like ordinary code. The entries below are ordered by how much of that gap each o
   specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
   combination.
 - Related: compiler.safety.009.
+
+### compiler.safety.015 — Two documented runtime guards never fire
+
+- Area: compiler/codegen, `CodeGenSafety`
+- Found while: building the CWE corpus, whose cases are written from what the reference says
+  each guard does.
+- Evidence: two guards the reference documents are dead, verified with the guard turned on
+  explicitly at the site.
+  - The loop-range check. "A `for` range whose bounds are not both constant is checked when
+    the loop starts. Swag panics when the lower bound is above the upper bound"
+    ([013_002_safety.swg](../bin/reference/modules/language/src/013_002_safety.swg)). With
+    `#[Swag.Safety(.BoundCheck, true)]`, `for 4 until 2` and `for 4 to 2` both run zero turns
+    and return quietly. `CodeGenSafety::emitLoopBoundCheck` exists and its comparison is
+    right, so the check is emitted-but-dead — the likely cause is that it reads the lowering
+    payload of the range EXPRESSION node, which does not carry the safety flags the `for`
+    statement's attribute scope does.
+  - Division by zero under `.Math`. "Swag panics for invalid math, such as division by zero",
+    with a worked example, in the same page. With the guard on, an integer division by a
+    run-time zero reaches the hardware and raises #DE — no located diagnostic, and under the
+    compile-time JIT it ends the compiler — while a float division quietly yields an infinity.
+    What `.Math` really guards today is the intrinsic domains (`sqrt`, `asin`, `log`, `pow`),
+    which do fire. The static proof covers a divisor it can fold, so the hole is exactly the
+    divisor that only exists at run time.
+- Consequence: a guard nobody notices is missing is worse than one that was never claimed,
+  because the reference is what a reader uses to decide whether a check is needed in their own
+  code. Both are cheap and neither costs anything in a guard-free build.
+- Next: fix the payload lookup for the loop range, and emit the divisor test for integer and
+  float division under `.Math`. Then uncomment the cases in `cwe193_off_by_one.swg` and
+  `cwe369_divide_by_zero.swg`, which already name the expected diagnostics.
+- Complete when: both guards fire with `.Safety` on, both stay absent with it off, and the
+  corpus cases are live.
 
 ### compiler.safety.011 — `!` and `Swag.Late` stop asserting in release
 

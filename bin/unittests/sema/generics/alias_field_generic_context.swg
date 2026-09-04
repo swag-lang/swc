@@ -34,7 +34,7 @@ func(T, V) localAliasPartialTail(value: T, tail: V)->V
         item: MiddleDefaultAlias2'T
     }
 
-    var data: Local = undefined
+    var data: Local
     data.item.first  = value
     data.item.second = "ok"
     data.item.third  = tail
@@ -54,7 +54,7 @@ func(U) localAliasPrefixBuffer()->PrefixDefaultAlias2'3
 
 func semaTest001()
 {
-    var partial: AliasPartialHolder'(u32, f64) = undefined
+    var partial: AliasPartialHolder'(u32, f64)
     let prefix:  AliasExplicitPrefixHolder'u8
 
     #assert(#typeof(partial.item.first) == u32)

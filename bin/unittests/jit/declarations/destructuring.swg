@@ -19,7 +19,7 @@ func jitMakeAnonymousAssignDestructRet(first, second: u32)->{ first, second: u32
 
 func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 {
-    var result: retval = undefined
+    var result: retval
     result.first  = first
     result.second = second
     return result

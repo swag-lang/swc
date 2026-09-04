@@ -3,7 +3,7 @@
 // Closure created in a loop captures by value correctly
 #test
 {
-    var closures: [5] func||()->s32 = undefined
+    var closures: [5] #null func||()->s32 = cast(#null func||()->s32) null
 
     for i in 5
     {
@@ -11,17 +11,17 @@
         closures[i] = func|idx|()->s32 { return idx }
     }
 
-    Swag.assert(closures[0]() == 0)
-    Swag.assert(closures[1]() == 1)
-    Swag.assert(closures[2]() == 2)
-    Swag.assert(closures[3]() == 3)
-    Swag.assert(closures[4]() == 4)
+    Swag.assert(closures[0]!() == 0)
+    Swag.assert(closures[1]!() == 1)
+    Swag.assert(closures[2]!() == 2)
+    Swag.assert(closures[3]!() == 3)
+    Swag.assert(closures[4]!() == 4)
 }
 
 // Closure captures computed value in loop
 #test
 {
-    var closures: [4] func||()->s32 = undefined
+    var closures: [4] #null func||()->s32 = cast(#null func||()->s32) null
 
     for i in 4
     {
@@ -29,17 +29,17 @@
         closures[i] = func|squared|()->s32 { return squared }
     }
 
-    Swag.assert(closures[0]() == 0)
-    Swag.assert(closures[1]() == 1)
-    Swag.assert(closures[2]() == 4)
-    Swag.assert(closures[3]() == 9)
+    Swag.assert(closures[0]!() == 0)
+    Swag.assert(closures[1]!() == 1)
+    Swag.assert(closures[2]!() == 4)
+    Swag.assert(closures[3]!() == 9)
 }
 
 // Multiple closures from same iteration capture different values
 #test
 {
-    var adders:   [3] func||()->s32 = undefined
-    var doublers: [3] func||()->s32 = undefined
+    var adders:   [3] #null func||()->s32 = cast(#null func||()->s32) null
+    var doublers: [3] #null func||()->s32 = cast(#null func||()->s32) null
 
     for i in 3
     {
@@ -48,18 +48,18 @@
         doublers[i] = func|val|()->s32 { return val * 2 }
     }
 
-    Swag.assert(adders[0]() == 10)
-    Swag.assert(adders[1]() == 11)
-    Swag.assert(adders[2]() == 12)
-    Swag.assert(doublers[0]() == 0)
-    Swag.assert(doublers[1]() == 2)
-    Swag.assert(doublers[2]() == 4)
+    Swag.assert(adders[0]!() == 10)
+    Swag.assert(adders[1]!() == 11)
+    Swag.assert(adders[2]!() == 12)
+    Swag.assert(doublers[0]!() == 0)
+    Swag.assert(doublers[1]!() == 2)
+    Swag.assert(doublers[2]!() == 4)
 }
 
 // Closure in while loop
 #test
 {
-    var closures: [3] func||()->s32 = undefined
+    var closures: [3] #null func||()->s32 = cast(#null func||()->s32) null
     var i = 0
     while i < 3
     {
@@ -68,9 +68,9 @@
         i           += 1
     }
 
-    Swag.assert(closures[0]() == 0)
-    Swag.assert(closures[1]() == 1)
-    Swag.assert(closures[2]() == 2)
+    Swag.assert(closures[0]!() == 0)
+    Swag.assert(closures[1]!() == 1)
+    Swag.assert(closures[2]!() == 2)
 }
 
 // Closure capturing accumulator pattern

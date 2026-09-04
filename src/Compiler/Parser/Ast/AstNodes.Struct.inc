@@ -1411,12 +1411,6 @@ struct AstVarDeclList : AstCompoundT<AstNodeId::VarDeclList>
 };
 
 // -----------------------------------------------------------------------------
-struct AstUndefinedExpr : AstNodeT<AstNodeId::UndefinedExpr>
-{
-    static Result semaPreNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
 struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
     AstNodeRef nodeExprRef;

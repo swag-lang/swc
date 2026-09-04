@@ -6,7 +6,7 @@ namespace WinFsp
 {
     struct NativeMountContext
     {
-        volume:          *Volume = undefined
+        volume:          *Volume
         defaultSecurity: #null *void
     }
 
@@ -14,7 +14,7 @@ namespace WinFsp
     {
         buffer:      #null *void
         length:      u32
-        transferred: *u32 = undefined
+        transferred: *u32
     }
 
     func mountContext(fileSystem: *FspFileSystem)->*NativeMountContext

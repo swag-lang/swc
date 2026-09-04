@@ -927,7 +927,7 @@ impl Capture
         if reader.manifest().profileVersion > CaptureProfileVersion do
             fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
 
-        var capture: *Capture = undefined
+        var capture: *Capture
         if preview
         {
             var decoder: Decoder'Read.TagBin

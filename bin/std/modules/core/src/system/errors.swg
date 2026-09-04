@@ -48,7 +48,7 @@ struct SerializationError
     public
     {
         using base: Swag.BaseError            // Embedded base state.
-        field:      TypeValue = undefined     // Can contain the bad field
+        field:      TypeValue     // Can contain the bad field
     }
 }
 

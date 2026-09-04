@@ -260,7 +260,7 @@ func paint(painter: *Painter)
         let frame = cast(s32) g_Bird.frame % 3
 
         // Both fields are assigned before use, so skip their default initialization.
-        var pt: Math.Point = undefined
+        var pt: Math.Point
         pt.x = -g_BirdTexture[frame].width * 0.5
         pt.y = -g_BirdTexture[frame].height * 0.5
 
@@ -307,7 +307,7 @@ func paint(painter: *Painter)
     // Show the start prompt before the first round.
     if g_FirstStart
     {
-        var pt: Math.Point = undefined
+        var pt: Math.Point
         pt.x = g_Rect.horzCenter() - g_MsgTexture.width / 2
         pt.y = g_Rect.vertCenter() - g_MsgTexture.height / 2
         painter.drawTexture(pt.x, pt.y, g_MsgTexture)
@@ -345,7 +345,7 @@ Return whether the bird's sprite bounds intersect a rectangle.
 */
 func birdInRect(rect: Math.Rectangle)->bool
 {
-    var rectBird: Math.Rectangle = undefined
+    var rectBird: Math.Rectangle
     rectBird.x      = g_Bird.pos.x - g_BirdTexture[0].width / 2
     rectBird.y      = g_Bird.pos.y - g_BirdTexture[0].height / 2
     rectBird.width  = g_BirdTexture[0].width

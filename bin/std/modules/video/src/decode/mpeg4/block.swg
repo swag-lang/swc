@@ -132,7 +132,7 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
 {
     prepareCosines()
 
-    var rows: [64] f32 = undefined
+    var rows: [64] f32
     for y in 8'u64
     {
         for x in 8'u64

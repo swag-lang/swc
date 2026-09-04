@@ -15,13 +15,13 @@ struct PartialUndefinedEvent
         Closed
     }
 
-    kind: Kind = undefined
+    kind: Kind
     from: #null *void
 }
 
 struct PartialUndefinedDefaults
 {
-    required: s32    = undefined
+    required: s32
     label:    string = "ready"
     value:    s32    = 17
     enabled:  bool
@@ -29,8 +29,8 @@ struct PartialUndefinedDefaults
 
 struct AllUndefinedDefaults
 {
-    x: s32 = undefined
-    y: s32 = undefined
+    x: s32
+    y: s32
 }
 
 enum PartialSliceNeed

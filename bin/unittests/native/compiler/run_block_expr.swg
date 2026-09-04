@@ -64,7 +64,7 @@ const PersistentTextHolder: TextHolder = #run
     data[1] = 'b'
     data[2] = data[1] + 1
 
-    var holder: TextHolder = undefined
+    var holder: TextHolder
     holder.text = cast(string) data
     return holder
 }
@@ -76,14 +76,12 @@ const PersistentStringArray: [1] string = #run
     data[1] = 'b'
     data[2] = data[1] + 1
 
-    var values: [1] string = undefined
-    values[0] = cast(string) data
-    return values
+    return [cast(string) data]
 }
 
 const PersistentAnyPair: AnyPair = #run
 {
-    var pair: AnyPair = undefined
+    var pair: AnyPair
     pair.item  = "abc"
     pair.other = "def"
     return pair
@@ -91,10 +89,7 @@ const PersistentAnyPair: AnyPair = #run
 
 const PersistentAnyArray: [2] any = #run
 {
-    var values: [2] any = undefined
-    values[0] = "first"
-    values[1] = "second"
-    return values
+    return [cast(any) "first", cast(any) "second"]
 }
 
 const PersistentStrictAny: RunStrictAny = #run
@@ -105,10 +100,7 @@ const PersistentStrictAny: RunStrictAny = #run
 
 const PersistentStrictAnyArray: [2] RunStrictAny = #run
 {
-    var values: [2] RunStrictAny = undefined
-    values[0] = cast(RunStrictAny) "left"
-    values[1] = cast(RunStrictAny) "right"
-    return values
+    return [cast(RunStrictAny) "left", cast(RunStrictAny) "right"]
 }
 
 const PersistentBytesHolder: BytesHolder = #run
@@ -119,7 +111,7 @@ const PersistentBytesHolder: BytesHolder = #run
     data[2] = 3
     data[3] = 4
 
-    var holder: BytesHolder = undefined
+    var holder: BytesHolder
     holder.bytes = cast(const [..] u8) data
     return holder
 }
@@ -188,7 +180,7 @@ func functionScopedShortCompilerOnlyRunCall()
 
     let value = #run
     {
-        var pair: AnyPair = undefined
+        var pair: AnyPair
         pair.item  = "abc"
         pair.other = "def"
         return pair
@@ -196,10 +188,7 @@ func functionScopedShortCompilerOnlyRunCall()
 
     let values = #run
     {
-        var items: [2] any = undefined
-        items[0] = "first"
-        items[1] = "second"
-        return items
+        return [cast(any) "first", cast(any) "second"]
     }
 
     Swag.assert(cast(string) value.item == "abc")

@@ -9,7 +9,7 @@ struct Timer
     internal
     {
         periodMilliseconds: u64                  // Timer period in milliseconds.
-        target:             *Wnd = undefined     // Window receiving timer events.
+        target:             *Wnd     // Window receiving timer events.
         stopwatch:          Time.Stopwatch       // Elapsed time since the previous event.
         isPendingRemoval:   bool                 // Whether removal is deferred until event dispatch ends.
     }

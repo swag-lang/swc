@@ -16,7 +16,7 @@ impl JitFieldVisits
 
         for idx in 3
         {
-            var visitItem: s32 = undefined
+            var visitItem: s32
             switch idx
             {
             case 0:  visitItem = me.x
@@ -131,7 +131,7 @@ impl JitFieldPointerVisits
         {
             for idx in 3
             {
-                var visitItem: s32 = undefined
+                var visitItem: s32
                 switch idx
                 {
                 case 0: visitItem = me.first

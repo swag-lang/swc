@@ -55,11 +55,9 @@ func dispatch(base: *Base)->s32
 
 #test
 {
-    var actions: [2] IAction = undefined
     var undo:    UndoAction
     var redo:    RedoAction
-    actions[0] = cast(IAction) undo
-    actions[1] = cast(IAction) redo
+    let actions: [2] IAction = [cast(IAction) undo, cast(IAction) redo]
 
     Swag.assert(actions[0].accept(1))
     Swag.assert(!actions[0].accept(2))

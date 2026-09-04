@@ -96,12 +96,12 @@ impl AstStringBox
     #assert(fields.x == 42)
     #assert(fields.y == 42)
 
-    var genericBool: GenericFields'bool = undefined
+    var genericBool: GenericFields'bool
     #assert(#typeof(genericBool.first) == bool)
     #assert(#typeof(genericBool.second) == bool)
     #assert(#typeof(genericBool.label) == string)
 
-    var genericFloat: GenericFields'f64 = undefined
+    var genericFloat: GenericFields'f64
     #assert(#typeof(genericFloat.first) == f64)
     #assert(#typeof(genericFloat.second) == f64)
 

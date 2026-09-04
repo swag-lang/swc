@@ -137,7 +137,7 @@ alias MkanyStrictTypeInfo = typeinfo
 
 #test
 {
-    var boxed: any = undefined
+    var boxed: any
     var value: s64 = 9000
     boxed = Swag.makeAny(&value, s64)
     let p = cast(*s64) boxed.buffer

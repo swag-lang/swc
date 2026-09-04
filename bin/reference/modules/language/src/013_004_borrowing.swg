@@ -107,7 +107,7 @@ independently; a dynamic index conservatively overlaps every element.
     }
 
     var local: s32
-    var views: Views = undefined
+    var views: Views
     views.local  = &local
     views.global = &borrowGlobalValue
     Swag.assert(views.global == &borrowGlobalValue)

@@ -7,18 +7,20 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class SymbolFunction;
 
-namespace SemaUndefined
+namespace SemaInitFlow
 {
-    // True when the function needs the flow analysis: it declares '= undefined'
-    // locals (or struct locals with undefined field defaults), or takes '#null'
+    // True when the function needs the flow analysis: it has a local whose safe
+    // default may be elided, a local that requires definite initialization, an
+    // 'opSet' candidate for complete-initialization inference, or '#null'
     // parameters whose contract must be honored by the body.
     bool wantsCheck(Sema& sema, const SymbolFunction& sym);
 
-    // Definite-assignment analysis for '= undefined' locals, run once on the fully
-    // resolved body of a completed function. Proves that every read, every drop point
-    // (reassignment, scope exit, break/return) and every error-unwind point sees an
-    // initialized value, and marks each first initializing assignment so codegen
-    // compiles it as an initialization (no destination drop).
+    // Flow analysis for initialization, run once on the fully resolved body of a
+    // completed function. It leaves safe initialization intact unless every read,
+    // drop point (reassignment, scope exit, break/return), error-unwind point and
+    // escape proves it dead, then marks each first assignment for codegen. For a
+    // type without a safe default, the same flow facts instead reject every
+    // observation that is not definitely initialized.
     //
     // Also validates the '#null' parameter contract: a parameter whose FIRST use on
     // every path to an exit is an address-requiring operation (dereference, member

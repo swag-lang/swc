@@ -126,9 +126,7 @@ func squareValue(value: s32)->s32 => value * value
     }
 
     var holder:    LambdaHolder        = {cb: cb}
-    var callbacks: [2] LambdaAggregate = undefined
-    callbacks[0] = holder.cb
-    callbacks[1] = cb
+    var callbacks: [2] LambdaAggregate = [holder.cb, cb]
 
     let direct          = cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     let held            = holder.cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
@@ -232,7 +230,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    var predicate: LambdaBinaryPredicate = undefined
+    var predicate: LambdaBinaryPredicate
 
     predicate = func(left, right) => left == right
     Swag.assert(predicate(10, 10))
@@ -264,7 +262,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    var bound: func(flag: bool = true)->bool = undefined
+    var bound: func(flag: bool = true)->bool
     bound = func(flag)
     {
         return flag

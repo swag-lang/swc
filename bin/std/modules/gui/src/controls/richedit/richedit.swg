@@ -29,9 +29,9 @@ struct RichEditMapping
 {
     public
     {
-        key:       Input.Key          = undefined
-        modifiers: Input.KeyModifiers = undefined
-        command:   RichEditCommand    = undefined
+        key:       Input.Key
+        modifiers: Input.KeyModifiers
+        command:   RichEditCommand
     }
 }
 

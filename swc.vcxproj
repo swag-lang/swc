@@ -276,7 +276,6 @@
         <ClCompile Include="src\Backend\Sanitizer\Checks\Check.IntOverflow.cpp"/>
         <ClCompile Include="src\Backend\Sanitizer\Checks\Check.StackEscape.cpp"/>
         <ClCompile Include="src\Backend\Sanitizer\Checks\Check.BoundCheck.cpp"/>
-        <ClCompile Include="src\Backend\Sanitizer\Checks\Check.UndefinedRead.cpp"/>
         <ClCompile Include="src\Backend\Sanitizer\Checks\Check.UseAfterFree.cpp"/>
         <ClCompile Include="src\Backend\Sanitizer\Checks\Check.UseAfterMove.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMoveElision.cpp"/>
@@ -327,7 +326,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaEscape.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaUndefined.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaInitFlow.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
         <ClCompile Include="src\Support\Core\DenseBits.cpp"/>
@@ -614,7 +613,6 @@
         <ClInclude Include="src\Backend\Sanitizer\Checks\Check.IntOverflow.h"/>
         <ClInclude Include="src\Backend\Sanitizer\Checks\Check.StackEscape.h"/>
         <ClInclude Include="src\Backend\Sanitizer\Checks\Check.BoundCheck.h"/>
-        <ClInclude Include="src\Backend\Sanitizer\Checks\Check.UndefinedRead.h"/>
         <ClInclude Include="src\Backend\Sanitizer\Checks\Check.UseAfterFree.h"/>
         <ClInclude Include="src\Backend\Sanitizer\Checks\Check.UseAfterMove.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMoveElision.h"/>
@@ -817,7 +815,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscapeTypes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscape.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaUndefined.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaInitFlow.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaPurity.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSafety.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\Match.h"/>

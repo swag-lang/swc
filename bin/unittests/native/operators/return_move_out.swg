@@ -221,8 +221,8 @@ func readTemplateInline()->Tracked
     Swag.assert(DropCount == 1)
 }
 
-// A 'defer' still observes the local after the return: the value is copied out and the
-// local keeps its normal scope-exit drop.
+// A 'defer' still observes the local after the return. The compiler preserves that
+// lifetime while constructing the returned value without redundant ownership drops.
 #test
 {
     resetHooks(19)
@@ -233,7 +233,7 @@ func readTemplateInline()->Tracked
     }
     Swag.assert(g_sink == 19)
     Swag.assert(PostCopyCount == 1)
-    Swag.assert(DropCount == 2)
+    Swag.assert(DropCount == 1)
 }
 
 // A register-returned struct transfers its bits without any hook; the local's drop is

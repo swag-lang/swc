@@ -5,7 +5,7 @@ using Core
 // One child being ordered, kept with its rank so an exact tie still has one answer.
 private struct FocusCandidate
 {
-    wnd:   *Wnd = undefined     // Child being ordered.
+    wnd:   *Wnd     // Child being ordered.
     index: u64                  // Position in the parent's child list, the last tie break.
 }
 

@@ -32,8 +32,6 @@ enum class SymbolStructFlagsE : uint16_t
     Union               = 1 << 3,
     DefaultClassified   = 1 << 4,
     DefaultAllZero      = 1 << 5,
-    DefaultAllUndefined = 1 << 6,
-    DefaultHasUndefined = 1 << 7,
     DefaultRequiresInit = 1 << 8,
     Anonymous           = 1 << 9, // declared without a name, so its members are reached through the enclosing type
 };
@@ -82,8 +80,6 @@ public:
     ConstantRef   computeDefaultValue(Sema& sema, TypeRef typeRef);
     void          computeImplicitDefaultFlags(Sema& sema) const;
     bool          hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
-    bool          hasImplicitAllUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllUndefined); }
-    bool          hasImplicitUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultHasUndefined); }
     bool          requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
     static Result waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     static bool   typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);

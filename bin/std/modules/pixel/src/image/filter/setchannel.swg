@@ -160,7 +160,7 @@ public impl Image
                 let pix  = pixels + cast(u64) x * image.bytesPerPixel
                 let mode = params.rmode
 
-                var channelValue: u8 = undefined
+                var channelValue: u8
                 switch #complete params.value
                 {
                 case .Color:   channelValue = params.color

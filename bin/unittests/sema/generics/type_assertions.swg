@@ -39,7 +39,7 @@ struct(T = s32) DefaultBox { value: T }
 func semaTest001()
 {
     let b:  Box's32
-    var bs: Box'string = undefined
+    var bs: Box'string
     let bb: Box'bool
     let bf: Box'f64
     let bu: Box'u8
@@ -67,7 +67,7 @@ func semaTest002()
 func semaTest003()
 {
     let p1: Pair'(s32, f64)
-    var p2: Pair'(string, bool) = undefined
+    var p2: Pair'(string, bool)
     let p3: Pair'(u8, u16)
 
     #assert(#typeof(p1.first) == s32)
@@ -82,7 +82,7 @@ func semaTest003()
 func semaTest004()
 {
     let w:  Wrapper's32
-    var ws: Wrapper'string = undefined
+    var ws: Wrapper'string
     let wf: Wrapper'f64
 
     #assert(#typeof(w.inner.value) == s32)
@@ -126,7 +126,7 @@ func semaTest007()
 // Pair of Box
 func semaTest008()
 {
-    var pb: Pair'(Box's32, Box'string) = undefined
+    var pb: Pair'(Box's32, Box'string)
 
     #assert(#typeof(pb.first.value) == s32)
     #assert(#typeof(pb.second.value) == string)

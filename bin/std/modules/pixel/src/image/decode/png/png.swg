@@ -82,7 +82,7 @@ private
         colorType:         DecodeColorType
         compressionMethod: u8
         filterMethod:      u8
-        interlaceMethod:   InterlaceMethod = undefined
+        interlaceMethod:   InterlaceMethod
     }
 
     struct DecodeChunk
@@ -239,7 +239,7 @@ impl Decoder
     {
         .stream.reset(buffer)
 
-        var signature: u64 = undefined
+        var signature: u64
         .stream.peekBytes(#sizeof(signature), cast([*] u8) &signature)
         if signature != 0x0A1A0A0D474E5089 do
             fail InvalidFormatError{"not a png"}

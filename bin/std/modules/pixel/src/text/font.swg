@@ -102,7 +102,7 @@ public struct GlyphCache
 {
     internal
     {
-        typeFace:    *TypeFace = undefined     // Typeface borrowed for rasterization and metrics.
+        typeFace:    *TypeFace     // Typeface borrowed for rasterization and metrics.
         renderMode:  FontRenderMode            // Concrete atlas representation; never `Auto`.
         refSize:     u32                       // Reference em size in pixels.
         spread:      u32                       // Distance-field range in pixels, or zero for bitmap atlases.
@@ -161,8 +161,8 @@ public struct Font
 
     internal
     {
-        owner: *FontCache  = undefined     // Cache that created this view and owns it.
-        cache: *GlyphCache = undefined     // Shared glyph storage borrowed by this font view.
+        owner: *FontCache     // Cache that created this view and owns it.
+        cache: *GlyphCache     // Shared glyph storage borrowed by this font view.
     }
 }
 

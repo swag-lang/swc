@@ -38,10 +38,10 @@ internal enum MountedColumn
 // stand for a drive everywhere else.
 struct MountedDrives
 {
-    card:           VaultCard   = undefined
-    list:           *ListCtrl   = undefined
-    empty:          *Label      = undefined
-    unmountButton:  *PushButton = undefined
+    card:           VaultCard
+    list:           *ListCtrl
+    empty:          *Label
+    unmountButton:  *PushButton
     drives:         Array'MountedDrive
     startupEnabled: bool        = true
 

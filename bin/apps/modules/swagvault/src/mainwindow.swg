@@ -257,9 +257,9 @@ struct MainWindow
 
     // The form cards, kept whole so a language switch can re-label their headings, and the band
     // that says which drives the window currently exposes.
-    createCard:  VaultCard = undefined
-    mountCard:   VaultCard = undefined
-    optionsCard: VaultCard = undefined
+    createCard:  VaultCard
+    mountCard:   VaultCard
+    optionsCard: VaultCard
 
     // Not `undefined`: the band owns the drive list, and an owning array has to be constructed
     // before the window can put anything in it.
@@ -1046,7 +1046,7 @@ impl MainWindow
     {
         let colors = .themeColors()
 
-        var glyphColor, textColor: Color = undefined
+        var glyphColor, textColor: Color
         switch #complete .statusTone()
         {
         case .Idle:

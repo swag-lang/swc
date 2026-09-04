@@ -21,14 +21,14 @@ func(T) localAliasUnionValue()->ValueOrPtrAlias2
         item: ValueOrPtrAlias2
     }
 
-    var data: Local = undefined
+    var data: Local
     data.item.value = 0
     return data.item
 }
 
 func semaTest001()
 {
-    var wrapped: WrapperAliasUnion's32 = undefined
+    var wrapped: WrapperAliasUnion's32
 
     #assert(#typeof(wrapped.item.value) == s32)
     #assert(#typeof(localAliasUnionValue'u16().value) == u16)

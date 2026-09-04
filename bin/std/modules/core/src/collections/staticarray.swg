@@ -614,7 +614,7 @@ impl StaticArray
     mtd popBack()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        var result: retval = undefined
+        var result: retval
         let backIndex      = .count - 1
         result = #relocate .buffer[backIndex]
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)

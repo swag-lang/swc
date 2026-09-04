@@ -22,7 +22,7 @@ var g_FileState: FileDlgState
 
 func onAbout(_b: *Button)
 {
-    var params: AboutDlgParams = undefined
+    var params: AboutDlgParams
     params.surfaceTitle = "About GUI9"
     params.contentTitle = "Swag GUI dialogs"
     params.message      = "One shared composition for every predefined dialog: an inset body, a quiet action bar, and palette-owned color."

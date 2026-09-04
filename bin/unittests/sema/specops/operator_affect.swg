@@ -60,7 +60,6 @@ impl ParamSetTarget
         .tag   = 20
     }
 
-    #[Swag.FullInit]
     mtd opSet(value: u64)
     {
         .value    = cast(s32) value

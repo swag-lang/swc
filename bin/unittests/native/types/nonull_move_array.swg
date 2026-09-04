@@ -10,12 +10,12 @@ impl NativeNonNullMoveArrayDefault
     mtd opDrop() {}
 }
 
-struct NativeNonNullMoveUndefinedEscape
+struct NativeNonNullMoveReset
 {
-    value: string = undefined
+    value: string = "reset"
 }
 
-impl NativeNonNullMoveUndefinedEscape
+impl NativeNonNullMoveReset
 {
     mtd opDrop() {}
 }
@@ -55,7 +55,8 @@ func consumeNativeNonNullMoveArray(value: NativeNonNullMoveArrayNestedAlias)->bo
 
 #test
 {
-    var source = NativeNonNullMoveUndefinedEscape{value: "explicit"}
+    var source = NativeNonNullMoveReset{value: "explicit"}
     let target = #move source
     Swag.assert(target.value == "explicit")
+    Swag.assert(source.value == "reset")
 }

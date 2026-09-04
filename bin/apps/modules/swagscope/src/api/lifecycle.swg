@@ -67,7 +67,7 @@ struct(T) BackgroundLoad
     fileName:        String
     value:           T
     error:           #null any
-    load:            func(string)->T fail = undefined
+    load:            func(string)->T fail
 }
 
 impl BackgroundLoad

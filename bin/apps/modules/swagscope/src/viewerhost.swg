@@ -61,12 +61,12 @@ impl ViewerSession
 // Implements the plugin API for one Swag Scope viewer instance.
 struct ViewerPluginHost
 {
-    session:         *ViewerSession = undefined
-    documentParent:  *Wnd           = undefined
-    sidePanelParent: *Wnd           = undefined
-    actionParent:    *Wnd           = undefined
-    infoParent:      *Wnd           = undefined
-    commandParent:   *Wnd           = undefined
+    session:         *ViewerSession
+    documentParent:  *Wnd
+    sidePanelParent: *Wnd
+    actionParent:    *Wnd
+    infoParent:      *Wnd
+    commandParent:   *Wnd
     sourceFileName:  string
     pluginIcon:      Icon
     hostServices:    Viewer.HostServices

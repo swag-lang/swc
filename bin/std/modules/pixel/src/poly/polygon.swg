@@ -309,7 +309,7 @@ impl Polygon
             // to `IntersectTolerance` of a segment's own length past its end, and a degenerate
             // edge counts as met from that distance away — so a pair the full test would accept
             // is never rejected here.
-            var boxes: [SmallRingLimit] SegmentBox = undefined
+            var boxes: [SmallRingLimit] SegmentBox
             for i in count
             {
                 let nextI = (i + 1) % count

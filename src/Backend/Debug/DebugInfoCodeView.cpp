@@ -1033,7 +1033,7 @@ namespace
 
         static uint32_t primitiveTypeIndex(const TypeInfo& typeInfo)
         {
-            if (typeInfo.isVoid() || typeInfo.isNull() || typeInfo.isUndefined())
+            if (typeInfo.isVoid() || typeInfo.isNull())
                 return K_T_VOID;
             if (typeInfo.isBool())
                 return K_T_BOOL08;

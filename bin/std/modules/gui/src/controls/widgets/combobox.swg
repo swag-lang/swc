@@ -108,9 +108,9 @@ impl IWnd for ComboBox
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
-        var colorBk:       Color = undefined
-        var colorBorder:   Color = undefined
-        var colorText:     Color = undefined
+        var colorBk:       Color
+        var colorBorder:   Color
+        var colorText:     Color
 
         subRectBk     = &rects.edit_SquareBk
         subRectBorder = &rects.edit_SquareBorder

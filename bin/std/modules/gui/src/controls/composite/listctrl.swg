@@ -836,7 +836,7 @@ private impl ListView
             painter.fillRect(rect, colors.listItem_AlternateBk)
         }
 
-        var colorText, colorExpand: Color = undefined
+        var colorText, colorExpand: Color
         switch
         {
         case bc.isDisabled:
@@ -860,7 +860,7 @@ private impl ListView
         for itemIt, idxItem in line.items
         {
             let item           = itemIt!
-            var colorFg: Color = undefined
+            var colorFg: Color
             if item.colorFg.a and !isSelected do
                 colorFg = item.colorFg
             else do
@@ -1362,7 +1362,7 @@ impl ListCtrl
     {
         let clientRect = .scrollWnd.paddedClientRect()
 
-        var scrollWidth: f32 = undefined
+        var scrollWidth: f32
         if .horizontalExtent > 0 do
             scrollWidth = .horizontalExtent
         elif Swag.isSet(.header) do

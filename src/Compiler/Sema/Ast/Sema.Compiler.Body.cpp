@@ -14,7 +14,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
-#include "Compiler/Sema/Helpers/SemaUndefined.h"
+#include "Compiler/Sema/Helpers/SemaInitFlow.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
@@ -685,8 +685,8 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     if (sym.isIgnored())
         return Result::Continue;
 
-    if (SemaUndefined::wantsCheck(sema, sym))
-        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
+    if (SemaInitFlow::wantsCheck(sema, sym))
+        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 

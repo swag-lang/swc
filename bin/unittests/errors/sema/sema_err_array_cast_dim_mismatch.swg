@@ -29,7 +29,7 @@ func consumeArrayCastDimMismatchGrid(grid: [2, 3] s16) {}
 
 #test
 {
-    var wrong: [15] u8 = undefined
+    var wrong: [15] u8
     consumeArrayCastDimMismatchDigest(wrong)     // swc-expected-error {{sema_err_array_cast_dim_mismatch}}
 }
 

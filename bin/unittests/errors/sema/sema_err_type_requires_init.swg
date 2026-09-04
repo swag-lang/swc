@@ -12,7 +12,8 @@ struct(T) NonNullRequiresInitGenericBox
 
 #test
 {
-    var values: [2] NonNullRequiresInitForwardHolder     // swc-expected-error {{sema_err_type_requires_init}}
+    var values: [2] NonNullRequiresInitForwardHolder
+    discard values     // swc-expected-error {{sema_err_definite_init_use}}
 }
 
 struct NonNullRequiresInitForwardHolder
@@ -48,8 +49,8 @@ var NonNullRequiresInitFallibleItem = NonNullRequiresInitItem{}
 
 func nonNullRequiresInitRetval()->*NonNullRequiresInitItem
 {
-    var result: retval     // swc-expected-error {{sema_err_type_requires_init}}
-    return result
+    var result: retval
+    return result     // swc-expected-error {{sema_err_definite_init_use}}
 }
 
 func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
@@ -79,67 +80,14 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 
 #test
 {
-    var value: *NonNullRequiresInitItem     // swc-expected-error {{sema_err_type_requires_init}}
+    var values: [2] *NonNullRequiresInitItem
+    discard values     // swc-expected-error {{sema_err_definite_init_use}}
 }
 
 #test
 {
-    var value: [*] NonNullRequiresInitItem     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: [..] NonNullRequiresInitItem     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: string     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: cstring     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: any     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: typeinfo     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var values: [2] *NonNullRequiresInitItem     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: NonNullRequiresInitHolder     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: NonNullRequiresInitNested     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: NonNullRequiresInitHolderAlias     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var value: NonNullRequiresInitGenericBox'(*NonNullRequiresInitItem)     // swc-expected-error {{sema_err_type_requires_init}}
-}
-
-#test
-{
-    var values: [2] NonNullRequiresInitHolder     // swc-expected-error {{sema_err_type_requires_init}}
+    var values: [2] NonNullRequiresInitHolder
+    discard values     // swc-expected-error {{sema_err_definite_init_use}}
 }
 
 #test

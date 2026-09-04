@@ -44,7 +44,7 @@ impl ChannelState
 // region starts — nonzero only for a mixed block, whose first bands stay long.
 func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, firstLine: u32)
 {
-    var scratch: Granule576 = undefined
+    var scratch: Granule576
     var source              = firstLine
     var band                = cast(u64) firstBand
     var written             = 0'u64
@@ -102,11 +102,11 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
 func inverseTransform(lines: *Granule576, overlap: *[32, 18] f32, subband: u32, blockType: u32)
 {
     let base            = cast(u64) subband * 18
-    var input: [18] f32 = undefined
+    var input: [18] f32
     for index in 18'u64 do
         input[index] = lines[][base + index]
 
-    var raw: [36] f32 = undefined
+    var raw: [36] f32
     if blockType == 2
     {
         for index in 36'u64 do
@@ -168,7 +168,7 @@ func invertFrequencies(lines: *Granule576)
 // shifted, which is the same thing and does not move 960 floats per block.
 func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destination: [*] f32, stride: u64)
 {
-    var gathered: [512] f32 = undefined
+    var gathered: [512] f32
 
     for block in 18'u64
     {

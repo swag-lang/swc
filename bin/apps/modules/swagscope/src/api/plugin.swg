@@ -48,7 +48,7 @@ struct Plugin
         attach:       #null PluginAttach            // Optional one-time preparation for the host application.
         iconAtlas:    #null *IconAtlas              // Vector document the viewer glyph is rasterized from.
         iconIndex:    s32                           // Zero-based cell of that document, in grid order.
-        create:       PluginCreate = undefined      // Synchronous presentation factory.
+        create:       PluginCreate      // Synchronous presentation factory.
         probe:        #null PluginProbe             // Optional content-aware discovery callback.
         matchNames:   bool         = true           // Whether non-wildcard selectors offer this plugin directly.
         smokeFixture: String                        // Immutable basename used by application smoke review.

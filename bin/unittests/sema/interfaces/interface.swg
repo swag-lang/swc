@@ -22,9 +22,15 @@ enum ARC { A, B }
 interface I0 { mtd toto(); }
 struct S0 {}
 
+impl I0 for S0
+{
+    mtd impl toto() {}
+}
+
 func semaTest001()
 {
-    var a: I0 = undefined
+    var source: S0
+    var a = cast(I0) source
     a.toto()
 }
 

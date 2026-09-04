@@ -58,9 +58,9 @@ impl IWnd for PushButton
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
-        var colorBk:       Color = undefined
-        var colorBorder:   Color = undefined
-        var colorText:     Color = undefined
+        var colorBk:       Color
+        var colorBorder:   Color
+        var colorText:     Color
 
         // The emphasis is decided here rather than stored, because it follows the keyboard.
         let form = .paintedForm()
@@ -140,7 +140,7 @@ impl IWnd for PushButton
             // A filled action keeps its own color through every state. Handed the neutral hover
             // of a plain button, it dropped the tone that made it the action of the surface
             // exactly as the reader reached it.
-            var rest, hot, pressed: {bk, border, text: Color} = undefined
+            var rest, hot, pressed: {bk, border, text: Color}
             switch form
             {
             case .Strong: rest = {colors.btnPush_StrongBk, colors.btnPush_StrongBorder, colors.btnPush_StrongText}

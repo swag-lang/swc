@@ -24,7 +24,6 @@ enum class ConstantKind
     BlockPointer,
     Slice,
     Null,
-    Undefined,
     TypeValue,
     EnumValue,
     Struct,
@@ -85,7 +84,6 @@ public:
     bool           isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
     bool           isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
     bool           isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
-    bool           isUndefined() const { return kind_ == ConstantKind::Undefined; }
 
     bool isPayloadBorrowed() const
     {
@@ -206,7 +204,6 @@ public:
 
     static ConstantValue makeBool(const TaskContext& ctx, bool value);
     static ConstantValue makeNull(const TaskContext& ctx);
-    static ConstantValue makeUndefined(const TaskContext& ctx);
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
     static ConstantValue makeRune(const TaskContext& ctx, char32_t value);

@@ -135,7 +135,6 @@ SWC_TOKEN_DEF(KwdDiscard, "discard", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdTrue, "true", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdFalse, "false", TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdNull, "null", TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdUndefined, "undefined", TokenIdKindE::Keyword)
 
 // ACCESS MODIFIERS
 

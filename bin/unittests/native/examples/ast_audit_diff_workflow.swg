@@ -77,7 +77,7 @@ struct(T) AuditDiff
 
 func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
 {
-    var result: AuditDiff'T = undefined
+    var result: AuditDiff'T
     #ast
     {
         var buffer: [8192] u8

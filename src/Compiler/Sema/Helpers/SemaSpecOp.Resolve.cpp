@@ -1167,7 +1167,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     // up. They must never be rerouted through a by-value `opSet`, which reads the (uninitialized or
     // moved-from) target - its `.buffer` aliasing check and `.allocator`/buffer reuse - corrupting
     // move-only handles such as String/Array (e.g. crashing Array.popBack's
-    // `var result: retval = undefined; result = #relocate arr.buffer[...]`, or corrupting Array.insertAt
+    // raw relocation into its result slot, or corrupting Array.insertAt
     // when it overwrites a slot whose buffer was just raw-moved to a neighbour). A plain `#move`
     // replaces an existing value, so it keeps its user `opSet` (move-only handles transfer ownership
     // via the dedicated raw modifier).

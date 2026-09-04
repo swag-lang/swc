@@ -74,7 +74,7 @@ struct PackedImageLike
     bpp:           u8
     bytesPerPixel: u8
     meta:          MiniArrayLike
-    work:          *PackedImageLike
+    work:          #null *PackedImageLike
     storage:       [16] u8
 }
 
@@ -103,14 +103,18 @@ func PackedImageWrite(result: *PackedImageLike, header: PackedHeader18, pixelInd
 
 func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
 {
-    var result: retval = undefined
+    var result: retval
+    result.storage       = [0'u8, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    result.size          = 12
     result.width         = 2
     result.height        = 2
+    result.pf            = 0
+    result.bpp           = 0
     result.bytesPerPixel = 3
     result.rowStride     = 6
-    result.pixels.buffer = result.storage
-    result.pixels.count  = 12
-    result.storage[3]    = 42
+    result.pixels        = {buffer: cast([*] u8) result.storage, count: 12, capacity: 16}
+    result.meta          = {buffer: cast([*] u8) result.storage, count: 0, capacity: 16}
+    result.work          = null
     PackedImageWrite(&result, header, 1, cast([*] u8) result.storage + 3)
     return result
 }

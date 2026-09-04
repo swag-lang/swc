@@ -31,8 +31,8 @@ struct Context
     normal:          Math.Vector2
     prim1, prim2:    u64
     prev:            Math.Vector2
-    path:            const *LinePath = undefined
-    pen:             const *Pen      = undefined
+    path:            const *LinePath
+    pen:             const *Pen
     offsetPath:      f32
 
     // Squared distance below which a contour point is not worth a segment of its own,
@@ -50,7 +50,7 @@ struct Context
     patternIndex:        s32
     error:               f32
     divError:            f32
-    pattern:             const [*] f32 = undefined
+    pattern:             const [*] f32
     patternCount:        s32
 }
 
@@ -97,7 +97,7 @@ private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
 
     // Outward side of each edge, taken as the one facing away from the centre. A convex outline
     // lies on one side of every one of its edges, so this needs no winding order.
-    var normals: [MaxCapRingPoints] Math.Vector2 = undefined
+    var normals: [MaxCapRingPoints] Math.Vector2
     for i in count
     {
         let a = points[i]
@@ -108,7 +108,7 @@ private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
         normals[i] = n
     }
 
-    var moved: [MaxCapRingPoints] Math.Vector2 = undefined
+    var moved: [MaxCapRingPoints] Math.Vector2
     for i in count
     {
         let n0 = normals[(i + count - 1) % count]
@@ -326,7 +326,7 @@ impl Painter
     {
         var v0 = p
 
-        var v1, v2: Math.Vector2 = undefined
+        var v1, v2: Math.Vector2
         if d1.x * d2.y - d1.y * d2.x < 0
         {
             v0 += d1 * 0.25
@@ -349,7 +349,7 @@ impl Painter
 
     mtd drawRound(center: Math.Vector2, radius: f32, angle0, angle1: f32, pen: Pen)
     {
-        var startPos, endPos: Math.Vector2 = undefined
+        var startPos, endPos: Math.Vector2
         startPos.x = center.x + (Math.cos(angle0) * radius)
         startPos.y = center.y + (Math.sin(angle0) * radius)
         endPos.x   = center.x + (Math.cos(angle1) * radius)
@@ -365,7 +365,7 @@ impl Painter
         .sharedRoundTmp.add({angle0, startPos})
         .sharedRoundTmp.add({angle1, endPos})
 
-        var point: Math.Vector2 = undefined
+        var point: Math.Vector2
         for var i = 0; i < .sharedRoundTmp.count - 1; i += 1
         {
             let angle = (.sharedRoundTmp[i].factor + .sharedRoundTmp[i + 1].factor) * 0.5
@@ -401,7 +401,7 @@ impl Painter
 
     mtd drawJoinRound(p, d1, d2: Math.Vector2, pen: Pen)
     {
-        var angle0, angle1: f32 = undefined
+        var angle0, angle1: f32
         if d1.x * d2.y - d1.y * d2.x < 0
         {
             angle0 = Math.atan2(-d1.y, -d1.x)
@@ -448,7 +448,7 @@ impl Painter
 
         var v0 = p
 
-        var v1, v2, v3: Math.Vector2 = undefined
+        var v1, v2, v3: Math.Vector2
         if d1.x * d2.y - d1.y * d2.x < 0
         {
             v0 += d1 * 0.25

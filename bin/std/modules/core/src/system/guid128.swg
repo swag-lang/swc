@@ -17,7 +17,7 @@ private func initRng()
 {
     if !g_RngInit
     {
-        var seed: [3] u64 = undefined
+        var seed: [3] u64
         seed[0] = Time.monotonicMilliseconds()
         seed[1] = Time.monotonicMicroseconds()
         seed[2] = Hardware.macAddress()
@@ -59,7 +59,7 @@ impl Guid128
     func random()->Guid128
     {
         initRng()
-        var result: retval = undefined
+        var result: retval
         result.words[0] = g_Rng.nextU64()
         result.words[1] = g_Rng.nextU64()
         result.bytes[6] = (result.bytes[6] & 0x0F) | 0x40     // Version 4

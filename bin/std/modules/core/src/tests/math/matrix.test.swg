@@ -10,7 +10,7 @@ using Swag
     Swag.assert(identity.m[1, 1] == 1)
     Swag.assert(identity.m[2, 2] == 1)
 
-    var matrix: Math.Matrix3x3 = undefined
+    var matrix: Math.Matrix3x3
     for y in 3
     {
         for x in 3 do
@@ -38,7 +38,7 @@ using Swag
     Swag.assert(identity.m[2, 2] == 1)
     Swag.assert(identity.m[3, 3] == 1)
 
-    var matrix: Math.Matrix4x4 = undefined
+    var matrix: Math.Matrix4x4
     for y in 4
     {
         for x in 4 do

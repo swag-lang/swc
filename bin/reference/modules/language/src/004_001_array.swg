@@ -87,8 +87,9 @@ Swag can deduce array size and element type from the initialization expression.
 /**
 # Default Initialization
 
-Static arrays are automatically initialized with zero values (0 for numbers,
-'null' for strings, 'false' for booleans, etc.) unless specified otherwise.
+Static arrays are automatically initialized with their element type's safe default
+(0 for numbers and 'false' for booleans). An element type without a safe default,
+such as a non-null pointer or string, needs a complete explicit initializer.
 */
 #test
 {
@@ -98,14 +99,17 @@ Static arrays are automatically initialized with zero values (0 for numbers,
 }
 
 /**
-# Preventing Default Initialization
+# Initialization and Performance
 
-You can skip default initialization by using 'undefined', which improves
-performance when the array will be manually initialized later.
+Arrays always have their type's safe default value. Keep the ordinary declaration
+and fill elements normally; future compiler analyses may remove a redundant clear
+only when they can prove complete element coverage.
 */
 #test
 {
-    var array: [100] s32 = undefined
+    var array: [100] s32
+    for i in array.count do
+        array[i] = i
 }
 
 /**

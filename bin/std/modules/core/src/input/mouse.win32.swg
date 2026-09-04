@@ -8,7 +8,7 @@ using Win32, Math
 // Returns the cursor position in physical desktop pixels.
 func mousePosition()->Point
 {
-    var pt: POINT = undefined
+    var pt: POINT
     GetCursorPos(&pt)
     return Point{cast(f32) pt.x, cast(f32) pt.y}
 }

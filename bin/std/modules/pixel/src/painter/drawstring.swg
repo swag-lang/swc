@@ -148,7 +148,7 @@ struct ShapedGlyph
 {
     public
     {
-        desc:       const *GlyphDesc = undefined     // Borrowed glyph metrics and atlas descriptor.
+        desc:       const *GlyphDesc     // Borrowed glyph metrics and atlas descriptor.
         glyphIndex: u32                              // Typeface-specific glyph index.
         cluster:    u64                              // Byte offset of the originating UTF-8 cluster.
         advanceX:   f32                              // Horizontal advance in reference-font units.
@@ -164,7 +164,7 @@ struct ShapedRun
 {
     public
     {
-        font:          *Font = undefined              // Borrowed font used for shaping.
+        font:          *Font              // Borrowed font used for shaping.
         glyphs:        Array'ShapedGlyph              // Glyphs in logical text order.
         metrics:       StringMetrics                  // Logical run measurements.
         inkBounds:     Math.Rectangle                 // Bounds of visible glyph pixels.
@@ -180,7 +180,7 @@ struct TextDrawInfo
 {
     public
     {
-        drawFont:    *Font = undefined     // Borrowed bitmap or MSDF font selected for drawing.
+        drawFont:    *Font     // Borrowed bitmap or MSDF font selected for drawing.
         snapPixels:  bool                  // Whether glyph positions snap to the device-pixel grid.
         scale:       f32                   // Scale from reference glyph metrics to logical draw units.
         deviceScale: f32   = 1             // Physical device pixels per logical draw unit.

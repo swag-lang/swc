@@ -430,7 +430,7 @@ impl Deflate
             let pHist  = cast([*] u32) &hist[pass << 8]
             var curOfs = 0
 
-            var offsets: [256] u32 = undefined
+            var offsets: [256] u32
             for i in 256
             {
                 offsets[i] = curOfs
@@ -734,8 +734,8 @@ impl Deflate
     {
         let d = .state!
 
-        var codeSizesToPack: [MaxHuffSymbols0 + MaxHuffSymbols1] u8 = undefined
-        var packedCodeSizes: [MaxHuffSymbols0 + MaxHuffSymbols1] u8 = undefined
+        var codeSizesToPack: [MaxHuffSymbols0 + MaxHuffSymbols1] u8
+        var packedCodeSizes: [MaxHuffSymbols0 + MaxHuffSymbols1] u8
         var prevCodeSize = 0xFF'u8
 
         d.huffCount[0, 256] = 1

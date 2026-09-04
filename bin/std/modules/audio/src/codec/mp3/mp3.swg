@@ -315,8 +315,8 @@ impl Codec
     // than once per line.
     mtd readScalefactors(header: const *FrameHeader, info: const *GranuleInfo, reader: *BitReader, channel: u32)
     {
-        var sizes:  [4] u32 = undefined
-        var counts: [4] u32 = undefined
+        var sizes:  [4] u32
+        var counts: [4] u32
         let shift           = info.scalefacScale + 1
 
         // Long blocks, mixed blocks, and short blocks each partition their scalefactors
@@ -362,7 +362,7 @@ impl Codec
         for index in 4'u64 do
             counts[index] = cast(u32) LsfPartitions[partitionRow, partitionAt + index]
 
-        var values: [40] u8 = undefined
+        var values: [40] u8
         var at              = 0'u64
         var share           = info.scfsi
         for partition in 4'u64
@@ -415,7 +415,7 @@ impl Codec
             .scalefac[cast(u64) channel, index] = values[index]
 
         // Subblock gain lowers a whole short window; preemphasis raises the top long bands.
-        var scaled: [40] s32 = undefined
+        var scaled: [40] s32
         for index in 40'u64 do
             scaled[index] = cast(s32) values[index]
         if info.shortBands
@@ -782,7 +782,7 @@ impl Codec
                 firstBand += 1
             }
 
-            var widths: [40] u8 = undefined
+            var widths: [40] u8
             for band in 40'u64 do
                 widths[band] = cast(u8) info.bandWidth(header.rateIndex, band)
             reorderShortBlocks(lines, widths, cast(u32) firstBand, firstLine)
@@ -838,7 +838,7 @@ impl Codec
         if at + header.sideInfoBytes > header.frameBytes do
             fail InvalidFormatError{"MP3 frame is too short for its side information"}
 
-        var granules: [2, 2] GranuleInfo = undefined
+        var granules: [2, 2] GranuleInfo
         let mainDataBegin                = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
         at += header.sideInfoBytes
 

@@ -119,7 +119,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
         return result
     }
 
-    var s, t: f32 = undefined
+    var s, t: f32
     if det > 0
     {
         let bte = b * e
@@ -329,7 +329,7 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
             return result
         }
 
-        var a0, a1, b0, b1: f32 = undefined
+        var a0, a1, b0, b1: f32
         if Math.abs(r.x) >= Math.abs(r.y)
         {
             a0 = start0.x

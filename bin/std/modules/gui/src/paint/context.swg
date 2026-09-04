@@ -5,8 +5,8 @@ public struct PaintContext
 {
     public
     {
-        painter:    *Painter  = undefined     // Painter receiving draw commands.
-        renderer:   IRenderer = undefined     // Renderer that will execute the commands.
+        painter:    *Painter     // Painter receiving draw commands.
+        renderer:   IRenderer     // Renderer that will execute the commands.
         isDisabled: bool                      // Whether an ancestor disables the painted window.
     }
 }

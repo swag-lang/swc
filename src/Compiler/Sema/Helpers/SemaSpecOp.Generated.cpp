@@ -75,7 +75,7 @@ namespace
             return false;
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        if (type.isVoid() || type.isNull() || type.isUndefined())
+        if (type.isVoid() || type.isNull())
         {
             visiting.erase(typeRef);
             return false;

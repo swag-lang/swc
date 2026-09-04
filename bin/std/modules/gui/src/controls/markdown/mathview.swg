@@ -7,7 +7,7 @@ internal struct MathView
 {
     using wnd:  Wnd
     expression: MathExpression
-    owner:      *View = undefined
+    owner:      *View
 }
 
 internal impl MathView

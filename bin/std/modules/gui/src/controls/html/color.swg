@@ -354,7 +354,7 @@ private func htmlHexDigit(character: u8)->{ value: u32, matched: bool }
 private func htmlParseHexColor(text: string)->HtmlColorValue
 {
     var result: retval
-    var digits: [8] u32 = undefined
+    var digits: [8] u32
     let count           = text.count
     if count != 3 and count != 4 and count != 6 and count != 8 do
         return result

@@ -48,8 +48,9 @@ Multiple variables of different types can also be declared on one line.
 # Default Initialization
 
 If a variable is declared without an explicit value, it is initialized with its
-type's default value. The explicit 'undefined' escape below is the only way this
-section deliberately bypasses that default initialization.
+type's default value. This remains true even when the following statements
+overwrite every field: the compiler may remove a provably unobservable default
+initialization as an optimization, without changing the program's semantics.
 */
 #test
 {
@@ -64,16 +65,18 @@ section deliberately bypasses that default initialization.
 }
 
 /**
-# Uninitialized Variables
+# Initialization and Optimization
 
-To skip default initialization, you can assign 'undefined'. This prevents
-automatic initialization but leaves the variable in an undefined state, which
-should be used cautiously.
+There is no source-level escape hatch for uninitialized storage. Write ordinary,
+safe declarations; when the compiler proves that an aggregate is fully assigned
+before any read, escape, or drop, it can omit the redundant default clear itself.
 */
 #test
 {
-    var a: bool         = undefined
-    var b: #null string = undefined
+    var a: bool
+    a = true
+    var b: #null string
+    b = "ready"
 }
 
 /**

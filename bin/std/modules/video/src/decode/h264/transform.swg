@@ -69,7 +69,7 @@ func maxS32(a, b: s32)->s32
 // column, with the final rounding bias riding on the DC coefficient.
 func addIdct4x4Scalar(destination: [*] u8, stride: u64, block: [*] s16)
 {
-    var work: [16] s32 = undefined
+    var work: [16] s32
     for index in 16'u64 do
         work[index] = cast(s32) block[index]
     work[0] += 32
@@ -187,7 +187,7 @@ func addDc4x4Scalar(destination: [*] u8, stride: u64, dc: s32)
 // values, before their own dequantization.
 func hadamard4x4Scalar(block: [*] s16)
 {
-    var work: [16] s32 = undefined
+    var work: [16] s32
     for row in 4'u64
     {
         let c0 = cast(s32) block[row * 4 + 0]
@@ -294,7 +294,7 @@ func hadamard2x2(block: [*] s16)
 // intermediate column lands in one destination column.
 func addIdct8x8Scalar(destination: [*] u8, stride: u64, block: [*] s16)
 {
-    var work: [64] s32 = undefined
+    var work: [64] s32
     for index in 64'u64 do
         work[index] = cast(s32) block[index]
     work[0] += 32

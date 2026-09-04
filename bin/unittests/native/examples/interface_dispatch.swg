@@ -85,8 +85,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 #test
 {
     var bulk:  BulkDiscount
-    var rules: [1] IDiscountRule = undefined
-    rules[0] = cast(IDiscountRule) bulk
+    var rules: [1] IDiscountRule = [cast(IDiscountRule) bulk]
 
     var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
     let disc            = rules[0].apply(&line)
@@ -112,10 +111,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 50}
 
-    var rules: [3] IDiscountRule = undefined
-    rules[0] = cast(IDiscountRule) bulk
-    rules[1] = cast(IDiscountRule) book
-    rules[2] = cast(IDiscountRule) flat
+    var rules: [3] IDiscountRule = [cast(IDiscountRule) bulk, cast(IDiscountRule) book, cast(IDiscountRule) flat]
 
     // 8 books at 1000c each: bulk=800, book=1200, flat=50 -> best=1200
     var line: OrderLine = {kind: ProductKind.Book, quantity: 8, unitCent: 1000}
@@ -129,10 +125,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 25}
 
-    var rules: [3] IDiscountRule = undefined
-    rules[0] = cast(IDiscountRule) bulk
-    rules[1] = cast(IDiscountRule) book
-    rules[2] = cast(IDiscountRule) flat
+    var rules: [3] IDiscountRule = [cast(IDiscountRule) bulk, cast(IDiscountRule) book, cast(IDiscountRule) flat]
 
     Swag.assert(Swag.kindOf(rules[0]) == BulkDiscount)
     Swag.assert(Swag.kindOf(rules[1]) == BookDiscount)

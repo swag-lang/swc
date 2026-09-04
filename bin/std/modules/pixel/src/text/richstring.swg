@@ -22,7 +22,7 @@ struct RichChunk
 
         boundRect: Math.Rectangle                 // Bounds local to `pos`, in pixels.
         pos:       Math.Point                     // Chunk origin in the containing layout.
-        font:      *Font          = undefined     // Borrowed font selected for this chunk.
+        font:      *Font     // Borrowed font selected for this chunk.
         shaped:    ShapedRun                      // Positioned glyphs for the chunk.
         under:     UnderlineStyle = None          // Underline or strikeout decoration.
     }

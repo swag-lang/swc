@@ -13,7 +13,7 @@ var g_PerfCounterFreq: u64
 // Get current time precise value
 public func monotonicTicks()->u64
 {
-    var counter: u64 = undefined
+    var counter: u64
     QueryPerformanceCounter(cast() &counter)
     return counter
 }

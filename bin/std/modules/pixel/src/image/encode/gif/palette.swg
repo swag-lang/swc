@@ -31,7 +31,7 @@ impl Encoder
 
     func readPixelColor(image: Image, pix: const [*] u8)->Color
     {
-        var result: retval = undefined
+        var result: retval
 
         switch image.pixelFormat
         {

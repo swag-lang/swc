@@ -41,11 +41,16 @@ const SumValue = #run sum(1, 2, 3, 4) + 10
 '#run' blocks execute arbitrary logic at compile time. They are useful for
 initializing globals or precomputing data before runtime.
 
+When a '#run' block writes a global declared with its normal safe default, the
+compiler promotes that global to emitted initialized storage automatically. The
+computed bytes therefore survive into the native artifact without requiring a
+special initializer in source.
+
 Execution order between '#run' blocks is undefined, so avoid relying on order.
 */
 
 // Global array initialized at compile time
-var G: [5] f32 = undefined
+var G: [5] f32
 
 #run
 {
@@ -140,7 +145,7 @@ Example: initializing a struct in a '#run' block.
 
     const White: RGB = #run
     {
-        var rgb: RGB = undefined
+        var rgb: RGB
         rgb.r = 255
         rgb.g = rgb.r
         rgb.b = rgb.r

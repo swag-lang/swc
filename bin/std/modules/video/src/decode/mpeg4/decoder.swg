@@ -621,7 +621,7 @@ impl Decoder
     // Predicts one macroblock from one anchor or from both.
     mtd predictBidirectional(mbX, mbY: s32, kind: u32, mvForward, mvBackward: Vector, rounding: u32)
     {
-        var vectors: [4] Vector = undefined
+        var vectors: [4] Vector
         if kind != TypeBackward
         {
             for index in 4'u64 do
@@ -647,8 +647,8 @@ impl Decoder
         if trd <= 0 do
             return
 
-        var forward:  [4] Vector = undefined
-        var backward: [4] Vector = undefined
+        var forward:  [4] Vector
+        var backward: [4] Vector
         for block in 4'u64
         {
             var mv: Vector
@@ -724,8 +724,8 @@ impl Decoder
     mtd const predictVector(mbX, mbY: s32, block: u64, fourVectors: bool)->Vector
     {
         // Which neighbouring block each of the three candidates comes from, figure 7-8.
-        var candidates: [3] Vector = undefined
-        var valid:      [3] bool   = undefined
+        var candidates: [3] Vector
+        var valid:      [3] bool
 
         for slot in 3'u64
         {
@@ -877,7 +877,7 @@ impl Decoder
     {
         let mbIndex          = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
         let isLuma           = block < 4
-        var levels: [64] s32 = undefined
+        var levels: [64] s32
         for index in 64'u64 do
             levels[index] = 0
 
@@ -1017,7 +1017,7 @@ impl Decoder
             levels[0] *= cast(s32) scaler
         dequantise(&levels, &.layer, .quant, intra, isLuma)
 
-        var samples: [64] s16 = undefined
+        var samples: [64] s16
         inverseTransform(&levels, &samples)
         .writeBlock(mbX, mbY, block, &samples, intra)
     }

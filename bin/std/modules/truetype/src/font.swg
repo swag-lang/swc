@@ -57,7 +57,7 @@ struct FaceImpl
 {
     face: Face
 
-    allocationAllocator: IAllocator = undefined
+    allocationAllocator: IAllocator
 
     fontData:       Array'u8
     tables:         Array'TableRecord

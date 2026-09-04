@@ -15,7 +15,7 @@ public struct Element
 {
     public
     {
-        type:     ElementType = undefined     // Segment representation.
+        type:     ElementType     // Segment representation.
         position: Vector2                     // Endpoint, or center for an arc.
         p1:       Vector2                     // First control point, or arc angle interval.
         p2:       Vector2                     // Second control point, or arc radii.
@@ -137,7 +137,7 @@ public impl LinePath
         if newEndPoint.isEqualEpsilon(.endPoint) do
             return
 
-        var elem: Element = undefined
+        var elem: Element
         elem.type = .Line
         elem.position.set(x, y)
         .elements.add(elem)
@@ -152,7 +152,7 @@ public impl LinePath
         if newEndPoint.isEqualEpsilon(.endPoint) do
             return
 
-        var elem: Element = undefined
+        var elem: Element
         elem.type = .Curve
         elem.position.set(x, y)
         .elements.add(elem)
@@ -167,7 +167,7 @@ public impl LinePath
         if newEndPoint.isEqualEpsilon(.endPoint) do
             return
 
-        var elem: Element = undefined
+        var elem: Element
         elem.type = .Bezier1
         elem.position.set(x, y)
         elem.p1.set(ctx, cty)
@@ -183,7 +183,7 @@ public impl LinePath
         if newEndPoint.isEqualEpsilon(.endPoint) do
             return
 
-        var elem: Element = undefined
+        var elem: Element
         elem.type = .Bezier2
         elem.position.set(x, y)
         elem.p1.set(ct1x, ct1y)
@@ -209,7 +209,7 @@ public impl LinePath
         if newEndPoint.isEqualEpsilon(.endPoint) do
             return
 
-        var elem: Element = undefined
+        var elem: Element
         elem.type = .Arc
         elem.position.set(centerX, centerY)
 
@@ -636,7 +636,7 @@ impl LinePath
         let first  = arcPoint(center, radii, arc.p1.x)
         if !first.isEqualEpsilon(current)
         {
-            var line: Element = undefined
+            var line: Element
             line.type     = .Line
             line.position = first
             target.add(line)
@@ -655,7 +655,7 @@ impl LinePath
             let t0 = arcTangent(radii, a0)
             let t1 = arcTangent(radii, a1)
 
-            var cubic: Element = undefined
+            var cubic: Element
             cubic.type     = .Bezier2
             cubic.position = p3
             cubic.p1       = {p0.x + t0.x * k, p0.y + t0.y * k}
@@ -709,7 +709,7 @@ impl LinePath
 
     mtd flattenCurve(pos: Math.Vector2, i: u64, tolerance: f32)
     {
-        var p0, p1, p2, p3: Vector2 = undefined
+        var p0, p1, p2, p3: Vector2
         let lastElem                = .elements.count - 1
 
         if lastElem <= 1

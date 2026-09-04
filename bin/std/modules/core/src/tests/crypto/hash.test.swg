@@ -107,11 +107,11 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 {
     const Lengths = [0'u64, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64]
 
-    var source: [80] u8 = undefined
+    var source: [80] u8
     for i in 80'u64 do
         source[i] = cast(u8) ((i * 7 + 13) & 0xFF)
 
-    var seen: [Lengths.count] u32 = undefined
+    var seen: [Lengths.count] u32
 
     for slot in Lengths.count
     {
@@ -124,7 +124,7 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
         // Bytes beyond 'length' must not take part: same prefix in a differently
         // filled buffer has to produce the same value
-        var padded: [80] u8 = undefined
+        var padded: [80] u8
         Memory.set(&padded[0], 0xAA'u8, 80)
         Memory.copy(&padded[0], &source[0], length)
         Swag.assert(Hash.hashBytes32(Swag.makeSlice(&padded[0], length)) == hashed)

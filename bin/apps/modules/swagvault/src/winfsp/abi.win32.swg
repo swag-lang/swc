@@ -106,27 +106,27 @@ namespace WinFsp
 
     struct FspInterface
     {
-        getVolumeInfo:     FspGetVolumeInfoFn     = undefined
-        setVolumeLabel:    FspSetVolumeLabelFn    = undefined
-        getSecurityByName: FspGetSecurityByNameFn = undefined
-        create:            FspCreateFn            = undefined
-        open:              FspOpenFn              = undefined
-        overwrite:         FspOverwriteFn         = undefined
-        cleanup:           FspCleanupFn           = undefined
-        close:             FspCloseFn             = undefined
-        read:              FspReadFn              = undefined
-        write:             FspWriteFn             = undefined
-        flush:             FspFlushFn             = undefined
-        getFileInfo:       FspGetFileInfoFn       = undefined
-        setBasicInfo:      FspSetBasicInfoFn      = undefined
-        setFileSize:       FspSetFileSizeFn       = undefined
-        canDelete:         FspCanDeleteFn         = undefined
-        rename:            FspRenameFn            = undefined
-        getSecurity:       FspGetSecurityFn       = undefined
-        setSecurity:       FspSetSecurityFn       = undefined
-        readDirectory:     FspReadDirectoryFn     = undefined
+        getVolumeInfo:     FspGetVolumeInfoFn
+        setVolumeLabel:    FspSetVolumeLabelFn
+        getSecurityByName: FspGetSecurityByNameFn
+        create:            FspCreateFn
+        open:              FspOpenFn
+        overwrite:         FspOverwriteFn
+        cleanup:           FspCleanupFn
+        close:             FspCloseFn
+        read:              FspReadFn
+        write:             FspWriteFn
+        flush:             FspFlushFn
+        getFileInfo:       FspGetFileInfoFn
+        setBasicInfo:      FspSetBasicInfoFn
+        setFileSize:       FspSetFileSizeFn
+        canDelete:         FspCanDeleteFn
+        rename:            FspRenameFn
+        getSecurity:       FspGetSecurityFn
+        setSecurity:       FspSetSecurityFn
+        readDirectory:     FspReadDirectoryFn
         unused19To23:      [5] #null const *void
-        getDirInfoByName:  FspGetDirInfoByNameFn  = undefined
+        getDirInfoByName:  FspGetDirInfoByNameFn
         unused25To63:      [39] #null const *void
     }
 
@@ -150,21 +150,21 @@ namespace WinFsp
     struct WinFspApi
     {
         module:                   NativeModule
-        fsCreate:                 FspFileSystemCreateFn           = undefined
-        destroy:                  FspFileSystemDeleteFn           = undefined
-        setMountPoint:            FspFileSystemSetMountPointFn    = undefined
-        removeMountPoint:         FspFileSystemRemoveMountPointFn = undefined
-        startDispatcher:          FspFileSystemStartDispatcherFn  = undefined
-        stopDispatcher:           FspFileSystemStopDispatcherFn   = undefined
-        addDirInfo:               FspFileSystemAddDirInfoFn       = undefined
-        setGuard:                 FspFileSystemSetGuardFn         = undefined
-        setSecurityDescriptor:    FspSetSecurityDescriptorFn      = undefined
+        fsCreate:                 FspFileSystemCreateFn
+        destroy:                  FspFileSystemDeleteFn
+        setMountPoint:            FspFileSystemSetMountPointFn
+        removeMountPoint:         FspFileSystemRemoveMountPointFn
+        startDispatcher:          FspFileSystemStartDispatcherFn
+        stopDispatcher:           FspFileSystemStopDispatcherFn
+        addDirInfo:               FspFileSystemAddDirInfoFn
+        setGuard:                 FspFileSystemSetGuardFn
+        setSecurityDescriptor:    FspSetSecurityDescriptorFn
         setSecurityAddress:       #null const *void
-        deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn   = undefined
-        registerServer:           WinFspRegistrationFn            = undefined
-        unregisterServer:         WinFspRegistrationFn            = undefined
-        setDebugLogHandle:        FspDebugLogSetHandleFn          = undefined
-        startService:             FspFsctlStartServiceFn          = undefined
+        deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn
+        registerServer:           WinFspRegistrationFn
+        unregisterServer:         WinFspRegistrationFn
+        setDebugLogHandle:        FspDebugLogSetHandleFn
+        startService:             FspFsctlStartServiceFn
         runtimeRoot:              String
         dllPath:                  String
 

@@ -244,9 +244,9 @@ impl Decoder
             return
         }
 
-        var v:    [8] Math.Simd.S16x8 = undefined
-        var low:  [8] Math.Simd.S32x4 = undefined
-        var high: [8] Math.Simd.S32x4 = undefined
+        var v:    [8] Math.Simd.S16x8
+        var low:  [8] Math.Simd.S32x4
+        var high: [8] Math.Simd.S32x4
 
         for i in 8 do
             v[i] = Math.Simd.load(cast(const [*] s16) (data + i * 8))
@@ -410,7 +410,7 @@ impl Decoder
         var d0  = .scanLine0.buffer!
         var d1  = .scanLine1.buffer!
 
-        var y: [*] u8 = undefined
+        var y: [*] u8
         if row < 8 do
             y = .safeSampleBuf() + row * 8
         else do
@@ -461,7 +461,7 @@ impl Decoder
         var d0  = .scanLine0.buffer!
         var d1  = .scanLine1.buffer!
 
-        var y: [*] u8 = undefined
+        var y: [*] u8
         if row < 8 do
             y = .safeSampleBuf() + row * 8
         else do

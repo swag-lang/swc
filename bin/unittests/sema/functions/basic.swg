@@ -19,9 +19,9 @@ struct SingleString
 }
 struct RequiredPoint
 {
-    x: s32 = undefined
+    x: s32
     y: s32 = 5
-    z: s32 = undefined
+    z: s32
 }
 
 func T()->s32

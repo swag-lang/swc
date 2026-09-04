@@ -1,3 +1,2 @@
 SWC_DIAG_DEF(sanity_note_pointer_released_here)
 SWC_DIAG_DEF(sanity_note_move_origin)
-SWC_DIAG_DEF(sanity_note_undefined_origin)

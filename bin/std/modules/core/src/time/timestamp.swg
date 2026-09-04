@@ -39,7 +39,7 @@ impl Timestamp
     func fromDateTime(dateTime: DateTime)->Timestamp
     {
         Debug.assert(dateTime.isValid())
-        var result: retval = undefined
+        var result: retval
         result.ticks = dateToTicks(dateTime.year, dateTime.month, dateTime.day)
         result.ticks += timeToTicks(dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond)
         return result
@@ -48,7 +48,7 @@ impl Timestamp
     // Converts the timestamp to calendar components.
     mtd const toDateTime()->DateTime
     {
-        var dateTime: retval = undefined
+        var dateTime: retval
         {dateTime.year, dateTime.month, dateTime.day} = ticksToDate(.ticks)
         {dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond} = ticksToTime(.ticks)
         return dateTime

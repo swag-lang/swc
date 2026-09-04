@@ -150,12 +150,9 @@ namespace
             alignment = 1;
 
         const bool      isCompilerGlobal   = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
-        const bool      skipInit           = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) || symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
-        const bool      hasInitializerData = symVar.cstRef().isValid() && !skipInit;
-        const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr && !skipInit;
+        const bool      hasInitializerData = symVar.cstRef().isValid();
+        const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr;
         DataSegmentKind storageKind        = isCompilerGlobal ? DataSegmentKind::Compiler : DataSegmentKind::GlobalZero;
-        if (!isCompilerGlobal && skipInit)
-            storageKind = DataSegmentKind::GlobalInit;
         if (!isCompilerGlobal && hasFunctionInit)
             storageKind = DataSegmentKind::GlobalInit;
 
@@ -198,8 +195,7 @@ namespace
         }
         else
         {
-            const bool zeroInit = !skipInit;
-            offset              = segment.reserveBlock(size, alignment, zeroInit);
+            offset = segment.reserveBlock(size, alignment, true);
         }
 
         symVar.setGlobalStorage(storageKind, offset);
@@ -638,7 +634,7 @@ namespace
         const auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sema.curNodeRef());
         if (payload &&
             payload->calledFn &&
-            !payload->calledFn->attributes().hasRtFlag(RtAttributeFlagsE::FullInit))
+            !payload->calledFn->hasFullInitialization())
         {
             SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             if (SymbolStruct::typeRequiresExplicitInitialization(sema, explicitTypeRef))
@@ -663,30 +659,6 @@ namespace
         }
 
         return SemaError::raise(sema, id, where);
-    }
-
-    Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols, bool isConst, bool isLet, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
-    {
-        if (context.nodeInitRef.isInvalid())
-            return Result::Continue;
-
-        // Classify on the node itself as well as on the constant: a paused-and-resumed post-decl
-        // re-runs this check AFTER castOrConcretizeInit already replaced the node's raw `undefined`
-        // constant with a typed one, and the constant-identity test alone would then silently
-        // reclassify the declaration as normally initialized.
-        const bool isUndefinedLiteral = sema.node(nodeInitView.nodeRef()).is(AstNodeId::UndefinedExpr) ||
-                                        sema.node(context.nodeInitRef).is(AstNodeId::UndefinedExpr);
-        if (!isUndefinedLiteral && nodeInitView.cstRef() != sema.cstMgr().cstUndefined())
-            return Result::Continue;
-
-        if (isConst)
-            return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
-        if (isLet)
-            return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
-        if (context.nodeTypeRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
-        isExplicitUndefinedInit = true;
-        return Result::Continue;
     }
 
     bool canLeadAggregateArrayElementDriveConcretization(Sema& sema, TypeRef elemTypeRef, ConstantRef elemCstRef);
@@ -931,16 +903,13 @@ namespace
         const bool         isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
         const bool         isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
         const bool         codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
-        bool               isExplicitUndefinedInit = false;
         SymbolFunction*    globalFunctionInit      = nullptr;
         VarDeclSetInitInfo setInitInfo;
 
-        SWC_RESULT(checkUndefinedInit(sema, context, symbols, isConst, isLet, isParameter, explicitTypeRef, explicitType, nodeInitView, isExplicitUndefinedInit));
-        if (!isExplicitUndefinedInit)
-            SWC_RESULT(tryResolveVarDeclSetInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, setInitInfo));
+        SWC_RESULT(tryResolveVarDeclSetInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, setInitInfo));
         if (!setInitInfo.handled)
         {
-            if (context.nodeInitRef.isValid() && !isExplicitUndefinedInit)
+            if (context.nodeInitRef.isValid())
             {
                 AstModifierFlags initModifiers = AstModifierFlagsE::Zero;
                 if (const auto* initExpr = sema.node(context.nodeInitRef).safeCast<AstInitializerExpr>())
@@ -1009,7 +978,7 @@ namespace
         // first assignment, non-null type at every read (guarded under null safety). It
         // qualifies struct fields and global variables (both have zero-initialized
         // storage that serves as the 'unset' sentinel); a local or parameter has no such
-        // storage lifetime, so it uses '= undefined' definite assignment instead.
+        // storage lifetime, so it cannot use deferred non-null initialization.
         const SymbolVariable* firstLateVar = !symbols.empty() ? getVariableSymbol(symbols[0]) : nullptr;
         const bool            isLate       = firstLateVar && firstLateVar->attributes().hasRtFlag(RtAttributeFlagsE::Late);
         if (isLate)
@@ -1046,16 +1015,38 @@ namespace
             // A 'Swag.Late' declaration (struct field or global) intentionally has no
             // initializer: its zero (null) storage is the 'unset' sentinel, guarded at
             // every read. It is exempt from the requires-init rule like a struct field.
-            if (requiresExplicitInit && !isStructField && !isLate)
+            const bool supportsDefiniteInit = sema.isCurrentFunction() && !isConst && !isLet && !isStructField && !isLate;
+            if (requiresExplicitInit && !isStructField && !isLate && !supportsDefiniteInit)
                 return reportTypeRequiresInit(sema, context, finalTypeRef);
+            if (requiresExplicitInit && supportsDefiniteInit)
+            {
+                const TypeInfo& type = sema.typeMgr().get(finalTypeRef);
+                TypeRef         storageTypeRef = finalTypeRef;
+                if (const TypeRef unwrapped = type.unwrap(sema.ctx(), finalTypeRef, TypeExpandE::Alias); unwrapped.isValid())
+                    storageTypeRef = unwrapped;
+                const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+                // Definite assignment tracks a complete static array as one
+                // construction unit. Element/range coverage remains deliberately
+                // conservative, but a known whole-object construction such as
+                // 'Swag.init(values)' is a proof just like a scalar assignment.
+                // A very large or incomplete struct still needs a wider bitset.
+                if ((storageType.isStruct() &&
+                     (!storageType.payloadSymStruct().isSemaCompleted() || storageType.payloadSymStruct().fields().empty() ||
+                      storageType.payloadSymStruct().fields().size() > 63)))
+                    return reportTypeRequiresInit(sema, context, finalTypeRef);
+
+                for (Symbol* s : symbols)
+                {
+                    if (auto* symVar = getVariableSymbol(s))
+                        symVar->addExtraFlag(SymbolVariableFlagsE::NeedsDefiniteInit);
+                }
+                sema.noteInitFlowCandidate();
+            }
         }
 
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
         ConstantRef implicitStructStoreRef = ConstantRef::invalid();
         bool        implicitStructZeroInit = false;
-        bool        implicitStructNoInit   = false;
-        bool        implicitStructPartInit = false;
-        bool        implicitStructFullInit = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
             if (!directSelfStructField && !requiresExplicitInit)
@@ -1064,26 +1055,20 @@ namespace
                 const auto& symStruct = explicitType->payloadSymStruct();
                 symStruct.computeImplicitDefaultFlags(sema);
                 implicitStructZeroInit      = symStruct.hasImplicitAllZeroDefault();
-                implicitStructNoInit        = symStruct.hasImplicitAllUndefinedDefault();
-                implicitStructPartInit      = symStruct.hasImplicitUndefinedDefault() && !implicitStructNoInit;
-                implicitStructFullInit      = !implicitStructNoInit && !implicitStructPartInit;
                 const bool hasGlobalStorage = std::ranges::any_of(symbols, [](Symbol* symbol) {
                     const SymbolVariable* variable = getVariableSymbol(symbol);
                     return variable && isGlobalStorageVariable(*variable);
                 });
-                if (!implicitStructNoInit && hasGlobalStorage)
+                if (hasGlobalStorage)
                     implicitStructStoreRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
-                // A constant always carries its bytes, so a field left 'undefined'
-                // materializes as zero there. A 'let' keeps the sparse default and
-                // takes the run-time initialization path instead.
                 if (isConst)
                     implicitStructCstRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
                 else if (isLet)
                     implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
             }
         }
-        const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructFullInit || implicitStructCstRef.isValid();
-        const bool hasImplicitStructVarInit   = hasImplicitStructConstInit || implicitStructPartInit;
+        const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
+        const bool hasImplicitStructVarInit   = hasImplicitStructConstInit;
 
         // Constant
         if (isConst)
@@ -1136,37 +1121,32 @@ namespace
             }
         }
 
-        if (context.nodeInitRef.isValid() || hasImplicitStructVarInit || implicitStructNoInit)
+        if (context.nodeInitRef.isValid() || hasImplicitStructVarInit)
         {
             for (Symbol* s : symbols)
             {
-                auto&      symVar                 = s->cast<SymbolVariable>();
-                const bool forceRetValDefaultInit = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
-                if (implicitStructNoInit && !forceRetValDefaultInit)
-                    symVar.addExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
-                if (isExplicitUndefinedInit)
-                {
-                    symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
-                    if (sema.isCurrentFunction())
-                        sema.noteExplicitUndefinedLocal();
-                }
-                // Struct defaults leaving fields undefined (all or some) expose the
-                // same garbage-read risk: gate the definite-assignment pass too.
-                if ((implicitStructNoInit || implicitStructPartInit) && sema.isCurrentFunction())
-                    sema.noteExplicitUndefinedLocal();
+                auto& symVar = s->cast<SymbolVariable>();
                 // A '#null'-typed local gates the pass as well: its qualifier is
                 // checked for liveness (dead-contract elimination).
                 if (sema.isCurrentFunction() && finalTypeRef.isValid() &&
                     sema.typeMgr().get(finalTypeRef).isNullable())
-                    sema.noteExplicitUndefinedLocal();
+                    sema.noteInitFlowCandidate();
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
-                if (!implicitStructNoInit || implicitStructPartInit || forceRetValDefaultInit)
-                    symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+                symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }
 
         SWC_RESULT(completeVar(sema, symbols, finalTypeRef));
+        if (sema.isCurrentFunction() && !isParameter && context.nodeInitRef.isInvalid())
+        {
+            const TypeInfo& type = sema.typeMgr().get(finalTypeRef);
+            TypeRef         storageTypeRef = finalTypeRef;
+            if (const TypeRef unwrapped = type.unwrap(sema.ctx(), finalTypeRef, TypeExpandE::Alias); unwrapped.isValid())
+                storageTypeRef = unwrapped;
+            if (requiresExplicitInit || sema.typeMgr().get(storageTypeRef).isStruct())
+                sema.noteInitFlowCandidate();
+        }
         if (context.nodeInitRef.isValid() && !setInitInfo.handled)
         {
             for (Symbol* s : symbols)

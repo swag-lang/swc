@@ -27,7 +27,7 @@ struct LocalVarPlain
 
 struct LocalVarRequired
 {
-    x: s32 = undefined
+    x: s32
     y: s32
 }
 
@@ -81,7 +81,7 @@ struct LocalVarKeyEvent
     using base: LocalVarEventBase
     kind:       Kind
     modifiers:  s32 = 3
-    key:        s32 = undefined
+    key:        s32
     char:       rune
 }
 

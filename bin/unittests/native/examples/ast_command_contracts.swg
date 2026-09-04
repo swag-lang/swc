@@ -314,7 +314,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
 #test
 {
-    var command: ScheduleDeploymentCommand = undefined
+    var command: ScheduleDeploymentCommand
     command.replicas  = 6
     command.region    = "eu-west"
     command.dryRun    = false
@@ -338,7 +338,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
 #test
 {
-    var command: ScheduleDeploymentCommand = undefined
+    var command: ScheduleDeploymentCommand
     command.replicas  = 30
     command.region    = "eu"
     command.dryRun    = false
@@ -352,7 +352,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
 #test
 {
-    var command: SubmitWireTransferCommand = undefined
+    var command: SubmitWireTransferCommand
     command.cents        = 250_000
     command.toAccount    = "acct-7781"
     command.approvalCode = "APR-8832"

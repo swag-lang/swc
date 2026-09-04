@@ -799,7 +799,7 @@ impl Array
     {
         Debug.assert(.count > 0, "array is empty")
         let buffer         = .buffer!
-        var result: retval = undefined
+        var result: retval
         result = #relocate buffer[.count - 1]
         .count -= 1
         return result

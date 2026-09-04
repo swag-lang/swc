@@ -43,14 +43,14 @@ impl LzwBitReader
 // Aldus TIFF writers. Each strip owns an independent dictionary.
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fail
 {
-    var reader: LzwBitReader = undefined
+    var reader: LzwBitReader
     reader.data        = src
     reader.bitCount    = srcCount * 8
     reader.bitPosition = 0
 
     var prefixes: [4096] u16
-    var suffixes: [4096] u8 = undefined
-    var stack:    [4096] u8 = undefined
+    var suffixes: [4096] u8
+    var stack:    [4096] u8
 
     for index in 256 do
         suffixes[index] = cast(u8) index

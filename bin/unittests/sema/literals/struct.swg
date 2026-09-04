@@ -76,7 +76,7 @@ const VEC3F_NAMED_CAST: Vec3FDefault = Vec3FDefault{5, 7}
 #assert(VEC3F_NAMED_CAST.y == 7)
 #assert(VEC3F_NAMED_CAST.z == 10)
 
-struct RequiredDefaults {x: s32 = undefined, y: s32 = 5, z: s32 = undefined}
+struct RequiredDefaults {x: s32, y: s32 = 5, z: s32}
 func semaTest004()
 {
     const REQUIRED_DEFAULTS: RequiredDefaults = {x: 1, y: 2, z: 3}

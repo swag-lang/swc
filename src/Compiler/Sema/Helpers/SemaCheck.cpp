@@ -439,6 +439,13 @@ namespace
         if (!symFn)
             return false;
 
+        // Attribute spelling is the ordinary surface form for a compiler function.
+        // Its declaration node is still a regular function in some compilation
+        // paths, so relying on the synthetic '#run' node shape loses writes made by
+        // '#[Swag.Compiler] func' helpers.
+        if (symFn->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return true;
+
         const AstNode* decl = symFn->decl();
         if (!decl)
             return false;
@@ -453,25 +460,27 @@ namespace
 
     // A global written by compile-time execution keeps that value only when its storage is emitted
     // verbatim. The zero segment becomes '.bss', which carries a size and no bytes, so the write
-    // reaches the JIT half of the build and disappears from the artifact - the two halves of the
-    // language would then disagree about what '#run' can establish. '= undefined' is the spelling
-    // that puts a global in the initialized segment, which is what makes the write survive.
+    // reaches the JIT half of the build and disappears from the artifact. Promote the storage on
+    // demand instead of making source code opt out of initialization to force the right segment.
     Result checkCompileTimeGlobalWrite(Sema& sema, AstNodeRef leftExprRef)
     {
         if (!inCompileTimeExecutedFunction(sema))
             return Result::Continue;
 
-        const SymbolVariable* symVar = assignedGlobalRoot(sema, leftExprRef);
+        SymbolVariable* symVar = const_cast<SymbolVariable*>(assignedGlobalRoot(sema, leftExprRef));
         if (!symVar || symVar->globalStorageKind() != DataSegmentKind::GlobalZero)
             return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compile_time_global_write_dropped, leftExprRef);
-        diag.addArgument(Diagnostic::ARG_SYM, symVar->name(sema.ctx()));
-        diag.addNote(DiagnosticId::sema_note_global_declared_here);
-        diag.last().addArgument(Diagnostic::ARG_SYM, symVar->name(sema.ctx()));
-        diag.last().addSpan(symVar->codeRange(sema.ctx()));
-        diag.report(sema.ctx());
-        return Result::Error;
+        const TypeInfo& type = sema.typeMgr().get(symVar->typeRef());
+        const uint64_t  size = type.sizeOf(sema.ctx());
+        if (!size)
+            return Result::Continue;
+
+        SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
+        const uint32_t alignment = std::max(1u, type.alignOf(sema.ctx()));
+        const uint32_t offset    = sema.compiler().globalInitSegment().reserveBlock(static_cast<uint32_t>(size), alignment, true);
+        symVar->setGlobalStorage(DataSegmentKind::GlobalInit, offset);
+        return Result::Continue;
     }
 }
 

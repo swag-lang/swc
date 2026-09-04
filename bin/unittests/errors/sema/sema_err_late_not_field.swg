@@ -2,7 +2,7 @@
 
 // 'Swag.Late' qualifies a struct field or a global variable (both have zero-initialized
 // storage that serves as the 'unset' sentinel). A local or parameter has no such
-// storage lifetime and must use '= undefined' definite assignment instead.
+// storage lifetime and must use '' definite assignment instead.
 
 func lateLocal()
 {

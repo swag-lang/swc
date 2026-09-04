@@ -170,82 +170,82 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     switch nativeType.nativeKind
     {
     case .S8:
-        var val: s8 = undefined
+        var val: s8
         {val, eat, ovf} = parseS8(one)
         if ovf do
             fail OverflowError{}
         patch[as s8] = val
 
     case .S16:
-        var val: s16 = undefined
+        var val: s16
         {val, eat, ovf} = parseS16(one)
         if ovf do
             fail OverflowError{}
         patch[as s16] = val
 
     case .S32:
-        var val: s32 = undefined
+        var val: s32
         {val, eat, ovf} = parseS32(one)
         if ovf do
             fail OverflowError{}
         patch[as s32] = val
 
     case .S64:
-        var val: s64 = undefined
+        var val: s64
         {val, eat, ovf} = parseS64(one)
         if ovf do
             fail OverflowError{}
         patch[as s64] = val
 
     case .U8:
-        var val: u8 = undefined
+        var val: u8
         {val, eat, ovf} = parseU8(one)
         if ovf do
             fail OverflowError{}
         patch[as u8] = val
 
     case .U16:
-        var val: u16 = undefined
+        var val: u16
         {val, eat, ovf} = parseU16(one)
         if ovf do
             fail OverflowError{}
         patch[as u16] = val
 
     case .U32:
-        var val: u32 = undefined
+        var val: u32
         {val, eat, ovf} = parseU32(one)
         if ovf do
             fail OverflowError{}
         patch[as u32] = val
 
     case .U64:
-        var val: u64 = undefined
+        var val: u64
         {val, eat, ovf} = parseU64(one)
         if ovf do
             fail OverflowError{}
         patch[as u64] = val
 
     case .F32:
-        var val: f32 = undefined
+        var val: f32
         {val, eat, ovf} = parseF32(one)
         if ovf do
             fail OverflowError{}
         patch[as f32] = val
 
     case .F64:
-        var val: f64 = undefined
+        var val: f64
         {val, eat, ovf} = parseF64(one)
         if ovf do
             fail OverflowError{}
         patch[as f64] = val
 
     case .Bool:
-        var val: bool = undefined
+        var val: bool
         {val, eat}     = parseBool(one)
         patch[as bool] = val
 
     case .Rune:
-        var val: rune = undefined
+        var val: rune
         {val, eat}     = parseRune(one)
         patch[as rune] = val
 

@@ -91,9 +91,7 @@ impl IValue for Tripler
 {
     var d:     Doubler    = {val: 5}
     var t:     Tripler    = {val: 5}
-    var items: [2] IValue = undefined
-    items[0] = cast(IValue) d
-    items[1] = cast(IValue) t
+    var items: [2] IValue = [cast(IValue) d, cast(IValue) t]
 
     var sum = 0
     for i in 2 do
@@ -109,10 +107,7 @@ impl IValue for Tripler
     var b: Counter = {label: "b", count: 2}
     var c: Counter = {label: "c", count: 3}
 
-    var arr: [3] IValue = undefined
-    arr[0] = cast(IValue) a
-    arr[1] = cast(IValue) b
-    arr[2] = cast(IValue) c
+    var arr: [3] IValue = [cast(IValue) a, cast(IValue) b, cast(IValue) c]
 
     for i in 3 do
         arr[i].setValue(arr[i].getValue() * 10)
@@ -152,10 +147,7 @@ func sumValues(items: [*] IValue, count: u32)->s32
     var d2: Doubler = {val: 7}
     var t1: Tripler = {val: 2}
 
-    var arr: [3] IValue = undefined
-    arr[0] = cast(IValue) d1
-    arr[1] = cast(IValue) d2
-    arr[2] = cast(IValue) t1
+    var arr: [3] IValue = [cast(IValue) d1, cast(IValue) d2, cast(IValue) t1]
 
     Swag.assert(sumValues(&arr[0], 3) == 6 + 14 + 6)
     Swag.assert(sumValues(&arr[0], 3) == 26)

@@ -161,8 +161,8 @@ impl XAudio2DriverNative
 internal
 {
     var g_ThreadCxt: Swag.Context
-    var g_Cb:        IXAudio2VoiceCallback    = undefined
-    var g_Cbi:       IXAudio2VoiceCallbackItf = undefined
+    var g_Cb:        IXAudio2VoiceCallback
+    var g_Cbi:       IXAudio2VoiceCallbackItf
 
     func enterXAudio2CallbackContext()
     {
@@ -407,8 +407,8 @@ internal impl Voice
     mtd setRoutingXAudio2(buses: const [..] *Bus) fail
     {
         const MaxBus = 16
-        var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR = undefined
-        var sfxSendList:  XAUDIO2_VOICE_SENDS              = undefined
+        var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR
+        var sfxSendList:  XAUDIO2_VOICE_SENDS
         var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS
 
         let count = buses.count
@@ -446,8 +446,8 @@ impl Bus
 {
     func createXAudio2(bus: *Bus, numChannels: u32, parent: #null *Bus = null) fail
     {
-        var sfxSend:      XAUDIO2_SEND_DESCRIPTOR = undefined
-        var sfxSendList:  XAUDIO2_VOICE_SENDS     = undefined
+        var sfxSend:      XAUDIO2_SEND_DESCRIPTOR
+        var sfxSendList:  XAUDIO2_VOICE_SENDS
         var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS
 
         if parent

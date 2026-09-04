@@ -124,7 +124,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
 #test
 {
     Swag.assert(Mpeg4.MvdDelta.count == 65)
-    var seen: [65] bool = undefined
+    var seen: [65] bool
     for index in 65'u64 do
         seen[index] = false
     for index in Mpeg4.MvdDelta.count
@@ -144,7 +144,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         let scan: const [..] u8 = order == 0 ? Mpeg4.ScanZigzag
                                   : (order == 1 ? Mpeg4.ScanAlternateHorizontal : Mpeg4.ScanAlternateVertical)
         Swag.assert(scan.count == 64)
-        var seen: [64] bool = undefined
+        var seen: [64] bool
         for index in 64'u64 do
             seen[index] = false
         for index in 64'u64

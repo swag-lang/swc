@@ -277,6 +277,21 @@ impl LeakGrid
     }
 }
 
+func makeLeakStringTable()->LeakTable'(string, LeakTrackedValue)
+{
+    return {entries: [{key: ""}, {key: ""}]}
+}
+
+func makeLeakStringBox()->LeakBox'(string, LeakTrackedValue)
+{
+    return {table: makeLeakStringTable()}
+}
+
+func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
+{
+    return {tables: [makeLeakStringTable(), makeLeakStringTable()]}
+}
+
 #static if true
 {
     // Reproducer: interleaving `LeakTable` specializations with different key layouts can make the
@@ -285,7 +300,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var byString: LeakTable'(string, LeakTrackedValue) = undefined
+        var byString = makeLeakStringTable()
         var byInt:    LeakTable'(s32, LeakTrackedValue)
         var byWide:   LeakTable'(LeakWideKey, LeakTrackedValue)
 
@@ -336,7 +351,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var byString: LeakTable'(string, LeakTrackedValue) = undefined
+        var byString = makeLeakStringTable()
         var byInt:    LeakTable'(s32, LeakTrackedValue)
         var byWide:   LeakTable'(LeakWideKey, LeakTrackedValue)
 
@@ -382,7 +397,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var boxedString: LeakBox'(string, LeakTrackedValue) = undefined
+        var boxedString = makeLeakStringBox()
         var boxedInt:    LeakBox'(s32, LeakTrackedValue)
 
         boxedString.put(0, "left", 71)
@@ -414,7 +429,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var gridString: LeakGrid'(string, LeakTrackedValue) = undefined
+        var gridString = makeLeakStringGrid()
         var gridWide:   LeakGrid'(LeakWideKey, LeakTrackedValue)
 
         gridString.put(0, 0, "north", 91)
@@ -444,7 +459,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var byString: LeakTable'(string, LeakTrackedValue) = undefined
+        var byString = makeLeakStringTable()
         var byInt:    LeakTable'(s32, LeakTrackedValue)
 
         byString.put(0, "warmup", 111)

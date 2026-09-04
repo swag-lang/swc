@@ -198,30 +198,30 @@ impl MethodBufferContext
 
 func semaTest001()
 {
-    var wrapped:                           WrapperImplicit'u16                           = undefined
-    var doubled:                           DoubleBufferImplicit'(u8, 4)                  = undefined
-    var renamed:                           RenamedDoubleBufferImplicit'(u16, 3)          = undefined
-    var reordered:                         ReorderedRenamedDoubleBufferImplicit'(5, u32) = undefined
-    var renamedWrapper:                    RenamedWrapperImplicit'(bool, 7)              = undefined
-    var prefixDefaultHolder:               PrefixDefaultHolderImplicit'u8                = undefined
-    var middleDefaultHolder:               MiddleDefaultHolderImplicit'(u16, f32)        = undefined
-    var nestedMiddleDefaultHolder:         NestedMiddleDefaultHolderImplicit'(u16, f32)  = undefined
-    var twinImplicitHolder:                TwinImplicitHolder's64                        = undefined
-    var trailingValueDefaultHolder:        TrailingValueDefaultHolder'(u16, 6)           = undefined
-    var splitValueDefaultHolder:           SplitValueDefaultHolder'u32                   = undefined
+    var wrapped:                           WrapperImplicit'u16
+    var doubled:                           DoubleBufferImplicit'(u8, 4)
+    var renamed:                           RenamedDoubleBufferImplicit'(u16, 3)
+    var reordered:                         ReorderedRenamedDoubleBufferImplicit'(5, u32)
+    var renamedWrapper:                    RenamedWrapperImplicit'(bool, 7)
+    var prefixDefaultHolder:               PrefixDefaultHolderImplicit'u8
+    var middleDefaultHolder:               MiddleDefaultHolderImplicit'(u16, f32)
+    var nestedMiddleDefaultHolder:         NestedMiddleDefaultHolderImplicit'(u16, f32)
+    var twinImplicitHolder:                TwinImplicitHolder's64
+    var trailingValueDefaultHolder:        TrailingValueDefaultHolder'(u16, 6)
+    var splitValueDefaultHolder:           SplitValueDefaultHolder'u32
     let methodBufferContext:               MethodBufferContext'(u16, 9)
     let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
-    var partialMiddleDefaultHolder:        PartialMiddleDefaultHolder'(u32, f64)         = undefined
-    var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8)    = undefined
-    var partialBufferHolder:               PartialBufferHolder'(bool, 5)                 = undefined
-    var explicitPrefixValueHolder:         ExplicitPrefixValueHolder'u8                  = undefined
-    var explicitSplitValueHolder:          ExplicitSplitValueHolder'u16                  = undefined
-    var partialTailOnlyHolder:             PartialTailOnlyHolder'(bool, f32)             = undefined
-    var composedTypeDefaultHolder:         ComposedTypeDefaultHolder's16                 = undefined
-    var sizeofDefaultHolder:               SizeofDefaultHolder'u64                       = undefined
-    var anonymousStructFieldHolder:        AnonymousStructFieldHolder'bool               = undefined
-    var anonymousStructBufferHolder:       AnonymousStructBufferHolder'(u8, 4)           = undefined
-    var anonymousUnionFieldHolder:         AnonymousUnionFieldHolder's32                 = undefined
+    var partialMiddleDefaultHolder:        PartialMiddleDefaultHolder'(u32, f64)
+    var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8)
+    var partialBufferHolder:               PartialBufferHolder'(bool, 5)
+    var explicitPrefixValueHolder:         ExplicitPrefixValueHolder'u8
+    var explicitSplitValueHolder:          ExplicitSplitValueHolder'u16
+    var partialTailOnlyHolder:             PartialTailOnlyHolder'(bool, f32)
+    var composedTypeDefaultHolder:         ComposedTypeDefaultHolder's16
+    var sizeofDefaultHolder:               SizeofDefaultHolder'u64
+    var anonymousStructFieldHolder:        AnonymousStructFieldHolder'bool
+    var anonymousStructBufferHolder:       AnonymousStructBufferHolder'(u8, 4)
+    var anonymousUnionFieldHolder:         AnonymousUnionFieldHolder's32
 
     #assert(#typeof(wrapped.item.value) == u16)
     #assert(#typeof(doubled.first.values) == #type [4] u8)

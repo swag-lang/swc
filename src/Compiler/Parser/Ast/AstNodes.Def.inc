@@ -109,7 +109,6 @@ SWC_NODE_DEF(IfVarDecl, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(WithVarDecl, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(InitializerExpr, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(UndefinedExpr, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
 //  Expressions

@@ -10,8 +10,8 @@ using Core, Pixel
 // time one screen costs.
 struct HtmlPainter
 {
-    layout:   *HtmlLayout = undefined
-    painter:  *Painter    = undefined
+    layout:   *HtmlLayout
+    painter:  *Painter
     images:   #null *HtmlImageCache
     renderer: #null IRenderer
 

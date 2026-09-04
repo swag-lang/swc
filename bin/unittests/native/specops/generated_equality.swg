@@ -320,12 +320,10 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
 #test
 {
-    // Assigning the widest member leaves no undefined byte behind, so the storage comparison
+    // Assigning the widest member leaves no indeterminate byte behind, so the storage comparison
     // a union keeps is well defined.
-    var a: OverlappedHolder = undefined
-    var b: OverlappedHolder = undefined
-    a.text = "same"
-    b.text = "same"
+    var a: OverlappedHolder = {text: "same"}
+    var b: OverlappedHolder = {text: "same"}
     Swag.assert(a == b)
 
     b.text = "other"
@@ -344,10 +342,9 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
 #test
 {
     // Padding is not a member: two values whose every member is equal compare equal whatever
-    // the bytes between them hold. 'undefined' plus a fill is the only way to observe it, since
-    // a defaulted value zeroes its storage.
-    var a: Padded = undefined
-    var b: Padded = undefined
+    // the bytes between them hold. A defaulted value zeroes its storage.
+    var a: Padded
+    var b: Padded
     Swag.memset(&a, 0xAA, #sizeof(Padded))
     Swag.memset(&b, 0x55, #sizeof(Padded))
     a.small = 1
@@ -363,8 +360,8 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
 #test
 {
     // The same holds through a nested member and through an array element.
-    var a: PaddedHolder = undefined
-    var b: PaddedHolder = undefined
+    var a: PaddedHolder
+    var b: PaddedHolder
     Swag.memset(&a, 0xAA, #sizeof(PaddedHolder))
     Swag.memset(&b, 0x55, #sizeof(PaddedHolder))
     a.first.small  = 1
@@ -380,8 +377,8 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     b.second.wide = 5
     Swag.assert(!eqPaddedHolder(a, b))
 
-    var c: [3] Padded = undefined
-    var d: [3] Padded = undefined
+    var c: [3] Padded
+    var d: [3] Padded
     Swag.memset(&c, 0xAA, #sizeof([3] Padded))
     Swag.memset(&d, 0x55, #sizeof([3] Padded))
     for i in 3

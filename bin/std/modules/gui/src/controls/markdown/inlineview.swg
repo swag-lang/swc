@@ -133,7 +133,7 @@ public struct InlineView
 {
     using wnd: Wnd
 
-    owner: *View = undefined
+    owner: *View
     kind:  BlockKind
     atoms: Array'InlineAtom
     lines: Array'InlineLine

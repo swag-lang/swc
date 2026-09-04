@@ -168,7 +168,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("true", State.Constant)
         .mapWords.add("false", State.Constant)
         .mapWords.add("null", State.Constant)
-        .mapWords.add("undefined", State.Constant)
 
         .mapWords.add("not", State.Error)
         .mapWords.add("foreach", State.Error)

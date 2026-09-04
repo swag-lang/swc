@@ -8,14 +8,14 @@ public impl Gamepad
     // Returns true if the corresponding 'padIndex' is connected
     func isConnected(padIndex: u32)->bool
     {
-        var state: XINPUT_STATE = undefined
+        var state: XINPUT_STATE
         return XInputGetState(padIndex, &state) == ERROR_SUCCESS
     }
 
     // Set the left and right vibration of the given 'padIndex'
     func setVibration(padIndex: u32, left, right: f32) fail
     {
-        var vibration: XINPUT_VIBRATION = undefined
+        var vibration: XINPUT_VIBRATION
         vibration.wLeftMotorSpeed  = cast(WORD) (0xFFFF * Math.saturate(left))
         vibration.wRightMotorSpeed = cast(WORD) (0xFFFF * Math.saturate(right))
         let res = XInputSetState(padIndex, &vibration)

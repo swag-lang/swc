@@ -39,7 +39,7 @@ impl LzwBitWriter
 // Encode one TIFF strip with MSB-first, early-transition LZW codes.
 func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
 {
-    var writer: LzwBitWriter = undefined
+    var writer: LzwBitWriter
     writer.result      = result
     writer.pending     = 0
     writer.pendingBits = 0

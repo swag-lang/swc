@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-var X: u32 = undefined
+var X: u32
 
 #[Swag.Compiler, Swag.Inline]
 func inlineCompilerSet()

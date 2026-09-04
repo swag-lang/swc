@@ -978,7 +978,6 @@ namespace
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Breakpoint:
             case MicroInstrOpcode::SanityInvalidate:
-            case MicroInstrOpcode::SanityUndefined:
             case MicroInstrOpcode::CmpRegReg:
             case MicroInstrOpcode::CmpRegImm:
                 return;

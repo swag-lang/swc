@@ -7,7 +7,7 @@
 #[Swag.Opaque, Swag.NoDoc]
 public struct Request
 {
-    owner:      *Wnd = undefined     // Window that requested the tooltip.
+    owner:      *Wnd     // Window that requested the tooltip.
     surfacePos: Math.Point           // Anchor in surface coordinates.
     str:        String               // Text to display.
     delay:      f32                  // Remaining delay in seconds.

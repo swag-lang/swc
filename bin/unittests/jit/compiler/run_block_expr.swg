@@ -27,7 +27,7 @@ struct AnyPair
 
 const PersistentAnyPair: AnyPair = #run
 {
-    var pair: AnyPair = undefined
+    var pair: AnyPair
     pair.item  = "abc"
     pair.other = "def"
     return pair
@@ -35,10 +35,7 @@ const PersistentAnyPair: AnyPair = #run
 
 const PersistentAnyArray: [2] any = #run
 {
-    var values: [2] any = undefined
-    values[0] = "first"
-    values[1] = "second"
-    return values
+    return [cast(any) "first", cast(any) "second"]
 }
 
 #assert(#typeof(ScalarValue) == s32)
@@ -60,7 +57,7 @@ const PersistentAnyArray: [2] any = #run
 {
     let value = #run
     {
-        var pair: AnyPair = undefined
+        var pair: AnyPair
         pair.item  = "abc"
         pair.other = "def"
         return pair
@@ -68,10 +65,7 @@ const PersistentAnyArray: [2] any = #run
 
     let values = #run
     {
-        var items: [2] any = undefined
-        items[0] = "first"
-        items[1] = "second"
-        return items
+        return [cast(any) "first", cast(any) "second"]
     }
 
     Swag.assert(cast(string) value.item == "abc")

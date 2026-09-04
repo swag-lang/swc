@@ -337,7 +337,6 @@ namespace
                 h = Math::hashCombine(h, value.getSliceCount());
                 break;
             case ConstantKind::Null:
-            case ConstantKind::Undefined:
                 break;
             case ConstantKind::TypeValue:
                 h = Math::hashCombine(h, stableTypeHash(ctx, value.getTypeValue()));
@@ -384,7 +383,6 @@ uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeIn
         case TypeInfoKind::Rune:
         case TypeInfoKind::CString:
         case TypeInfoKind::Null:
-        case TypeInfoKind::Undefined:
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypeInfo:
             return h;

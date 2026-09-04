@@ -86,8 +86,6 @@ namespace
             }
             case ConstantKind::Null:
                 return true;
-            case ConstantKind::Undefined:
-                return true;
 
             default:
                 SWC_UNREACHABLE();
@@ -179,7 +177,6 @@ void ConstantValue::constructPayloadFrom(OTHER& other)
             payloadTypeValue_ = other.payloadTypeValue_;
             break;
         case ConstantKind::Null:
-        case ConstantKind::Undefined:
             break;
         case ConstantKind::EnumValue:
             payloadEnumValue_ = other.payloadEnumValue_;
@@ -410,15 +407,6 @@ ConstantValue ConstantValue::makeNull(const TaskContext& ctx)
     ConstantValue cv;
     cv.typeRef_ = ctx.typeMgr().typeNull();
     cv.kind_    = ConstantKind::Null;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return cv;
-}
-
-ConstantValue ConstantValue::makeUndefined(const TaskContext& ctx)
-{
-    ConstantValue cv;
-    cv.typeRef_ = ctx.typeMgr().typeUndefined();
-    cv.kind_    = ConstantKind::Undefined;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -860,7 +848,6 @@ uint32_t ConstantValue::hash() const noexcept
             h = Math::hashCombine(h, payloadPointer_.val);
             break;
         case ConstantKind::Null:
-        case ConstantKind::Undefined:
             break;
         case ConstantKind::EnumValue:
             h = Math::hashCombine(h, payloadEnumValue_.val.get());
@@ -960,9 +947,6 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
 
         case ConstantKind::Null:
             return "null";
-
-        case ConstantKind::Undefined:
-            return "undefined";
 
         default:
             SWC_UNREACHABLE();

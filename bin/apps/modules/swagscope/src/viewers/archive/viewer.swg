@@ -109,7 +109,7 @@ struct ArchiveViewer
         previewStatus: *Label
     }
 
-    embedded:             Viewer.Embedded = undefined
+    embedded:             Viewer.Embedded
     archive:              ZipArchive
     entryLines:           Array'(#null *ListLine)
     load:                 Viewer.BackgroundLoad'ZipArchive

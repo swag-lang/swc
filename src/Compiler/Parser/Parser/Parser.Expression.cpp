@@ -551,12 +551,6 @@ AstNodeRef Parser::parseQuotedIdentifier()
 
 AstNodeRef Parser::parseInitializerExpression(TokenRef tokAssign)
 {
-    if (is(TokenId::KwdUndefined))
-    {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UndefinedExpr>(consume());
-        return nodeRef;
-    }
-
     const AstModifierFlags modifierFlags = parseModifiers();
     if (modifierFlags == AstModifierFlagsE::Zero)
         return parseExpression();

@@ -803,7 +803,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         Swag.assert(first != null)
 
         var done:    s32 = 0
-        var payload: AllocatorRemoteFreePayload = undefined
+        var payload: AllocatorRemoteFreePayload
         payload.allocator = itf
         payload.address   = first!
         payload.done      = &done
@@ -845,7 +845,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         Swag.assert(first != null)
 
         var done:    s32 = 0
-        var payload: AllocatorRemoteFreePayload = undefined
+        var payload: AllocatorRemoteFreePayload
         payload.allocator = itf
         payload.address   = first!
         payload.done      = &done

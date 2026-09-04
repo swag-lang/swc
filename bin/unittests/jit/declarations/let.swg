@@ -822,7 +822,7 @@ enum IfElseKind: u16
 {
     func explicitUndefinedSkipInit()->s32
     {
-        var x: s32 = undefined
+        var x: s32
         return 7
     }
 

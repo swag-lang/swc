@@ -44,7 +44,7 @@ impl IActionUI for ActionMoveSel
         let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()!
 
-        var undo: *Undo = undefined
+        var undo: *Undo
         switch cxt.id
         {
         case .Left1:

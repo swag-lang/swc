@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.
@@ -288,7 +288,7 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
     }
 
     // Horizontal six-tap sums for every row the vertical filter reads.
-    var sums: [21 * 16] s32 = undefined
+    var sums: [21 * 16] s32
     let sumStride           = cast(u64) width
     for row in cast(u64) (height + 5)
     {
@@ -313,7 +313,7 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
 // lanes, two vectors per row, and the vertical pass widens them on the fly.
 private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, height: s32)
 {
-    var sums: [21 * 2] Simd.S16x8 = undefined
+    var sums: [21 * 2] Simd.S16x8
     for row in cast(u64) (height + 5)
     {
         let line = src + row * srcStride - 2 * srcStride - 2
@@ -339,7 +339,7 @@ private func halfCenter16(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u
 // carrying the block.
 private func halfCenter8(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32)
 {
-    var sums: [21] Simd.S16x8 = undefined
+    var sums: [21] Simd.S16x8
     for row in cast(u64) (height + 5)
     {
         let line = src + row * srcStride - 2 * srcStride - 2
@@ -435,8 +435,8 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     // A window outside the replicated padding goes through a clamped copy first. The
     // right bound uses the sixteen-byte span of the packed row loads whatever the
     // block width, so the narrow filters may read wide.
-    var window:    [21 * 24] u8 = undefined
-    var src:       [*] u8       = undefined
+    var window:    [21 * 24] u8
+    var src:       [*] u8
     var srcStride: u64
     if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
@@ -458,7 +458,7 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
 
     // Each remaining position needs at most one intermediate plane: the averaging half of
     // section 8.4.2.2.1 rides in the last filter pass instead of a pass of its own.
-    var planeA: [16 * 16] u8 = undefined
+    var planeA: [16 * 16] u8
     if fracY == 0
     {
         if fracX == 2 do
@@ -559,8 +559,8 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
 
     // The right bound uses the sixteen-byte span of the packed row loads whatever the
     // block width, so the narrow blends may read wide.
-    var window:    [9 * 12] u8 = undefined
-    var src:       [*] u8      = undefined
+    var window:    [9 * 12] u8
+    var src:       [*] u8
     var srcStride: u64
     if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
     {

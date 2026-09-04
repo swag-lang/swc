@@ -35,7 +35,7 @@ func fillMemberFloatMatrix(b, t, l, r, n, f: f32, m: [4, 4] f32)
 
 #test
 {
-    var holder: MemberFloatMatrixParamHolder = undefined
+    var holder: MemberFloatMatrixParamHolder
     fillMemberFloatMatrix(10, 0, 0, 20, 0, 1, holder.matrix.m)
     Swag.assert(holder.matrix.m[0, 0] == 0.1)
     Swag.assert(holder.matrix.m[1, 1] == -0.2)

@@ -90,8 +90,8 @@ struct IntRect
 
 struct IntersectNode
 {
-    edge1: *Edge = undefined
-    edge2: *Edge = undefined
+    edge1: *Edge
+    edge2: *Edge
     pt:    IntPoint
 }
 
@@ -116,8 +116,8 @@ struct Edge
     curr:      IntPoint
     top:       IntPoint
     dx:        f64
-    polyType:  PolyType = undefined
-    side:      EdgeSide = undefined
+    polyType:  PolyType
+    side:      EdgeSide
     windDelta: s32
     windCnt:   s32
     windCnt2:  s32
@@ -154,7 +154,7 @@ struct PolyNode
 {
     index:    u32
     isOpen:   bool
-    jointype: JoinType = undefined
+    jointype: JoinType
     contour:  ClipperPath
     childs:   Array'(*PolyNode)
     parent:   #null *PolyNode
@@ -173,7 +173,7 @@ impl PolyNode
 
 struct Join
 {
-    outPt1: *OutPt = undefined
+    outPt1: *OutPt
     outPt2: #null *OutPt
     offPt:  IntPoint
 }
@@ -224,9 +224,9 @@ public struct Transform
         intersectList:     Array'#null *IntersectNode              // Intersections of the current scanbeam.
         scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
         maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
-        clipFillType:      PolyFillType = undefined                // Fill rule of the clip paths.
-        subjFillType:      PolyFillType = undefined                // Fill rule of the subject paths.
-        clipType:          ClipType     = undefined                // Boolean operation being performed.
+        clipFillType:      PolyFillType                // Fill rule of the clip paths.
+        subjFillType:      PolyFillType                // Fill rule of the subject paths.
+        clipType:          ClipType                // Boolean operation being performed.
         currentLM:         u64                                     // Index of the next local minimum to enter.
         activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
         sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.
@@ -667,7 +667,7 @@ impl Transform
             return nnEdge(result)
         }
 
-        var eStart: *Edge = undefined
+        var eStart: *Edge
         if isHorizontal(e)
         {
             if nextIsForward do
@@ -898,7 +898,7 @@ impl Transform
     {
         var horzEdge: *Edge = hE
 
-        var dir:                 Direction = undefined
+        var dir:                 Direction
         var horzLeft, horzRight: CInt
 
         let isOpen = (horzEdge.windDelta == 0)
@@ -1392,7 +1392,7 @@ impl Transform
 
         let isHorizontal = (op1.pt.y == j.offPt.y)
 
-        var op1b, op2b: *OutPt = undefined
+        var op1b, op2b: *OutPt
         if isHorizontal and (j.offPt == op1.pt) and (j.offPt == op2.pt)
         {
             if outRec1 != outRec2 do
@@ -2492,7 +2492,7 @@ impl Transform
 
     mtd isContributing(edge: *Edge)->bool
     {
-        var pft, pft2: PolyFillType = undefined
+        var pft, pft2: PolyFillType
         if edge.polyType == .Subject
         {
             pft  = .subjFillType
@@ -2659,8 +2659,8 @@ impl Transform
     #[Swag.Discardable]
     mtd addLocalMinPoly(e1, e2: *Edge, pt: IntPoint)->*OutPt
     {
-        var result: *OutPt = undefined
-        var e:      *Edge  = undefined
+        var result: *OutPt
+        var e:      *Edge
         var prevE:  #null *Edge
 
         if isHorizontal(e2) or (e1.dx > e2.dx)
@@ -2884,7 +2884,7 @@ impl Transform
         let outRec1 = nnOutRec(.polyOuts[e1.outIdx])
         let outRec2 = nnOutRec(.polyOuts[e2.outIdx])
 
-        var holeStateRec: *OutRec = undefined
+        var holeStateRec: *OutRec
         if outRec1RightOfOutRec2(outRec1, outRec2) do
             holeStateRec = outRec2
         elif outRec1RightOfOutRec2(outRec2, outRec1) do
@@ -3038,7 +3038,7 @@ impl Transform
                 e2.windCnt2 = (e2.windCnt2 == 0) ? 1 : 0
         }
 
-        var e1FillType, e2FillType, e1FillType2, e2FillType2: PolyFillType = undefined
+        var e1FillType, e2FillType, e1FillType2, e2FillType2: PolyFillType
         if e1.polyType == .Subject
         {
             e1FillType  = .subjFillType

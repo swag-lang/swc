@@ -1,9 +1,8 @@
 #global private
 
-// A global written by a '#run' block keeps its value into the emitted binary only when its
-// storage is emitted verbatim. '= undefined' places the global in the initialized data
-// segment, so what compile-time execution wrote is the byte image the artifact ships; a
-// zero-initialized global would land in '.bss' and lose the write, which is now an error.
+// A global written by a '#run' block is promoted from '.bss' to initialized data automatically.
+// The artifact therefore receives the bytes produced by compile-time execution without a
+// source-level uninitialized initializer.
 // Both halves of the language must agree here: this test runs under the JIT and again from
 // the produced executable.
 struct Pair
@@ -12,9 +11,9 @@ struct Pair
     y: s32
 }
 
-var GScalar: s32     = undefined
-var GArray:  [3] s32 = undefined
-var GPair:   Pair    = undefined
+var GScalar: s32
+var GArray:  [3] s32
+var GPair:   Pair
 var GSeeded: s32     = 1
 
 #run

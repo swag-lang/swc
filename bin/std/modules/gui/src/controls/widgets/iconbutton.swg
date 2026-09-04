@@ -240,10 +240,10 @@ impl IWnd for IconButton
         var icon    = .icon
 
         var subRectBk:    #null *ThemeImageRect
-        var colorBk:      Color = undefined
-        var colorIcon:    Color = undefined
-        var colorText:    Color = undefined
-        var colorChecked: Color = undefined
+        var colorBk:      Color
+        var colorIcon:    Color
+        var colorText:    Color
+        var colorChecked: Color
 
         switch .form
         {

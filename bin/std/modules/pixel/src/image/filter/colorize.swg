@@ -30,7 +30,7 @@ public impl Image
         }
 
         // Precompute bgr depending on luminance
-        var convArr: [256, 3] f32 = undefined
+        var convArr: [256, 3] f32
 
         if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {

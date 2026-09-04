@@ -2,8 +2,8 @@ const N   = 800'u64
 const NN  = N * N
 const INF = 0x0FFFFFFFFFFFFFFF'u64
 
-var g_HeapD: [*] u64 = undefined
-var g_HeapN: [*] u64 = undefined
+var g_HeapD: [*] u64
+var g_HeapN: [*] u64
 var g_HeapSize       = 0'u64
 
 var g_PopD = 0'u64

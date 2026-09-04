@@ -42,10 +42,10 @@ impl IWnd for RadioButton
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
         var subRectMark:   #null *ThemeImageRect
-        var colorBk:       Color = undefined
-        var colorBorder:   Color = undefined
-        var colorMark:     Color = undefined
-        var colorText:     Color = undefined
+        var colorBk:       Color
+        var colorBorder:   Color
+        var colorMark:     Color
+        var colorText:     Color
 
         switch
         {

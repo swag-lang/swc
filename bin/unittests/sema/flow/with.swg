@@ -116,7 +116,7 @@ func semaWithRetval()->{ a, b: s32 }
 
 func semaWithRetvalUndefined()->{ a, b: s32 }
 {
-    with var result: retval = undefined
+    with var result: retval
     {
         .a = 5
         .b = 8

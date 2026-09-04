@@ -699,7 +699,7 @@ impl Slice
         }
 
         // Significance map.
-        var indices: [64] u32 = undefined
+        var indices: [64] u32
         var count             = 0'u32
         let sigBase           = CabacSigBase[cat]
         let lastBase          = CabacLastBase[cat]

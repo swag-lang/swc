@@ -510,7 +510,7 @@ namespace
 
         const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
         const bool                   isRelocate        = modifierFlags.has(AstModifierFlagsE::Relocate);
-        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::UndefinedInit) || isRelocate;
+        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::FirstInit) || isRelocate;
         const SymbolVariable*        sourceStorage     = codeGen.runtimeStorageSymbol(rightRef);
         const bool                   movesTemporary    = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
         const CodeGen::LifecycleKind postKind          = isMove || movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;

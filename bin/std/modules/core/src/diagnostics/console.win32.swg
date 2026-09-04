@@ -3,7 +3,7 @@
 
 using Win32
 
-var g_ColorToWin: [Color] u16 = undefined
+var g_ColorToWin: [Color] u16
 
 #[Swag.Compiler]
 func colorToWin()

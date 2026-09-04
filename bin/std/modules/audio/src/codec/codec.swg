@@ -213,7 +213,7 @@ public func(T) registerCodec()
 #[Swag.NoDoc]
 public func registerCodecImplementation(type: const *Swag.TypeInfoStruct, itf: ICodec)
 {
-    var desc: CodecDesc = undefined
+    var desc: CodecDesc
     desc.type = type
     desc.itf  = itf
     g_Codecs.add(desc)
@@ -236,7 +236,7 @@ public func(T) registerPacketCodec()
 #[Swag.NoDoc]
 public func registerPacketCodecImplementation(type: const *Swag.TypeInfoStruct, itf: IPacketCodec)
 {
-    var desc: PacketCodecDesc = undefined
+    var desc: PacketCodecDesc
     desc.type = type
     desc.itf  = itf
     g_PacketCodecs.add(desc)
@@ -279,7 +279,7 @@ public struct Codec
         // Concrete codec type used for destruction.
         #[Swag.Late]
         type:                const *Swag.TypeInfoStruct
-        allocationAllocator: IAllocator = undefined
+        allocationAllocator: IAllocator
     }
 }
 

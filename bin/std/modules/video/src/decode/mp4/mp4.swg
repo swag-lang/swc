@@ -150,7 +150,7 @@ private struct Layout
 // Reads a big-endian 16-bit integer.
 func readU16(source: *Source)->u16 fail
 {
-    var bytes: [2] u8 = undefined
+    var bytes: [2] u8
     source.readExact(bytes)
     return (cast(u16) bytes[0] << 8) | cast(u16) bytes[1]
 }
@@ -158,7 +158,7 @@ func readU16(source: *Source)->u16 fail
 // Reads a big-endian 32-bit integer.
 func readU32(source: *Source)->u32 fail
 {
-    var bytes: [4] u8 = undefined
+    var bytes: [4] u8
     source.readExact(bytes)
     return (cast(u32) bytes[0] << 24) | (cast(u32) bytes[1] << 16) | (cast(u32) bytes[2] << 8) | cast(u32) bytes[3]
 }

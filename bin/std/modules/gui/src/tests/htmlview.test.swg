@@ -942,7 +942,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // Three positions, visited downwards and then upwards; every one must draw the same pixels
     // both times, and none of them may be blank.
     let stops             = [400.0'f32, 5_000.0'f32, 20_000.0'f32]
-    var downward: [3] u32 = undefined
+    var downward: [3] u32
     for index in stops.count
     {
         view.scroll.setScrollPos(0, stops[index])
@@ -1001,7 +1001,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(!view.virtualPendingSeek)
 
     let ratios             = [0.15'f32, 0.75'f32, 0.35'f32, 0.9'f32]
-    var firstPass: [4] u32 = undefined
+    var firstPass: [4] u32
     for ratio, index in ratios
     {
         view.scroll.setScrollPos(0, view.virtualHeight * ratio)

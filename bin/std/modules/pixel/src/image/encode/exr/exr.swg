@@ -93,7 +93,7 @@ internal impl IImageEncoder for Encoder
         const RgbaNames:      [4] string = ["A", "B", "G", "R"]
         const GrayNames:      [1] string = ["Y"]
         const GrayAlphaNames: [2] string = ["A", "Y"]
-        var names: const [..] string = undefined
+        var names: const [..] string
         if grayscale do
             names = source.pixelFormat.hasAlpha() ? GrayAlphaNames : GrayNames
         else do

@@ -98,7 +98,7 @@ impl IWnd for ColorPicker
                 }
             }
 
-            var modeFill: Image.FillHslType = undefined
+            var modeFill: Image.FillHslType
 
             if .mode == .AlphaHorizontal
             {

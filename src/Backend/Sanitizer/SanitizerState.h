@@ -36,12 +36,6 @@ struct SanitizerMovedRange
     SourceCodeRef origin;
 };
 
-struct SanitizerUndefinedRange
-{
-    uint64_t      size = 0;
-    SourceCodeRef origin;
-};
-
 // Abstract machine state at one program point: the tracked value of every virtual
 // register and simulated local stack slot, plus which register the CPU flags encode a
 // comparison of against zero.
@@ -65,14 +59,6 @@ struct SanitizerState
     // call itself re-marks its arguments afterwards). The value remembers the freeing
     // call so a proven fault can point back to its origin.
     std::unordered_map<int64_t, SourceCodeRef> freedPtrSlots;
-
-    // Frame ranges declared with an explicit 'undefined' initializer and not yet
-    // written, set by a 'SanityUndefined' marker: key = slot offset. Reading such a
-    // range is a proven read of uninitialized storage. Same
-    // discipline as movedFrom: join = intersection, any store that could alias the
-    // range initializes it, calls conservatively clear the set (out-parameters).
-    // The source identifies the declaration when every incoming path agrees on it.
-    std::unordered_map<int64_t, SanitizerUndefinedRange> undefinedInit;
 
     MicroReg flagsSubject = MicroReg::invalid();
 };

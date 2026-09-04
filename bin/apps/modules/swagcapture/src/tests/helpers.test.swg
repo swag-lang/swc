@@ -5,9 +5,9 @@ using Swag, Core
 struct HeadlessFixture
 {
     gui:      Gui.Testing.HeadlessHost
-    main:     *MainWnd  = undefined
-    editView: *EditView = undefined
-    capture:  *Capture  = undefined
+    main:     *MainWnd
+    editView: *EditView
+    capture:  *Capture
 }
 
 impl HeadlessFixture

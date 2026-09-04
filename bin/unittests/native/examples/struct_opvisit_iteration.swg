@@ -53,7 +53,7 @@ impl ShelfBins
 
             for idx in 4
             {
-                var visitItem: s32 = undefined
+                var visitItem: s32
                 switch idx
                 {
                 case 0: visitItem = me.morning
@@ -74,7 +74,7 @@ impl ShelfBins
 
         for idx in 4
         {
-            var visitItem: s32 = undefined
+            var visitItem: s32
             switch idx
             {
             case 0:  visitItem = me.morning

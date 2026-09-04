@@ -23,7 +23,7 @@ internal struct SurfaceDropTarget
     allowed:  DropEffect = None          // Effects the source published for the running gesture.
 }
 
-private var g_DropTargetVtbl: IDropTargetVtbl = undefined
+private var g_DropTargetVtbl: IDropTargetVtbl
 
 // Whether OLE was started on this thread. Registering a drop target and starting an outgoing
 // drag both need it, and the run loop of an application is a single thread.
@@ -702,9 +702,9 @@ internal struct DragSession
     dropSrc: DragDropSource     // What answers the keyboard and the mouse buttons.
 }
 
-private var g_DataObjectVtbl: IDataObjectVtbl    = undefined
-private var g_FormatEnumVtbl: IEnumFORMATETCVtbl = undefined
-private var g_DropSourceVtbl: IDropSourceVtbl    = undefined
+private var g_DataObjectVtbl: IDataObjectVtbl
+private var g_FormatEnumVtbl: IEnumFORMATETCVtbl
+private var g_DropSourceVtbl: IDropSourceVtbl
 
 // Selects the outgoing direction of a format enumeration.
 private const DATADIR_GET = 1'u32

@@ -9,7 +9,7 @@ struct CoreNonNullDynamicItem
 union CoreNonNullZeroUnion
 {
     bits:    u64
-    pointer: *CoreNonNullDynamicItem = undefined
+    pointer: *CoreNonNullDynamicItem
 }
 
 #[Swag.Strict]

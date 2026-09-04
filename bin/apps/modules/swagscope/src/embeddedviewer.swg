@@ -19,7 +19,7 @@ struct EmbeddedViewer
         commandBar:  *ViewerActionBar
     }
 
-    owner:             *ViewerWindow = undefined
+    owner:             *ViewerWindow
     fileName:          String
     title:             String
     choices:           Array'ViewerPluginChoice

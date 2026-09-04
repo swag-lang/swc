@@ -60,11 +60,11 @@ impl IWnd for Slider
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var colorBkLeft:   Color = undefined
-        var colorBkMiddle: Color = undefined
-        var colorBkRight:  Color = undefined
-        var colorMark1:    Color = undefined
-        var colorMark2:    Color = undefined
+        var colorBkLeft:   Color
+        var colorBkMiddle: Color
+        var colorBkRight:  Color
+        var colorMark1:    Color
+        var colorMark2:    Color
 
         if bc.isDisabled
         {
@@ -181,7 +181,7 @@ impl IWnd for Slider
             {
                 let posStep = .thumbRectAt(x, metrics.slider_StepSize)
 
-                var colorStep: Color = undefined
+                var colorStep: Color
                 if x <= .lowerRatio and .flags.has(.HilightBar) do
                     colorStep = .upperStepAnimation.cur()
                 elif x >= .lowerRatio and x <= .upperRatio and .flags.has(.HilightBar) and .flags.has(.Range) do

@@ -406,27 +406,6 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         }
     }
 
-    for (auto it = into.undefinedInit.begin(); it != into.undefinedInit.end();)
-    {
-        const auto f = from.undefinedInit.find(it->first);
-        if (f == from.undefinedInit.end() || f->second.size != it->second.size)
-        {
-            it      = into.undefinedInit.erase(it);
-            changed = true;
-        }
-        else
-        {
-            const SourceCodeRef& intoOrigin = it->second.origin;
-            const SourceCodeRef& fromOrigin = f->second.origin;
-            if (intoOrigin.isValid() && (intoOrigin.srcViewRef != fromOrigin.srcViewRef || intoOrigin.tokRef != fromOrigin.tokRef))
-            {
-                it->second.origin = {};
-                changed           = true;
-            }
-            ++it;
-        }
-    }
-
     if (into.flagsSubject.isValid() && into.flagsSubject != from.flagsSubject)
     {
         into.flagsSubject = MicroReg::invalid();
@@ -457,18 +436,6 @@ namespace
         }
     }
 
-    void clearUndefinedInitOverlaps(SanitizerState& state, const int64_t slot)
-    {
-        for (auto it = state.undefinedInit.begin(); it != state.undefinedInit.end();)
-        {
-            const int64_t rangeStart = it->first;
-            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second.size);
-            if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > rangeStart && slot < rangeEnd)
-                it = state.undefinedInit.erase(it);
-            else
-                ++it;
-        }
-    }
 }
 
 void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -488,26 +455,6 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 clearMovedFromOverlaps(state, slot);
             else
                 state.movedFrom.clear();
-        }
-    }
-
-    // Undefined-init ranges follow the moved-from discipline exactly: any store that
-    // could alias the range initializes it, a call can write through any escaped
-    // pointer (out-parameter fills) and forgets everything.
-    if (!state.undefinedInit.empty() && inst.op != MicroInstrOpcode::SanityUndefined)
-    {
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
-        {
-            state.undefinedInit.clear();
-        }
-        else if (def.flags.has(MicroInstrFlagsE::WritesMemory))
-        {
-            int64_t slot = 0;
-            if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-                resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
-                clearUndefinedInitOverlaps(state, slot);
-            else
-                state.undefinedInit.clear();
         }
     }
 
@@ -539,13 +486,6 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
                 state.movedFrom[slot] = {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef};
-            return;
-        }
-        case MicroInstrOpcode::SanityUndefined:
-        {
-            int64_t slot = 0;
-            if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
-                state.undefinedInit[slot] = {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef};
             return;
         }
         case MicroInstrOpcode::LoadRegImm:
@@ -947,32 +887,6 @@ bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& in
     }
 
     return resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, outSlot);
-}
-
-void Sanitizer::reportLoadFromUndefinedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)
-{
-    if (state.undefinedInit.empty())
-        return;
-
-    int64_t slot = 0;
-    if (!resolvePlainLoadStackSlot(slot, inst, def, ops, state))
-        return;
-
-    for (const auto& [rangeStart, range] : state.undefinedInit)
-    {
-        if (slot < rangeStart || slot >= rangeStart + static_cast<int64_t>(range.size))
-            continue;
-
-        const LocalSlotExtent* undefinedSlot = findLocalSlot(rangeStart);
-        if (range.origin.isValid() && undefinedSlot && undefinedSlot->sym)
-        {
-            const ReportNote note{.source = range.origin, .id = DiagnosticId::sanity_note_undefined_origin, .sym = undefinedSlot->sym};
-            report(inst, id, {}, std::span{&note, 1});
-        }
-        else
-            report(inst, id);
-        return;
-    }
 }
 
 void Sanitizer::reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)

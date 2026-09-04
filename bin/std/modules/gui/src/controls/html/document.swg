@@ -194,7 +194,7 @@ public struct HtmlNode
 #[Swag.NoDoc]
 public struct HtmlChildren
 {
-    document: const *HtmlDocument = undefined
+    document: const *HtmlDocument
     first = HtmlNoNode
 }
 

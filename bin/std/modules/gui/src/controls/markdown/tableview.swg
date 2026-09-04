@@ -12,7 +12,7 @@ private enum TableAlignment
 
 private struct TableCell
 {
-    view:   *InlineView = undefined
+    view:   *InlineView
     row:    u32
     column: u32
 }
@@ -22,7 +22,7 @@ public struct TableView
 {
     using wnd: Wnd
 
-    owner:        *View = undefined
+    owner:        *View
     cells:        Array'TableCell
     alignments:   Array'TableAlignment
     rowHeights:   Array'f32

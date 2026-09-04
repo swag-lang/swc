@@ -826,21 +826,6 @@ namespace
         if (!fieldSize)
             return Result::Continue;
 
-        if (field.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-        {
-            // The field's '= undefined' default skips its initialization: under
-            // lifecycle safety, poison the skipped range on every construction
-            // path (locals and heap alike). No static marker here: this helper
-            // also fills literal TEMPORARIES, whose whole-struct copy into the
-            // destination legitimately reads the skipped range.
-            if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
-            {
-                const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field.offset());
-                SWC_RESULT(CodeGenSafety::emitLifecyclePoison(codeGen, fieldAddressReg, fieldSize));
-            }
-            return Result::Continue;
-        }
-
         const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field.offset());
 
         // A 'Swag.Late' field is typed non-null, so the generic implicit-default
@@ -993,14 +978,12 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
     const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
-    if (symStruct.hasImplicitAllUndefinedDefault())
-        return Result::Continue;
     if (symStruct.hasImplicitAllZeroDefault())
     {
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, checkedTypeSizeInBytes(codeGen, typeInfo));
         return Result::Continue;
     }
-    if (symStruct.hasImplicitUndefinedDefault() || symStruct.requiresExplicitInitialization())
+    if (symStruct.requiresExplicitInitialization())
         return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     SmallVector<std::byte>     payloadStorage;
@@ -1040,9 +1023,6 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
     const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
-    if (symStruct.hasImplicitAllUndefinedDefault())
-        return Result::Continue;
-
     const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
     if (symStruct.hasImplicitAllZeroDefault())
     {
@@ -1051,7 +1031,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
         return Result::Continue;
     }
-    if (symStruct.hasImplicitUndefinedDefault() || symStruct.requiresExplicitInitialization())
+    if (symStruct.requiresExplicitInitialization())
     {
         for (uint32_t i = 0; i < count; ++i)
         {
@@ -1087,9 +1067,6 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
     const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
-    if (symStruct.hasImplicitAllUndefinedDefault())
-        return Result::Continue;
-
     const uint32_t sizeOf    = checkedTypeSizeInBytes(codeGen, typeInfo);
     MicroBuilder&  builder   = codeGen.builder();
     const auto     loopLabel = builder.createLabel();

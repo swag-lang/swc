@@ -23,7 +23,7 @@ public impl Image
             return
         }
 
-        var convArr: [256] u8 = undefined
+        var convArr: [256] u8
         for i in 256 do
             convArr[i] = cast(u8) Math.clamp(((cast(f32) i - 128.0) * level) + 128.0, 0.0, 255.0)
 

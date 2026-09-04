@@ -27,7 +27,7 @@ struct LocalVarPlain
 
 struct LocalVarRequired
 {
-    x: s32 = undefined
+    x: s32
     y: s32
 }
 

@@ -6,7 +6,7 @@ func(N: s32 = 5, M: s32 = 10) constDefaults()->s32 => N + M
 
 func(T, N: s32) fillArray(value: T)->[N] T
 {
-    var result: [N] T = undefined
+    var result: [N] T
     for var i = 0; i < N; i += 1 do
         result[i] = value
     return result

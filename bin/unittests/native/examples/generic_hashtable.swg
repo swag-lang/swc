@@ -37,9 +37,7 @@ func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
 
 func(K, V) create(hashFn: func(K)->u64, eqFn: func(K, K)->bool)->HashTable'(K, V)
 {
-    var result: HashTable'(K, V) = undefined
-    result.hashFn = hashFn
-    result.eqFn   = eqFn
+    var result: HashTable'(K, V) = {entries: null, states: null, count: 0, capacity: 0, hashFn: hashFn, eqFn: eqFn}
     allocateStorage'(K, V)(&result, DefaultCapacity)
     return result
 }

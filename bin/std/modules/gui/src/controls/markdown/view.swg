@@ -58,7 +58,7 @@ impl Style
 #[Swag.NoDoc]
 struct VisualBlock
 {
-    wnd:        *Wnd = undefined
+    wnd:        *Wnd
     inline:     #null *InlineView
     table:      #null *TableView
     html:       #null *HtmlView

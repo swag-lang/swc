@@ -171,7 +171,7 @@ namespace ResizeTools
     {
         let filterWidth = getFilterWidth(rmode)
 
-        var cscale, width: f64 = undefined
+        var cscale, width: f64
         if scale < 1.0
         {
             width  = filterWidth / scale

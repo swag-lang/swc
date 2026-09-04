@@ -8,7 +8,7 @@
 #[Swag.Inline]
 func(T) swap(x, y: *T)
 {
-    var tmp: T = undefined
+    var tmp: T
     tmp = #relocate x[]
     x[] = #relocate y[]
     y[] = #relocate tmp

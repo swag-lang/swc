@@ -181,7 +181,7 @@ impl FastNoise
         Debug.assert(.lacunarity > 0)
         Debug.assert(.gain >= 0)
 
-        var result: f32 = undefined
+        var result: f32
 
         let xi = x * .frequency
         let yi = y * .frequency

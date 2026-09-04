@@ -239,10 +239,15 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
 
 func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 {
-    var result: TriageDecision = undefined
-    result.queue                 = routeQueue(ticket)
-    result.responseTargetMinutes = computeResponseTargetMinutes(ticket)
-    result.escalationLevel       = computeEscalationLevel(ticket)
+    var result: TriageDecision =
+        {
+        queue:                 routeQueue(ticket),
+        responseTargetMinutes: computeResponseTargetMinutes(ticket),
+        escalationLevel:       computeEscalationLevel(ticket),
+        pageOnCall:            false,
+        notifyCustomerSuccess: false,
+        sendStatusPageLink:    false
+        }
 
     switch #complete ticket.priority
     {

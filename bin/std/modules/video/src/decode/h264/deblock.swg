@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.
@@ -641,7 +641,7 @@ private func storeLines4(dst: [*] u8, stride: u64, columns: Simd.U32x4)
 func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
     const TileStride = 16'u64
-    var tile: [8 * TileStride] u8 = undefined
+    var tile: [8 * TileStride] u8
 
     // Line k holds p3 p2 p1 p0 q0 q1 q2 q3 in its low eight bytes; the loads read eight more
     // bytes of the same line, which the padding of every plane keeps inside the row.
@@ -741,7 +741,7 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
     storeLines4(pix - 3 + 8 * stride, stride, cast #bit(Simd.U32x4) Simd.interleaveLow(x1, y1))
     storeLines4(pix - 3 + 12 * stride, stride, cast #bit(Simd.U32x4) Simd.interleaveHigh(x1, y1))
 
-    var pairs: [16] u16 = undefined
+    var pairs: [16] u16
     Simd.store(cast([*] u8) pairs.buffer, Simd.interleaveLow(q1, q2))
     Simd.store(cast([*] u8) pairs.buffer + 16, Simd.interleaveHigh(q1, q2))
     for line in 16'u64 do
@@ -754,8 +754,8 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
 func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
     const TileStride = 16'u64
-    var tile:  [4 * TileStride] u8 = undefined
-    var pairs: [8] u16             = undefined
+    var tile:  [4 * TileStride] u8
+    var pairs: [8] u16
 
     let r0 = Simd.load(pix - 2)
     let r1 = Simd.load(pix - 2 + stride)

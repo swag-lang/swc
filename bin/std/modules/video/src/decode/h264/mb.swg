@@ -1823,7 +1823,7 @@ impl Slice
                 elif mb.transform8x8
                 {
                     // CAVLC codes an 8x8 block as four interleaved 4x4 blocks.
-                    var cell16: [16] s16 = undefined
+                    var cell16: [16] s16
                     count = residualCavlc(&.bits, nC, 16, cell16.buffer)
                     for coefficient in 16'u64 do
                         mb.residual!.luma8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]

@@ -123,7 +123,7 @@ impl IWnd for FrameWnd
         let metrics = .themeMetrics()
 
         var subRectBorder: #null *ThemeImageRect
-        var colorBorder:   Color = undefined
+        var colorBorder:   Color
 
         switch .frameForm
         {

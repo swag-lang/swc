@@ -75,7 +75,7 @@ func nullableLength(value: #null string)->u64 => value.count
     Swag.assert(nullableLength(KEY) == 4)
     Swag.assert((cast(NullableName) KEY).length == 4)
 
-    var row: Row = undefined
+    var row: Row
     row.id   = 1
     row.name = KEY
     Swag.assert(row.name.length == 4)

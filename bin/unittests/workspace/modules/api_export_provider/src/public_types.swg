@@ -44,7 +44,7 @@ struct DepImportedDefaultOuter
 {
     public
     {
-        required: s32 = undefined
+        required: s32
         timing:   DepImportedDefaultInner
         marker:   s32 = 42
     }

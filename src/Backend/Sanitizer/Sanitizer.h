@@ -69,11 +69,6 @@ public:
     void report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId);
     void report(const MicroInstr& inst, DiagnosticId id, std::string_view sym, std::string_view what);
 
-    // Reports 'id' when 'inst' is a plain load whose stack slot falls inside one of the
-    // poisoned ranges. Address computations and indexed forms are left alone: the first is a
-    // legitimate way to (re)initialize through an out-parameter, the second cannot prove the
-    // range it touches.
-    void reportLoadFromUndefinedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
     void reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
 
 private:

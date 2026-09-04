@@ -262,7 +262,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
     // The panic entry captures before calling a user hook. Capturing from the hook itself stops at
     // the panic frame on Windows and loses the application caller, which made devmode reports no
     // more useful than release reports. A direct internal call still has a local fallback.
-    var fallback: [64] *void = undefined
+    var fallback: [64] #null *void = cast(#null *void) null
     var trace                = Swag.makeSlice(&cxt.panicStack[0], cxt.panicStackCount)
     if !cxt.panicStackCount
     {

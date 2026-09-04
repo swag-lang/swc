@@ -228,7 +228,7 @@ impl Offset
         else do
             .miterLim = 0.5
 
-        var arcT: f64 = undefined
+        var arcT: f64
         if .arcTolerance <= 0.0 do
             arcT = DefaultArcTolerance
         elif .arcTolerance > abs(delta) * DefaultArcTolerance do

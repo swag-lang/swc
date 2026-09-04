@@ -123,7 +123,7 @@ struct PropWnd
     }
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
-    gridBindType: typeinfo = undefined
+    gridBindType: typeinfo
 
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.

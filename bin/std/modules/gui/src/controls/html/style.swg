@@ -695,7 +695,7 @@ func htmlPropertyFromName(name: string)->HtmlProperty
 #[Swag.NoDoc]
 public struct HtmlDeclarationContext
 {
-    pool:     *HtmlValuePool = undefined
+    pool:     *HtmlValuePool
     length:   HtmlLengthContext
     defaults: HtmlStyleDefaults
 }
@@ -724,7 +724,7 @@ impl HtmlComputedStyle
         if parts.isEmpty() do
             return
 
-        var values: [4] HtmlLength = undefined
+        var values: [4] HtmlLength
         for index in Math.min(parts.count, 4)
         {
             let parsed = .length(parts[index].toString(), context)
@@ -810,7 +810,7 @@ impl HtmlComputedStyle
         if parts.isEmpty() do
             return
 
-        var corners: [4] f32 = undefined
+        var corners: [4] f32
         for index in Math.min(parts.count, 4)
         {
             let parsed = .length(parts[index].toString(), context)

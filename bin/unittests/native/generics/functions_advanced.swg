@@ -78,7 +78,7 @@ func doubleF64(x: f64)->f64 => x * 2.0
 // Concrete-typed map over array
 func mapS32x3(values: [3] s32, transform: func(s32)->s32)->[3] s32
 {
-    var result: [3] s32 = undefined
+    var result: [3] s32
     for var i = 0; i < 3; i += 1 do
         result[i] = transform(values[i])
     return result
@@ -132,7 +132,7 @@ func(T, N: s32) allEqual(values: [N] T, target: T)->bool
 // Generic reverse array
 func(T, N: s32) reverse(values: [N] T)->[N] T
 {
-    var result: [N] T = undefined
+    var result: [N] T
     for var i = 0; i < N; i += 1 do
         result[i] = values[N - 1 - i]
     return result

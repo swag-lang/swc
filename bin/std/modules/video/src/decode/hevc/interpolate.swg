@@ -262,11 +262,11 @@ impl Decoder
     // Averages two integer-position predictions directly into the reconstructed picture.
     private mtd averageIntegerPrediction(reference0, reference1: *Frame, component: u32, source0X, source0Y, source1X, source1Y, destinationX, destinationY: s32, width, height: u32)
     {
-        var source0, source1:             const [*] u16 = undefined
+        var source0, source1:             const [*] u16
         var source0Stride, source1Stride: u64
         var source0Width, source0Height:  s32
         var source1Width, source1Height:  s32
-        var destination:                  [*] u16       = undefined
+        var destination:                  [*] u16
         var destinationStride:            u64
         if !component
         {
@@ -349,10 +349,10 @@ impl Decoder
     // Copies one integer-position prediction directly into the reconstructed picture.
     private mtd copyIntegerPrediction(reference: *Frame, component: u32, sourceX, sourceY, destinationX, destinationY: s32, width, height: u32)
     {
-        var source:                    const [*] u16 = undefined
+        var source:                    const [*] u16
         var sourceStride:              u64
         var sourceWidth, sourceHeight: s32
-        var destination:               [*] u16       = undefined
+        var destination:               [*] u16
         var destinationStride:         u64
         if !component
         {
@@ -402,7 +402,7 @@ impl Decoder
     // copy instead of a clamp inside the filter loop.
     private mtd const gatherReference(frame: *Frame, component: u32, xInt, yInt: s32, width, height, before, taps: u32, destination: [*] u16, destinationStride: u64)
     {
-        var plane:  const [*] u16 = undefined
+        var plane:  const [*] u16
         var stride: u64
         var planeWidth, planeHeight: s32
         if !component
@@ -457,8 +457,8 @@ impl Decoder
         let lumaTapsX = lumaTaps(xFrac)
         let lumaTapsY = lumaTaps(yFrac)
 
-        var gathered:        [MaxRefSide * MaxRefSide] u16 = undefined
-        var reference:       const [*] u16                 = undefined
+        var gathered:        [MaxRefSide * MaxRefSide] u16
+        var reference:       const [*] u16
         var referenceStride: u64
         let firstX                                         = xInt - 3
         let firstY                                         = yInt - 3
@@ -556,7 +556,7 @@ impl Decoder
         }
 
         // Both directions: the horizontal filter runs over every row the vertical one reads.
-        var intermediate: [MaxRefSide * MaxPredSide] s16 = undefined
+        var intermediate: [MaxRefSide * MaxPredSide] s16
         for row in height + 7
         {
             let source = cast(u64) row * referenceStride
@@ -628,8 +628,8 @@ impl Decoder
         let chromaTapsX = chromaTaps(xFrac)
         let chromaTapsY = chromaTaps(yFrac)
 
-        var gathered:        [MaxRefSide * MaxRefSide] u16 = undefined
-        var reference:       const [*] u16                 = undefined
+        var gathered:        [MaxRefSide * MaxRefSide] u16
+        var reference:       const [*] u16
         var referenceStride: u64
         let firstX                                         = xInt - 1
         let firstY                                         = yInt - 1
@@ -722,7 +722,7 @@ impl Decoder
             return
         }
 
-        var intermediate: [MaxRefSide * MaxPredSide] s16 = undefined
+        var intermediate: [MaxRefSide * MaxPredSide] s16
         for row in height + 3
         {
             let source = cast(u64) row * referenceStride
@@ -785,7 +785,7 @@ impl Decoder
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
         let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
 
-        var destination: [*] u16 = undefined
+        var destination: [*] u16
         var stride:      u64
         if !component
         {

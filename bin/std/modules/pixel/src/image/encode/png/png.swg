@@ -86,7 +86,7 @@ private
         width:             u32
         height:            u32
         bitDepth:          u8
-        colorType:         ColorType = undefined
+        colorType:         ColorType
         compressionMethod: u8
         filterMethod:      u8
         interlaceMethod:   u8

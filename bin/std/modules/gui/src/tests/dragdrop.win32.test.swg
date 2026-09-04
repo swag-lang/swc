@@ -72,7 +72,7 @@ internal struct StreamOnlySource
     inner:  #null *DragDataObject      // Object the blocks are produced by.
 }
 
-var g_StreamOnlyVtbl: IDataObjectVtbl = undefined
+var g_StreamOnlyVtbl: IDataObjectVtbl
 
 internal impl StreamOnlySource
 {

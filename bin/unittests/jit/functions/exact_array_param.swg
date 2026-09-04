@@ -50,7 +50,7 @@ impl ExactArrayParamJitWriter
 
 #test
 {
-    var digest: ExactArrayParamJitDigest = undefined
+    var digest: ExactArrayParamJitDigest
     fillExactDigest(digest, 9'u8)
 
     var checksum: s32 = 0

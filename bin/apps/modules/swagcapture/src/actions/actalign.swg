@@ -73,7 +73,7 @@ impl IActionUI for ActionAlign
         let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()!
 
-        var undo: *Undo = undefined
+        var undo: *Undo
         switch cxt.id
         {
         case .AlignLeft:    undo = capture.newUndo(.AlignLeft)

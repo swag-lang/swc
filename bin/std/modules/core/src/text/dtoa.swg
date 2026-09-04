@@ -17,7 +17,8 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
     d.assign(mant)
     d.shift(cast(s32) exp - Swag.F64.MantBits)
 
-    var digs: DecimalSlice = undefined
+    var digs: DecimalSlice
+    digs.neg = false
     let shortest           = prec < 0
     if shortest
     {
@@ -370,7 +371,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
     switch exp
     {
     case (1 << Swag.F64.ExpBits) - 1:
-        var s: string = undefined
+        var s: string
         switch
         {
         case mant != 0: s = "NaN"
@@ -398,8 +399,11 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         var f:    FloatExt
         var {lower, upper}     = f.assignComputeBounds(mant, exp, neg)
         var tmp:  [32] u8
-        var digs: DecimalSlice = undefined
-        digs.d = tmp
+        var digs: DecimalSlice
+        digs.d   = tmp
+        digs.nd  = 0
+        digs.dp  = 0
+        digs.neg = false
 
         ok = f.shortestDecimal(&digs, &lower, &upper)
         if ok
@@ -434,8 +438,11 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         if digits <= 15
         {
             var tmp:  [24] u8
-            var digs: DecimalSlice = undefined
-            digs.d = tmp
+            var digs: DecimalSlice
+            digs.d   = tmp
+            digs.nd  = 0
+            digs.dp  = 0
+            digs.neg = false
             var f = FloatExt{mant, exp - cast(s64) Swag.F64.MantBits, neg}
             ok = f.fixedDecimal(&digs, digits)
             if ok do

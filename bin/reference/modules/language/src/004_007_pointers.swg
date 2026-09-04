@@ -51,13 +51,12 @@ as `if p == null do return`, `if p do ...`, `Swag.assert(p != null)`, or the lef
 `and`/`or`), the postfix `!` asserts it explicitly (a safety check panics at runtime if
 the value is still null), and `?.` skips the access entirely when the value is null.
 Comparisons between `#null` and bare values of the same type are always allowed.
-`undefined` remains an explicit low-level escape hatch and must only be used when the
-storage is initialized manually before it is read.
+Every declared value begins with its type's safe default; the compiler may elide
+that initialization only after proving that it cannot be observed.
 
 A value with `opDrop` can be consumed with `#move` only when resetting its moved-from
-source does not require explicit initialization. Give required fields a default, or use
-`undefined` deliberately as the low-level escape hatch described above, before moving a
-droppable value.
+source does not require explicit initialization. Give required fields a default;
+otherwise the value cannot be moved from safely.
 */
 #test
 {
@@ -318,7 +317,7 @@ The exposed type is non-null, so uses need no `!`; every read is guarded (a runt
 null panic when still unset). `Swag.isSet` tests whether the value has been assigned, without
 reading it. `Swag.Late` needs a nullable-capable type (pointer, slice, `string`, `cstring`,
 interface, function): it uses the null bit pattern as the 'unset' sentinel. A local or
-parameter uses `= undefined` definite assignment instead.
+parameter uses `` definite assignment instead.
 */
 struct LateDocResource
 {

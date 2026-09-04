@@ -78,19 +78,20 @@ impl PikeVm
     {
         .resize(program)
 
-        var frame: Frame = undefined
+        var frame: Frame
         frame.insts     = program.insts.buffer!
         frame.byteSets  = program.byteSets.buffer
         frame.hay       = hay
         frame.limit     = limit
         frame.slotCount = program.slotCount
-        frame.pcs[0]    = .pcsCurrent.buffer!
-        frame.pcs[1]    = .pcsNext.buffer!
-        frame.slots[0]  = .slotsCurrent.buffer!
-        frame.slots[1]  = .slotsNext.buffer!
+        frame.pcs       = [.pcsCurrent.buffer!, .pcsNext.buffer!]
+        frame.slots     = [.slotsCurrent.buffer!, .slotsNext.buffer!]
+        frame.counts    = [0'u64, 0]
+        frame.gens      = [0'u32, 0]
         frame.work      = .work.buffer!
         frame.visited   = .visited.buffer!
         frame.stack     = .stack.buffer!
+        frame.stackTop  = 0
         frame.lastGen   = .lastGen
 
         let matched = frame.run(program, start, anchored, wholeSubject, .matchSlots.buffer!)

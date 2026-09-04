@@ -30,7 +30,7 @@ func semaTest001()
 {
     let box:     Box'bool
     let buffer:  Buffer'(s32, 3)
-    var wrapped: Wrapper'string = undefined
+    var wrapped: Wrapper'string
     let doubled: DoubleBuffer'(u8, 4)
     let partial: DefaultBuffer'u16
 

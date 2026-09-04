@@ -19,12 +19,10 @@ var D0: #null const *s32
 var D1: #null const [..] s32
 var D2: #null const [*] s32
 var D3: const [2] s32
-var D4: const QualifiedStrictPtr   = undefined
-var D5: const QualifiedStrictSlice = undefined
 
 #assert(#typeof(D3) == const [2] s32)
-#assert(#typeof(D4) == const *s32)
-#assert(#typeof(D5) == const [..] s32)
+#assert(#fullnameof(#type const QualifiedStrictPtr) == "const *s32")
+#assert(#fullnameof(#type const QualifiedStrictSlice) == "const [..] s32")
 
 func acceptConstAny(value: const any) {}
 func widenConstAny(value: any)->const any => value

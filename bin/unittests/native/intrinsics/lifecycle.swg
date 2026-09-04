@@ -1558,22 +1558,22 @@ func intrinsicInitStrictPointerInfo()->bool
     var first:  s32 = 42
     var second: s32 = 7
 
-    var value: IntrinsicStrictS32Ptr = undefined
+    var value: IntrinsicStrictS32Ptr
     Swag.init(&value)(cast(IntrinsicStrictS32Ptr) &first)
 
-    var values: [2] IntrinsicStrictS32Ptr = undefined
-    Swag.init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
+    var values: [2] IntrinsicStrictS32Ptr
+    Swag.init(values)(cast(IntrinsicStrictS32Ptr) &second)
 
     return value[] == 42 and values[0][] == 7 and values[1][] == 7
 }
 
 func intrinsicInitStrictStringInfo()->bool
 {
-    var value: IntrinsicStrictStringAlias = undefined
+    var value: IntrinsicStrictStringAlias
     Swag.init(&value)(cast(IntrinsicStrictStringAlias) "hello")
 
-    var values: [2] IntrinsicStrictStringAlias = undefined
-    Swag.init(&values, 2)(cast(IntrinsicStrictStringAlias) "world")
+    var values: [2] IntrinsicStrictStringAlias
+    Swag.init(values)(cast(IntrinsicStrictStringAlias) "world")
 
     return cast(string) value == "hello" and cast(string) values[0] == "world" and cast(string) values[1] == "world"
 }

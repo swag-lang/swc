@@ -411,8 +411,8 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
         }
 
     case H264.IntraHorizontalDown:
-        var topRef:  [18] s32 = undefined
-        var leftRef: [10] s32 = undefined
+        var topRef:  [18] s32
+        var leftRef: [10] s32
         topRef[0]  = left[0]
         topRef[1]  = corner
         leftRef[0] = top[0]

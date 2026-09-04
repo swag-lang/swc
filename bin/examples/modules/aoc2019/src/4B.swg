@@ -18,7 +18,7 @@ func day4B()
     for x in 246515 to 739105
     {
         var div         = 100_000
-        var str: [6] u8 = undefined
+        var str: [6] u8
         for i in 6
         {
             str[i] = cast(u8) ((x / div) % 10)

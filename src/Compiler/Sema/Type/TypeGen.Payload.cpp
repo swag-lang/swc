@@ -175,7 +175,7 @@ namespace
 
     TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting)
     {
-        if (type.isVoid() || type.isNull() || type.isUndefined())
+        if (type.isVoid() || type.isNull())
             return {.canCopy = false};
 
         if (type.isAlias())
@@ -340,10 +340,6 @@ namespace
         {
             rtType.nativeKind = Runtime::TypeInfoNativeKind::Void;
             return;
-        }
-        if (type.isUndefined())
-        {
-            rtType.nativeKind = Runtime::TypeInfoNativeKind::Undefined;
         }
     }
 

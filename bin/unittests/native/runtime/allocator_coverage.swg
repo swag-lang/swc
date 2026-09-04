@@ -536,7 +536,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
         var blockAddr: #null *void        = null
         var done:      s32                = 0
-        var payload:   AllocRetirePayload = undefined
+        var payload:   AllocRetirePayload
         payload.allocator = itf
         payload.out       = &blockAddr
         payload.size      = 64
@@ -577,7 +577,7 @@ func freeOne(itf: IAllocator, address: #null *void)
 
         var blockAddr: #null *void        = null
         var done:      s32                = 0
-        var payload:   AllocRetirePayload = undefined
+        var payload:   AllocRetirePayload
         payload.allocator = itf
         payload.out       = &blockAddr
         payload.size      = 64
@@ -609,7 +609,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         let itf = makeAllocator(&alloc)
 
         var addresses: [FullPageRetireCount] #null *void
-        var payload:   FullPageRetirePayload = undefined
+        var payload:   FullPageRetirePayload
         payload.allocator = itf
         payload.out       = &addresses
 
@@ -676,7 +676,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         let itf = makeAllocator(&alloc)
         shared.itf = itf
 
-        var handles: [PageThreadCount] Th.HANDLE = undefined
+        var handles: [PageThreadCount] #null Th.HANDLE = cast(#null Th.HANDLE) null
         for i in PageThreadCount
         {
             var tid: Th.DWORD
@@ -689,8 +689,8 @@ func freeOne(itf: IAllocator, address: #null *void)
 
         for i in PageThreadCount
         {
-            discard Th.WaitForSingleObject(handles[i], Th.INFINITE)
-            Th.CloseHandle(handles[i])
+            discard Th.WaitForSingleObject(handles[i]!, Th.INFINITE)
+            Th.CloseHandle(handles[i]!)
         }
 
         let after = alloc.stats()
@@ -757,7 +757,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         shared.itf   = itf
         shared.alloc = &alloc
 
-        var handles: [StressCount] Th.HANDLE = undefined
+        var handles: [StressCount] #null Th.HANDLE = cast(#null Th.HANDLE) null
         for i in StressCount
         {
             var tid: Th.DWORD
@@ -766,8 +766,8 @@ func freeOne(itf: IAllocator, address: #null *void)
         }
         for i in StressCount
         {
-            discard Th.WaitForSingleObject(handles[i], Th.INFINITE)
-            Th.CloseHandle(handles[i])
+            discard Th.WaitForSingleObject(handles[i]!, Th.INFINITE)
+            Th.CloseHandle(handles[i]!)
         }
         Swag.assert(alloc.stats().countAlloc == StressCount)
 

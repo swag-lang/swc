@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
 {
     if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isString() || type.isCString() ||
-        type.isRune() || type.isAny() || type.isVoid() || type.isUndefined())
+        type.isRune() || type.isAny() || type.isVoid())
         return LayoutKind::Native;
 
     if (type.isEnum())

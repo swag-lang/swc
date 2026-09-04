@@ -38,7 +38,7 @@ struct BorrowIndexHolder
 // the pointer value points at 'src' (caller-owned), not into the local 'vec'.
 func borrowIndexPointerElementCopy(h: *BorrowIndexHolder, src: *s32)
 {
-    var vec: BorrowIndexVec = undefined
+    var vec: BorrowIndexVec
     vec.count = 0
     vec.add(src)
     h.picked = vec[0]
@@ -47,7 +47,7 @@ func borrowIndexPointerElementCopy(h: *BorrowIndexHolder, src: *s32)
 // Same through a builtin array of pointers.
 func borrowIndexBuiltinArrayElement(h: *BorrowIndexHolder, src: *s32)
 {
-    var arr: [4] *s32 = undefined
+    var arr: [4] *s32
     arr[0]   = src
     h.picked = arr[0]
 }

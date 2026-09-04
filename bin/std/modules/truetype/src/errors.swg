@@ -1,6 +1,6 @@
 using Swag, Core
 
-var Errors: [0xFF] #null string = undefined
+var Errors: [0xFF] #null string
 
 func fault(code: u8) fail
 {

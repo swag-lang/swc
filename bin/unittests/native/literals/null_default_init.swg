@@ -42,32 +42,32 @@
     Swag.assert(p != null)
 }
 
-// undefined: skip zero-initialization, then assign before use
+// Default-initialized scalars can be assigned normally before use.
 #test
 {
-    var a: s32 = undefined
+    var a: s32
     a = 42
     Swag.assert(a == 42)
 }
 
 #test
 {
-    var a: u64 = undefined
+    var a: u64
     a = 0xDEAD_BEEF'u64
     Swag.assert(a == 0xDEAD_BEEF'u64)
 }
 
 #test
 {
-    var a: f64 = undefined
+    var a: f64
     a = 3.14'f64
     Swag.assert(a > 3.13'f64 and a < 3.15'f64)
 }
 
-// undefined for pointer: assign before use
+// Default-initialized pointer: assign before use.
 #test
 {
-    var a: *s32 = undefined
+    var a: *s32
     var v: s32  = 99
     a = &v
     Swag.assert(a[] == 99)
@@ -75,22 +75,22 @@
 
 struct Point { x: s32, y: s32 }
 
-// undefined struct field default: field must be explicitly set
+// Struct fields have safe defaults and can be set normally.
 #test
 {
-    struct Vec2 { x: f32 = undefined, y: f32 = undefined }
+    struct Vec2 { x: f32, y: f32 }
 
-    var v: Vec2 = undefined
+    var v: Vec2
     v.x = 1.0'f32
     v.y = 2.0'f32
     Swag.assert(v.x == 1.0'f32)
     Swag.assert(v.y == 2.0'f32)
 }
 
-// undefined array: elements set before reading
+// Array elements can be set before reading.
 #test
 {
-    var arr: [3] s32 = undefined
+    var arr: [3] s32
     arr[0] = 10
     arr[1] = 20
     arr[2] = 30

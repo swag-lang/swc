@@ -30,8 +30,8 @@ struct Surface
     public
     {
         using native: NativeSurface                // Platform-specific window state.
-        app:          *Application = undefined     // Application that owns the surface.
-        wnd:          *SurfaceWnd  = undefined     // Root window containing the surface view.
+        app:          *Application     // Application that owns the surface.
+        wnd:          *SurfaceWnd     // Root window containing the surface view.
         userData:     #null *void                  // Optional caller-owned data.
         surfaceId:    String                       // Identifier used by cross-process custom messages.
 

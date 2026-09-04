@@ -99,7 +99,7 @@ impl Decoder
         let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
         let size     = block.size
 
-        var destination: [*] u16 = undefined
+        var destination: [*] u16
         var stride:      u64
         if !block.component
         {
@@ -297,7 +297,7 @@ impl Decoder
             return
         }
 
-        var intermediate: [32 * 32] s32 = undefined
+        var intermediate: [32 * 32] s32
 
         if useDst
         {
@@ -435,7 +435,7 @@ impl Decoder
     // Applies both passes of the HEVC four-point inverse DCT.
     private mtd inverseDct4(lastX, lastY: u32, bdShift: s32)
     {
-        var intermediate: [16] s32 = undefined
+        var intermediate: [16] s32
         let rows = lastY + 1
         for x in lastX + 1
         {
@@ -477,7 +477,7 @@ impl Decoder
     // rows removes the repeated products shared by the mirrored output samples.
     private mtd inverseDct8(lastX, lastY: u32, bdShift: s32)
     {
-        var intermediate: [64] s32 = undefined
+        var intermediate: [64] s32
         let rows = lastY + 1
         for x in lastX + 1
         {
@@ -560,7 +560,7 @@ impl Decoder
         let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
         let size     = block.size
 
-        var destination: [*] u16 = undefined
+        var destination: [*] u16
         var stride:      u64
         if !block.component
         {

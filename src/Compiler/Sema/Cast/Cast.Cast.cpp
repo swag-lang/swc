@@ -701,7 +701,7 @@ namespace
     Result computeStructSetReceiverInit(Sema& sema, TypeRef dstTypeRef, const SymbolFunction& calledFn, ConstantRef& outInitCstRef)
     {
         outInitCstRef = ConstantRef::invalid();
-        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::FullInit))
+        if (calledFn.hasFullInitialization())
             return Result::Continue;
 
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
@@ -769,6 +769,7 @@ namespace
         SWC_RESULT(Cast::resolveStructSetCastCandidate(sema, codeRef, view.typeRef(), dstTypeRef, castKind, outData.calledFn, paramTypeRef, outData.sourceArgRef));
         if (!outData.calledFn)
             return Result::Continue;
+        SWC_RESULT(sema.waitSemaCompleted(outData.calledFn, codeRef));
 
         if (paramTypeRef.isValid() && view.typeRef() != paramTypeRef)
         {
@@ -893,11 +894,6 @@ namespace
             return Result::Continue;
         if (srcType.isAggregate() || srcType.isArray())
             return Result::Continue;
-        // An explicit `undefined` initializer leaves the storage uninitialized:
-        // there is no per-element value to fill.
-        if (srcType.isUndefined())
-            return Result::Continue;
-
         const TypeRef fillTypeRef = arrayFillLeafTypeRef(sema, dstTypeRef);
         if (!fillTypeRef.isValid())
             return Result::Continue;
@@ -1378,15 +1374,6 @@ Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromUndefined(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
-{
-    SWC_UNUSED(sema);
-    SWC_UNUSED(castRequest);
-    SWC_UNUSED(srcTypeRef);
-    SWC_UNUSED(dstTypeRef);
-    return Result::Continue;
-}
-
 Result Cast::castFromIndirectValue(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeRef valueTypeRef = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
@@ -1612,15 +1599,12 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
         const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
         const bool allowAliasNullCast = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
-        // 'undefined' is the explicit low-level escape and is valid for ANY storage,
-        // including strict aliases.
-        const bool allowAliasUndefinedCast          = srcType.isUndefined();
         const bool allowAliasAnyCast                = dstType.isAny();
         const bool allowAliasNullableCast           = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
         const bool allowAliasUfcsReceiverCast       = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
         const bool allowAliasIndirectValueCast      = indirectValueTypeRef.isValid();
         const bool allowAliasUnderlyingToStrictCast = !srcType.isAlias() && dstType.isAlias() && resolvedSrcTypeRef == resolvedDstTypeRef;
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasUndefinedCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast && !allowAliasUnderlyingToStrictCast)
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast && !allowAliasUnderlyingToStrictCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
@@ -1653,8 +1637,6 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castFromEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (srcType.isUndefined())
-        res = castFromUndefined(sema, castRequest, srcTypeRef, dstTypeRef);
     // A reference reads as its pointee for scalar conversions: dereference first,
     // then convert (the codegen numeric path already unwraps reference payloads).
     else if (srcType.isReference() && (dstType.isEnum() || dstType.isBool() || dstType.isIntLike() || dstType.isFloat()))

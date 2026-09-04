@@ -219,7 +219,7 @@ struct Command
 {
     public
     {
-        id: CommandId = undefined     // Operation represented by the active union payload.
+        id: CommandId     // Operation represented by the active union payload.
 
         using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
         {
@@ -227,19 +227,19 @@ struct Command
             drawTriangles:  struct{ start: u32, count: u32, bbMin: Vector2, bbMax: Vector2 }
             transform:      struct{ tr: Transform2 }
             clippingRect:   struct{ rect: Math.Rectangle }
-            clippingRegion: struct{ mode: ClippingMode = undefined }
+            clippingRegion: struct{ mode: ClippingMode }
             font:           struct{ fontRef: *Font }
-            blendingMode:   struct{ mode: BlendingMode = undefined }
+            blendingMode:   struct{ mode: BlendingMode }
             textureFont:    struct{ font: *Font, atlasIndex: s32 }
             colorMask:      ColorMask
             renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
-            defaultShader:  struct{ id: DefaultShaderId = undefined, axis: s32, radius: f32, factor: s32 }
+            defaultShader:  struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
             shader:         struct{ shader: #null *ShaderBase }
 
             shaderParam: struct
             {
                 param: ShaderParamHandle
-                type:  typeinfo = undefined
+                type:  typeinfo
                 _f32:  f32
                 _s32:  s32
             }
@@ -250,10 +250,10 @@ struct Command
             {
                 boundRect:         Vector4
                 textureRect:       Vector4
-                type:              BrushType         = undefined
-                hatch:             HatchStyle        = undefined
-                uvMode:            UVMode            = undefined
-                interpolationMode: InterpolationMode = undefined
+                type:              BrushType
+                hatch:             HatchStyle
+                uvMode:            UVMode
+                interpolationMode: InterpolationMode
                 texture:           Texture
                 gradientStart:     Vector2
                 gradientEnd:       Vector2
@@ -261,7 +261,7 @@ struct Command
                 gradientRadius1:   f32
                 gradientAngle0:    f32
                 gradientAngle1:    f32
-                gradientSpread:    GradientSpread    = undefined
+                gradientSpread:    GradientSpread
                 gradientStopStart: u64
                 gradientStopCount: u64
             }

@@ -27,8 +27,8 @@ func touchNative(fullName: string) fail
     Errors.transformWinErrors(err, fullName)
     defer CloseHandle(hFile)
 
-    var ft: FILETIME   = undefined
-    var st: SYSTEMTIME = undefined
+    var ft: FILETIME
+    var st: SYSTEMTIME
     GetSystemTime(&st)
     SystemTimeToFileTime(&st, &ft)
     SetFileTime(hFile, null, null, &ft)

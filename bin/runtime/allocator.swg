@@ -31,7 +31,7 @@ struct AllocatorTracking
 {
     loc:        SourceCodeLocation
     hint:       #null string
-    stack:      [16] *void = undefined
+    stack:      [16] #null *void
     stackCount: u32
     allocId:    u32
 }

@@ -409,7 +409,7 @@ func __hostTestRestoreHardwareFilter(previous: #null *void)
     discard __Win32RT.SetUnhandledExceptionFilter(previous)
 }
 
-func __captureStack(skip: u32, wh: [..] *void)->u32
+func __captureStack(skip: u32, wh: [..] #null *void)->u32
 {
     using __Win32RT
     let nb = RtlCaptureStackBackTrace(skip + 1, cast() wh.count, cast() wh.buffer, null)

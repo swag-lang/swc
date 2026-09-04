@@ -2,13 +2,13 @@ const DICT    = 6000'u64
 const QUERIES = 40'u64
 const MAXLEN  = 3'u64
 
-var g_Bytes:  [*] u8  = undefined
-var g_WordOff: [*] u64 = undefined
-var g_WordLen: [*] u64 = undefined
+var g_Bytes:  [*] u8
+var g_WordOff: [*] u64
+var g_WordLen: [*] u64
 
-var g_QBytes:  [*] u8  = undefined
-var g_QOff:    [*] u64 = undefined
-var g_QLen:    [*] u64 = undefined
+var g_QBytes:  [*] u8
+var g_QOff:    [*] u64
+var g_QLen:    [*] u64
 
 #run
 {
@@ -39,7 +39,7 @@ var g_QLen:    [*] u64 = undefined
     var qp = 0'u64
     for q in QUERIES
     {
-        var tmp: [32] u8 = undefined
+        var tmp: [32] u8
         let src          = rnd() % DICT
         var nw           = g_WordLen[src]
         for i in nw do
@@ -92,8 +92,8 @@ var g_QLen:    [*] u64 = undefined
     // ---- timed work ----
     let t0 = now()
 
-    var row0: [64] u64 = undefined
-    var row1: [64] u64 = undefined
+    var row0: [64] u64
+    var row1: [64] u64
 
     var check = 0's64
     for q in QUERIES

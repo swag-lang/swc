@@ -3,7 +3,7 @@
 // derives from this table; MainWnd.mdlByType is built in the same order.
 struct FormDesc
 {
-    type:         typeinfo = undefined
+    type:         typeinfo
     mode:         EditMode
     canHighlight: bool
     canPixSel:    bool

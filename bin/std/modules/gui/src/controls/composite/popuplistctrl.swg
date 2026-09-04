@@ -172,7 +172,7 @@ internal impl IWnd for PopupListView
         var clientRect = .clientRect()
         clientRect.offset(.scrollPos)
 
-        var labelPos:  Math.Rectangle = undefined
+        var labelPos:  Math.Rectangle
         var colorText: Color
 
         var y = 0'f32

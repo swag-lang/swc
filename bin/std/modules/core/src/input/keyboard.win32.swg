@@ -5,8 +5,8 @@ using Swag, Win32
 
 impl Keyboard
 {
-    var mapKeyToVKey: [Key] u8 = undefined
-    var mapVKeyToKey: [256] u8 = undefined
+    var mapKeyToVKey: [Key] u8
+    var mapVKeyToKey: [256] u8
 
     #[Compiler]
     func setupArray(key: Input.Key, vkey: u8)

@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.
@@ -78,8 +78,8 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
 {
     // tp[2 + i] is the top reference t(i); tp[1] the corner, tp[0] the first left sample.
     // lp mirrors it for the left edge.
-    var tp: [10] s32 = undefined
-    var lp: [6] s32  = undefined
+    var tp: [10] s32
+    var lp: [6] s32
     let corner       = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
 
     for row in 4'u64 do
@@ -259,8 +259,8 @@ func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
 func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTopLeft, hasTopRight: bool)
 {
     // Raw references.
-    var rawTop:  [16] s32 = undefined
-    var rawLeft: [8] s32  = undefined
+    var rawTop:  [16] s32
+    var rawLeft: [8] s32
     let rawCorner         = hasTopLeft ? cast(s32) (dst - stride - 1)[0] : 128
     for row in 8'u64 do
         rawLeft[row] = hasLeft ? cast(s32) (dst - 1)[row * stride] : 128
@@ -277,8 +277,8 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     }
 
     // Filtered references, with the same two-slot lead-in as the 4x4 arrays.
-    var tp: [19] s32 = undefined
-    var lp: [10] s32 = undefined
+    var tp: [19] s32
+    var lp: [10] s32
     let corner       = (rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2
 
     tp[2] = ((hasTopLeft ? rawCorner : rawTop[0]) + 2 * rawTop[0] + rawTop[1] + 2) >> 2
@@ -431,7 +431,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         }
 
     case IntraHorizontalUp:
-        var predicted: [22] u8 = undefined
+        var predicted: [22] u8
         for z in 13'u64
         {
             let index    = z >> 1

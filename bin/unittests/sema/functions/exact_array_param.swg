@@ -36,7 +36,7 @@ func(T) exactArrayParamTail(values: [4] T)->T
     let totalPlus       = total + 1
     #assert(#typeof(totalPlus) == s32)
 
-    var digest: ExactArrayParamDigest = undefined
+    var digest: ExactArrayParamDigest
     exactArrayParamFill(digest, 10'u8)
     let firstByte = digest[0]
     let lastByte  = digest[15]

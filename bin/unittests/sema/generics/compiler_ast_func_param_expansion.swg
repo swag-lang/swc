@@ -6,7 +6,7 @@ impl Signal
 {
     mtd call(params: ...)
     {
-        var fn: T = undefined
+        var fn: T
 
         #ast
         {

@@ -118,7 +118,7 @@ public impl IWnd for MenuCtrl
             theme.drawSubRect(painter, clientRect, &rects.menuBar_Border, colors.menuBar_Border)
         }
 
-        var labelPos:       Math.Rectangle = undefined
+        var labelPos:       Math.Rectangle
         var colorText:      Color
         var colorRightText: Color
 
@@ -216,7 +216,7 @@ public impl IWnd for MenuCtrl
         .paintPopupBarAnchor(painter, clientRect)
         clientRect.applyPadding(.padding)
 
-        var labelPos:       Math.Rectangle = undefined
+        var labelPos:       Math.Rectangle
         var colorText:      Color
         var colorRightText: Color
 

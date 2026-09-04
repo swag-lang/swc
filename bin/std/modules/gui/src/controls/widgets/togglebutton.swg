@@ -42,9 +42,9 @@ impl IWnd for ToggleButton
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
         var subRectMark:   #null *ThemeImageRect
-        var colorBk:       Color = undefined
-        var colorBorder:   Color = undefined
-        var colorMark:     Color = undefined
+        var colorBk:       Color
+        var colorBorder:   Color
+        var colorMark:     Color
 
         switch
         {

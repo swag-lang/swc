@@ -411,7 +411,7 @@ private impl Codec
             if shift < 0 do
                 fail InvalidFormatError{"FLAC linear predictor shift is negative"}
 
-            var coefficients: [MaxLpcOrder] s32 = undefined
+            var coefficients: [MaxLpcOrder] s32
             for index in order do
                 coefficients[index] = reader.readSigned(precision)
 

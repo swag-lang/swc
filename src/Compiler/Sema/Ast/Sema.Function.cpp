@@ -16,7 +16,7 @@
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
-#include "Compiler/Sema/Helpers/SemaUndefined.h"
+#include "Compiler/Sema/Helpers/SemaInitFlow.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -1785,14 +1785,14 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    if (SemaUndefined::wantsCheck(sema, sym))
+    if (SemaInitFlow::wantsCheck(sema, sym))
     {
         // The return contract only binds a signature the function owns: interface
         // impls conform to the interface, and a fallible function's 'catch' error
         // path synthesizes a zero (null) result.
         const auto& declNode            = sema.curNode().cast<AstFunctionDecl>();
         const bool  checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isFallible();
-        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
+        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
     }
 
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
@@ -1812,8 +1812,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
-    if (SemaUndefined::wantsCheck(sema, sym))
-        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
+    if (SemaInitFlow::wantsCheck(sema, sym))
+        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
@@ -1832,8 +1832,8 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
 
-    if (SemaUndefined::wantsCheck(sema, sym))
-        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
+    if (SemaInitFlow::wantsCheck(sema, sym))
+        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());

@@ -76,7 +76,7 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
         return 0
 
     // Levels, most significant coefficient first.
-    var levels: [16] s32 = undefined
+    var levels: [16] s32
     for index in cast(u64) trailingOnes do
         levels[index] = bits.bit() != 0 ? -1 : 1
 

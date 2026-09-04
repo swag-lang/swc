@@ -34,7 +34,7 @@ impl IPropertyEditor for AlignEditor
         const Values = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
         const Labels = ["L", "C", "R"]
 
-        var btns: [3] *IconButton = undefined
+        var btns: [3] *IconButton
         for i in 3
         {
             with let btn = IconButton.create(line, {}, {0, 0, BtnW, lineH})

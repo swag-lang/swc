@@ -35,7 +35,7 @@ struct DecoderCard
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
-var g_Render:   Pixel.IRenderer = undefined
+var g_Render:   Pixel.IRenderer
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderContext
 var g_Keyboard: Input.Keyboard
@@ -219,7 +219,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     let scaleX        = cast(f32) surfaceWidth / cast(f32) W
     let scaleY        = cast(f32) surfaceHeight / cast(f32) H
 
-    with var result: retval = undefined
+    with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
         .rect   = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}

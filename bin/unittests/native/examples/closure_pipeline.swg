@@ -198,14 +198,14 @@ func makeCounter(start: s32)->func||()->s32
 // Array of lambdas.
 #test
 {
-    var ops: [3] func||(s32)->s32 = undefined
+    var ops: [3] #null func||(s32)->s32 = cast(#null func||(s32)->s32) null
     ops[0] = func(x: s32)->s32 { return x + 1 }
     ops[1] = func(x: s32)->s32 { return x * 2 }
     ops[2] = func(x: s32)->s32 { return x * x }
 
     var value: s32 = 3
     for i in ops.count do
-        value = ops[i](value)
+        value = ops[i]!(value)
 
     // 3 -> +1=4 -> *2=8 -> ^2=64
     Swag.assert(value == 64)

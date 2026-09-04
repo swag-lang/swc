@@ -96,20 +96,22 @@ func __symbolize(addr: *void)->__SwagSym
 //
 // Native release artifacts may deliberately carry no such table. In that case an empty heading
 // says only that symbolization was unavailable, so the panic report leaves the whole section out.
-func __hasStackTraceSymbols(wh: const [..] *void)->bool
+func __hasStackTraceSymbols(wh: const [..] #null *void)->bool
 {
-    for address in wh where __symbolize(address).found do
+    for address in wh where address and __symbolize(address!).found do
         return true
     return false
 }
 
-func __logStackTrace(wh: const [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
+func __logStackTrace(wh: const [..] #null *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
 {
     var hasStarted = false
 
     for i in wh.count
     {
-        let info = __symbolize(wh[i])
+        if !wh[i] do
+            continue
+        let info = __symbolize(wh[i]!)
         if !info.found do
             continue
         if !info.hasLine and !printNoLine do

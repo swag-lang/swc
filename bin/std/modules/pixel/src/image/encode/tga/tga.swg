@@ -81,7 +81,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
     let src                 = cast(const [*] u8) image.pixels.buffer!
     let bytesPerPixel       = cast(u64) image.bytesPerPixel
     let pixelCount          = cast(u64) image.width * cast(u64) image.height
-    var converted: [512] u8 = undefined
+    var converted: [512] u8
 
     var index: u64
     while index < pixelCount

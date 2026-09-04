@@ -50,7 +50,7 @@ public impl NumberFormatInfo
 
     internal mtd const appendUnsigned(result: *String, value: u64, grouped: bool)
     {
-        var digits: [20] u8 = undefined
+        var digits: [20] u8
         var count           = 0'u64
         var current         = value
         while true

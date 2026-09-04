@@ -50,10 +50,8 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
     let direct:    Transform = &addTransform
     let alternate: Transform = &scaleTransform
 
-    var holder:    TransformHolder = {cb: &addTransform}
-    var callbacks: [2] Transform   = undefined
-    callbacks[0] = &addTransform
-    callbacks[1] = alternate
+    var holder:      TransformHolder = {cb: &addTransform}
+    let callbacks: [2] Transform   = [&addTransform, alternate]
 
     Swag.assert(direct({base: 10, delta: 2}, 3) == 15)
     Swag.assert(alternate({base: 10, delta: 2}, 3) == 32)
@@ -66,9 +64,7 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
 #test
 {
     let reduce:   Reducer     = &sumReducer
-    var reducers: [2] Reducer = undefined
-    reducers[0] = reduce
-    reducers[1] = &weightedReducer
+    let reducers: [2] Reducer = [reduce, &weightedReducer]
 
     Swag.assert(reduce(1, 2, 3, 4) == 10)
     Swag.assert(reducers[0](5, 6, 7) == 18)

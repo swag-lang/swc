@@ -73,9 +73,9 @@ impl NativeNonNullMoveDefault
     mtd opDrop() {}
 }
 
-struct NativeNonNullUndefinedHolder
+struct NativeNonNullRequiredHolder
 {
-    required: *NativeNonNullItem = undefined
+    required: *NativeNonNullItem
 }
 
 struct NativeNonNullBlockHolder
@@ -295,11 +295,11 @@ func nativeNonNullConstruction()->bool
     if mutable.required != &second or mutable.optional != null or mutable.legacy != null or mutable.count != 7 do
         return false
 
-    // 'undefined' remains an explicit low-level escape hatch; its value must not be read.
-    var undefinedPointer: *NativeNonNullItem = undefined
-    var undefinedHolder = NativeNonNullUndefinedHolder{}
-    #assert(#typeof(undefinedPointer) == *NativeNonNullItem)
-    #assert(#typeof(undefinedHolder.required) == *NativeNonNullItem)
+    // Non-null values are initialized explicitly; no uninitialized escape exists.
+    var initializedPointer: *NativeNonNullItem = &second
+    var initializedHolder = NativeNonNullRequiredHolder{required: &second}
+    #assert(#typeof(initializedPointer) == *NativeNonNullItem)
+    #assert(#typeof(initializedHolder.required) == *NativeNonNullItem)
 
     // Explicitly nullable pointers keep their null default during migration.
     var nullablePointer: #null *NativeNonNullItem

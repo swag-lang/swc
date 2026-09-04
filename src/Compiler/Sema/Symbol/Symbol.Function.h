@@ -223,6 +223,8 @@ public:
     bool             hasVariadicParam() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Variadic); }
     void             setPure(bool value) noexcept;
     bool             isForeign() const noexcept { return attributes().hasForeign; }
+    bool             hasFullInitialization() const noexcept { return inferredFullInitialization_ || attributes().hasRtFlag(RtAttributeFlagsE::FullInit); }
+    void             setInferredFullInitialization(bool value) const noexcept { inferredFullInitialization_ = value; }
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
@@ -341,6 +343,7 @@ private:
     SmallVector4<ParamField>                  returnedPayloadParamFields_;
     TypeRef                                   returnType_          = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+    mutable bool                              inferredFullInitialization_ = false;
     SpecOpKind                                specOpKind_          = SpecOpKind::None;
     CallConvKind                              callConvKind_        = CallConvKind::Swag;
     AstNodeRef                                declNodeRef_         = AstNodeRef::invalid();

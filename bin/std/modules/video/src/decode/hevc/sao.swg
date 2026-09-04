@@ -189,8 +189,8 @@ impl Decoder
         if width <= 0 or height <= 0 do
             return
 
-        var source:      const [*] u16 = undefined
-        var destination: [*] u16       = undefined
+        var source:      const [*] u16
+        var destination: [*] u16
         var stride:      u64
         if !component
         {

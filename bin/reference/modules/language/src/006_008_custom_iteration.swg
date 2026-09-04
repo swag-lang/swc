@@ -28,7 +28,7 @@ impl MyStruct
     {
         for index in 3
         {
-            var item: s32 = undefined
+            var item: s32
             switch index
             {
             case 0:  item = me.x

@@ -149,7 +149,6 @@ void TypeManager::setup(TaskContext& ctx)
     typeAny_       = addType(TypeInfo::makeAny());
     typeVoid_      = addType(TypeInfo::makeVoid());
     typeNull_      = addType(TypeInfo::makeNull());
-    typeUndefined_ = addType(TypeInfo::makeUndefined());
     typeRune_      = addType(TypeInfo::makeRune());
     typeCString_   = addType(TypeInfo::makeCString());
     typeVariadic_  = addType(TypeInfo::makeVariadic());

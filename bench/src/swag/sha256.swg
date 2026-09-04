@@ -49,7 +49,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
     var h6 = 0x1f83d9ab'u64
     var h7 = 0x5be0cd19'u64
 
-    var w: [64] u64 = undefined
+    var w: [64] u64
     let nblocks     = nb / 64
 
     for b in nblocks

@@ -86,12 +86,6 @@ AstNodeRef Parser::parseLiteral()
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullLiteral>(consume());
             return nodeRef;
         }
-        case TokenId::KwdUndefined:
-        {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UndefinedExpr>(consume());
-            return nodeRef;
-        }
-
         case TokenId::CompilerFile:
         case TokenId::CompilerModule:
         case TokenId::CompilerLine:

@@ -10,12 +10,12 @@ const FocusHeadless_Cancel  = "FocusHeadless.Cancel"
 // what is left over, so creation order and reading order disagree on purpose.
 struct FocusHeadlessCard
 {
-    panel:   *Wnd             = undefined     // Raised panel holding the whole card.
-    actions: *StackLayoutCtrl = undefined     // Action bar docked at the bottom.
-    body:    *Wnd             = undefined     // Content filling what the bar leaves.
-    field:   *EditBox         = undefined     // Field of the body.
-    browse:  *PushButton      = undefined     // Trailing action on the same line as the field.
-    submit:  *PushButton      = undefined     // Dominant action, in the bar.
+    panel:   *Wnd     // Raised panel holding the whole card.
+    actions: *StackLayoutCtrl     // Action bar docked at the bottom.
+    body:    *Wnd     // Content filling what the bar leaves.
+    field:   *EditBox     // Field of the body.
+    browse:  *PushButton     // Trailing action on the same line as the field.
+    submit:  *PushButton     // Dominant action, in the bar.
 }
 
 func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard

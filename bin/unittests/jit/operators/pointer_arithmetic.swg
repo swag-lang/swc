@@ -2,7 +2,7 @@
 
 struct PointerFieldHolder
 {
-    ptr: [*] u8
+    ptr: #null [*] u8
     len: s32
     buf: [8] u8
 }
@@ -18,7 +18,7 @@ impl PointerFieldHolder
     {
         .len = 4
         .assignArrayFieldToPointer()
-        var tail = cast([*] u16) (.ptr + .len)
+        var tail = cast([*] u16) (.ptr! + .len)
         tail[] = 0x1234'u16
         return cast(u16) .buf[4] | (cast(u16) .buf[5] << 8)
     }
@@ -94,7 +94,7 @@ impl PointerFieldHolder
 {
     func arrayFieldPointerDecay()->u16
     {
-        var holder: PointerFieldHolder = undefined
+        var holder: PointerFieldHolder
         return holder.writeAfterPointerOffset()
     }
 

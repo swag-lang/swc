@@ -93,8 +93,8 @@ struct Point
 // Connects two tessellation points with a constrained edge.
 struct Edge
 {
-    p: *Point = undefined     // Lower endpoint according to Poly2Tri ordering.
-    q: *Point = undefined     // Upper endpoint according to Poly2Tri ordering.
+    p: *Point     // Lower endpoint according to Poly2Tri ordering.
+    q: *Point     // Upper endpoint according to Poly2Tri ordering.
 }
 
 // Stores one triangle and its adjacency/classification state.
@@ -102,7 +102,7 @@ struct Triangle
 {
     constrainedEdge: [3] bool                   // Whether each opposite edge is constrained.
     delaunayEdge:    [3] bool                   // Temporary Delaunay edge markers.
-    points:          [3] *Point = undefined     // Counter-clockwise triangle vertices.
+    points:          [3] *Point     // Counter-clockwise triangle vertices.
     neighbors:       [3] #null *Triangle        // Adjacent triangles opposite each point.
     idx:             u64                        // Result-local triangle index.
     interior:        bool                       // Whether the triangle belongs to the output interior.
@@ -125,8 +125,8 @@ struct Basin
 
 struct Node
 {
-    point:    *Point    = undefined
-    triangle: *Triangle = undefined
+    point:    *Point
+    triangle: *Triangle
     next:     #null *Node
     prev:     #null *Node
     value:    f64
@@ -136,7 +136,7 @@ struct AdvancingFront
 {
     head:       #null *Node
     tail:       #null *Node
-    searchNode: *Node = undefined
+    searchNode: *Node
 }
 
 func nnPoint(p: #null *Point)->*Point

@@ -37,7 +37,7 @@ impl RegressionAstBuilder
 
 struct(T) RegressionArray
 {
-    values: [2] T = undefined
+    values: [2] T
     count:  u64
 }
 
@@ -109,7 +109,7 @@ func addOne(value: *s32)
 
 #test
 {
-    var signal: RegressionSignal'func||(*s32)
+    var signal: RegressionSignal'func||(*s32) = {arr: {values: [&addOne, &addOne], count: 0}}
     signal += &addOne
     signal += func(value: *s32) { discard value; callbackTotal += 10 }
 

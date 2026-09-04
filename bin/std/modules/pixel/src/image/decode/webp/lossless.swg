@@ -991,7 +991,7 @@ func losslessApplyInverseTransform(transform: *LosslessTransform, pixels: *Array
 
 func losslessDecode(source: const [..] u8, pixels: *Array'u8, width: *s32, height: *s32) fail
 {
-    var reader: LosslessBitReader = undefined
+    var reader: LosslessBitReader
     losslessDecodeHeader(&reader, source, width, height)
 
     var transforms:     Array'LosslessTransform

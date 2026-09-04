@@ -38,8 +38,9 @@ step, or when the return type has no name you could write.
 
     func getWhite()->RGB
     {
-        // 'retval = undefined' prevents unnecessary clearing of the return structure.
-        var result: retval = undefined
+        // The compiler proves this return structure is fully assigned and removes
+        // its redundant default clear.
+        var result: retval
         result.x = 0.5
         result.y = 0.1
         result.z = 1.0
@@ -61,7 +62,7 @@ initialization or copying, resulting in faster, more memory-efficient code.
 {
     func toto()->[255] s32
     {
-        var result: retval = undefined
+        var result: retval
         for i in 255 do
             result[i] = i
         return result

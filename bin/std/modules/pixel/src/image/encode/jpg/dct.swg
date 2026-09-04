@@ -67,7 +67,7 @@ impl Encoder
     // The zigzag is applied while the coefficients are scaled, rather than in a pass of its own.
     func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)
     {
-        var dataFloat: [64] f32 = undefined
+        var dataFloat: [64] f32
         for i in 64 do
             dataFloat[i] = data[i]
 

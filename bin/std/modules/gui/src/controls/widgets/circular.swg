@@ -92,11 +92,11 @@ impl IWnd for Circular
         let bc     = evt.paintContext
         let colors = .themeColors()
 
-        var colorBk:     Color = undefined
-        var colorCircle: Color = undefined
-        var colorMark1:  Color = undefined
-        var colorMark2:  Color = undefined
-        var colorStep:   Color = undefined
+        var colorBk:     Color
+        var colorCircle: Color
+        var colorMark1:  Color
+        var colorMark2:  Color
+        var colorStep:   Color
 
         if bc.isDisabled
         {

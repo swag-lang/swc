@@ -600,7 +600,7 @@ namespace
             return cstRef;
 
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        if (cst.isUndefined() || cst.typeRef() == dstTypeRef)
+        if (cst.typeRef() == dstTypeRef)
             return cstRef;
 
         CastRequest castRequest{CastKind::Implicit};
@@ -758,9 +758,6 @@ namespace
     Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        if (cst.isUndefined())
-            return Result::Continue;
-
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
         if (dstType.isAlias())
         {

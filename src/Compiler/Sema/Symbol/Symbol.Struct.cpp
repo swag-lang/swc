@@ -191,11 +191,8 @@ namespace
     enum class ImplicitDefaultKind : uint8_t
     {
         Mixed,
-        MixedWithUndefined,
         MixedRequiringInit,
-        MixedWithUndefinedRequiringInit,
         AllZero,
-        AllUndefined,
         RequiresInit,
     };
 
@@ -252,14 +249,9 @@ namespace
         return storageTypeRef.isValid() ? storageTypeRef : typeRef;
     }
 
-    bool implicitDefaultKindHasUndefined(const ImplicitDefaultKind kind)
-    {
-        return kind == ImplicitDefaultKind::AllUndefined || kind == ImplicitDefaultKind::MixedWithUndefined || kind == ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
-    }
-
     bool implicitDefaultKindRequiresInit(const ImplicitDefaultKind kind)
     {
-        return kind == ImplicitDefaultKind::RequiresInit || kind == ImplicitDefaultKind::MixedRequiringInit || kind == ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
+        return kind == ImplicitDefaultKind::RequiresInit || kind == ImplicitDefaultKind::MixedRequiringInit;
     }
 
     ImplicitDefaultKind combineImplicitDefaultKinds(const std::span<const ImplicitDefaultKind> childKinds)
@@ -267,31 +259,18 @@ namespace
         if (childKinds.empty())
             return ImplicitDefaultKind::AllZero;
 
-        // Implicit init synthesis needs to distinguish "all zero" from "contains
-        // undefined": both may be byte-wise cheap, but only the latter preserves
-        // explicit undefined intent through aggregate defaults.
         bool allZero      = true;
-        bool allUndefined = true;
-        bool anyUndefined = false;
         bool requiresInit = false;
         for (const ImplicitDefaultKind childKind : childKinds)
         {
             allZero &= childKind == ImplicitDefaultKind::AllZero;
-            allUndefined &= childKind == ImplicitDefaultKind::AllUndefined;
-            anyUndefined |= implicitDefaultKindHasUndefined(childKind);
             requiresInit |= implicitDefaultKindRequiresInit(childKind);
         }
 
-        if (allUndefined)
-            return ImplicitDefaultKind::AllUndefined;
         if (allZero)
             return ImplicitDefaultKind::AllZero;
-        if (requiresInit && anyUndefined)
-            return ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
         if (requiresInit)
             return childKinds.size() == 1 && childKinds.front() == ImplicitDefaultKind::RequiresInit ? ImplicitDefaultKind::RequiresInit : ImplicitDefaultKind::MixedRequiringInit;
-        if (anyUndefined)
-            return ImplicitDefaultKind::MixedWithUndefined;
         return ImplicitDefaultKind::Mixed;
     }
 
@@ -324,9 +303,6 @@ namespace
             return ImplicitDefaultKind::Mixed;
 
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        if (cst.isUndefined())
-            return ImplicitDefaultKind::AllUndefined;
-
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         if (cst.isEnumValue())
@@ -431,17 +407,9 @@ namespace
             const auto& symStruct = type.payloadSymStruct();
             symStruct.computeImplicitDefaultFlags(sema);
             if (symStruct.requiresExplicitInitialization())
-            {
-                if (symStruct.hasImplicitUndefinedDefault())
-                    return ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
                 return ImplicitDefaultKind::MixedRequiringInit;
-            }
-            if (symStruct.hasImplicitAllUndefinedDefault())
-                return ImplicitDefaultKind::AllUndefined;
             if (symStruct.hasImplicitAllZeroDefault())
                 return ImplicitDefaultKind::AllZero;
-            if (symStruct.hasImplicitUndefinedDefault())
-                return ImplicitDefaultKind::MixedWithUndefined;
             return ImplicitDefaultKind::Mixed;
         }
 
@@ -486,8 +454,6 @@ namespace
             {
                 if (!field)
                     continue;
-                if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-                    continue;
                 if (SymbolStruct::fieldRequiresExplicitInitialization(sema, *field))
                     continue;
 
@@ -500,8 +466,6 @@ namespace
                 const std::span<std::byte> fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
                 if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
                 {
-                    if (sema.cstMgr().get(valueRef).isUndefined())
-                        continue;
                     SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldTypeRef));
                 }
                 else if (fieldSize)
@@ -537,9 +501,6 @@ namespace
 
     ImplicitDefaultKind classifyFieldImplicitDefault(Sema& sema, const SymbolVariable& field)
     {
-        if (field.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-            return ImplicitDefaultKind::AllUndefined;
-
         // A 'Swag.Late' field is typed non-null but its storage legitimately starts
         // null: it never blocks default initialization.
         if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
@@ -908,7 +869,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
     computeImplicitDefaultFlags(sema);
     if (requiresExplicitInitialization())
         return ConstantRef::invalid();
-    if (hasImplicitAllZeroDefault() || hasImplicitAllUndefinedDefault())
+    if (hasImplicitAllZeroDefault())
         return sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
 
     std::call_once(defaultStructOnce_, [&] {
@@ -946,8 +907,6 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
         }
 
         bool allZero      = true;
-        bool allUndefined = true;
-        bool anyUndefined = false;
         bool requiresInit = false;
         for (const SymbolVariable* field : fields_)
         {
@@ -957,17 +916,11 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
             const ImplicitDefaultKind fieldKind = classifyFieldImplicitDefault(sema, *field);
 
             allZero &= fieldKind == ImplicitDefaultKind::AllZero;
-            allUndefined &= fieldKind == ImplicitDefaultKind::AllUndefined;
-            anyUndefined |= implicitDefaultKindHasUndefined(fieldKind);
             requiresInit |= implicitDefaultKindRequiresInit(fieldKind);
         }
 
         if (allZero)
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
-        if (allUndefined)
-            self->addExtraFlag(SymbolStructFlagsE::DefaultAllUndefined);
-        if (anyUndefined)
-            self->addExtraFlag(SymbolStructFlagsE::DefaultHasUndefined);
         if (requiresInit)
             self->addExtraFlag(SymbolStructFlagsE::DefaultRequiresInit);
     });
@@ -981,7 +934,7 @@ bool SymbolStruct::typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRe
 bool SymbolStruct::typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef)
 {
     const ImplicitDefaultKind kind = classifyTypeImplicitDefault(sema, typeRef);
-    return !implicitDefaultKindRequiresInit(kind) && !implicitDefaultKindHasUndefined(kind);
+    return !implicitDefaultKindRequiresInit(kind);
 }
 
 Result SymbolStruct::waitTypeImplicitDefaultReady(Sema& sema, const TypeRef typeRef, const AstNodeRef waitNodeRef)
@@ -1003,7 +956,7 @@ Result SymbolStruct::lowerTypeImplicitDefaultBytes(Sema& sema, const std::span<s
 ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const
 {
     computeImplicitDefaultFlags(sema);
-    if (hasImplicitUndefinedDefault() || requiresExplicitInitialization())
+    if (requiresExplicitInitialization())
         return ConstantRef::invalid();
     return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
 }

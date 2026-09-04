@@ -26,7 +26,7 @@ impl Vector3
 
     // Set all components to the same scalar value.
     // This allows assignment like 'vec = 5.0' to set all components to 5.0.
-    #[Swag.FullInit, Swag.Inline]
+    #[Swag.Inline]
     mtd opSet(value: f32)
     {
         .x, .y, .z = value
@@ -298,7 +298,7 @@ impl Vector3
     // Each component of the result is the smaller of the corresponding components in 'a' and 'b'.
     func min(a, b: Vector3)->Vector3
     {
-        var result: retval = undefined
+        var result: retval
         result.x = Math.min(a.x, b.x)
         result.y = Math.min(a.y, b.y)
         result.z = Math.min(a.z, b.z)
@@ -309,7 +309,7 @@ impl Vector3
     // Each component of the result is the larger of the corresponding components in 'a' and 'b'.
     func max(a, b: Vector3)->Vector3
     {
-        var result: retval = undefined
+        var result: retval
         result.x = Math.max(a.x, b.x)
         result.y = Math.max(a.y, b.y)
         result.z = Math.max(a.z, b.z)
@@ -362,7 +362,7 @@ impl Vector3
     // When 'factor' is 0.0, returns 'src'; when 1.0, returns 'dst'.
     func lerp(src, dst: Vector3, factor: f32)->Vector3
     {
-        var result: retval = undefined
+        var result: retval
         result.x = Math.lerp(src.x, dst.x, factor)
         result.y = Math.lerp(src.y, dst.y, factor)
         result.z = Math.lerp(src.z, dst.z, factor)
@@ -492,7 +492,7 @@ impl Vector3
     // 'currentVelocity' is modified to track the current rate of change.
     func smoothDamp(current, target: Vector3, currentVelocity: *Vector3, smoothTime, deltaTime: f32)->Vector3
     {
-        var result: retval = undefined
+        var result: retval
         result.x = Math.smoothDamp(current.x, target.x, &currentVelocity.x, smoothTime, deltaTime)
         result.y = Math.smoothDamp(current.y, target.y, &currentVelocity.y, smoothTime, deltaTime)
         result.z = Math.smoothDamp(current.z, target.z, &currentVelocity.z, smoothTime, deltaTime)

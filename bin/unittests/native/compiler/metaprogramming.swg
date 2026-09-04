@@ -49,7 +49,7 @@ namespace compiler1386
 namespace compiler1504
 {
     //
-    var X: u32 = undefined
+    var X: u32
 
     #[Swag.Compiler]
     func set()
@@ -511,7 +511,7 @@ namespace compiler3325
             var sum = 0'u64
             for i in 3
             {
-                var T: typeinfo = undefined
+                var T: typeinfo
                 switch i
                 {
                 case 0:
@@ -563,8 +563,8 @@ namespace compiler345
     //
     #test
     {
-        var a: s32  = undefined
-        var b: *s32 = undefined
+        var a: s32
+        var b: *s32
         Swag.assert(#typeof(a) == s32)
         Swag.assert(#typeof(b) == *s32)
     }
@@ -715,7 +715,7 @@ namespace compiler4849
     {
         let value = #run
         {
-            var payload: Carrier = undefined
+            var payload: Carrier
             payload.item  = "abc"
             payload.other = "def"
             return payload
@@ -723,10 +723,7 @@ namespace compiler4849
 
         let values = #run
         {
-            var words: [2] any = undefined
-            words[0] = "first"
-            words[1] = "second"
-            return words
+            return [cast(any) "first", cast(any) "second"]
         }
 
         Swag.assert(cast(string) value.item == "abc")

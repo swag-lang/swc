@@ -137,7 +137,7 @@ private enum AnimationGroupKind
 
 private struct AnimationTrack
 {
-    target:  *Wnd = undefined
+    target:  *Wnd
     channel: AnimationChannel
     options: AnimationOptions
     kind:    AnimationValueKind

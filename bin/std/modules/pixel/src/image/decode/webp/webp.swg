@@ -175,7 +175,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
     let imageData = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
-    var reader:        LosslessBitReader = undefined
+    var reader:        LosslessBitReader
     var width, height: s32
     losslessDecodeHeader(&reader, imageData, &width, &height)
 

@@ -10,12 +10,12 @@ impl JitNonNullMoveArrayDefault
     mtd opDrop() {}
 }
 
-struct JitNonNullMoveUndefinedEscape
+struct JitNonNullMoveReset
 {
-    value: string = undefined
+    value: string = "reset"
 }
 
-impl JitNonNullMoveUndefinedEscape
+impl JitNonNullMoveReset
 {
     mtd opDrop() {}
 }
@@ -55,7 +55,8 @@ func consumeJitNonNullMoveArray(value: JitNonNullMoveArrayNestedAlias)->bool
 
 #test
 {
-    var source = JitNonNullMoveUndefinedEscape{value: "explicit"}
+    var source = JitNonNullMoveReset{value: "explicit"}
     let target = #move source
     Swag.assert(target.value == "explicit")
+    Swag.assert(source.value == "reset")
 }

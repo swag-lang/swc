@@ -205,9 +205,6 @@ namespace
             case TypeInfoKind::Null:
                 appendPublicApiSymbolFragment(out, "null");
                 return;
-            case TypeInfoKind::Undefined:
-                appendPublicApiSymbolFragment(out, "undefined");
-                return;
             case TypeInfoKind::Any:
                 appendPublicApiSymbolFragment(out, "any");
                 return;
@@ -562,7 +559,7 @@ namespace
             return false;
 
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-        if (typeInfo.isScalarUnsized() || typeInfo.isVoid() || typeInfo.isUndefined() || typeInfo.isAnyVariadic())
+        if (typeInfo.isScalarUnsized() || typeInfo.isVoid() || typeInfo.isAnyVariadic())
             return false;
 
         if (typeInfo.isArray())

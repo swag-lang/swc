@@ -46,9 +46,9 @@ struct DefaultBigRet
 
 struct DefaultRequiredRet
 {
-    a: s32 = undefined
-    b: s32 = undefined
-    c: s32 = undefined
+    a: s32
+    b: s32
+    c: s32
 }
 
 func makeSmall(x, y: s32)->SmallRet
@@ -78,7 +78,7 @@ func cloneBig(seed: s64)->BigRet
 
 func makeFloat(seed: f64)->FloatRet
 {
-    var result: retval = undefined
+    var result: retval
     result.r = seed
     result.g = seed + 0.25
     result.b = seed + 0.5
@@ -121,7 +121,7 @@ func makeDefaultBigRet()->DefaultBigRet
 
 func dirtyDefaultRequiredRet()->DefaultRequiredRet
 {
-    var result: retval = undefined
+    var result: retval
     result.a = 101
     result.b = 202
     result.c = 303

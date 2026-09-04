@@ -7,12 +7,12 @@ using Core, Gui
 // The form panels of the main window share this shape, and only their fields differ.
 struct VaultCard
 {
-    panel:    *Wnd             = undefined
-    body:     *Wnd             = undefined
-    form:     *FormLayoutCtrl  = undefined
-    actions:  *StackLayoutCtrl = undefined
-    title:    *Label           = undefined
-    subtitle: *Label           = undefined
+    panel:    *Wnd
+    body:     *Wnd
+    form:     *FormLayoutCtrl
+    actions:  *StackLayoutCtrl
+    title:    *Label
+    subtitle: *Label
 }
 
 impl VaultCard

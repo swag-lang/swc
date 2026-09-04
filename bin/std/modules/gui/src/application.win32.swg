@@ -185,8 +185,8 @@ impl Application
         var result: retval
 
         var index:      s32
-        var curImg:     *Image     = undefined
-        var curImgList: *ImageList = undefined
+        var curImg:     *Image
+        var curImgList: *ImageList
 
         if small
         {

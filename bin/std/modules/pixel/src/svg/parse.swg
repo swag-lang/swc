@@ -155,7 +155,7 @@ private enum FontFamilyKind
 private struct SvgTextRun
 {
     text:          String
-    typeFace:      *TypeFace = undefined
+    typeFace:      *TypeFace
     x, y:          f32
     dx, dy:        f32
     fontSize:      f32
@@ -277,7 +277,7 @@ private struct Parser
 {
     text:    string     // Whole document.
     pos:     u64        // Read position.
-    drawing: *Drawing = undefined
+    drawing: *Drawing
 
     // Shapes defined inside `defs`, by id, instantiated by `use` elements. The
     // ranges index the drawing's shape array: defs shapes are parsed in place and

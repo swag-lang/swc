@@ -35,10 +35,10 @@ using Swag, Core
 
 #test
 {
-    var dstPixels: [48] u8 = undefined
+    var dstPixels: [48] u8
     for index in dstPixels.count do
         dstPixels[index] = cast(u8) (index * 3 + 1)
-    var srcPixels: [24] u8 = undefined
+    var srcPixels: [24] u8
     for index in srcPixels.count do
         srcPixels[index] = cast(u8) (index * 5 + 7)
 

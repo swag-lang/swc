@@ -9,7 +9,7 @@ using Core, Core.Errors
 
 struct ChunkHeader
 {
-    chunkID:   ChunkID = undefined
+    chunkID:   ChunkID
     chunkSize: u32
 }
 

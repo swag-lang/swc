@@ -10,12 +10,12 @@ impl SemaNonNullMoveArrayDefault
     mtd opDrop() {}
 }
 
-struct SemaNonNullMoveUndefinedEscape
+struct SemaNonNullMoveReset
 {
-    value: string = undefined
+    value: string = "reset"
 }
 
-impl SemaNonNullMoveUndefinedEscape
+impl SemaNonNullMoveReset
 {
     mtd opDrop() {}
 }
@@ -41,7 +41,7 @@ func semaNonNullMoveArrayDefaults()
     var callSource: SemaNonNullMoveArrayNestedAlias = [{value: "call-a"}, {value: "call-b"}]
     let callResult = consumeSemaNonNullMoveArray(#move callSource)
 
-    var escapeSource = SemaNonNullMoveUndefinedEscape{value: "explicit"}
+    var escapeSource = SemaNonNullMoveReset{value: "explicit"}
     let escapeTarget = #move escapeSource
 
     #assert(#typeof(initTarget) == [2] SemaNonNullMoveArrayDefault)

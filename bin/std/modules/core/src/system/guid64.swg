@@ -17,7 +17,7 @@ private func initRng()
 {
     if !g_RngInit
     {
-        var seed: [3] u64 = undefined
+        var seed: [3] u64
         seed[0] = Time.monotonicMilliseconds()
         seed[1] = Time.monotonicMicroseconds()
         seed[2] = Hardware.macAddress()
@@ -44,7 +44,7 @@ impl Guid64
     {
         initRng()
 
-        var result: retval = undefined
+        var result: retval
         let now            = Time.DateTime.now()
 
         // Extract components
@@ -73,7 +73,7 @@ impl Guid64
     {
         initRng()
 
-        var result: retval = undefined
+        var result: retval
         result.value = g_Rng.nextU64()
         return result
     }
@@ -83,7 +83,7 @@ impl Guid64
     {
         initRng()
 
-        var result: retval = undefined
+        var result: retval
         let nowMs          = Time.monotonicMilliseconds()
         let nowUs          = Time.monotonicMicroseconds()
         let pid            = cast(u64) Env.Process.currentProcessId()

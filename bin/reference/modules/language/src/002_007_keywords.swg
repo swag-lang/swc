@@ -28,7 +28,7 @@ to  unreachable  until  where  while
 
 ```swag
 cast  catch  discard  expect  fail  false  null
-retval  true  try  undefined
+retval  true  try
 ```
 
 'not' is reserved for future use.

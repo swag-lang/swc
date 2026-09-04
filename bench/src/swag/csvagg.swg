@@ -4,7 +4,7 @@ const REGIONS: [8] string = ["EMEA", "APAC", "AMER", "LATAM", "NORDIC", "IBERIA"
 
 func writeUInt(buf: [*] u8, pos, v: u64)->u64
 {
-    var tmp: [24] u8 = undefined
+    var tmp: [24] u8
     var n                = 0'u64
     var x                = v
     if x == 0
@@ -89,7 +89,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     // ---- timed work ----
     let t0 = now()
 
-    var agg: ByteMap = undefined
+    var agg: ByteMap
     mapInit(&agg, 64, text)
 
     var slotCount = cast([*] u64) (benchAlloc(64 * #sizeof(u64)))!
@@ -174,8 +174,8 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     }
 
     // sort the region keys, then fold them in order
-    var order: [64] u64 = undefined
-    var keyIdx: [64] u64 = undefined
+    var order: [64] u64
+    var keyIdx: [64] u64
     var nk               = 0'u64
     for i in 64'u64
     {

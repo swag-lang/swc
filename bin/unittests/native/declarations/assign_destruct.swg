@@ -15,7 +15,7 @@ func nativeMakeAnonymousAssignDestructRet(first, second: u32)->{ first, second: 
 
 func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
-    var result: retval = undefined
+    var result: retval
     result.first  = first
     result.second = second
     return result

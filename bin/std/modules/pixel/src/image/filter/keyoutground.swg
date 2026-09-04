@@ -60,7 +60,7 @@ public impl Image
         }
 
         let bgra          = .pixelFormat == .BGRA8
-        var axis: [8] f32 = undefined
+        var axis: [8] f32
         axis[0] = cast(f32) (bgra ? ground.b : ground.r)
         axis[1] = cast(f32) ground.g
         axis[2] = cast(f32) (bgra ? ground.r : ground.b)
@@ -70,7 +70,7 @@ public impl Image
         axis[6] = 1.0 / len2
         axis[7] = cast(f32) (bgra ? foreground.b : foreground.r)
 
-        var front: [3] u8 = undefined
+        var front: [3] u8
         front[0] = bgra ? foreground.b : foreground.r
         front[1] = foreground.g
         front[2] = bgra ? foreground.r : foreground.b

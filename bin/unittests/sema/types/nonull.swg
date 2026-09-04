@@ -94,9 +94,9 @@ impl SemaNonNullMoveDefault
     mtd opDrop() {}
 }
 
-struct SemaNonNullUndefinedHolder
+struct SemaNonNullRequiredHolder
 {
-    required: *SemaNonNullItem = undefined
+    required: *SemaNonNullItem
 }
 
 struct SemaNonNullBlockHolder
@@ -127,7 +127,6 @@ struct SemaNonNullCompleteSet
 
 impl SemaNonNullCompleteSet
 {
-    #[Swag.FullInit]
     mtd opSet(value: *SemaNonNullItem)
     {
         .required = value
@@ -240,9 +239,9 @@ func semaNonNullConstruction()
     var mutable = holder
     Swag.init(mutable)(&second)
 
-    // 'undefined' remains an explicit low-level escape hatch from initialization checks.
-    var undefinedPointer: *SemaNonNullItem = undefined
-    var undefinedHolder = SemaNonNullUndefinedHolder{}
+    // Non-null values are initialized explicitly; no uninitialized escape exists.
+    var initializedPointer: *SemaNonNullItem = &second
+    var initializedHolder = SemaNonNullRequiredHolder{required: &second}
 
     // Explicitly nullable pointers retain their default.
     var nullableDefault: #null *SemaNonNullItem
@@ -271,8 +270,6 @@ func semaNonNullConstruction()
     #assert(#typeof(families.boxed) == any)
     #assert(#typeof(families.reflectedType) == typeinfo)
     #assert(#typeof(mutable.required) == *SemaNonNullItem)
-    #assert(#typeof(undefinedPointer) == *SemaNonNullItem)
-    #assert(#typeof(undefinedHolder.required) == *SemaNonNullItem)
     #assert(#typeof(nullableDefault) == #null *SemaNonNullItem)
     #assert(#typeof(legacyDefault) == #null *SemaNonNullItem)
     #assert(#typeof(legacyHolder.ptr) == #null *SemaNonNullItem)

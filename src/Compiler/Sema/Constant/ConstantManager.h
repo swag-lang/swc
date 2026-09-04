@@ -31,7 +31,6 @@ public:
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
 
     ConstantRef          cstNull() const { return cstNull_; }
-    ConstantRef          cstUndefined() const { return cstUndefined_; }
     ConstantRef          cstTrue() const { return cstBool_true_; }
     ConstantRef          cstFalse() const { return cstBool_false_; }
     ConstantRef          cstBool(bool value) const { return value ? cstBool_true_ : cstBool_false_; }
@@ -169,7 +168,6 @@ private:
     ConstantRef cstS32_1_      = ConstantRef::invalid();
     ConstantRef cstS32_neg1_   = ConstantRef::invalid();
     ConstantRef cstNull_       = ConstantRef::invalid();
-    ConstantRef cstUndefined_  = ConstantRef::invalid();
 };
 
 SWC_END_NAMESPACE();

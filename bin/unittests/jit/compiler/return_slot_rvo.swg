@@ -167,7 +167,7 @@ func makeArray(seed: s32)->[4] s32
 #[Swag.NoInline]
 func aliasedReceiver()->Vec4
 {
-    var first: retval = undefined
+    var first: retval
     first.x = 1
     first.y = 2
     first.z = 3

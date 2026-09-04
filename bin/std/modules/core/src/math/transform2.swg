@@ -50,7 +50,7 @@ impl Transform2
         let c  = Math.cos(angle)
         let c1 = 1.0 - c
 
-        with var result: retval = undefined
+        with var result: retval
         {
             .tx  = (centerX * c1) + (centerY * s)
             .ty  = (centerY * c1) - (centerX * s)
@@ -66,7 +66,7 @@ impl Transform2
     // Creates a scale matrix, with a given center
     func createScale(scaleX, scaleY: f32, centerX, centerY: f32)->Transform2
     {
-        with var result: retval = undefined
+        with var result: retval
         {
             .m11 = scaleX
             .m12 = 0
@@ -82,7 +82,7 @@ impl Transform2
     // Creates a translation matrix
     func createTranslation(x, y: f32)->Transform2
     {
-        with var result: retval = undefined
+        with var result: retval
         {
             .m11 = 1
             .m12 = 0

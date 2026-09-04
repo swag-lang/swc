@@ -2,11 +2,11 @@ const VOCAB = 5000'u64
 const WORDS = 2000000'u64
 const CAP   = 16384'u64
 
-var g_Text: [*] u8  = undefined
-var g_Cnt:  [*] u64 = undefined
-var g_Off:  [*] u64 = undefined
-var g_Len:  [*] u64 = undefined
-var g_Idx:  [*] u64 = undefined
+var g_Text: [*] u8
+var g_Cnt:  [*] u64
+var g_Off:  [*] u64
+var g_Len:  [*] u64
+var g_Idx:  [*] u64
 
 // count descending, then key bytes ascending
 func less(a, b: u64)->bool
@@ -99,7 +99,7 @@ func qsort(lowIn, highIn: s64)
     // ---- timed work ----
     let t0 = now()
 
-    var counts: ByteMap = undefined
+    var counts: ByteMap
     mapInit(&counts, CAP, g_Text)
 
     var start = 0'u64

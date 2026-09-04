@@ -325,7 +325,7 @@ func borrowEscapeLocalOwnerGlobalStringField()
 // Reading a carrier element by value copies it: no borrow of the array storage.
 func borrowEscapeElementRead()->string
 {
-    var arr: [2] string = undefined
+    var arr: [2] string
     arr[0] = "hi"
     return arr[0]
 }
@@ -1570,7 +1570,7 @@ func borrowEscapeFieldDeferred()->#null *s32
 func borrowEscapeDeferredJoin(cond: bool)->*s32
 {
     var local: s32
-    var p:     *s32 = undefined
+    var p:     *s32
     if cond do
         p = borrowEscapeWrapGlobalSource(&local)
     else do

@@ -282,7 +282,7 @@ struct DragDropEvent
 
         using base: Event                              // Embedded base state.
         kind:       Kind                               // Gesture phase being reported.
-        data:       *DragData          = undefined     // Payload being dragged, borrowed for this call.
+        data:       *DragData     // Payload being dragged, borrowed for this call.
         surfacePos: Math.Point                         // Pointer position in surface coordinates.
         modifiers:  Input.KeyModifiers = None          // Modifiers held during the gesture.
         allowed:    DropEffect         = None          // Effects the source permits.

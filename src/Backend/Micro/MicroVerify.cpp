@@ -203,7 +203,6 @@ namespace
             case MicroInstrOpcode::SetCondReg:
             case MicroInstrOpcode::ClearReg:
             case MicroInstrOpcode::SanityInvalidate:
-            case MicroInstrOpcode::SanityUndefined:
             case MicroInstrOpcode::LoadLabelAddress:
                 return 2;
 

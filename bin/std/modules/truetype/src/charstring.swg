@@ -13,7 +13,7 @@ const MaxCharstringStack = 48'u32
 // shape a `glyf` glyph does.
 struct OutlineBuilder
 {
-    face:         *FaceImpl = undefined
+    face:         *FaceImpl
     scaleX:       f64
     scaleY:       f64
     contourStart: u32
@@ -103,11 +103,11 @@ impl OutlineBuilder
 // Everything one run of a Type 2 charstring carries between its operators.
 struct Type2State
 {
-    font:      *CffFont                 = undefined
+    font:      *CffFont
     builder:   #null *OutlineBuilder
-    subrs:     const *CffIndex          = undefined
-    stack:     [MaxCharstringStack] f64 = undefined
-    transient: [32] f64                 = undefined
+    subrs:     const *CffIndex
+    stack:     [MaxCharstringStack] f64
+    transient: [32] f64
     depth:     u32
     x:         f64
     y:         f64
@@ -687,14 +687,14 @@ func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 // Everything one run of a Type 1 charstring carries between its operators.
 struct Type1State
 {
-    font:    *Type1Font               = undefined
+    font:    *Type1Font
     builder: #null *OutlineBuilder
-    stack:   [MaxCharstringStack] f64 = undefined
+    stack:   [MaxCharstringStack] f64
     depth:   u32
 
     // Values the interpreter hands back to the charstring through `pop`, which is how the
     // format returns a result from the callable subroutines the language reserves.
-    results:     [32] f64 = undefined
+    results:     [32] f64
     resultDepth: u32
 
     x:            f64
@@ -708,8 +708,8 @@ struct Type1State
     // moves are collected here instead of being drawn, then replayed as two curves.
     flexing:   bool
     flexCount: u32
-    flexX:     [8] f64 = undefined
-    flexY:     [8] f64 = undefined
+    flexX:     [8] f64
+    flexY:     [8] f64
 
     seacBase:   s32 = -1
     seacAccent: s32 = -1

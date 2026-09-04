@@ -8,7 +8,7 @@ namespace compiler_impl_static_storage
 
     impl Cache
     {
-        var values: [4] s32 = undefined
+        var values: [4] s32
 
         #[Swag.Compiler]
         func seed(index: u8, value: s32)

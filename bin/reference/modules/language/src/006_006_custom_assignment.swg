@@ -43,15 +43,15 @@ impl Struct
 }
 
 /**
-# Optimizing Initialization with 'Swag.FullInit'
+# Inferring Complete Initialization
 
-When 'opSet' completely initializes the struct, mark it with '#[Swag.FullInit]'.
-This avoids default initialization before assignment for better performance.
+When an 'opSet' assigns every field on every exit path, the compiler infers that
+it completely initializes the destination and omits a redundant default
+initialization at call sites. No attribute is needed for this direct form.
 */
 
 impl Struct
 {
-    #[Swag.FullInit]
     mtd opSet(value: u64)
     {
         me.x, me.y, me.z = cast(s32) value

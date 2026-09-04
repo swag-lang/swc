@@ -189,7 +189,7 @@ func frameChunkId(index: u32, a, b: u32)->u32
 // Reads one value of the container's binary layout.
 private func(T) readValue(source: *Source)->T fail
 {
-    var result: T = undefined
+    var result: T
     source.readExact(Swag.makeSlice(cast([*] u8) &result, #sizeof(T)))
     return result
 }

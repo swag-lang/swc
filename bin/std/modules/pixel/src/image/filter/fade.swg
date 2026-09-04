@@ -24,9 +24,9 @@ public impl Image
             return
         }
 
-        var convArrR: [256] u8 = undefined
-        var convArrG: [256] u8 = undefined
-        var convArrB: [256] u8 = undefined
+        var convArrR: [256] u8
+        var convArrG: [256] u8
+        var convArrB: [256] u8
 
         if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {

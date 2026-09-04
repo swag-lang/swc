@@ -115,7 +115,7 @@ internal struct MathDrawText
 {
     text:  string
     pos:   Math.Vector2     // Baseline-relative position
-    font:  *Font = undefined
+    font:  *Font
     scale: f32
 }
 
@@ -202,7 +202,7 @@ struct MathExpression
     {
         source: String                    // Expression text the tree was parsed from.
         nodes:  ArrayPtr'MathNode         // Pool owning every node of the tree.
-        root:   *MathNode = undefined     // Root of the tree, set by 'parse'.
+        root:   *MathNode     // Root of the tree, set by 'parse'.
     }
 }
 
@@ -217,7 +217,7 @@ private struct MathSymbolSpec
 
 private struct MathParser
 {
-    expression: *MathExpression = undefined
+    expression: *MathExpression
     source:     string
     pos:        u64
 }
@@ -1251,7 +1251,7 @@ impl MathExpression
         var result: retval
         result.source = source
 
-        var parser: MathParser = undefined
+        var parser: MathParser
         parser.expression = &result
         parser.source     = result.source.toString()
         parser.pos        = 0

@@ -93,7 +93,7 @@ struct DragVTable
 
 #test
 {
-    var vtbl: DragVTable = undefined
+    var vtbl: DragVTable
     vtbl.onDrag = func(state: u32, pt: Pair, effect: *u32)->u32
     {
         effect[] = pt.x + pt.y

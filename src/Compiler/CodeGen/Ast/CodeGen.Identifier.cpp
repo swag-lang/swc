@@ -354,11 +354,7 @@ namespace
 
     bool shouldSkipVariableDefaultInit(const SymbolVariable& symVar)
     {
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-            return true;
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return false;
-        return symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::DefaultInitElided);
     }
 
     Result emitVariableDefaultValueToAddress(CodeGen& codeGen, const SymbolVariable& symVar, const MicroReg dstReg, uint32_t localSize)
@@ -376,12 +372,6 @@ namespace
         {
             const auto& symStruct = storageType.payloadSymStruct();
             symStruct.computeImplicitDefaultFlags(codeGen.sema());
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) && symStruct.hasImplicitAllUndefinedDefault())
-            {
-                CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, localSize);
-                return Result::Continue;
-            }
-
             SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), dstReg));
             return Result::Continue;
         }
@@ -650,12 +640,6 @@ namespace
                 {
                     SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
                 }
-            }
-            else if (symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) || symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit))
-            {
-                // Explicit '= undefined', or a struct whose fields all default to
-                // 'undefined': either way the storage starts as garbage.
-                SWC_RESULT(CodeGenSafety::emitUndefinedInitMarkers(codeGen, symbolPayload.reg, localSize, symVar.codeRef()));
             }
             return Result::Continue;
         }

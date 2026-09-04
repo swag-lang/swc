@@ -1,21 +1,13 @@
 #global private
 
-var A: func(s32) = undefined
-#assert(#nameof(#typeof(A)) == "func(s32)")
-var B: func(s32, bool) = undefined
-#assert(#nameof(#typeof(B)) == "func(s32, bool)")
-var C: func(s32, bool)->string = undefined
-#assert(#nameof(#typeof(C)) == "func(s32, bool)->string")
-var D: func(s32, string)->#null *s32 fail = undefined
-#assert(#nameof(#typeof(D)) == "func(s32, string)->#null *s32 fail")
-var E: func||(s32) = undefined
-#assert(#nameof(#typeof(E)) == "func||(s32)")
-var F: func||(s32, bool) = undefined
-#assert(#nameof(#typeof(F)) == "func||(s32, bool)")
-var G: func||(s32, bool)->string = undefined
-#assert(#nameof(#typeof(G)) == "func||(s32, bool)->string")
-var H: func||(s32, string)->#null *s32 fail = undefined
-#assert(#nameof(#typeof(H)) == "func||(s32, string)->#null *s32 fail")
+#assert(#nameof(#type func(s32)) == "func(s32)")
+#assert(#nameof(#type func(s32, bool)) == "func(s32, bool)")
+#assert(#nameof(#type func(s32, bool)->string) == "func(s32, bool)->string")
+#assert(#nameof(#type func(s32, string)->#null *s32 fail) == "func(s32, string)->#null *s32 fail")
+#assert(#nameof(#type func||(s32)) == "func||(s32)")
+#assert(#nameof(#type func||(s32, bool)) == "func||(s32, bool)")
+#assert(#nameof(#type func||(s32, bool)->string) == "func||(s32, bool)->string")
+#assert(#nameof(#type func||(s32, string)->#null *s32 fail) == "func||(s32, string)->#null *s32 fail")
 
 struct RecursiveFuncField
 {
@@ -32,19 +24,13 @@ struct(T) LambdaTypeBox
     value: T
 }
 
-var LambdaBoxA: LambdaTypeBox'func||(s32) = undefined
-var LambdaBoxB: LambdaTypeBox'func||(s32) = undefined
-#assert(#typeof(LambdaBoxA) == #typeof(LambdaBoxB))
+#assert(#type LambdaTypeBox'func||(s32) == #type LambdaTypeBox'func||(s32))
 
-var I: func()       = undefined
-var J: func(...)    = undefined
-var K: func(s32...) = undefined
-#assert(#nameof(#typeof(I)) == "func()")
-#assert(#nameof(#typeof(J)) == "func(...)")
-#assert(#nameof(#typeof(K)) == "func(s32...)")
+#assert(#nameof(#type func()) == "func()")
+#assert(#nameof(#type func(...)) == "func(...)")
+#assert(#nameof(#type func(s32...)) == "func(s32...)")
 
-var A0: func(a: s32) = undefined
-#assert(#nameof(#typeof(A0)) == "func(a: s32)")
+#assert(#nameof(#type func(a: s32)) == "func(a: s32)")
 
 func PtrMatch0() {}
 func PtrMatch1(value: s32) {}

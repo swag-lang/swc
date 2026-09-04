@@ -52,7 +52,7 @@ func waitManyThreads(threads: [..] Threading.Thread)
 #test
 {
     var doneCount: s32 = 0
-    var payloads:  [WaitManyThreadCount] WaitManyPayload = undefined
+    var payloads:  [WaitManyThreadCount] WaitManyPayload
     var threads:   [WaitManyThreadCount] Threading.Thread
 
     for i in WaitManyThreadCount

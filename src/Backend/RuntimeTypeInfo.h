@@ -48,7 +48,6 @@ namespace Runtime
         String,
         Any,
         CString,
-        Undefined,
     };
 
     enum class TypeInfoFlags : uint32_t

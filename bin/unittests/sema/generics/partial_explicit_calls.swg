@@ -14,7 +14,7 @@ func concreteLocalStructPartialTypeAnnotation()->bool
         third:  V
     }
 
-    var data: Local'bool = undefined
+    var data: Local'bool
     return #typeof(data.first) == bool and #typeof(data.second) == string and #typeof(data.third) == f32
 }
 
@@ -27,7 +27,7 @@ func(A, B) localStructPartialTypeAnnotation()->bool
         third:  V
     }
 
-    var data: Local'A = undefined
+    var data: Local'A
     return #typeof(data.first) == A and #typeof(data.second) == string and #typeof(data.third) == B
 }
 

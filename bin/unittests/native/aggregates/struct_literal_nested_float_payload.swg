@@ -34,7 +34,7 @@ struct Evt
 {
     using base: Base
     kind:       Kind
-    button:     u32       = undefined
+    button:     u32
     surfacePos: Point
     delta:      Point
     modifiers:  Modifiers = None

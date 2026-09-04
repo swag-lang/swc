@@ -66,7 +66,7 @@ impl Properties
     #[Swag.NoDoc]
     func addEditor(type: const *Swag.TypeInfoStruct, itf: IPropertyEditor)
     {
-        var reg: PropertyEditorReg = undefined
+        var reg: PropertyEditorReg
         reg.type = type
         reg.itf  = itf
         editors.add(reg)

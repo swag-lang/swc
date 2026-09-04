@@ -215,7 +215,7 @@ internal impl IImageDecoder for Decoder
         for i in numEntries
         {
             let ep       = base + ifdOffset + 2 + cast(u64) i * 12
-            var e: Entry = undefined
+            var e: Entry
             e.tag     = rd16(ep, le)
             e.type    = rd16(ep + 2, le)
             e.count   = rd32(ep + 4, le)

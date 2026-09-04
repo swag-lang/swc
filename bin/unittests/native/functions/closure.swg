@@ -117,7 +117,7 @@ func makeNested(base: s32)->func||()->s32
 {
     func toto(x: s32)->s32 { return 42 + x }
 
-    var fb: func||(s32)->s32 = undefined
+    var fb: func||(s32)->s32
     fb = &toto
     Swag.assert(fb(5) == 47)
 }
@@ -126,7 +126,7 @@ func makeNested(base: s32)->func||()->s32
 #test
 {
     var arr = [10, 20, 30]
-    var fct: func||(s32)->s32 = undefined
+    var fct: func||(s32)->s32
     fct = func|arr|(extra: s32)->s32
     {
         var sum = 0
@@ -139,7 +139,7 @@ func makeNested(base: s32)->func||()->s32
 
 #test
 {
-    var fct: func||(s32)->s32 = undefined
+    var fct: func||(s32)->s32
     fct = func(n: s32)->s32
     {
         var total = 0
@@ -152,7 +152,7 @@ func makeNested(base: s32)->func||()->s32
 
 #test
 {
-    var fct: func||(s32)->s32 = undefined
+    var fct: func||(s32)->s32
     let base = 100
     fct = func|base|(x: s32)->s32
     {

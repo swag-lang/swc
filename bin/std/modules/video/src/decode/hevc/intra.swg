@@ -216,7 +216,7 @@ impl Decoder
             }
         }
 
-        var filtered: [129] u16 = undefined
+        var filtered: [129] u16
         filtered[size * 2] = cast(u16) ((cast(u32) reference.left(0) + 2 * cast(u32) reference.corner() + cast(u32) reference.top(0) + 2) >> 2)
         for index in total - 1
         {
@@ -280,7 +280,7 @@ impl Decoder
 
         // The main reference runs along the direction the prediction comes from, and is extended
         // backwards through the other edge when the angle is negative.
-        var main: [160] u16 = undefined
+        var main: [160] u16
         let origin          = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
         for index in size + 1

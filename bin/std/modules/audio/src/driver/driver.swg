@@ -13,7 +13,7 @@ struct Driver
     using native: DriverNative
 
     isCreated:           bool
-    allocationAllocator: IAllocator = undefined
+    allocationAllocator: IAllocator
 
     updateTh:            Threading.Thread
     wakeupUpdate:        Sync.Event

@@ -67,7 +67,7 @@ impl DepSelfBufferSet
 #[Swag.NoInline]
 func depMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->DepSelfBufferSet
 {
-    var result: retval = undefined
+    var result: retval
     result.storage = [a, b, c, d]
     result.buffer  = cast([*] u8) &result.storage[0]
     result.count   = count

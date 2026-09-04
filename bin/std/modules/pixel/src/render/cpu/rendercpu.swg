@@ -38,7 +38,7 @@ struct RenderCpu
         blendingMode: BlendingMode = Alpha
         colorMask:    ColorMask    = {true, true, true, false}
 
-        paintCommand:  Command = undefined
+        paintCommand:  Command
         gradientStops: #null const [..] GradientStop
         paintOn:       bool
         program:       u8
@@ -373,7 +373,7 @@ private impl RenderCpu
         let wx = cast(u32) (Math.saturate(tx) * One)
         let wy = cast(u32) (Math.saturate(ty) * One)
 
-        var top, bottom, result: Color = undefined
+        var top, bottom, result: Color
         top.a    = lerpByte(c00.a, c10.a, wx)
         top.r    = lerpByte(c00.r, c10.r, wx)
         top.g    = lerpByte(c00.g, c10.g, wx)
@@ -411,7 +411,7 @@ private impl RenderCpu
         let cy  = image.height - Math.clamp(y, 0, image.height - 1) - 1
         let pix = image.pixels.buffer! + cast(u64) (cx * 4) + cast(u64) cy * cast(u64) image.width * 4
 
-        var result: Color = undefined
+        var result: Color
         result.b = pix[0]
         result.g = pix[1]
         result.r = pix[2]
@@ -1641,7 +1641,7 @@ private impl RenderCpu
                         let pixel = rowPixels + cast(u64) x * 4
                         if hasAlpha
                         {
-                            var src: Color = undefined
+                            var src: Color
                             src.b = texel[swapRedBlue ? 2 : 0]
                             src.g = texel[1]
                             src.r = texel[swapRedBlue ? 0 : 2]
@@ -1924,7 +1924,7 @@ private impl RenderCpu
         if bounds.isEmpty() do
             return
 
-        var batch: RasterBatch = undefined
+        var batch: RasterBatch
         .setupBatch(&batch, image, painter, start, count)
         if .tryCopyTextureRect(&batch) do
             return

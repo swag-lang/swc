@@ -318,7 +318,7 @@ private impl Decoder
     // that follows, but they do change where it starts, which is why the size is returned.
     mtd readMarker(source: *Source)->u64 fail
     {
-        var marker: [ShortMarkerSize] u8 = undefined
+        var marker: [ShortMarkerSize] u8
         source.readExact(marker)
         if Swag.memcmp(&marker[0], FrameMarker.buffer, FrameMarker.count) != 0 do
             fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}

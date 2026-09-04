@@ -73,9 +73,9 @@ impl JitNonNullMoveDefault
     mtd opDrop() {}
 }
 
-struct JitNonNullUndefinedHolder
+struct JitNonNullRequiredHolder
 {
-    required: *JitNonNullItem = undefined
+    required: *JitNonNullItem
 }
 
 struct JitNonNullBlockHolder
@@ -293,11 +293,11 @@ func jitNonNullConstruction()->bool
     if mutable.required != &second or mutable.optional != null or mutable.legacy != null or mutable.count != 7 do
         return false
 
-    // 'undefined' remains an explicit low-level escape hatch; its value must not be read.
-    var undefinedPointer: *JitNonNullItem = undefined
-    var undefinedHolder = JitNonNullUndefinedHolder{}
-    #assert(#typeof(undefinedPointer) == *JitNonNullItem)
-    #assert(#typeof(undefinedHolder.required) == *JitNonNullItem)
+    // Non-null values are initialized explicitly; no uninitialized escape exists.
+    var initializedPointer: *JitNonNullItem = &second
+    var initializedHolder = JitNonNullRequiredHolder{required: &second}
+    #assert(#typeof(initializedPointer) == *JitNonNullItem)
+    #assert(#typeof(initializedHolder.required) == *JitNonNullItem)
 
     // Only explicitly nullable pointers keep a null default; bare pointers have no implicit default.
     var nullablePointer: #null *JitNonNullItem

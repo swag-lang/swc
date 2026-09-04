@@ -72,7 +72,7 @@ func jitWithLocalInit()->s32
 
 func jitWithRetvalUndefined()->{ a, b: s32 }
 {
-    with var result: retval = undefined
+    with var result: retval
     {
         .a = 55
         .b = 89

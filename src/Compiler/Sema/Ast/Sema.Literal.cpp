@@ -306,12 +306,6 @@ Result AstNullLiteral::semaPreNode(Sema& sema)
     return Result::SkipChildren;
 }
 
-Result AstUndefinedExpr::semaPreNode(Sema& sema)
-{
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstUndefined());
-    return Result::SkipChildren;
-}
-
 Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx     = sema.ctx();

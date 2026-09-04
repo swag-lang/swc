@@ -191,11 +191,10 @@ namespace compiler1661
 
     #test
     {
-        var addr:  [1] *#null *TT = undefined
         var addr1: #null *TT      = null
+        var addr:  [1] *#null *TT = [&addr1]
         var value: TT
 
-        addr[0] = &addr1
         // addr1[0] = &value
 
         // Swag.print(addr[0].value)
@@ -215,10 +214,8 @@ namespace compiler1662
     #test
     {
         var value: s64             = 666
-        var addr:  [1] [*] [*] s64 = undefined
         var addr1: [*] s64         = cast([*] s64) &value
-
-        addr[0] = cast([*] [*] s64) &addr1
+        var addr:  [1] [*] [*] s64 = [cast([*] [*] s64) &addr1]
 
         Swag.assert(addr[0][0][0] == 666)
     }
@@ -236,10 +233,8 @@ namespace compiler1663
     #test
     {
         var value: TT
-        var addr:  [1] [*] [*] TT = undefined
         var addr1: [*] TT         = cast([*] TT) &value
-
-        addr[0] = cast([*] [*] TT) &addr1
+        var addr:  [1] [*] [*] TT = [cast([*] [*] TT) &addr1]
 
         // Swag.print(addr1.value)
         Swag.assert(addr[0][0].value == 456)
@@ -258,12 +253,12 @@ namespace compiler1664
     #test
     {
         var value: TT
-        var addr:  [2, 2] *TT = undefined
+        var addr:  [2, 2] #null *TT = cast(#null *TT) null
 
         addr[0, 0] = &value
 
         // Swag.print(addr[0,0].value)
-        Swag.assert(addr[0, 0].value == 456)
+        Swag.assert(addr[0, 0]!.value == 456)
     }
 }
 

@@ -96,7 +96,7 @@ impl TestTiffLzwWriter
 // exercises TIFF's early 9-to-12-bit transitions without sharing the encoder.
 func packLiteralTiffLzw(data: const [..] u8)->Array'u8
 {
-    var writer: TestTiffLzwWriter = undefined
+    var writer: TestTiffLzwWriter
     writer.bytes       = {}
     writer.pending     = 0
     writer.pendingBits = 0
@@ -545,7 +545,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 // is being defined by that same code.
 #test
 {
-    var writer: TestTiffLzwWriter = undefined
+    var writer: TestTiffLzwWriter
     writer.bytes       = {}
     writer.pending     = 0
     writer.pendingBits = 0

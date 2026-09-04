@@ -38,9 +38,9 @@ impl IWnd for ProgressBar
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        var colorBk:     Color = undefined
-        var colorBorder: Color = undefined
-        var colorMark:   Color = undefined
+        var colorBk:     Color
+        var colorBorder: Color
+        var colorMark:   Color
 
         switch
         {

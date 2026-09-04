@@ -6,7 +6,7 @@ const MaximumIoBatchBlocks = 256'u64
 
 struct CryptoBatch
 {
-    keys:        const *Crypto.Keys = undefined
+    keys:        const *Crypto.Keys
     physical:    u64
     records:     [..] u8
     plain:       [..] u8

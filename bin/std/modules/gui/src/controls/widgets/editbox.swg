@@ -155,10 +155,10 @@ impl IWnd for EditBox
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
-        var colorBk:       Color = undefined
-        var colorBorder:   Color = undefined
-        var colorText:     Color = undefined
-        var colorUnit:     Color = undefined
+        var colorBk:       Color
+        var colorBorder:   Color
+        var colorText:     Color
+        var colorUnit:     Color
 
         switch .form
         {
@@ -874,7 +874,7 @@ private impl EditBox
     // Computes the caret rectangle in surface coordinates.
     mtd caretRect()->Math.Rectangle
     {
-        var result: retval = undefined
+        var result: retval
 
         var clientRect = .editRect()
         if .icon.isValid()

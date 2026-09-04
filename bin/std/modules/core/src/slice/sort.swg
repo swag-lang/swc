@@ -76,7 +76,7 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
         let set2 = end - (high + 1)
         if set1 > 0 and set2 > 0
         {
-            var first, last: s64 = undefined
+            var first, last: s64
             if set1 <= set2
             {
                 first = begin

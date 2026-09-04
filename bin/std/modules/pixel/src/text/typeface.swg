@@ -11,8 +11,8 @@ public struct TypeFace
     internal
     {
         fullname:            String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
-        allocationAllocator: IAllocator = undefined     // Allocator that owns this cached value.
-        face:                *Face      = undefined     // Owned TrueType face and its copied font bytes.
+        allocationAllocator: IAllocator     // Allocator that owns this cached value.
+        face:                *Face     // Owned TrueType face and its copied font bytes.
         faceLoaded:          bool                       // Whether `face` can be destroyed during cleanup.
         forceBoldDiv:        u32        = 11            // Em-size divisor used for synthetic bold strength.
         forceItalic:         bool                       // Whether every rasterized glyph is synthetically slanted.

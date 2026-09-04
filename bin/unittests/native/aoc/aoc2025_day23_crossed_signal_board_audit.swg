@@ -184,10 +184,8 @@ func suspectsMatch(audit: BoardAudit, expected: const [..] string)->bool
 
 func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)->BoardAudit
 {
-    var result: BoardAudit = undefined
-    result.outputValue  = 0
-    result.suspectCount = 0
-    var wireNames:     [MaxWires] string = undefined
+    var result: BoardAudit = {outputValue: 0, suspectCount: 0, suspects: ""}
+    var wireNames:     [MaxWires] string = ""
     var wireKnown:     [MaxWires] bool
     var wireValues:    [MaxWires] u8
     var wireNameSlice: [..] string       = wireNames

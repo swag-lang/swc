@@ -6,7 +6,7 @@ using Swag, Core, File
 struct ScenarioFixture
 {
     gui:        Gui.Testing.HeadlessHost
-    main:       *MainWnd = undefined
+    main:       *MainWnd
     rootFolder: String
 }
 

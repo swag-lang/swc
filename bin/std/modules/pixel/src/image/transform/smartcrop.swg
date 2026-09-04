@@ -408,7 +408,7 @@ impl Image
         let cy   = h * 0.5
         let d2Mx = cx * cx + cy * cy     // correct normalization
 
-        var ctx: retval = undefined
+        var ctx: retval
         ctx.iiS     = &pack.iiS
         ctx.iiT     = &pack.iiT
         ctx.iiE     = &pack.iiE

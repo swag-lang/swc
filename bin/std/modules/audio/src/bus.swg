@@ -15,7 +15,7 @@ public struct Bus
 
     internal
     {
-        allocationAllocator: IAllocator = undefined     // Allocator that owns this bus.
+        allocationAllocator: IAllocator     // Allocator that owns this bus.
         handle:              #null *void                // Backend-owned submix handle.
     }
 }

@@ -16,7 +16,7 @@ func BlendOverlay(col0, col1: OverlayColor, factor: f32)->OverlayColor
         return cast(u8) (cast(f32) v0 + (cast(f32) v1 - v0) * factor)
     }
 
-    var result: retval = undefined
+    var result: retval
     result.a = blendU8(col0.a, col1.a, factor)
     result.r = blendU8(col0.r, col1.r, factor)
     result.g = blendU8(col0.g, col1.g, factor)

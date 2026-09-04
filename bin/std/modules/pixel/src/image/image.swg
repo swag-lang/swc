@@ -671,7 +671,7 @@ impl Image
             let y             = .height - Math.clamp(pixY, 0, .height - 1) - 1
             let source        = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
             let value         = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
-            var result: Color = undefined
+            var result: Color
             result.r = normalizedToU8(value.r)
             result.g = normalizedToU8(value.g)
             result.b = normalizedToU8(value.b)
@@ -687,7 +687,7 @@ impl Image
             let y             = .height - Math.clamp(pixY, 0, .height - 1) - 1
             let source        = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
             let value         = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
-            var result: Color = undefined
+            var result: Color
             result.r = normalizedToU8(value.r)
             result.g = normalizedToU8(value.g)
             result.b = normalizedToU8(value.b)

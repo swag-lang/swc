@@ -218,7 +218,7 @@ impl Deque
         #scope(Up)
         for itemIndex in .count
         {
-            var itemPtr: const [*] T = undefined
+            var itemPtr: const [*] T
             if itemIndex < .frontItems.count do
                 itemPtr = .frontItems.buffer! + .frontItems.count - itemIndex - 1
             else do

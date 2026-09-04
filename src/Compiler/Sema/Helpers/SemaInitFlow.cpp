@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Sema/Helpers/SemaUndefined.h"
+#include "Compiler/Sema/Helpers/SemaInitFlow.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
@@ -23,12 +23,13 @@ namespace
     constexpr uint32_t K_MAX_ERRORS       = 8;
     constexpr uint64_t K_ALL_BITS         = ~0ull;
 
-    // One '= undefined' local under analysis. Fields of a struct/tuple local are
-    // tracked individually (one bit each, capped at 63); every other type is a single
-    // slot (bit 0).
+    // One local participating in initialization flow. It either has a safe default
+    // that may be elided, or requires a proof before it can be observed. Fields of a
+    // struct local are tracked individually (one bit each, capped at 63); every other
+    // type is a single slot (bit 0).
     struct TrackedVar
     {
-        const SymbolVariable* sym         = nullptr;
+        SymbolVariable*       sym         = nullptr;
         const SymbolStruct*   fieldStruct = nullptr; // set when fields are tracked individually
         uint32_t              fieldCount  = 0;       // 0 => single slot
         uint64_t              fullMask    = 1;
@@ -36,9 +37,12 @@ namespace
         uint64_t              lateMask    = 0; // bits of 'Swag.Late' fields ('lateOnly' tracking)
         bool                  typeHasDrop = false;
         bool                  isRetVal    = false;
-        bool                  isArray     = false; // static array: passed by address, filled element-wise
-        bool                  lateOnly    = false; // tracked only for its 'Swag.Late' fields: zero-init var, no undefined content
+        bool                  lateOnly    = false; // tracked only for its 'Swag.Late' fields: regular zero-initialized storage
+        bool                  defaultInitCandidate = false;
+        bool                  needsDefiniteInit = false;
+        bool                  fullInitReceiver = false;
         bool                  errored     = false; // one report per variable
+        SmallVector<AstNodeRef, 4> firstInitAssignRefs;
         uint32_t              blockDepth  = 0;
         uint32_t              loopDepth   = 0;
     };
@@ -110,7 +114,38 @@ namespace
         Result run(AstNodeRef bodyRef)
         {
             FlowState state;
-            walk(bodyRef, state);
+            trackFullInitReceiver(state);
+            const FlowExit exit = walk(bodyRef, state);
+            if (exit == FlowExit::Normal)
+                checkFullInitExit(state);
+
+            if (!aborted_)
+            {
+                for (const TrackedVar& var : vars_)
+                {
+                    if (var.fullInitReceiver)
+                    {
+                        if (var.defaultInitCandidate)
+                            sym_->setInferredFullInitialization(true);
+                        continue;
+                    }
+
+                    // A type with no safe default reaches codegen only after this
+                    // pass has proved that every observation is preceded by a write.
+                    // The same flag prevents materializing an impossible default.
+                    if (var.needsDefiniteInit)
+                    {
+                        var.sym->addExtraFlag(SymbolVariableFlagsE::DefaultInitElided);
+                        continue;
+                    }
+
+                    // Safe defaults are intentionally left in the semantic program.
+                    // A source-level write can select a user opSet whose contract
+                    // observes the default state. The SSA/micro passes can remove
+                    // an ordinary dead store after that dispatch has been resolved,
+                    // without ever making that contract speculative here.
+                }
+            }
 
             // A '#null' return type that no return path can produce promises a null
             // that never happens: callers pay guards for nothing.
@@ -155,6 +190,7 @@ namespace
         uint32_t                errorCount_   = 0;
         bool                    aborted_      = false;
         bool                    hadError_     = false;
+        int32_t                 fullInitReceiverIndex_ = -1;
         // '#null' return contract tracking.
         bool returnContract_ = false;
         bool returnSeen_     = false;
@@ -378,11 +414,13 @@ namespace
                     }
                     case AstNodeId::AutoMemberAccessExpr:
                     {
-                        // Implicit receiver: attribute to the innermost 'with' target
-                        // when that target is a tracked variable.
-                        if (withTargets_.empty() || withTargets_.back() < 0)
+                        // Attribute an implicit receiver to an explicit 'with' target,
+                        // or to the receiver of an opSet being analyzed.
+                        if (withTargets_.empty() && fullInitReceiverIndex_ < 0)
                             return false;
-                        out.varIndex                  = withTargets_.back();
+                        out.varIndex                  = withTargets_.empty() ? fullInitReceiverIndex_ : withTargets_.back();
+                        if (out.varIndex < 0)
+                            return false;
                         const auto&        autoMember = node.cast<AstAutoMemberAccessExpr>();
                         const AstNodeRef   identRef   = autoMember.nodeIdentRef.isValid() ? autoMember.nodeIdentRef : ref;
                         const SemaNodeView view       = sema_->viewSymbol(identRef);
@@ -420,26 +458,6 @@ namespace
 
         // -------------------------------------------------------------------------
 
-        void reportUse(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
-        {
-            if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
-                return;
-            var.errored = true;
-            errorCount_++;
-            hadError_ = true;
-
-            const DiagnosticId id   = fieldIndex >= 0 ? DiagnosticId::sema_err_undefined_field_use : DiagnosticId::sema_err_undefined_use;
-            auto               diag = SemaError::report(*sema_, id, atRef);
-            SemaError::setReportArguments(*sema_, diag, var.sym);
-            if (fieldIndex >= 0 && var.fieldStruct)
-                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
-            // A span must stay within the element's source view (inlined bodies can
-            // place the declaration in another file).
-            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared with undefined content here");
-            diag.report(sema_->ctx());
-        }
-
         void reportLateRead(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
         {
             if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
@@ -457,7 +475,7 @@ namespace
             diag.report(sema_->ctx());
         }
 
-        void reportDrop(AstNodeRef atRef, TrackedVar& var)
+        void reportDefiniteInitUse(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
         {
             if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
                 return;
@@ -465,14 +483,39 @@ namespace
             errorCount_++;
             hadError_ = true;
 
-            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_undefined_drop, atRef);
+            const DiagnosticId id = fieldIndex >= 0 ? DiagnosticId::sema_err_definite_init_field_use : DiagnosticId::sema_err_definite_init_use;
+            auto               diag = SemaError::report(*sema_, id, atRef);
+            SemaError::setReportArguments(*sema_, diag, var.sym);
+            if (fieldIndex >= 0 && var.fieldStruct)
+                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
+            diag.report(sema_->ctx());
+        }
+
+        void reportDefiniteInitDrop(AstNodeRef atRef, TrackedVar& var)
+        {
+            if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
+                return;
+            var.errored = true;
+            errorCount_++;
+            hadError_ = true;
+
+            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_definite_init_drop, atRef);
             SemaError::setReportArguments(*sema_, diag, var.sym);
             if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared with undefined content here");
+                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
             diag.report(sema_->ctx());
         }
 
         // -------------------------------------------------------------------------
+
+        void disqualifyDefaultInitElision(FlowState& state, const uint32_t varIndex)
+        {
+            TrackedVar& var = vars_[varIndex];
+            var.defaultInitCandidate = false;
+            state.set(varIndex, var.fullMask, var.fullMask);
+        }
 
         void markInit(FlowState& state, const AccessPath& path) const
         {
@@ -489,13 +532,28 @@ namespace
             }
         }
 
-        void markEscaped(FlowState& state, const AccessPath& path) const
+        void markEscaped(FlowState& state, AstNodeRef atRef, const AccessPath& path)
         {
-            // Once the address escapes, the variable is treated as initialized: the
-            // callee may fill it (out parameter) and later flow cannot be proven.
+            TrackedVar& var = vars_[path.varIndex];
+            if (var.needsDefiniteInit)
+            {
+                // An unknown callee may read through the escaped address before it
+                // writes. Require a real initialized value rather than guessing that
+                // every address-taking use is an out parameter.
+                checkRead(state, atRef, path);
+                return;
+            }
+            if (var.defaultInitCandidate)
+            {
+                // An escaped address can observe the language-mandated default before
+                // any later store. Keep that default when the callee contract is not
+                // available to this pass.
+                disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
+                return;
+            }
+
             // 'Swag.Late' fields only gain 'may': the callee filling them is possible,
             // never proven (the runtime read guard stays).
-            const TrackedVar& var = vars_[path.varIndex];
             if (path.fieldIndex >= 0)
             {
                 const uint64_t bit = 1ull << path.fieldIndex;
@@ -548,16 +606,6 @@ namespace
                 mayReturnNull_ = true;
         }
 
-        bool isArrayTypeRef(TypeRef typeRef) const
-        {
-            if (!typeRef.isValid())
-                return false;
-            const TypeInfo& type = sema_->typeMgr().get(typeRef);
-            if (const TypeRef unwrapped = type.unwrap(sema_->ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid() && unwrapped != typeRef)
-                return sema_->typeMgr().get(unwrapped).isArray();
-            return type.isArray();
-        }
-
         void checkRead(FlowState& state, AstNodeRef atRef, const AccessPath& path)
         {
             if (deferDepth_)
@@ -581,62 +629,28 @@ namespace
                 return;
             }
 
+            if (!var.defaultInitCandidate)
+            {
+                if (!var.needsDefiniteInit)
+                    return;
+
+                const uint64_t bits = state.getMust(path.varIndex);
+                if (path.fieldIndex >= 0 && (bits & (1ull << path.fieldIndex)))
+                    return;
+                if (path.fieldIndex < 0 && (bits & var.fullMask) == var.fullMask)
+                    return;
+                reportDefiniteInitUse(atRef, var, path.fieldIndex);
+                state.set(path.varIndex, var.fullMask, var.fullMask);
+                return;
+            }
+
             const uint64_t bits = state.getMust(path.varIndex);
             if ((bits & var.fullMask) == var.fullMask)
                 return;
 
-            // An array read in value position decays to its address: an escape (the
-            // consumer can fill it), not a load of the elements.
-            if (!path.indexed)
-            {
-                if (path.fieldIndex >= 0 && var.fieldStruct && isArrayTypeRef(var.fieldStruct->fields()[path.fieldIndex]->typeRef()))
-                {
-                    state.add(path.varIndex, 1ull << path.fieldIndex);
-                    return;
-                }
-                if (path.fieldIndex < 0 && var.isArray)
-                {
-                    state.set(path.varIndex, var.fullMask, var.fullMask);
-                    return;
-                }
-            }
-
-            // Array element reads only require that SOMETHING was written on SOME
-            // path (fill loops and RLE-style conditional writers are trusted; the
-            // runtime poison covers partial fills). A fully untouched array is still
-            // an error.
-            const bool arrayRead = path.indexed &&
-                                   (path.fieldIndex >= 0
-                                        ? (var.fieldStruct && isArrayTypeRef(var.fieldStruct->fields()[path.fieldIndex]->typeRef()))
-                                        : var.isArray);
-            if (arrayRead)
-            {
-                const uint64_t mayBits = state.getMay(path.varIndex);
-                const uint64_t want    = path.fieldIndex >= 0 ? 1ull << path.fieldIndex : var.fullMask;
-                if (mayBits & want)
-                    return;
-            }
-
-            if (path.fieldIndex >= 0)
-            {
-                if (bits & (1ull << path.fieldIndex))
-                    return;
-                reportUse(atRef, var, path.fieldIndex);
-            }
-            else
-            {
-                // Whole-variable read. A struct tolerates a partial copy as long as
-                // its droppable parts are complete: unwritten plain fields are just
-                // bits, and the runtime poison covers their reads. A fully untouched
-                // variable, and non-struct values, must be complete.
-                if (var.fieldStruct && bits != 0 && (bits & var.dropMask) == var.dropMask)
-                    return;
-                if (path.indexed && bits != 0)
-                    return;
-                reportUse(atRef, var, -1);
-            }
-            // Suppress cascading reports for the same variable.
-            state.set(path.varIndex, var.fullMask, var.fullMask);
+            // Any read that is not fully covered observes the default value. This is
+            // not an error: it simply makes initialization observable again.
+            disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
         }
 
         // A drop of 'var' may run at 'atRef' (reassign, scope exit, error unwind):
@@ -651,8 +665,15 @@ namespace
             const uint64_t bits = state.getMust(varIndex);
             if ((bits & var.dropMask) == var.dropMask)
                 return;
-            reportDrop(atRef, var);
-            state.set(varIndex, var.fullMask, var.fullMask);
+            if (var.needsDefiniteInit)
+            {
+                reportDefiniteInitDrop(atRef, var);
+                state.set(varIndex, var.fullMask, var.fullMask);
+                return;
+            }
+            if (!var.defaultInitCandidate)
+                return;
+            disqualifyDefaultInitElision(state, varIndex);
         }
 
         // Drops triggered by an exit: all live droppable vars declared strictly
@@ -668,18 +689,59 @@ namespace
 
         // -------------------------------------------------------------------------
 
-        void trackDecl(FlowState& state, AstNodeRef declRef, const SymbolVariable& symVar, bool hasInitExpr)
+        void trackFullInitReceiver(FlowState& state)
+        {
+            if (sym_->specOpKind() != SpecOpKind::OpSet && sym_->specOpKind() != SpecOpKind::OpSetLiteral)
+                return;
+            if (sym_->parameters().empty())
+                return;
+
+            SymbolVariable* receiver = sym_->parameters().front();
+            const SymbolStruct* owner = sym_->ownerStruct();
+            if (!receiver || !owner || !owner->isSemaCompleted() || owner->fields().empty() || owner->fields().size() > 63)
+                return;
+
+            TrackedVar var;
+            var.sym                  = receiver;
+            var.fieldStruct          = owner;
+            var.fieldCount           = static_cast<uint32_t>(owner->fields().size());
+            var.fullMask             = (1ull << var.fieldCount) - 1;
+            var.defaultInitCandidate = true;
+            var.fullInitReceiver     = true;
+
+            // The null sentinel of a late field is observable, so a setter of this
+            // type cannot replace default construction wholesale.
+            for (const SymbolVariable* field : owner->fields())
+            {
+                if (field && field->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                    return;
+            }
+
+            fullInitReceiverIndex_ = static_cast<int32_t>(vars_.size());
+            vars_.push_back(std::move(var));
+            state.set(static_cast<uint32_t>(fullInitReceiverIndex_), 0, 0);
+        }
+
+        void checkFullInitExit(const FlowState& state)
+        {
+            if (fullInitReceiverIndex_ < 0)
+                return;
+
+            TrackedVar& receiver = vars_[fullInitReceiverIndex_];
+            if ((state.getMust(static_cast<uint32_t>(fullInitReceiverIndex_)) & receiver.fullMask) != receiver.fullMask)
+                receiver.defaultInitCandidate = false;
+        }
+
+        // -------------------------------------------------------------------------
+
+        void trackDecl(FlowState& state, AstNodeRef declRef, SymbolVariable& symVar, bool hasInitExpr)
         {
             if (deferDepth_)
                 return;
             if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasGlobalStorage())
                 return;
-
-            // Explicit '= undefined' is always tracked. Without an initializer, a
-            // struct whose defaults leave fields undefined (some or all) is tracked
-            // too, starting from the defaulted fields.
-            const bool explicitUndef = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
-            if (!explicitUndef && hasInitExpr)
+            const bool needsDefiniteInit = symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsDefiniteInit);
+            if (!needsDefiniteInit && hasInitExpr)
                 return;
 
             if (vars_.size() >= K_MAX_TRACKED_VARS)
@@ -694,90 +756,84 @@ namespace
             var.isRetVal   = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
             var.blockDepth = blockDepth_;
             var.loopDepth  = loopDepth_;
+            var.defaultInitCandidate = !needsDefiniteInit;
+            var.needsDefiniteInit    = needsDefiniteInit;
 
             uint64_t      presetBits = 0;
-            bool          tracked    = explicitUndef;
             const TypeRef typeRef    = symVar.typeRef();
-            if (typeRef.isValid())
+            if (!typeRef.isValid())
+                return;
+
+            const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), typeRef);
+            var.typeHasDrop                         = lifecycle.hasDrop;
+
+            const TypeInfo& type           = sema_->typeMgr().get(typeRef);
+            TypeRef         storageTypeRef = typeRef;
+            if (const TypeRef unwrapped = type.unwrap(sema_->ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid())
+                storageTypeRef = unwrapped;
+            const TypeInfo& storageType = sema_->typeMgr().get(storageTypeRef);
+
+            // Element-wise coverage needs a dedicated range analysis. A static array
+            // with no safe default is nevertheless a useful single construction unit:
+            // a whole-object assignment or 'Swag.init(values)' proves it initialized,
+            // while an indexed write stays conservative below.
+            if (storageType.isArray())
             {
-                const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), typeRef);
-                var.typeHasDrop                         = lifecycle.hasDrop;
+                if (!var.needsDefiniteInit)
+                    return;
+                var.dropMask = var.typeHasDrop ? var.fullMask : 0;
+            }
 
-                const TypeInfo& type           = sema_->typeMgr().get(typeRef);
-                TypeRef         storageTypeRef = typeRef;
-                if (const TypeRef unwrapped = type.unwrap(sema_->ctx(), typeRef, TypeExpandE::Alias); unwrapped.isValid())
-                    storageTypeRef = unwrapped;
-                const TypeInfo& storageType = sema_->typeMgr().get(storageTypeRef);
+            if (storageType.isStruct())
+            {
+                const SymbolStruct& symStruct = storageType.payloadSymStruct();
+                if (!symStruct.isSemaCompleted() || symStruct.fields().empty() || symStruct.fields().size() > 63)
+                    return;
 
-                var.isArray = storageType.isArray();
-                if (storageType.isStruct())
+                var.fieldStruct = &symStruct;
+                var.fieldCount  = static_cast<uint32_t>(symStruct.fields().size());
+                var.fullMask    = (1ull << var.fieldCount) - 1;
+                if (symStruct.opDrop() != nullptr)
                 {
-                    const SymbolStruct& symStruct = storageType.payloadSymStruct();
-                    if (symStruct.isSemaCompleted() && !symStruct.fields().empty() && symStruct.fields().size() <= 63)
-                    {
-                        var.fieldStruct = &symStruct;
-                        var.fieldCount  = static_cast<uint32_t>(symStruct.fields().size());
-                        var.fullMask    = (1ull << var.fieldCount) - 1;
-                        if (symStruct.opDrop() != nullptr)
-                        {
-                            // The struct's own opDrop may read every field.
-                            var.dropMask = var.fullMask;
-                        }
-                        else
-                        {
-                            for (uint32_t i = 0; i < var.fieldCount; i++)
-                            {
-                                const TypeRef fieldTypeRef = symStruct.fields()[i]->typeRef();
-                                if (fieldTypeRef.isValid() && TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), fieldTypeRef).hasDrop)
-                                    var.dropMask |= 1ull << i;
-                            }
-                        }
-                        if (!explicitUndef)
-                        {
-                            symStruct.computeImplicitDefaultFlags(*sema_);
-                            if (symStruct.hasImplicitUndefinedDefault())
-                            {
-                                tracked = true;
-                                for (uint32_t i = 0; i < var.fieldCount; i++)
-                                {
-                                    if (!symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-                                        presetBits |= 1ull << i;
-                                }
-                            }
-                            else
-                            {
-                                // Zero-initialized struct with 'Swag.Late' fields: track
-                                // only their set-state (error on proven never-set
-                                // reads, elide the guard on proven-set ones).
-                                uint64_t lateMask = 0;
-                                for (uint32_t i = 0; i < var.fieldCount; i++)
-                                {
-                                    if (symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::LateInit))
-                                        lateMask |= 1ull << i;
-                                }
-                                if (!lateMask)
-                                    return;
-                                tracked      = true;
-                                var.lateOnly = true;
-                                var.lateMask = lateMask;
-                                var.dropMask &= ~lateMask; // dropping the null 'unset' state is safe
-                                presetBits = var.fullMask & ~lateMask;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var.dropMask = var.typeHasDrop ? 1 : 0;
-                    }
+                    // The struct's own opDrop may read every field.
+                    var.dropMask = var.fullMask;
                 }
                 else
                 {
-                    var.dropMask = var.typeHasDrop ? 1 : 0;
+                    for (uint32_t i = 0; i < var.fieldCount; i++)
+                    {
+                        const TypeRef fieldTypeRef = symStruct.fields()[i]->typeRef();
+                        if (fieldTypeRef.isValid() && TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), fieldTypeRef).hasDrop)
+                            var.dropMask |= 1ull << i;
+                    }
+                }
+
+                uint64_t lateMask = 0;
+                for (uint32_t i = 0; i < var.fieldCount; i++)
+                {
+                    if (symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                        lateMask |= 1ull << i;
+                }
+                if (lateMask)
+                {
+                    // The null sentinel of a late field is observable through
+                    // Swag.isSet, so it remains normally initialized.
+                    var.defaultInitCandidate = false;
+                    var.lateOnly             = true;
+                    var.lateMask             = lateMask;
+                    var.dropMask &= ~lateMask;
+                    presetBits = var.fullMask & ~lateMask;
                 }
             }
-
-            if (!tracked)
-                return;
+            else
+            {
+                // Register locals already receive ordinary dead-store elimination.
+                // They enter this pass only when their type has no safe implicit
+                // default and every observation therefore needs a proof.
+                if (!var.needsDefiniteInit)
+                    return;
+                var.dropMask = var.typeHasDrop ? var.fullMask : 0;
+            }
 
             const uint32_t index = static_cast<uint32_t>(vars_.size());
             vars_.push_back(var);
@@ -877,7 +933,12 @@ namespace
                 const SymbolVariable* symVar = identifierVariable(ref);
                 const int32_t         idx    = trackedIndex(symVar);
                 if (idx >= 0)
-                    state.set(idx, state.getMust(idx) | (vars_[idx].fullMask & ~vars_[idx].lateMask), vars_[idx].fullMask);
+                {
+                    if (vars_[idx].defaultInitCandidate)
+                        disqualifyDefaultInitElision(state, static_cast<uint32_t>(idx));
+                    else
+                        state.set(idx, state.getMust(idx) | (vars_[idx].fullMask & ~vars_[idx].lateMask), vars_[idx].fullMask);
+                }
                 const int32_t localIdx = nullableLocalIndex(symVar);
                 if (localIdx >= 0)
                     nullableLocals_[localIdx].keepNull = true;
@@ -919,10 +980,9 @@ namespace
 
             // A subtree folded to a compile-time constant performs no runtime access:
             // '#typeof(v.field)', '#assert(...)' operands and friends read types, not
-            // memory. The 'undefined' poison constant is NOT a folded value: it marks
-            // exactly the reads this analysis exists to catch.
+            // storage.
             const SemaNodeView cstView = sema_->viewConstant(ref);
-            if (cstView.hasConstant() && cstView.cst() && !cstView.cst()->isUndefined())
+            if (cstView.hasConstant() && cstView.cst())
                 return FlowExit::Normal;
 
             // An inlined call substitutes to its expansion block, whose branches embed
@@ -1074,6 +1134,7 @@ namespace
                 {
                     const auto& returnStmt = node.cast<AstReturnStmt>();
                     walk(returnStmt.nodeExprRef, state);
+                    checkFullInitExit(state);
                     // A return inside an inline/mixin expansion only exits the
                     // expansion: the caller's locals are not dropped.
                     if (inlineDepth_ == 0)
@@ -1159,6 +1220,9 @@ namespace
                 case AstNodeId::IntrinsicCallExpr:
                     return walkCall(ref, node, state);
 
+                case AstNodeId::IntrinsicInit:
+                    return walkIntrinsicInit(node.cast<AstIntrinsicInit>(), state);
+
                 case AstNodeId::IntrinsicCall:
                 {
                     // 'Swag.isSet(x.f)' inspects a 'Swag.Late' field's storage: neither a
@@ -1202,7 +1266,7 @@ namespace
                         AccessPath path;
                         if (accessPath(unary.nodeExprRef, path))
                         {
-                            markEscaped(state, path);
+                            markEscaped(state, ref, path);
                             return FlowExit::Normal;
                         }
                     }
@@ -1346,14 +1410,12 @@ namespace
 
             if (maySkip)
             {
-                // Zero iterations are possible: 'must' facts stay at the entry state,
-                // except for arrays, whose fill-loop pattern ('for i do a[i] = x' then
-                // read) is deliberately trusted — the runtime poison covers partial
-                // fills. 'may' facts grow along any path.
+                // Zero iterations are possible: 'must' facts stay at the entry state;
+                // 'may' facts grow along any path.
                 for (uint32_t i = 0; i < vars_.size(); i++)
                 {
                     if (i < bodyState.may.size())
-                        state.set(i, state.getMust(i) | (vars_[i].isArray ? bodyState.getMust(i) : 0), state.getMay(i) | bodyState.getMay(i));
+                        state.set(i, state.getMust(i), state.getMay(i) | bodyState.getMay(i));
                 }
                 return FlowExit::Normal;
             }
@@ -1544,7 +1606,55 @@ namespace
             const uint64_t mustBits = state.getMust(path.varIndex);
             const uint64_t mayBits  = state.getMay(path.varIndex);
 
-            if (assignStmt.modifierFlags.hasAny({AstModifierFlagsE::NoDrop, AstModifierFlagsE::Relocate}))
+            if (var.needsDefiniteInit)
+            {
+                if (assignStmt.modifierFlags.hasAny({AstModifierFlagsE::NoDrop, AstModifierFlagsE::Relocate}))
+                {
+                    markInit(state, path);
+                    return FlowExit::Normal;
+                }
+
+                if (path.indexed)
+                {
+                    reportDefiniteInitUse(assignRef, var, path.fieldIndex);
+                    state.set(path.varIndex, var.fullMask, var.fullMask);
+                    return FlowExit::Normal;
+                }
+
+                // A destination drop is safe to bypass only when no path has ever
+                // initialized it and this is its first loop iteration. The generated
+                // assignment then carries FirstInit so codegen emits construction,
+                // not replacement.
+                const bool sameLoop = loopDepth_ == var.loopDepth;
+                if (path.fieldIndex >= 0)
+                {
+                    const uint64_t fieldBit = 1ull << path.fieldIndex;
+                    if (var.dropMask & fieldBit)
+                    {
+                        if (!(mustBits & fieldBit))
+                        {
+                            if (!(mayBits & fieldBit) && sameLoop)
+                                sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::FirstInit);
+                            else
+                                reportDefiniteInitDrop(assignRef, var);
+                        }
+                    }
+                    markInit(state, path);
+                    return FlowExit::Normal;
+                }
+
+                if (var.typeHasDrop && (mustBits & var.dropMask) != var.dropMask)
+                {
+                    if (!(mayBits & var.dropMask) && sameLoop)
+                        sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::FirstInit);
+                    else
+                        reportDefiniteInitDrop(assignRef, var);
+                }
+                markInit(state, path);
+                return FlowExit::Normal;
+            }
+
+            if (!var.defaultInitCandidate)
             {
                 markInit(state, path);
                 return FlowExit::Normal;
@@ -1552,50 +1662,40 @@ namespace
 
             if (path.indexed)
             {
-                // Writing one element initializes the aggregate as a whole (the
-                // runtime poison still covers partially filled arrays).
-                markInit(state, path);
+                // Partial element coverage cannot prove that the aggregate default is
+                // dead. The dedicated range pass handles this common case separately.
+                disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
                 return FlowExit::Normal;
             }
 
-            // A drop of the destination may only be elided when the destination is
-            // uninitialized on EVERY path ('may' empty) and the assignment executes
-            // at most once per declaration (no loop in between: on later iterations
-            // the destination holds a real value).
+            // The first write may bypass a destination drop only when it executes at
+            // most once for this declaration. A later loop iteration has a real value.
             const bool sameLoop = loopDepth_ == var.loopDepth;
             if (path.fieldIndex >= 0)
             {
                 const uint64_t fieldBit = 1ull << path.fieldIndex;
-                if (var.dropMask & fieldBit)
+                if (!(mustBits & fieldBit))
                 {
-                    if (mustBits & fieldBit)
+                    if ((mayBits & fieldBit) || !sameLoop)
                     {
-                        // Initialized on every path: a normal reassignment.
+                        disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
+                        return FlowExit::Normal;
                     }
-                    else if (!(mayBits & fieldBit) && sameLoop)
-                        sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::UndefinedInit);
-                    else
-                        reportDrop(assignRef, var);
+                    var.firstInitAssignRefs.push_back(assignRef);
                 }
                 markInit(state, path);
                 return FlowExit::Normal;
             }
 
             // Whole-variable assignment.
-            if (var.typeHasDrop)
+            if ((mustBits & var.fullMask) != var.fullMask)
             {
-                if ((mustBits & var.dropMask) == var.dropMask)
+                if ((mayBits & var.fullMask) || !sameLoop)
                 {
-                    // Fully droppable-initialized: a normal reassignment.
+                    disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
+                    return FlowExit::Normal;
                 }
-                else if ((mayBits & var.dropMask) == 0 && sameLoop)
-                {
-                    sema_->ast().node(assignRef).cast<AstAssignStmt>().modifierFlags.add(AstModifierFlagsE::UndefinedInit);
-                }
-                else
-                {
-                    reportDrop(assignRef, var);
-                }
+                var.firstInitAssignRefs.push_back(assignRef);
             }
             markInit(state, path);
             return FlowExit::Normal;
@@ -1653,11 +1753,9 @@ namespace
                         continue;
                     }
 
-                    // A static array argument is passed by address (the callee can
-                    // fill it): an out-parameter shape, like '&v'.
+                    // A reference-binding argument gives the callee an address.
                     bool takesAddress = arg.bindsReferenceToValue || arg.passUfcsAddressAsPointer ||
-                                        arg.passKind == CallArgumentPassKind::InterfaceObject ||
-                                        (path.fieldIndex < 0 && vars_[path.varIndex].isArray);
+                                        arg.passKind == CallArgumentPassKind::InterfaceObject;
                     if (!takesAddress && calledFn && index < calledFn->parameters().size())
                     {
                         const SymbolVariable* param = calledFn->parameters()[index];
@@ -1671,7 +1769,7 @@ namespace
                     }
 
                     if (takesAddress)
-                        markEscaped(state, path);
+                        markEscaped(state, argRef, path);
                     else
                         checkRead(state, argRef, path);
                 }
@@ -1689,13 +1787,13 @@ namespace
                     {
                         AccessPath path;
                         if (accessPath(calleeNode.cast<AstMemberAccessExpr>().nodeLeftRef, path))
-                            markEscaped(state, path);
+                            markEscaped(state, calleeNode.cast<AstMemberAccessExpr>().nodeLeftRef, path);
                     }
                     else if (calleeNode.is(AstNodeId::AutoMemberAccessExpr))
                     {
                         AccessPath path;
                         if (accessPath(resolvedCalleeRef, path))
-                            markEscaped(state, path);
+                            markEscaped(state, resolvedCalleeRef, path);
                     }
                 }
             }
@@ -1711,6 +1809,39 @@ namespace
         {
             if (!applyCallArguments(callRef, node, state))
                 walkChildren(node, state);
+            return FlowExit::Normal;
+        }
+
+        // 'Swag.init' is the language's explicit construction primitive. Its target
+        // is storage, not a value read, and a whole local target is a complete proof
+        // for a type that has no safe implicit default. In particular this keeps the
+        // raw lifecycle API usable without an 'undefined' escape hatch.
+        FlowExit walkIntrinsicInit(const AstIntrinsicInit& init, FlowState& state)
+        {
+            AstNodeRef targetRef = unwrap(init.nodeWhatRef);
+            if (targetRef.isValid())
+            {
+                const AstNode& target = sema_->node(targetRef);
+                if (target.is(AstNodeId::UnaryExpr) && tokenIdOf(target, TokenId::SymAmpersand) == TokenId::SymAmpersand)
+                    targetRef = target.cast<AstUnaryExpr>().nodeExprRef;
+            }
+
+            AccessPath path;
+            if (accessPath(targetRef, path) && path.fieldIndex < 0 && !path.indexed)
+                markInit(state, path);
+            else
+                walk(init.nodeWhatRef, state);
+
+            walk(init.nodeCountRef, state);
+
+            SmallVector<AstNodeRef> children;
+            collectChildren(init, children);
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isInvalid() || childRef == init.nodeWhatRef || childRef == init.nodeCountRef)
+                    continue;
+                walk(childRef, state);
+            }
             return FlowExit::Normal;
         }
     };
@@ -1758,10 +1889,9 @@ namespace
                     if (!sym || !sym->isVariable())
                         continue;
                     const auto& symVar = sym->cast<SymbolVariable>();
-                    // Explicit '= undefined', or an uninitialized declaration whose
-                    // struct defaults may leave fields undefined: both need the
-                    // struct's final lifecycle facts.
-                    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) && hasInitExpr)
+                    // A declaration without an initializer may have its default
+                    // construction removed, so the pass needs final lifecycle facts.
+                    if (hasInitExpr)
                         continue;
                     TypeRef typeRef = symVar.typeRef();
                     for (uint32_t guard = 0; guard < 8 && typeRef.isValid(); guard++)
@@ -1813,9 +1943,12 @@ namespace
     }
 }
 
-bool SemaUndefined::wantsCheck(Sema& sema, const SymbolFunction& sym)
+bool SemaInitFlow::wantsCheck(Sema& sema, const SymbolFunction& sym)
 {
-    if (sema.hasExplicitUndefinedLocals())
+    if (sema.hasInitFlowCandidates())
+        return true;
+
+    if (sym.specOpKind() == SpecOpKind::OpSet || sym.specOpKind() == SpecOpKind::OpSetLiteral)
         return true;
 
     if (nullableTypeRefForCheck(sema, sym.returnTypeRef()))
@@ -1830,7 +1963,7 @@ bool SemaUndefined::wantsCheck(Sema& sema, const SymbolFunction& sym)
     return false;
 }
 
-Result SemaUndefined::checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract)
+Result SemaInitFlow::checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract)
 {
     if (bodyRef.isInvalid())
         return Result::Continue;

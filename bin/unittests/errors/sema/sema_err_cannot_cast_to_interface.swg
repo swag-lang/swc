@@ -27,9 +27,10 @@ var missing = Swag.makeInterface(null, MissingAction, IAction)     // swc-expect
 
 #test
 {
-    var actions: [2] IAction = undefined
-    actions[0] = Swag.makeInterface(null, #typeof(UndoAction{}), IAction)
-    actions[1] = Swag.makeInterface(null, #typeof(RedoAction{}), IAction)
+    let actions: [2] IAction = [
+        Swag.makeInterface(null, #typeof(UndoAction{}), IAction),
+        Swag.makeInterface(null, #typeof(RedoAction{}), IAction)
+    ]
 
     discard actions[0].accept(1)
     discard actions[1].execute(3)

@@ -98,7 +98,7 @@ the test does not belong to a named campaign.
 | 'Operators(operators: string...)' | Generate selected structural operators |
 | 'OperatorIgnore()' | Exclude one field from generated operators |
 | 'Commutative(operators: Operator...)' | Allow selected binary overloads with the receiver on the right |
-| 'FullInit()' | Declare that an 'opSet' or 'opCast' initializes the whole destination |
+| 'FullInit()' | Assert complete initialization for an opaque 'opSet' body the compiler cannot inspect |
 | 'Incomplete()' | Document that an enum's declared values are not the full set |
 | 'EnumFlags()' | Define an enum whose values form a bit mask |
 | 'NoDuplicate()' | Reject duplicate enum values |

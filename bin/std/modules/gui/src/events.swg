@@ -36,7 +36,7 @@ struct CommandEvent
     public
     {
         using base: Event                 // Embedded base state.
-        id:         WndId = undefined     // Command identifier.
+        id:         WndId     // Command identifier.
         source:     #null *Wnd            // Window that originated the command, when known.
     }
 }
@@ -81,7 +81,7 @@ struct CommandStateEvent
 
         using base: Event                 // Embedded base state.
         kind:       Kind                  // Whether state is being computed or applied.
-        id:         WndId = undefined     // Command identifier.
+        id:         WndId     // Command identifier.
         source:     #null *Wnd            // Window that requested the state, when known.
 
         icon:          Icon              // Command icon when [UpdatedFields.Icon] is present.
@@ -105,7 +105,7 @@ struct TimerEvent
     public
     {
         using base: Event                  // Embedded base state.
-        timer:      *Timer = undefined     // Timer that elapsed.
+        timer:      *Timer     // Timer that elapsed.
     }
 }
 
@@ -180,7 +180,7 @@ struct PaintEvent
 
         using base:   Event                         // Embedded base state.
         kind:         Kind          = .Content      // Painting phase.
-        paintContext: *PaintContext = undefined     // Active painting context.
+        paintContext: *PaintContext     // Active painting context.
     }
 }
 
@@ -226,7 +226,7 @@ struct KeyEvent
         using base: Event                              // Embedded base state.
         kind:       Kind                               // Keyboard event kind.
         modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
-        key:        Input.Key          = undefined     // Physical or logical key, when applicable.
+        key:        Input.Key     // Physical or logical key, when applicable.
         character:  rune                               // Input character for `Kind.Character`.
     }
 }
@@ -254,7 +254,7 @@ struct MouseEvent
 
         using base: Event                              // Embedded base state.
         kind:       Kind                               // Mouse event kind.
-        button:     Input.MouseButton  = undefined     // Button involved in the transition.
+        button:     Input.MouseButton     // Button involved in the transition.
         surfacePos: Math.Point                         // Pointer position in surface coordinates.
         delta:      Math.Point                         // Motion or wheel delta for this event.
         modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
@@ -356,7 +356,7 @@ struct ThemeEvent
     public
     {
         using base: Event                       // Embedded base state.
-        style:      *ThemeStyle = undefined     // Style being updated.
+        style:      *ThemeStyle     // Style being updated.
         parent:     #null *ThemeStyle           // Parent style inherited by `style`, when any.
     }
 }
@@ -369,7 +369,7 @@ struct SerializeStateEvent
     public
     {
         using base: Event                                     // Embedded base state.
-        serializer: *Serialization.Serializer = undefined     // Serializer that defines the current read/write mode.
+        serializer: *Serialization.Serializer     // Serializer that defines the current read/write mode.
     }
 }
 
@@ -390,7 +390,7 @@ struct NotifyEvent
             LanguageChanged       // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
         }
 
-        kind: Kind = undefined     // Notification kind.
+        kind: Kind     // Notification kind.
         from: #null *Wnd           // Control that originated the notification.
     }
 }

@@ -1933,12 +1933,6 @@ AstNodeRef AstIntrinsicPostMove::semaClone(Sema& sema, const CloneContext& clone
     return newRef;
 }
 
-AstNodeRef AstUndefinedExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    SWC_UNUSED(cloneContext);
-    return sema.ast().makeNode<AstNodeId::UndefinedExpr>(tokRef()).first;
-}
-
 AstNodeRef AstAliasDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AliasDecl>(sema, *this);

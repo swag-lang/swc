@@ -39,7 +39,7 @@ func buildMemberFloatMatrix(b, t, l, r, n, f: f32)->MemberFloatMatrixRetval
 {
     const ok = #run
     {
-        var holder: MemberFloatMatrixRetvalHolder = undefined
+        var holder: MemberFloatMatrixRetvalHolder
         holder.matrix = buildMemberFloatMatrix(10, 0, 0, 20, 0, 1)
         return holder.matrix.m[0, 0] == 0.1 and
                holder.matrix.m[1, 1] == -0.2 and

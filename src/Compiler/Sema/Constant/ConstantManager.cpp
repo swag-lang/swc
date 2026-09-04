@@ -39,7 +39,6 @@ void ConstantManager::setup(const TaskContext& ctx)
     cstS32_1_      = addS32(ctx, 1);
     cstS32_neg1_   = addS32(ctx, -1);
     cstNull_       = addConstant(ctx, ConstantValue::makeNull(ctx));
-    cstUndefined_  = addConstant(ctx, ConstantValue::makeUndefined(ctx));
 }
 
 ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
@@ -578,9 +577,6 @@ ConstantRef ConstantManager::tryGetBuiltinConstant(const TaskContext& ctx, const
 
     if (value.isNull() && value.typeRef() == ctx.typeMgr().typeNull())
         return cstNull_.isValid() ? cstNull_ : ConstantRef::invalid();
-
-    if (value.isUndefined() && value.typeRef() == ctx.typeMgr().typeUndefined())
-        return cstUndefined_.isValid() ? cstUndefined_ : ConstantRef::invalid();
 
     if (!value.isInt() || value.typeRef() != ctx.typeMgr().typeS32())
         return ConstantRef::invalid();

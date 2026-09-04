@@ -18,7 +18,7 @@ Every capability entry also owns its declarations in `bin/runtime/api.swg`, the 
 language reference. An implementation that introduces or changes an intrinsic spelling also owns
 the lexer token and editor grammar update required for a surface-syntax change.
 The current production baseline consists of the public wrapper in
-`bin/std/modules/core/src/math/simd.swg`, the PCM conversion kernels in `audio/src/codec/pcm.swg`,
+`bin/std/modules/core/src/math/simd.swg`, the PCM conversion kernels in `audio/src/codec/pcm/pcm.swg`,
 and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h264/inter.swg` and
 `frame.swg`. H.264 RBSP unescaping now copies escape-free 16-byte blocks directly: over 512 MiB
 in native Release it improves from 1,910,646 to 528,998 us (3.61x), and the complete 3,000-frame

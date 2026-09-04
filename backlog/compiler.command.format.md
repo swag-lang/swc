@@ -12,14 +12,14 @@ ships; history lives in git, not here.
 
 ## Where the command already stands
 
-131 options covering whitespace, indentation, wrapping, braces, switch layout, alignment
+133 options covering whitespace, indentation, wrapping, braces, switch layout, alignment
 (including two-column declaration grids and outlier exclusion), spacing, attributes, comments,
 `using` blocks and numeric literals; a built-in canonical style (`--style swag`, the default) with
 an explicit opt-out (`--style preserve`) and a `style` key that rebases a config file
 ([FormatStyle.cpp](../src/Format/FormatStyle.cpp)); a cascading `.swc-format` resolved from the
 file's directory upward with parent inheritance
 ([FormatOptionsLoader.cpp](../src/Format/FormatOptionsLoader.cpp)); `--dump-config`;
-`swc-format off`/`on` regions; eleven passes over a token-and-AST model; and C++ tests over 239
+`swc-format off`/`on` regions; thirteen passes over a token-and-AST model; and C++ tests over 241
 cases, the best-tested subsystem in the compiler. On option count it is already in clang-format's
 league.
 

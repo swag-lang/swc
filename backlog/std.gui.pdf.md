@@ -432,7 +432,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ### std.gui.pdf.030 — No rendered page is compared against a golden
 
-- Intent: `corpus.test.swg` renders 354 pages and asserts `image.isValid()`. That catches a crash
+- Intent: `pdf.corpus.test.swg` renders 354 pages and asserts `image.isValid()`. That catches a crash
   and a hard failure and nothing else: every entry in Tier B above would pass it today, and so
   would a regression that painted a page entirely black. The repository already has command-stream
   visual regression goldens in `pixel` and `gui`; this module has none.

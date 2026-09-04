@@ -482,7 +482,7 @@ as [app.capture.md](app.capture.md).
   form column therefore reads as indented against every field above it.
 - Evidence: measured on the rendered surface, `bin/apps/modules/swagvault` in the former light Swag palette: the
   edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
-  inset exists vertically on other atlas glyphs: in `vault.surface.png` the folder icon of the
+  inset exists vertically on other atlas glyphs: in `surface.png` the folder icon of the
   container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
   its ink still comes out about a pixel above that middle.
 - Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
@@ -536,7 +536,7 @@ as [app.capture.md](app.capture.md).
   through `StringVertAlignment.OpticalCenter`; every other widget still centers on the line box.
 - Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
   [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/modules/swagvault/src/tests/goldens/vault.surface.png`: the "256" digits of the capacity
+  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
   field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
   password placeholder below it sat exactly on the middle of its own box.
 - Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row

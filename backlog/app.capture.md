@@ -89,7 +89,7 @@ Add reusable image/text watermarks with placement, opacity, scale, and export pe
 
 ### app.capture.009 — Capture hotkeys are fixed
 
-- `MainWnd.setupHotKeys` registers four fixed combinations. Persist user-rebindable hotkeys in the
+- `MainWnd.registerShortcuts` registers four fixed combinations. Persist user-rebindable hotkeys in the
   existing options, handle conflicts, and report registration failures.
 - Note: PrintScreen is contested on Windows 11, which now binds it to the Snipping Tool by default.
   A tool that cannot rebind its own hotkey is stuck behind that.

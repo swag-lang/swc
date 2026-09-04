@@ -213,3 +213,22 @@ or [std.audio.md](std.audio.md); this file owns how those capabilities reach the
   `playbackSampleFrame` against the wall clock for a minute.
 - Complete when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately
   skewed video clock, and the 0.1 s dead band is shown not to cause visible stutter.
+
+### app.scope.video.017 — The late-decoder test waits on a clock that keeps running
+
+- Area: app/scope
+- Found while: the application rung of a repository health reset
+- Observation: the `#test` at `viewer.video.test.swg:209` sets `elapsed` to the tenth frame,
+  resets the presentation clock, pumps once and then asserts that the published picture is frame
+  ten. `waitForVideoFrame` pumps in one-millisecond steps with `playing` still true, so the clock
+  advances while the producer catches up: on a loaded machine the viewer can publish a later
+  picture and the assertion reads a frame it never asked for.
+- Evidence: 2026-09-04, one failure of `apps.swgs dm test` at that line while the three
+  applications were tested together. The same test file passes alone, and the test passed in the
+  DevMode campaign, in both configurations of the all-configuration campaign and in the Release
+  campaign afterwards, so the failure was not reproduced again.
+- Next: stop the clock for the wait — pause playback after the single `updatePlayback` that makes
+  the catch-up decision, then wait for the picture — and check that the test still fails against
+  the capped catch-up it was written for.
+- Complete when: the test states the frame it expects without depending on how long the wait
+  takes, and still fails when the catch-up cap is restored.

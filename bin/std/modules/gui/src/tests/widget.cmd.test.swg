@@ -19,10 +19,7 @@ using Swag, Core, Pixel
 func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerlocation)
 {
     var painter: Painter
-    var bc:      PaintContext
-
-    bc.painter  = &painter
-    bc.renderer = host.app.renderer
+    var bc = PaintContext{painter: &painter, renderer: host.app.renderer}
 
     painter.begin()
     host.root.paint(&bc)

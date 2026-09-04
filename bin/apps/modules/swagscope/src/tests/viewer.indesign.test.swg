@@ -4,7 +4,7 @@
 using Core, Pixel, Gui
 
 // The fixed 4 KiB master-page unit is the file-level contract this fixture records.
-private const IndesignFixtureHeaderSize = 4096'u64
+private const IndesignFixtureHeaderSize     = 4096'u64
 private const LinkedIdmlInteractiveBudgetMs = 1_000'u64
 
 // Returns the minimal dual-header document fixture shared by this viewer and the smoke run.
@@ -62,7 +62,7 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(document.pages[0].items.count >= document.pages[0].textFrameCount)
     Swag.assert(Utf8.contains(document.pages[0].html(1).toString(), "idml-page"))
     var tintedItems: u64
-    var arrowLines: u64
+    var arrowLines:  u64
     for item in document.pages[0].items where item.fill == "rgb(51, 51, 51)" do
         tintedItems += 1
     for item in document.pages[0].items where item.line
@@ -71,6 +71,7 @@ private func linkedIdmlFixturePath()->String
         if item.lineStartArrow or item.lineEndArrow do
             arrowLines += 1
     }
+
     Swag.assert(tintedItems >= 42)
     Swag.assert(arrowLines >= 1)
 }
@@ -81,11 +82,11 @@ private func linkedIdmlFixturePath()->String
 {
     let document = expect loadIdmlDocument(linkedIdmlFixturePath().toString())
     Swag.assert(document.pages.count >= 2)
-    var linkedImages: u64
+    var linkedImages:        u64
     var flowedArticleFrames: u64
-    var flowedArticleBytes: u64
-    var roundedFrames: u64
-    var multiColumnFrames: u64
+    var flowedArticleBytes:  u64
+    var roundedFrames:       u64
+    var multiColumnFrames:   u64
     var missingLinkedImages: u64
     for page in document.pages
     {
@@ -98,17 +99,20 @@ private func linkedIdmlFixturePath()->String
                 Swag.assert(item.imageHasBounds and item.imageBounds.width > 0 and item.imageBounds.height > 0)
             }
         }
+
         for item in page.items where item.story == "u113" and item.text.count
         {
             flowedArticleFrames += 1
-            flowedArticleBytes += item.text.count
+            flowedArticleBytes  += item.text.count
         }
+
         for item in page.items where item.cornerTopLeft > 0 or item.cornerTopRight > 0 or item.cornerBottomRight > 0 or item.cornerBottomLeft > 0 do
             roundedFrames += 1
         for item in page.items where item.textColumns > 1 do
             multiColumnFrames += 1
         missingLinkedImages += page.missingImageCount()
     }
+
     Swag.assert(linkedImages == 2)
     Swag.assert(flowedArticleFrames == 4)
     Swag.assert(flowedArticleBytes > 4_000 and flowedArticleBytes < 80_000)
@@ -158,6 +162,7 @@ private func linkedIdmlFixturePath()->String
         for item in page.items where Path.fileName(item.image.toString()) == "qrcode.png" do
             qrcodePage = index
     }
+
     Swag.assert(qrcodePage != Swag.U64.Max)
     var pageRender: Time.Stopwatch
     pageRender.start()
@@ -221,6 +226,7 @@ private func linkedIdmlFixturePath()->String
         for item in page.items where Path.fileName(item.image.toString()) == "qrcode.png" do
             qrcodePage = index
     }
+
     Swag.assert(qrcodePage != Swag.U64.Max)
     viewer.selectMarkupPage(qrcodePage)
     host.root.applyLayout()

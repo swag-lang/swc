@@ -31,7 +31,7 @@ struct AutoStage
         file:   String                          // File associated with this value.
         label:  String                          // Label associated with this value.
         edits:  Array'AutoEdit                  // Edits associated with this value.
-        button: WndId       // Button associated with this value.
+        button: WndId         = ""              // Button associated with this value.
     }
 }
 

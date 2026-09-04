@@ -7,11 +7,12 @@
 #[Swag.Opaque, Swag.NoDoc]
 public struct Request
 {
-    owner:      *Wnd     // Window that requested the tooltip.
-    surfacePos: Math.Point           // Anchor in surface coordinates.
-    str:        String               // Text to display.
-    delay:      f32                  // Remaining delay in seconds.
-    startDelay: f32                  // Full delay restored after pointer movement.
+    #[Swag.Late]
+    owner:      *Wnd           // Window that requested the tooltip.
+    surfacePos: Math.Point     // Anchor in surface coordinates.
+    str:        String         // Text to display.
+    delay:      f32            // Remaining delay in seconds.
+    startDelay: f32            // Full delay restored after pointer movement.
 }
 
 // The live tool tip of one application.

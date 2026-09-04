@@ -200,9 +200,10 @@ struct MathExpression
 
     internal
     {
-        source: String                    // Expression text the tree was parsed from.
-        nodes:  ArrayPtr'MathNode         // Pool owning every node of the tree.
-        root:   *MathNode     // Root of the tree, set by 'parse'.
+        source: String                // Expression text the tree was parsed from.
+        nodes:  ArrayPtr'MathNode     // Pool owning every node of the tree.
+        #[Swag.Late]
+        root: *MathNode     // Root of the tree, set by 'parse'.
     }
 }
 

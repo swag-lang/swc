@@ -51,11 +51,11 @@ impl Image
         bi.bmiHeader.biBitCount    = dib.bitsPerPixel
         bi.bmiHeader.biCompression = BI_RGB
 
-        var ppvBits: *u8
-        let hbmp         = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
+        var ppvBits: #null *u8
+        let hbmp = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
         defer #nofail DeleteObject(cast() hbmp)
 
-        Memory.copy(ppvBits, dib.pixels.buffer, dib.byteCount)
+        Memory.copy(ppvBits!, dib.pixels.buffer, dib.byteCount)
 
         // CreateIconIndirect requires a non-null mask: for a 32-bit color icon the
         // alpha channel drives transparency, but the AND mask (hbmMask) must still

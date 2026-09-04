@@ -170,6 +170,10 @@ struct IDataObject
 
 struct IDataObjectVtbl
 {
+    // The module builds this table and OLE is the only caller, so every entry starts
+    // null and receives its function on the way in.
+    #[Swag.Late]
+
     public
     {
         QueryInterface:        func(*IDataObject, const *GUID, *LPVOID)->HRESULT
@@ -222,6 +226,10 @@ struct IDropTarget
 
 struct IDropTargetVtbl
 {
+    // The module builds this table and OLE is the only caller, so every entry starts
+    // null and receives its function on the way in.
+    #[Swag.Late]
+
     public
     {
         QueryInterface: func(*IDropTarget, const *GUID, *LPVOID)->HRESULT
@@ -241,6 +249,10 @@ struct IDropSource
 
 struct IDropSourceVtbl
 {
+    // The module builds this table and OLE is the only caller, so every entry starts
+    // null and receives its function on the way in.
+    #[Swag.Late]
+
     public
     {
         QueryInterface:    func(*IDropSource, const *GUID, *LPVOID)->HRESULT
@@ -258,6 +270,10 @@ struct IEnumFORMATETC
 
 struct IEnumFORMATETCVtbl
 {
+    // The module builds this table and OLE is the only caller, so every entry starts
+    // null and receives its function on the way in.
+    #[Swag.Late]
+
     public
     {
         QueryInterface: func(*IEnumFORMATETC, const *GUID, *LPVOID)->HRESULT

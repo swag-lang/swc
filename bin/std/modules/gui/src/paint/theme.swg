@@ -520,6 +520,7 @@ impl Theme
             if loadError == null do
                 .res.cjkTypeFace = face
         }
+
         if !.res.cjkTypeFace do
             return .createDefaultFont(size, style)
 

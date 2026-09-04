@@ -20,11 +20,12 @@ struct RichChunk
         visible:      bool                          // Whether layout retained the chunk for painting.
         colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
 
-        boundRect: Math.Rectangle                 // Bounds local to `pos`, in pixels.
-        pos:       Math.Point                     // Chunk origin in the containing layout.
-        font:      *Font     // Borrowed font selected for this chunk.
-        shaped:    ShapedRun                      // Positioned glyphs for the chunk.
-        under:     UnderlineStyle = None          // Underline or strikeout decoration.
+        boundRect: Math.Rectangle     // Bounds local to `pos`, in pixels.
+        pos:       Math.Point         // Chunk origin in the containing layout.
+        #[Swag.Late]
+        font:   *Font                     // Borrowed font selected for this chunk.
+        shaped: ShapedRun                 // Positioned glyphs for the chunk.
+        under:  UnderlineStyle = None     // Underline or strikeout decoration.
     }
 }
 

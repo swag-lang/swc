@@ -278,7 +278,8 @@ public struct Codec
     {
         // Concrete codec type used for destruction.
         #[Swag.Late]
-        type:                const *Swag.TypeInfoStruct
+        type: const *Swag.TypeInfoStruct
+        #[Swag.Late]
         allocationAllocator: IAllocator
     }
 }

@@ -35,9 +35,9 @@ struct CommandEvent
 {
     public
     {
-        using base: Event                 // Embedded base state.
-        id:         WndId     // Command identifier.
-        source:     #null *Wnd            // Window that originated the command, when known.
+        using base: Event          // Embedded base state.
+        id:         WndId = ""     // Command identifier.
+        source:     #null *Wnd     // Window that originated the command, when known.
     }
 }
 
@@ -79,10 +79,10 @@ struct CommandStateEvent
             Apply       // Computed state is being applied to command presenters.
         }
 
-        using base: Event                 // Embedded base state.
-        kind:       Kind                  // Whether state is being computed or applied.
-        id:         WndId     // Command identifier.
-        source:     #null *Wnd            // Window that requested the state, when known.
+        using base: Event          // Embedded base state.
+        kind:       Kind           // Whether state is being computed or applied.
+        id:         WndId = ""     // Command identifier.
+        source:     #null *Wnd     // Window that requested the state, when known.
 
         icon:          Icon              // Command icon when [UpdatedFields.Icon] is present.
         name:          String            // Compact command label when [UpdatedFields.Name] is present.
@@ -104,8 +104,9 @@ struct TimerEvent
 {
     public
     {
-        using base: Event                  // Embedded base state.
-        timer:      *Timer     // Timer that elapsed.
+        using base: Event     // Embedded base state.
+        #[Swag.Late]
+        timer: *Timer     // Timer that elapsed.
     }
 }
 
@@ -178,8 +179,9 @@ struct PaintEvent
             After       // Paint after the window's children.
         }
 
-        using base:   Event                         // Embedded base state.
-        kind:         Kind          = .Content      // Painting phase.
+        using base: Event               // Embedded base state.
+        kind:       Kind = .Content     // Painting phase.
+        #[Swag.Late]
         paintContext: *PaintContext     // Active painting context.
     }
 }
@@ -223,11 +225,11 @@ struct KeyEvent
             Character     // Text input produced one Unicode character.
         }
 
-        using base: Event                              // Embedded base state.
-        kind:       Kind                               // Keyboard event kind.
-        modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
-        key:        Input.Key     // Physical or logical key, when applicable.
-        character:  rune                               // Input character for `Kind.Character`.
+        using base: Event                         // Embedded base state.
+        kind:       Kind                          // Keyboard event kind.
+        modifiers:  Input.KeyModifiers = None     // Modifiers held during the event.
+        key:        Input.Key                     // Physical or logical key, when applicable.
+        character:  rune                          // Input character for `Kind.Character`.
     }
 }
 
@@ -252,12 +254,12 @@ struct MouseEvent
             SetCursor       // The target must choose the active cursor.
         }
 
-        using base: Event                              // Embedded base state.
-        kind:       Kind                               // Mouse event kind.
-        button:     Input.MouseButton     // Button involved in the transition.
-        surfacePos: Math.Point                         // Pointer position in surface coordinates.
-        delta:      Math.Point                         // Motion or wheel delta for this event.
-        modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
+        using base: Event                         // Embedded base state.
+        kind:       Kind                          // Mouse event kind.
+        button:     Input.MouseButton             // Button involved in the transition.
+        surfacePos: Math.Point                    // Pointer position in surface coordinates.
+        delta:      Math.Point                    // Motion or wheel delta for this event.
+        modifiers:  Input.KeyModifiers = None     // Modifiers held during the event.
     }
 }
 
@@ -355,9 +357,10 @@ struct ThemeEvent
 {
     public
     {
-        using base: Event                       // Embedded base state.
-        style:      *ThemeStyle     // Style being updated.
-        parent:     #null *ThemeStyle           // Parent style inherited by `style`, when any.
+        using base: Event     // Embedded base state.
+        #[Swag.Late]
+        style:  *ThemeStyle           // Style being updated.
+        parent: #null *ThemeStyle     // Parent style inherited by `style`, when any.
     }
 }
 
@@ -368,7 +371,7 @@ struct SerializeStateEvent
 {
     public
     {
-        using base: Event                                     // Embedded base state.
+        using base: Event                         // Embedded base state.
         serializer: *Serialization.Serializer     // Serializer that defines the current read/write mode.
     }
 }
@@ -390,8 +393,8 @@ struct NotifyEvent
             LanguageChanged       // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
         }
 
-        kind: Kind     // Notification kind.
-        from: #null *Wnd           // Control that originated the notification.
+        kind: Kind           // Notification kind.
+        from: #null *Wnd     // Control that originated the notification.
     }
 }
 

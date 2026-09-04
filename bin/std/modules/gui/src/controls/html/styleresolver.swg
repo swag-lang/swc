@@ -462,9 +462,7 @@ impl HtmlStyleResolver
         var style = HtmlComputedStyle.inherited(parentStyle)
         style.display = .Inline
 
-        var context: HtmlDeclarationContext
-        context.pool                  = .pool
-        context.defaults              = .defaults
+        var context = HtmlDeclarationContext{pool: .pool, defaults: .defaults}
         context.length.fontSize       = parentStyle.fontSize
         context.length.rootFontSize   = .defaults.fontSize
         context.length.viewportWidth  = .viewport.x
@@ -495,9 +493,7 @@ impl HtmlStyleResolver
     {
         var style = HtmlComputedStyle.inherited(parentStyle)
 
-        var context: HtmlDeclarationContext
-        context.pool                  = .pool
-        context.defaults              = .defaults
+        var context = HtmlDeclarationContext{pool: .pool, defaults: .defaults}
         context.length.fontSize       = parentStyle.fontSize
         context.length.rootFontSize   = .defaults.fontSize
         context.length.viewportWidth  = .viewport.x

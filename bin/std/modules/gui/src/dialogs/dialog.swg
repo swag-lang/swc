@@ -12,9 +12,10 @@ struct Dialog
 
         readonly
         {
-            buttonBar:     *StackLayoutCtrl     // Bottom action bar owned by the dialog.
-            buttons:       Array'(*PushButton)              // Buttons in insertion order.
-            parentSurface: #null *Surface                   // Surface that owns the modal dialog.
+            #[Swag.Late]
+            buttonBar:     *StackLayoutCtrl        // Bottom action bar owned by the dialog.
+            buttons:       Array'(*PushButton)     // Buttons in insertion order.
+            parentSurface: #null *Surface          // Surface that owns the modal dialog.
         }
     }
 

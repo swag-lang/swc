@@ -4,29 +4,29 @@ using Core, Core.Errors, Pixel, Gui
 
 // The Adobe InDesign document signature and the master-page fields that establish that the
 // following embedded XMP belongs to a native document rather than to arbitrary binary data.
-private const IndesignSignature: [16] u8     = [0x06, 0x06, 0xED, 0xF5, 0xD8, 0x1D, 0x46, 0xE5, 0xBD, 0x31, 0xEF, 0xE7, 0xFE, 0x74, 0xB7, 0x1D]
-private const IndesignHeaderType              = "DOCUMENT"
-private const IndesignHeaderCopySize          = 4096'u64
-private const IndesignByteOrderOffset         = 24'u64
-private const IndesignFormatVersionOffset     = 29'u64
-private const IndesignSequenceOffset          = 264'u64
-private const IndesignStoragePageCountOffset  = 280'u64
-private const IndesignHeaderMinimumSize       = IndesignStoragePageCountOffset + 4
-private const IndesignContiguousMarkerSize    = 32'u64
-private const IndesignContiguousHeader: [16] u8 = [0xDE, 0x39, 0x39, 0x79, 0x51, 0x88, 0x4B, 0x6C, 0x8E, 0x63, 0xEE, 0xF8, 0xAE, 0xE0, 0xDD, 0x38]
+private const IndesignSignature:         [16] u8 = [0x06, 0x06, 0xED, 0xF5, 0xD8, 0x1D, 0x46, 0xE5, 0xBD, 0x31, 0xEF, 0xE7, 0xFE, 0x74, 0xB7, 0x1D]
+private const IndesignHeaderType                 = "DOCUMENT"
+private const IndesignHeaderCopySize             = 4096'u64
+private const IndesignByteOrderOffset            = 24'u64
+private const IndesignFormatVersionOffset        = 29'u64
+private const IndesignSequenceOffset             = 264'u64
+private const IndesignStoragePageCountOffset     = 280'u64
+private const IndesignHeaderMinimumSize          = IndesignStoragePageCountOffset + 4
+private const IndesignContiguousMarkerSize       = 32'u64
+private const IndesignContiguousHeader:  [16] u8 = [0xDE, 0x39, 0x39, 0x79, 0x51, 0x88, 0x4B, 0x6C, 0x8E, 0x63, 0xEE, 0xF8, 0xAE, 0xE0, 0xDD, 0x38]
 private const IndesignContiguousTrailer: [16] u8 = [0xFD, 0xCE, 0xDB, 0x70, 0xF7, 0x86, 0x4B, 0x4F, 0xA4, 0xD3, 0xC7, 0x28, 0xB3, 0x41, 0x71, 0x06]
-private const IndesignPreviewItemOpen         = "<rdf:li"
-private const IndesignPreviewItemClose        = "</rdf:li>"
-private const IndesignPreviewImageOpen        = "<xmpGImg:image>"
-private const IndesignPreviewImageClose       = "</xmpGImg:image>"
-private const IndesignPreviewPageOpen         = "<xmpTPg:PageNumber>"
-private const IndesignPreviewPageClose        = "</xmpTPg:PageNumber>"
-private const IndesignPreviewBase64Limit      = 16 * 1024 * 1024'u64
-private const IndesignPreviewPayloadLimit     = 20 * 1024 * 1024'u64
-private const IndesignPreviewPixelLimit       = 16 * 1024 * 1024'u64
-private const IndesignPreviewCachePixelLimit  = 24 * 1024 * 1024'u64
-private const IndesignNoPreview               = Swag.U64.Max
-private const IndesignPageLabelWidth           = 96.0
+private const IndesignPreviewItemOpen            = "<rdf:li"
+private const IndesignPreviewItemClose           = "</rdf:li>"
+private const IndesignPreviewImageOpen           = "<xmpGImg:image>"
+private const IndesignPreviewImageClose          = "</xmpGImg:image>"
+private const IndesignPreviewPageOpen            = "<xmpTPg:PageNumber>"
+private const IndesignPreviewPageClose           = "</xmpTPg:PageNumber>"
+private const IndesignPreviewBase64Limit         = 16 * 1024 * 1024'u64
+private const IndesignPreviewPayloadLimit        = 20 * 1024 * 1024'u64
+private const IndesignPreviewPixelLimit          = 16 * 1024 * 1024'u64
+private const IndesignPreviewCachePixelLimit     = 24 * 1024 * 1024'u64
+private const IndesignNoPreview                  = Swag.U64.Max
+private const IndesignPageLabelWidth             = 96.0
 
 // One validated master-page header. InDesign retains two header copies and selects the newer
 // sequence, so a partial overwrite of either first page does not make the document unreadable.
@@ -52,10 +52,10 @@ struct IndesignPreview
 // One decoded page held in the bounded viewer cache.
 private struct IndesignCachedPreview
 {
-    index:     u64
+    index:      u64
     pixelCount: u64
-    lastUsed:  u64
-    image:     Image
+    lastUsed:   u64
+    image:      Image
 }
 
 private struct IndesignPreviewGeometry
@@ -67,18 +67,18 @@ private struct IndesignPreviewGeometry
 // A native InDesign document with an index of the XMP page pixels it saved.
 struct IndesignDocument
 {
-    header:        IndesignHeader
-    fileName:      String
-    fileSize:      u64
-    declaredBytes: u64
+    header:           IndesignHeader
+    fileName:         String
+    fileSize:         u64
+    declaredBytes:    u64
     xmpObjectStreams: u64
-    previews:      Array'IndesignPreview
+    previews:         Array'IndesignPreview
 }
 
 private enum IndesignDocumentKind
 {
-    NativePreview,
-    Markup,
+    NativePreview
+    Markup
 }
 
 // The viewer keeps native saved pixels and IDML page scenes behind one asynchronous opening
@@ -218,6 +218,7 @@ private func indesignPreviewBase64(bytes: const [..] u8, start, end: u64)->Strin
                 return {}
             result.add(value)
         }
+
         index += 1
     }
 
@@ -286,7 +287,7 @@ private func indesignJpegGeometry(bytes: const [..] u8, result: *IndesignPreview
 
             result.height = (cast(u32) bytes[index + 3] << 8) | cast(u32) bytes[index + 4]
             result.width  = (cast(u32) bytes[index + 5] << 8) | cast(u32) bytes[index + 6]
-            let pixels    = cast(u64) result.width * cast(u64) result.height
+            let pixels = cast(u64) result.width * cast(u64) result.height
             return result.width != 0 and result.height != 0 and pixels <= IndesignPreviewPixelLimit
         }
 
@@ -364,6 +365,7 @@ private func indesignAppendPreviews(result: *Array'IndesignPreview, source: cons
             existing = index
             break
         }
+
         if existing == IndesignNoPreview do
             result.add(preview[])
         else do
@@ -393,18 +395,21 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
             cursor += 1
             continue
         }
+
         let trailer = payloadStart + length
         if !indesignMatchesContiguousMarker(bytes, trailer, true)
         {
             cursor += 1
             continue
         }
+
         var sameMarker = true
         for index in 16'u64 until IndesignContiguousMarkerSize where bytes[cursor + index] != bytes[trailer + index]
         {
             sameMarker = false
             break
         }
+
         if !sameMarker
         {
             cursor += 1
@@ -417,6 +422,7 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
             indesignAppendPreviews(&result, &previews)
             streamCount[] += 1
         }
+
         cursor = trailer + IndesignContiguousMarkerSize
     }
 
@@ -427,7 +433,7 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
 // malformed document unable to retain the whole XMP payload or every document page at once.
 private func loadIndesignPreview(fileName: string, preview: const *IndesignPreview)->Image fail
 {
-    var file  = try File.MappedFile.open(fileName)
+    var file   = try File.MappedFile.open(fileName)
     let region = try file.mapAll()
     let bytes  = region.bytes()
     if preview.payloadEnd < preview.payloadStart or !indesignHas(bytes, preview.payloadStart, preview.payloadEnd - preview.payloadStart) do
@@ -458,10 +464,10 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
 private struct IndesignPreviewLoad
 {
     using operation: Viewer.BackgroundOperation
-    fileName: String
-    preview:  IndesignPreview
-    value:    Image
-    error:    #null any
+    fileName:        String
+    preview:         IndesignPreview
+    value:           Image
+    error:           #null any
 }
 
 private impl IndesignPreviewLoad
@@ -512,8 +518,8 @@ private impl IndesignPreviewLoad
 // Legacy documents that retained XMP inside their declared pages keep a bounded compatibility path.
 func loadIndesignDocument(fileName: string)->IndesignDocument fail
 {
-    var stream = try File.open(fileName, .Open, .Read, .ReadWrite | .Delete)
-    let fileSize = try stream.size()
+    var stream      = try File.open(fileName, .Open, .Read, .ReadWrite | .Delete)
+    let fileSize    = try stream.size()
     let headerBytes = Math.min(fileSize, 2 * IndesignHeaderCopySize)
     var headerData: Array'u8
     headerData.resize(headerBytes)
@@ -526,13 +532,13 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
     if !hasFirst and !hasSecond do
         fail InvalidFormatError{indesignStrings().err_Header}
 
-    var file    = try File.MappedFile.open(fileName)
-    let region  = try file.mapAll()
-    let header  = hasSecond and (!hasFirst or second.sequence > first.sequence) ? second : first
+    var file          = try File.MappedFile.open(fileName)
+    let region        = try file.mapAll()
+    let header        = hasSecond and (!hasFirst or second.sequence > first.sequence) ? second : first
     let declaredBytes = cast(u64) header.storagePages * IndesignHeaderCopySize
     if declaredBytes > fileSize do
         fail InvalidFormatError{indesignStrings().err_Header}
-    let bytes = region.bytes()
+    let bytes    = region.bytes()
     var xmpObjectStreams: u64
     var previews = indexIndesignObjectPreviews(bytes, declaredBytes, bytes.count, &xmpObjectStreams)
     if previews.isEmpty() do
@@ -541,12 +547,12 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
         fail InvalidFormatError{indesignStrings().err_Preview}
 
     var result: retval
-    result.header        = header
-    result.fileName      = fileName
-    result.fileSize      = fileSize
-    result.declaredBytes = declaredBytes
+    result.header           = header
+    result.fileName         = fileName
+    result.fileSize         = fileSize
+    result.declaredBytes    = declaredBytes
     result.xmpObjectStreams = xmpObjectStreams
-    result.previews      = #move previews
+    result.previews         = #move previews
     return #move result
 }
 
@@ -603,15 +609,15 @@ internal struct IndesignViewer
     markupPages:          Array'IdmlPage
     cachedPreviews:       Array'IndesignCachedPreview
     cachedPixels:         u64
-    previewUseSerial      = 1'u64
+    previewUseSerial           = 1'u64
     hasPreviewContent:    bool
     previewIndex:         u64
-    markupZoom:           f32 = 1
+    markupZoom:           f32  = 1
     markupFit:            bool = true
     markupFitWidth:       bool
-    markupRenderedScale:  f32 = 1
-    requestedPreviewIndex = IndesignNoPreview
-    loadingPreviewIndex   = IndesignNoPreview
+    markupRenderedScale:  f32  = 1
+    requestedPreviewIndex      = IndesignNoPreview
+    loadingPreviewIndex        = IndesignNoPreview
     load:                 Viewer.BackgroundLoad'IndesignViewerDocument
     loadTimer:            #null *Timer
     previewLoad:          IndesignPreviewLoad
@@ -687,6 +693,7 @@ private impl IndesignViewer
                 .reportChromeChanged!(me)
             return
         }
+
         .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.imageView.effectiveZoom() * 100), "%"))
         if .reportChromeChanged do
             .reportChromeChanged!(me)
@@ -700,7 +707,7 @@ private impl IndesignViewer
             return 1
         let width  = Math.max(client.width - 48, 1)
         let height = Math.max(client.height - 48, 1)
-        let scale = .markupFitWidth ? width / page.bounds.width : Math.min(width / page.bounds.width, height / page.bounds.height)
+        let scale  = .markupFitWidth ? width / page.bounds.width : Math.min(width / page.bounds.width, height / page.bounds.height)
         return Math.clamp(scale, 0.25, 3)
     }
 
@@ -708,9 +715,9 @@ private impl IndesignViewer
 
     mtd setMarkupZoom(percent: u32)
     {
-        .markupFit  = false
+        .markupFit      = false
         .markupFitWidth = false
-        .markupZoom = cast(f32) Math.clamp(percent, 25'u32, 300'u32) / 100
+        .markupZoom     = cast(f32) Math.clamp(percent, 25'u32, 300'u32) / 100
         .selectMarkupPage(.previewIndex)
     }
 
@@ -746,13 +753,14 @@ private impl IndesignViewer
         {
             switch chosen
             {
-            case "scope.indesign.zoom50":  .setMarkupZoom(50)
-            case "scope.indesign.zoom125": .setMarkupZoom(125)
-            case "scope.indesign.zoom150": .setMarkupZoom(150)
-            case "scope.indesign.zoom200": .setMarkupZoom(200)
-            case "scope.indesign.zoomFit": .fitMarkupPage()
+            case "scope.indesign.zoom50":       .setMarkupZoom(50)
+            case "scope.indesign.zoom125":      .setMarkupZoom(125)
+            case "scope.indesign.zoom150":      .setMarkupZoom(150)
+            case "scope.indesign.zoom200":      .setMarkupZoom(200)
+            case "scope.indesign.zoomFit":      .fitMarkupPage()
             case "scope.indesign.zoomFitWidth": .fitMarkupWidth()
             }
+
             return
         }
 
@@ -783,7 +791,7 @@ private impl IndesignViewer
             preview.lastUsed = .nextPreviewUse()
             .imageView.setImage(preview.image)
             .hasPreviewContent = true
-            .details = Format.toString(indesignStrings().ui_Details, index + 1, .previews.count, preview.image.width, preview.image.height)
+            .details           = Format.toString(indesignStrings().ui_Details, index + 1, .previews.count, preview.image.width, preview.image.height)
             .refreshZoom()
             .reportCurrentDetails()
             return true
@@ -799,11 +807,11 @@ private impl IndesignViewer
         {
             if cached.index == index
             {
-                .cachedPixels -= cached.pixelCount
+                .cachedPixels     -= cached.pixelCount
                 cached.pixelCount = pixelCount
                 cached.lastUsed   = .nextPreviewUse()
-                cached.image = #move image[]
-                .cachedPixels += pixelCount
+                cached.image      = #move image[]
+                .cachedPixels     += pixelCount
                 return
             }
         }
@@ -868,13 +876,13 @@ private impl IndesignViewer
         Debug.assert(index < .markupPages.count)
         .previewIndex = index
         .htmlView?.destroy()
-        .markupRenderedScale = .markupPageScale(index)
-        .htmlView = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
+        .markupRenderedScale       = .markupPageScale(index)
+        .htmlView                  = HtmlView.createText(me, .markupPages[index].html(.markupRenderedScale).toString())
         .htmlView!.dockStyle       = .Center
         .htmlView!.backgroundStyle = .View
         .imageView.hide()
         .hasPreviewContent = true
-        .details = .markupDetails(index)
+        .details           = .markupDetails(index)
         .refreshPageCommands()
         .refreshZoom()
         .reportCurrentDetails()
@@ -887,8 +895,8 @@ private impl IndesignViewer
         .kind = document.kind
         if .isMarkup()
         {
-            .fileName    = #move document.markup.fileName
-            .markupPages = #move document.markup.pages
+            .fileName       = #move document.markup.fileName
+            .markupPages    = #move document.markup.pages
             .markupFit      = true
             .markupFitWidth = false
             .zoomLabel.show()
@@ -926,6 +934,7 @@ private impl IndesignViewer
                 .details = Format.toString(indesignStrings().ui_LoadingDetails, .previewIndex + 1, .previews.count)
                 .reportCurrentDetails()
             }
+
             .applyLayout()
         }
     }
@@ -975,6 +984,7 @@ private impl IndesignViewer
             .promptGoToPage()
             return
         }
+
         for command, index in commands where chosen! == command.toString()
         {
             .selectPreview(index)
@@ -1022,6 +1032,7 @@ private impl IndesignViewer
             .removeTimer(.loadTimer!)
             .loadTimer = null
         }
+
         if .previewLoadTimer
         {
             .removeTimer(.previewLoadTimer!)
@@ -1081,7 +1092,7 @@ private impl IWnd for IndesignViewer
         .removeTimer(evt.timer)
         .previewLoadTimer   = null
         .previewLoadPending = false
-        let completedIndex  = .loadingPreviewIndex
+        let completedIndex = .loadingPreviewIndex
         .loadingPreviewIndex = IndesignNoPreview
         var image: Image
         let failure = .previewLoad.finish(&image)
@@ -1114,6 +1125,7 @@ private impl IWnd for IndesignViewer
             evt.accepted = false
             return
         }
+
         if !.pageCount()
         {
             evt.accepted = false
@@ -1256,7 +1268,7 @@ internal impl IndesignViewer
         result.imageView                 = ImageView.create(result)
         result.imageView.backgroundStyle = .View
         result.imageView.dockStyle       = .Center
-        result.imageView.sigZoomChanged += func|view = result|(imageView)
+        result.imageView.sigZoomChanged  += func|view = result|(imageView)
         {
             discard imageView
             view.refreshZoom()

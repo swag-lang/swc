@@ -148,14 +148,15 @@ struct ShapedGlyph
 {
     public
     {
+        #[Swag.Late]
         desc:       const *GlyphDesc     // Borrowed glyph metrics and atlas descriptor.
-        glyphIndex: u32                              // Typeface-specific glyph index.
-        cluster:    u64                              // Byte offset of the originating UTF-8 cluster.
-        advanceX:   f32                              // Horizontal advance in reference-font units.
-        advanceY:   f32                              // Vertical advance in reference-font units.
-        offsetX:    f32                              // Horizontal placement adjustment.
-        offsetY:    f32                              // Vertical placement adjustment.
-        isTab:      bool                             // Whether this glyph represents an expanded tab.
+        glyphIndex: u32                  // Typeface-specific glyph index.
+        cluster:    u64                  // Byte offset of the originating UTF-8 cluster.
+        advanceX:   f32                  // Horizontal advance in reference-font units.
+        advanceY:   f32                  // Vertical advance in reference-font units.
+        offsetX:    f32                  // Horizontal placement adjustment.
+        offsetY:    f32                  // Vertical placement adjustment.
+        isTab:      bool                 // Whether this glyph represents an expanded tab.
     }
 }
 
@@ -164,14 +165,15 @@ struct ShapedRun
 {
     public
     {
-        font:          *Font              // Borrowed font used for shaping.
-        glyphs:        Array'ShapedGlyph              // Glyphs in logical text order.
-        metrics:       StringMetrics                  // Logical run measurements.
-        inkBounds:     Math.Rectangle                 // Bounds of visible glyph pixels.
-        hasInk:        bool                           // Whether `inkBounds` contains visible glyphs.
-        tabSize:       u32   = DefaultTextTabSize     // Tab-stop width in space advances.
-        letterSpacing: f32                            // Additional spacing between glyphs, in pixels.
-        wordSpacing:   f32                            // Additional advance given to each blank, in pixels.
+        #[Swag.Late]
+        font:          *Font                        // Borrowed font used for shaping.
+        glyphs:        Array'ShapedGlyph            // Glyphs in logical text order.
+        metrics:       StringMetrics                // Logical run measurements.
+        inkBounds:     Math.Rectangle               // Bounds of visible glyph pixels.
+        hasInk:        bool                         // Whether `inkBounds` contains visible glyphs.
+        tabSize:       u32 = DefaultTextTabSize     // Tab-stop width in space advances.
+        letterSpacing: f32                          // Additional spacing between glyphs, in pixels.
+        wordSpacing:   f32                          // Additional advance given to each blank, in pixels.
     }
 }
 
@@ -180,10 +182,11 @@ struct TextDrawInfo
 {
     public
     {
-        drawFont:    *Font     // Borrowed bitmap or MSDF font selected for drawing.
-        snapPixels:  bool                  // Whether glyph positions snap to the device-pixel grid.
-        scale:       f32                   // Scale from reference glyph metrics to logical draw units.
-        deviceScale: f32   = 1             // Physical device pixels per logical draw unit.
+        #[Swag.Late]
+        drawFont:    *Font       // Borrowed bitmap or MSDF font selected for drawing.
+        snapPixels:  bool        // Whether glyph positions snap to the device-pixel grid.
+        scale:       f32         // Scale from reference glyph metrics to logical draw units.
+        deviceScale: f32 = 1     // Physical device pixels per logical draw unit.
 
         // Translation of the transform the text is drawn under, when it is translation
         // only. Snapping accounts for it so glyph edges land on the *device* grid after

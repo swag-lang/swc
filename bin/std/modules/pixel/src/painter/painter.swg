@@ -228,20 +228,35 @@ struct Command
             transform:      struct{ tr: Transform2 }
             clippingRect:   struct{ rect: Math.Rectangle }
             clippingRegion: struct{ mode: ClippingMode }
-            font:           struct{ fontRef: *Font }
-            blendingMode:   struct{ mode: BlendingMode }
-            textureFont:    struct{ font: *Font, atlasIndex: s32 }
-            colorMask:      ColorMask
-            renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
-            defaultShader:  struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
-            shader:         struct{ shader: #null *ShaderBase }
+            font:           struct
+            {
+                #[Swag.Late]
+                fontRef: *Font
+            }
+            blendingMode: struct{ mode: BlendingMode }
+            textureFont:  struct
+            {
+                #[Swag.Late]
+                font:       *Font
+                atlasIndex: s32
+            }
+            colorMask: ColorMask
+            renderTgt: struct
+            {
+                #[Swag.Late]
+                tgt:        *RenderTarget
+                paintAlpha: bool
+            }
+            defaultShader: struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
+            shader:        struct{ shader: #null *ShaderBase }
 
             shaderParam: struct
             {
                 param: ShaderParamHandle
-                type:  typeinfo
-                _f32:  f32
-                _s32:  s32
+                #[Swag.Late]
+                type: typeinfo
+                _f32: f32
+                _s32: s32
             }
 
             fontEffect: FontEffectParams

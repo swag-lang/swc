@@ -26,9 +26,10 @@ private func contourPointKey(point: Vector2)->u64
 #[Swag.NoDoc]
 public struct FillRegion
 {
-    flush: *LinePath = undefined     // Contour the region's tessellation is cached on.
-    first: u64                       // Index of the region's first contour.
-    count: u64                       // Contours the region is made of.
+    #[Swag.Late]
+    flush: *LinePath     // Contour the region's tessellation is cached on.
+    first: u64           // Index of the region's first contour.
+    count: u64           // Contours the region is made of.
 }
 
 // Groups the contours of a fill-prepared list into the regions a fill triangulates.

@@ -58,6 +58,7 @@ impl Style
 #[Swag.NoDoc]
 struct VisualBlock
 {
+    #[Swag.Late]
     wnd:        *Wnd
     inline:     #null *InlineView
     table:      #null *TableView

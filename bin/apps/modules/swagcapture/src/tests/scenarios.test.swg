@@ -5,7 +5,8 @@ using Swag, Core, File
 
 struct ScenarioFixture
 {
-    gui:        Gui.Testing.HeadlessHost
+    gui: Gui.Testing.HeadlessHost
+    #[Swag.Late]
     main:       *MainWnd
     rootFolder: String
 }

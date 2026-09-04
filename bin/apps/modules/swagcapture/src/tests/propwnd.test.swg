@@ -549,4 +549,3 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     Swag.assert(prop.getSelectedForm'FormCallout() == null)
     Swag.assert(prop.getSelectedForm'FormText() != null)
 }
-

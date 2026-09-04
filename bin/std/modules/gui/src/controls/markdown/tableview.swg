@@ -22,6 +22,7 @@ public struct TableView
 {
     using wnd: Wnd
 
+    #[Swag.Late]
     owner:        *View
     cells:        Array'TableCell
     alignments:   Array'TableAlignment

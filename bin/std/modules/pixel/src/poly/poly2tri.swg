@@ -93,19 +93,21 @@ struct Point
 // Connects two tessellation points with a constrained edge.
 struct Edge
 {
+    #[Swag.Late]
     p: *Point     // Lower endpoint according to Poly2Tri ordering.
+    #[Swag.Late]
     q: *Point     // Upper endpoint according to Poly2Tri ordering.
 }
 
 // Stores one triangle and its adjacency/classification state.
 struct Triangle
 {
-    constrainedEdge: [3] bool                   // Whether each opposite edge is constrained.
-    delaunayEdge:    [3] bool                   // Temporary Delaunay edge markers.
-    points:          [3] *Point     // Counter-clockwise triangle vertices.
-    neighbors:       [3] #null *Triangle        // Adjacent triangles opposite each point.
-    idx:             u64                        // Result-local triangle index.
-    interior:        bool                       // Whether the triangle belongs to the output interior.
+    constrainedEdge: [3] bool                // Whether each opposite edge is constrained.
+    delaunayEdge:    [3] bool                // Temporary Delaunay edge markers.
+    points:          [3] *Point              // Counter-clockwise triangle vertices.
+    neighbors:       [3] #null *Triangle     // Adjacent triangles opposite each point.
+    idx:             u64                     // Result-local triangle index.
+    interior:        bool                    // Whether the triangle belongs to the output interior.
 }
 
 struct EdgeEvent
@@ -125,7 +127,9 @@ struct Basin
 
 struct Node
 {
-    point:    *Point
+    #[Swag.Late]
+    point: *Point
+    #[Swag.Late]
     triangle: *Triangle
     next:     #null *Node
     prev:     #null *Node
@@ -134,8 +138,9 @@ struct Node
 
 struct AdvancingFront
 {
-    head:       #null *Node
-    tail:       #null *Node
+    head: #null *Node
+    tail: #null *Node
+    #[Swag.Late]
     searchNode: *Node
 }
 
@@ -713,16 +718,19 @@ impl Tessellate
             .freeEdges.add(ptr)
         }
 
-        mtd newTriangle()->*Triangle
+        // A triangle names its three vertices, so it is built rather than default-initialized:
+        // its point array has no null to start from, and every other field is result state the
+        // sweep fills as it goes.
+        mtd newTriangle(a, b, c: *Point)->*Triangle
         {
-            if .freeTriangles.count
-            {
-                let p = .freeTriangles.popBack()
-                Swag.init(p, 1)
-                return p
-            }
+            var target: *Triangle
+            if .freeTriangles.count do
+                target = .freeTriangles.popBack()
+            else do
+                target = cast(*Triangle) Memory.alloc(#sizeof(Triangle))
 
-            return Memory.new'Triangle()
+            target[] = Triangle{points: [a, b, c]}
+            return target
         }
 
         mtd deleteTriangle(ptr: *Triangle)
@@ -1529,10 +1537,7 @@ impl Tessellate
     {
         let prev     = nnNode(node.prev)
         let next     = nnNode(node.next)
-        let triangle = .newTriangle()
-        triangle.points[0] = prev.point
-        triangle.points[1] = node.point
-        triangle.points[2] = next.point
+        let triangle = .newTriangle(prev.point, node.point, next.point)
 
         triangle.markNeighbor(prev.triangle)
         triangle.markNeighbor(node.triangle)
@@ -1550,10 +1555,7 @@ impl Tessellate
     mtd newFrontTriangle(point: *Point, node: *Node)->*Node
     {
         let oldNext  = nnNode(node.next)
-        let triangle = .newTriangle()
-        triangle.points[0] = point
-        triangle.points[1] = node.point
-        triangle.points[2] = oldNext.point
+        let triangle = .newTriangle(point, node.point, oldNext.point)
 
         triangle.markNeighbor(node.triangle)
 
@@ -1832,10 +1834,7 @@ impl Tessellate
 
     mtd createAdvancingFront()
     {
-        let triangle = .newTriangle()
-        triangle.points[0] = .points[0]
-        triangle.points[1] = nnPoint(.head)
-        triangle.points[2] = nnPoint(.tail)
+        let triangle = .newTriangle(.points[0], nnPoint(.head), nnPoint(.tail))
 
         triangle.idx = .triangles.count
         .triangles.add(triangle)

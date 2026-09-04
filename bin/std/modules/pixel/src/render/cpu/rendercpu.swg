@@ -148,6 +148,7 @@ private struct RasterBatch
     count:     u32
     transform: Transform2
 
+    #[Swag.Late]
     pixels:    [*] u8     // Target pixel base; rows are stored bottom-up.
     rowStride: s32
     width:     s32
@@ -159,6 +160,7 @@ private struct RasterBatch
     clipMaxX: s32
     clipMaxY: s32
 
+    #[Swag.Late]
     stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
 
     solidPaint: bool                        // The paint multiplies by opaque white, which is the identity.

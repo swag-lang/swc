@@ -4,10 +4,10 @@ using Core, Core.Errors, Pixel
 
 // IDML is an InDesign document package rather than a preview image. These bounds keep a damaged
 // package from turning a simple document inspection into an unbounded decompression operation.
-private const IdmlDocumentByteLimit = 128 * 1024 * 1024'u64
-private const IdmlPageLimit         = 2_000'u64
-private const IdmlSpreadLimit       = 1_000'u64
-private const IdmlFrameLimit        = 100_000'u64
+private const IdmlDocumentByteLimit        = 128 * 1024 * 1024'u64
+private const IdmlPageLimit                = 2_000'u64
+private const IdmlSpreadLimit              = 1_000'u64
+private const IdmlFrameLimit               = 100_000'u64
 private const IdmlEmbeddedGraphicDataLimit = 24 * 1024 * 1024'u64
 private const IdmlLinkedGraphicDataLimit   = 8 * 1024 * 1024'u64
 private const IdmlLinkedGraphicsDataLimit  = 24 * 1024 * 1024'u64
@@ -29,25 +29,25 @@ private struct IdmlTransform
 
 private struct IdmlItem
 {
-    bounds:     IdmlBounds
-    self:       String
-    story:      String
-    previousFrame: String
-    nextFrame:     String
-    text:       String
-    fill:       String
-    stroke:     String
-    strokeSize: f32
-    oval:       bool
-    line:       bool
-    lineStartArrow: bool
-    lineEndArrow:   bool
-    imageFrame: bool
-    imageHasBounds: bool
-    cornerTopLeft:     f32
-    cornerTopRight:    f32
-    cornerBottomRight: f32
-    cornerBottomLeft:  f32
+    bounds:             IdmlBounds
+    self:               String
+    story:              String
+    previousFrame:      String
+    nextFrame:          String
+    text:               String
+    fill:               String
+    stroke:             String
+    strokeSize:         f32
+    oval:               bool
+    line:               bool
+    lineStartArrow:     bool
+    lineEndArrow:       bool
+    imageFrame:         bool
+    imageHasBounds:     bool
+    cornerTopLeft:      f32
+    cornerTopRight:     f32
+    cornerBottomRight:  f32
+    cornerBottomLeft:   f32
     hasTextFrameLayout: bool
     textColumns:        u32 = 1
     textColumnGutter:   f32
@@ -56,36 +56,36 @@ private struct IdmlItem
     textInsetRight:     f32
     textInsetBottom:    f32
     textInsetLeft:      f32
-    clipPath:   String
-    image:      String
-    imageBounds: IdmlBounds
+    clipPath:           String
+    image:              String
+    imageBounds:        IdmlBounds
 }
 
 private struct IdmlTextStyle
 {
-    fontSize:      f32
-    autoLeading:   f32
-    spaceBefore:   f32
-    spaceAfter:    f32
-    leftIndent:    f32
-    rightIndent:   f32
+    fontSize:        f32
+    autoLeading:     f32
+    spaceBefore:     f32
+    spaceAfter:      f32
+    leftIndent:      f32
+    rightIndent:     f32
     firstLineIndent: f32
-    fill:          String
-    alignment:     String
-    serif:         bool
-    cjk:           bool
-    bold:          bool
-    italic:        bool
-    bullet:        bool
+    fill:            String
+    alignment:       String
+    serif:           bool
+    cjk:             bool
+    bold:            bool
+    italic:          bool
+    bullet:          bool
 }
 
 struct IdmlPage
 {
-    name:            String
-    master:          String
-    bounds:          IdmlBounds
-    items:           Array'IdmlItem
-    textFrameCount:  u64
+    name:           String
+    master:         String
+    bounds:         IdmlBounds
+    items:          Array'IdmlItem
+    textFrameCount: u64
 }
 
 private struct IdmlMaster
@@ -140,6 +140,7 @@ impl IdmlPage
             }
             elif item.imageFrame do
                 result += "<span class=\"idml-missing-image\">×</span>"
+
             // Text is escaped while the IDML story is converted to local paragraph markup. It is
             // deliberately not a document-supplied HTML fragment.
             idmlAppendTextColumns(&result, item, factor)
@@ -191,14 +192,14 @@ private func idmlAppendTextColumns(html: *String, item: const *IdmlItem, factor:
     if !gap and item.textColumnWidth > 0 and columns > 1 do
         gap = Math.max((width - item.textColumnWidth * factor * columns) / (columns - 1), 0)
     let columnWidth = item.textColumnWidth > 0 ? item.textColumnWidth * factor : Math.max((width - gap * (columns - 1)) / columns, 1)
-    var cursor = 0'u64
+    var cursor      = 0'u64
     for column in columns
     {
         if cursor >= item.text.count do
             break
         let remainingColumns = columns - column
-        let target            = (item.text.count - cursor) / remainingColumns
-        var end               = cursor
+        let target           = (item.text.count - cursor) / remainingColumns
+        var end              = cursor
         while end < item.text.count
         {
             let next = idmlStoryBlockEnd(item.text.toString(), end)
@@ -208,6 +209,7 @@ private func idmlAppendTextColumns(html: *String, item: const *IdmlItem, factor:
             if end - cursor >= target do
                 break
         }
+
         if end == cursor do
             end = idmlStoryBlockEnd(item.text.toString(), cursor)
         html[] += Format.toString("<div class=\"idml-text-column\" style=\"left:%px;top:%px;width:%px;height:%px\">", left + column * (columnWidth + gap), top, columnWidth, height)
@@ -329,6 +331,7 @@ private func idmlTextFrameInsets(preference: string, item: *IdmlItem)
             item.textInsetBottom = item.textInsetTop
             item.textInsetLeft   = item.textInsetTop
         }
+
         return
     }
 
@@ -346,6 +349,7 @@ private func idmlTextFrameInsets(preference: string, item: *IdmlItem)
             values.add(Math.max(value.value, 0))
         cursor = end + ("</ListItem>").count
     }
+
     if values.count == 4
     {
         // IDML stores frame insets clockwise from the top: top, left, bottom, right.
@@ -432,9 +436,9 @@ private func idmlComposeTransform(parent, child: const *IdmlTransform)->IdmlTran
 
 private func idmlBoundsFromPath(item: string, transform: const *IdmlTransform, result: *IdmlBounds, allowLine = false)->bool
 {
-    var left = Swag.F32.Max
-    var top  = Swag.F32.Max
-    var right = -Swag.F32.Max
+    var left   = Swag.F32.Max
+    var top    = Swag.F32.Max
+    var right  = -Swag.F32.Max
     var bottom = -Swag.F32.Max
     var cursor = 0'u64
     var points: u64
@@ -574,9 +578,11 @@ private func idmlLineClipPath(item: string, transform: const *IdmlTransform, pag
             secondX = x
             secondY = y
         }
+
         pointCount += 1
-        cursor = pointEnd + 1
+        cursor     = pointEnd + 1
     }
+
     if pointCount != 2 or bounds.width <= 0 or bounds.height <= 0 do
         return {}
 
@@ -586,15 +592,15 @@ private func idmlLineClipPath(item: string, transform: const *IdmlTransform, pag
     if length < 0.01 do
         return {}
 
-    let halfStroke  = Math.max(strokeSize, 0.75) * 0.5
-    let normalX     = -dy * halfStroke / length
-    let normalY     = dx * halfStroke / length
-    let startInset  = startArrow ? Math.min(length * 0.45, Math.max(6, halfStroke * 8)) : 0
-    let endInset    = endArrow ? Math.min(length * 0.45, Math.max(6, halfStroke * 8)) : 0
-    let startBaseX  = firstX + dx * startInset / length
-    let startBaseY  = firstY + dy * startInset / length
-    let endBaseX    = secondX - dx * endInset / length
-    let endBaseY    = secondY - dy * endInset / length
+    let halfStroke = Math.max(strokeSize, 0.75) * 0.5
+    let normalX    = -dy * halfStroke / length
+    let normalY    = dx * halfStroke / length
+    let startInset = startArrow ? Math.min(length * 0.45, Math.max(6, halfStroke * 8)) : 0
+    let endInset   = endArrow ? Math.min(length * 0.45, Math.max(6, halfStroke * 8)) : 0
+    let startBaseX = firstX + dx * startInset / length
+    let startBaseY = firstY + dy * startInset / length
+    let endBaseX   = secondX - dx * endInset / length
+    let endBaseY   = secondY - dy * endInset / length
 
     var result: retval
     result += "clip-path:polygon("
@@ -607,6 +613,7 @@ private func idmlLineClipPath(item: string, transform: const *IdmlTransform, pag
     {
         result += Format.toString("%{f3}%% %{f3}%%,", 100 * (firstX + normalX - bounds.left) / bounds.width, 100 * (firstY + normalY - bounds.top) / bounds.height)
     }
+
     result += Format.toString("%{f3}%% %{f3}%%,", 100 * (endBaseX + normalX - bounds.left) / bounds.width, 100 * (endBaseY + normalY - bounds.top) / bounds.height)
     if endArrow do
         result += Format.toString("%{f3}%% %{f3}%%,", 100 * (secondX - bounds.left) / bounds.width, 100 * (secondY - bounds.top) / bounds.height)
@@ -651,14 +658,15 @@ internal func idmlEmbeddedGraphicDataUri(item: string)->String
         if start == Swag.U64.Max or start >= contentsEnd do
             break
         let contentStart = start + ("<![CDATA[").count
-        let end = Utf8.indexOf(item, "]]>", contentStart)
+        let end          = Utf8.indexOf(item, "]]>", contentStart)
         if end == Swag.U64.Max or end > contentsEnd do
             return {}
         if payload.count + end - contentStart > IdmlEmbeddedGraphicDataLimit do
             return {}
         payload += item[contentStart until end]
-        cursor = end + ("]]>").count
+        cursor  = end + ("]]>").count
     }
+
     if payload.isEmpty() do
         return {}
 
@@ -674,20 +682,23 @@ private func idmlGraphicMimeType(path: string)->string
 {
     switch Path.lowercaseExtension(path).toString()
     {
-    case ".gif":        return "image/gif"
+    case ".gif":          return "image/gif"
     case ".jpg", ".jpeg": return "image/jpeg"
-    case ".png":        return "image/png"
+    case ".png":          return "image/png"
     case ".tif", ".tiff": return "image/tiff"
-    case ".webp":       return "image/webp"
+    case ".webp":         return "image/webp"
     default:              return ""
     }
 }
 
 private func idmlHexNibble(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do return value - '0'
-    if value >= 'a' and value <= 'f' do return value - 'a' + 10
-    if value >= 'A' and value <= 'F' do return value - 'A' + 10
+    if value >= '0' and value <= '9' do
+        return value - '0'
+    if value >= 'a' and value <= 'f' do
+        return value - 'a' + 10
+    if value >= 'A' and value <= 'F' do
+        return value - 'A' + 10
     return Swag.U8.Max
 }
 
@@ -698,17 +709,18 @@ private func idmlFileUriPath(uri: string)->String
     if !Utf8.startsWith(uri, "file:", .Latin1NoCase) do
         return {}
 
-    var source = uri[5 to ]
+    var source = uri[5 to]
     if Utf8.startsWith(source, "//")
     {
-        source = source[2 to ]
+        source = source[2 to]
         if Utf8.startsWith(source, "localhost/", .Latin1NoCase) do
-            source = source[9 to ]
+            source = source[9 to]
         elif !Utf8.startsWith(source, "/") do
             return {}
     }
+
     if source.count > 2 and source[0] == '/' and source[2] == ':' do
-        source = source[1 to ]
+        source = source[1 to]
 
     var result: retval
     var cursor = 0'u64
@@ -720,6 +732,7 @@ private func idmlFileUriPath(uri: string)->String
             cursor += 1
             continue
         }
+
         if cursor + 2 >= source.count do
             return {}
         let high = idmlHexNibble(source[cursor + 1])
@@ -781,15 +794,20 @@ private func idmlLinkedGraphicSource(documentFileName, item: string, loaded: *u6
 
 private func idmlEntity(text: string)->rune
 {
-    if text == "amp" do return '&'
-    if text == "lt" do return '<'
-    if text == "gt" do return '>'
-    if text == "quot" do return '"'
-    if text == "apos" do return '\''
+    if text == "amp" do
+        return '&'
+    if text == "lt" do
+        return '<'
+    if text == "gt" do
+        return '>'
+    if text == "quot" do
+        return '"'
+    if text == "apos" do
+        return '\''
     if text.count > 2 and text[0] == '#' and (text[1] == 'x' or text[1] == 'X')
     {
         var value: u32
-        for digit in text[2 to ]
+        for digit in text[2 to]
         {
             let nibble = (digit >= '0' and digit <= '9') ? cast(u32) (digit - '0') :
                          (digit >= 'a' and digit <= 'f') ? cast(u32) (digit - 'a' + 10) :
@@ -798,12 +816,13 @@ private func idmlEntity(text: string)->rune
                 return 0xFFFD
             value = value * 16 + nibble
         }
+
         if value <= 0x10FFFF do
             return cast(rune) value
     }
     elif text.count > 1 and text[0] == '#'
     {
-        let parsed = catch StrConv.parseU32(text[1 to ]) as parseError
+        let parsed = catch StrConv.parseU32(text[1 to]) as parseError
         if parseError == null and !parsed.ovf and parsed.eat == text.count - 1 do
             return cast(rune) parsed.value
     }
@@ -820,7 +839,7 @@ private func idmlDecodeEntities(text: string)->String
         let entityStart = Utf8.indexOf(text, '&'rune, cursor)
         if entityStart == Swag.U64.Max
         {
-            result += text[cursor to ]
+            result += text[cursor to]
             break
         }
 
@@ -828,7 +847,7 @@ private func idmlDecodeEntities(text: string)->String
         let entityEnd = Utf8.indexOf(text, ';'rune, entityStart + 1)
         if entityEnd == Swag.U64.Max
         {
-            result += text[entityStart to ]
+            result += text[entityStart to]
             break
         }
 
@@ -848,14 +867,14 @@ private func idmlStoryText(source: string)->String
         let contentStart = Utf8.indexOf(source, "<Content", cursor)
         let breakStart   = Utf8.indexOf(source, "<Br", cursor)
         let paragraphEnd = Utf8.indexOf(source, "</ParagraphStyleRange>", cursor)
-        let next = Math.min(contentStart, Math.min(breakStart, paragraphEnd))
+        let next         = Math.min(contentStart, Math.min(breakStart, paragraphEnd))
         if next == Swag.U64.Max do
             break
 
         if next == contentStart
         {
-            let openEnd  = Utf8.indexOf(source, '>'rune, contentStart)
-            let close    = openEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, "</Content>", openEnd + 1)
+            let openEnd = Utf8.indexOf(source, '>'rune, contentStart)
+            let close   = openEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, "</Content>", openEnd + 1)
             if close == Swag.U64.Max do
                 break
             result += idmlDecodeEntities(source[openEnd + 1 until close])
@@ -881,9 +900,12 @@ private func idmlStoryText(source: string)->String
 
 private func idmlTextAlignment(value: string)->string
 {
-    if value == "CenterAlign" do return "center"
-    if value == "RightAlign" do return "right"
-    if value == "JustifyAll" or value == "JustifyLeft" or value == "JustifyRight" or value == "JustifyCenter" do return "justify"
+    if value == "CenterAlign" do
+        return "center"
+    if value == "RightAlign" do
+        return "right"
+    if value == "JustifyAll" or value == "JustifyLeft" or value == "JustifyRight" or value == "JustifyCenter" do
+        return "justify"
     return "left"
 }
 
@@ -902,13 +924,8 @@ private func idmlContainsCjk(text: string)->bool
     var cursor = 0'u64
     while cursor < text.count
     {
-        let {c, eat} = Utf8.decodeRune(text[cursor to ])
-        if c >= 0x2E80 and c <= 0x9FFF or
-           c >= 0xAC00 and c <= 0xD7A3 or
-           c >= 0xF900 and c <= 0xFAFF or
-           c >= 0xFE30 and c <= 0xFE4F or
-           c >= 0xFF00 and c <= 0xFFEF or
-           c >= 0x20000 and c <= 0x3FFFD do
+        let {c, eat} = Utf8.decodeRune(text[cursor to])
+        if c >= 0x2E80 and c <= 0x9FFF or c >= 0xAC00 and c <= 0xD7A3 or c >= 0xF900 and c <= 0xFAFF or c >= 0xFE30 and c <= 0xFE4F or c >= 0xFF00 and c <= 0xFFEF or c >= 0x20000 and c <= 0x3FFFD do
             return true
         cursor += eat
     }
@@ -1051,12 +1068,13 @@ private func idmlEscapeHtml(text: string)->String
         let value = text[cursor]
         switch value
         {
-        case '&':  result += "&amp;"
-        case '<':  result += "&lt;"
-        case '>':  result += "&gt;"
-        case '"':  result += "&quot;"
-        default:   result += value
+        case '&': result += "&amp;"
+        case '<': result += "&lt;"
+        case '>': result += "&gt;"
+        case '"': result += "&quot;"
+        default:  result += value
         }
+
         cursor += 1
     }
 
@@ -1134,6 +1152,7 @@ private func idmlTintedColor(color, tint: string)->String
             return String.from(color)
         channels.add(value.value)
     }
+
     if channels.count != 3 do
         return String.from(color)
 
@@ -1171,9 +1190,9 @@ private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, co
         let openEnd = Utf8.indexOf(source.toString(), '>'rune, start)
         if openEnd == Swag.U64.Max do
             break
-        let tag  = source.toString()[start until openEnd + 1]
-        let self = idmlAttribute(tag, "Self")
-        let close = Utf8.indexOf(source.toString(), "</ParagraphStyle>", openEnd + 1)
+        let tag     = source.toString()[start until openEnd + 1]
+        let self    = idmlAttribute(tag, "Self")
+        let close   = Utf8.indexOf(source.toString(), "</ParagraphStyle>", openEnd + 1)
         let bodyEnd = close == Swag.U64.Max ? openEnd + 1 : close
         if self.count and !result.tryFind(self)
         {
@@ -1191,7 +1210,7 @@ private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, co
             style.bold            = idmlFontStyleBold(idmlAttribute(tag, "FontStyle"))
             style.italic          = idmlFontStyleItalic(idmlAttribute(tag, "FontStyle"))
             style.bullet          = idmlAttribute(tag, "BulletsAndNumberingListType") == "BulletList"
-            let fontStart   = Utf8.indexOf(source.toString(), "<AppliedFont", openEnd + 1)
+            let fontStart = Utf8.indexOf(source.toString(), "<AppliedFont", openEnd + 1)
             if fontStart != Swag.U64.Max and fontStart < bodyEnd
             {
                 let fontOpenEnd = Utf8.indexOf(source.toString(), '>'rune, fontStart)
@@ -1199,8 +1218,10 @@ private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, co
                 if fontClose != Swag.U64.Max and fontClose < bodyEnd do
                     style.serif = Utf8.contains(source.toString()[fontOpenEnd + 1 until fontClose], "Minion")
             }
+
             result.add(self, #move style)
         }
+
         cursor = close == Swag.U64.Max ? openEnd + 1 : close + ("</ParagraphStyle>").count
     }
 
@@ -1253,18 +1274,18 @@ private func idmlPageIndex(pages: const *Array'IdmlPage, bounds: const *IdmlBoun
 private func idmlAppendItems(fileName, source: string, stories: const *HashTable'(String, String), colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, pages: *Array'IdmlPage)
 {
     var cursor = 0'u64
-    var groupCursor: u64
+    var groupCursor:     u64
     var groupTransforms: Array'IdmlTransform
-    var itemCount: u64
+    var itemCount:       u64
     while itemCount < IdmlFrameLimit
     {
-        let textStart  = Utf8.indexOf(source, "<TextFrame ", cursor)
-        let rectStart  = Utf8.indexOf(source, "<Rectangle ", cursor)
-        let ovalStart  = Utf8.indexOf(source, "<Oval ", cursor)
+        let textStart    = Utf8.indexOf(source, "<TextFrame ", cursor)
+        let rectStart    = Utf8.indexOf(source, "<Rectangle ", cursor)
+        let ovalStart    = Utf8.indexOf(source, "<Oval ", cursor)
         let polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
         let lineStart    = Utf8.indexOf(source, "<GraphicLine ", cursor)
         let shapeStart   = Math.min(Math.min(rectStart, ovalStart), Math.min(polygonStart, lineStart))
-        let start      = Math.min(textStart, shapeStart)
+        let start        = Math.min(textStart, shapeStart)
         if start == Swag.U64.Max do
             break
 
@@ -1285,6 +1306,7 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                 groupCursor = end + 1
                 continue
             }
+
             if close < start
             {
                 if groupTransforms.count do
@@ -1292,6 +1314,7 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                 groupCursor = close + ("</Group>").count
                 continue
             }
+
             break
         }
 
@@ -1304,8 +1327,8 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
         let close    = openEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, closing, openEnd + 1)
         if close == Swag.U64.Max do
             break
-        let tag     = source[start until openEnd + 1]
-        let content = source[start until close + closing.count]
+        let tag       = source[start until openEnd + 1]
+        let content   = source[start until close + closing.count]
         var transform = idmlTransform(tag)
         var inherited: IdmlTransform
         for groupTransform in groupTransforms do
@@ -1323,14 +1346,14 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                 bounds.left -= pages[pageIndex].bounds.left
                 bounds.top  -= pages[pageIndex].bounds.top
                 var item: IdmlItem
-                item.bounds     = bounds
-                item.self       = idmlAttribute(tag, "Self")
-                item.fill       = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
-                item.stroke     = idmlColor(colors, idmlAttribute(tag, "StrokeColor"), idmlAttribute(tag, "StrokeTint"))
-                item.strokeSize = idmlNumber(idmlAttribute(tag, "StrokeWeight")).value
-                item.oval       = oval
-                item.line       = line
-                item.imageFrame = Utf8.indexOf(content, "<Image ") != Swag.U64.Max
+                item.bounds            = bounds
+                item.self              = idmlAttribute(tag, "Self")
+                item.fill              = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
+                item.stroke            = idmlColor(colors, idmlAttribute(tag, "StrokeColor"), idmlAttribute(tag, "StrokeTint"))
+                item.strokeSize        = idmlNumber(idmlAttribute(tag, "StrokeWeight")).value
+                item.oval              = oval
+                item.line              = line
+                item.imageFrame        = Utf8.indexOf(content, "<Image ") != Swag.U64.Max
                 item.cornerTopLeft     = idmlRoundedCornerRadius(tag, "TopLeft")
                 item.cornerTopRight    = idmlRoundedCornerRadius(tag, "TopRight")
                 item.cornerBottomRight = idmlRoundedCornerRadius(tag, "BottomRight")
@@ -1339,12 +1362,12 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                 {
                     item.lineStartArrow = idmlAttribute(tag, "LeftLineEnd") == "TriangleArrowHead"
                     item.lineEndArrow   = idmlAttribute(tag, "RightLineEnd") == "TriangleArrowHead"
-                    let padding         = Math.max(item.strokeSize * 2, 4)
+                    let padding = Math.max(item.strokeSize * 2, 4)
                     item.bounds.left   -= padding
                     item.bounds.top    -= padding
                     item.bounds.width  += 2 * padding
                     item.bounds.height += 2 * padding
-                    item.clipPath = idmlLineClipPath(content, &transform, pages[pageIndex].bounds.left, pages[pageIndex].bounds.top, &item.bounds, item.strokeSize, item.lineStartArrow, item.lineEndArrow)
+                    item.clipPath      = idmlLineClipPath(content, &transform, pages[pageIndex].bounds.left, pages[pageIndex].bounds.top, &item.bounds, item.strokeSize, item.lineStartArrow, item.lineEndArrow)
                 }
                 elif polygon do
                     item.clipPath = idmlPolygonClipPath(content, &transform)
@@ -1354,12 +1377,13 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
                     var imageBounds: IdmlBounds
                     if idmlBoundsFromGraphic(content, &transform, &imageBounds)
                     {
-                        imageBounds.left -= pages[pageIndex].bounds.left
-                        imageBounds.top  -= pages[pageIndex].bounds.top
+                        imageBounds.left    -= pages[pageIndex].bounds.left
+                        imageBounds.top     -= pages[pageIndex].bounds.top
                         item.imageBounds    = imageBounds
                         item.imageHasBounds = true
                     }
                 }
+
                 if textItem
                 {
                     item.story         = idmlAttribute(tag, "ParentStory")
@@ -1374,7 +1398,7 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
         }
 
         itemCount += 1
-        cursor = close + closing.count
+        cursor    = close + closing.count
     }
 }
 
@@ -1395,6 +1419,7 @@ private func idmlAppendMasterItems(masters: const *Array'IdmlMaster, pages: *Arr
                 if !item.story.isEmpty() do
                     page.textFrameCount += 1
             }
+
             break
         }
     }
@@ -1439,7 +1464,7 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
     var cursor = 0'u64
     while cursor < source.count
     {
-        cursor = idmlStoryBlockEnd(source, cursor)
+        cursor     = idmlStoryBlockEnd(source, cursor)
         blockCount += 1
     }
 
@@ -1447,29 +1472,30 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
     for frame in frames do
         totalCapacity += idmlTextFrameCapacity(frame!)
 
-    cursor             = 0
-    var allocatedBlocks: u64
+    cursor = 0
+    var allocatedBlocks:  u64
     var remainingBlocks = blockCount
     var consumedCapacity: f32
     for frame, index in frames
     {
         let remainingFrames = frames.count - index
         consumedCapacity += idmlTextFrameCapacity(frame!)
-        let target          = cast(u64) Math.round(cast(f32) blockCount * consumedCapacity / totalCapacity)
-        let minimum         = remainingBlocks >= remainingFrames ? 1 : 0
-        let maximum         = remainingBlocks - (remainingBlocks >= remainingFrames ? remainingFrames - 1 : 0)
-        let desired         = target > allocatedBlocks ? target - allocatedBlocks : 0
-        let take            = Math.clamp(desired, minimum, maximum)
+        let target  = cast(u64) Math.round(cast(f32) blockCount * consumedCapacity / totalCapacity)
+        let minimum = remainingBlocks >= remainingFrames ? 1 : 0
+        let maximum = remainingBlocks - (remainingBlocks >= remainingFrames ? remainingFrames - 1 : 0)
+        let desired = target > allocatedBlocks ? target - allocatedBlocks : 0
+        let take    = Math.clamp(desired, minimum, maximum)
         var text: String
         for take
         {
             let end = idmlStoryBlockEnd(source, cursor)
-            text += source[cursor until end]
+            text   += source[cursor until end]
             cursor = end
         }
+
         allocatedBlocks += take
         remainingBlocks -= take
-        frame!.text = #move text
+        frame!.text     = #move text
     }
 }
 
@@ -1492,7 +1518,7 @@ private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTab
                 continue
 
             var frames: Array'*IdmlItem
-            var frame: #null *IdmlItem = item
+            var frame:  #null *IdmlItem = item
             while frame and frames.count < IdmlFrameLimit
             {
                 var repeated: bool
@@ -1501,6 +1527,7 @@ private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTab
                     repeated = true
                     break
                 }
+
                 if repeated do
                     break
                 frames.add(frame!)
@@ -1545,6 +1572,7 @@ private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, desig
                 }
             }
         }
+
         cursor = end + 1
     }
 
@@ -1562,7 +1590,7 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
     if Latin1.trim(mimetype.toString()) != "application/vnd.adobe.indesign-idml-package" do
         fail InvalidFormatError{"the ZIP package is not an InDesign Markup document"}
 
-    let designMap = try idmlReadEntry(fileName, &archive, "designmap.xml")
+    let designMap  = try idmlReadEntry(fileName, &archive, "designmap.xml")
     let colors     = idmlLoadColors(fileName, &archive)
     let textStyles = idmlLoadTextStyles(fileName, &archive, &colors)
     var stories: HashTable'(String, String)
@@ -1582,9 +1610,9 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
 
     var linkedGraphicBytes: u64
     let masters = idmlLoadMasters(fileName, &archive, designMap.toString(), &stories, &colors, &linkedGraphicBytes)
-    var result: retval
+    var result:             retval
     result.fileName = fileName
-    var cursor      = 0'u64
+    var cursor = 0'u64
     var spreadCount: u64
     while spreadCount < IdmlSpreadLimit
     {
@@ -1605,7 +1633,8 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
             for page in spreadPages do
                 result.pages.add(page[])
         }
-        cursor = end + 1
+
+        cursor      = end + 1
         spreadCount += 1
     }
 

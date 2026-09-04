@@ -168,7 +168,7 @@ struct XAUDIO2_SEND_DESCRIPTOR
     public
     {
         flags:        UINT32
-        pOutputVoice: *IXAudio2Voice
+        pOutputVoice: #null *IXAudio2Voice
     }
 }
 
@@ -264,11 +264,13 @@ struct IXAudio2SourceVoice
 
 struct IXAudio2EngineCallback
 {
+    #[Swag.Late]
     public vtbl: *IXAudio2EngineCallbackItf
 }
 
 struct IXAudio2VoiceCallback
 {
+    #[Swag.Late]
     public vtbl: *IXAudio2VoiceCallbackItf
 }
 
@@ -279,6 +281,9 @@ struct IXAudio2SubmixVoice
 
 struct IXAudio2EngineCallbackItf
 {
+    // Same contract as the voice callback table: filled by the module, called by XAudio2.
+    #[Swag.Late]
+
     public
     {
         onProcessingPassStart: func(this: *IXAudio2EngineCallback)
@@ -289,6 +294,10 @@ struct IXAudio2EngineCallbackItf
 
 struct IXAudio2VoiceCallbackItf
 {
+    // The module fills this table once and XAudio2 is the only caller, so every entry starts
+    // null and receives its function on the way in.
+    #[Swag.Late]
+
     public
     {
         onVoiceProcessingPassStart: func(this: *IXAudio2VoiceCallback, bytesRequired: UINT32)

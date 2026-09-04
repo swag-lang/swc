@@ -202,4 +202,3 @@ private func createPdfFixture()->String
     collectViewerMatches(result.collectMatches!, result.view!, "absent", &matches)
     Swag.assert(matches.isEmpty())
 }
-

@@ -4,10 +4,13 @@ using Swag, Core
 
 struct HeadlessFixture
 {
-    gui:      Gui.Testing.HeadlessHost
-    main:     *MainWnd
+    gui: Gui.Testing.HeadlessHost
+    #[Swag.Late]
+    main: *MainWnd
+    #[Swag.Late]
     editView: *EditView
-    capture:  *Capture
+    #[Swag.Late]
+    capture: *Capture
 }
 
 impl HeadlessFixture

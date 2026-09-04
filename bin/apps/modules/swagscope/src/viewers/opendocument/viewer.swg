@@ -17,21 +17,21 @@ func openDocumentViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const OpenDocumentContentLimit      = 32 * 1024 * 1024'u64
-private const OpenDocumentTableColumnLimit  = 256'u64
-private const OpenDocumentTableRowLimit     = 100_000'u64
-private const OpenDocumentTableCellLimit    = 1_000_000'u64
-private const OpenDocumentRepeatedCellLimit = 4_096'u64
-private const OpenDocumentTextStyleLimit    = 4_096'u64
-private const OpenDocumentBookmarkLimit     = 4_096'u64
-private const OpenDocumentImageLimit        = 16 * 1024 * 1024'u64
-private const OpenDocumentImageCountLimit   = 256'u64
+private const OpenDocumentContentLimit            = 32 * 1024 * 1024'u64
+private const OpenDocumentTableColumnLimit        = 256'u64
+private const OpenDocumentTableRowLimit           = 100_000'u64
+private const OpenDocumentTableCellLimit          = 1_000_000'u64
+private const OpenDocumentRepeatedCellLimit       = 4_096'u64
+private const OpenDocumentTextStyleLimit          = 4_096'u64
+private const OpenDocumentBookmarkLimit           = 4_096'u64
+private const OpenDocumentImageLimit              = 16 * 1024 * 1024'u64
+private const OpenDocumentImageCountLimit         = 256'u64
 private const OpenDocumentInlineImagePayloadLimit = ((OpenDocumentImageLimit + 2) / 3) * 4
-private const OpenDocumentImageDimensionLimit = 4_096.0
-private const OpenDocumentMetadataLimit     = 256 * 1024'u64
-private const OpenDocumentMetadataValueLimit = 512'u64
-private const OpenDocumentApostrophe        = 39'u8
-private const OpenDocumentPageComboWidth    = 224.0
+private const OpenDocumentImageDimensionLimit     = 4_096.0
+private const OpenDocumentMetadataLimit           = 256 * 1024'u64
+private const OpenDocumentMetadataValueLimit      = 512'u64
+private const OpenDocumentApostrophe              = 39'u8
+private const OpenDocumentPageComboWidth          = 224.0
 
 // Distinguishes the document surfaces that share the OpenDocument container.
 internal enum OpenDocumentKind
@@ -125,9 +125,9 @@ internal struct OpenDocumentContent
 
 private struct OpenDocumentTag
 {
-    name:       String
-    attributes: String
-    closing:    bool
+    name:        String
+    attributes:  String
+    closing:     bool
     selfClosing: bool
 }
 
@@ -136,7 +136,7 @@ private func openDocumentXmlSpace(value: u8)->bool => value == ' ' or value == '
 // Finds a closing angle bracket without mistaking one inside a quoted XML attribute for a tag end.
 private func openDocumentTagEnd(source: string, start: u64)->u64 fail
 {
-    var at     = start + 1
+    var at = start + 1
     var quoted: u8
     while at < source.count
     {
@@ -169,7 +169,7 @@ private func parseOpenDocumentTag(raw: string)->OpenDocumentTag
     if raw[at] == '/'
     {
         result.closing = true
-        at += 1
+        at             += 1
         while at < raw.count and openDocumentXmlSpace(raw[at]) do
             at += 1
     }
@@ -258,7 +258,7 @@ private func openDocumentDecodeXmlText(source: string)->String
         if source[at] != '&'
         {
             result += source[at until at + 1]
-            at += 1
+            at     += 1
             continue
         }
 
@@ -268,18 +268,28 @@ private func openDocumentDecodeXmlText(source: string)->String
         if close == source.count or close - at > 16 or source[close] != ';'
         {
             result += "&"
-            at += 1
+            at     += 1
             continue
         }
 
         let entity = source[at + 1 until close]
         switch entity
         {
-        case "amp":  result += "&"
-        case "apos": result += "'"
-        case "gt":   result += ">"
-        case "lt":   result += "<"
-        case "quot": result += "\""
+        case "amp":
+            result += "&"
+
+        case "apos":
+            result += "'"
+
+        case "gt":
+            result += ">"
+
+        case "lt":
+            result += "<"
+
+        case "quot":
+            result += "\""
+
         default:
             if entity.count > 1 and entity[0] == '#'
             {
@@ -314,8 +324,10 @@ private func openDocumentDecodeXmlText(source: string)->String
                     }
                 }
             }
+
             result += source[at until close + 1]
         }
+
         at = close + 1
     }
 
@@ -326,7 +338,7 @@ private func openDocumentDecodeXmlText(source: string)->String
 private func openDocumentMetadataValue(source: string)->String
 {
     let decoded = openDocumentDecodeXmlText(source)
-    var result: retval
+    var result:       retval
     var pendingSpace: bool
     for character in decoded
     {
@@ -342,6 +354,7 @@ private func openDocumentMetadataValue(source: string)->String
             result.append(cast(rune) ' ')
             pendingSpace = false
         }
+
         result.append(character)
         if result.count >= OpenDocumentMetadataValueLimit do
             return result
@@ -374,8 +387,9 @@ private impl OpenDocumentMetadataReader
         case "dc:title":   .field = .Title
         case "dc:subject": .field = .Subject
         case "dc:creator": .field = .Creator
-        default: return
+        default:           return
         }
+
         .depth = 1
         .text.clear()
     }
@@ -405,6 +419,7 @@ private impl OpenDocumentMetadataReader
         case .Creator where .metadata.creator.isEmpty(): .metadata.creator = #move value
         default: discard value
         }
+
         .field = .None
     }
 }
@@ -488,6 +503,7 @@ private func openDocumentImageDimension(attributes, name: string)->String
         while end < value.count and Latin1.isDigit(value[end]) do
             end += 1
     }
+
     if !end do
         return {}
 
@@ -506,7 +522,7 @@ private func openDocumentImageDimension(attributes, name: string)->String
     case "cm":     pixels = parsed.value * 96 / 2.54
     case "mm":     pixels = parsed.value * 96 / 25.4
     case "q":      pixels = parsed.value * 96 / 101.6
-    default:         return {}
+    default:       return {}
     }
 
     if pixels < 1 or pixels > OpenDocumentImageDimensionLimit do
@@ -532,6 +548,7 @@ private func openDocumentInlineImageMediaType(uri: string)->string
         if Utf8.startsWith(lowercase.toString(), prefix.toString()) do
             return mediaType
     }
+
     return ""
 }
 
@@ -544,13 +561,14 @@ private func openDocumentHtmlAttribute(value: string)->String
     {
         switch character
         {
-        case '&':  result += "&amp;"
-        case '<':  result += "&lt;"
-        case '>':  result += "&gt;"
-        case '"':  result += "&quot;"
-        default:   result += character
+        case '&': result += "&amp;"
+        case '<': result += "&lt;"
+        case '>': result += "&gt;"
+        case '"': result += "&quot;"
+        default:  result += character
         }
     }
+
     return result
 }
 
@@ -565,6 +583,7 @@ private func openDocumentExternalHref(href: string)->String
         if character <= ' ' or character == '"' or character == '<' or character == '>' do
             return {}
     }
+
     return openDocumentHtmlAttribute(href)
 }
 
@@ -584,6 +603,7 @@ private func openDocumentFontSize(attributes: string)->String
         while end < value.count and Latin1.isDigit(value[end]) do
             end += 1
     }
+
     if !end do
         return {}
 
@@ -603,7 +623,7 @@ private func openDocumentFontSize(attributes: string)->String
     case "cm":     percent = parsed.value * 600 / 2.54
     case "mm":     percent = parsed.value * 60 / 2.54
     case "q":      percent = parsed.value * 15 / 2.54
-    default:         return {}
+    default:       return {}
     }
 
     if percent < 50 or percent > 400 do
@@ -701,10 +721,10 @@ private impl OpenDocumentReader
     {
         switch openDocumentAttribute(attributes, "fo:text-align").toString()
         {
-        case "left", "start":   style.alignment = "left"
-        case "center":           style.alignment = "center"
-        case "right", "end":    style.alignment = "right"
-        case "justify":          style.alignment = "justify"
+        case "left", "start": style.alignment = "left"
+        case "center":        style.alignment = "center"
+        case "right", "end":  style.alignment = "right"
+        case "justify":       style.alignment = "justify"
         }
     }
 
@@ -779,6 +799,7 @@ private impl OpenDocumentReader
             .appendHtml(style.fontSize.toString())
             .appendHtml("\">")
         }
+
         if style.bold do
             .appendHtml("<strong>")
         if style.italic do
@@ -806,6 +827,7 @@ private impl OpenDocumentReader
         case .Superscript: .appendHtml("</sup>")
         case .Normal:      break
         }
+
         if style.strike do
             .appendHtml("</s>")
         if style.underline do
@@ -858,6 +880,7 @@ private impl OpenDocumentReader
             let target = .bookmarkTarget(href[1 to])
             return target.isEmpty() ? "" : Format.toString("#%", target.toString())
         }
+
         return openDocumentExternalHref(href.toString())
     }
 
@@ -888,7 +911,7 @@ private impl OpenDocumentReader
         if decodeError != null or bytes.isEmpty() or bytes.count > OpenDocumentImageLimit or bytes.count > OpenDocumentImageLimit - .imageByteCount do
             return {}
 
-        .imageCount += 1
+        .imageCount     += 1
         .imageByteCount += bytes.count
         return String.from(href)
     }
@@ -918,11 +941,13 @@ private impl OpenDocumentReader
             .appendHtml("\" width=\"")
             .appendHtml(size.width.toString())
         }
+
         if !size.height.isEmpty()
         {
             .appendHtml("\" height=\"")
             .appendHtml(size.height.toString())
         }
+
         .appendHtml("\">")
     }
 
@@ -963,51 +988,83 @@ private impl OpenDocumentReader
             .appendParagraphAlignment(tag.attributes.toString())
             .appendHtml(">")
             .appendTextStyleStart(tag.attributes.toString())
+
         case "text:p":
             .appendHtml("<p")
             .appendParagraphAlignment(tag.attributes.toString())
             .appendHtml(">")
             .appendTextStyleStart(tag.attributes.toString())
-        case "text:span":                .appendTextStyleStart(tag.attributes.toString())
-        case "text:note-citation":       .appendHtml("<sup>")
-        case "text:note-body":           .appendHtml("<blockquote>")
+
+        case "text:span":
+            .appendTextStyleStart(tag.attributes.toString())
+
+        case "text:note-citation":
+            .appendHtml("<sup>")
+
+        case "text:note-body":
+            .appendHtml("<blockquote>")
+
         case "text:a":
             .appendHtml("<a")
             let href = .linkHref(tag.attributes.toString())
             if !href.isEmpty()
-                do .appendHtml(Format.toString(" href=\"%\"", href.toString()))
+                do
+                .appendHtml(Format.toString(" href=\"%\"", href.toString()))
             .appendHtml(">")
-        case "text:bookmark", "text:bookmark-start": .appendBookmark(tag.attributes.toString())
+
+        case "text:bookmark", "text:bookmark-start":
+            .appendBookmark(tag.attributes.toString())
+
         case "text:list":
             let numbered = .listUsesNumbers(tag.attributes.toString())
             .listStack.add(numbered)
             .appendHtml(numbered ? "<ol>" : "<ul>")
-        case "text:list-item":           .appendHtml("<li>")
-        case "text:line-break":          .appendHtml("<br/>")
-        case "text:tab":                 .appendHtml("&#9;")
-        case "text:s":                   .appendSpaces(tag.attributes.toString())
-        case "draw:frame":                .imageSizeStack.add(openDocumentImageSize(tag.attributes.toString()))
-        case "draw:image":               .appendImage(tag.attributes.toString())
+
+        case "text:list-item":
+            .appendHtml("<li>")
+
+        case "text:line-break":
+            .appendHtml("<br/>")
+
+        case "text:tab":
+            .appendHtml("&#9;")
+
+        case "text:s":
+            .appendSpaces(tag.attributes.toString())
+
+        case "draw:frame":
+            .imageSizeStack.add(openDocumentImageSize(tag.attributes.toString()))
+
+        case "draw:image":
+            .appendImage(tag.attributes.toString())
+
         case "table:table":
             let name = openDocumentAttribute(tag.attributes.toString(), "table:name")
             .appendHtml("<section><h2>")
             .appendHtml(name.toString())
             .appendHtml("</h2><table>")
-        case "table:table-header-rows": .tableHeaderRows += 1
-        case "table:table-row":          .appendHtml("<tr>")
+
+        case "table:table-header-rows":
+            .tableHeaderRows += 1
+
+        case "table:table-row":
+            .appendHtml("<tr>")
+
         case "table:table-cell", "table:covered-table-cell":
             let repeated = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
             if .tableHeaderRows do
                 .appendHtml(repeated == 1 ? "<th>" : Format.toString("<th colspan=\"%\">", repeated))
             else
-                do .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
+                    do
+                .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
             if tag.selfClosing do
                 .appendHtml(openDocumentCellValue(tag.attributes.toString()).toString())
+
         case "draw:page":
             if !.slideActive
             {
                 .slideActive = true
-                .slide.name = openDocumentAttribute(tag.attributes.toString(), "draw:name")
+                .slide.name  = openDocumentAttribute(tag.attributes.toString(), "draw:name")
                 .appendHtml("<article><section>")
             }
         }
@@ -1020,26 +1077,48 @@ private impl OpenDocumentReader
         case "text:h":
             .appendTextStyleEnd()
             .appendHtml(Format.toString("</h%>", .headingLevel))
+
         case "text:p":
             .appendTextStyleEnd()
             .appendHtml("</p>")
-        case "text:span":                .appendTextStyleEnd()
-        case "text:note-citation":       .appendHtml("</sup>")
-        case "text:note-body":           .appendHtml("</blockquote>")
-        case "text:a":                   .appendHtml("</a>")
+
+        case "text:span":
+            .appendTextStyleEnd()
+
+        case "text:note-citation":
+            .appendHtml("</sup>")
+
+        case "text:note-body":
+            .appendHtml("</blockquote>")
+
+        case "text:a":
+            .appendHtml("</a>")
+
         case "text:list":
             var numbered = false
             if !.listStack.isEmpty() do
                 numbered = .listStack.popBack()
             .appendHtml(numbered ? "</ol>" : "</ul>")
-        case "text:list-item":           .appendHtml("</li>")
-        case "table:table":              .appendHtml("</table></section>")
+
+        case "text:list-item":
+            .appendHtml("</li>")
+
+        case "table:table":
+            .appendHtml("</table></section>")
+
         case "table:table-header-rows":
             if .tableHeaderRows do
                 .tableHeaderRows -= 1
-        case "table:table-row":          .appendHtml("</tr>")
-        case "table:table-cell", "table:covered-table-cell": .appendHtml(.tableHeaderRows ? "</th>" : "</td>")
-        case "draw:frame" where !.imageSizeStack.isEmpty():   discard .imageSizeStack.popBack()
+
+        case "table:table-row":
+            .appendHtml("</tr>")
+
+        case "table:table-cell", "table:covered-table-cell":
+            .appendHtml(.tableHeaderRows ? "</th>" : "</td>")
+
+        case "draw:frame" where !.imageSizeStack.isEmpty():
+            discard .imageSizeStack.popBack()
+
         case "draw:page":
             if .slideActive
             {
@@ -1082,9 +1161,10 @@ private impl OpenDocumentReader
             discard repeated
             .sheet.table.rows.add(.sheet.table.rows.back())
         }
+
         .sheetCellCount += cells * .rowRepeat
-        .row       = {}
-        .rowRepeat = 1
+        .row            = {}
+        .rowRepeat      = 1
     }
 
     mtd startSheet(tag: const *OpenDocumentTag)
@@ -1095,11 +1175,13 @@ private impl OpenDocumentReader
             if !.activeSheet
             {
                 .activeSheet = true
-                .sheet.name   = openDocumentAttribute(tag.attributes.toString(), "table:name")
+                .sheet.name  = openDocumentAttribute(tag.attributes.toString(), "table:name")
             }
+
         case "table:table-row" where .activeSheet:
             .row       = {}
             .rowRepeat = openDocumentRepeated(tag.attributes.toString(), "table:number-rows-repeated")
+
         case "table:table-cell", "table:covered-table-cell" where .activeSheet:
             .cell.clear()
             .cellFallback = openDocumentCellValue(tag.attributes.toString())
@@ -1107,9 +1189,15 @@ private impl OpenDocumentReader
             .cellRepeat   = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
             if tag.selfClosing do
                 .cell += .cellFallback
-        case "text:p" where .cellActive and !.cell.isEmpty(): .cell += '\n'
-        case "text:tab" where .cellActive:                    .cell += '\t'
-        case "text:s" where .cellActive:                      .appendSpaces(tag.attributes.toString())
+
+        case "text:p" where .cellActive and !.cell.isEmpty():
+            .cell += '\n'
+
+        case "text:tab" where .cellActive:
+            .cell += '\t'
+
+        case "text:s" where .cellActive:
+            .appendSpaces(tag.attributes.toString())
         }
     }
 
@@ -1119,8 +1207,12 @@ private impl OpenDocumentReader
             return
         switch tag.name.toString()
         {
-        case "table:table-cell", "table:covered-table-cell": try .finishCell()
-        case "table:table-row":                                try .finishRow()
+        case "table:table-cell", "table:covered-table-cell":
+            try .finishCell()
+
+        case "table:table-row":
+            try .finishRow()
+
         case "table:table":
             .activeSheet = false
             .sheets.add(#move .sheet)
@@ -1140,6 +1232,7 @@ private impl OpenDocumentReader
                 .appendHtml("<article>")
             return
         }
+
         if !.inBody do
             return
 
@@ -1159,6 +1252,7 @@ private impl OpenDocumentReader
             .inBody = false
             return
         }
+
         if !.inBody do
             return
 
@@ -1207,7 +1301,7 @@ private impl OpenDocumentReader
             fail InvalidFormatError{Errors.mkString(.sawBody ? openDocumentStrings().err_Xml : openDocumentStrings().err_Body)}
 
         var result: retval
-        result.kind = .kind
+        result.kind     = .kind
         result.metadata = #move .metadata
         if .kind == .Presentation or .kind == .Drawing
         {
@@ -1289,9 +1383,10 @@ private func parseOpenDocumentContentWithImages(source, styles: string, kind: Op
     reader.metadata = #move metadata
     for image in reader.images
     {
-        reader.imageCount += 1
+        reader.imageCount     += 1
         reader.imageByteCount += image.byteCount
     }
+
     if styles.count do
         try appendOpenDocumentXml(&reader, styles)
     try appendOpenDocumentXml(&reader, source)
@@ -1303,7 +1398,7 @@ private func openDocumentKindFromMime(mimeType: string)->OpenDocumentKind fail
     switch mimeType
     {
     case "application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.text-template":                 return .Text
-    case "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.spreadsheet-template":  return .Spreadsheet
+    case "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.spreadsheet-template":   return .Spreadsheet
     case "application/vnd.oasis.opendocument.presentation", "application/vnd.oasis.opendocument.presentation-template": return .Presentation
     case "application/vnd.oasis.opendocument.graphics", "application/vnd.oasis.opendocument.graphics-template":         return .Drawing
     default: fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
@@ -1318,7 +1413,7 @@ private func openDocumentFlatKind(fileName: string)->OpenDocumentKind fail
     case ".fods": return .Spreadsheet
     case ".fodp": return .Presentation
     case ".fodg": return .Drawing
-    default: fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
+    default:      fail InvalidFormatError{Errors.mkString(openDocumentStrings().err_MimeType)}
     }
 }
 
@@ -1340,14 +1435,14 @@ private func openDocumentImageMediaType(path: string)->string
 {
     switch Path.lowercaseExtension(path).toString()
     {
-    case ".bmp":         return "bmp"
-    case ".gif":         return "gif"
-    case ".ico":         return "x-icon"
+    case ".bmp":          return "bmp"
+    case ".gif":          return "gif"
+    case ".ico":          return "x-icon"
     case ".jpg", ".jpeg": return "jpeg"
-    case ".png":         return "png"
+    case ".png":          return "png"
     case ".tif", ".tiff": return "tiff"
-    case ".webp":        return "webp"
-    default:               return ""
+    case ".webp":         return "webp"
+    default:              return ""
     }
 }
 
@@ -1355,7 +1450,7 @@ private func openDocumentImageMediaType(path: string)->string
 private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive)->Array'OpenDocumentImage
 {
     var result: retval
-    var total  = 0'u64
+    var total = 0'u64
     for &entry in archive.entries
     {
         if result.count == OpenDocumentImageCountLimit do
@@ -1377,6 +1472,7 @@ private func loadOpenDocumentImages(fileName: string, archive: const *ZipArchive
         result.add(#move image)
         total += bytes.count
     }
+
     return result
 }
 
@@ -1426,6 +1522,7 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
             styleSource = String.from(cast(string) styleBytes.toSlice())
     }
+
     var metadata: OpenDocumentMetadata
     if meta != null and meta!.uncompressedSize <= OpenDocumentMetadataLimit
     {
@@ -1433,6 +1530,7 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
             metadata = catch parseOpenDocumentMetadata(cast(string) metadataBytes.toSlice()) as metadataParseError
     }
+
     return try parseOpenDocumentContentWithImages(cast(string) bytes.toSlice(), styleSource.toString(), kind, #move images, #move metadata)
 }
 
@@ -1443,12 +1541,12 @@ internal struct OpenDocumentViewer
 
     #[Swag.Late]
     {
-        html:       *HtmlView
-        table:      *TableViewer
-        commands:   *Wnd
-        pageCombo:  *ComboBox
-        info:       *Wnd
-        zoomLabel:  *IconButton
+        html:      *HtmlView
+        table:     *TableViewer
+        commands:  *Wnd
+        pageCombo: *ComboBox
+        info:      *Wnd
+        zoomLabel: *IconButton
     }
 
     document:             OpenDocumentContent
@@ -1473,6 +1571,7 @@ private impl IWnd for OpenDocumentViewer
             evt.accepted = false
             return
         }
+
         if !.load.isDone() do
             return
 
@@ -1500,6 +1599,7 @@ private impl IWnd for OpenDocumentViewer
             .zoomLabel.toolTip = openDocumentStrings().ui_ZoomMenu
             .reportDocumentDetails()
         }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -1518,8 +1618,9 @@ private impl IWnd for OpenDocumentViewer
             case .Add, .OemPlus:       .setZoom(.zoomPercent + 25)
             case .Subtract, .OemMinus: .setZoom(.zoomPercent > 50 ? .zoomPercent - 25 : 50)
             case .D0:                  .setZoom(100)
-            default:                    evt.accepted = false
+            default:                   evt.accepted = false
             }
+
             return
         }
 
@@ -1604,6 +1705,7 @@ private impl OpenDocumentViewer
             .reportDetails!(me, .documentDetails(Format.toString(openDocumentStrings().ui_DetailsSheet, .sheetName(.sheetIndex)).toString()))
             return
         }
+
         if (.document.kind == .Presentation or .document.kind == .Drawing) and .slideIndex < .document.slides.count
         {
             let details = .document.kind == .Presentation ? openDocumentStrings().ui_DetailsSlide : openDocumentStrings().ui_DetailsPage
@@ -1624,6 +1726,7 @@ private impl OpenDocumentViewer
         {
             result += Format.toString(openDocumentStrings().ui_Sheet, index + 1)
         }
+
         return result
     }
 
@@ -1637,6 +1740,7 @@ private impl OpenDocumentViewer
         {
             result += Format.toString(.document.kind == .Drawing ? openDocumentStrings().ui_Page : openDocumentStrings().ui_Slide, index + 1)
         }
+
         return result
     }
 
@@ -1650,23 +1754,27 @@ private impl OpenDocumentViewer
         {
         case .Spreadsheet:
             .pageCombo.toolTip = openDocumentStrings().ui_TipSheet
-            count               = .document.sheets.count
-            active              = .sheetIndex
+            count              = .document.sheets.count
+            active             = .sheetIndex
             for index in count do
                 .pageCombo.addItem(.sheetName(index))
+
         case .Presentation:
             .pageCombo.toolTip = openDocumentStrings().ui_TipSlide
-            count               = .document.slides.count
-            active              = .slideIndex
+            count              = .document.slides.count
+            active             = .slideIndex
             for index in count do
                 .pageCombo.addItem(.slideName(index))
+
         case .Drawing:
             .pageCombo.toolTip = openDocumentStrings().ui_TipPage
-            count               = .document.slides.count
-            active              = .slideIndex
+            count              = .document.slides.count
+            active             = .slideIndex
             for index in count do
                 .pageCombo.addItem(.slideName(index))
-        case .Text: count = 0
+
+        case .Text:
+            count = 0
         }
 
         if count do
@@ -1691,8 +1799,8 @@ private impl OpenDocumentViewer
 
         .document.sheets[.sheetIndex].table = #move .table.document
         .table.destroy()
-        .sheetIndex = index
-        .table = TableViewer.createDocument(me, #move .document.sheets[index].table)
+        .sheetIndex      = index
+        .table           = TableViewer.createDocument(me, #move .document.sheets[index].table)
         .table.dockStyle = .Center
         .pageCombo.setSelectedIndex(cast(u32) index, notify: false)
         if clearSearch do
@@ -1716,8 +1824,8 @@ private impl OpenDocumentViewer
 
         if Swag.isSet(.html) do
             .html.destroy()
-        .slideIndex = index
-        .html = HtmlView.createText(me, .document.slides[index].html.toString())
+        .slideIndex     = index
+        .html           = HtmlView.createText(me, .document.slides[index].html.toString())
         .html.dockStyle = .Center
         .applyZoom()
         .html.sigLinkActivated += func(html, url)
@@ -1742,14 +1850,10 @@ private impl OpenDocumentViewer
 
         switch key
         {
-        case .Left, .PageUp where .slideIndex:
-            return .showSlide(.slideIndex - 1, true)
-        case .Right, .PageDown where .slideIndex + 1 < .document.slides.count:
-            return .showSlide(.slideIndex + 1, true)
-        case .Home where .slideIndex:
-            return .showSlide(0, true)
-        case .End where .slideIndex + 1 < .document.slides.count:
-            return .showSlide(.document.slides.count - 1, true)
+        case .Left, .PageUp where .slideIndex:                                 return .showSlide(.slideIndex - 1, true)
+        case .Right, .PageDown where .slideIndex + 1 < .document.slides.count: return .showSlide(.slideIndex + 1, true)
+        case .Home where .slideIndex:                                          return .showSlide(0, true)
+        case .End where .slideIndex + 1 < .document.slides.count:              return .showSlide(.document.slides.count - 1, true)
         }
 
         return false
@@ -1796,7 +1900,7 @@ private impl OpenDocumentViewer
     {
         if .document.kind == .Spreadsheet
         {
-            .table = TableViewer.createDocument(me, #move .document.sheets[0].table)
+            .table           = TableViewer.createDocument(me, #move .document.sheets[0].table)
             .table.dockStyle = .Center
             .fillPageChoices()
             .setInitialFocus(.table)
@@ -1808,7 +1912,7 @@ private impl OpenDocumentViewer
         }
         else
         {
-            .html = HtmlView.createText(me, .document.html.toString())
+            .html           = HtmlView.createText(me, .document.html.toString())
             .html.dockStyle = .Center
             .applyZoom()
             .html.sigLinkActivated += func(html, url)
@@ -1915,7 +2019,7 @@ private impl OpenDocumentViewer
         result.reportDetails        = services.reportDetails
         result.reportChromeChanged  = services.reportChromeChanged
         result.reportLoadingChanged = services.reportLoadingChanged
-        result.info = host.createInfoGroup(ViewerZoomSlotWidth)
+        result.info                 = host.createInfoGroup(ViewerZoomSlotWidth)
         result.info.hide()
         with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.opendocument.zoom", .CenterContent)
         {
@@ -1932,6 +2036,7 @@ private impl OpenDocumentViewer
                 view.showZoomMenu()
             }
         }
+
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
@@ -1962,13 +2067,14 @@ private impl OpenDocumentViewer
         {
             .dockStyle = .Left
             .hide()
-            .toolTip = openDocumentStrings().ui_TipSheet
+            .toolTip    = openDocumentStrings().ui_TipSheet
             .sigChanged += func|view = result|(combo, index)
             {
                 discard combo
                 discard view.showPage(index, true)
             }
         }
+
         result.load.start(host.fileName(), &loadOpenDocumentContent)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result

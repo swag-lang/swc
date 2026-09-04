@@ -29,11 +29,13 @@ struct Surface
 {
     public
     {
-        using native: NativeSurface                // Platform-specific window state.
-        app:          *Application     // Application that owns the surface.
-        wnd:          *SurfaceWnd     // Root window containing the surface view.
-        userData:     #null *void                  // Optional caller-owned data.
-        surfaceId:    String                       // Identifier used by cross-process custom messages.
+        using native: NativeSurface     // Platform-specific window state.
+        #[Swag.Late]
+        app: *Application     // Application that owns the surface.
+        #[Swag.Late]
+        wnd:       *SurfaceWnd     // Root window containing the surface view.
+        userData:  #null *void     // Optional caller-owned data.
+        surfaceId: String          // Identifier used by cross-process custom messages.
 
         minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
         maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.
@@ -428,13 +430,9 @@ impl Surface
             .app.rendererOgl.resetScratchCounters()
         }
 
-        with var cxt: PaintContext
-        {
-            .painter  = &me.painter
-            .renderer = me.app.renderer
-            .renderer.begin(me.rc)
-            .painter.begin()
-        }
+        var cxt = PaintContext{painter: &.painter, renderer: .app.renderer}
+        cxt.renderer.begin(.rc)
+        cxt.painter.begin()
 
         // The window hierarchy records logical units; the renderer maps them to the
         // physical render target through the surface scale.

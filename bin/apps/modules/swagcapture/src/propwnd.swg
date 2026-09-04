@@ -117,12 +117,16 @@ struct PropWnd
     using frameWnd: FrameWnd
     #[Swag.Late]
     {
+        #[Swag.Late]
         topLayout: *StackLayoutCtrl
-        grid:      *Properties
-        main:      *MainWnd
+        #[Swag.Late]
+        grid: *Properties
+        #[Swag.Late]
+        main: *MainWnd
     }
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
+    #[Swag.Late]
     gridBindType: typeinfo
 
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,

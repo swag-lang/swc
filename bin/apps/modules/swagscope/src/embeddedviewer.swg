@@ -19,6 +19,7 @@ struct EmbeddedViewer
         commandBar:  *ViewerActionBar
     }
 
+    #[Swag.Late]
     owner:             *ViewerWindow
     fileName:          String
     title:             String

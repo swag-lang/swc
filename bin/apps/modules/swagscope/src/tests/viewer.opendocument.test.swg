@@ -4,8 +4,8 @@
 using Core, Pixel, Gui
 
 private var openDocumentReportedDetails: String
-private const OpenDocumentFixtureImage = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
-private const OpenDocumentFixtureStyles = "<?xml version='1.0' encoding='UTF-8'?><office:document-styles xmlns:office='urn:o' xmlns:style='urn:style' xmlns:fo='urn:fo'><office:styles><style:style style:name='ExternalEmphasis' style:family='paragraph'><style:paragraph-properties fo:text-align='center'/><style:text-properties fo:font-weight='bold'/></style:style></office:styles></office:document-styles>"
+private const OpenDocumentFixtureImage    = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
+private const OpenDocumentFixtureStyles   = "<?xml version='1.0' encoding='UTF-8'?><office:document-styles xmlns:office='urn:o' xmlns:style='urn:style' xmlns:fo='urn:fo'><office:styles><style:style style:name='ExternalEmphasis' style:family='paragraph'><style:paragraph-properties fo:text-align='center'/><style:text-properties fo:font-weight='bold'/></style:style></office:styles></office:document-styles>"
 private const OpenDocumentFixtureMetadata = "<?xml version='1.0' encoding='UTF-8'?><office:document-meta xmlns:office='urn:o' xmlns:dc='urn:dc'><office:meta><dc:title>  Quarterly &amp; review  </dc:title><dc:subject>Reader &#x72;egression</dc:subject><dc:creator>Swag Scope tests</dc:creator></office:meta></office:document-meta>"
 
 private func openDocumentFixturePath(name: string)->String
@@ -23,8 +23,9 @@ private func countOpenDocumentImageTags(html: string)->u64
         if found == Swag.U64.Max do
             break
         result += 1
-        at = found + 4
+        at     = found + 4
     }
+
     return result
 }
 
@@ -100,16 +101,16 @@ private func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, t
     entries[0].name = "mimetype"
     entries[0].plain.add(openDocumentMimeType(kind, template))
     entries[0].crc32 = Hash.Crc32.compute(entries[0].plain.toSlice())
-    entries[1].name = "content.xml"
+    entries[1].name  = "content.xml"
     entries[1].plain.add(content)
     entries[1].crc32 = Hash.Crc32.compute(entries[1].plain.toSlice())
     entries[2].name  = "Pictures/figure.png"
     entries[2].plain = expect Base64.decode(OpenDocumentFixtureImage)
     entries[2].crc32 = Hash.Crc32.compute(entries[2].plain.toSlice())
-    entries[3].name = "styles.xml"
+    entries[3].name  = "styles.xml"
     entries[3].plain.add(OpenDocumentFixtureStyles)
     entries[3].crc32 = Hash.Crc32.compute(entries[3].plain.toSlice())
-    entries[4].name = "meta.xml"
+    entries[4].name  = "meta.xml"
     entries[4].plain.add(OpenDocumentFixtureMetadata)
     entries[4].crc32 = Hash.Crc32.compute(entries[4].plain.toSlice())
 
@@ -406,6 +407,7 @@ private func drawingOpenDocumentXml()->String
         discard catch host.app.setLanguage(ReferenceLanguage)
         host.shutdown()
     }
+
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -451,6 +453,7 @@ private func drawingOpenDocumentXml()->String
         discard catch host.app.setLanguage(ReferenceLanguage)
         host.shutdown()
     }
+
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -514,6 +517,7 @@ private func drawingOpenDocumentXml()->String
         discard catch host.app.setLanguage(ReferenceLanguage)
         host.shutdown()
     }
+
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -561,6 +565,7 @@ private func drawingOpenDocumentXml()->String
         discard catch host.app.setLanguage(ReferenceLanguage)
         host.shutdown()
     }
+
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -623,9 +628,9 @@ private func drawingOpenDocumentXml()->String
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), infoParent: infoBar)
     Swag.assert(result.info != null)
     infoBar.centerGroup = result.info
-    let view   = cast(*OpenDocumentViewer) result.view!
+    let view = cast(*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    view.dockStyle = .Center
+    view.dockStyle         = .Center
     result.info!.dockStyle = .None
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

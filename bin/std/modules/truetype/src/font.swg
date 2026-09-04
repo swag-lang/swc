@@ -57,6 +57,7 @@ struct FaceImpl
 {
     face: Face
 
+    #[Swag.Late]
     allocationAllocator: IAllocator
 
     fontData:       Array'u8

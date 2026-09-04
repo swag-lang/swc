@@ -12,7 +12,8 @@ struct Driver
 {
     using native: DriverNative
 
-    isCreated:           bool
+    isCreated: bool
+    #[Swag.Late]
     allocationAllocator: IAllocator
 
     updateTh:            Threading.Thread

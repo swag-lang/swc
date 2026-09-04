@@ -67,7 +67,8 @@ struct(T) BackgroundLoad
     fileName:        String
     value:           T
     error:           #null any
-    load:            func(string)->T fail
+    #[Swag.Late]
+    load: func(string)->T fail
 }
 
 impl BackgroundLoad

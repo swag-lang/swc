@@ -11,18 +11,24 @@ public struct AboutDlg
         {
             #[Swag.Late]
             {
-                labelIcon:         *Label     // Optional large application icon.
+                #[Swag.Late]
+                labelIcon: *Label     // Optional large application icon.
+                #[Swag.Late]
                 labelMessageTitle: *Label     // Prominent application or product title.
-                labelMessage:      *Label     // Rich descriptive message.
+                #[Swag.Late]
+                labelMessage: *Label     // Rich descriptive message.
             }
         }
     }
 
     #[Swag.Late]
     {
-        identityView:   *Wnd                 // Raised product block carrying the mark and heading.
-        identityAccent: *Separator           // Single Swag accent anchoring that product block.
-        contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
+        #[Swag.Late]
+        identityView: *Wnd     // Raised product block carrying the mark and heading.
+        #[Swag.Late]
+        identityAccent: *Separator     // Single Swag accent anchoring that product block.
+        #[Swag.Late]
+        contentStack: *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
     }
 
     sectionsScroll: #null *ScrollWnd           // Bounded column the added sections stand in.

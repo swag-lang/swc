@@ -128,10 +128,10 @@ struct KeyShortcut
 {
     public
     {
-        modifiers: Input.KeyModifiers = None          // Required modifier-key combination.
-        key:       Input.Key          = None          // Required non-modifier key.
-        id:        WndId     // Command identifier sent on a match.
-        target:    #null *Wnd                         // Explicit command target, or `null` to use normal routing.
+        modifiers: Input.KeyModifiers = None     // Required modifier-key combination.
+        key:       Input.Key          = None     // Required non-modifier key.
+        id:        WndId              = ""       // Command identifier sent on a match.
+        target:    #null *Wnd                    // Explicit command target, or `null` to use normal routing.
     }
 }
 

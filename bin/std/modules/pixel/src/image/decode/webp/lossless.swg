@@ -63,7 +63,9 @@ const LOSSLESS_ALPHABET_SIZES: [LOSSLESS_HUFFMAN_TREES] u32 = [
 
 struct LosslessBitReader
 {
-    ptr:   const [*] u8
+    #[Swag.Late]
+    ptr: const [*] u8
+    #[Swag.Late]
     last:  const [*] u8
     bits:  u64
     nBits: u32

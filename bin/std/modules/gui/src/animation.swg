@@ -137,6 +137,7 @@ private enum AnimationGroupKind
 
 private struct AnimationTrack
 {
+    #[Swag.Late]
     target:  *Wnd
     channel: AnimationChannel
     options: AnimationOptions

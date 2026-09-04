@@ -13,6 +13,7 @@ const MaxCharstringStack = 48'u32
 // shape a `glyf` glyph does.
 struct OutlineBuilder
 {
+    #[Swag.Late]
     face:         *FaceImpl
     scaleX:       f64
     scaleY:       f64
@@ -103,8 +104,10 @@ impl OutlineBuilder
 // Everything one run of a Type 2 charstring carries between its operators.
 struct Type2State
 {
-    font:      *CffFont
-    builder:   #null *OutlineBuilder
+    #[Swag.Late]
+    font:    *CffFont
+    builder: #null *OutlineBuilder
+    #[Swag.Late]
     subrs:     const *CffIndex
     stack:     [MaxCharstringStack] f64
     transient: [32] f64
@@ -687,6 +690,7 @@ func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 // Everything one run of a Type 1 charstring carries between its operators.
 struct Type1State
 {
+    #[Swag.Late]
     font:    *Type1Font
     builder: #null *OutlineBuilder
     stack:   [MaxCharstringStack] f64

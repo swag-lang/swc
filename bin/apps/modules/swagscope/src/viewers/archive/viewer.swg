@@ -109,6 +109,7 @@ struct ArchiveViewer
         previewStatus: *Label
     }
 
+    #[Swag.Late]
     embedded:             Viewer.Embedded
     archive:              ZipArchive
     entryLines:           Array'(#null *ListLine)

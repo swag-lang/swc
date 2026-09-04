@@ -10,6 +10,7 @@ const WaitManyDelayedSleepMs    = 1000'u32
 
 struct WaitManyPayload
 {
+    #[Swag.Late]
     doneCount: *s32
     sleepMs:   u32
 }

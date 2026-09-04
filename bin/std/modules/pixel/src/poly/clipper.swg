@@ -90,7 +90,9 @@ struct IntRect
 
 struct IntersectNode
 {
+    #[Swag.Late]
     edge1: *Edge
+    #[Swag.Late]
     edge2: *Edge
     pt:    IntPoint
 }
@@ -173,6 +175,7 @@ impl PolyNode
 
 struct Join
 {
+    #[Swag.Late]
     outPt1: *OutPt
     outPt2: #null *OutPt
     offPt:  IntPoint
@@ -224,9 +227,9 @@ public struct Transform
         intersectList:     Array'#null *IntersectNode              // Intersections of the current scanbeam.
         scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
         maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
-        clipFillType:      PolyFillType                // Fill rule of the clip paths.
-        subjFillType:      PolyFillType                // Fill rule of the subject paths.
-        clipType:          ClipType                // Boolean operation being performed.
+        clipFillType:      PolyFillType                            // Fill rule of the clip paths.
+        subjFillType:      PolyFillType                            // Fill rule of the subject paths.
+        clipType:          ClipType                                // Boolean operation being performed.
         currentLM:         u64                                     // Index of the next local minimum to enter.
         activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
         sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.

@@ -104,30 +104,40 @@ namespace WinFsp
     alias FspReadDirectoryFn     = func(*FspFileSystem, #null *void, #null [*] u16, #null [*] u16, #null *void, u32, *u32)->s32
     alias FspGetDirInfoByNameFn  = func(*FspFileSystem, #null *void, #null [*] u16, *FspDirInfo)->s32
 
+    // The dispatch table WinFsp calls back through. Every slot starts null and receives its
+    // operation while the table is built, which is also how an unimplemented operation stays
+    // null and reads as unsupported.
     struct FspInterface
     {
-        getVolumeInfo:     FspGetVolumeInfoFn
-        setVolumeLabel:    FspSetVolumeLabelFn
-        getSecurityByName: FspGetSecurityByNameFn
-        create:            FspCreateFn
-        open:              FspOpenFn
-        overwrite:         FspOverwriteFn
-        cleanup:           FspCleanupFn
-        close:             FspCloseFn
-        read:              FspReadFn
-        write:             FspWriteFn
-        flush:             FspFlushFn
-        getFileInfo:       FspGetFileInfoFn
-        setBasicInfo:      FspSetBasicInfoFn
-        setFileSize:       FspSetFileSizeFn
-        canDelete:         FspCanDeleteFn
-        rename:            FspRenameFn
-        getSecurity:       FspGetSecurityFn
-        setSecurity:       FspSetSecurityFn
-        readDirectory:     FspReadDirectoryFn
-        unused19To23:      [5] #null const *void
-        getDirInfoByName:  FspGetDirInfoByNameFn
-        unused25To63:      [39] #null const *void
+        #[Swag.Late]
+        {
+            getVolumeInfo:     FspGetVolumeInfoFn
+            setVolumeLabel:    FspSetVolumeLabelFn
+            getSecurityByName: FspGetSecurityByNameFn
+            create:            FspCreateFn
+            open:              FspOpenFn
+            overwrite:         FspOverwriteFn
+            cleanup:           FspCleanupFn
+            close:             FspCloseFn
+            read:              FspReadFn
+            write:             FspWriteFn
+            flush:             FspFlushFn
+            getFileInfo:       FspGetFileInfoFn
+            setBasicInfo:      FspSetBasicInfoFn
+            setFileSize:       FspSetFileSizeFn
+            canDelete:         FspCanDeleteFn
+            rename:            FspRenameFn
+            getSecurity:       FspGetSecurityFn
+            setSecurity:       FspSetSecurityFn
+            readDirectory:     FspReadDirectoryFn
+        }
+
+        unused19To23: [5] #null const *void
+
+        #[Swag.Late]
+        getDirInfoByName: FspGetDirInfoByNameFn
+
+        unused25To63: [39] #null const *void
     }
 
     #assert(#sizeof(FspInterface) == 64 * #sizeof(#null *void))
@@ -149,24 +159,35 @@ namespace WinFsp
 
     struct WinFspApi
     {
-        module:                   NativeModule
-        fsCreate:                 FspFileSystemCreateFn
-        destroy:                  FspFileSystemDeleteFn
-        setMountPoint:            FspFileSystemSetMountPointFn
-        removeMountPoint:         FspFileSystemRemoveMountPointFn
-        startDispatcher:          FspFileSystemStartDispatcherFn
-        stopDispatcher:           FspFileSystemStopDispatcherFn
-        addDirInfo:               FspFileSystemAddDirInfoFn
-        setGuard:                 FspFileSystemSetGuardFn
-        setSecurityDescriptor:    FspSetSecurityDescriptorFn
-        setSecurityAddress:       #null const *void
-        deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn
-        registerServer:           WinFspRegistrationFn
-        unregisterServer:         WinFspRegistrationFn
-        setDebugLogHandle:        FspDebugLogSetHandleFn
-        startService:             FspFsctlStartServiceFn
-        runtimeRoot:              String
-        dllPath:                  String
+        module: NativeModule
+
+        // The runtime entry points, resolved once when the library is loaded.
+        #[Swag.Late]
+        {
+            fsCreate:              FspFileSystemCreateFn
+            destroy:               FspFileSystemDeleteFn
+            setMountPoint:         FspFileSystemSetMountPointFn
+            removeMountPoint:      FspFileSystemRemoveMountPointFn
+            startDispatcher:       FspFileSystemStartDispatcherFn
+            stopDispatcher:        FspFileSystemStopDispatcherFn
+            addDirInfo:            FspFileSystemAddDirInfoFn
+            setGuard:              FspFileSystemSetGuardFn
+            setSecurityDescriptor: FspSetSecurityDescriptorFn
+        }
+
+        setSecurityAddress: #null const *void
+
+        #[Swag.Late]
+        {
+            deleteSecurityDescriptor: FspDeleteSecurityDescriptorFn
+            registerServer:           WinFspRegistrationFn
+            unregisterServer:         WinFspRegistrationFn
+            setDebugLogHandle:        FspDebugLogSetHandleFn
+            startService:             FspFsctlStartServiceFn
+        }
+
+        runtimeRoot: String
+        dllPath:     String
 
         // Mounts currently holding the runtime. The library, the portable driver registration
         // and the staged runtime tree are shared by every mount, so they are released when the

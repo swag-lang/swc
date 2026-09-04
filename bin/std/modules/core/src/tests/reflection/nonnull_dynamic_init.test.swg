@@ -8,7 +8,11 @@ struct CoreNonNullDynamicItem
 
 union CoreNonNullZeroUnion
 {
-    bits:    u64
+    bits: u64
+
+    // The pointer view of the same bits: it starts null so the union keeps a valid zero
+    // default, which is exactly what the reflection guards below are written against.
+    #[Swag.Late]
     pointer: *CoreNonNullDynamicItem
 }
 

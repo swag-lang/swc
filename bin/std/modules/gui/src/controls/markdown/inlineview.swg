@@ -133,6 +133,7 @@ public struct InlineView
 {
     using wnd: Wnd
 
+    #[Swag.Late]
     owner: *View
     kind:  BlockKind
     atoms: Array'InlineAtom

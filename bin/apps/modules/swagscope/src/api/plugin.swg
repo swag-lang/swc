@@ -41,18 +41,19 @@ struct Plugin
 {
     public
     {
-        apiVersion:   u32          = ApiVersion     // Contract version implemented by every callback.
-        key:          String                        // Stable lowercase identity persisted by the host.
-        staticName:   String                        // Display name used when `resolveName` is null.
-        resolveName:  #null PluginName              // Optional dynamic or localized display-name provider.
-        attach:       #null PluginAttach            // Optional one-time preparation for the host application.
-        iconAtlas:    #null *IconAtlas              // Vector document the viewer glyph is rasterized from.
-        iconIndex:    s32                           // Zero-based cell of that document, in grid order.
-        create:       PluginCreate      // Synchronous presentation factory.
-        probe:        #null PluginProbe             // Optional content-aware discovery callback.
-        matchNames:   bool         = true           // Whether non-wildcard selectors offer this plugin directly.
-        smokeFixture: String                        // Immutable basename used by application smoke review.
-        selectors:    Array'String                  // Lowercase extensions, exact basenames, or `*` for fallback.
+        apiVersion:  u32 = ApiVersion       // Contract version implemented by every callback.
+        key:         String                 // Stable lowercase identity persisted by the host.
+        staticName:  String                 // Display name used when `resolveName` is null.
+        resolveName: #null PluginName       // Optional dynamic or localized display-name provider.
+        attach:      #null PluginAttach     // Optional one-time preparation for the host application.
+        iconAtlas:   #null *IconAtlas       // Vector document the viewer glyph is rasterized from.
+        iconIndex:   s32                    // Zero-based cell of that document, in grid order.
+        #[Swag.Late]
+        create:       PluginCreate          // Synchronous presentation factory.
+        probe:        #null PluginProbe     // Optional content-aware discovery callback.
+        matchNames:   bool = true           // Whether non-wildcard selectors offer this plugin directly.
+        smokeFixture: String                // Immutable basename used by application smoke review.
+        selectors:    Array'String          // Lowercase extensions, exact basenames, or `*` for fallback.
     }
 }
 

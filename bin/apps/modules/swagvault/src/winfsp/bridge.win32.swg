@@ -6,6 +6,7 @@ namespace WinFsp
 {
     struct NativeMountContext
     {
+        #[Swag.Late]
         volume:          *Volume
         defaultSecurity: #null *void
     }

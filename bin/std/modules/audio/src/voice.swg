@@ -47,7 +47,8 @@ public struct Voice
 
     internal
     {
-        allocationAllocator: IAllocator     // Allocator that owns this voice and its buffers.
+        #[Swag.Late]
+        allocationAllocator: IAllocator                 // Allocator that owns this voice and its buffers.
         handle:              #null *void                // Identity of the voice inside the driver.
         file:                #null const *SoundFile     // Borrowed source, alive for the voice's lifetime.
         dataMutex:           Sync.Mutex                 // Serializes buffer feeding with transport changes.

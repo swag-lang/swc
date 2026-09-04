@@ -154,7 +154,8 @@ private enum FontFamilyKind
 
 private struct SvgTextRun
 {
-    text:          String
+    text: String
+    #[Swag.Late]
     typeFace:      *TypeFace
     x, y:          f32
     dx, dy:        f32
@@ -163,7 +164,7 @@ private struct SvgTextRun
     wordSpacing:   f32
     rotation:      f32     // Direction the baseline runs in, from the element transform.
     color:         Color
-    opacity:       f32       = 1
+    opacity:       f32 = 1
     anchor:        TextAnchor
     forceBold:     bool
     forceItalic:   bool

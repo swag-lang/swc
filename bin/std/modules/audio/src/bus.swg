@@ -15,8 +15,9 @@ public struct Bus
 
     internal
     {
-        allocationAllocator: IAllocator     // Allocator that owns this bus.
-        handle:              #null *void                // Backend-owned submix handle.
+        #[Swag.Late]
+        allocationAllocator: IAllocator      // Allocator that owns this bus.
+        handle:              #null *void     // Backend-owned submix handle.
     }
 }
 

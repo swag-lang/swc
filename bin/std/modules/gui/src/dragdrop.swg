@@ -280,13 +280,14 @@ struct DragDropEvent
             Drop      // The payload was released over this window.
         }
 
-        using base: Event                              // Embedded base state.
-        kind:       Kind                               // Gesture phase being reported.
-        data:       *DragData     // Payload being dragged, borrowed for this call.
-        surfacePos: Math.Point                         // Pointer position in surface coordinates.
-        modifiers:  Input.KeyModifiers = None          // Modifiers held during the gesture.
-        allowed:    DropEffect         = None          // Effects the source permits.
-        effect:     DropEffect         = None          // Effect this target commits to; `None` rejects.
+        using base: Event     // Embedded base state.
+        kind:       Kind      // Gesture phase being reported.
+        #[Swag.Late]
+        data:       *DragData                     // Payload being dragged, borrowed for this call.
+        surfacePos: Math.Point                    // Pointer position in surface coordinates.
+        modifiers:  Input.KeyModifiers = None     // Modifiers held during the gesture.
+        allowed:    DropEffect         = None     // Effects the source permits.
+        effect:     DropEffect         = None     // Effect this target commits to; `None` rejects.
     }
 }
 

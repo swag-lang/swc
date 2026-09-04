@@ -7,7 +7,8 @@ internal struct MathView
 {
     using wnd:  Wnd
     expression: MathExpression
-    owner:      *View
+    #[Swag.Late]
+    owner: *View
 }
 
 internal impl MathView

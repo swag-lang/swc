@@ -38,9 +38,10 @@ struct SceneLayout
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
-var g_Render:   Pixel.IRenderer
-var g_Painter:  Pixel.Painter
-var g_RC:       Pixel.RenderContext
+#[Swag.Late]
+var g_Render:  Pixel.IRenderer
+var g_Painter: Pixel.Painter
+var g_RC:      Pixel.RenderContext
 
 var g_TypeFace:     #null *Pixel.TypeFace
 var g_BoldTypeFace: #null *Pixel.TypeFace

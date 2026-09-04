@@ -194,6 +194,7 @@ func tableOf(structType, itfType: #null const *TypeInfoStruct)->#null const *voi
 ////////////////////////////////////////////////////////////
 
 const __MAX_ARGUMENTS = 512
+
 // Keep the public `args` slice non-null. The unused capacity holds valid empty strings rather
 // than raw string storage; command-line conversion overwrites the prefix it exposes.
 var __argv: [__MAX_ARGUMENTS] string = ""

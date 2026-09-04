@@ -4,10 +4,10 @@ struct FormDraw
 {
     using base: BaseForm
     #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize)]
-    outlineSize: f32
+    outlineSize:  f32
     outlineColor: Color = Argb.Black
-    points:     Array'Math.Vector2
-    anchorSize: f32 = 12
+    points:       Array'Math.Vector2
+    anchorSize:   f32   = 12
 }
 
 impl FormDraw
@@ -42,7 +42,7 @@ impl IForm for FormDraw
         BaseForm.copyBase(dst, src)
         let dstf = cast(*FormDraw) dst
         let srcf = cast(*FormDraw) src
-        dstf.outlineSize = srcf.outlineSize
+        dstf.outlineSize  = srcf.outlineSize
         dstf.outlineColor = srcf.outlineColor
     }
 
@@ -164,14 +164,15 @@ impl IForm for FormDraw
             painter.fillPath(&pl, .backColor)
         }
 
+        // The contour is the pen's own border, so a dashed stroke keeps one pattern for both:
+        // widening a second pen instead measured its dashes against the wider stroke, and the
+        // black under the line stopped lining up with the dashes over it.
         var pen = Pen.createDash(dash, .borderColor, bSize)
         pen.joinStyle = .Round
-
         if .subKind != .PixSel and outlineSize and .outlineColor.a
         {
-            var outlinePen = Pen.createDash(dash, .outlineColor, bSize + 2 * outlineSize)
-            outlinePen.joinStyle = .Round
-            painter.drawPath(&pl, outlinePen)
+            pen.outlineSize  = outlineSize
+            pen.outlineColor = .outlineColor
         }
 
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight
@@ -180,6 +181,10 @@ impl IForm for FormDraw
             pen1.brush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
             painter.drawPath(&pl, pen1)
             pen.brush.color.a = .highlightAlpha()
+
+            // The hatch pass already laid the contour down; a second one would darken the
+            // translucent stroke drawn over it.
+            pen.outlineSize = 0
         }
 
         painter.drawPath(&pl, pen)

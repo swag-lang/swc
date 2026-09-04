@@ -135,12 +135,14 @@ func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
     // An arrow is a line carrying its own defaults, so both answer through the line.
     if type == FormLine or type == FormArrow
     {
+        // The line ends are shaped from the stroke and the contour is pushed out around the
+        // result, so the contour adds its own width once instead of widening the stroke the
+        // ends are measured against.
         let line  = cast(*FormLine) itf.buffer
         let sizes = line.paintSizes(cxt)
-        let stroke = sizes.stroke + 2 * line.paintOutlineSize(cxt)
-        let beg    = Painter.capStyleExtent(line.beginCap, stroke, sizes.begScale)
-        let end    = Painter.capStyleExtent(line.endCap, stroke, sizes.endScale)
-        let room  = Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l))
+        let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
+        let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
+        let room  = Math.max(Math.max(beg.w, beg.l), Math.max(end.w, end.l)) + line.paintOutlineSize(cxt)
 
         // The sample runs corner to corner, so what stands across it lands on both axes at
         // the cosine of that diagonal.

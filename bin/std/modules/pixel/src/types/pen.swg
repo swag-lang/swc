@@ -55,6 +55,11 @@ enum BorderPos
 //
 // Lengths and scale factors are expressed in path-space pixels. Use the factory
 // functions for common solid, dashed, and hatched pens.
+//
+// A non-zero `outlineSize` adds a border of that width outside the stroke. The border is
+// the stroke's own silhouette pushed out, so it keeps the same width along the shaft, around
+// every join and cap, and along each dash, instead of being a second, proportionally larger
+// stroke.
 struct Pen
 {
     public
@@ -75,6 +80,9 @@ struct Pen
 
         joinMiterLimit: f32 = 3     // Maximum miter length relative to stroke width.
         plotOffset:     f32         // Signed perpendicular displacement from the source path, in pixels.
+
+        outlineSize:  f32       // Width of the border painted outside the stroke, in pixels; 0 paints none.
+        outlineColor: Color     // Paint of that border.
 
         dashStyle:      DashStyle    = None      // Active dash sequence.
         dashBlankScale: f32          = 1.0       // Multiplier applied to blank dash lengths.

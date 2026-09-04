@@ -60,24 +60,27 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Swag.assert(BaseForm.paintOverdraw(shapeItf, false) == 10)
     Swag.assert(BaseForm.paintOverdraw(shapeItf, true) == QuickPaintOverdraw)
 
+    // The line ends are shaped from the stroke and the contour is pushed out around them, so
+    // the anchor reserves 5/2 * 20 and the contour adds its own 3 once: 50 + 3, plus the
+    // antialiasing margin.
     var line: FormLine
-    line.borderSize = 5
+    line.borderSize  = 5
     line.outlineSize = 3
-    line.startSize  = 4
-    line.endSize    = 20
-    line.endCap     = .RoundAnchor
+    line.startSize   = 4
+    line.endSize     = 20
+    line.endCap      = .RoundAnchor
     let lineItf: IForm = &line
-    Swag.assert(BaseForm.paintOverdraw(lineItf, false) == 112)
+    Swag.assert(BaseForm.paintOverdraw(lineItf, false) == 55)
 
     // FormArrow embeds FormLine but has its own runtime type. Its arrowhead must reserve the
     // same layer margin instead of falling back to the ordinary-stroke extent.
     var arrow: FormArrow
-    arrow.borderSize = 5
+    arrow.borderSize  = 5
     arrow.outlineSize = 3
-    arrow.endSize    = 8
-    arrow.endCap     = .ArrowAnchor
+    arrow.endSize     = 8
+    arrow.endCap      = .ArrowAnchor
     let arrowItf: IForm = &arrow
-    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 46)
+    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 25)
 }
 
 // Stroke contours participate in both painting and hit testing; a point outside the core must
@@ -85,11 +88,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 #test
 {
     var line: FormLine
-    line.xa = 10
-    line.ya = 10
-    line.xb = 100
-    line.yb = 10
-    line.borderSize  = 4
+    line.xa         = 10
+    line.ya         = 10
+    line.xb         = 100
+    line.yb         = 10
+    line.borderSize = 4
     let lineCore = line.IForm.hitTest({50, 14}, 1)
     Swag.assert(!lineCore)
     line.outlineSize = 4
@@ -362,11 +365,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Swag.assert(!step.IForm.isSame(&stepCopy))
 
     let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
-    line.outlineSize = 3
+    line.outlineSize  = 3
     line.outlineColor = ColorBlue
-    line.dashCap     = .Round
-    line.bezier      = true
-    line.paintShadow = false
+    line.dashCap      = .Round
+    line.bezier       = true
+    line.paintShadow  = false
     var lineCopy: FormLine
     line.IForm.copy(&lineCopy, line)
     Swag.assert(lineCopy.subKind == .PixSel)
@@ -393,9 +396,9 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Swag.assert(!polygon.IForm.isSame(&polygonCopy))
 
     let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
-    draw.outlineSize = 3
+    draw.outlineSize  = 3
     draw.outlineColor = ColorBlue
-    draw.paintShadow = false
+    draw.paintShadow  = false
     var drawCopy: FormDraw
     draw.IForm.copy(&drawCopy, draw)
     Swag.assert(drawCopy.subKind == .PixSel)

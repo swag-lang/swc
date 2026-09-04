@@ -10,7 +10,7 @@ const StyleGlyphSize = 26.0
 const StyleCellGap   = 12.0
 
 const CapPreviewSize = 10.0
-const DashSize = 6.0
+const DashSize       = 6.0
 
 // Geometry of the popups the style cells open. A popup is sized from what it lists, so a
 // style added to an enum widens or lengthens its own list instead of falling outside it.
@@ -34,6 +34,24 @@ func popupExtent(count, size: f32)->f32
 // slot of the widget; these two helpers keep the double cast in one place.
 func(T) enumToUserData(value: T)->*void        => cast(*void) cast(u64) value
 func(T) enumFromUserData(data: #null *void)->T => cast(T) cast(u64) data
+
+// Reports whether a line end is one the "Start Size" and "End Size" rows can resize.
+//
+// The anchors are decorations placed at the end of a line and are scaled by those rows; the four
+// plain ends are the terminal of the stroke itself and are as large as the stroke is thick, the
+// way a cap is defined everywhere else. Showing a size row that a plain end silently ignores is
+// what made the two rows read as broken; each anchor is the resizable form of the plain end
+// beside it in the list, so the size is one choice away.
+func capStyleHasSize(cap: LineCapStyle)->bool
+{
+    switch #complete cap
+    {
+    case .None, .Triangle, .Round, .Square: return false
+    case .ArrowAnchor, .ArrowAnchor2, .SquareAnchor, .RoundAnchor: return true
+    }
+
+    return false
+}
 
 // Paints a line-end sample while keeping the cap itself inside `pos`. The same painter feeds the
 // closed style cell and its list row, so both always show the value the line actually stores.
@@ -189,6 +207,12 @@ impl PropWnd
 
         .main.quickWnd.updateSelection()
         .main.editWnd.invalidate()
+
+        // A style cell sets a value the generated rows read to decide whether they belong on the
+        // panel at all — the line ends decide their own size rows, a shape kind decides its
+        // corner row. Rebuild on the next frame so the panel follows the cell that was just
+        // clicked instead of waiting for the next selection change.
+        .needRebuild = true
     }
 
     // One square style cell. `tip` names what the cell sets; the sample inside it shows the
@@ -305,10 +329,10 @@ impl PropWnd
         }
 
         let popup = PopupListCtrl.create(cast(*Wnd) btn)
-        .capPopup           = popup
-        popup.itemHeight    = PopupCapRowHeight
-        popup.minimumWidth  = 120
-        popup.fitVertically = true
+        .capPopup                  = popup
+        popup.itemHeight           = PopupCapRowHeight
+        popup.minimumWidth         = 120
+        popup.fitVertically        = true
         popup.reserveSelectionMark = true
 
         let fieldName = begin ? #nameof(FormLine.beginCap) : #nameof(FormLine.endCap)
@@ -326,7 +350,7 @@ impl PropWnd
         for i in LineCapStyle
         {
             let item = popup.addItem("")
-            item.userData0 = enumToUserData(i)
+            item.userData0      = enumToUserData(i)
             item.contentPainter = func|begin, btn|(item, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
@@ -480,17 +504,14 @@ impl PropWnd
     {
         switch .getSelectedFormType()
         {
-        case FormLine, FormArrow:
-            .pushTypedValue(color.argb, FormLine, #nameof(FormLine.outlineColor), first)
-
-        case FormDraw:
-            .pushTypedValue(color.argb, FormDraw, #nameof(FormDraw.outlineColor), first)
+        case FormLine, FormArrow: .pushTypedValue(color.argb, FormLine, #nameof(FormLine.outlineColor), first)
+        case FormDraw:            .pushTypedValue(color.argb, FormDraw, #nameof(FormDraw.outlineColor), first)
         }
     }
 
     mtd propStrokeOutlineColor(stack: *Wnd)
     {
-        let curSel  = .getSelectedBaseForm()
+        let curSel   = .getSelectedBaseForm()
         let formType = .getSelectedFormType()
         if curSel.subKind == .PixSel or
            (formType != FormLine and formType != FormArrow and formType != FormDraw) do
@@ -1106,6 +1127,16 @@ impl IPropertyNotify for PropWnd
         case #nameof(BaseForm.bezier):
             return (.gridBindType == FormLine or .gridBindType == FormArrow or .gridBindType == FormPolygon) and
                    base.subKind != .PixSel
+
+        case #nameof(FormLine.startSize), #nameof(FormLine.endSize):
+            if .gridBindType == FormLine or .gridBindType == FormArrow
+            {
+                let line = cast(*FormLine) base
+                let cap  = name == #nameof(FormLine.startSize) ? line.beginCap : line.endCap
+                return base.subKind != .PixSel and capStyleHasSize(cap)
+            }
+
+            return false
 
         case #nameof(FormShape.roundSize):
             if .gridBindType == FormShape

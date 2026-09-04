@@ -3,5 +3,5 @@ Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
 StartNoOverlap
-DrawTriangles n=48 bbox=(8.241,8.241)-(91.759,61.759) colors=[FFFF0000] cov=aa
+DrawTriangles n=90 bbox=(8.045,8.045)-(91.955,61.955) colors=[FFFF0000] cov=aa
 StopNoOverlap

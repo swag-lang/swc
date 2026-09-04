@@ -191,7 +191,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     Swag.assert(popup.reserveSelectionMark)
     Swag.assert(popup.items[popup.selectedIndex]!.contentPainter != null)
 
-    let view = popup.scrollWnd.view!
+    let view  = popup.scrollWnd.view!
     let local = Math.Point{12, cast(f32) LineCapStyle.ArrowAnchor * popup.itemHeight + popup.itemHeight * 0.5}
     var pt    = view.localToSurface(local)
     view.surface!.surfaceToScreen(&pt)
@@ -396,6 +396,38 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->#null *IconButton
     let round = testFindItem(prop, #nameof(FormShape.roundSize))
     Swag.assert(round != null and !round.line.isVisible())
     Swag.assert(testFindItem(prop, "Effects") == null)
+}
+
+// A line end that cannot be resized does not offer the row that would resize it.
+//
+// The four plain ends are the terminal of the stroke itself and are as wide as it is thick; only
+// the anchors are decorations the size rows scale. Offering the row for all of them left two
+// sliders that silently did nothing.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    let line = testAddLine(f.capture, 10, 20, 100, 50)
+    line.beginCap = .Round
+    line.endCap   = .ArrowAnchor
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let start = testFindItem(prop, #nameof(FormLine.startSize))
+    let end   = testFindItem(prop, #nameof(FormLine.endSize))
+    Swag.assert(start != null and !start.line.isVisible())
+    Swag.assert(end != null and end.line.isVisible())
+
+    // Picking an anchor for the other end brings its row back, on the next frame: the style cell
+    // sits outside the grid, so the panel rebuilds itself to re-read the rule.
+    prop.pushTypedValue(cast(u32) LineCapStyle.RoundAnchor, FormLine, #nameof(FormLine.beginCap), true)
+    f.gui.runFrames(2)
+
+    Swag.assert(testFindItem(prop, #nameof(FormLine.startSize))!.line.isVisible())
 }
 
 // A French session shows the generated rows in French.

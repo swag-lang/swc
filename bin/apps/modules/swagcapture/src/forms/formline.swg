@@ -4,11 +4,11 @@ struct FormLine
 {
     using base: BaseForm
     #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize)]
-    outlineSize: f32
-    outlineColor: Color = Argb.Black
-    beginCap:   LineCapStyle = .Round
-    endCap:     LineCapStyle = .Round
-    dashCap:    DashCapStyle = .None
+    outlineSize:  f32
+    outlineColor: Color        = Argb.Black
+    beginCap:     LineCapStyle = .Round
+    endCap:       LineCapStyle = .Round
+    dashCap:      DashCapStyle = .None
     #[Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize)]
     startSize: f32 = 4
     #[Name("End Size"), SliderMinMax(MinCapSize, MaxCapSize)]
@@ -48,156 +48,15 @@ impl FormLine
         return BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
     }
 
-    // The renderer shortens the shaft under cap forms that occupy the endpoint themselves. Keep
-    // the contour shaft on that same join, then offset the cap's real polygon independently. A
-    // larger second cap is only a homothety of an arrowhead, so its apparent black edge varies
-    // along every sloped side; an offset polygon has the requested thickness everywhere.
-    mtd capShaftSkip(cap: LineCapStyle, stroke, scale: f32)->f32
-    {
-        switch #complete cap
-        {
-        case .ArrowAnchor:  return stroke * 0.5 * scale
-        case .ArrowAnchor2: return stroke * 0.7 * scale
-        case .SquareAnchor: return Math.max(stroke * 0.5 * scale - 1, 0)
-        case .RoundAnchor:  return Math.max(stroke * 0.5 * scale - Math.max(1, stroke * 0.5 * scale * 0.2), 0)
-        case .None, .Triangle, .Round, .Square:
-            return 0
-        }
-    }
-
-    // Appends the filled polygon of one cap to `paths`. Round caps are circles and are painted
-    // directly by `paintSolidOutline`; all the other cap forms are already polygons in Pixel's
-    // renderer, so matching those vertices lets `LinePathList.offset` construct a true contour.
-    mtd appendOutlineCapPath(paths: *LinePathList, cap: LineCapStyle, point, c: Math.Vector2, scaleX, scaleY, sens: f32)->bool
-    {
-        func addTriangle(paths: *LinePathList, v0, v1, v2: Math.Vector2)
-        {
-            let path = paths.newPath()
-            path.start(v0.x, v0.y)
-            path.lineTo(v1.x, v1.y)
-            path.lineTo(v2.x, v2.y)
-            path.close()
-        }
-
-        switch #complete cap
-        {
-        case .None, .Round, .RoundAnchor:
-            return false
-
-        case .Triangle:
-        {
-            let n = Math.Vector2{c.y * sens, -c.x * sens}
-            addTriangle(paths, point + c, point - c, point + n)
-        }
-
-        case .Square:
-        {
-            let n    = Math.Vector2{c.y * sens, -c.x * sens}
-            let path = paths.newPath()
-            path.start(point.x + c.x, point.y + c.y)
-            path.lineTo(point.x - c.x, point.y - c.y)
-            path.lineTo(point.x - c.x + n.x, point.y - c.y + n.y)
-            path.lineTo(point.x + c.x + n.x, point.y + c.y + n.y)
-            path.close()
-        }
-
-        case .SquareAnchor:
-        {
-            let d    = c * scaleX
-            var n    = Math.Vector2{d.y * sens, -d.x * sens}
-            n.setLengthOrZero(d.length() * scaleY)
-            let p    = point - n * 0.5
-            let path = paths.newPath()
-            path.start(p.x + d.x, p.y + d.y)
-            path.lineTo(p.x - d.x, p.y - d.y)
-            path.lineTo(p.x - d.x + n.x, p.y - d.y + n.y)
-            path.lineTo(p.x + d.x + n.x, p.y + d.y + n.y)
-            path.close()
-        }
-
-        case .ArrowAnchor:
-        {
-            let d = c * scaleX
-            let n = Math.Vector2{d.y * sens * scaleY, -d.x * sens * scaleY}
-            let p = point - n
-            addTriangle(paths, p + d, p - d, p + n)
-        }
-
-        case .ArrowAnchor2:
-        {
-            let d   = c * scaleX
-            let n   = Math.Vector2{d.y * sens * scaleY, -d.x * sens * scaleY}
-            let n1  = n.normalized()
-            let sx2 = scaleX * scaleY * 2
-            let p   = point - n
-            addTriangle(paths, p + d - n1 * sx2, p, p + n)
-            addTriangle(paths, p - d - n1 * sx2, p, p + n)
-        }
-        }
-
-        return true
-    }
-
-    // Paints the true offset contour of one endpoint cap. The line shaft is painted separately,
-    // so this path needs to describe only the extra geometry the cap contributes at its end.
-    mtd paintOutlineCap(painter: *Painter, point, tangent: Math.Vector2, cap: LineCapStyle, scale, stroke, outline: f32, begin: bool)
-    {
-        if cap == .None do
-            return
-
-        let sens = begin ? 1'f32 : -1'f32
-        let c    = tangent.cross(1) * (stroke * 0.5)
-        switch cap
-        {
-        case .Round:
-            painter.fillCircle(point.x, point.y, stroke * 0.5 + outline, .outlineColor)
-            return
-
-        case .RoundAnchor:
-            painter.fillCircle(point.x, point.y, stroke * scale * 0.5 + outline, .outlineColor)
-            return
-
-        default:
-            var paths: LinePathList
-            if !.appendOutlineCapPath(&paths, cap, point, c, scale, 2, sens) do
-                return
-            paths.flatten(.Normal)
-            paths.clean()
-            paths.offset(outline, .Round, 0.25)
-            paths.clean()
-            painter.fillPath(&paths, .outlineColor)
-        }
-    }
-
-    // Paints the contour of a straight solid line as one offset silhouette: a wider shaft plus
-    // an offset version of each cap. The colored line still uses the normal renderer afterward,
-    // preserving its joins and cap behavior while the visible exterior is a real constant-width
-    // contour rather than a second, proportionally enlarged arrow.
-    mtd paintSolidOutline(painter: *Painter, start, end: Math.Vector2, stroke, begScale, endScale, outline: f32)
-    {
-        var tangent = end - start
-        if tangent.length() <= 0.01 do
-            return
-        tangent.normalizeOrZero()
-
-        let outerStroke = stroke + 2 * outline
-        var shaftStart  = start + tangent * .capShaftSkip(.beginCap, stroke, begScale)
-        var shaftEnd    = end - tangent * .capShaftSkip(.endCap, stroke, endScale)
-        if .beginCap == .None do
-            shaftStart -= tangent * outline
-        if .endCap == .None do
-            shaftEnd += tangent * outline
-
-        var shaft = Pen.createSolid(.outlineColor, outerStroke)
-        shaft.begCapStyle = .None
-        shaft.endCapStyle = .None
-        painter.drawLine(shaftStart.x, shaftStart.y, shaftEnd.x, shaftEnd.y, shaft)
-
-        .paintOutlineCap(painter, start, tangent, .beginCap, begScale, stroke, outline, true)
-        .paintOutlineCap(painter, end, tangent, .endCap, endScale, stroke, outline, false)
-    }
-
-    mtd createPaintPen(color: Color, stroke, begScale, endScale: f32)->Pen
+    // The pen one paint of this line uses, contour included.
+    //
+    // The contour is the pen's own border: the renderer keeps the silhouette of the stroke it
+    // draws and pushes it out by `outline`, so the shaft, every dash end and an arrow head all
+    // carry the same thickness of it. Stroking a second, wider pen underneath instead gave a
+    // proportionally larger arrow, whose black edge thinned along each of its sloped sides, and a
+    // dash pattern measured against that wider stroke, which no longer lined up with the dashes
+    // drawn over it.
+    mtd createPaintPen(color: Color, stroke, begScale, endScale, outline: f32)->Pen
     {
         with var result = Pen.createDash(.dashStyle, color, stroke)
         {
@@ -210,6 +69,8 @@ impl FormLine
             .capEndScaleY    = 2
             .dashBegCapStyle = me.dashCap
             .dashEndCapStyle = me.dashCap
+            .outlineSize     = outline
+            .outlineColor    = me.outlineColor
         }
 
         return result
@@ -237,14 +98,14 @@ impl IForm for FormLine
         BaseForm.copyBase(dst, src)
         let dstf = cast(*FormLine) dst
         let srcf = cast(*FormLine) src
-        dstf.outlineSize = srcf.outlineSize
+        dstf.outlineSize  = srcf.outlineSize
         dstf.outlineColor = srcf.outlineColor
-        dstf.beginCap  = srcf.beginCap
-        dstf.endCap    = srcf.endCap
-        dstf.startSize = srcf.startSize
-        dstf.endSize   = srcf.endSize
-        dstf.dashCap   = srcf.dashCap
-        dstf.bezier    = srcf.bezier
+        dstf.beginCap     = srcf.beginCap
+        dstf.endCap       = srcf.endCap
+        dstf.startSize    = srcf.startSize
+        dstf.endSize      = srcf.endSize
+        dstf.dashCap      = srcf.dashCap
+        dstf.bezier       = srcf.bezier
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -396,22 +257,9 @@ impl IForm for FormLine
             .gizmo.anchors.resize(2)
         }
 
-        let z = cxt.z
-        if .subKind != .PixSel and outlineSize and .outlineColor.a
-        {
-            if !.bezier and .dashStyle == .None do
-                .paintSolidOutline(painter, {.xa * z, .ya * z}, {.xb * z, .yb * z}, bSize, sSize, eSize, outlineSize)
-            else
-            {
-                let pen = .createPaintPen(.outlineColor, bSize + 2 * outlineSize, sSize, eSize)
-                if .bezier do
-                    painter.drawBezier(.xa * z, .ya * z, .xb * z, .yb * z, (.xa + .xc) * z, (.ya + .yc) * z, pen)
-                else do
-                    painter.drawLine(.xa * z, .ya * z, .xb * z, .yb * z, pen)
-            }
-        }
-
-        let pen = .createPaintPen(.borderColor, bSize, sSize, eSize)
+        let z       = cxt.z
+        let contour = (.subKind != .PixSel and .outlineColor.a) ? outlineSize : 0
+        let pen     = .createPaintPen(.borderColor, bSize, sSize, eSize, contour)
         if .bezier do
             painter.drawBezier(.xa * z, .ya * z, .xb * z, .yb * z, (.xa + .xc) * z, (.ya + .yc) * z, pen)
         else do

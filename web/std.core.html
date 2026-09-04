@@ -443,7 +443,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1684</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1685</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1879,6 +1879,7 @@
 <li><a href="#Core_Math_Transform2_createRotation">Transform2.createRotation</a></li>
 <li><a href="#Core_Math_Transform2_createScale">Transform2.createScale</a></li>
 <li><a href="#Core_Math_Transform2_createTranslation">Transform2.createTranslation</a></li>
+<li><a href="#Core_Math_Transform2_inverse">Transform2.inverse</a></li>
 <li><a href="#Core_Math_Transform2_isIdentity">Transform2.isIdentity</a></li>
 <li><a href="#Core_Math_Transform2_isTranslationOnly">Transform2.isTranslationOnly</a></li>
 <li><a href="#Core_Math_Transform2_multiply">Transform2.multiply</a></li>
@@ -5948,6 +5949,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Math_Transform2_createScale">Transform2.createScale</a></td><td><p>Creates a scale matrix, with a given center</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Transform2_createTranslation">Transform2.createTranslation</a></td><td><p>Creates a translation matrix</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Transform2_inverse">Transform2.inverse</a></td><td><p>Returns the transform that maps every transformed point back to where it came from.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Transform2_isIdentity">Transform2.isIdentity</a></td><td><p>Checks if the transform is the identity matrix</p>
 </td></tr>
@@ -12350,6 +12353,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td class="code-type"><a href="#Core_Math_Transform2_createScale">createScale</a></td><td><p>Creates a scale matrix, with a given center</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Transform2_createTranslation">createTranslation</a></td><td><p>Creates a translation matrix</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Math_Transform2_inverse">inverse</a></td><td><p>Returns the transform that maps every transformed point back to where it came from.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Transform2_isIdentity">isIdentity</a></td><td><p>Checks if the transform is the identity matrix</p>
 </td></tr>
@@ -25226,6 +25231,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createTranslation</span>(x, y: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Core_Math_Transform2">Transform2</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Math_Transform2_inverse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Transform2.inverse</span> <a class="api-item-permalink" href="#Core_Math_Transform2_inverse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/transform2.swg#L150">src</a></div>
+<p>Returns the transform that maps every transformed point back to where it came from.</p>
+<p>A singular transform — one that flattens the plane onto a line or a point — has no inverse. The identity is returned for it rather than a matrix of infinities, so a caller mapping through the result still gets finite coordinates.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> local = placement.<span class="SFct">inverse</span>().<span class="SFct">transformPoint</span>(pagePoint)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">inverse</span>()-&gt;<span class="SCst"><a href="#Core_Math_Transform2">Transform2</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Math_Transform2_isIdentity" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Transform2.isIdentity</span> <a class="api-item-permalink" href="#Core_Math_Transform2_isIdentity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/transform2.swg#L34">src</a></div>
 <p>Checks if the transform is the identity matrix</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isIdentity</span>()-&gt;<span class="STpe">bool</span></span></div>
@@ -25236,7 +25248,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isTranslationOnly</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_Transform2_multiply" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Transform2.multiply</span> <a class="api-item-permalink" href="#Core_Math_Transform2_multiply" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/transform2.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_Transform2_multiply" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Transform2.multiply</span> <a class="api-item-permalink" href="#Core_Math_Transform2_multiply" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/transform2.swg#L168">src</a></div>
 <p>Multiplies the current transform by another transformation matrix</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">multiply</span>(matrix2: <span class="SCst"><a href="#Core_Math_Transform2">Transform2</a></span>)</span></div>
 </section>
@@ -26602,7 +26614,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.326</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.330</div>
 </footer>
 </section>
 </main>
@@ -28867,6 +28879,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Math.Transform2.createRotation|Core_Math_Transform2_createRotation|Creates a rotation matrix, with a given center of rotation",
 "f|Core.Math.Transform2.createScale|Core_Math_Transform2_createScale|Creates a scale matrix, with a given center",
 "f|Core.Math.Transform2.createTranslation|Core_Math_Transform2_createTranslation|Creates a translation matrix",
+"f|Core.Math.Transform2.inverse|Core_Math_Transform2_inverse|Returns the transform that maps every transformed point back to where it came from.",
 "f|Core.Math.Transform2.isIdentity|Core_Math_Transform2_isIdentity|Checks if the transform is the identity matrix",
 "f|Core.Math.Transform2.isTranslationOnly|Core_Math_Transform2_isTranslationOnly|Checks if the linear part is the identity, i.e. the transform is a pure",
 "f|Core.Math.Transform2.multiply|Core_Math_Transform2_multiply|Multiplies the current transform by another transformation matrix",

@@ -9,9 +9,20 @@ public enum DrawPathListMode
 
 struct Context
 {
-    posBuffer:       Array'Math.Vector2
-    penSize:         f32
-    penSize2:        f32
+    posBuffer: Array'Math.Vector2
+    penSize:   f32
+
+    // Half width the quads and the joins are laid down at: half the pen, plus the border
+    // when this walk is painting one. The caps are shaped from `capSize2` instead, so a
+    // border keeps the cap it belongs to and only offsets it.
+    penSize2: f32
+    capSize2: f32
+
+    // Width of the border this walk paints outside the stroke; zero for the stroke itself.
+    outline: f32
+
+    // Direction of the segment last laid down, used to close the border across a butt end.
+    dir:             Math.Vector2
     beginLine:       bool
     firstLine:       bool
     lastLineInvalid: bool
@@ -43,184 +54,272 @@ struct Context
     patternCount:        s32
 }
 
+impl Context
+{
+    // The stroke's own half-width normal, recovered from the one a border pass widened.
+    //
+    // A cap is shaped from the stroke it terminates and is then pushed out, so it is measured
+    // against the width the stroke has rather than the width this walk is laying down.
+    mtd const capNormal()->Math.Vector2
+    {
+        if .outline <= 0 or .penSize2 <= 0 do
+            return .normal
+        return .normal * (.capSize2 / .penSize2)
+    }
+}
+
+// A cap is one convex outline, and this is the room the widest of them needs. Holding a cap as
+// its outline is what lets a border hand the same outline back expanded by the border width,
+// instead of drawing the cap a second time at a larger scale.
+const MaxCapRingPoints = 4
+
+// How far a corner of an expanded outline may reach, as a multiple of the border width. An
+// arrowhead is the sharpest corner a cap has, and this leaves its border a point rather than a
+// facet cut across it; a limit still keeps a degenerate outline from shooting off the drawing.
+const OutlineMiterLimit = 8.0
+
+// Expands a convex outline outward by `outline`, in place.
+//
+// Every edge moves out along its own normal and the corners land where the two moved edges meet,
+// which is what makes the result the outline's true offset: the border keeps the width it was
+// asked for along every side, whatever the angle between them. Scaling the outline instead gives
+// a border that thins wherever a side is oblique, which is what an arrowhead is made of.
+private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
+{
+    let count = points.count
+    if count < 3 or count > MaxCapRingPoints do
+        return
+
+    var center: Math.Vector2
+    for pt in points do
+        center += pt
+    center /= cast(f32) count
+
+    // Outward side of each edge, taken as the one facing away from the centre. A convex outline
+    // lies on one side of every one of its edges, so this needs no winding order.
+    var normals: [MaxCapRingPoints] Math.Vector2 = undefined
+    for i in count
+    {
+        let a = points[i]
+        let b = points[(i + 1) % count]
+        var n = (b - a).cross(1).normalizedOrZero()
+        if n.dot(((a + b) * 0.5) - center) < 0 do
+            n.negate()
+        normals[i] = n
+    }
+
+    var moved: [MaxCapRingPoints] Math.Vector2 = undefined
+    for i in count
+    {
+        let n0 = normals[(i + count - 1) % count]
+        let n1 = normals[i]
+
+        // The point where the two moved edges cross, at `outline / cos(half angle)` along their
+        // bisector. Two edges folded back on each other have no crossing; leave the corner on
+        // one of them rather than sending it to infinity.
+        let fold = 1 + n0.dot(n1)
+        if fold < 0.0001
+        {
+            moved[i] = points[i] + n1 * outline
+            continue
+        }
+
+        var m   = (n0 + n1) * (outline / fold)
+        let len = m.length()
+        if len > outline * OutlineMiterLimit do
+            m *= (outline * OutlineMiterLimit) / len
+        moved[i] = points[i] + m
+    }
+
+    for i in count do
+        points[i] = moved[i]
+}
+
 impl Painter
 {
-    mtd drawCapSquare(p, d: Math.Vector2, sens: f32, pen: Pen)
+    // Lays down one convex cap outline, expanded by the border width when this walk paints one.
+    mtd fillCapRing(points: [..] Math.Vector2, outline: f32, pen: Pen)
     {
-        let n  = Math.Vector2{d.y * sens, -d.x * sens}
-        let v0 = Math.Vector2{p.x + d.x, p.y + d.y}
-        let v1 = Math.Vector2{p.x - d.x, p.y - d.y}
-        let v2 = Math.Vector2{v1.x + n.x, v1.y + n.y}
-        let v3 = Math.Vector2{v0.x + n.x, v0.y + n.y}
+        let count = points.count
+        if count < 3 do
+            return
+        if outline > 0 do
+            expandConvexRing(points, outline)
 
-        let prim1 = .pushTriangle(v0, v1, v3, pen.brush.color)
-        let prim2 = .pushTriangle(v1, v3, v2, pen.brush.color)
-
-        if .curState.paintParams & .Antialiased
+        let antialiased = .curState.paintParams & .Antialiased
+        let v0          = points[0]
+        for i in 1 until count - 1
         {
-            .addEdgeAA(prim1, v0, v3)
+            let v1    = points[i]
+            let v2    = points[i + 1]
+            let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
+            if !antialiased do
+                continue
+
+            // Only the edges of the outline itself carry a fringe; the fan's own spokes are
+            // interior and a band on them would show as a seam through the cap.
             .addEdgeAA(prim1, v1, v2)
-            .addEdgeAA(prim2, v3, v2)
+            if i == 1 do
+                .addEdgeAA(prim1, v0, v1)
+            if i == count - 2 do
+                .addEdgeAA(prim1, v2, v0)
         }
     }
 
-    mtd drawCapTriangle(p, d: Math.Vector2, sens: f32, pen: Pen)
+    mtd drawCapSquare(p, d: Math.Vector2, sens: f32, pen: Pen, outline: f32)
     {
-        let n     = Math.Vector2{d.y * sens, -d.x * sens}
-        let v0    = Math.Vector2{p.x + d.x, p.y + d.y}
-        let v1    = Math.Vector2{p.x - d.x, p.y - d.y}
-        let v2    = Math.Vector2{p.x + n.x, p.y + n.y}
-        let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-
-        if .curState.paintParams & .Antialiased
-        {
-            .addEdgeAA(prim1, v1, v2)
-            .addEdgeAA(prim1, v0, v2)
-        }
+        let n    = Math.Vector2{d.y * sens, -d.x * sens}
+        var ring = [p + d, p - d, p - d + n, p + d + n]
+        .fillCapRing(ring, outline, pen)
     }
 
-    mtd drawCapSquareAnchor(p1, d1: Math.Vector2, sens: f32, pen: Pen, start: bool)
+    mtd drawCapTriangle(p, d: Math.Vector2, sens: f32, pen: Pen, outline: f32)
+    {
+        let n    = Math.Vector2{d.y * sens, -d.x * sens}
+        var ring = [p + d, p - d, p + n]
+        .fillCapRing(ring, outline, pen)
+    }
+
+    mtd drawCapSquareAnchor(p1, d1: Math.Vector2, sens: f32, pen: Pen, start: bool, outline: f32)
     {
         let sx = start ? pen.capBegScaleX : pen.capEndScaleX
         let sy = start ? pen.capBegScaleY : pen.capEndScaleY
 
-        var p = p1
         let d = d1 * sx
         var n = Math.Vector2{d.y * sens, -d.x * sens}
         n.setLengthOrZero(d.length() * sy)
-        p -= n * 0.5
+        let p = p1 - n * 0.5
 
-        let v0 = Math.Vector2{p.x + d.x, p.y + d.y}
-        let v1 = Math.Vector2{p.x - d.x, p.y - d.y}
-        let v2 = Math.Vector2{v1.x + n.x, v1.y + n.y}
-        let v3 = Math.Vector2{v0.x + n.x, v0.y + n.y}
-
-        let prim1 = .pushTriangle(v0, v1, v3, pen.brush.color)
-        discard .pushTriangle(v1, v3, v2, pen.brush.color)
-
-        if .curState.paintParams & .Antialiased
-        {
-            .addEdgeAA(prim1, v0, v3)
-            .addEdgeAA(prim1, v1, v2)
-            .addEdgeAA(prim1, v3, v2)
-            .addEdgeAA(prim1, v0, v1)
-        }
+        var ring = [p + d, p - d, p - d + n, p + d + n]
+        .fillCapRing(ring, outline, pen)
     }
 
-    mtd drawCapArrowAnchor2(p1, d1: Math.Vector2, sens: f32, pen: Pen, start: bool)
+    mtd drawCapArrowAnchor2(p1, d1: Math.Vector2, sens: f32, pen: Pen, start: bool, outline: f32)
     {
         let sx  = start ? pen.capBegScaleX : pen.capEndScaleX
         let sy  = start ? pen.capBegScaleY : pen.capEndScaleY
         let sx2 = sx * sy * 2
 
-        var p  = p1
         let d  = d1 * sx
         let n  = Math.Vector2{d.y * sens * sy, -d.x * sens * sy}
         let n1 = n.normalized()
-        p -= n
+        let p  = p1 - n
 
-        {
-            let v0    = Math.Vector2{p.x + d.x - n1.x * sx2, p.y + d.y - n1.y * sx2}
-            let v1    = Math.Vector2{p.x, p.y}
-            let v2    = Math.Vector2{p.x + n.x, p.y + n.y}
-            let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-
-            if .curState.paintParams & .Antialiased
-            {
-                .addEdgeAA(prim1, v0, v2)
-                .addEdgeAA(prim1, v0, v1)
-            }
-        }
-
-        {
-            let v0    = Math.Vector2{p.x - d.x - n1.x * sx2, p.y - d.y - n1.y * sx2}
-            let v1    = Math.Vector2{p.x, p.y}
-            let v2    = Math.Vector2{p.x + n.x, p.y + n.y}
-            let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-
-            if .curState.paintParams & .Antialiased
-            {
-                .addEdgeAA(prim1, v0, v2)
-                .addEdgeAA(prim1, v0, v1)
-            }
-        }
+        // Two halves meeting along the axis. Expanding each of them is exactly expanding their
+        // union: growing a shape by a fixed width distributes over the pieces it is made of, and
+        // the notch between the two halves closes by the same width from both sides.
+        var left  = [p + d - n1 * sx2, p, p + n]
+        var right = [p - d - n1 * sx2, p, p + n]
+        .fillCapRing(left, outline, pen)
+        .fillCapRing(right, outline, pen)
     }
 
-    mtd drawCapArrowAnchor(p1, d1: Math.Vector2, sens: f32, pen: Pen, start: bool)
+    mtd drawCapArrowAnchor(p1, d1: Math.Vector2, sens: f32, pen: Pen, start: bool, outline: f32)
     {
         let sx = start ? pen.capBegScaleX : pen.capEndScaleX
         let sy = start ? pen.capBegScaleY : pen.capEndScaleY
 
-        var p = p1
         let d = d1 * sx
         let n = Math.Vector2{d.y * sens * sy, -d.x * sens * sy}
-        p -= n
+        let p = p1 - n
 
-        let v0    = Math.Vector2{p.x + d.x, p.y + d.y}
-        let v1    = Math.Vector2{p.x - d.x, p.y - d.y}
-        let v2    = Math.Vector2{p.x + n.x, p.y + n.y}
-        let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-
-        if .curState.paintParams & .Antialiased
-        {
-            .addEdgeAA(prim1, v1, v2)
-            .addEdgeAA(prim1, v0, v2)
-            .addEdgeAA(prim1, v0, v1)
-        }
+        var ring = [p + d, p - d, p + n]
+        .fillCapRing(ring, outline, pen)
     }
 
-    mtd drawCapRoundAnchor(p, d: Math.Vector2, pen: Pen, start: bool)
+    mtd drawCapRoundAnchor(p, d: Math.Vector2, pen: Pen, start: bool, outline: f32)
     {
         let sx = start ? pen.capBegScaleX : pen.capEndScaleX
 
         let angle0 = Math.atan2(-d.y, -d.x)
         let angle1 = angle0 + Math.ConstF32.TwoPi
-        let radius = sx * d.length()
+        let radius = sx * d.length() + outline
         .drawRound(p, radius, angle0, angle1, pen)
     }
 
-    mtd drawCapRound(p, d: Math.Vector2, sens: f32, pen: Pen)
+    // A round end stays round at every width.
+    //
+    // Below a couple of pixels of radius this used to fall back to a triangle, which made `.Round`
+    // and `.Triangle` the same end on any thin stroke — a dashed hairline in a PDF, a plan, a
+    // schematic — and the choice between them do nothing. The arc is subdivided against the
+    // flattening tolerance, so a small one costs the two triangles the fallback drew anyway.
+    mtd drawCapRound(p, d: Math.Vector2, sens: f32, pen: Pen, outline: f32)
     {
-        var radius = d.length()
-        if radius < 2.5
-        {
-            .drawCapTriangle(p, d, sens, pen)
-            return
-        }
-
         let angle0 = Math.atan2(-d.y, -d.x)
         let angle1 = angle0 + Math.ConstF32.Pi
-        radius *= sens
+        let radius = (d.length() + outline) * sens
         .drawRound(p, radius, angle0, angle1, pen)
     }
 
-    mtd drawLineCap(capStyle: LineCapStyle, p, d: Math.Vector2, sens: f32, pen: Pen, start: bool)
+    mtd drawLineCap(capStyle: LineCapStyle, p, d: Math.Vector2, sens: f32, pen: Pen, start: bool, outline: f32)
     {
         switch #complete capStyle
         {
         case .None:         return
-        case .Triangle:     .drawCapTriangle(p, d, sens, pen)
-        case .Round:        .drawCapRound(p, d, sens, pen)
-        case .Square:       .drawCapSquare(p, d, sens, pen)
-        case .SquareAnchor: .drawCapSquareAnchor(p, d, sens, pen, start)
-        case .ArrowAnchor:  .drawCapArrowAnchor(p, d, sens, pen, start)
-        case .ArrowAnchor2: .drawCapArrowAnchor2(p, d, sens, pen, start)
-        case .RoundAnchor:  .drawCapRoundAnchor(p, d, pen, start)
+        case .Triangle:     .drawCapTriangle(p, d, sens, pen, outline)
+        case .Round:        .drawCapRound(p, d, sens, pen, outline)
+        case .Square:       .drawCapSquare(p, d, sens, pen, outline)
+        case .SquareAnchor: .drawCapSquareAnchor(p, d, sens, pen, start, outline)
+        case .ArrowAnchor:  .drawCapArrowAnchor(p, d, sens, pen, start, outline)
+        case .ArrowAnchor2: .drawCapArrowAnchor2(p, d, sens, pen, start, outline)
+        case .RoundAnchor:  .drawCapRoundAnchor(p, d, pen, start, outline)
         }
     }
 
+    // `d` is the half-width of the stroke itself, so a dash end keeps the cap it asked for and a
+    // border pass offsets that cap instead of drawing a larger one.
+    //
+    // Every width draws its dash ends. Dropping them under three pixels of pen silently ignored
+    // the style on exactly the strokes that are drawn thin — a dashed hairline of a PDF asks for
+    // round dash ends and got flat ones — and made the choice do nothing.
     mtd drawDashCap(cxt: *Context, capStyle: DashCapStyle, p, d: Math.Vector2, sens: f32)
     {
-        if cxt.penSize < 3 do
-            return
-
         switch #complete capStyle
         {
         case .None:     break
-        case .Triangle: .drawCapTriangle(p, d, sens, cxt.pen[])
-        case .Round:    .drawCapRound(p, d, sens, cxt.pen[])
-        case .Square:   .drawCapSquare(p, d, sens, cxt.pen[])
+        case .Triangle: .drawCapTriangle(p, d, sens, cxt.pen[], cxt.outline)
+        case .Round:    .drawCapRound(p, d, sens, cxt.pen[], cxt.outline)
+        case .Square:   .drawCapSquare(p, d, sens, cxt.pen[], cxt.outline)
         }
+    }
+
+    // Closes the border across an end the stroke stops flat at.
+    //
+    // The widened quad the border pass lays down covers the two sides of the stroke, but stops
+    // where the stroke does, leaving that edge bare. This is the piece that squares it off, the
+    // same width as the border everywhere else. `dir` points out of the stroke.
+    mtd drawOutlineButt(cxt: *Context, p, dir: Math.Vector2)
+    {
+        let n = cxt.normal
+        let e = dir * cxt.outline
+
+        let v0 = p - n
+        let v1 = p + n
+        let v2 = v1 + e
+        let v3 = v0 + e
+
+        let prim1 = .pushTriangle(v0, v1, v2, cxt.pen.brush.color)
+        let prim2 = .pushTriangle(v0, v2, v3, cxt.pen.brush.color)
+        if .curState.paintParams & .Antialiased
+        {
+            .addEdgeAA(prim1, v1, v2)
+            .addEdgeAA(prim2, v2, v3)
+            .addEdgeAA(prim2, v3, v0)
+        }
+    }
+
+    // Reports whether the border has to close the start of the run being laid down.
+    //
+    // A cap already covers the end it sits on, so only an end left flat needs the extra piece:
+    // the beginning of the path when it carries no cap, and the beginning of every later dash
+    // when the pattern asks for none.
+    private func outlineOpensRun(cxt: *Context)->bool
+    {
+        if cxt.pen.dashStyle == .None do
+            return !cxt.path.isClosed and cxt.pen.begCapStyle == .None
+        if cxt.firstLine and !cxt.path.isClosed do
+            return cxt.pen.begCapStyle == .None
+        return cxt.pen.dashBegCapStyle == .None
     }
 
     mtd drawJoinBevel(p, d1, d2: Math.Vector2, pen: Pen)
@@ -280,11 +379,20 @@ impl Painter
             i -= 1
         }
 
+        // Every triangle of the fan meets the others on the centre, and a pixel sitting exactly
+        // on that shared point can fall outside all of them: a round line end over a contrasting
+        // ground showed a single hole in its middle. Pull each apex back along its own sector so
+        // consecutive triangles overlap there instead of meeting on a point. What that adds is a
+        // half-pixel disc around the centre, which is inside the stroke this arc turns around.
+        let span     = Math.abs(radius) * 2
+        let apexPull = span > 0 ? Math.min(.aaHalfPathSpace() / span, 0.25'f32) : 0
+
         var v1 = startPos
         for i in 1 until .sharedRoundTmp.count
         {
             let v2    = .sharedRoundTmp[i].pos
-            let prim1 = .pushTriangle(center, v1, v2, pen.brush.color)
+            let apex  = center - ((v1 - center) + (v2 - center)) * apexPull
+            let prim1 = .pushTriangle(apex, v1, v2, pen.brush.color)
             if .curState.paintParams & .Antialiased do
                 .addEdgeAA(prim1, v1, v2)
             v1 = v2
@@ -391,13 +499,23 @@ impl Painter
             return
 
         // Cap is defined
-        if cxt.pen.dashEndCapStyle != DashCapStyle.None do
+        if cxt.pen.dashEndCapStyle != DashCapStyle.None
+        {
             .drawDashCap(cxt, cxt.pen.dashEndCapStyle, posCap, normalCap, -1.0)
+            return
+        }
+
+        // The dash stops flat here, so a border pass closes itself across that end.
+        if cxt.outline > 0
+        {
+            .drawOutlineButt(cxt, posCap, cxt.dir)
+            return
+        }
 
         // AA end edge if no cap. Copy the positions out first: addEdgeAA appends
-        // fringe geometry, which may reallocate the vertex buffer and invalidate
-        // #null any pointer into it.
-        elif .curState.paintParams & .Antialiased
+        // fringe geometry, which may reallocate the vertex buffer, and invalidate
+        // any pointer into it.
+        if .curState.paintParams & .Antialiased
         {
             let prim2p = .vertexBuffer.buffer! + cxt.prim2
             let p      = prim2p.pos
@@ -432,6 +550,7 @@ impl Painter
         if !n.isZeroEpsilon()
         {
             n.normalize()
+            cxt.dir    = n
             cxt.normal = n.cross(1)
             cxt.normal *= cxt.penSize2
         }
@@ -446,8 +565,12 @@ impl Painter
         if cxt.pen.dashStyle != .None and (!cxt.firstLine or cxt.path.isClosed) and cxt.beginLine and cxt.pen.dashBegCapStyle != .None
         {
             flatBegin = false
-            .drawDashCap(cxt, cxt.pen.dashBegCapStyle, cxt.prev, cxt.normal, 1.0)
+            .drawDashCap(cxt, cxt.pen.dashBegCapStyle, cxt.prev, cxt.capNormal(), 1.0)
         }
+
+        // The run starts flat here, so a border pass closes itself across that end.
+        elif cxt.outline > 0 and cxt.beginLine and outlineOpensRun(cxt) do
+            .drawOutlineButt(cxt, cxt.prev, -n)
 
         // Joints
         if !cxt.beginLine do
@@ -782,7 +905,8 @@ impl Painter
 
         cxt.penSize    = cxt.pen.size
         cxt.offsetPath = cxt.pen.plotOffset
-        cxt.penSize2   = cxt.penSize * 0.5
+        cxt.capSize2   = cxt.penSize * 0.5
+        cxt.penSize2   = cxt.capSize2 + cxt.outline
         cxt.beginLine  = true
         cxt.firstLine  = true
 
@@ -822,8 +946,8 @@ impl Painter
                 var n  = v2 - v1
                 n.normalizeOrZero()
                 var c = n.cross(1)
-                c *= cxt.penSize2
-                .drawLineCap(cxt.pen.begCapStyle, v1, c, 1.0, cxt.pen[], true)
+                c *= cxt.capSize2
+                .drawLineCap(cxt.pen.begCapStyle, v1, c, 1.0, cxt.pen[], true, cxt.outline)
             }
 
             // Draw end cap
@@ -834,8 +958,8 @@ impl Painter
                 var n  = v1 - v2
                 n.normalizeOrZero()
                 var c = n.cross(1)
-                c *= cxt.penSize2
-                .drawLineCap(cxt.pen.endCapStyle, v1, c, -1.0, cxt.pen[], false)
+                c *= cxt.capSize2
+                .drawLineCap(cxt.pen.endCapStyle, v1, c, -1.0, cxt.pen[], false, cxt.outline)
             }
         }
 
@@ -884,8 +1008,16 @@ impl Painter
             }
         }
 
+        // The path stops flat there, so a border pass closes itself across that end. A walk that
+        // finished on a blank already closed its last dash and has nothing left to end.
+        let openEnd = !cxt.lastLineInvalid and !cxt.path.isClosed and cxt.pen.endCapStyle == .None
+        if openEnd and cxt.outline > 0 and !cxt.beginLine
+        {
+            .drawOutlineButt(cxt, cxt.prev, cxt.dir)
+        }
+
         // Handle AA and closing as before...
-        if !cxt.lastLineInvalid and !cxt.path.isClosed and (.curState.paintParams & .Antialiased) and (cxt.pen.endCapStyle == .None)
+        elif openEnd and (.curState.paintParams & .Antialiased)
         {
             // Copy positions out before addEdgeAA: it appends geometry and may
             // reallocate the vertex buffer, invalidating pointers into it.
@@ -899,6 +1031,25 @@ impl Painter
             .drawJoin(cxt, cxt.prev, cxt.normal, cxt.normalFirst)
         }
     }
+}
+
+// Reports whether `pen` asks for a border outside its stroke.
+private func strokeHasOutline(pen: Pen)->bool
+{
+    return pen.outlineSize > 0 and pen.outlineColor.a != 0
+}
+
+// The pen the border pass strokes with: the same geometry, painted with the border's own colour.
+//
+// It keeps the pen's own width, dash pattern and cap styles, because the border is that stroke
+// pushed outward rather than a wider one: widening the pen would stretch the dash pattern and
+// enlarge every cap along with it.
+private func strokeOutlinePen(pen: Pen)->Pen
+{
+    var result = pen
+    result.brush       = Brush.createSolid(pen.outlineColor)
+    result.outlineSize = 0
+    return result
 }
 
 // Returns the pen a sub-pixel stroke is drawn with: exactly one device pixel wide, with
@@ -985,29 +1136,61 @@ public impl Painter
         }
     }
 
-    private mtd strokePath(path: *LinePath, pen: Pen)
+    // Lays down one already-flattened path in one pass: the stroke itself when `outline` is zero,
+    // the border outside it otherwise.
+    private mtd strokePathPass(path: *LinePath, pen: Pen, outline: f32)
     {
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter) do
-            return
-
         var cxt: Context
-        cxt.path = path
-        cxt.pen  = &pen
+        cxt.path    = path
+        cxt.pen     = &pen
+        cxt.outline = outline
         .setMinifiedStrokeLimits(&cxt, pen)
         if pen.dashStyle != .None do
             preparePattern(&cxt)
 
         var bvMin = path.minBounds
         var bvMax = path.maxBounds
-        bvMin -= pen.size / 2
-        bvMax += pen.size / 2
+        bvMin -= pen.size / 2 + outline
+        bvMax += pen.size / 2 + outline
         .setTexture0(bvMin, bvMax, pen.brush)
         .resetTextureFont()
 
         .startOverlapMode(pen)
         .drawPath(&cxt)
         .stopOverlapMode()
+    }
+
+    // One stroking pass over a single path, with the hairline promotion its width may need.
+    private mtd strokeOnePath(path: *LinePath, pen: Pen, outline: f32)
+    {
+        let deviceScale = .textTransformScale()
+        if pen.size <= 0 or deviceScale <= 0 do
+            return
+
+        path.flatten(.curState.paintQuality, .curFlattenScale)
+        if Math.isZeroEpsilon(path.polygon.perimeter) do
+            return
+
+        if pen.size * deviceScale >= 1
+        {
+            .strokePathPass(path, pen, outline)
+            return
+        }
+
+        .strokePathPass(path, promoteHairline(pen, deviceScale), outline)
+    }
+
+    private mtd strokePath(path: *LinePath, pen: Pen)
+    {
+        path.flatten(.curState.paintQuality, .curFlattenScale)
+        if Math.isZeroEpsilon(path.polygon.perimeter) do
+            return
+
+        // The border is the same walk, one width wider and with every cap and dash end pushed
+        // out rather than enlarged, so the stroke laid over it leaves exactly that width showing.
+        if strokeHasOutline(pen) do
+            .strokePathPass(path, strokeOutlinePen(pen), pen.outlineSize)
+        .strokePathPass(path, pen, 0)
     }
 
     // Draw a list of paths.
@@ -1017,6 +1200,21 @@ public impl Painter
             return
         if mode == .Separate
         {
+            // One path's border must never cover another's stroke, so the whole list is
+            // bordered before any of it is stroked.
+            if strokeHasOutline(pen)
+            {
+                let border = strokeOutlinePen(pen)
+                for p in pathList.paths do
+                    .strokeOnePath(p, border, pen.outlineSize)
+
+                var plain = pen
+                plain.outlineSize = 0
+                for p in pathList.paths do
+                    .strokeOnePath(p, plain, 0)
+                return
+            }
+
             for p in pathList.paths do
                 .drawPath(p, pen)
             return
@@ -1038,16 +1236,26 @@ public impl Painter
     {
         pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
+        // One path's border must never cover another's stroke, so the whole list is bordered
+        // before any of it is stroked.
+        if strokeHasOutline(pen) do
+            .strokePathListPass(pathList, strokeOutlinePen(pen), pen.outlineSize)
+        .strokePathListPass(pathList, pen, 0)
+    }
+
+    private mtd strokePathListPass(pathList: *LinePathList, pen: Pen, outline: f32)
+    {
         var bvMin = pathList.minBounds
         var bvMax = pathList.maxBounds
-        bvMin -= pen.size / 2
-        bvMax += pen.size / 2
+        bvMin -= pen.size / 2 + outline
+        bvMax += pen.size / 2 + outline
         .setTexture0(bvMin, bvMax, pen.brush)
         .resetTextureFont()
 
         .startOverlapMode(pen)
 
         var cxt: Context
+        cxt.outline = outline
         .setMinifiedStrokeLimits(&cxt, pen)
         for p in pathList.paths
         {

@@ -554,6 +554,44 @@ impl MenuCtrl
         return .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
     }
 
+    // Reports whether the body of an attached popup still fits on the side its tab opens to.
+    //
+    // The tab, the mouth it opens in the body's outline and the hairline that continues that
+    // outline are all placed against one edge of the body, so the body has to stay where its
+    // button is. A body that does not fit is moved by the window fit afterwards, and the tab
+    // then describes an edge the body no longer has.
+    private mtd popupButtonAnchorFits()->bool
+    {
+        let parent = .parent!
+        let shadow = .themeMetrics().menuPopup_ShadowSize
+        let anchor = .popupBarItemSurfaceRect
+        let local  = parent.surfaceToLocal({anchor.x, anchor.y})
+
+        if .popupButtonOpensUp do
+            return local.y - (.position.height - anchor.height - shadow) >= -shadow
+        return local.y - shadow + .position.height <= parent.position.height + shadow
+    }
+
+    // Settles which side an attached popup opens to, and gives the attachment up when it fits on
+    // neither.
+    //
+    // A menu taller than the room on both sides of its button is not attached to anything any
+    // more: it opens as an ordinary popup, hanging from under the button and clamped to the
+    // window, rather than as a tab drawn against an edge that has slid away from it.
+    private mtd fitPopupButtonAnchor()
+    {
+        if .popupButtonAnchorFits() do
+            return
+
+        .popupButtonOpensUp = !.popupButtonOpensUp
+        .computeLayoutPopup()
+        if .popupButtonAnchorFits() do
+            return
+
+        .clearPopupBarAnchor()
+        .computeLayoutPopup()
+    }
+
     private mtd getPopupBarAnchorLocalRect()->Math.Rectangle
     {
         var result: retval = .popupBarItemSurfaceRect
@@ -1368,15 +1406,23 @@ public impl MenuCtrl
         }
 
         .computeLayoutPopup()
+        if button do
+            .fitPopupButtonAnchor()
 
         // Be sure popup menu is in the client area of the top view
         var pt = .parent!.surfaceToLocal(surfacePos)
 
         if button
         {
-            let anchor = .popupBarItemSurfaceRect
+            let anchor = button!.surfaceRect()
             let sdw    = .themeMetrics().menuPopup_ShadowSize
-            let y      = .popupButtonOpensUp ? anchor.y - (.position.height - anchor.height - sdw) : anchor.y - sdw
+
+            var y = anchor.y - sdw
+            if !.hasPopupBarAnchor() do
+                y = anchor.bottom() - sdw
+            elif .popupButtonOpensUp do
+                y = anchor.y - (.position.height - anchor.height - sdw)
+
             pt = .parent!.surfaceToLocal({anchor.x - sdw, y})
             .setPosition({pt.x, pt.y, .position.width, .position.height})
         }
@@ -1415,8 +1461,9 @@ public impl MenuCtrl
 
         // An attached button can sit against either surface edge, closer than the popup shadow is
         // deep. Let that invisible shadow start outside the surface on both axes; clamping it to
-        // the normal window margin would detach the popup body from a right-aligned trigger.
-        let fitMargin = button ? -.themeMetrics().menuPopup_ShadowSize : margin
+        // the normal window margin would detach the popup body from a right-aligned trigger. A
+        // popup that gave its attachment up keeps the ordinary margin.
+        let fitMargin = .hasPopupBarAnchor() ? -.themeMetrics().menuPopup_ShadowSize : margin
         .fitPosInParent(fitMargin, fitMargin, simX: !anchored, simY: true)
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.

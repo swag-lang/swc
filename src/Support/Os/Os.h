@@ -129,6 +129,11 @@ namespace Os
     const char* hostCpuName();
     const char* hostExceptionBackendName();
     bool        isFatalHostException(uint32_t exceptionCode);
+    // Reserves stack for the fault reporter on the CALLING thread. A stack-overflow fault is
+    // delivered on the very stack that ran out, so a reporter that needs a frame of its own
+    // faults again and the process dies with no message at all. Every thread that can run
+    // user code has to claim its reserve before it starts.
+    void        reserveFaultHandlerStack();
     uint32_t    currentProcessId();
     uint32_t    currentThreadId();
     uint32_t    captureCallStack(std::span<uintptr_t> outFrames, uint32_t skipFrames = 0);

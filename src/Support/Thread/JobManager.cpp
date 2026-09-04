@@ -502,6 +502,7 @@ void JobManager::growWorkersForLoadLocked()
         const size_t threadIndex = workers_.size();
         workers_.emplace_back([this, threadIndex] {
             threadIndex_ = threadIndex;
+            Os::reserveFaultHandlerStack();
             workerLoop();
         });
     }

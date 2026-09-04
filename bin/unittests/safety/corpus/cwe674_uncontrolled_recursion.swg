@@ -10,29 +10,22 @@ using Corpus
 //
 // Swag: a LARGE frame is handled correctly - the prologue emits the Windows guard-page probes,
 // so a single function cannot step over the guard page and land in unrelated memory (the
-// "stack clash" form). What is missing is what happens when the guard page is finally hit:
-// the process ends with no message and exit code 0, and under the compile-time JIT it takes
-// the compiler with it.
-//
-// So the memory-safety half is covered and the diagnosis half is not. The fault cases are
-// commented because running them ends the process.
+// "stack clash" form). Running out of depth is reported: every thread that runs user code
+// claims a stack reserve up front, so the fault reporter has a frame of its own to run in and
+// names the fault instead of dying on the exhausted stack.
 // -----------------------------------------------------------------------------
 
 // --- Faults ---
 
-// GAP compiler.safety.012 - exhausting the stack produces neither a value, nor a panic, nor a
-// message. It is the only class in this corpus where the language leaves no evidence at all.
+// Exhausting the stack is reported as EXCEPTION_STACK_OVERFLOW, with the task state and the
+// faulting function. The case is not run here because it ends the process by design - what it
+// must not do, and no longer does, is end it in silence.
 //
 // func recurseForever(depth: s32)->s32
 // {
 //     var frame: [4096] u8
 //     frame[0] = 1
 //     return recurseForever(depth + 1) + cast(s32) frame[0]
-// }
-//
-// #test
-// {
-//     discard recurseForever(0)
 // }
 
 // --- Sound ---

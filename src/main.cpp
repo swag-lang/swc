@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
     swc::Allocator::configure();
 
 #ifdef _WIN32
+    swc::Os::reserveFaultHandlerStack();
     void* hostExceptionHandler = AddVectoredExceptionHandler(1, reportUnhandledHostException);
 #endif
 

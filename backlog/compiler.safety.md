@@ -333,13 +333,15 @@ is the current scorecard.
   `#test` that recurses too far reports nothing at all — the build simply stops after "tuned". Large
   frames are handled correctly: `expandLargePrologueStackAdjustments` already emits the Windows
   guard-page probes, so this is the depth case, not a stack clash.
-- Consequence: the one fault class where the language produces neither a value, nor a panic, nor a
-  message. Every other unchecked operation at least leaves evidence.
-- Next: catch the guard-page fault and report it. The host already installs a hardware-exception
-  handler (`Support/Report/HardwareException`); a stack-overflow exception needs the same treatment
-  as an access violation, plus a reserved guard region so the handler itself has stack to run on.
-- Complete when: exhausting the stack reports a located diagnostic under the JIT without ending the
-  compiler, and a native binary exits with a stack-overflow message rather than silently.
+- Consequence: the diagnosis half is now covered - every thread that runs user code claims a
+  stack reserve before starting, so the reporter has a frame of its own and names the fault
+  (`EXCEPTION_STACK_OVERFLOW`, with the task state and the faulting function) instead of dying
+  on the exhausted stack. What is still missing is what the LANGUAGE says: the depth at which a
+  program dies is a property of the host, not of the source, and nothing bounds or declares it.
+- Next: decide whether that is a language question at all. Rust and Go abort the same way; Go
+  additionally grows its stacks, which is a runtime design Swag has not chosen. If the answer is
+  "abort with a message", this entry is done and only the reference needs the sentence.
+- Complete when: the reference states what exhausting the stack does, or a bound exists.
 
 ## Borrow invalidation
 
@@ -369,29 +371,31 @@ is the current scorecard.
 - Related: the guard on a written `#[Inline]` is restored until this is settled - see
   `simd/backlog-sweep`, "Restore the cross-file inline guard until the borrow analysis is right".
 
-### compiler.safety.013 — A container reached through a pointer parameter is not judged
+### compiler.safety.013 — View invalidation is judged, or not, depending on what else the module contains
 
 - Area: compiler/sema, `SemaEscape`
-- Evidence: the invalidation check judges a view of a local owner and a view of a method receiver,
-  and misses the same body when the container arrives as an ordinary pointer parameter. All three
-  were probed with the identical shape:
-  - `var a: Array's32` in the caller, view taken, `a.add(...)` — reported;
-  - `mtd bad()` reading `.items.toSlice()` then `.items.add(...)` — reported, naming `me`;
-  - `func f(a: *Array's32)` reading `a.toSlice()` then `a.add(...)` — silent, and the read returns
-    garbage.
-  The same asymmetry applies to a view into what a `*String` parameter owns.
-- Consequence: the shape that is missed is the one a library writes. A method on the owner is covered
-  because the receiver roots at `me`; the moment the same code becomes a free function taking the
-  container, the rule stops applying.
-- Next: root a parameter-carried owner the way `signatureParameterFor` already roots a body `me`, and
-  judge the mutation against the parameter rather than dropping it. The false-positive risk is the
-  one already recorded for parameter-rooted containers under the pair check — an object caching a
-  pointer to a caller buffer for the duration of one call is idiomatic — so this must be swept over
-  all of `bin/` before it lands, and reduced rather than annotated if it fires.
-- Complete when: the third probe above reports, the `bin/` sweep is clean, and
-  `borrow_invalidation.swg` covers a container reached through a pointer parameter alongside the
-  receiver case.
-- Related: compiler.safety.001.
+- Evidence: the entry used to say that a container reaching a body as a pointer parameter is
+  never judged. That is wrong, and the trace says why: `noteBorrowInvalidation` RECORDS the
+  parameter case exactly as it records a receiver rooted at `me`, and the report comes out. Two
+  runs of the same shape:
+  - `func f(bag: *Bag)` taking a view then calling `bag.add` — reported;
+  - the identical body against `Core.Array` — reported;
+  - the same file with one more function added before it, whose read sits in a call argument —
+    NEITHER function reported any more.
+  So the rule reaches the parameter shape, and whether the report survives depends on what else
+  the module contains.
+- Consequence: an analysis that is right but intermittent is worse than one with a known hole,
+  because a green build proves nothing. It also makes every measurement of this rule's coverage
+  unreliable, including the corpus's.
+- Next: find what the extra function changes. The deferred checks are judged at the end of
+  `Sema::waitDone` against summaries the fixpoint has just finished growing, so the first
+  suspects are the same as compiler.safety.016: a record whose `reallocates` bit is read before
+  the edge that would set it, and a `firstReadAfter` whose search window depends on the order
+  bodies were resolved in. Reproduce with two functions in one file before touching anything.
+- Complete when: the pair above reports in both orders and with either read position, and a
+  case with several judged functions in one file is pinned in `bin/unittests/sanity`.
+- Related: compiler.safety.016 is the same family — a judgement that depends on when it runs
+  rather than on what it can prove.
 
 ## The statement
 

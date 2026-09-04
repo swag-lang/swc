@@ -877,6 +877,15 @@ namespace Os
         }
     }
 
+    void reserveFaultHandlerStack()
+    {
+        // Windows hands the guard page back once, and only once, for the thread to recover on.
+        // Without a guarantee the reporter runs in what is left of the faulting frame, which is
+        // nothing: it faults again and the second fault is not recoverable.
+        ULONG bytes = 64 * 1024;
+        SetThreadStackGuarantee(&bytes);
+    }
+
     uint32_t currentProcessId()
     {
         return static_cast<uint32_t>(GetCurrentProcessId());

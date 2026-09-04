@@ -94,6 +94,22 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
         host.fireTimers()
         steps += 1
     }
+
+    Swag.assert(steps < 4_096)
+}
+
+// Waits for the summary the text viewer publishes once its background analysis lands.
+//
+// `isLoading` above answers for the document, not for the line and word totals: those arrive on
+// their own worker, and the information band shows the encoding alone until they do. A golden of
+// that band therefore has two possible answers unless it waits here.
+func completeViewerStatistics(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    let view = cast(*TextView) window.currentView!
+    while !Atomic.get(&view.statisticsState) do
+        host.pump()
+    if view.statisticsTimer do
+        host.fireTimer(view.statisticsTimer)
 }
 
 // Runs a search to its end: every streamed chunk, and every poll of a viewer that reads its
@@ -808,6 +824,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.resize(960, 680)
     window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
     completeQueuedViewerFile(&host, window)
+    completeViewerStatistics(&host, window)
     window.toggleFilePanel()
     window.applyLayout()
     host.settleAnimations(window, 4)
@@ -1925,6 +1942,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.resize(960, 680)
     window.openFile(viewerFixturePath().toString())
     completeQueuedViewerFile(&host, window)
+    completeViewerStatistics(&host, window)
     window.applyLayout()
     host.settleAnimations(window, 4)
 

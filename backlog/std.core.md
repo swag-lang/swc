@@ -19,7 +19,7 @@ new module rather than growth inside `core`.
 
 Some areas are competitive or ahead.
 
-- **Text**, at eleven thousand lines, is the largest area and it earns it: strings, a builder,
+- **Text**, at sixteen thousand lines, is the largest area and it earns it: strings, a builder,
   formatting, parsing, a regular-expression engine, Unicode and Latin-1 tables, UTF-8 and UTF-16,
   correctly-rounded `atod`/`dtoa`, decimals, tokenizing. This is a peer of what Go and .NET ship.
 - **Math** has vectors, matrices, 2D geometry and transforms, curves, 128-bit integers, bit

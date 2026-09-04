@@ -19,44 +19,115 @@ private func contourPointKey(point: Vector2)->u64
     return cast(u64) cast #bit(u32) point.x << 32 | cast(u64) cast #bit(u32) point.y
 }
 
-public impl Painter
+// One region a fill triangulates as a unit, as a range of a companion contour array.
+//
+// The type identity is part of the exported [[Pixel.FillPreparer]] layout, so it is public, but
+// it carries no public contract of its own.
+#[Swag.NoDoc]
+public struct FillRegion
 {
-    // Records, for every vertex of a freshly tessellated region, the outward direction of the
-    // contour point it came from, so the solid can be inset when it is pushed rather than when it
-    // is built.
-    //
-    // The tessellator answers with plain positions, and a constrained triangulation of contours
-    // that were already normalized introduces no point of its own, so each vertex is one of the
-    // contour points and is found by its exact coordinates. A vertex that is not — a tessellator
-    // that decided otherwise — keeps a zero direction and stays where it is. The lookup reuses the
-    // painter's own table: a page of vector glyphs tessellates thousands of regions, and a fresh
-    // table for each of them is a page's worth of allocation for nothing.
-    private mtd buildTriangleOffsets(p: *LinePath, island: const [..] *LinePath, outward: f32)
+    flush: *LinePath = undefined     // Contour the region's tessellation is cached on.
+    first: u64                       // Index of the region's first contour.
+    count: u64                       // Contours the region is made of.
+}
+
+// Groups the contours of a fill-prepared list into the regions a fill triangulates.
+//
+// A region is one outer contour and the holes that follow it: a new one opens at a contour
+// winding the other way, or at a change of group. Its tessellation is cached on the last contour
+// that contributes to it, which is why that contour travels with the region. A contour of fewer
+// than three points bounds nothing and joins no region, but still closes the one before it.
+internal func fillRegions(pathList: *LinePathList, contours: *Array'(*LinePath), regions: *Array'FillRegion)
+{
+    contours.clear()
+    regions.clear()
+
+    var serial = 0
+    var first  = 0'u64
+    var flush: #null *LinePath
+
+    for p in pathList.paths
     {
-        p.triangleOffsets.clear()
-        p.triangleOffsets.resize(p.triangles.vertices.count)
-
-        .sharedDirections.clear()
-        for contour in island
+        if (p.polygon.isClockwise or serial != p.serial) and flush
         {
-            contour.polygon.fillOffsetDirections(&.sharedOffsetDirs)
-            let points = contour.polygon.points.buffer!
-            let dirs   = .sharedOffsetDirs.buffer!
-
-            // The first direction filed under a position is the one that stands, which is what
-            // asking the table before writing used to express in two probes instead of one.
-            for i in contour.polygon.points.count do
-                .sharedDirections.add(contourPointKey(points[i]), dirs[i] * outward, updateValue: false)
+            serial = p.serial
+            regions.add({flush!, first, contours.count - first})
+            first = contours.count
+            flush = null
         }
 
-        for i in p.triangles.vertices.count
+        if p.polygon.points.count >= 3
         {
-            let found = .sharedDirections.tryFind(contourPointKey(p.triangles.vertices[i]))
-            if found do
-                p.triangleOffsets[i] = found!.value
+            flush = p
+            contours.add(p)
         }
     }
 
+    if flush do
+        regions.add({flush!, first, contours.count - first})
+}
+
+// Returns the sign that turns a region's contour directions outward.
+//
+// A contour's offset directions point away from the region it bounds only when the list follows
+// the convention: outers clockwise, holes anticlockwise. A ruled fill of a lone simple contour is
+// the one case that reaches a tessellation unnormalized, because the rule makes the direction
+// irrelevant to the region; when that contour runs anticlockwise its directions point inward, and
+// both the solid's inset and the antialiasing band would place the edge a band outside the
+// contour, as hard as the solid.
+private func regionOutward(contours: const [..] *LinePath, ruled: bool)->f32
+{
+    return ruled and contours.count == 1 and !contours[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
+}
+
+// Records, for every vertex of a freshly tessellated region, the outward direction of the contour
+// point it came from, so the solid can be inset when it is pushed rather than when it is built.
+//
+// The tessellator answers with plain positions, and a constrained triangulation of contours that
+// were already normalized introduces no point of its own, so each vertex is one of the contour
+// points and is found by its exact coordinates. A vertex that is not — a tessellator that decided
+// otherwise — keeps a zero direction and stays where it is. `directions` is the caller's own
+// table: a page of vector glyphs tessellates thousands of regions, and a fresh table for each of
+// them is a page's worth of allocation for nothing.
+private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *LinePath, contours: const [..] *LinePath, outward: f32)
+{
+    p.triangleOffsets.clear()
+    p.triangleOffsets.resize(p.triangles.vertices.count)
+
+    directions.clear()
+    for contour in contours
+    {
+        let dirs   = contour.offsetDirections()
+        let points = contour.polygon.points.buffer!
+
+        // The first direction filed under a position is the one that stands, which is what
+        // asking the table before writing used to express in two probes instead of one.
+        for i in contour.polygon.points.count do
+            directions.add(contourPointKey(points[i]), dirs[i] * outward, updateValue: false)
+    }
+
+    for i in p.triangles.vertices.count
+    {
+        let found = directions.tryFind(contourPointKey(p.triangles.vertices[i]))
+        if found do
+            p.triangleOffsets[i] = found!.value
+    }
+}
+
+// Triangulates the contours already given to `tess` and caches the result on the region.
+//
+// The tessellation is kept on the last contour of the region rather than on the list, because
+// that is where a fill looks for it, and it is left keyed to the contours it was built from.
+private func buildRegionTessellation(tess: *Poly2Tri.Tessellate, directions: *HashTable'(u64, Vector2), flush: *LinePath, contours: const [..] *LinePath, ruled: bool)
+{
+    tess.triangulate()
+    flush.triangles = tess.takeResult()
+    tess.clear()
+    buildTriangleOffsets(directions, flush, contours, regionOutward(contours, ruled))
+}
+
+public impl Painter
+{
     // Emit a connected, mitered antialiasing fringe ring around a closed polygon
     // contour. Adjacent edges share their mitered inner/outer vertices, so corners
     // stay seamless (no per-edge wedges).
@@ -69,21 +140,21 @@ public impl Painter
     // maximum, which keeps the solid's own hard edge — it places the band fully outside
     // (0 / 2*AAHalf) instead, so the full-coverage ring coincides with that edge and one
     // clean outward ramp survives the maximum.
-    private mtd fillContourAA(polygon: *Polygon, color: Color, innerOff: f32, outerOff: f32)
+    private mtd fillContourAA(contour: *LinePath, color: Color, innerOff: f32, outerOff: f32)
     {
-        let count = polygon.points.count - 1
+        let polygon = &contour.polygon
+        let count   = polygon.points.count - 1
         if count < 2 do
             return
 
         // Where a point moves to is a miter — two normalizations and a line intersection — and it
         // does not depend on how far it moves: the offset only scales it. The ring asked for it
         // four times per edge, and every point is one edge's start and the previous edge's end,
-        // so a contour paid eight miters per point where it needs one. It is resolved once here
-        // and every corner of the band is that direction scaled.
-        polygon.fillOffsetDirections(&.sharedOffsetDirs)
+        // so a contour paid eight miters per point where it needs one. The contour resolves them
+        // once for the state it is in, and every corner of the band is that direction scaled.
+        let dirs = contour.offsetDirections()
 
         let argb = color.argb
-        let dirs = .sharedOffsetDirs.buffer!
         for i in count
         {
             let j  = (i + 1) % count
@@ -100,23 +171,11 @@ public impl Painter
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()
 
-        // A contour's offset directions point away from the region it bounds only when the list
-        // follows the convention: outers clockwise, holes anticlockwise. A ruled fill of a lone
-        // simple contour is the one case that reaches here unnormalized, because the rule makes
-        // the direction irrelevant to the region; when that contour runs anticlockwise its
-        // directions point inward, and both the inset and the band below would place the edge a
-        // band outside the contour, as hard as the solid.
-        let outward = ruled and island.count == 1 and !island[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
+        let outward = regionOutward(island, ruled)
 
         // Triangulation
-        if p.triangles.vertices.isEmpty()
-        {
-            let tess = t!
-            tess.triangulate()
-            p.triangles = tess.takeResult()
-            tess.clear()
-            .buildTriangleOffsets(p, island, outward)
-        }
+        if p.triangles.vertices.isEmpty() do
+            buildRegionTessellation(t!, &.sharedDirections, p, island, ruled)
 
         // The solid stops half a band short of the contour and the band, centered on the
         // contour, carries the coverage from there out. A solid left on the true contour is a
@@ -147,7 +206,7 @@ public impl Painter
         if .curState.paintParams & .Antialiased
         {
             for contour in island do
-                .fillContourAA(&contour.polygon, brush.color, -aa * outward, aa * outward)
+                .fillContourAA(contour, brush.color, -aa * outward, aa * outward)
         }
     }
 
@@ -216,7 +275,7 @@ public impl Painter
             }
 
             if .curState.paintParams & .Antialiased do
-                .fillContourAA(polygon, brush.color, -aa, aa)
+                .fillContourAA(path, brush.color, -aa, aa)
         }
 
         // Non convex shape: complex painting (triangulation)
@@ -293,61 +352,25 @@ public impl Painter
     // which decides how a lone contour that runs anticlockwise is read.
     private mtd fillPreparedPathList(pathList: *LinePathList, brush: Brush, ruled: bool)
     {
-        var flush: #null *LinePath
+        fillRegions(pathList, &.sharedContours, &.sharedRegions)
 
-        // Everything in the cache ?
-        var serial = 0
-        var dirty  = false
-        for p in pathList.paths
+        for region in .sharedRegions
         {
-            if (p.polygon.isClockwise or serial != p.serial) and flush
-            {
-                if !flush.triangles.vertices.count
-                {
-                    dirty = true
-                    break
-                }
+            let contours = .sharedContours.toSlice()[region.first until region.first + region.count]
 
-                serial = p.serial
-                flush  = null
+            // The tessellator is fed the region's contours only when the region still has to be
+            // triangulated. A page painted again has every one of them cached, and walking its
+            // contours into a tessellator whose result would be discarded is most of what a
+            // repeated fill would otherwise cost.
+            let build = region.flush.triangles.vertices.isEmpty()
+            if build
+            {
+                for contour in contours do
+                    .tess.addPolyLine(contour.polygon)
             }
 
-            if p.polygon.points.count >= 3
-            {
-                flush = p
-            }
+            .fillPathTriangulated(build ? &.tess : null, region.flush, pathList.minBounds, pathList.maxBounds, brush, contours, ruled)
         }
-
-        // If everything has been computed, then just paint them (no need to generate polylines as 'triangulate' will not use them)
-        if flush and !flush.triangles.vertices.count do
-            dirty = true
-
-        serial = 0
-        flush  = null
-        .sharedIsland.clear()
-
-        for p in pathList.paths
-        {
-            if (p.polygon.isClockwise or serial != p.serial) and flush
-            {
-                serial = p.serial
-                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice(), ruled)
-                .sharedIsland.clear()
-                flush = null
-            }
-
-            if p.polygon.points.count >= 3
-            {
-                flush = p
-                .sharedIsland.add(p)
-                if dirty do
-                    .tess.addPolyLine(p.polygon)
-            }
-        }
-
-        if flush do
-            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice(), ruled)
-        .sharedIsland.clear()
     }
 
     // Fill the polygon with the given color
@@ -392,5 +415,79 @@ public impl Painter
             path.lineTo(pt.x, pt.y)
         path.close()
         .fillPath(&path, brush)
+    }
+}
+
+// Builds the tessellation a fill would build, without recording anything.
+//
+// A fill caches its triangulation inside the contours it fills, so the frame that first draws a
+// shape pays for it and the frames after it do not. That is what makes drawing an unchanged
+// document cheap — and what makes the first frame at a new scale expensive, because flattening
+// the geometry finer replaces the contours every cached tessellation was keyed on. A consumer
+// that knows ahead of the frame what it is about to draw, and at what scale — a document viewer
+// that has just decoded a page, or one whose window has just been resized — can pay that here
+// instead, and on whatever thread it likes: nothing below reads a painter, a renderer, or any
+// state shared between them.
+//
+// The preparer owns the workspaces the build needs, so preparing a page's worth of shapes
+// allocates once rather than once per shape. One preparer serves one thread, and the geometry it
+// is given must not be drawn while it is preparing it.
+//
+// ```swag
+// var preparer: FillPreparer
+// for shape in page do
+//     preparer.prepare(shape, scale, .NonZero)
+// ```
+#[Swag.Opaque]
+public struct FillPreparer
+{
+    tess:       Poly2Tri.Tessellate
+    directions: HashTable'(u64, Vector2)
+    contours:   Array'(*LinePath)
+    regions:    Array'FillRegion
+}
+
+public impl FillPreparer
+{
+    // Prepares what [[Pixel.Painter.fillPath]] under `rule` would build for `pathList`.
+    //
+    // `scale` is the number of device pixels one path unit covers, the way
+    // [[Pixel.Painter.setFlattenScale]] reads it, and is quantized the same way: ask for the
+    // scale the shape will be drawn at, and the frame that draws it finds everything cached.
+    // Asking for less leaves the frame to flatten the geometry again; asking for more only costs
+    // the extra segments.
+    mtd prepare(pathList: *LinePathList, scale: f32, rule: PathFillRule, quality = PaintQuality.Normal)
+    {
+        pathList.flatten(quality, Painter.quantizeFlattenScale(scale))
+        .prepareRegions(pathList.normalizedFill(rule == .EvenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, byDirection: false), true)
+    }
+
+    // Prepares what the winding-direction [[Pixel.Painter.fillPath]] would build for `pathList`.
+    mtd prepare(pathList: *LinePathList, scale: f32, quality = PaintQuality.Normal)
+    {
+        pathList.flatten(quality, Painter.quantizeFlattenScale(scale))
+        .prepareRegions(pathList.normalizedFill(.NonZero, byDirection: true), false)
+    }
+
+    // Flattens a path for a draw at `scale`, without tessellating anything.
+    //
+    // A stroked path is turned into geometry by the frame that draws it, so there is no
+    // tessellation to build for one; flattening it here still keeps the frame from doing it.
+    mtd flatten(pathList: *LinePathList, scale: f32, quality = PaintQuality.Normal)
+    {
+        pathList.flatten(quality, Painter.quantizeFlattenScale(scale))
+    }
+
+    // Triangulates every region of an already flattened and normalized list.
+    private mtd prepareRegions(pathList: *LinePathList, ruled: bool)
+    {
+        fillRegions(pathList, &.contours, &.regions)
+        for region in .regions where region.flush.triangles.vertices.isEmpty()
+        {
+            let contours = .contours.toSlice()[region.first until region.first + region.count]
+            for contour in contours do
+                .tess.addPolyLine(contour.polygon)
+            buildRegionTessellation(&.tess, &.directions, region.flush, contours, ruled)
+        }
     }
 }

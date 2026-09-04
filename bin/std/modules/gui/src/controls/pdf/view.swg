@@ -105,6 +105,23 @@ struct PdfView
     // The text of every page, extracted on a worker the first time a search asks for it and
     // kept until the document closes.
     documentText: Pdf.DocumentText
+
+    // How finely the page's geometry is currently flattened, what a worker is raising that to,
+    // and the lock that keeps the worker and a frame off the page at the same time.
+    //
+    // Drawing at a finer scale than the page holds flattens and triangulates the whole page
+    // inside that frame, which on a page of a few thousand marks is what a reader enlarging a
+    // window sees as the window stopping. The view keeps drawing at the scale the page already
+    // holds and has a worker raise it one item at a time, so a frame waits at most for the item
+    // the worker is on.
+    prepareJob:     Jobs.Job
+    pageLock:       Sync.Mutex
+    preparedScale:  f32
+    preparingScale: f32
+    prepareReady:   u32     // Set by the worker when the page holds `preparingScale`; read atomically.
+    prepareCancel:  u32     // Asks the worker to stop after the shape it is on; read atomically.
+    preparing:      bool
+    prepareTimer:   #null *Timer
 }
 
 private impl PdfView
@@ -365,14 +382,143 @@ internal impl PdfView
         .imageTextures.clear()
         .hasTextures = false
     }
+
+    // How often the view asks whether the worker has finished raising the page's flattening.
+    const PreparePollInterval: Time.Duration = 30'ms
+
+    // Returns how finely the frame about to run should flatten the page's curves, and asks a
+    // worker for anything finer that frame would otherwise build itself.
+    //
+    // A frame draws at the scale the page is shown at, and flattens its curves for it. When the
+    // page does not hold that flattening, the frame would build it for the whole page before it
+    // could draw anything, so it draws with the flattening the page does hold instead — a curve a
+    // step coarser than it should be, for as long as the worker takes, against a window that
+    // stops following the pointer for a fifth of a second. The page's very first frame is the one
+    // that has nothing coarser to fall back on, and builds what it needs.
+    mtd resolveFlattenScale(wanted: f32)->f32
+    {
+        if !.preparedScale do
+            .preparedScale = wanted
+        .requestPrepare(wanted)
+        return Math.min(wanted, .preparedScale)
+    }
+
+    // Has a worker raise the page's flattening to `wanted` when the page does not hold it.
+    mtd requestPrepare(wanted: f32)
+    {
+        if .preparing or wanted <= .preparedScale do
+            return
+
+        .preparingScale    = wanted
+        .prepareReady      = 0
+        .prepareCancel     = 0
+        .preparing         = true
+        .prepareJob.lambda = func(data: #null *void)
+        {
+            let view = cast(*PdfView) data!
+            view.runPrepare()
+        }
+
+        .prepareJob.data = me
+        Jobs.schedule(&.prepareJob)
+
+        // Without workers a job only runs inside a wait, so it is already done here; the timer
+        // publishes it either way rather than leaving this frame to decide.
+        if Jobs.isSynchronous() do
+            Jobs.wait(&.prepareJob)
+        if !.prepareTimer do
+            .prepareTimer = .addTimer(PreparePollInterval)
+    }
+
+    // Runs on the worker: prepares the page one shape at a time, handing it back between them.
+    //
+    // The lock is taken per shape rather than for the page, so a frame that starts while this
+    // runs waits for one shape and not for the rest of the document. The page it is preparing
+    // may be about to be replaced, so it stops between shapes when asked.
+    mtd runPrepare()
+    {
+        var preparer: Pixel.FillPreparer
+        let scale = .preparingScale
+
+        for index in .page.clipPaths.count
+        {
+            if Atomic.get(&.prepareCancel) != 0 do
+                return
+            Sync.scopedLock(&.pageLock)
+            .page.prepareClipPath(index, scale, &preparer)
+        }
+
+        for index in .page.items.count
+        {
+            if Atomic.get(&.prepareCancel) != 0 do
+                return
+            Sync.scopedLock(&.pageLock)
+            .page.prepareItem(index, scale, &preparer)
+        }
+
+        Atomic.exchange(&.prepareReady, 1)
+    }
+
+    // Adopts a finished preparation, and reports whether the page moved to a finer flattening.
+    mtd adoptPrepare()->bool
+    {
+        if !.preparing or Atomic.get(&.prepareReady) == 0 do
+            return false
+
+        Jobs.wait(&.prepareJob)
+        .preparedScale = .preparingScale
+        .preparing     = false
+        .stopPrepareTimer()
+        return true
+    }
+
+    mtd stopPrepareTimer()
+    {
+        if .prepareTimer
+        {
+            .removeTimer(.prepareTimer!)
+            .prepareTimer = null
+        }
+    }
+
+    // Stops the worker and forgets what the page was prepared for, before the page is replaced.
+    mtd stopPrepare()
+    {
+        if .preparing
+        {
+            Atomic.exchange(&.prepareCancel, 1)
+            Jobs.wait(&.prepareJob)
+            .preparing = false
+        }
+
+        .stopPrepareTimer()
+        .prepareReady   = 0
+        .prepareCancel  = 0
+        .preparedScale  = 0
+        .preparingScale = 0
+    }
 }
 
 impl IWnd for PdfView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        .stopPrepare()
         .documentText.stop()
         .releaseTextures()
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .prepareTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        // The page now holds the finer flattening, and the frame that shows it is free.
+        if .adoptPrepare() do
+            .invalidate()
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
@@ -403,8 +549,17 @@ impl IWnd for PdfView
         painter.pushClippingRect(.clientRect())
         painter.fillRect(content, Color.fromArgb(Argb.White))
 
+        // The page's curves are flattened for the scale it is shown at. Raising that is the
+        // whole page's work, so the frame asks for what the page holds and lets a worker catch
+        // up; the timer publishes the result.
+        discard .adoptPrepare()
+        let devicePerPoint = scale * .deviceScale()
+        let flattenScale   = .resolveFlattenScale(Painter.quantizeFlattenScale(devicePerPoint))
+
         let pageToSurface = Math.Transform2{scale, 0, 0, scale, base.tx + content.x, base.ty + content.y}
-        catch Pdf.drawPageItems(painter, &.page, pageToSurface, scale * .deviceScale(), &.fonts, "", .imageTextures.toSlice()) as paintError
+        .pageLock.lock()
+        catch Pdf.drawPageItems(painter, &.page, pageToSurface, devicePerPoint, flattenScale, &.fonts, "", .imageTextures.toSlice()) as paintError
+        .pageLock.unlock()
         painter.setTransform(base)
 
         // The selection is a translucent wash over the drawn page, so the marked words stay
@@ -665,6 +820,7 @@ impl PdfView
     // for search, while keeping the widget alive.
     mtd close()
     {
+        .stopPrepare()
         .documentText.stop()
         .releaseTextures()
         Swag.drop(&.page, 1)
@@ -698,6 +854,7 @@ impl PdfView
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
 
         var page = #move try .reader.loadPage(index)
+        .stopPrepare()
         .releaseTextures()
         Swag.drop(&.page, 1)
         Swag.init(&.page, 1)

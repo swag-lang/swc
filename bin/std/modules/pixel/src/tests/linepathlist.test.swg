@@ -321,3 +321,126 @@ const TouchingCells: [5] Cell = [
     Swag.assert(outline[3].isEqualEpsilon({44.815, 195.505}, 0.01))
     Swag.assert(outline[4].isEqualEpsilon({44.815, 206.843}, 0.01))
 }
+
+// A contour of straight segments reads the same at every tolerance, so asking for a finer one
+// leaves it — and everything keyed on it — alone. A page of rules and boxes is polygons all the
+// way down, and rebuilding them for a zoom step is what used to cost it its whole tessellation.
+#test
+{
+    var list = nestedSquares()
+
+    var painter: Painter
+    painter.begin()
+    painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
+    painter.end()
+
+    let cache     = list.fillCache!
+    let revision  = list.paths[0].revision
+    var triangles = 0'u64
+    for p in cache.paths do
+        triangles += p.triangles.vertices.count
+    Swag.assert(triangles > 0)
+
+    // A frame at eight times the scale asks for a tolerance eight times finer.
+    painter.begin()
+    painter.setFlattenScale(8)
+    painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
+    painter.end()
+
+    Swag.assert(list.paths[0].revision == revision)
+    Swag.assert(list.fillCache! == cache)
+    var again = 0'u64
+    for p in cache.paths do
+        again += p.triangles.vertices.count
+    Swag.assert(again == triangles)
+}
+
+// A curved contour does depend on the tolerance, so a finer one still rebuilds it.
+#test
+{
+    var list: LinePathList
+    list.newPath().setEllipseRaw(50, 50, 40, 40)
+    list.flatten(.Normal)
+
+    let revision = list.paths[0].revision
+    let coarse   = list.paths[0].polygon.points.count
+    list.flatten(.Normal, 8)
+    Swag.assert(list.paths[0].revision != revision)
+    Swag.assert(list.paths[0].polygon.points.count > coarse)
+}
+
+// A contour resolves the outward direction of its points once for the state it is in, so the
+// antialiasing band of a shape painted every frame is placed rather than recomputed.
+#test
+{
+    var path: LinePath
+    path.setEllipseRaw(50, 50, 40, 40)
+    path.flatten(.Normal)
+
+    var expected: Array'Vector2
+    path.polygon.fillOffsetDirections(&expected)
+
+    let dirs = path.offsetDirections()
+    Swag.assert(dirs.count == expected.count)
+    for i in dirs.count do
+        Swag.assert(dirs[i] == expected[i])
+
+    // Editing the contour in place is announced through its revision, and the directions follow.
+    path.polygon.points[0] += {10, 10}
+    path.touchContour()
+    path.polygon.fillOffsetDirections(&expected)
+    let moved = path.offsetDirections()
+    Swag.assert(moved.count == expected.count)
+    for i in moved.count do
+        Swag.assert(moved[i] == expected[i])
+}
+
+// Preparing a shape builds exactly what a fill of it looks for, so the first fill after it
+// triangulates nothing and records the geometry it finds.
+#test
+{
+    var list = nestedSquares()
+
+    var preparer: FillPreparer
+    preparer.prepare(&list, 1, .EvenOdd)
+
+    let cache     = list.fillCache!
+    var triangles = 0'u64
+    for p in cache.paths do
+        triangles += p.triangles.vertices.count
+    Swag.assert(triangles > 0)
+
+    var painter: Painter
+    painter.begin()
+    painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
+    painter.end()
+
+    Swag.assert(list.fillCache! == cache)
+    var again = 0'u64
+    for p in cache.paths do
+        again += p.triangles.vertices.count
+    Swag.assert(again == triangles)
+
+    // A preparation quantizes its scale the way the painter does, so preparing for a scale
+    // between two buckets is what the frame at either of them looks for.
+    Swag.assert(Painter.quantizeFlattenScale(11.9) == 8)
+}
+
+// A shape prepared for one scale is prepared for every coarser one, and preparing for a finer
+// one replaces what a coarser preparation built.
+#test
+{
+    var list: LinePathList
+    list.newPath().setEllipseRaw(50, 50, 40, 40)
+
+    var preparer: FillPreparer
+    preparer.prepare(&list, 8, .NonZero)
+    let fine = list.paths[0].polygon.points.count
+
+    var painter: Painter
+    painter.begin()
+    painter.setFlattenScale(2)
+    painter.fillPath(&list, Color.fromArgb(Argb.Black), .NonZero)
+    painter.end()
+    Swag.assert(list.paths[0].polygon.points.count == fine)
+}

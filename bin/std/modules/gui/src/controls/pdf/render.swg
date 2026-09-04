@@ -415,7 +415,7 @@ private func pathPen(item: const *Item, scale: f32)->Pen
 private func clipFillRule(clip: const *ClipPath)->PathFillRule => clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero
 
 // Returns how many page points the longer side of an image's unit square spans.
-private func unitSquareScale(transform: Transform2)->f32
+internal func unitSquareScale(transform: Transform2)->f32
 {
     let width  = Math.sqrt(transform.m11 * transform.m11 + transform.m12 * transform.m12)
     let height = Math.sqrt(transform.m21 * transform.m21 + transform.m22 * transform.m22)
@@ -447,9 +447,14 @@ private func writeClipRegion(painter: *Painter, clip: *ClipPath, pageToSurface: 
 // invalid entry skips its image. An item consumes one entry when it carries an image of its own
 // or a soft mask coverage, which are the two things this drawing needs a texture for.
 //
+// `flattenScale` is how finely curves are flattened, in the same units. It is normally
+// `devicePerPoint`, and lower only for a caller that has geometry prepared for a coarser scale
+// and would rather show it than flatten the whole page inside this frame — see
+// [[Gui.Pdf.Page.prepare]].
+//
 // Fills cache their tessellation inside the page items, which is what makes drawing the same
 // page again cheap. The caller owns the painter's transform state and restores it afterwards.
-internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture) fail
+internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint, flattenScale: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture) fail
 {
     let previousBlend = painter.blendingMode()
     defer painter.setBlendingMode(previousBlend)
@@ -466,7 +471,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     // Curves are flattened in page units, so the zoom has to reach the tolerance for a
     // magnified page to stay smooth; the painter buckets it so the caches re-key rarely.
     let previousFlattenScale = painter.flattenScale()
-    painter.setFlattenScale(devicePerPoint)
+    painter.setFlattenScale(flattenScale)
     defer painter.setFlattenScale(previousFlattenScale)
 
     let fontCache    = painter.renderer().fontCache()
@@ -632,9 +637,9 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             brush.mapOver({0, 0, 1, 1})
             brush.setTint(item.fillColor)
             let clip = page.clipPaths[item.clipPath]!
-            painter.setFlattenScale(devicePerPoint * unitSquareScale(item.transform))
+            painter.setFlattenScale(flattenScale * unitSquareScale(item.transform))
             painter.fillPath(&item.imageClip, brush, clipFillRule(clip))
-            painter.setFlattenScale(devicePerPoint)
+            painter.setFlattenScale(flattenScale)
         }
 
         if item.kind == .Image or item.hasMask do
@@ -734,7 +739,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     // A region render shifts every mark by the region origin; the whole page is the identity
     // region, so the same path serves both.
-    try drawPageItems(&painter, page, Transform2.createTranslation(-region.x, -region.y), options.scale, &fonts, options.fallbackFontFile, textures.toSlice())
+    try drawPageItems(&painter, page, Transform2.createTranslation(-region.x, -region.y), options.scale, options.scale, &fonts, options.fallbackFontFile, textures.toSlice())
 
     painter.resetTransform()
 

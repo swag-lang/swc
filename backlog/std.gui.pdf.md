@@ -368,13 +368,17 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   worst — through `Reader.loadPageText`. The difference is the images, which the text never
   needed and the page turn still does.
 - Next: decode the requested page on a worker and publish it the way the application's viewer
-  publishes the first page, keeping the previous page shown until the next one is ready; then
+  publishes the first page, keeping the previous page shown until the next one is ready, and call
+  `Page.prepare` there too so the frame that first shows it neither decodes nor tessellates; then
   keep a small number of decoded pages around so the page a search or a back-step returns to
   costs nothing. Measure the same document afterwards on the time between the request and the
   first frame that shows the new page.
+- Note: a page's *first* frame is the one preparation left on the GUI thread — a resize now hands
+  its flattening to a worker, but a page nothing has drawn yet has no coarser geometry to fall
+  back on. On the corpus's densest vector page that first frame costs 3.5 ms against 1.3 ms warm.
 - Complete when: turning a page never blocks the GUI thread for longer than a frame, whatever the
   page holds, and returning to a page just left costs no decode.
-- Related: std.gui.pdf.025, std.gui.pdf.032
+- Related: std.gui.pdf.025, std.gui.pdf.033
 
 ### std.gui.pdf.026 — An image is copied once per page item that shows it
 
@@ -451,49 +455,28 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
   budget.
 
-### std.gui.pdf.032 — The first paint of a page costs ten times the ones after it
+### std.gui.pdf.033 — A stroked page still records several times what a filled one does
 
-- Intent: a page is tessellated by the frame that first draws it, on the GUI thread. Dragging a
-  window border enlarges the view, which asks for a finer flattening than the cache holds, and the
-  whole page is flattened and triangulated again inside that frame. The reader sees the window
-  stop following the pointer for a fifth of a second, once per power-of-two step of the zoom, and
-  then never again at that size — which is exactly how it is reported: very laggy the first few
-  times, fine afterwards.
-- Evidence: swag Scope showing a four-page tax notice on a 1727x1074 window, timing
-  `Surface.paintWnd` and splitting it between recording the hierarchy and submitting it. Recording
-  costs 15 to 25 ms once the caches are warm and 78 to 236 ms for the first frames at a new scale;
-  submitting costs 2 to 13 ms throughout. The render target is not the cost: it is rebuilt twice
-  over a whole drag, for 1.2 ms and 2.4 ms, and the layout pass exceeded 1.5 ms exactly once.
-  `LinePath.flatten` keeps the finest tolerance produced so far, so shrinking the window is free
-  and only growing it pays.
-- Next: tessellate a decoded page off the GUI thread. The page loader already runs on a worker and
-  knows the scale the view will first draw at, so the flattening and triangulation it will need can
-  be produced there; the frame then finds them cached. Measure the same trace afterwards, and check
-  what remains against the 15 to 25 ms steady state.
-- Complete when: no frame that only resizes a window costs materially more than the frame before
-  it, on a page of a few thousand items.
-
-### std.gui.pdf.033 — A page still costs several times what MuPDF spends on it
-
-- Intent: the offline path renders the same four-page notice at 1.5 in 170 ms, 340 ms, 270 ms and
-  125 ms a page, against tens of milliseconds for MuPDF on the same pages, and a reader watching a
-  page of a few thousand marks scroll can see the difference. The remaining cost is in recording,
-  not in submitting: every mark states its transform, looks its tessellation up, and appends its
-  vertices, once per frame, whatever the frame before it drew.
-- Evidence: a page of per-glyph form XObjects is the shape that hurts — 3300 items on one page of
-  this document. Four passes have already come out of it: a clip that cannot cut its item is
-  dropped when the page is decoded, consecutive items sharing one clip push it once instead of per
-  mark, a mark whose box cannot reach the repainted region is skipped before it is recorded, and
-  that box is kept on the item rather than measured once a frame. The same four pages went from
-  315, 780, 250 and 158 ms to roughly 110, 260, 210 and 106; what is left is the flat per-mark
-  cost.
-- Next: measure where a warm frame's 15 to 25 ms goes inside `drawPageItems` — transform setup,
-  cache lookup, vertex append — on the 3300-item page, then decide between recording a page once
-  into a reusable vertex buffer the frame replays under a transform, and merging adjacent marks
-  that share a colour and a clip into one path.
+- Intent: what a warm frame spends is now the flat per-mark cost of recording, and on a page of
+  vector art most of it is stroking. A fill keeps its tessellation inside the contour it filled,
+  so a page drawn again only appends vertices; a stroke keeps nothing at all, and its geometry —
+  caps, joins, miters, dashes, and the antialiasing along each of them — is rebuilt from the
+  contour on every frame.
+- Evidence: measured on `llvm-polly-impact-2011-slides.pdf` page 0, the corpus's densest vector
+  page at 207 items over 252 contours, timing `drawPageItems` alone against a CPU renderer in
+  release configuration. The best of five warm frames costs 0.83 to 1.0 ms, and one of them
+  splits as fill 0.63 ms, stroke 0.53 ms, text 0.06 ms, and under 0.12 ms for the rest of the
+  loop; inside the fill, the solid costs 0.17 ms and the antialiasing band 0.34 ms. Scaled per
+  mark that is 4 us, so a page of a few thousand marks lands at 13 to 16 ms and misses the bar; a
+  page of text alone does not — `llvm-polly-impact-2011-paper.pdf` page 3, 3 733 text runs,
+  records in 2.2 ms.
+- Next: give a stroke the cache a fill has. The generated geometry depends on the contour, the
+  pen, and the antialiasing half-width in path space, so it can be keyed the way a fill's
+  triangulation is keyed on `LinePath.revision`; measure the same page afterwards and check what
+  the fill's remaining 0.63 ms is made of.
 - Complete when: a page of a few thousand marks records in single-digit milliseconds on a warm
-  cache.
-- Related: std.gui.pdf.032
+  cache, whether its marks are filled or stroked.
+- Related: std.gui.pdf.034
 
 ---
 

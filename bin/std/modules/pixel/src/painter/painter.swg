@@ -315,9 +315,9 @@ struct Painter
         triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
         sharedLinePath:     LinePath                                // Reusable single-path workspace.
         sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
-        sharedIsland:       Array'(*LinePath)                       // Contours of the region being filled.
-        sharedDirections:   HashTable'(u64, Vector2)                // Outward direction of each contour point of that region.
-        sharedOffsetDirs:   Array'Vector2                           // Outward direction of each point of the contour being banded.
+        sharedContours:     Array'(*LinePath)                       // Contours of the list being filled, grouped by region.
+        sharedRegions:      Array'FillRegion                        // The regions those contours form.
+        sharedDirections:   HashTable'(u64, Vector2)                // Outward direction of each contour point of a region.
         sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
         tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
 
@@ -446,12 +446,24 @@ impl Painter
     mtd setFlattenScale(scale: f32)
     {
         Debug.assert(scale > 0)
+        .curFlattenScale = Painter.quantizeFlattenScale(scale)
+    }
+
+    // Returns the flattening scale a painter asked for `scale` would use.
+    //
+    // The value is bucketed to the power of two at or below it, between one sixty-fourth and
+    // sixty-four, so that a zoom moving continuously re-keys the flattening caches a handful of
+    // times rather than on every frame. Ask this before preparing geometry ahead of a frame, so
+    // what is prepared is exactly what the frame will look for.
+    func quantizeFlattenScale(scale: f32)->f32
+    {
+        Debug.assert(scale > 0)
         var bucket = 1.0'f32
         while bucket * 2 <= scale and bucket < 64 do
             bucket *= 2
         while bucket > scale and bucket > 1.0 / 64 do
             bucket *= 0.5
-        .curFlattenScale = bucket
+        return bucket
     }
 
     // Returns the quantized flattening scale of subsequent path draws.

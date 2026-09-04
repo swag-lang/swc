@@ -473,3 +473,78 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     host.pump()
     Swag.assert(Clipboard.getString() == "PDF viewer")
 }
+
+// Zooming past a flattening bucket does not make the frame that crosses it flatten the whole
+// page: the view keeps drawing at the flattening the page holds and a worker raises it, so the
+// frame at the new zoom shows the page, and the finer geometry arrives from the worker.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(corpusPdfPath("llvm-polly-impact-2011-slides.pdf"))
+    view.resize(800, 560)
+    view.applyLayout()
+
+    // The first frame of a page has no coarser geometry to fall back on, so it builds its own.
+    discard host.render()
+    let fitted = view.preparedScale
+    Swag.assert(fitted > 0 and !view.preparing)
+
+    // Four times the zoom is two buckets up, so the page does not hold the flattening the frame
+    // wants; the frame still paints, and asks for it.
+    view.setZoom(view.effectiveZoom() * 4)
+    let frame = host.render()
+    Swag.assert(frame.isValid())
+    Swag.assert(countPageEvidence(&frame).paper > 10_000)
+    Swag.assert(!view.reportedPaintError)
+    Swag.assert(view.preparingScale > fitted)
+
+    // The worker publishes through the view's own poll, so firing that timer is what adopts it.
+    for 2000
+    {
+        if !view.preparing do
+            break
+        Threading.Thread.sleep(1'ms)
+        host.fireTimers()
+    }
+
+    Swag.assert(!view.preparing)
+    Swag.assert(view.preparedScale > fitted)
+
+    // Zooming back out asks for less than the page holds, so nothing is prepared again.
+    let raised = view.preparedScale
+    view.setZoom(view.effectiveZoom() / 8)
+    discard host.render()
+    Swag.assert(!view.preparing and view.preparedScale == raised)
+}
+
+// Replacing the displayed page stops the worker that was preparing the old one, and the new page
+// starts from nothing prepared.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(corpusPdfPath("llvm-polly-impact-2011-slides.pdf"))
+    view.resize(800, 560)
+    view.applyLayout()
+    discard host.render()
+
+    view.setZoom(view.effectiveZoom() * 4)
+    discard host.render()
+
+    expect view.showPage(1)
+    Swag.assert(!view.preparing and view.preparedScale == 0)
+
+    let frame = host.render()
+    Swag.assert(frame.isValid() and !view.reportedPaintError)
+    Swag.assert(view.preparedScale > 0)
+
+    view.close()
+    Swag.assert(!view.preparing and view.preparedScale == 0)
+}

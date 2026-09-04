@@ -69,6 +69,11 @@ public struct LinePath
         // placed by the antialiasing band rather than by the triangulation, and they are cached
         // beside the triangulation because they describe exactly its vertices.
         triangleOffsets: Array'Vector2
+
+        // Outward direction of every point of the flattened contour, and the revision it was
+        // derived from. See [[Pixel.LinePath.offsetDirections]].
+        offsetDirs:         Array'Vector2
+        offsetDirsRevision: u64
     }
 }
 
@@ -336,6 +341,24 @@ public impl LinePath
         .revision = nextContourRevision()
     }
 
+    // Returns the outward direction of every point of the flattened contour, at offset one.
+    //
+    // This is what [[Pixel.Polygon.fillOffsetDirections]] answers, kept against the revision of
+    // the contour it describes. A fill reads it to place its antialiasing band and, when it
+    // tessellates, to inset its solid — so a viewer painting a page it already painted resolved
+    // a miter per contour point per frame, for geometry that had not moved. On a page of a few
+    // thousand marks that was most of what a warm frame spent.
+    internal mtd offsetDirections()->const [..] Vector2
+    {
+        if .offsetDirsRevision != .revision or .offsetDirs.count != .polygon.points.count
+        {
+            .polygon.fillOffsetDirections(&.offsetDirs)
+            .offsetDirsRevision = .revision
+        }
+
+        return .offsetDirs.toSlice()
+    }
+
     // Adopts the already-populated polygon cache as the complete path geometry.
     internal mtd adoptGeneratedPolygon()
     {
@@ -536,10 +559,23 @@ public impl LinePath
         if !.isDirty and .isFlatten and .flattenTolerance <= tolerance do
             return
 
+        // A path of straight segments answers every tolerance with the same points, so it
+        // records one no later request can beat. Rebuilding it would produce that same contour
+        // and, because the contour is what every derived cache is keyed on, throw away the
+        // path's tessellation and its list's fill normalization for nothing — which is most of
+        // what a viewer feels as a freeze on the first frame at a new zoom, since a page of
+        // rules, boxes and tables is polygons all the way down.
+        var curved = false
+        for elem in .elements where elem.type != .Line
+        {
+            curved = true
+            break
+        }
+
         .clearCache()
         .isDirty               = false
         .isFlatten             = true
-        .flattenTolerance      = tolerance
+        .flattenTolerance      = curved ? tolerance : 0
         .minBounds, .maxBounds = .startPoint
 
         if !.elements.count do

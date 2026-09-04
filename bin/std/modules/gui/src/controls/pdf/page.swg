@@ -244,6 +244,33 @@ impl Page
         var result = #move try renderPage(me, options)
         return #move result
     }
+
+    // Prepares the page's vector geometry for a draw at `scale` device pixels per point.
+    //
+    // Drawing a page flattens its curves and triangulates its fills at the scale it is drawn at,
+    // and keeps both inside the page, which is what makes drawing it again cheap. The frame that
+    // first draws it at a given scale therefore pays for the whole page, and a page of a few
+    // thousand marks takes long enough that a reader enlarging a window sees it stop following
+    // the pointer. This does that work on its own, so a caller that knows the scale before the
+    // frame does — a viewer that has just decoded a page, or one whose view has just been
+    // resized — can pay it away from the frame, and on a worker.
+    //
+    // It reads and writes the page, so it must not run while the page is being drawn.
+    //
+    // ```swag
+    // page.prepare(2.0)
+    // ```
+    mtd prepare(scale: f32)
+    {
+        if scale <= 0 or !Math.isFinite(scale) do
+            return
+
+        var preparer: Pixel.FillPreparer
+        for index in .clipPaths.count do
+            .prepareClipPath(index, scale, &preparer)
+        for index in .items.count do
+            .prepareItem(index, scale, &preparer)
+    }
 }
 
 internal impl Page
@@ -276,4 +303,46 @@ internal impl Page
     // A transparency group is the case: its marks are recorded as the group's content is read,
     // and only then does the transparency around the group apply to what they produced.
     mtd itemAt(index: u64)->*Item => &.items[index]
+
+    // Prepares one clip shape for a draw at `scale`, as [[Gui.Pdf.Page.prepare]] describes.
+    //
+    // A shape is one step of the preparation rather than the whole page, because a viewer
+    // preparing a page a worker shares with the thread that draws it hands the page back
+    // between steps.
+    mtd prepareClipPath(index: u64, scale: f32, preparer: *Pixel.FillPreparer)
+    {
+        let clip = .clipPaths[index]!
+        preparer.prepare(&clip.path, scale, clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero)
+    }
+
+    // Prepares one item for a draw at `scale`, as [[Gui.Pdf.Page.prepare]] describes.
+    //
+    // Text carries no geometry of its own — its glyphs come from a face, which the scale does
+    // not re-key — so a text item has nothing to prepare.
+    mtd prepareItem(index: u64, scale: f32, preparer: *Pixel.FillPreparer)
+    {
+        let item = &.items[index]
+        switch #complete item.kind
+        {
+        case .Text:
+            break
+
+        case .Path:
+            if item.hasFill do
+                preparer.prepare(&item.path, scale, item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero)
+            elif item.hasStroke do
+                preparer.flatten(&item.path, scale)
+
+        case .Image:
+
+            // An image is cut by its own shape rather than through a region, and the shape lives
+            // in the image's unit square, where a segment is as many times shorter than on the
+            // page as the image is wide in points.
+            if item.clipPath != InvalidClipPath
+            {
+                let clip = .clipPaths[item.clipPath]!
+                preparer.prepare(&item.imageClip, scale * unitSquareScale(item.transform), clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero)
+            }
+        }
+    }
 }

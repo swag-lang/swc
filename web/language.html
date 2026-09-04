@@ -770,7 +770,7 @@ indent-style = spaces</span></div>
 <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
-<span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">undefined</span></span></div>
+<span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span></span></div>
 <p><span class="code-inline">not</span> is reserved for future use.</p>
 <h3 id="_002_007_keywords_swg_Contextual_Source_and_Module_Names">Contextual Source and Module Names</h3>
 <p><span class="code-inline">export</span>, <span class="code-inline">location</span>, <span class="code-inline">link</span>, and <span class="code-inline">version</span> are recognized in specific module-setup positions. Outside those positions the lexer treats them as ordinary identifiers; they are not part of the reserved keyword set above.</p>
@@ -1648,7 +1648,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">1.5</span>)
 }</span></div>
 <h3 id="_003_005_variables_swg_Default_Initialization">Default Initialization</h3>
-<p>If a variable is declared without an explicit value, it is initialized with its type's default value. The explicit <span class="code-inline">undefined</span> escape below is the only way this section deliberately bypasses that default initialization.</p>
+<p>If a variable is declared without an explicit value, it is initialized with its type's default value. This remains true even when the following statements overwrite every field: the compiler may remove a provably unobservable default initialization as an optimization, without changing the program's semantics.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a: <span class="STpe">bool</span>
@@ -1660,12 +1660,14 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> c: <span class="STpe">f64</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(c == <span class="SNum">0</span>)
 }</span></div>
-<h3 id="_003_005_variables_swg_Uninitialized_Variables">Uninitialized Variables</h3>
-<p>To skip default initialization, you can assign <span class="code-inline">undefined</span>. This prevents automatic initialization but leaves the variable in an undefined state, which should be used cautiously.</p>
+<h3 id="_003_005_variables_swg_Initialization_and_Optimization">Initialization and Optimization</h3>
+<p>There is no source-level escape hatch for uninitialized storage. Write ordinary, safe declarations; when the compiler proves that an aggregate is fully assigned before any read, escape, or drop, it can omit the redundant default clear itself.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> a: <span class="STpe">bool</span>         = <span class="SKwd">undefined</span>
-    <span class="SKwd">var</span> b: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">undefined</span>
+    <span class="SKwd">var</span> a: <span class="STpe">bool</span>
+    a = <span class="SKwd">true</span>
+    <span class="SKwd">var</span> b: <span class="SItr">#null</span> <span class="STpe">string</span>
+    b = <span class="SStr">"ready"</span>
 }</span></div>
 <h3 id="_003_005_variables_swg_Type_Inference">Type Inference</h3>
 <p>Swag supports <b>type inference</b>, automatically determining a variable’s type based on its assigned value. This often eliminates the need for explicit type annotations.</p>
@@ -2276,18 +2278,20 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(array1.count == <span class="SNum">3</span>)
 }</span></div>
 <h3 id="_004_001_array_swg_Default_Initialization">Default Initialization</h3>
-<p>Static arrays are automatically initialized with zero values (0 for numbers, <span class="code-inline">null</span> for strings, <span class="code-inline">false</span> for booleans, etc.) unless specified otherwise.</p>
+<p>Static arrays are automatically initialized with their element type's safe default (0 for numbers and <span class="code-inline">false</span> for booleans). An element type without a safe default, such as a non-null pointer or string, needs a complete explicit initializer.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> array: [<span class="SNum">2</span>] <span class="STpe">s32</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array[<span class="SNum">0</span>] == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array[<span class="SNum">1</span>] == <span class="SNum">0</span>)
 }</span></div>
-<h3 id="_004_001_array_swg_Preventing_Default_Initialization">Preventing Default Initialization</h3>
-<p>You can skip default initialization by using <span class="code-inline">undefined</span>, which improves performance when the array will be manually initialized later.</p>
+<h3 id="_004_001_array_swg_Initialization_and_Performance">Initialization and Performance</h3>
+<p>Arrays always have their type's safe default value. Keep the ordinary declaration and fill elements normally; future compiler analyses may remove a redundant clear only when they can prove complete element coverage.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> array: [<span class="SNum">100</span>] <span class="STpe">s32</span> = <span class="SKwd">undefined</span>
+    <span class="SKwd">var</span> array: [<span class="SNum">100</span>] <span class="STpe">s32</span>
+    <span class="SLgc">for</span> i <span class="SLgc">in</span> array.count <span class="SLgc">do</span>
+        array[i] = i
 }</span></div>
 <h3 id="_004_001_array_swg_Constant_Arrays">Constant Arrays</h3>
 <p>Arrays initialized with compile-time values can be declared as <span class="code-inline">const</span>, making them immutable after declaration.</p>
@@ -2967,8 +2971,8 @@ indent-style = spaces</span></div>
 <h3 id="_004_007_pointers_swg_Non-Null_by_Default">Non-Null by Default</h3>
 <p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Use <span class="code-inline">#null</span> to opt into nullability when null is part of the intended contract.</p>
 <p>Because these types answer a condition by testing their first pointer-sized word against null, only a <span class="code-inline">#null</span> one asks a real question there. A bare <span class="code-inline">*u8</span>, <span class="code-inline">[*] u8</span>, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">func</span> value, <span class="code-inline">interface</span> or <span class="code-inline">typeinfo</span> in a condition is a constant that can only be true, and every boolean context rejects it. A slice and a string test their data pointer, never their count, so an empty one is still present: emptiness is <span class="code-inline">x.count == 0</span>.</p>
-<p>A <span class="code-inline">#null</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), the postfix <span class="code-inline">!</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">#null</span> and bare values of the same type are always allowed. <span class="code-inline">undefined</span> remains an explicit low-level escape hatch and must only be used when the storage is initialized manually before it is read.</p>
-<p>A value with <span class="code-inline">opDrop</span> can be consumed with <span class="code-inline">#move</span> only when resetting its moved-from source does not require explicit initialization. Give required fields a default, or use <span class="code-inline">undefined</span> deliberately as the low-level escape hatch described above, before moving a droppable value.</p>
+<p>A <span class="code-inline">#null</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), the postfix <span class="code-inline">!</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">#null</span> and bare values of the same type are always allowed. Every declared value begins with its type's safe default; the compiler may elide that initialization only after proving that it cannot be observed.</p>
+<p>A value with <span class="code-inline">opDrop</span> can be consumed with <span class="code-inline">#move</span> only when resetting its moved-from source does not require explicit initialization. Give required fields a default; otherwise the value cannot be moved from safely.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">struct</span> <span class="SCst">NonNullPointerHolder</span>
@@ -3158,7 +3162,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <h3 id="_004_007_pointers_swg_Deferred_Initialization_with__Swag_Late_">Deferred Initialization with <span class="code-inline">Swag.Late</span></h3>
 <p>The <span class="code-inline">Swag.Late</span> attribute declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value during setup — an initialization function, a constructor, the first stage of <span class="code-inline">main</span>. It replaces the <span class="code-inline">#null ... = null</span> + <span class="code-inline">!</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
-<p>The exposed type is non-null, so uses need no <span class="code-inline">!</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">Swag.isSet</span> tests whether the value has been assigned, without reading it. <span class="code-inline">Swag.Late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A local or parameter uses <span class="code-inline">= undefined</span> definite assignment instead.</p>
+<p>The exposed type is non-null, so uses need no <span class="code-inline">!</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">Swag.isSet</span> tests whether the value has been assigned, without reading it. <span class="code-inline">Swag.Late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A local or parameter uses <span class="code-inline"></span> definite assignment instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">LateDocResource</span>
 {
     weight: <span class="STpe">s32</span>
@@ -5462,11 +5466,10 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v1.x == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v1.y == <span class="SNum">0</span>)
 }</span></div>
-<h3 id="_006_006_custom_assignment_swg_Optimizing_Initialization_with__Swag_FullInit_">Optimizing Initialization with <span class="code-inline">Swag.FullInit</span></h3>
-<p>When <span class="code-inline">opSet</span> completely initializes the struct, mark it with <span class="code-inline">#[Swag.FullInit]</span>. This avoids default initialization before assignment for better performance.</p>
+<h3 id="_006_006_custom_assignment_swg_Inferring_Complete_Initialization">Inferring Complete Initialization</h3>
+<p>When an <span class="code-inline">opSet</span> assigns every field on every exit path, the compiler infers that it completely initializes the destination and omits a redundant default initialization at call sites. No attribute is needed for this direct form.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">Struct</span>
 {
-    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">FullInit]</span>
     <span class="SKwd">mtd</span> <span class="SFct">opSet</span>(value: <span class="STpe">u64</span>)
     {
         <span class="STpe">me</span>.x, <span class="STpe">me</span>.y, <span class="STpe">me</span>.z = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) value
@@ -5570,7 +5573,7 @@ indent-style = spaces</span></div>
     {
         <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">3</span>
         {
-            <span class="SKwd">var</span> item: <span class="STpe">s32</span> = <span class="SKwd">undefined</span>
+            <span class="SKwd">var</span> item: <span class="STpe">s32</span>
             <span class="SLgc">switch</span> index
             {
             <span class="SLgc">case</span> <span class="SNum">0</span>:  item = <span class="STpe">me</span>.x
@@ -6558,8 +6561,9 @@ indent-style = spaces</span></div>
 
     <span class="SKwd">func</span> <span class="SFct">getWhite</span>()-&gt;<span class="SCst">RGB</span>
     {
-        <span class="SCmt">// 'retval = undefined' prevents unnecessary clearing of the return structure.</span>
-        <span class="SKwd">var</span> result: <span class="SKwd">retval</span> = <span class="SKwd">undefined</span>
+        <span class="SCmt">// The compiler proves this return structure is fully assigned and removes</span>
+        <span class="SCmt">// its redundant default clear.</span>
+        <span class="SKwd">var</span> result: <span class="SKwd">retval</span>
         result.x = <span class="SNum">0.5</span>
         result.y = <span class="SNum">0.1</span>
         result.z = <span class="SNum">1.0</span>
@@ -6577,7 +6581,7 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">func</span> <span class="SFct">toto</span>()-&gt;[<span class="SNum">255</span>] <span class="STpe">s32</span>
     {
-        <span class="SKwd">var</span> result: <span class="SKwd">retval</span> = <span class="SKwd">undefined</span>
+        <span class="SKwd">var</span> result: <span class="SKwd">retval</span>
         <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">255</span> <span class="SLgc">do</span>
             result[i] = i
         <span class="SLgc">return</span> result
@@ -7265,7 +7269,7 @@ indent-style = spaces</span></div>
 <tr><td>'Operators(operators: string...)'</td><td>Generate selected structural operators</td></tr>
 <tr><td><span class="code-inline">OperatorIgnore()</span></td><td>Exclude one field from generated operators</td></tr>
 <tr><td>'Commutative(operators: Operator...)'</td><td>Allow selected binary overloads with the receiver on the right</td></tr>
-<tr><td><span class="code-inline">FullInit()</span></td><td>Declare that an <span class="code-inline">opSet</span> or <span class="code-inline">opCast</span> initializes the whole destination</td></tr>
+<tr><td><span class="code-inline">FullInit()</span></td><td>Assert complete initialization for an opaque <span class="code-inline">opSet</span> body the compiler cannot inspect</td></tr>
 <tr><td><span class="code-inline">Incomplete()</span></td><td>Document that an enum's declared values are not the full set</td></tr>
 <tr><td><span class="code-inline">EnumFlags()</span></td><td>Define an enum whose values form a bit mask</td></tr>
 <tr><td><span class="code-inline">NoDuplicate()</span></td><td>Reject duplicate enum values</td></tr>
@@ -8502,7 +8506,7 @@ indent-style = spaces</span></div>
     }
 
     <span class="SKwd">var</span> local: <span class="STpe">s32</span>
-    <span class="SKwd">var</span> views: <span class="SCst">Views</span> = <span class="SKwd">undefined</span>
+    <span class="SKwd">var</span> views: <span class="SCst">Views</span>
     views.local  = &amp;local
     views.global = &amp;borrowGlobalValue
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(views.global == &amp;borrowGlobalValue)
@@ -8731,9 +8735,10 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SCmp">#assert</span>(<span class="SCst">SumValue</span> == <span class="SNum">20</span>)</span></div>
 <h3 id="_014_002_run_swg_The___run__Block">The <span class="code-inline">#run</span> Block</h3>
 <p><span class="code-inline">#run</span> blocks execute arbitrary logic at compile time. They are useful for initializing globals or precomputing data before runtime.</p>
+<p>When a <span class="code-inline">#run</span> block writes a global declared with its normal safe default, the compiler promotes that global to emitted initialized storage automatically. The computed bytes therefore survive into the native artifact without requiring a special initializer in source.</p>
 <p>Execution order between <span class="code-inline">#run</span> blocks is undefined, so avoid relying on order.</p>
 <div class="code-block"><span class="SCde"><span class="SCmt">// Global array initialized at compile time</span>
-<span class="SKwd">var</span> <span class="SCst">G</span>: [<span class="SNum">5</span>] <span class="STpe">f32</span> = <span class="SKwd">undefined</span>
+<span class="SKwd">var</span> <span class="SCst">G</span>: [<span class="SNum">5</span>] <span class="STpe">f32</span>
 
 <span class="SFct">#run</span>
 {
@@ -8810,7 +8815,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 
     <span class="SKwd">const</span> <span class="SCst">White</span>: <span class="SCst">RGB</span> = <span class="SFct">#run</span>
     {
-        <span class="SKwd">var</span> rgb: <span class="SCst">RGB</span> = <span class="SKwd">undefined</span>
+        <span class="SKwd">var</span> rgb: <span class="SCst">RGB</span>
         rgb.r = <span class="SNum">255</span>
         rgb.g = rgb.r
         rgb.b = rgb.r
@@ -9553,7 +9558,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.330</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
 </footer>
 </section>
 </main>
@@ -9942,7 +9947,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Variable Declaration|_003_005_variables_swg_Variable_Declaration|",
 "h|Multiple Variable Declarations|_003_005_variables_swg_Multiple_Variable_Declarations|",
 "h|Default Initialization|_003_005_variables_swg_Default_Initialization|",
-"h|Uninitialized Variables|_003_005_variables_swg_Uninitialized_Variables|",
+"h|Initialization and Optimization|_003_005_variables_swg_Initialization_and_Optimization|",
 "h|Type Inference|_003_005_variables_swg_Type_Inference|",
 "h|Special Variables|_003_005_variables_swg_Special_Variables|",
 "h|Thread-Local Storage|_003_005_variables_swg_Thread-Local_Storage|",
@@ -9988,7 +9993,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Array Literals|_004_001_array_swg_Array_Literals|",
 "h|Type Deduction in Arrays|_004_001_array_swg_Type_Deduction_in_Arrays|",
 "h|Default Initialization|_004_001_array_swg_Default_Initialization|",
-"h|Preventing Default Initialization|_004_001_array_swg_Preventing_Default_Initialization|",
+"h|Initialization and Performance|_004_001_array_swg_Initialization_and_Performance|",
 "h|Constant Arrays|_004_001_array_swg_Constant_Arrays|",
 "h|Type Inference from Array Literals|_004_001_array_swg_Type_Inference_from_Array_Literals|",
 "h|Multi-Dimensional Arrays|_004_001_array_swg_Multi-Dimensional_Arrays|",
@@ -10183,7 +10188,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Operator Overloading|_006_005_operator_overloading_swg|",
 "h|Custom Assignment|_006_006_custom_assignment_swg|",
 "h|Custom Assignment Behavior with opSet|_006_006_custom_assignment_swg_Custom_Assignment_Behavior_with__opSet_|",
-"h|Optimizing Initialization with Swag.FullInit|_006_006_custom_assignment_swg_Optimizing_Initialization_with__Swag_FullInit_|",
+"h|Inferring Complete Initialization|_006_006_custom_assignment_swg_Inferring_Complete_Initialization|",
 "h|Handling Function Arguments and Automatic Conversion|_006_006_custom_assignment_swg_Handling_Function_Arguments_and_Automatic_Conversion|",
 "h|Using opSet in Constant Expressions|_006_006_custom_assignment_swg_Using__opSet__in_Constant_Expressions|",
 "h|Custom Loop|_006_007_custom_loop_swg|",

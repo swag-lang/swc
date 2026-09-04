@@ -203,7 +203,7 @@
         <span class="SKwd">let</span> frame = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) g_Bird.frame % <span class="SNum">3</span>
 
         <span class="SCmt">// Both fields are assigned before use, so skip their default initialization.</span>
-        <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span> = <span class="SKwd">undefined</span>
+        <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span>
         pt.x = -g_BirdTexture[frame].width * <span class="SNum">0.5</span>
         pt.y = -g_BirdTexture[frame].height * <span class="SNum">0.5</span>
 
@@ -250,7 +250,7 @@
     <span class="SCmt">// Show the start prompt before the first round.</span>
     <span class="SLgc">if</span> g_FirstStart
     {
-        <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span> = <span class="SKwd">undefined</span>
+        <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span>
         pt.x = g_Rect.<span class="SFct">horzCenter</span>() - g_MsgTexture.width / <span class="SNum">2</span>
         pt.y = g_Rect.<span class="SFct">vertCenter</span>() - g_MsgTexture.height / <span class="SNum">2</span>
         painter.<span class="SFct">drawTexture</span>(pt.x, pt.y, g_MsgTexture)
@@ -282,7 +282,7 @@
 <p>Return whether the bird's sprite bounds intersect a rectangle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">birdInRect</span>(rect: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>)-&gt;<span class="STpe">bool</span>
 {
-    <span class="SKwd">var</span> rectBird: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span> = <span class="SKwd">undefined</span>
+    <span class="SKwd">var</span> rectBird: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>
     rectBird.x      = g_Bird.pos.x - g_BirdTexture[<span class="SNum">0</span>].width / <span class="SNum">2</span>
     rectBird.y      = g_Bird.pos.y - g_BirdTexture[<span class="SNum">0</span>].height / <span class="SNum">2</span>
     rectBird.width  = g_BirdTexture[<span class="SNum">0</span>].width
@@ -421,7 +421,7 @@
 }</span></div>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.330</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.343</div>
 </footer>
 </section>
 </main>

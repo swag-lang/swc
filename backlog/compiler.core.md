@@ -67,7 +67,11 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 ### compiler.core.005 — Compiler memory has no attributed, enforced budget
 
+**Evidence (2026-09-05, Release `swc.exe`, `--num-cores 6`, peak working set).** Before: core devmode rebuild 731 MB, core release rebuild 638 MB, hello 73 MB, bench tasks 74-83 MB. After finished jobs release their Sema and CodeGen state, 64 KiB arena blocks, and the api-export index dropped after export: 517 MB, 360 MB, 60 MB, 58-66 MB, with wall time at 0.86x, 0.95x, 1.0x, 0.97x (order-alternated A/B). Attribution by mimalloc statistics and a throwaway sampling probe on the DevMode core rebuild: the largest block still resident at peak is the static sanitizer's flow state (`SanitizerState` copies, ~150 MiB of ~100-byte map nodes, 17M allocations per core rebuild), then paged AST/payload/type stores (~110 MiB), per-thread arenas (~95 MiB, dominated by 2 KB `SymbolFunction` and 1.3 KB `SemaInlinePayload`), the CodeGen objects of sleeping codegen jobs (~23 MiB), and link-time archive buffers (~23 MiB). The compile-time runtime allocator is not a factor.
+
 **Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
+
+**Next.** Store the sanitizer state flat without the sorted-insert cost: a first flat-array version cut the DevMode core rebuild from 893 MB to 766 MB but raised its CPU time by 60% (every new register shifts the array), so the storage must combine contiguous copies with O(1) insertion, for example a dense register index per function with a sparse presence set. Then shrink `SymbolFunction` (five 80-byte mutexes and an embedded `MicroBuilder`) and free the tokens and source text of a file once its last codegen job completes.
 
 **Complete when.**
 

@@ -89,6 +89,24 @@ void CodeGenJob::initSemaAndCodeGen()
 
 JobResult CodeGenJob::exec()
 {
+    const JobResult result = execImpl();
+
+    // A completed job stays owned by the compiler until the module ends, so what it drops here
+    // is what the module stops paying for: the lowering Sema and the CodeGen it fed, with every
+    // map and stack they grew. A sleeping job keeps both, since it resumes where it stopped.
+    if (result == JobResult::Done)
+        releaseSemaAndCodeGen();
+    return result;
+}
+
+void CodeGenJob::releaseSemaAndCodeGen()
+{
+    codeGen_.reset();
+    ownedSema_.reset();
+}
+
+JobResult CodeGenJob::execImpl()
+{
     SWC_ASSERT(symbolFunc_);
     ctx().state().setNone();
     if (symbolFunc_->isIgnored())

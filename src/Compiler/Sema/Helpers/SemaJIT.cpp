@@ -269,7 +269,7 @@ namespace
         const uint64_t  resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
         const auto      resultBytes     = std::span{storagePtr, static_cast<size_t>(resultSize)};
 
-        if (resultSize && SemaHelpers::needsPersistentCompilerRunReturn(sema, resultMeta.storageTypeRef))
+        if (resultSize && SemaHelpers::needsPersistentCompilerRunReturn(sema.ctx(), resultMeta.storageTypeRef))
         {
             const ConstantRef cstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, constantTypeRef, resultBytes);
             if (cstRef.isValid())

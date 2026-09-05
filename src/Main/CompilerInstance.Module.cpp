@@ -3735,7 +3735,17 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
 Result CompilerInstance::exportModuleApi(TaskContext& ctx)
 {
-    return ModuleApi::exportFiles(ctx);
+    const Result result = ModuleApi::exportFiles(ctx);
+
+    // The export indexed every file's reachable nodes to answer its lookups. Nothing after it
+    // asks at that rate, so the indexes go before code generation starts allocating.
+    for (SourceFile* file : ctx.compiler().files())
+    {
+        if (file)
+            file->ast().releaseReachableNodeIndex();
+    }
+
+    return result;
 }
 
 SWC_END_NAMESPACE();

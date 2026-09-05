@@ -62,7 +62,7 @@ namespace CodeGenFunctionHelpers
     void                  emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg);
     bool                  tryUseDirectVarInitStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
     bool                  tryUseDirectReturnStorage(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym);
-    bool                  needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);
+    bool                  needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef);
     void                  emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize);
     Result                emitFallibleWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef);
     Result                emitFallibleWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef);

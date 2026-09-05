@@ -566,17 +566,17 @@ void SemaHelpers::ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol* c
         ensureCurrentLocalScopeSymbol(sema, sym);
 }
 
-bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
+bool SemaHelpers::needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef)
 {
     if (!typeRef.isValid())
         return false;
 
-    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
     if (typeInfo.isAlias())
-        return needsPersistentCompilerRunReturn(sema, typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias));
+        return needsPersistentCompilerRunReturn(ctx, typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias));
 
     if (typeInfo.isEnum())
-        return needsPersistentCompilerRunReturn(sema, typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Enum));
+        return needsPersistentCompilerRunReturn(ctx, typeInfo.unwrap(ctx, typeRef, TypeExpandE::Enum));
 
     if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
         return true;
@@ -590,13 +590,13 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typ
         return true;
 
     if (typeInfo.isArray())
-        return needsPersistentCompilerRunReturn(sema, typeInfo.payloadArrayElemTypeRef());
+        return needsPersistentCompilerRunReturn(ctx, typeInfo.payloadArrayElemTypeRef());
 
     if (typeInfo.isStruct())
     {
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
-            if (field && needsPersistentCompilerRunReturn(sema, field->typeRef()))
+            if (field && needsPersistentCompilerRunReturn(ctx, field->typeRef()))
                 return true;
         }
     }

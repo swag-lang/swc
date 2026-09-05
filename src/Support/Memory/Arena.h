@@ -4,7 +4,12 @@ SWC_BEGIN_NAMESPACE();
 class Arena
 {
 public:
-    explicit Arena(std::size_t blockSize = 4096) noexcept :
+    // Header and payload together fill one 64 KiB allocator bin. A 4 KiB payload plus its
+    // header rounded up to the 5 KiB bin and wasted a fifth of every block, and a block that
+    // small held a single 2 KiB function symbol before its tail went unused.
+    static constexpr std::size_t K_DEFAULT_BLOCK_SIZE = 64 * 1024 - 64;
+
+    explicit Arena(std::size_t blockSize = K_DEFAULT_BLOCK_SIZE) noexcept :
         head_(nullptr),
         defaultBlockSize_(blockSize)
     {

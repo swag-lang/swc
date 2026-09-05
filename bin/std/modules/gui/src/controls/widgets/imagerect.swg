@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Displays a texture, sprite-sheet animation, or animated GIF inside a window.
+// Displays a texture, sprite-sheet animation, or encoded image set inside a window.
 struct ImageRect
 {
     public
@@ -37,7 +37,7 @@ impl IWnd for ImageRect
         {
             if .movie.source != .SpriteSheet
             {
-                .app().renderer.updateTexture(.uploadedTexture, nnPixels(.movie.frame.pixels.buffer))
+                .updateUploadedFrame()
             }
         }
 
@@ -55,7 +55,7 @@ impl IWnd for ImageRect
             let icon = Icon.from(&.movie.imgList, .movie.frameIndex, rect.width, rect.height)
             icon.paint(painter, rect.x, rect.y, color)
 
-        case .Gif:
+        case .Gif, .ImageSet:
             painter.drawTexture(rect, .uploadedTexture, color)
         }
 
@@ -66,6 +66,17 @@ impl IWnd for ImageRect
 
 impl ImageRect
 {
+    internal mtd updateUploadedFrame()
+    {
+        let frame = &.movie.frame
+        if !.uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
+        {
+            if .uploadedTexture.isValid() do .app().renderer.removeTexture(&.uploadedTexture)
+            .uploadedTexture = .app().renderer.addImage(frame[])
+        }
+        else do .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+    }
+
     // Creates an empty image window.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageRect
@@ -149,6 +160,7 @@ impl ImageRect
     {
         Debug.assert(seconds > 0, "frame duration must be positive")
         .movie.frameDurationSeconds = seconds
+        .movie.usesFrameDurations = false
     }
 
     // Enables or disables restart after the final frame.
@@ -160,8 +172,13 @@ impl ImageRect
     // Loads and displays an animated GIF without changing the current content on failure.
     mtd loadGif(fileName: string) fail
     {
+        .loadMovie(fileName)
+    }
+
+    // Loads a registered image set; animations play and independent images start paused.
+    mtd loadMovie(fileName: string) fail
+    {
         try .movie.load(fileName)
-        .movie.setPaused(false)
         if .uploadedTexture.isValid() do
             .app().renderer.removeTexture(&.uploadedTexture)
         .uploadedTexture = .app().renderer.addImage(.movie.frame)

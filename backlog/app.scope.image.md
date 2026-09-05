@@ -124,12 +124,14 @@ application.
 
 ## Metadata and camera files
 
-### app.scope.image.011 — An image's metadata is not shown
+### app.scope.image.011 — Orientation, ICC identity, and XMP remain incomplete
 
-- Intent: no EXIF, no ICC, no XMP anywhere. Orientation is therefore ignored, so a phone photograph
-  displays rotated, and camera, exposure and capture date are invisible.
-- Complete when: a metadata panel shows the decoded tags, EXIF orientation is applied on load, and
-  an embedded ICC profile is at least reported.
+- Evidence: the information panel shows preserved PNG text and interpreted JPEG EXIF fields.
+  Encoded orientation is reported but not applied; ICC records have only a byte count and XMP
+  properties are not interpreted.
+- Next: apply encoded orientation exactly once and expose ICC identity and readable XMP fields.
+- Complete when: EXIF orientation is applied on load and the panel identifies embedded profiles
+  and presents supported XMP properties.
 - Related: std.pixel.001, std.pixel.image.019
 
 ### app.scope.image.012 — Camera RAW files show nothing

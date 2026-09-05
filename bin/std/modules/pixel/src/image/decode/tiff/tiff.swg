@@ -39,7 +39,11 @@ const PHOTO_RGB           = 2
 const PHOTO_PALETTE       = 3
 
 // Decodes baseline TIFF images with uncompressed, PackBits, or LZW strips.
-internal struct Decoder {}
+internal struct Decoder
+{
+    bytes: const [..] u8?
+    directories: Array'u32
+}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
@@ -179,11 +183,9 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
     }
 }
 
-internal impl IImageDecoder for Decoder
+impl Decoder
 {
-    mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
-
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
+    mtd decodePage(buffer: const [..] u8, options: DecodeOptions, directory: u32 = 0)->Image fail
     {
         let base    = buffer.buffer
         let countof = buffer.count
@@ -204,7 +206,7 @@ internal impl IImageDecoder for Decoder
         if rd16(base + 2, le) != 42 do
             fail InvalidFormatError{"not a tiff"}
 
-        let ifdOffset = rd32(base + 4, le)
+        let ifdOffset = directory ? directory : rd32(base + 4, le)
         if cast(u64) ifdOffset + 2 > countof do
             fail InvalidFormatError{"invalid source buffer"}
 
@@ -283,6 +285,7 @@ internal impl IImageDecoder for Decoder
 
         var result: retval
         result.init(cast(s32) width, cast(s32) height, pf)
+        options.checkImage(result.width, result.height, pf)
 
         if !options.decodePixels do
             return result
@@ -430,5 +433,50 @@ internal impl IImageDecoder for Decoder
         }
 
         return result
+    }
+}
+
+impl IImageDecoder for Decoder
+{
+    mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodePage(buffer, options)
+}
+
+impl IImageSetDecoder for Decoder
+{
+    mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
+    {
+        .bytes = buffer
+        .directories.clear()
+        var probeOptions = options
+        probeOptions.decodePixels = false
+        discard .decodePage(buffer, probeOptions)
+        let le = buffer[0] == 0x49
+        var offset = rd32(buffer.buffer + 4, le)
+        var result: retval
+        while offset
+        {
+            options.checkFrameCount(.directories.count + 1)
+            for prior in .directories where prior == offset do
+                fail InvalidFormatError{"TIFF directory chain contains a cycle"}
+            if cast(u64) offset + 2 > buffer.count do
+                fail InvalidFormatError{"TIFF directory offset is outside the input"}
+            let count = rd16(buffer.buffer + offset, le)
+            let next = cast(u64) offset + 2 + cast(u64) count * 12
+            if next + 4 > buffer.count do
+                fail InvalidFormatError{"TIFF directory chain is truncated"}
+            let probe = .decodePage(buffer, probeOptions, offset)
+            result.frames.add({kind: ImageFrameKind.Page, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
+            .directories.add(offset)
+            offset = rd32(buffer.buffer + next, le)
+        }
+        return result
+    }
+
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
+    {
+        if index >= .directories.count do
+            fail InvalidFormatError{"TIFF page index is out of range"}
+        return .decodePage(.bytes!, options, .directories[index])
     }
 }

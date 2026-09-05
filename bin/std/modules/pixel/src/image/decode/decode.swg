@@ -20,6 +20,31 @@ public struct DecodeOptions
         decodePixels = true     // Decode pixel storage; disable for metadata and geometry probing.
 
         decodeMetadata = true     // Preserve supported format metadata in `Image.metadata`.
+
+        maxFrames: u32 = 65536     // Maximum number of images indexed by an image reader; zero removes the limit.
+        maxPixels: u64 = 134217728     // Maximum pixels in one decoded image or animation canvas; zero removes the limit.
+        maxDecodedBytes: u64 = 536870912     // Maximum bytes in one decoded pixel buffer; zero removes the limit.
+        maxInputBytes: u64 = 536870912     // Maximum encoded bytes accepted by an image reader; zero removes the limit.
+    }
+}
+
+impl DecodeOptions
+{
+    mtd const checkImage(width, height: s32, format: PixelFormat) fail
+    {
+        if width <= 0 or height <= 0 do
+            fail InvalidFormatError{"image dimensions must be positive"}
+        let pixels = cast(u64) width * cast(u64) height
+        if .maxPixels and pixels > .maxPixels do
+            fail UnsupportedFormatError{"image exceeds the decoded pixel limit"}
+        if .maxDecodedBytes and pixels * (format.bitsPerPixel() / 8) > .maxDecodedBytes do
+            fail UnsupportedFormatError{"image exceeds the decoded byte limit"}
+    }
+
+    mtd const checkFrameCount(count: u64) fail
+    {
+        if count > 0x7FFFFFFF or (.maxFrames and count > .maxFrames) do
+            fail UnsupportedFormatError{"image set exceeds the frame limit"}
     }
 }
 
@@ -54,6 +79,16 @@ impl Image
     // Decode the given image buffer with the given decoder
     func decode(decoder: *ImageDecoder, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
     {
+        if options.maxInputBytes and bytes.count > options.maxInputBytes do
+            fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        if options.decodePixels and (options.maxPixels or options.maxDecodedBytes)
+        {
+            var probeOptions = options
+            probeOptions.decodePixels = false
+            probeOptions.decodeMetadata = false
+            let probe = decode(decoder, bytes, probeOptions)
+            options.checkImage(probe.width, probe.height, probe.pixelFormat)
+        }
         // Create a decoder instance
         let ptrDecoder = Memory.new(decoder.type)
         defer
@@ -67,6 +102,7 @@ impl Image
         // The registry only ever holds types that implement the interface, so the table resolves.
         let itf    = Swag.makeInterface(ptrDecoder, decoder.type, IImageDecoder)!
         var result = #move try itf.decode(bytes, options)
+        options.checkImage(result.width, result.height, result.pixelFormat)
         return #move result
     }
 }
@@ -120,8 +156,11 @@ public impl Image
         let found = getDecoder(fileName)
         if !found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var bytes  = #move File.readAllBytes(fileName)
-        var result = #move try decode(fileName, bytes.toSlice(), options)
+        var file = File.MappedFile.open(fileName)
+        if options.maxInputBytes and file.size() > options.maxInputBytes do
+            fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        let region = file.mapAll()
+        var result = #move try decode(fileName, region.bytes(), options)
         return #move result
     }
 
@@ -168,7 +207,7 @@ public impl Image
     Image.registerDecoder'(Tga.Decoder)()
     Image.registerDecoder'(Jpg.Decoder)()
     Image.registerDecoder'(Png.Decoder)()
-    Image.registerDecoder'(Gif.Decoder)()
+    Image.registerDecoder'(Gif.SetDecoder)()
     Image.registerDecoder'(Tiff.Decoder)()
     Image.registerDecoder'(Ico.Decoder)()
     Image.registerDecoder'(Webp.Decoder)()

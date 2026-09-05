@@ -76,7 +76,8 @@ complete texture delivery, and format breadth and fidelity.
 
 ### std.pixel.image.044 — Orientation and common metadata have no typed contract
 
-- Evidence: `ImageMetadata` preserves opaque byte records, but callers cannot ask for normalized
+- Evidence: `ImageMetadata` preserves opaque byte records and `Exif.decode` provides readable TIFF,
+  photo, and GPS fields, but callers cannot ask for normalized
   EXIF orientation, pixel density, capture time, textual fields, ICC identity, or a thumbnail.
   Loading a camera image therefore does not say whether its pixel rows are already display-ready.
 - Next: separate normalized cross-format properties from preserved opaque records, beginning with

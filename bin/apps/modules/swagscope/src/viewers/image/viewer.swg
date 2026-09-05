@@ -32,7 +32,7 @@ private func imageCommandWidth(metrics: const *ThemeMetrics)->f32
     return 2 * themeActionButtonSize(metrics) + themeDropDownButtonWidth(metrics) + 8
 }
 
-private func gifCommandWidth(metrics: const *ThemeMetrics)->f32
+private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32
 {
     return imageCommandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
 }
@@ -82,38 +82,33 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
     extension = extension.toLower()
     result.information.add(.Image, group: true)
     result.information.add(.Format, extension.toUpper().toString())
-    if extension == ".gif"
+    if extension == ".svg"
     {
-        try result.movie.load(fileName)
-
-        // Decode the complete animation on the worker. Once published, playback only exchanges
-        // cached frames and cannot stall the GUI on a complex GIF frame.
-        result.movie.setFrameIndex(result.movie.frameCount - 1)
-        result.movie.setFrameIndex(0)
-        let frame = &result.movie.frame
-        result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.movie.frameCount))
-        result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height).toString())
-        result.information.add(.Frames, Format.toString("%", result.movie.frameCount).toString())
-        result.information.addImageMetadata(frame.metadata.toSlice())
-    }
-    elif extension == ".svg"
-    {
-        // A drawing has no pixels, so it is handed to the view as the vector document it is:
-        // the view draws it at the scale it shows it at, and zooming stays sharp.
         result.drawing = try loadViewerDrawing(fileName)
         result.details = Format.toString(imageStrings().ui_DetailsVector, formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height))
         result.information.add(.Dimensions, Format.toString("% × %", formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height)).toString())
     }
     else
     {
-        result.image   = try loadViewerImage(fileName)
-        result.details = Format.toString(imageStrings().ui_DetailsStill, result.image.width, result.image.height, result.image.bitsPerPixel)
-        result.information.add(.Dimensions, Format.toString("% × % px", result.image.width, result.image.height).toString())
-        result.information.add(.PixelFormat, Format.toString("%", result.image.pixelFormat).toString())
-        result.information.add(.Depth, Format.toString("%", result.image.bitsPerPixel).toString())
-        result.information.addImageMetadata(result.image.metadata.toSlice(), extension == ".png")
+        try result.movie.load(fileName)
+        try result.movie.prepareCache()
+        let frame = &result.movie.frame
+        result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height).toString())
+        result.information.add(.PixelFormat, Format.toString("%", frame.pixelFormat).toString())
+        result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel).toString())
+        if result.movie.frameCount > 1
+        {
+            result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.movie.frameCount))
+            result.information.add(.Frames, Format.toString("%", result.movie.frameCount).toString())
+        }
+        else
+        {
+            result.details = Format.toString(imageStrings().ui_DetailsStill, frame.width, frame.height, frame.bitsPerPixel)
+            result.image = frame[]
+        }
+        result.information.addImageMetadata(frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
+        if result.movie.frameCount <= 1 do result.movie.clear()
     }
-
     return #move result
 }
 
@@ -186,10 +181,10 @@ internal impl ImageViewer
 
     mtd showPlayback()
     {
-        let width = gifCommandWidth(.themeMetrics())
+        let width = imageSetCommandWidth(.themeMetrics())
         .actions.preferredSize.x = width
         .actions.resize(width, themeActionButtonSize(.themeMetrics()))
-        .playButton.show()
+        .playButton.show(.imageView.movie.isAnimated())
         .timeline.show()
         .frameLabel.show()
         .timeline.setBounds(0, cast(f32) .imageView.movie.frameCount - 1, 1)
@@ -371,7 +366,7 @@ private impl IWnd for ImageViewer
         case .V where evt.modifiers == .None:
             .mirrorVertically()
 
-        case .Space where .imageView.movie.frameCount > 1:
+        case .Space where .imageView.movie.isAnimated() and .imageView.movie.frameCount > 1:
             .imageView.setPaused(!.imageView.movie.isPaused)
             .refreshFrame()
 
@@ -508,6 +503,10 @@ private impl ImageViewer
         {
             discard imageView
             view.refreshFrame()
+        }
+        result.imageView.sigDecodeFailed += func|view = result|(imageView)
+        {
+            if view.reportFailure do view.reportFailure!(view, imageView.movie.failureReason.toString())
         }
 
         result.applyLayout()

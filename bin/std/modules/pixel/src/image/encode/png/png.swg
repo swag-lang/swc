@@ -237,6 +237,14 @@ impl Encoder
         {
             if !md.tag.count or !md.value.count do
                 continue
+            if md.signature == 1 and md.isTag("Exif")
+            {
+                const TypeEXIf: [4] u8 = ['e', 'X', 'I', 'f']
+                .writePtr = .writeHeader(TypeEXIf, md.value.count)
+                Memory.copy(.writePtr, md.value.buffer, md.value.count)
+                .finishChunk()
+                continue
+            }
             .writePtr = .writeHeader(TypeTEXt, md.tag.count + 1 + md.value.count)
             Memory.copy(.writePtr, md.tag.buffer, md.tag.count)
             .writePtr[md.tag.count] = 0

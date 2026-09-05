@@ -48,7 +48,11 @@ struct DibHeader
 }
 
 // Decodes Windows icon containers and selects their embedded BMP or PNG image.
-internal struct Decoder {}
+internal struct Decoder
+{
+    bytes: const [..] u8?
+    entryCount: u32
+}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
@@ -202,11 +206,9 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     }
 }
 
-internal impl IImageDecoder for Decoder
+impl Decoder
 {
-    mtd impl format()->ImageFormat => {"ICO - Windows Icon and Cursor", ".ico;.cur"}
-
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
+    mtd decodeEntry(buffer: const [..] u8, options: DecodeOptions, index: s32 = -1)->Image fail
     {
         let base    = buffer.buffer
         let countof = buffer.count
@@ -220,6 +222,8 @@ internal impl IImageDecoder for Decoder
             fail InvalidFormatError{"not an icon"}
         if dir.count == 0 do
             fail InvalidFormatError{"empty icon"}
+        if index >= dir.count do
+            fail InvalidFormatError{"icon entry index is out of range"}
 
         checkBuffer(base, last, cast(u64) #sizeof(IconDir) + cast(u64) dir.count * #sizeof(IconDirEntry))
 
@@ -229,6 +233,7 @@ internal impl IImageDecoder for Decoder
         var found:     bool
         for i in dir.count
         {
+            if index >= 0 and i != index do continue
             let entry = (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))[as IconDirEntry]
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)
             let score = (area << 16) + entry.bitCount
@@ -266,12 +271,54 @@ internal impl IImageDecoder for Decoder
 
         var result: retval
         result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
+        options.checkImage(result.width, result.height, result.pixelFormat)
 
         if !options.decodePixels do
             return result
 
         result.allocPixels()
-        decodeDib(&result, dib, imgPtr + dib.size, last)
+        if dib.size > imgLen do fail InvalidFormatError{"icon DIB header is truncated"}
+        decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
         return result
+    }
+}
+
+impl IImageDecoder for Decoder
+{
+    mtd impl format()->ImageFormat => {"ICO - Windows Icon and Cursor", ".ico;.cur"}
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodeEntry(buffer, options)
+}
+
+impl IImageSetDecoder for Decoder
+{
+    mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
+    {
+        var probeOptions = options
+        probeOptions.decodePixels = false
+        discard .decodeEntry(buffer, probeOptions)
+        .bytes = buffer
+        .entryCount = buffer.buffer[as IconDir].count
+        options.checkFrameCount(.entryCount)
+        var result: retval
+        var bestScore: u64
+        for index in .entryCount
+        {
+            let probe = .decodeEntry(buffer, probeOptions, cast(s32) index)
+            let entry = (buffer.buffer + #sizeof(IconDir) + cast(u64) index * #sizeof(IconDirEntry))[as IconDirEntry]
+            let score = (cast(u64) dimFromByte(entry.width) * dimFromByte(entry.height) << 16) + entry.bitCount
+            if score > bestScore
+            {
+                bestScore = score
+                result.representativeIndex = index
+            }
+            result.frames.add({kind: ImageFrameKind.Variant, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
+        }
+        return result
+    }
+
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
+    {
+        if index >= .entryCount do fail InvalidFormatError{"icon entry index is out of range"}
+        return .decodeEntry(.bytes!, options, cast(s32) index)
     }
 }

@@ -98,6 +98,11 @@ public struct Decoder
         streamStart: const [*] u8?     // Start of the input, kept for looping.
         stream:      const [*] u8?     // Current read position in the input.
         streamLen:   u64               // Bytes remaining from 'stream'.
+        descriptorOffset: u64
+        descriptorRemaining: u64
+        hasLoopExtension: bool
+        reader: ImageReader
+        nextIndex: u32
     }
 }
 
@@ -113,14 +118,16 @@ public impl Decoder
 {
     // Opens an animated GIF for sequential frame decoding.
     //
-    // The decoder borrows `buffer`; its storage must remain valid until the decoder
-    // is no longer used or another buffer is opened.
+    // The decoder owns a copy of `buffer`; the caller may release its input after this call.
     mtd open(buffer: const [..] u8) fail
     {
-        .init(buffer, true)
+        var reader = ImageReader.decode("image.gif", buffer)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
+        .reader = #move reader
     }
 
-    internal mtd init(buffer: const [..] u8, decodePixels: bool) fail
+    internal mtd init(buffer: const [..] u8, decodePixels: bool, readFirst = true) fail
     {
         Swag.drop(me, 1)
         Swag.init(me, 1)
@@ -136,7 +143,7 @@ public impl Decoder
 
         // Version
         .read(sigver, 3)
-        if Memory.compare(sigver, ("89a").buffer, 3) != 0 do
+        if Memory.compare(sigver, ("89a").buffer, 3) != 0 and Memory.compare(sigver, ("87a").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid version"}
 
         // Width x Height
@@ -146,15 +153,13 @@ public impl Decoder
         // FDSZ
         var fdsz: u8
         .read(&fdsz, 1)
-        if !(fdsz & 0x80) do
-            fail UnsupportedFormatError{"no global color table"}
 
         // Color space's depth
         .depth = cast() (((fdsz >> 4) & 7) + 1)
 
         // Ignore sort flag
         // GCT Size
-        .gct.size = 1 << ((fdsz & 0x07) + 1)
+        .gct.size = fdsz & 0x80 ? 1 << ((fdsz & 0x07) + 1) : 0
 
         // Background color index
         .bgIndex = .readU8()
@@ -185,7 +190,7 @@ public impl Decoder
         .animRemain = .streamLen
         .initDone   = true
 
-        discard .getFrame(decodePixels)
+        if readFirst do discard .getFrame(decodePixels)
     }
 
     internal mtd prepareFrameImage(image: *Image, decodePixels = true)
@@ -203,6 +208,13 @@ public impl Decoder
     // trailer has been reached.
     mtd nextFrame(img: *Image)->bool fail
     {
+        if .reader.isOpen()
+        {
+            if .nextIndex >= .reader.info.frames.count do return false
+            img[] = .reader.read(.nextIndex)
+            .nextIndex += 1
+            return true
+        }
         Debug.assert(.initDone)
         if .reachEnd do
             return false
@@ -225,6 +237,7 @@ public impl Decoder
     // GIF does not store this count, so the first call scans the remaining stream.
     mtd frameCount()->s32 fail
     {
+        if .reader.isOpen() do return cast(s32) .reader.info.frames.count
         Debug.assert(.initDone)
         if .numFrames do
             return .numFrames
@@ -240,6 +253,11 @@ public impl Decoder
     // Rewinds frame iteration to the first frame.
     mtd rewind()
     {
+        if .reader.isOpen()
+        {
+            .nextIndex = 0
+            return
+        }
         Debug.assert(.initDone)
         .reachEnd  = false
         .stream    = .streamStart + .animStart
@@ -253,14 +271,91 @@ public impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        .init(buffer, options.decodePixels)
+        var reader = ImageReader.decode("image.gif", buffer, options)
+        var result: retval = reader.read(0)
+        if options.decodePixels and reader.info.frames[0].pixelFormat == .RGB8 do
+            result.convertTo(.RGB8)
+        return result
+    }
+}
 
+struct IndexedFrame
+{
+    offset: u64
+    remaining: u64
+    control: Gce
+}
+
+struct SetDecoder
+{
+    decoder: Decoder
+    frames: Array'IndexedFrame
+}
+
+impl IImageDecoder for SetDecoder
+{
+    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
+    {
+        var decoder: Decoder
+        let single: IImageDecoder = &decoder
+        return single.decode(buffer, options)
+    }
+}
+
+impl IImageSetDecoder for SetDecoder
+{
+    mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
+    {
+        .frames.clear()
+        .decoder.init(buffer, false, false)
+        options.checkImage(.decoder.width, .decoder.height, .RGBA8)
         var result: retval
-        .prepareFrameImage(&result, options.decodePixels)
-        if !options.decodePixels do
-            return result
+        result.canvasWidth = .decoder.width
+        result.canvasHeight = .decoder.height
+        if .decoder.bgIndex < .decoder.gct.size
+        {
+            let color = cast(const [*] u8) &.decoder.gct.colors[cast(u32) .decoder.bgIndex * 3]
+            result.background = {r: color[0], g: color[1], b: color[2], a: 255}
+        }
+        while .decoder.getFrame(false)
+        {
+            options.checkFrameCount(.frames.count + 1)
+            .frames.add({.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
+            let control = .decoder.gce
+            let frame: ImageFrameInfo = {kind: .Animation, width: .decoder.fw, height: .decoder.fh, x: .decoder.fx, y: .decoder.fy, pixelFormat: control.transparency ? .RGBA8 : .RGB8, durationSeconds: cast(f64) control.delay / 100, disposal: control.disposal == 3 ? .Previous : (control.disposal == 2 ? .Background : .Keep), blend: .Over}
+            result.frames.add(frame)
+            if result.frames.count == 1 and control.transparency do result.background = {a: 0}
+        }
+        result.loopCount = .decoder.hasLoopExtension ? (.decoder.loopCount ? cast(u32) .decoder.loopCount + 1 : 0) : 1
+        return result
+    }
 
-        .renderFrame(cast([*] u8) result.pixels.buffer!, result.pixelFormat)
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
+    {
+        if index >= .frames.count do fail InvalidFormatError{"GIF frame index is out of range"}
+        .decoder.stream = .decoder.streamStart + .frames[index].offset
+        .decoder.streamLen = .frames[index].remaining
+        .decoder.gce = .frames[index].control
+        if options.decodePixels do .decoder.frame.resize(cast(u64) .decoder.width * .decoder.height)
+        .decoder.readImage(options.decodePixels)
+        var result: retval
+        result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
+        if !options.decodePixels do return result
+        result.allocPixels()
+        let palette = .decoder.palette!
+        for y in result.height
+        {
+            for x in result.width
+            {
+                let value = .decoder.frame[cast(u64) (.decoder.fy + y) * .decoder.width + .decoder.fx + x]
+                if value >= palette.size do fail InvalidFormatError{"GIF palette index is out of range"}
+                let color = &palette.colors[cast(u32) value * 3]
+                let target = result.pixels.buffer! + cast(u64) (result.height - y - 1) * result.rowStride + cast(u64) x * result.bytesPerPixel
+                Memory.copy(target, color, 3)
+                if result.bytesPerPixel == 4 do target[3] = value == .decoder.gce.tindex ? 0'u8 : 255'u8
+            }
+        }
         return result
     }
 }

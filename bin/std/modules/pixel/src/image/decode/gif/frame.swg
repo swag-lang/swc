@@ -14,8 +14,10 @@ using Swag, Core, Core.Errors
 
 impl Decoder
 {
-    mtd readImage() fail
+    mtd readImage(decodePixels = true) fail
     {
+        .descriptorOffset = cast(u64) (.stream - .streamStart)
+        .descriptorRemaining = .streamLen
         // Image descriptor
         .fx = .readU16()
         .fy = .readU16()
@@ -24,8 +26,8 @@ impl Decoder
 
         .fw = .readU16()
         .fh = .readU16()
-        .fw = Math.min(.fw, cast(u16) (.width - .fx))
-        .fh = Math.min(.fh, cast(u16) (.height - .fy))
+        if !.fw or !.fh or .fw > .width - .fx or .fh > .height - .fy do
+            fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
 
         let fisrz     = .readU8()
         let interlace = fisrz & 0x40
@@ -42,7 +44,14 @@ impl Decoder
         else do
             .palette = &.gct
 
-        .readImageData(interlace)
+        if !.palette!.size do fail InvalidFormatError{"GIF frame has no color table"}
+        if decodePixels do .readImageData(interlace)
+        else
+        {
+            let codeSize = .readU8()
+            if codeSize < 2 or codeSize > 8 do fail InvalidFormatError{"GIF LZW code size is invalid"}
+            .discardSubBlocks()
+        }
     }
 
     mtd renderFrame(buffer: [*] u8, pf: PixelFormat)
@@ -89,6 +98,7 @@ impl Decoder
 
     mtd getFrame(decodePixels: bool)->s32 fail
     {
+        .gce = {}
         var sep = .readU8()
         while sep != ','
         {
@@ -100,8 +110,7 @@ impl Decoder
             sep = .readU8()
         }
 
-        if decodePixels do
-            .readImage()
+        .readImage(decodePixels)
         return 1
     }
 }

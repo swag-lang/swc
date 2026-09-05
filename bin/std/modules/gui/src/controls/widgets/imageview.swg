@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Displays a still image or animated GIF with viewer-oriented zooming and panning.
+// Displays a still image or image set with viewer-oriented zooming and panning.
 //
 // The view owns its image data and renderer texture. Mouse-wheel zoom is centred on the pointer,
 // dragging pans the content, and a double click toggles between fitted and actual size.
@@ -15,13 +15,14 @@ struct ImageView
         sigZoomChanged:      SigArray'func||(*ImageView)     // Emitted after the effective zoom changes.
         sigFrameChanged:     SigArray'func||(*ImageView)     // Emitted after an animation frame changes.
         sigTransformChanged: SigArray'func||(*ImageView)     // Emitted after the temporary view transform changes.
+        sigDecodeFailed: SigArray'func||(*ImageView) // Emitted once when frame decoding fails; movie.failureReason contains the error.
 
         readonly
         {
             zoom:                 f32  = 1        // Requested scale outside fitted mode.
             isFitted:             bool = true     // Whether the image is scaled to the available viewport.
             panOffset:            Math.Point      // Image-centre offset from the viewport centre, in logical units.
-            movie:                Movie           // GIF playback state, or an empty movie for a still image.
+            movie:                Movie           // Image-set playback state, or an empty movie for a still image.
             rotationQuarterTurns: u32             // Clockwise quarter turns applied to the displayed content.
             isMirrored:           bool            // Whether the displayed content is reflected before rotation.
         }
@@ -31,6 +32,7 @@ struct ImageView
     uploadedTexture: Texture        // Renderer texture for the current still, movie or planar frame.
     isPanning:       bool           // Whether the left mouse button currently pans the image.
     lastPointer:     Math.Point     // Previous surface position of a pan gesture.
+    reportedMovieFailure: bool
 
     // Vector document shown instead of a bitmap, or an empty drawing.
     //
@@ -137,9 +139,13 @@ private impl ImageView
 
     mtd updateUploadedFrame()
     {
-        if !.uploadedTexture.isValid() do
-            return
-        .app().renderer.updateTexture(.uploadedTexture, nnPixels(.movie.frame.pixels.buffer))
+        let frame = &.movie.frame
+        if !.uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
+        {
+            if .uploadedTexture.isValid() do .app().renderer.removeTexture(&.uploadedTexture)
+            .uploadedTexture = .app().renderer.addImage(frame[])
+        }
+        else do .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
     }
 
     mtd applyZoom(value: f32, anchor: const *Math.Point? = null)
@@ -223,6 +229,11 @@ impl IWnd for ImageView
         {
             .updateUploadedFrame()
             .sigFrameChanged.call(me)
+        }
+        if !.reportedMovieFailure and !.movie.failureReason.isEmpty()
+        {
+            .reportedMovieFailure = true
+            .sigDecodeFailed.call(me)
         }
 
         if .hasDrawing()
@@ -554,6 +565,12 @@ impl ImageView
     // Existing content remains unchanged when decoding fails.
     mtd loadGif(fileName: string) fail
     {
+        .loadMovie(fileName)
+    }
+
+    // Loads a registered image set and fits its representative image to the viewport, preserving content on failure.
+    mtd loadMovie(fileName: string) fail
+    {
         var movie: Movie
         try movie.load(fileName)
 
@@ -573,6 +590,7 @@ impl ImageView
         Swag.init(&.image, 1)
         .planarWidth, .planarHeight = 0
         swap(&.movie, movie)
+        .reportedMovieFailure = false
         if .movie.isValid() do
             .uploadedTexture = .app().renderer.addImage(.movie.frame)
         .isFitted  = true
@@ -672,14 +690,14 @@ impl ImageView
         .applyTransform(0, false)
     }
 
-    // Pauses or resumes GIF playback.
+    // Pauses or resumes image-set playback.
     mtd setPaused(paused: bool)
     {
         .movie.setPaused(paused)
         .invalidate()
     }
 
-    // Selects one GIF frame, clamped to the available frame range.
+    // Selects one image, clamped to the available frame range.
     mtd setFrameIndex(index: s32)
     {
         .movie.setFrameIndex(index)

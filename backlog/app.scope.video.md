@@ -115,12 +115,13 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.010 — Track and stream metadata have no complete media-information panel
 
-- Evidence: the host summary compresses picture size, codec, FPS, frame count, and one audio detail.
+- Evidence: the information panel presents picture/display size, FPS, frame count, duration,
+  and the available audio/subtitle track names, languages, and encoding properties.
   Container brands, duration provenance, bitrate, time base, frame-rate mode, codec profile/level,
   pixel format, track IDs, language/flags, tags, attachments, chapters, and decoder warnings are not
   presented together.
-- Next: define a container/stream metadata tree and publish it through app.scope.viewers.006 without coupling it to
-  transport widgets.
+- Next: extend the existing panel with a complete container/stream metadata tree without coupling
+  it to transport widgets.
 - Complete when: container plus every stream has exact technical metadata and original tags,
   derived values identify their source, attachments open safely, warnings link to track/time where
   possible, and the report can be copied/exported.

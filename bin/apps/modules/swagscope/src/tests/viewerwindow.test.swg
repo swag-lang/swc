@@ -3,6 +3,12 @@
 
 using Core, Pixel, Gui
 
+struct RetiringTestView
+{
+    using wnd: Wnd
+    retired: bool
+}
+
 func saveViewerState(window: *ViewerWindow)->String
 {
     var result:     ConcatBuffer
@@ -1647,13 +1653,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.viewerCombo.addItem("Second")
     window.instances.resize(2)
 
-    let loading = Wnd.create'Wnd(window.documentPanel)
-    var retired: bool
-    loading.userData              = &retired
+    let loading = Wnd.create'RetiringTestView(window.documentPanel)
     window.instances[0].view      = loading
     window.instances[0].details   = "streamed"
     window.instances[0].isLoading = func(wnd)->bool { discard wnd; return true }
-    window.instances[0].retire    = &markTestViewerRetired
+    window.instances[0].retire    = func(wnd)->bool
+    {
+        let view = cast(*RetiringTestView) wnd
+        view.retired = true
+        return true
+    }
     window.currentView            = loading
     window.activeChoiceIndex      = 0
     loading.setPosition({17, 83, 611, 391})
@@ -1696,7 +1705,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     reportViewerLoadingChanged(loading)
     Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     Swag.assert(window.activateChoice(1))
-    Swag.assert(retired and loading.isPendingDestroy)
+    Swag.assert(loading.retired and loading.isPendingDestroy)
     Swag.assert(window.instances[0].view == null)
     Swag.assert(window.currentView != null and window.currentView != loading)
     Swag.assert(window.instances[1].view == window.currentView)

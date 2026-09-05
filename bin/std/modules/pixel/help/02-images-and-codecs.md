@@ -23,6 +23,59 @@ try image.save("avatar.png")
 makes a processing pipeline read naturally and avoids a chain of short-lived image
 values.
 
+## Read animations and image sets
+
+[[Pixel.ImageReader]] owns its encoded input and exposes the container through
+[[Pixel.ImageSetInfo]]. Its [[Pixel.ImageFrameInfo]] entries distinguish timed
+animation frames from document pages, icon variants, raster layers, and texture
+subresources. Reading an index returns an independently owned [[Pixel.Image]].
+
+```swag
+var reader = try ImageReader.load("animation.webp")
+for index in reader.info.frames.count
+{
+    let description = &reader.info.frames[index]
+    var image = try reader.read(cast(u32) index)
+    // Animation clients display this canvas for description.durationSeconds.
+}
+```
+
+| Container | Indexed images |
+|---|---|
+| GIF | Animation frames, with palettes, transparency, delays, disposal, and loops |
+| PNG/APNG | Animation frames, including partial rectangles, alpha blending, and restore-previous disposal |
+| WebP | VP8 and VP8L animation frames, alpha, frame rectangles, durations, and loops |
+| TIFF | Pages in the linked directory chain, using the supported strip encodings |
+| ICO/CUR | Every PNG or supported DIB entry; the largest entry is the representative |
+| DDS/KTX2 | Mip levels, array layers, cube faces, and volume slices in supported pixel/block formats |
+| OpenEXR | Scanline parts with supported RGB(A)/Y half/float channels and compression |
+| PSD | The composite followed by nonempty raster layers; layer effects and mask rendering are not applied |
+| Other registered codecs | One representative image, without an additional interface requirement |
+
+Animation reads return complete canvases in `RGBA8`, or `RGBA16` for 16-bit PNG.
+Frame rectangles use top-left coordinates. Encoded durations remain in seconds,
+including zero for unspecified delays; clients choose their fallback duration.
+The loop count means total plays, with zero for unlimited playback. GIF repeat
+counts are converted to this convention. Forward reads reuse the canvas; backward
+seeks replay the necessary frames. Pixels are not cached by the reader.
+
+[[Pixel.Image.load]] and [[Pixel.Image.decode]] retain a still-image contract:
+the first composited GIF/WebP frame, the PNG default image (which can be a separate
+APNG poster), the first TIFF page or EXR part, the PSD composite, the largest icon
+entry, or the base texture's first subresource. Unsupported compression, tiled EXR,
+deep EXR, and unsupported channel layouts still fail explicitly.
+
+[[Pixel.DecodeOptions]] bounds encoded bytes, indexed frames, pixels per image,
+and decoded buffer size. The reader checks geometry before pixel allocation;
+zero removes a particular limit. KTX2 supercompression also applies the byte limit
+to the whole inflated level. `decodePixels: false` indexes and probes geometry
+without allocating image pixels. Metadata remains optional and owned by the image.
+
+User-registered decoder types can implement [[Pixel.IImageSetDecoder]] alongside
+[[Pixel.IImageDecoder]]. The reader owns the bytes borrowed by `open`, keeps the
+decoder at a stable address, and performs common animation compositing. `readFrame`
+returns an uncomposited rectangle and must accept any indexed frame number.
+
 ## Choose a pixel format
 
 Use [[Pixel.PixelFormat]] `RGBA8` for general-purpose color with alpha and `RGB8`

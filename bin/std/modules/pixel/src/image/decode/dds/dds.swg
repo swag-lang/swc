@@ -1,7 +1,7 @@
 //! Format: DirectDraw Surface decoder.
-//! Supported: First 2D surface of legacy or DX10 DDS files; RGB/luminance integer pixels,
+//! Supported: Mip levels, array layers, cube faces, and volume slices of legacy or DX10 DDS files; RGB/luminance integer pixels,
 //!            RGBA 8/16-bit and half/full-float DXGI pixels, and BC1 through BC5 compression.
-//! Not supported: Volume slices, cubemap selection, signed blocks, BC6H, BC7, or palette data.
+//! Not supported: Signed blocks, BC6H, BC7, or palette data.
 //! Role: This file validates DDS headers and exposes their base texture as a Pixel image.
 //
 #global namespace Dds
@@ -15,7 +15,11 @@ const RgbFlag    = 0x00000040'u32
 const AlphaFlag  = 0x00000001'u32
 const LumaFlag   = 0x00020000'u32
 
-internal struct Decoder {}
+internal struct Decoder
+{
+    bytes: const [..] u8?
+    frames: Array'ImageFrameInfo
+}
 
 #[Swag.Inline]
 func readU32(source: const [*] u8)->u32 => source[as u32]
@@ -138,19 +142,17 @@ func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpa
     }
 }
 
-internal impl IImageDecoder for Decoder
+impl Decoder
 {
-    mtd impl format()->ImageFormat => {"DDS - DirectDraw Surface", ".dds"}
-
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
+    mtd decodeSurface(buffer: const [..] u8, options: DecodeOptions, selected: u32 = 0, collect = false)->Image fail
     {
         if buffer.count < HeaderSize or readU32(buffer.buffer) != Magic do
             fail InvalidFormatError{"DDS signature or header is truncated"}
         if readU32(buffer.buffer + 4) != 124 or readU32(buffer.buffer + 76) != 32 do
             fail InvalidFormatError{"DDS header sizes are invalid"}
 
-        let height = readU32(buffer.buffer + 12)
-        let width  = readU32(buffer.buffer + 16)
+        var height = readU32(buffer.buffer + 12)
+        var width  = readU32(buffer.buffer + 16)
         if width == 0 or height == 0 or width > cast(u32) Swag.S32.Max or height > cast(u32) Swag.S32.Max do
             fail UnsupportedFormatError{"DDS dimensions exceed the image limits"}
 
@@ -167,6 +169,16 @@ internal impl IImageDecoder for Decoder
         var directCopy:       bool
         var forceOpaqueAlpha: bool
         var alphaMode = AlphaMode.Straight
+        let caps2 = readU32(buffer.buffer + 112)
+        var layers = 1'u32
+        var faces: Array'u32
+        var depth = (caps2 & 0x200000) ? readU32(buffer.buffer + 24) : 1'u32
+        if caps2 & 0x200
+        {
+            for face in 6'u32 where caps2 & (0x400'u32 << face) do faces.add(face)
+            if !faces.count do fail InvalidFormatError{"DDS cubemap declares no faces"}
+        }
+        else do faces.add(0)
 
         if pfFlags & FourCcFlag
         {
@@ -177,8 +189,19 @@ internal impl IImageDecoder for Decoder
                 let dxgi      = readU32(buffer.buffer + 128)
                 let dimension = readU32(buffer.buffer + 132)
                 let arraySize = readU32(buffer.buffer + 140)
-                if dimension != 3 or arraySize == 0 do
-                    fail UnsupportedFormatError{"DDS resource is not a 2D texture"}
+                if dimension < 2 or dimension > 4 or arraySize == 0 do
+                    fail InvalidFormatError{"DDS texture dimension or array size is invalid"}
+                layers = arraySize
+                depth = dimension == 4 ? readU32(buffer.buffer + 24) : 1
+                if dimension == 4 and arraySize != 1 do fail InvalidFormatError{"DDS volume texture cannot be an array"}
+                if dimension == 2 and height != 1 do fail InvalidFormatError{"DDS one-dimensional texture has multiple rows"}
+                faces.clear()
+                if readU32(buffer.buffer + 136) & 4
+                {
+                    if dimension != 3 or width != height do fail InvalidFormatError{"DDS cubemap dimensions are invalid"}
+                    for face in 6'u32 do faces.add(face)
+                }
+                else do faces.add(0)
                 if !dxgiFormat(dxgi, &format, &blocks) do
                     fail UnsupportedFormatError{"DDS DXGI pixel format is not supported"}
                 let mode = readU32(buffer.buffer + 144) & 7
@@ -214,6 +237,55 @@ internal impl IImageDecoder for Decoder
 
         if blocks != .None do
             format = .RGBA8
+        if !depth or (depth > 1 and faces.count != 1) do fail InvalidFormatError{"DDS volume depth is invalid"}
+        let levels = Math.max(readU32(buffer.buffer + 28), 1'u32)
+        if levels > 32 do fail InvalidFormatError{"DDS mip count exceeds its dimensions"}
+        options.checkFrameCount(cast(u64) layers * faces.count * levels)
+        let baseWidth = width
+        let baseHeight = height
+        var cursor = offset
+        var current = 0'u64
+        var selectedPitch: u64
+        var selectedLength: u64
+        if collect do .frames.clear()
+        for layer in layers
+        {
+            for face in faces
+            {
+                for level in levels
+                {
+                    let frameWidth = Math.max(baseWidth >> level, 1'u32)
+                    let frameHeight = Math.max(baseHeight >> level, 1'u32)
+                    let slices = Math.max(depth >> level, 1'u32)
+                    options.checkFrameCount(current + slices)
+                    options.checkImage(cast(s32) frameWidth, cast(s32) frameHeight, format)
+                    let rowBytes = directCopy ? cast(u64) frameWidth * format.bitsPerPixel() / 8 : (cast(u64) frameWidth * bits + 7) / 8
+                    let declaredPitch = level == 0 ? cast(u64) readU32(buffer.buffer + 20) : 0
+                    let pitch = Math.max(rowBytes, declaredPitch)
+                    let length = blocks != .None ? cast(u64) ((frameWidth + 3) / 4) * ((frameHeight + 3) / 4) * TextureBlocks.blockBytes(blocks) : pitch * frameHeight
+                    for slice in slices
+                    {
+                        if cursor > buffer.count or length > buffer.count - cursor do fail InvalidFormatError{"DDS texture subresource is truncated"}
+                        if current == selected
+                        {
+                            width = frameWidth
+                            height = frameHeight
+                            offset = cursor
+                            selectedPitch = pitch
+                            selectedLength = length
+                        }
+                        if collect
+                        {
+                            let frame: ImageFrameInfo = {kind: .Texture, width: cast(s32) frameWidth, height: cast(s32) frameHeight, pixelFormat: format, layer: layer, face: face, level: level, depthSlice: slice}
+                            .frames.add(frame)
+                        }
+                        cursor += length
+                        current += 1
+                    }
+                }
+            }
+        }
+        if selected >= current do fail InvalidFormatError{"DDS image index is out of range"}
         var result: retval
         result.init(cast(s32) width, cast(s32) height, format, alphaMode)
         if !options.decodePixels do
@@ -222,23 +294,39 @@ internal impl IImageDecoder for Decoder
 
         if blocks != .None
         {
-            try TextureBlocks.decode(&result, buffer[offset to], blocks)
+            try TextureBlocks.decode(&result, buffer[offset until offset + selectedLength], blocks)
         }
         elif directCopy
         {
-            let rowBytes      = cast(u64) result.rowStride
-            let declaredPitch = cast(u64) readU32(buffer.buffer + 20)
-            let pitch         = declaredPitch >= rowBytes ? declaredPitch : rowBytes
-            try copyRows(&result, buffer, offset, pitch, forceOpaqueAlpha)
+            try copyRows(&result, buffer, offset, selectedPitch, forceOpaqueAlpha)
         }
         else
         {
-            let rowBytes      = (cast(u64) width * bits + 7) / 8
-            let declaredPitch = cast(u64) readU32(buffer.buffer + 20)
-            let pitch         = declaredPitch >= rowBytes ? declaredPitch : rowBytes
-            try decodeMasked(&result, buffer, offset, pitch, bits, redMask, greenMask, blueMask, alphaMask, (pfFlags & LumaFlag) != 0)
+            try decodeMasked(&result, buffer, offset, selectedPitch, bits, redMask, greenMask, blueMask, alphaMask, (pfFlags & LumaFlag) != 0)
         }
 
         return result
     }
+}
+
+impl IImageDecoder for Decoder
+{
+    mtd impl format()->ImageFormat => {"DDS - DirectDraw Surface", ".dds"}
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => .decodeSurface(buffer, options)
+}
+
+impl IImageSetDecoder for Decoder
+{
+    mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
+    {
+        .bytes = buffer
+        var probeOptions = options
+        probeOptions.decodePixels = false
+        discard .decodeSurface(buffer, probeOptions, collect: true)
+        var result: retval
+        result.frames = .frames
+        return result
+    }
+
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => .decodeSurface(.bytes!, options, index)
 }

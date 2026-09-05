@@ -2,11 +2,11 @@ const VOCAB = 5000'u64
 const WORDS = 2000000'u64
 const CAP   = 16384'u64
 
-var g_Text: [*] u8
-var g_Cnt:  [*] u64
-var g_Off:  [*] u64
-var g_Len:  [*] u64
-var g_Idx:  [*] u64
+late var g_Text: [*] u8
+late var g_Cnt:  [*] u64
+late var g_Off:  [*] u64
+late var g_Len:  [*] u64
+late var g_Idx:  [*] u64
 
 // count descending, then key bytes ascending
 func less(a, b: u64)->bool

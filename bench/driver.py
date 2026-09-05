@@ -38,6 +38,13 @@ import history
 import toolchains as tc
 import winproc
 
+# A compiler error reaches this driver verbatim, and swc draws its diagnostics with box
+# characters. The Windows console defaults to a code page that cannot encode them, so
+# printing the error raised UnicodeEncodeError and buried the very error it was reporting.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 PAT = re.compile(r"CHECK=(-?\d+)\s+MS=([\d.]+)")
 
 AOT_ORDER = ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",

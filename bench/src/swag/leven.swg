@@ -2,13 +2,13 @@ const DICT    = 6000'u64
 const QUERIES = 40'u64
 const MAXLEN  = 3'u64
 
-var g_Bytes:  [*] u8
-var g_WordOff: [*] u64
-var g_WordLen: [*] u64
+late var g_Bytes:   [*] u8
+late var g_WordOff: [*] u64
+late var g_WordLen: [*] u64
 
-var g_QBytes:  [*] u8
-var g_QOff:    [*] u64
-var g_QLen:    [*] u64
+late var g_QBytes: [*] u8
+late var g_QOff:   [*] u64
+late var g_QLen:   [*] u64
 
 #run
 {

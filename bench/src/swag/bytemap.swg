@@ -4,13 +4,15 @@
 
 struct ByteMap
 {
-    keyOff: [*] u64
-    keyLen: [*] u64
-    val:    [*] u64
-    used:   [*] u8
-    base:   [*] u8
-    mask:   u64
-    count:  u64
+    // Views into the caller's arena, handed over by 'mapInit' before any use.
+    late keyOff: [*] u64
+    late keyLen: [*] u64
+    late val:    [*] u64
+    late used:   [*] u8
+    late base:   [*] u8
+
+    mask:  u64
+    count: u64
 }
 
 func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)

@@ -1,7 +1,7 @@
 //! Format: Graphics Interchange Format (GIF87a/GIF89a) decoder component.
 //! Supported: Global/local palettes, transparency, interlacing, disposal, timing, loops, and sequential animation frames.
 //! Not supported: Unknown extension labels and malformed or truncated sub-block streams.
-//! Role: This file owns image descriptors, palettes, disposal, and compositing.
+//! Role: This file reads image descriptors, palettes, and bounded frame payloads.
 //
 // @LICENCE: LicenseRef-Public-Domain
 // @ORIGIN: gifdec, https://github.com/lecram/gifdec
@@ -55,48 +55,6 @@ impl Decoder
             if codeSize < 2 or codeSize > 8 do
                 fail InvalidFormatError{"GIF LZW code size is invalid"}
             .discardSubBlocks()
-        }
-    }
-
-    mtd renderFrame(buffer: [*] u8, pf: PixelFormat)
-    {
-        let palette = .palette!
-        var i       = cast(u32) .fy * .width + .fx
-
-        if pf.hasAlpha()
-        {
-            for j in range(0, .fh).reversed()
-            {
-                for k in cast(u32) .fw
-                {
-                    let index = .frame[(.fy + j) * cast(u32) .width + (.fx + k)]
-                    let color = cast([*] u8) &palette.colors[index * 3'u32]
-                    let b     = buffer + (i + k) * 4
-                    b[0] = color[0]
-                    b[1] = color[1]
-                    b[2] = color[2]
-                    b[3] = index == .gce.tindex ? 0'u8 : 0xFF'u8
-                }
-
-                i += .width
-            }
-        }
-        else
-        {
-            for j in range(0, .fh).reversed()
-            {
-                for k in .fw
-                {
-                    let index = .frame[(.fy + j) * .width + (.fx + k)]
-                    let color = cast([*] u8) &palette.colors[index * 3'u32]
-                    let b     = buffer + (i + k) * 3
-                    b[0] = color[0]
-                    b[1] = color[1]
-                    b[2] = color[2]
-                }
-
-                i += .width
-            }
         }
     }
 

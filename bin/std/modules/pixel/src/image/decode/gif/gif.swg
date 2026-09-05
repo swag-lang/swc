@@ -72,12 +72,9 @@ public struct Decoder
 
     private
     {
-        fd:         s32           // Frame delay of the frame being decoded, in hundredths of a second.
         width:      u16           // Width of the logical screen.
         height:     u16           // Height of the logical screen.
-        depth:      u16           // Bit depth declared by the stream.
         loopCount:  u16           // Loop count from the animation extension, zero for endless.
-        numFrames:  s32           // Number of frames decoded so far.
         gce:        Gce           // Graphic control extension of the current frame.
         palette:    *Palette?     // Palette the current frame resolves against.
         lct:        Palette       // Local color table of the current frame.
@@ -87,13 +84,8 @@ public struct Decoder
         fw:         u16           // Width of the current frame.
         fh:         u16           // Height of the current frame.
         bgIndex:    u8            // Background color index of the logical screen.
-        canvas:     [*] u8?       // Composited logical screen, reused across frames.
         frame:      Array'u8      // Indices of the frame being decoded.
         table:      Table         // LZW dictionary of the current frame.
-        animStart:  u64           // Stream offset the animation starts at, for looping.
-        animRemain: u64           // Bytes remaining from 'animStart', for looping.
-        reachEnd:   bool          // Whether the trailer was reached.
-        initDone:   bool          // Whether the header was parsed.
 
         streamStart:         const [*] u8?     // Start of the input, kept for looping.
         stream:              const [*] u8?     // Current read position in the input.
@@ -111,7 +103,6 @@ impl Decoder
     mtd safeStream()->const [*] u8      => cast(const [*] u8) .stream!
     mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) .streamStart!
     mtd safePalette()->*Palette         => cast(*Palette) .palette!
-    mtd safeCanvas()->[*] u8            => cast([*] u8) .canvas!
 }
 
 public impl Decoder
@@ -127,7 +118,7 @@ public impl Decoder
         .reader = #move reader
     }
 
-    internal mtd init(buffer: const [..] u8, decodePixels: bool, readFirst = true) fail
+    internal mtd init(buffer: const [..] u8) fail
     {
         Swag.drop(me, 1)
         Swag.init(me, 1)
@@ -154,9 +145,6 @@ public impl Decoder
         var fdsz: u8
         .read(&fdsz, 1)
 
-        // Color space's depth
-        .depth = cast() (((fdsz >> 4) & 7) + 1)
-
         // Ignore sort flag
         // GCT Size
         .gct.size = fdsz & 0x80 ? 1 << ((fdsz & 0x07) + 1) : 0
@@ -170,37 +158,6 @@ public impl Decoder
         .read(.gct.colors, 3'u64 * .gct.size)
         .palette = &.gct
 
-        if decodePixels
-        {
-            let size = cast(u64) .width * cast(u64) .height
-            .frame.resize(4 * size)
-            let frame = .frame.buffer!
-            Memory.set(frame, .bgIndex, size)
-            .canvas = &frame[size]
-
-            let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]
-            if bgcolor[0] or bgcolor[1] or bgcolor[2]
-            {
-                for i in size do
-                    Memory.copy(&.canvas[i * 3], bgcolor, 3)
-            }
-        }
-
-        .animStart  = cast(u64) (.stream - .streamStart)
-        .animRemain = .streamLen
-        .initDone   = true
-
-        if readFirst do
-            discard .getFrame(decodePixels)
-    }
-
-    internal mtd prepareFrameImage(image: *Image, decodePixels = true)
-    {
-        Debug.assert(.initDone)
-        image.init(.width, .height, .gce.transparency ? PixelFormat.RGBA8 : PixelFormat.RGB8)
-        if !decodePixels do
-            return
-        image.allocPixels()
     }
 
     // Decodes the next composited frame into `image`.
@@ -209,67 +166,27 @@ public impl Decoder
     // trailer has been reached.
     mtd nextFrame(img: *Image)->bool fail
     {
-        if .reader.isOpen()
-        {
-            if .nextIndex >= .reader.info.frames.count do
-                return false
-            img[]      = .reader.read(.nextIndex)
-            .nextIndex += 1
-            return true
-        }
-
-        Debug.assert(.initDone)
-        if .reachEnd do
-            return false
-
-        if !.getFrame(true)
-        {
-            .reachEnd = true
-            return false
-        }
-
-        let pixelFormat = .gce.transparency ? PixelFormat.RGBA8 : PixelFormat.RGB8
-        if !img.isValid() or img.width != .width or img.height != .height or img.pixelFormat != pixelFormat do
-            .prepareFrameImage(img)
-        .renderFrame(cast([*] u8) img.pixels.buffer!, img.pixelFormat)
+        Debug.assert(.reader.isOpen())
+        if .nextIndex >= .reader.info.frames.count do return false
+        img[] = .reader.read(.nextIndex)
+        .nextIndex += 1
         return true
     }
 
-    // Counts the frames in the GIF and rewinds the decoder.
-    //
-    // GIF does not store this count, so the first call scans the remaining stream.
+    // Returns the number of frames indexed when the GIF was opened.
     mtd frameCount()->s32 fail
     {
-        if .reader.isOpen() do
-            return cast(s32) .reader.info.frames.count
-        Debug.assert(.initDone)
-        if .numFrames do
-            return .numFrames
-
-        .numFrames = 1
-        while .getFrame(true) do
-            .numFrames += 1
-
-        .rewind()
-        return .numFrames
+        Debug.assert(.reader.isOpen())
+        return cast(s32) .reader.info.frames.count
     }
 
     // Rewinds frame iteration to the first frame.
     mtd rewind()
     {
-        if .reader.isOpen()
-        {
-            .nextIndex = 0
-            return
-        }
-
-        Debug.assert(.initDone)
-        .reachEnd  = false
-        .stream    = .streamStart + .animStart
-        .streamLen = .animRemain
+        Debug.assert(.reader.isOpen())
+        .nextIndex = 0
     }
 }
-
 public impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
@@ -280,6 +197,8 @@ public impl IImageDecoder for Decoder
         var result: retval = reader.read(0)
         if options.decodePixels and reader.info.frames[0].pixelFormat == .RGB8 do
             result.convertTo(.RGB8)
+        .reader = #move reader
+        .nextIndex = 1
         return result
     }
 }
@@ -314,7 +233,7 @@ impl IImageSetDecoder for SetDecoder
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
         .frames.clear()
-        .decoder.init(buffer, false, false)
+        .decoder.init(buffer)
         options.checkImage(.decoder.width, .decoder.height, .RGBA8)
         var result: retval
         result.canvasWidth  = .decoder.width

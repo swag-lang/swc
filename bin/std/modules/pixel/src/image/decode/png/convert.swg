@@ -335,7 +335,6 @@ impl Decoder
 
     mtd convert(result: *Image)
     {
-        defer Memory.free(.safeDstPixels(), .dstPixelsSize)
 
         if .header.bitDepth == 16
         {

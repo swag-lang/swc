@@ -389,6 +389,56 @@ private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: stri
     return 0
 }
 
+// Checks that a module's cached setup answers for the file the command finds, not the one an
+// earlier command found: an edit to module.swg has to reach the very next build.
+//
+// The artifact name is decided by the setup alone, so a stale setup would rebuild the old
+// executable under its old name and never produce the renamed one.
+private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Options, workspace: string, buildCfg: string)->s32 fail
+{
+    let scratch = Path.combine(workspace, ".tmp", "setup-cache-probe")
+    if Directory.exists(scratch) do
+        try Directory.delete(scratch.toString(), recurse: true)
+    defer discard catch Directory.delete(scratch.toString(), recurse: true)
+
+    let moduleDir = Path.combine(scratch.toString(), "modules", "probe")
+    let sourceDir = Path.combine(moduleDir.toString(), "src")
+    for directory in [scratch, Path.combine(scratch.toString(), "modules"), moduleDir, sourceDir] do
+        try Directory.create(directory.toString())
+
+    let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
+    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
+    try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8) "#main\n{\n}\n")
+
+    var built = workspaceModuleCommand("build", scratch.toString(), "probe", buildCfg)
+    options.appendExtra(&built)
+    let firstCode = try context.runCompiler(built)
+    if firstCode != 0 do
+        return firstCode
+
+    let cacheFile = Path.combine(scratch.toString(), ".tmp", "probe", Format.toString(".swc-setup-%", buildCfg).toString())
+    if !File.exists(cacheFile)
+    {
+        Console.println("Workspace build did not cache the module setup: ", cacheFile.toString())
+        return 1
+    }
+
+    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"renamed\"\n}\n")
+
+    let secondCode = try context.runCompiler(built)
+    if secondCode != 0 do
+        return secondCode
+
+    let renamed = Path.combine(scratch.toString(), ".output", "probe", "executable", buildCfg, options.targetArch.toString(), "renamed.exe")
+    if !File.exists(renamed)
+    {
+        Console.println("An edited module.swg did not reach the next build's setup: ", renamed.toString())
+        return 1
+    }
+
+    return 0
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
@@ -453,6 +503,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Reusable workspace dependency added noise to the build report: ", dependency)
         return 1
     }
+
+    let setupCacheCode = try verifyModuleSetupCacheInvalidation(context, options, workspace.toString(), buildCfg)
+    if setupCacheCode != 0 do
+        return setupCacheCode
 
     // Documentation consumes local native artifacts for compile-time execution, but does not
     // produce those artifacts itself. Starting it from a clean workspace proves that its publish

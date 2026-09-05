@@ -98,40 +98,51 @@ namespace
             buildCfg.workDir = cmdLine.defaultBuildCfg.workDir;
     }
 
+    // Every string a build configuration carries, in one place: ownership, the setup cache
+    // writer and its reader all walk the same list, so a field added here reaches all three.
+    template<typename Visit>
+    void visitBuildCfgStrings(Runtime::BuildCfg& buildCfg, Visit&& visit)
+    {
+        visit(buildCfg.moduleNamespace);
+        visit(buildCfg.warnings.asErrors);
+        visit(buildCfg.warnings.asWarnings);
+        visit(buildCfg.warnings.disabled);
+        visit(buildCfg.name);
+        visit(buildCfg.outDir);
+        visit(buildCfg.workDir);
+        visit(buildCfg.repoPath);
+        visit(buildCfg.resAppIcoFileName);
+        visit(buildCfg.resAppName);
+        visit(buildCfg.resAppDescription);
+        visit(buildCfg.resAppCompany);
+        visit(buildCfg.resAppCopyright);
+        visit(buildCfg.genDoc.outputName);
+        visit(buildCfg.genDoc.titleToc);
+        visit(buildCfg.genDoc.titleContent);
+        visit(buildCfg.genDoc.css);
+        visit(buildCfg.genDoc.icon);
+        visit(buildCfg.genDoc.morePages);
+        visit(buildCfg.genDoc.quoteIconNote);
+        visit(buildCfg.genDoc.quoteIconTip);
+        visit(buildCfg.genDoc.quoteIconWarning);
+        visit(buildCfg.genDoc.quoteIconAttention);
+        visit(buildCfg.genDoc.quoteIconExample);
+        visit(buildCfg.genDoc.quoteTitleNote);
+        visit(buildCfg.genDoc.quoteTitleTip);
+        visit(buildCfg.genDoc.quoteTitleWarning);
+        visit(buildCfg.genDoc.quoteTitleAttention);
+        visit(buildCfg.genDoc.quoteTitleExample);
+        visit(buildCfg.genDoc.brandName);
+        visit(buildCfg.genDoc.brandUrl);
+        visit(buildCfg.genDoc.navLinks);
+        visit(buildCfg.genDoc.footer);
+        visit(buildCfg.registeredConfigs);
+    }
+
     void ownBuildCfgStrings(Runtime::BuildCfg& buildCfg, std::vector<std::unique_ptr<Utf8>>& ownedStrings)
     {
         std::vector<std::unique_ptr<Utf8>> newOwnedStrings;
-
-        ownBuildCfgString(buildCfg.moduleNamespace, newOwnedStrings);
-        ownBuildCfgString(buildCfg.warnings.asErrors, newOwnedStrings);
-        ownBuildCfgString(buildCfg.warnings.asWarnings, newOwnedStrings);
-        ownBuildCfgString(buildCfg.warnings.disabled, newOwnedStrings);
-        ownBuildCfgString(buildCfg.name, newOwnedStrings);
-        ownBuildCfgString(buildCfg.outDir, newOwnedStrings);
-        ownBuildCfgString(buildCfg.workDir, newOwnedStrings);
-        ownBuildCfgString(buildCfg.repoPath, newOwnedStrings);
-        ownBuildCfgString(buildCfg.resAppIcoFileName, newOwnedStrings);
-        ownBuildCfgString(buildCfg.resAppName, newOwnedStrings);
-        ownBuildCfgString(buildCfg.resAppDescription, newOwnedStrings);
-        ownBuildCfgString(buildCfg.resAppCompany, newOwnedStrings);
-        ownBuildCfgString(buildCfg.resAppCopyright, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.outputName, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.titleToc, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.titleContent, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.css, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.icon, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.morePages, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteIconNote, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteIconTip, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteIconWarning, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteIconAttention, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteIconExample, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteTitleNote, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteTitleTip, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteTitleWarning, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteTitleAttention, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.quoteTitleExample, newOwnedStrings);
-        ownBuildCfgString(buildCfg.registeredConfigs, newOwnedStrings);
+        visitBuildCfgStrings(buildCfg, [&newOwnedStrings](Runtime::String& value) { ownBuildCfgString(value, newOwnedStrings); });
         ownedStrings.swap(newOwnedStrings);
     }
 
@@ -983,6 +994,314 @@ namespace
             return false;
 
         outTime = std::max(outTime, runtimeTime);
+        return true;
+    }
+
+    // ------------------------------------------------------------------ module setup cache
+    //
+    // Running a module's setup means parsing and sema'ing its module.swg on top of the whole
+    // runtime prelude, and running its build-configuration block on the JIT. Measured at about
+    // 120 ms per module on this machine, for a result that only changes when module.swg, a file
+    // it loads, the command line or the compiler changes. So the result is kept in the module's
+    // work directory, keyed on exactly those, and a command whose modules are all up to date no
+    // longer pays the prelude once per module.
+    //
+    // The snapshot is a byte image: the build configuration is copied as it lies, and every
+    // string it carries is written after it, in the order visitBuildCfgStrings walks them. The
+    // reader restores each string into storage the snapshot owns, exactly as ownBuildCfgStrings
+    // does after a live setup. A compiler of another build never reads it, because the compiler's
+    // identity is part of the fingerprint.
+    constexpr std::string_view K_MODULE_SETUP_CACHE_FILE  = ".swc-setup";
+    constexpr uint32_t         K_MODULE_SETUP_CACHE_MAGIC = 0x50555357; // 'WSUP'
+
+    struct ModuleSetupCacheWriter
+    {
+        std::vector<char> bytes;
+
+        void u32(const uint32_t value)
+        {
+            const size_t offset = bytes.size();
+            bytes.resize(offset + sizeof(value));
+            std::memcpy(bytes.data() + offset, &value, sizeof(value));
+        }
+
+        void u64(const uint64_t value)
+        {
+            const size_t offset = bytes.size();
+            bytes.resize(offset + sizeof(value));
+            std::memcpy(bytes.data() + offset, &value, sizeof(value));
+        }
+
+        void blob(const void* data, const size_t size)
+        {
+            u32(static_cast<uint32_t>(size));
+            const size_t offset = bytes.size();
+            bytes.resize(offset + size);
+            if (size)
+                std::memcpy(bytes.data() + offset, data, size);
+        }
+
+        void str(const std::string_view value)
+        {
+            blob(value.data(), value.size());
+        }
+
+        void path(const fs::path& value)
+        {
+            str(Utf8(value).view());
+        }
+    };
+
+    struct ModuleSetupCacheReader
+    {
+        std::span<const char> bytes;
+        size_t                offset = 0;
+        bool                  failed = false;
+
+        bool has(const size_t size)
+        {
+            if (failed || size > bytes.size() - offset)
+                failed = true;
+            return !failed;
+        }
+
+        uint32_t u32()
+        {
+            uint32_t value = 0;
+            if (has(sizeof(value)))
+            {
+                std::memcpy(&value, bytes.data() + offset, sizeof(value));
+                offset += sizeof(value);
+            }
+            return value;
+        }
+
+        uint64_t u64()
+        {
+            uint64_t value = 0;
+            if (has(sizeof(value)))
+            {
+                std::memcpy(&value, bytes.data() + offset, sizeof(value));
+                offset += sizeof(value);
+            }
+            return value;
+        }
+
+        std::string_view str()
+        {
+            const uint32_t size = u32();
+            if (!has(size))
+                return {};
+            const std::string_view value(bytes.data() + offset, size);
+            offset += size;
+            return value;
+        }
+
+        fs::path path()
+        {
+            return fs::path(Utf8(str()).c_str());
+        }
+    };
+
+    // One input of a setup, dated the way the artifact manifest dates its inputs: by write time,
+    // plus the size so a rewrite that lands on the same tick still misses.
+    bool stampModuleSetupInput(ModuleSetupCacheWriter& writer, const fs::path& path)
+    {
+        std::error_code    ec;
+        fs::file_time_type writeTime = fs::last_write_time(path, ec);
+        if (ec)
+            return false;
+        const uintmax_t size = fs::file_size(path, ec);
+        if (ec)
+            return false;
+
+        writer.path(path);
+        writer.u64(static_cast<uint64_t>(writeTime.time_since_epoch().count()));
+        writer.u64(static_cast<uint64_t>(size));
+        return true;
+    }
+
+    bool moduleSetupInputMatches(ModuleSetupCacheReader& reader, fs::path& outPath)
+    {
+        outPath                    = reader.path();
+        const uint64_t writeCount  = reader.u64();
+        const uint64_t storedSize  = reader.u64();
+        if (reader.failed)
+            return false;
+
+        std::error_code          ec;
+        const fs::file_time_type writeTime = fs::last_write_time(outPath, ec);
+        if (ec || static_cast<uint64_t>(writeTime.time_since_epoch().count()) != writeCount)
+            return false;
+        const uintmax_t size = fs::file_size(outPath, ec);
+        return !ec && static_cast<uint64_t>(size) == storedSize;
+    }
+
+    fs::path moduleSetupCachePath(const CommandLine& cmdLine, const Utf8& moduleName)
+    {
+        fs::path result = WorkspaceLayout::workspaceWorkDirectory(cmdLine.workspacePath);
+        result /= fs::path(moduleName.c_str());
+        result /= fs::path(std::format("{}-{}{}", K_MODULE_SETUP_CACHE_FILE, cmdLine.buildCfg, artifactModeSuffix(cmdLine)));
+        return result.lexically_normal();
+    }
+
+    // Everything a setup can observe that is not a file: the compiler that runs it, and the
+    // command line as the build-configuration block sees it through the compiler API. Anything
+    // not listed here cannot invalidate a cached setup, so the list errs on the side of naming
+    // an option the setup could read rather than one it probably does not.
+    Utf8 moduleSetupFingerprint(const CommandLine& cmdLine, const fs::path& compilerPath)
+    {
+        fs::file_time_type compilerTime{};
+        if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
+            return {};
+
+        Utf8 result;
+        result += std::format("swc={}.{}.{} compiler={} command={} os={} arch={} cpu={} kind={} cfg={} optim={}{} debug={} script={} sourceTest={}",
+                              SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM,
+                              compilerTime.time_since_epoch().count(),
+                              commandName(cmdLine.command),
+                              static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), cmdLine.targetCpu.view(),
+                              static_cast<int>(cmdLine.backendKind), cmdLine.buildCfg.view(),
+                              static_cast<int>(cmdLine.optimLevel), cmdLine.optimLevelExplicit ? "!" : "",
+                              cmdLine.debugInfo, cmdLine.scriptMode, cmdLine.sourceDrivenTest);
+        result += std::format(" explicit={}{}{}{}{}{}{} name={} namespace={} outDir={} workDir={} docOutput={} docCss={}",
+                              cmdLine.buildCfgExplicit, cmdLine.artifactKindExplicit, cmdLine.artifactNameExplicit,
+                              cmdLine.moduleNamespaceExplicit, cmdLine.outDirExplicit, cmdLine.workDirExplicit, cmdLine.output,
+                              cmdLine.name.view(), cmdLine.moduleNamespace.view(), cmdLine.outDirStorage.view(), cmdLine.workDirStorage.view(),
+                              Utf8(cmdLine.docOutputDir).view(), cmdLine.docCss.view());
+        for (const Utf8& tag : cmdLine.tags)
+            result += std::format(" tag={}", tag.view());
+        for (const Utf8& warning : cmdLine.warnAsErrors)
+            result += std::format(" we={}", warning.view());
+        for (const Utf8& warning : cmdLine.warnAsWarnings)
+            result += std::format(" ww={}", warning.view());
+        for (const Utf8& warning : cmdLine.warnDisabled)
+            result += std::format(" wo={}", warning.view());
+        return result;
+    }
+
+    void writeModuleSetupCache(const fs::path& cachePath, const Utf8& fingerprint, const fs::path& moduleFile, Runtime::BuildCfg& buildCfg, const std::vector<CompilerInstance::ModuleSetupImport>& imports, const std::set<fs::path>& loadedFiles, const std::set<fs::path>& compilerInputFiles)
+    {
+        static_assert(std::is_trivially_copyable_v<Runtime::BuildCfg>);
+
+        ModuleSetupCacheWriter writer;
+        writer.u32(K_MODULE_SETUP_CACHE_MAGIC);
+        writer.str(fingerprint.view());
+
+        // The inputs the next command must find unchanged: module.swg, and every file the setup
+        // pulled in through '#load' or registered as a compiler input.
+        writer.u32(static_cast<uint32_t>(1 + loadedFiles.size() + compilerInputFiles.size()));
+        if (!stampModuleSetupInput(writer, moduleFile))
+            return;
+        for (const fs::path& path : loadedFiles)
+        {
+            if (!stampModuleSetupInput(writer, path))
+                return;
+        }
+        for (const fs::path& path : compilerInputFiles)
+        {
+            if (!stampModuleSetupInput(writer, path))
+                return;
+        }
+
+        writer.u32(static_cast<uint32_t>(imports.size()));
+        for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
+        {
+            writer.str(importRequest.moduleName.view());
+            writer.str(importRequest.location.view());
+            writer.str(importRequest.version.view());
+            writer.path(importRequest.baseDir);
+            writer.u32(static_cast<uint32_t>(importRequest.linkBackendKind));
+        }
+
+        writer.u32(static_cast<uint32_t>(loadedFiles.size()));
+        for (const fs::path& path : loadedFiles)
+            writer.path(path);
+        writer.u32(static_cast<uint32_t>(compilerInputFiles.size()));
+        for (const fs::path& path : compilerInputFiles)
+            writer.path(path);
+
+        writer.blob(&buildCfg, sizeof(buildCfg));
+        visitBuildCfgStrings(buildCfg, [&writer](const Runtime::String& value) {
+            writer.str(value.ptr && value.length ? std::string_view(value.ptr, value.length) : std::string_view{});
+        });
+
+        // A cache that cannot be written is a cache that is not there: the next command runs
+        // the setup again, exactly as it does today.
+        std::error_code ec;
+        fs::create_directories(cachePath.parent_path(), ec);
+        if (ec)
+            return;
+        FileSystem::IoErrorInfo ioError;
+        FileSystem::writeBinaryFile(cachePath, writer.bytes.data(), writer.bytes.size(), ioError);
+    }
+
+    bool readModuleSetupCache(const fs::path& cachePath, const Utf8& fingerprint, const fs::path& moduleFile, Runtime::BuildCfg& outBuildCfg, std::vector<std::unique_ptr<Utf8>>& outOwnedStrings, std::vector<CompilerInstance::ModuleSetupImport>& outImports, std::set<fs::path>& outLoadedFiles, std::set<fs::path>& outCompilerInputFiles)
+    {
+        FileSystem::IoErrorInfo ioError;
+        std::vector<char>       bytes;
+        if (FileSystem::readBinaryFile(cachePath, bytes, ioError) != Result::Continue)
+            return false;
+
+        ModuleSetupCacheReader reader{.bytes = bytes};
+        if (reader.u32() != K_MODULE_SETUP_CACHE_MAGIC || reader.str() != fingerprint.view())
+            return false;
+
+        const uint32_t inputCount = reader.u32();
+        for (uint32_t i = 0; i < inputCount; ++i)
+        {
+            fs::path inputPath;
+            if (!moduleSetupInputMatches(reader, inputPath))
+                return false;
+            if (i == 0 && !FileSystem::pathEquals(inputPath, moduleFile))
+                return false;
+        }
+
+        const uint32_t importCount = reader.u32();
+        if (reader.failed)
+            return false;
+        outImports.clear();
+        outImports.reserve(importCount);
+        for (uint32_t i = 0; i < importCount; ++i)
+        {
+            CompilerInstance::ModuleSetupImport importRequest;
+            importRequest.moduleName      = Utf8(reader.str());
+            importRequest.location        = Utf8(reader.str());
+            importRequest.version         = Utf8(reader.str());
+            importRequest.baseDir         = reader.path();
+            importRequest.linkBackendKind = static_cast<Runtime::BuildCfgBackendKind>(reader.u32());
+            outImports.push_back(std::move(importRequest));
+        }
+
+        outLoadedFiles.clear();
+        const uint32_t loadedCount = reader.u32();
+        for (uint32_t i = 0; i < loadedCount && !reader.failed; ++i)
+            outLoadedFiles.insert(reader.path());
+        outCompilerInputFiles.clear();
+        const uint32_t compilerInputCount = reader.u32();
+        for (uint32_t i = 0; i < compilerInputCount && !reader.failed; ++i)
+            outCompilerInputFiles.insert(reader.path());
+
+        const std::string_view image = reader.str();
+        if (reader.failed || image.size() != sizeof(Runtime::BuildCfg))
+            return false;
+        std::memcpy(&outBuildCfg, image.data(), sizeof(Runtime::BuildCfg));
+
+        std::vector<std::unique_ptr<Utf8>> ownedStrings;
+        visitBuildCfgStrings(outBuildCfg, [&reader, &ownedStrings](Runtime::String& value) {
+            value = {};
+            const std::string_view stored = reader.str();
+            if (stored.empty())
+                return;
+            auto owned   = std::make_unique<Utf8>(stored);
+            value.ptr    = owned->data();
+            value.length = owned->size();
+            ownedStrings.push_back(std::move(owned));
+        });
+        if (reader.failed || reader.offset != bytes.size())
+            return false;
+
+        outOwnedStrings.swap(ownedStrings);
         return true;
     }
 
@@ -2669,7 +2988,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         setupCmdLine.files.clear();
         CommandLineParser::refreshBuildCfg(setupCmdLine);
 
-        if (captureModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.setup) != Result::Continue)
+        if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild, moduleBuild.setup) != Result::Continue)
             return ExitCode::CompileError;
 
         moduleBuild.ignoreInWorkspace = moduleBuild.setup.buildCfg.ignoreInWorkspace;
@@ -3495,6 +3814,32 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles_;
     outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
     ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+    return Result::Continue;
+}
+
+// Answers a module's setup from the cache when its inputs, the command line and the compiler
+// are the ones that produced it, and runs the setup otherwise. A '--rebuild' never reads the
+// cache, so the one command that promises to redo everything redoes this too; it still writes
+// it, since the next command is not a rebuild.
+Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const WorkspaceModuleBuild& moduleBuild, ModuleSetupSnapshot& outSnapshot) const
+{
+    const fs::path cachePath   = moduleSetupCachePath(cmdLine(), moduleBuild.name);
+    const Utf8     fingerprint = moduleSetupFingerprint(setupCmdLine, exeFullName_);
+    if (fingerprint.empty())
+        return captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot);
+
+    if (!cmdLine().rebuild)
+    {
+        ModuleSetupSnapshot cached;
+        if (readModuleSetupCache(cachePath, fingerprint, moduleBuild.moduleFile, cached.buildCfg, cached.ownedStrings, cached.imports, cached.loadedFiles, cached.compilerInputFiles))
+        {
+            outSnapshot = std::move(cached);
+            return Result::Continue;
+        }
+    }
+
+    SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot));
+    writeModuleSetupCache(cachePath, fingerprint, moduleBuild.moduleFile, outSnapshot.buildCfg, outSnapshot.imports, outSnapshot.loadedFiles, outSnapshot.compilerInputFiles);
     return Result::Continue;
 }
 

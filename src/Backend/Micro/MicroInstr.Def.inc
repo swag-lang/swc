@@ -478,15 +478,14 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
-// Non-destructive three-operand arithmetic: dst = src1 op src2, with dst
-// distinct from both. Legacy SSE has no such shape - it only writes back into
+// Non-destructive three-operand arithmetic: dst = src1 op src2. The destination
+// can be independent of both inputs. Legacy SSE only writes back into
 // one of its inputs - so building `c = a * b` means copying a into c first, and
 // those copies survive to the hot loop. AVX's VEX encoding takes the three
-// registers directly. Two producers: the post-RA peephole folds an existing
-// copy into the operation, which is the first point where both are known to
-// concern the same physical registers; and the vectorizer emits this form
-// directly for its 128-bit packed operations, where letting the copy reach the
-// register allocator at all was what made it spill.
+// registers directly. The pre-RA peephole folds adjacent scalar copies before
+// allocation, and the post-RA peephole catches physical copies separated from
+// their operation by operand loads. The vectorizer emits this form directly
+// for its 128-bit packed operations to avoid allocating their input copies.
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegRegReg,
     MicroInstrDef{

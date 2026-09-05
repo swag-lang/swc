@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
@@ -64,6 +65,58 @@ namespace PreRaPeephole
     bool tryFoldCopyAddIntoLoadAddress(Context& ctx, const MicroInstrRef firstRef, const MicroInstr& firstInst)
     {
         return tryFoldAdjacentPair(ctx, firstRef, firstInst, buildCopyAddLoadAddressRewrite);
+    }
+
+    // Form non-destructive scalar arithmetic before allocation, so the allocator
+    // sees the result as independent of both inputs instead of preserving a copy.
+    bool tryFoldCopyIntoFloatBinary(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary() || ctx.isClaimed(copyRef))
+            return false;
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroReg    dst  = copyOps[0].reg;
+        const MicroReg    src  = copyOps[1].reg;
+        const MicroOpBits bits = copyOps[2].opBits;
+        if (!dst.isVirtualFloat() || !src.isVirtualFloat() || dst == src)
+            return false;
+        if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+        if (ctx.builder && (ctx.builder->shouldPreserveVirtualCopy(dst) || ctx.builder->shouldPreserveVirtualCopy(src)))
+            return false;
+
+        const MicroInstrRef opRef  = ctx.nextRef(copyRef);
+        const MicroInstr*   opInst = opRef.isValid() ? ctx.instruction(opRef) : nullptr;
+        if (!opInst || opInst->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const MicroInstrOperand* opOps = ctx.operandsFor(opRef);
+        if (!opOps || opOps[0].reg != dst || opOps[2].opBits != bits)
+            return false;
+        switch (opOps[3].microOp)
+        {
+            case MicroOp::FloatAdd:
+            case MicroOp::FloatSubtract:
+            case MicroOp::FloatMultiply:
+            case MicroOp::FloatDivide:
+                break;
+            default:
+                return false;
+        }
+        if (!opOps[1].reg.isVirtualFloat() || opOps[1].reg == dst)
+            return false;
+        if (!ctx.claimAll({copyRef, opRef}))
+            return false;
+
+        MicroInstrOperand fused[5] = {};
+        fused[0].reg               = dst;
+        fused[1].reg               = src;
+        fused[2].reg               = opOps[1].reg;
+        fused[3].opBits            = bits;
+        fused[4].microOp           = opOps[3].microOp;
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{fused, 5}, true);
+        ctx.emitErase(copyRef);
+        return true;
     }
 
     bool tryForwardCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)

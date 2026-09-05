@@ -119,6 +119,8 @@ namespace InstructionCombine
     bool tryFoldConstIndexAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoAmcIndex(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldShiftAddIntoScaledAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldMultiplyAddIntoScaledAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldPureResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoMemBase(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

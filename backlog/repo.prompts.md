@@ -176,7 +176,7 @@ RULES
   - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
     believed, and the Release sequence before anything is recorded. A pass that miscompiles under
     the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
-    catches it (see compiler.optimization.003).
+    catches it; keep that coverage when extending scalar float folds.
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
     takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it

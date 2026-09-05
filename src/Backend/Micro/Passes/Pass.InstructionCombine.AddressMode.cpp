@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Report/Assert.h"
@@ -420,6 +421,130 @@ namespace InstructionCombine
 
         return false;
     }
+
+    // Split x * (K << S) + y into x * K and &[y + product * (1 << S)].
+    // For K in {3,5,9}, both operations become LEAs instead of a multiply
+    // followed by an add, shortening the dependency chain of decimal parsers.
+    bool tryFoldMultiplyAddIntoScaledAddress(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].opBits != MicroOpBits::B64 || ops[3].microOp != MicroOp::Add)
+            return false;
+        const MicroReg dst = ops[0].reg;
+        const MicroReg src = ops[1].reg;
+        if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src)
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+            return false;
+
+        for (uint32_t attempt = 0; attempt < 2; ++attempt)
+        {
+            const MicroReg             scaledReg = attempt == 0 ? src : dst;
+            const MicroReg             baseReg   = attempt == 0 ? dst : src;
+            MicroInstrRef              copyRef;
+            MicroSsaState::ReachingDef def;
+            if (!resolveThroughCopy(ctx, scaledReg, ref, copyRef, def) || def.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+                continue;
+
+            const MicroInstrOperand* mulOps = def.inst->ops(*ctx.operands);
+            if (!mulOps || mulOps[1].opBits != MicroOpBits::B64 || mulOps[3].hasWideImmediateValue())
+                continue;
+            if (mulOps[2].microOp != MicroOp::MultiplySigned && mulOps[2].microOp != MicroOp::MultiplyUnsigned)
+                continue;
+
+            const uint64_t multiplier = mulOps[3].valueU64;
+            uint64_t       factor     = 0;
+            uint64_t       scale      = 0;
+            for (const uint64_t candidate : {2ull, 4ull, 8ull})
+            {
+                if (multiplier % candidate)
+                    continue;
+                const uint64_t quotient = multiplier / candidate;
+                if (quotient == 3 || quotient == 5 || quotient == 9)
+                {
+                    factor = quotient;
+                    scale  = candidate;
+                    break;
+                }
+            }
+            if (!scale)
+                continue;
+
+            const MicroReg product = mulOps[0].reg;
+            if (!product.isVirtualInt() || product == baseReg || !valueHasSingleUse(*ctx.ssa, product, def.instRef))
+                continue;
+            // Removing the copy makes the address read the product directly.
+            // Its register must still hold that definition at the add.
+            if (copyRef.isValid() && !sameValueAt(ctx, product, copyRef, ref))
+                continue;
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef))
+                continue;
+            if (copyRef.isValid() ? !ctx.claimAll({ref, def.instRef, copyRef}) : !ctx.claimAll({ref, def.instRef}))
+                continue;
+
+            MicroInstrOperand reducedMul[4];
+            std::copy_n(mulOps, 4, reducedMul);
+            reducedMul[3].valueU64 = factor;
+            ctx.emitRewrite(def.instRef, MicroInstrOpcode::OpBinaryRegImm, reducedMul);
+
+            MicroInstrOperand address[8] = {};
+            address[0].reg               = dst;
+            address[1].reg               = baseReg;
+            address[2].reg               = product;
+            address[3].opBits            = MicroOpBits::B64;
+            address[4].opBits            = MicroOpBits::B64;
+            address[5].valueU64          = scale;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{address, 8}, true);
+            if (copyRef.isValid())
+                ctx.emitErase(copyRef);
+            return true;
+        }
+
+        return false;
+    }
+
+    // A pure result copied straight into an accumulator can define that
+    // accumulator itself. Both indexed addresses and three-operand arithmetic
+    // read their explicit inputs before writing the destination.
+    bool tryFoldPureResultCopy(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+        const bool        address = inst.op == MicroInstrOpcode::LoadAddrAmcRegMem;
+        const MicroOpBits bits    = ops[3].opBits;
+        if (address ? !ops[0].reg.isVirtualInt() : !ops[0].reg.isVirtualFloat())
+            return false;
+        if (bits != MicroOpBits::B64 && (address || bits != MicroOpBits::B32))
+            return false;
+
+        const MicroInstrRef copyRef = ctx.storage->findNextInstructionRef(ref);
+        const MicroInstr*   copy    = copyRef.isValid() ? ctx.storage->ptr(copyRef) : nullptr;
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrOperand* copyOps = copy->ops(*ctx.operands);
+        if (!copyOps || copyOps[1].reg != ops[0].reg || !copyOps[0].reg.isVirtual() ||
+            !copyOps[0].reg.isSameClass(ops[0].reg) || copyOps[2].opBits != bits)
+            return false;
+        if (ctx.builder &&
+            (ctx.builder->shouldPreserveVirtualCopy(copyOps[0].reg) || ctx.builder->shouldPreserveVirtualCopy(copyOps[1].reg)))
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, ops[0].reg, ref) || !ctx.claimAll({ref, copyRef}))
+            return false;
+
+        MicroInstrOperand rewritten[8] = {};
+        std::copy_n(ops, inst.numOperands, rewritten);
+        rewritten[0].reg = copyOps[0].reg;
+        ctx.emitRewrite(ref, inst.op, std::span{rewritten, inst.numOperands});
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // Fold `lea addr, [base + C]` into the displacement of a plain access:
     //
     //     LoadAddrRegMem addr, [base + C]

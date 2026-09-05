@@ -664,3 +664,16 @@ as [app.capture.md](app.capture.md).
   addresses it: both leave the outcome a function of machine load.
 - Complete when: the scrollbar-reversal test's resident window is decided by the number of ticks
   fired and not by their duration, shown by the full `gui` suite passing under deliberate CPU load.
+
+### std.gui.052 — A movie seek fails after preparing a partial frame cache
+
+- Evidence: at `9574fdd43`, `movie.test.swg:40` fails after setting a 64-byte cache budget,
+  loading `imageset-animation.webp`, preparing its one-frame cache and seeking to frame 2.
+  The assertion expects index 2 and a blue first pixel. The full DevMode campaign reports
+  679 GUI tests passed and one failed. The unchanged 0.1.366 compiler reproduces the same
+  assertion with `test --num-cores 6 -w bin/std -m gui -bc devmode --test-file movie.test.swg
+  --rebuild` (one passed, one failed), excluding the generated-code campaign's multiply-add fold.
+- Next: inspect the requested index and decoded pixel independently, then trace the uncached
+  frame path after `prepareCache` has retained only the first frame.
+- Complete when: the partial-cache seek test passes both alone and in the full GUI suite with
+  the correct frame index and pixels, without increasing its cache budget.

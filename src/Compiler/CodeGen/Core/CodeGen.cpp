@@ -740,7 +740,13 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
     const AstNodeRef    queryNodeRef = nodeRef;
     CodeGenNodePayload* nodePayload  = safePayload(nodeRef);
-    if ((!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
+
+    // A register-less payload is not proof that nothing was emitted. An expansion that produces
+    // no value - an inlined call to a void function - records a void payload and leaves its side
+    // effects behind it, so materializing it again would run them a second time. Only a node with
+    // nothing recorded, or one that still owes a value, is emitted here.
+    const bool emittedWithoutValue = nodePayload && nodePayload->typeRef.isValid() && nodePayload->typeRef == typeMgr().typeVoid();
+    if (!emittedWithoutValue && (!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
     {
         // Some substituted children are intentionally skipped during the main walk and are
         // only materialized when a parent eventually consumes their runtime value.
@@ -1486,11 +1492,23 @@ Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
 
 Result CodeGen::emitDeferredActionsDownTo(size_t stopScopeIndex)
 {
-    // Emission may already be part-way through a scope; resume from that cursor when it exists.
+    if (deferScopes_.empty())
+        return Result::Continue;
+
+    // Emission may already be part-way through a scope; resume from that cursor when it exists,
+    // so an unwind leaving the deferred action does not replay the action running it.
+    //
+    // The cursor only applies when the unwind really leaves that action. A deferred body opens
+    // scopes of its own - an inline expansion's body, a 'catch' handler - and an unwind stopping
+    // in one of them stays INSIDE the action. Resuming from the cursor there would walk the wrong
+    // way: the stop scope sits above it, is never reached, and every scope the action was called
+    // from runs instead, dropping the enclosing function's locals in the middle of its own
+    // cleanup.
     if (!deferredEmissionCursors_.empty())
     {
         const auto& cursor = deferredEmissionCursors_.back();
-        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
+        if (stopScopeIndex <= cursor.scopeIndex)
+            return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
     }
 
     return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
@@ -1550,12 +1568,23 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
     if (nodeRef.isInvalid())
         return;
 
-    SmallVector<AstNodeRef> stack;
+    // Reach every node the coming emission will lower, which is the SUBSTITUTED tree, not the
+    // written one: an inline expansion, an operator rewrite and a lowered loop all hang their
+    // real body off a substitute. A register cached on one of those nodes was defined on the
+    // path of an earlier emission of this same body, and that path does not reach the one about
+    // to be emitted, so leaving it behind makes the second emission read a register nothing
+    // wrote on its way in.
+    std::unordered_set<AstNodeRef> visited;
+    SmallVector<AstNodeRef>        stack;
     stack.push_back(nodeRef);
     while (!stack.empty())
     {
-        const AstNodeRef currentRef = stack.back();
+        const AstNodeRef rawRef = stack.back();
         stack.pop_back();
+
+        const AstNodeRef currentRef = resolvedNodeRef(rawRef);
+        if (currentRef.isInvalid() || !visited.insert(currentRef).second)
+            continue;
 
         if (CodeGenNodePayload* payload = safePayload(currentRef))
             payload->reg = MicroReg::invalid();

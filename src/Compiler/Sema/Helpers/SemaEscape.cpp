@@ -841,6 +841,28 @@ namespace
         return result;
     }
 
+    SemaEscapeInfo inlineReturnEscapeInfo(Sema& sema, AstNodeRef nodeRef, uint32_t& budget)
+    {
+        if (!budget || nodeRef.isInvalid())
+            return {};
+        --budget;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::ReturnStmt))
+            return expressionEscapeInfoRec(sema, node.cast<AstReturnStmt>().nodeExprRef, budget);
+        if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+            return {};
+
+        // Only returned values flow out of an expansion. Receiver homes, local
+        // initializers and expressions used for side effects do not all escape with it.
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        SemaEscapeInfo result;
+        for (const AstNodeRef childRef : children)
+            result = mergeEscapeInfo(result, inlineReturnEscapeInfo(sema, childRef, budget));
+        return result;
+    }
+
     SemaEscapeInfo argumentEscapeInfo(Sema& sema, AstNodeRef argRef, uint32_t& budget)
     {
         return expressionEscapeInfoRec(sema, argumentValueRef(sema, argRef), budget);
@@ -1111,6 +1133,19 @@ namespace
     {
         const TypeRef resultTypeRef = expressionTypeRef(sema, indexRef);
 
+        SemaEscapeProjection projection;
+        if (storageProjection(sema, indexRef, projection))
+        {
+            SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
+
+            // Copying a slot preserves the borrow of the value stored there, but not
+            // a borrow of the container storage holding that slot.
+            const bool viewOfContainerStorage = projectedInfo.viaOwnedPayload &&
+                                                indexReadsElementByValue(sema, indexRef, indexedRef);
+            if (projectedInfo.hasBorrow() && !viewOfContainerStorage)
+                return projectedInfo;
+        }
+
         // Run this BEFORE propagating the indexed expression's borrow: the list form
         // reaches here without passing the projection.
         if (indexReadsElementByValue(sema, indexRef, indexedRef))
@@ -1136,7 +1171,22 @@ namespace
     {
         const Token& tok = sema.token(sema.node(unaryRef).codeRef());
         if (tok.id == TokenId::SymAmpersand)
+        {
+            const AstNodeRef operandRef = sema.viewZero(unary.nodeExprRef).nodeRef();
+            const auto*      index      = operandRef.isValid() ? sema.node(operandRef).safeCast<AstIndexExpr>() : nullptr;
+            if (index && isDirectBorrowCarrier(sema, expressionTypeRef(sema, index->nodeExprRef)))
+            {
+                // Taking an element address preserves the base pointer's borrow;
+                // reading the element by value may instead copy an unrelated pointer.
+                SemaEscapeInfo info = expressionEscapeInfoRec(sema, index->nodeExprRef, budget);
+                if (info.hasBorrow())
+                {
+                    info.typeRef = expressionTypeRef(sema, unaryRef);
+                    return info;
+                }
+            }
             return storageBorrowInfo(sema, unary.nodeExprRef, expressionTypeRef(sema, unaryRef), true);
+        }
 
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, unary.nodeExprRef, budget);
         if (info.hasBorrow())
@@ -2104,7 +2154,11 @@ namespace
         if (!budget)
             return {};
 
-        const AstNode& node = sema.node(resolvedRef);
+        const AstNode&           node          = sema.node(resolvedRef);
+        const SemaInlinePayload* inlinePayload = node.is(AstNodeId::EmbeddedBlock) ? sema.inlinePayload(resolvedRef) : nullptr;
+        if (inlinePayload && inlinePayload->inlineRootRef == resolvedRef)
+            return inlineReturnEscapeInfo(sema, resolvedRef, budget);
+
         switch (node.id())
         {
             case AstNodeId::Identifier:
@@ -2258,27 +2312,7 @@ namespace
             }
 
             case AstNodeId::IndexExpr:
-            {
-                const AstNodeRef indexedRef = node.cast<AstIndexExpr>().nodeExprRef;
-
-                SemaEscapeProjection projection;
-                if (storageProjection(sema, resolvedRef, projection))
-                {
-                    SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
-
-                    // What a slot HOLDS is a borrow of its own target, and reading it out
-                    // by value keeps that borrow alive: 'values[0] = &local' makes
-                    // 'values[0]' a view of the local. What the slot IS - a view into the
-                    // payload the container owns - does not survive the read, since the
-                    // copied value addresses its own object.
-                    const bool viewOfContainerStorage = projectedInfo.viaOwnedPayload &&
-                                                        indexReadsElementByValue(sema, resolvedRef, indexedRef);
-                    if (projectedInfo.hasBorrow() && !viewOfContainerStorage)
-                        return projectedInfo;
-                }
-
-                return indexEscapeInfo(sema, resolvedRef, indexedRef, budget);
-            }
+                return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexExpr>().nodeExprRef, budget);
 
             case AstNodeId::IndexListExpr:
                 return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexListExpr>().nodeExprRef, budget);
@@ -3198,6 +3232,7 @@ namespace
         SmallVector<AstNodeRef>      children;
         SmallVector<SourceCodeRange> arms;
         SourceCodeRange              innermostLoop;
+        SourceCodeRange              innermostBreakable;
         const SourceCodeRange        declarationRange = viewVar.codeRange(sema.ctx());
         while (!worklist.empty() && budget != 0)
         {
@@ -3208,11 +3243,16 @@ namespace
                 continue;
 
             const AstNode& node = sema.node(nodeRef);
-            if (isLoopStatement(node))
+            if (isLoopStatement(node) || node.is(AstNodeId::SwitchStmt))
             {
                 const SourceCodeRange range = subtreeRange(sema, nodeRef);
-                if (sourceRangeContains(range, mutationRange) && (!innermostLoop.srcView || range.len < innermostLoop.len))
-                    innermostLoop = range;
+                if (sourceRangeContains(range, mutationRange))
+                {
+                    if (!innermostBreakable.srcView || range.len < innermostBreakable.len)
+                        innermostBreakable = range;
+                    if (isLoopStatement(node) && (!innermostLoop.srcView || range.len < innermostLoop.len))
+                        innermostLoop = range;
+                }
             }
 
             children.clear();
@@ -3274,6 +3314,10 @@ namespace
                     if (statement.is(AstNodeId::ReturnStmt) || statement.is(AstNodeId::UnreachableStmt))
                         return true;
                     if (statement.is(AstNodeId::ContinueStmt) && loopRebuildsView)
+                        return true;
+                    // A break skips later reads inside its target, but a borrow may
+                    // still be read after that loop or switch has ended.
+                    if (statement.is(AstNodeId::BreakStmt) && sourceRangeContains(innermostBreakable, readRange))
                         return true;
                 }
             }
@@ -4275,15 +4319,10 @@ namespace SemaEscape
             return Result::Continue;
         }
 
-        // Returning a borrow of a parameter feeds this function's per-function summary
-        // (consumed at call sites via callResultEscapeInfo). This must also fire from
-        // inside an inline expansion sitting in return position: a borrow-returning callee
-        // inlined into THIS function's 'return f(me)' still makes THIS function return that
-        // parameter's borrow. 'addReturnBorrowOrigins' only records bits for the current
-        // function's own parameters, so it is a no-op for any other borrow. Skipping it
-        // under inlining was the release-only flakiness: whether the small callee was
-        // auto-inlined (racing on its sema completion) decided if the summary was fed.
-        if (info.kind == SemaEscapeKind::Parameter)
+        // An inline return produces an intermediate value in the caller; it does not
+        // return from the caller. Only the caller's own return feeds its summary, after
+        // accounting for how it consumes that value (notably an indexed element load).
+        if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter)
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)

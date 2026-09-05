@@ -111,14 +111,14 @@ public impl Image
             return
         }
 
-        var context   = f
-        let blueFirst = .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
+        var context = f
         .visitPixels(&context)
         {
-            let blend   = userData![as f32]
-            let weight0 = blueFirst ? 19's32 : 54's32
-            let weight2 = blueFirst ? 54's32 : 19's32
-            let gray    = cast(f32) ((((pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)) >> 8) & 0xFF)
+            let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+            let blend     = userData![as f32]
+            let weight0   = blueFirst ? 19's32 : 54's32
+            let weight2   = blueFirst ? 54's32 : 19's32
+            let gray      = cast(f32) ((((pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)) >> 8) & 0xFF)
             pix[0] = cast(u8) Math.lerp(cast(f32) pix[0], gray, blend)
             pix[1] = cast(u8) Math.lerp(cast(f32) pix[1], gray, blend)
             pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], gray, blend)

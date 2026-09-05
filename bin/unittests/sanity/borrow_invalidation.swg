@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 // Borrow invalidation: a view into the storage a value owns, read again after a call
 // that can move or release that storage. This is a language rule, so it needs no
 // attribute to fire; the file keeps one only to pair with the function below that sets
@@ -874,8 +874,72 @@ struct BorrowInvTable
     capacity: u64
 }
 
+struct BorrowInvIndexedOwner
+{
+    table: BorrowInvTable
+}
+
+impl BorrowInvIndexedOwner
+{
+    mtd readNode()->*BorrowInvNode => .table[0]
+
+    mtd grow() { .table.reserve(64) }
+
+    mtd readAfterGrowth()->u8
+    {
+        let node = .readNode()
+        .grow()
+        return node.value
+    }
+
+    mtd readSlot()->**BorrowInvNode => &.table[0]
+
+    mtd slotBeforeBreak(condition: bool)->u8
+    {
+        while true
+        {
+            let slot = .readSlot()
+            if condition
+            {
+                .grow()
+                break
+            }
+            return slot[].value
+        }
+        return 0
+    }
+
+    mtd slotAfterBreak()->u8
+    {
+        let slot = .readSlot()     // swc-expected-note {{sema_note_borrow_taken_here}}
+        while true
+        {
+            .grow()     // swc-expected-error {{sanity_err_borrow_invalidated}}
+            break
+        }
+        return slot[].value     // swc-expected-note {{sema_note_borrow_read_here}}
+    }
+
+    mtd slotAfterGrowth()->u8
+    {
+        let slot = .readSlot()     // swc-expected-note {{sema_note_borrow_taken_here}}
+        .grow()                    // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return slot[].value        // swc-expected-note {{sema_note_borrow_read_here}}
+    }
+}
+
 impl BorrowInvTable
 {
+    #[Swag.Inline]
+    mtd opIndexPtr(index: u64)->**BorrowInvNode => .slots! + index
+
+    mtd indexedPointerSurvivesGrowth()->u8
+    {
+        let node = me[0]
+        .reserve(64)
+        return node.value
+    }
+
     mtd opDrop()
     {
         .release()

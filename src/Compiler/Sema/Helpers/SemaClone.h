@@ -31,8 +31,12 @@ namespace SemaClone
         // instead of being re-resolved by name in the caller's scope. Function-local/parameter
         // identifiers are still re-resolved (to the cloned decls / substituted args) because the
         // preserveSyntheticSymbol predicate excludes them.
-        bool       preserveResolvedSymbols             = false;
-        uint32_t   breakableDepth                      = 0;
+        bool     preserveResolvedSymbols = false;
+        uint32_t breakableDepth          = 0;
+        // How many nested callables - local functions, lambdas, closures - the clone has
+        // descended into. A callable is a function of its own: an expression the expansion
+        // bound to a name lives in the caller's frame and cannot be read from inside it.
+        uint32_t   nestedCallableDepth                 = 0;
         AstNodeRef suppressedImplicitCastSubstituteRef = AstNodeRef::invalid();
         explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false, uint32_t inBreakableDepth = 0) :
             bindings(inBindings),

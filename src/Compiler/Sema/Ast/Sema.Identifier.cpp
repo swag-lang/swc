@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
@@ -248,20 +249,6 @@ namespace
             if (callerFn && functionOwnsVariable(*callerFn, symVar))
                 return nullptr;
         }
-
-        // A function that is itself an inline materialization (its decl carries an inline payload)
-        // can reference locals that the materialization relocated and left detached — a captured
-        // local whose declaration was cloned into the inline body resolves straight from the capture
-        // source and ends up with no owning scope. Such a detached function-local is the
-        // materialization's own relocated local, not an outer-scope variable crossing a local
-        // function boundary, so referencing it is legal. The distinguishing facts: a genuine
-        // outer-scope variable keeps its owning block/function scope (owner != null), and a
-        // not-inlined local function carries no inline payload (e.g. a `func makeCounter` that is
-        // never called, so its `func|&outer|` capture of an enclosing local is still correctly
-        // rejected).
-        if (!symVar.ownerSymMap() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) &&
-            Sema::inlinePayload(currentFn) != nullptr)
-            return nullptr;
 
         while (fn)
         {
@@ -725,7 +712,73 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     }
     if (sym && sym->isVariable())
     {
-        const SymbolVariable& symVar                      = sym->cast<SymbolVariable>();
+        const SymbolVariable& symVar = sym->cast<SymbolVariable>();
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            // A read that '#ast' produced after the body was cloned resolves, by name, to the
+            // callee's own parameter through the inline scope's symbol map. Bind THIS node to
+            // what the expansion bound that parameter to. It has to be a rebinding of the node's
+            // stored symbol, not a substitute: a substitute leaves the ABI parameter as the
+            // node's committed truth, and every path that pins stored symbols - a receiver cloned
+            // for a nested expansion, a detached binding clone, codegen - reads it back and asks
+            // the CALLER's frame for an incoming argument it does not have.
+            for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
+            {
+                if (!payload->sourceFunction || inlinePayloadUsesCallerScope(payload))
+                    continue;
+                const SemaClone::ParamBinding* binding = nullptr;
+                for (const auto& candidate : payload->argMappings)
+                {
+                    if (candidate.sourceParam == sym)
+                    {
+                        binding = &candidate;
+                        break;
+                    }
+                }
+                if (!binding)
+                    continue;
+
+                const AstNodeRef curRef = sema.curNodeRef();
+
+                // A constant binding - a folded typed argument - is the constant itself.
+                if (binding->cstRef.isValid())
+                {
+                    if (binding->typeRef.isValid())
+                        sema.setType(curRef, binding->typeRef);
+                    sema.setConstant(curRef, binding->cstRef);
+                    sema.setIsValue(curRef);
+                    sema.unsetIsLValue(curRef);
+                    return Result::Continue;
+                }
+
+                // A homed binding - every parameter of an ordinary inline whose body holds
+                // '#ast' gets one - is a plain pre-resolved use of the home: bind the node to the
+                // home symbol, exactly as a pre-resolved clone of that use would be bound. A home
+                // that still carries a binding type (a variadic pack) is read through the
+                // clone-time cast below instead, so the read keeps the parameter's type.
+                if (binding->exprRef.isValid() && !binding->typeRef.isValid())
+                {
+                    const AstNode& bound = sema.node(binding->exprRef);
+                    const Symbol*  home  = bound.is(AstNodeId::Identifier) && bound.cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::PreResolvedSymbol)
+                                               ? sema.viewStored(binding->exprRef, SemaNodeViewPartE::Symbol).sym()
+                                               : nullptr;
+                    if (home && home->isVariable())
+                    {
+                        sema.setSymbol(curRef, home);
+                        return Result::Continue;
+                    }
+                }
+
+                // Not homed - a caller expression bound in place: substitute the bound expression.
+                const SemaClone::CloneContext context{std::span{binding, 1}};
+                const AstNodeRef              replacement = SemaClone::cloneAst(sema, curRef, context);
+                if (replacement.isInvalid())
+                    return Result::Error;
+                sema.setSubstitute(curRef, replacement);
+                sema.restartCurrentNode(replacement);
+                return Result::Continue;
+            }
+        }
         const IdentifierRef   meId                        = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
         const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
         const bool            isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));

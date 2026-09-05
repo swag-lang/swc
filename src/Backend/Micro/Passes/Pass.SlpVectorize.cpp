@@ -166,6 +166,22 @@ namespace
         const SlpValue& get(uint32_t id) const { return values[id]; }
     };
 
+    struct LocationKey
+    {
+        uint64_t offset  = 0;
+        uint32_t rootKey = 0;
+
+        bool operator==(const LocationKey&) const = default;
+    };
+
+    struct LocationKeyHash
+    {
+        size_t operator()(const LocationKey& key) const
+        {
+            return std::hash<uint64_t>{}(key.offset) ^ (std::hash<uint32_t>{}(key.rootKey) << 1);
+        }
+    };
+
     struct MemLocation
     {
         uint32_t      valueId          = K_INVALID_ID;
@@ -309,7 +325,7 @@ namespace
         // Stable value for registers live at block entry.
         std::unordered_map<uint32_t, uint32_t> entryValues;
         // Memory state per (rootKey, offset), 4-byte aligned slots.
-        std::unordered_map<uint64_t, MemLocation> locations;
+        std::unordered_map<LocationKey, MemLocation, LocationKeyHash> locations;
 
         std::vector<StoreRecord> stores;
         std::vector<LoadRecord>  loads;
@@ -317,9 +333,11 @@ namespace
         bool hasUnresolvedMemRead  = false;
         bool hasUnresolvedMemWrite = false;
 
-        static uint64_t locationKey(uint32_t rootKey, uint64_t offset)
+        static LocationKey locationKey(uint32_t rootKey, uint64_t offset)
         {
-            return (static_cast<uint64_t>(rootKey) << 40) ^ offset;
+            // Negative displacements use the high offset bits too. Packing a root
+            // into those bits aliases locations and corrupts the root on decoding.
+            return {.offset = offset, .rootKey = rootKey};
         }
     };
 
@@ -431,9 +449,12 @@ namespace
     void killLocationRange(BlockScan& scan, uint32_t rootKey, uint64_t offset, uint32_t size, MicroInstrRef storeRef)
     {
         const uint64_t first = offset & ~static_cast<uint64_t>(K_LANE_BYTES - 1);
-        for (uint64_t o = first; o < offset + size; o += K_LANE_BYTES)
+        // Bound the walk by its byte count: incrementing an absolute displacement
+        // near -1 can wrap to zero and keep an unsigned end comparison true forever.
+        const uint64_t covered = offset - first + size;
+        for (uint64_t delta = 0; delta < covered; delta += K_LANE_BYTES)
         {
-            MemLocation& loc     = scan.locations[BlockScan::locationKey(rootKey, o)];
+            MemLocation& loc     = scan.locations[BlockScan::locationKey(rootKey, first + delta)];
             loc.valueId          = K_INVALID_ID;
             loc.epoch            = loc.epoch + 1;
             loc.hasNonPlainStore = true;
@@ -1327,9 +1348,7 @@ namespace
         {
             if (!loc.lastIsPlain32 || loc.hasNonPlainStore || loc.valueId == K_INVALID_ID)
                 continue;
-            const auto rootKey = static_cast<uint32_t>(key >> 40);
-            const auto offset  = key ^ (static_cast<uint64_t>(rootKey) << 40);
-            candidatesByRoot[rootKey].push_back(Candidate{.offset = offset, .valueId = loc.valueId, .lastStoreRef = loc.lastStoreRef});
+            candidatesByRoot[key.rootKey].push_back(Candidate{.offset = key.offset, .valueId = loc.valueId, .lastStoreRef = loc.lastStoreRef});
         }
 
         if (candidatesByRoot.empty())
@@ -1421,7 +1440,7 @@ namespace
             return false;
 
         // The deleted set: every plain 32-bit store to a vectorized location.
-        std::unordered_set<uint64_t> vectorizedLocations;
+        std::unordered_set<LocationKey, LocationKeyHash> vectorizedLocations;
         for (const SeedGroup& group : vectorized)
         {
             for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
@@ -1446,10 +1465,11 @@ namespace
         SWC_ASSERT(!deletedStoreRefs.empty() && firstDeletedRef.isValid());
 
         const auto overlapsVectorized = [&](const uint32_t rootKey, const uint64_t offset, const uint32_t size) {
-            const uint64_t first = offset & ~static_cast<uint64_t>(K_LANE_BYTES - 1);
-            for (uint64_t o = first; o < offset + size; o += K_LANE_BYTES)
+            const uint64_t first   = offset & ~static_cast<uint64_t>(K_LANE_BYTES - 1);
+            const uint64_t covered = offset - first + size;
+            for (uint64_t delta = 0; delta < covered; delta += K_LANE_BYTES)
             {
-                if (vectorizedLocations.contains(BlockScan::locationKey(rootKey, o)))
+                if (vectorizedLocations.contains(BlockScan::locationKey(rootKey, first + delta)))
                     return true;
             }
             return false;
@@ -1466,7 +1486,8 @@ namespace
                     continue;
                 if (record.rootKey != load.rootKey)
                     continue;
-                if (record.offset < load.baseOffset + K_CHUNK_BYTES && load.baseOffset < record.offset + record.size)
+                // Subtraction also handles a small range straddling displacement zero.
+                if (record.offset - load.baseOffset < K_CHUNK_BYTES || load.baseOffset - record.offset < record.size)
                     return false;
             }
         }

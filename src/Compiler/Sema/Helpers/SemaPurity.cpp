@@ -18,8 +18,10 @@ namespace
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
-        const Ast* declAst = declNode->sourceAst(sema.ctx());
-        if (!declAst || declAst != &sema.ast())
+        // Ownership is where the node is stored, not where its text was written: an expansion
+        // clones a declaration into the Ast it expands in, and the clone keeps the source
+        // location it came from.
+        if (!sema.ast().tryFindNodeRef(declNode).isValid())
             return false;
 
         outDecl = &declNode->cast<AstFunctionDecl>();

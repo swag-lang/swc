@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -39,6 +40,7 @@ namespace
         outContext.preserveResolvedSymbols              = sourceContext.preserveResolvedSymbols;
         outContext.resolveBindingExprWithParentBindings = sourceContext.resolveBindingExprWithParentBindings;
         outContext.suppressedImplicitCastSubstituteRef  = sourceContext.suppressedImplicitCastSubstituteRef;
+        outContext.nestedCallableDepth                  = sourceContext.nestedCallableDepth;
     }
 
     const Ast* resolveCloneNodeAst(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
@@ -393,6 +395,101 @@ namespace
         }
     }
 
+    // The identifier a declaration token names, or invalid when the token is not a plain name.
+    IdentifierRef declaredTokenIdentifier(Sema& sema, const AstNode& node, TokenRef tokNameRef)
+    {
+        if (tokNameRef.isInvalid())
+            return IdentifierRef::invalid();
+
+        const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
+        if (sema.token(codeRef).id != TokenId::Identifier)
+            return IdentifierRef::invalid();
+        return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+    }
+
+    // The names a callable declares as its own parameters, 'me' included. Inside that callable
+    // such a name is the parameter's, whatever the enclosing expansion binds it to: a macro body
+    // carries no resolved symbols, so the declared NAME is all the cloner has to tell the two
+    // apart.
+    void collectCallableParameterIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef paramListRef, SpanRef lambdaParamsRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        SmallVector<AstNodeRef> paramRefs;
+        if (paramListRef.isValid() && sourceAst.hasNode(paramListRef))
+            sourceAst.appendNodes(paramRefs, sourceAst.node(paramListRef).cast<AstFunctionParamList>().spanChildrenRef);
+        if (lambdaParamsRef.isValid())
+            sourceAst.appendNodes(paramRefs, lambdaParamsRef);
+
+        for (size_t i = 0; i < paramRefs.size(); ++i)
+        {
+            const AstNodeRef paramRef = paramRefs[i];
+            if (paramRef.isInvalid() || !sourceAst.hasNode(paramRef))
+                continue;
+
+            const AstNode* node = &sourceAst.node(paramRef);
+            while (const auto* attributes = node->safeCast<AstAttributeList>())
+            {
+                if (attributes->nodeBodyRef.isInvalid() || !sourceAst.hasNode(attributes->nodeBodyRef))
+                    break;
+                node = &sourceAst.node(attributes->nodeBodyRef);
+            }
+
+            if (const auto* declList = node->safeCast<AstVarDeclList>())
+            {
+                // Several declarations sharing one type: each of them names a parameter.
+                SmallVector<AstNodeRef> declRefs;
+                sourceAst.appendNodes(declRefs, declList->spanChildrenRef);
+                for (const AstNodeRef declRef : declRefs)
+                    paramRefs.push_back(declRef);
+                continue;
+            }
+
+            if (node->is(AstNodeId::FunctionParamMe))
+            {
+                outIdentifiers.push_back(sema.idMgr().predefined(IdentifierManager::PredefinedName::Me));
+            }
+            else if (const auto* singleVar = node->safeCast<AstSingleVarDecl>())
+            {
+                if (const IdentifierRef idRef = declaredTokenIdentifier(sema, *node, singleVar->tokNameRef); idRef.isValid())
+                    outIdentifiers.push_back(idRef);
+            }
+            else if (const auto* multiVar = node->safeCast<AstMultiVarDecl>())
+            {
+                SmallVector<TokenRef> tokNames;
+                sourceAst.appendTokens(tokNames, multiVar->spanNamesRef);
+                for (const TokenRef tokNameRef : tokNames)
+                {
+                    if (const IdentifierRef idRef = declaredTokenIdentifier(sema, *node, tokNameRef); idRef.isValid())
+                        outIdentifiers.push_back(idRef);
+                }
+            }
+            else if (const auto* lambdaParam = node->safeCast<AstLambdaParam>(); lambdaParam && lambdaParam->hasFlag(AstLambdaParamFlagsE::Named))
+            {
+                if (const IdentifierRef idRef = declaredTokenIdentifier(sema, *node, node->tokRef()); idRef.isValid())
+                    outIdentifiers.push_back(idRef);
+            }
+        }
+    }
+
+    // Keeps the bindings a nested callable does not shadow with a parameter of its own.
+    void excludeShadowedCallableBindings(std::span<const SemaClone::ParamBinding> bindings, std::span<const IdentifierRef> declaredIdentifiers, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        outBindings.clear();
+        const std::unordered_set<IdentifierRef> declaredSet{declaredIdentifiers.begin(), declaredIdentifiers.end()};
+        for (const SemaClone::ParamBinding& binding : bindings)
+        {
+            if (!declaredSet.contains(binding.idRef))
+                outBindings.push_back(binding);
+        }
+    }
+
+    // The same context over another binding set, every option carried over.
+    SemaClone::CloneContext cloneContextWithBindings(const SemaClone::CloneContext& cloneContext, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        SemaClone::CloneContext result{bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
+        inheritCloneContextOptions(result, cloneContext);
+        return result;
+    }
+
     const SemaClone::NodeReplacement* findReplacement(const SemaClone::CloneContext& cloneContext, AstNodeId nodeId)
     {
         for (const SemaClone::NodeReplacement& replacement : cloneContext.replacements)
@@ -654,6 +751,28 @@ namespace
         clonedPayload.ufcsReceiverAddress |= sourcePayload->ufcsReceiverAddress;
     }
 
+    void copyClonedCastCallArguments(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        const auto* sourceCast = sema.node(sourceRef).safeCast<AstCastExpr>();
+        const auto* clonedCast = sema.node(clonedRef).safeCast<AstCastExpr>();
+        if (!sourceCast || !clonedCast)
+        {
+            sema.copyResolvedCallArguments(clonedRef, sourceRef);
+            return;
+        }
+
+        SmallVector<ResolvedCallArgument> args;
+        sema.appendResolvedCallArguments(sourceRef, args);
+        for (ResolvedCallArgument& arg : args)
+        {
+            // A conversion's operator call must consume the cloned operand. The
+            // original expression may never be emitted in the caller's expansion.
+            if (arg.argRef == sourceCast->nodeExprRef)
+                arg.argRef = clonedCast->nodeExprRef;
+        }
+        sema.setResolvedCallArguments(clonedRef, args.span());
+    }
+
     // Implicit casts (created by Cast::createCast) store part of their semantic
     // state outside the AST node shape itself. semaPostNode skips them, so that
     // state must be preserved across cloning.
@@ -682,8 +801,16 @@ namespace
 
         if (sema.hasSemaPayload(sourceRef))
             sema.setSemaPayload(clonedRef, sema.semaPayload<CastSpecOpPayload>(sourceRef));
-        sema.copyResolvedCallArguments(clonedRef, sourceRef);
+        copyClonedCastCallArguments(sema, sourceRef, clonedRef);
         copyImplicitCastLoweringPayload(sema, cloneContext, sourceRef, clonedRef);
+
+        // The conversion can retarget an aggregate literal's storage to its concrete
+        // destination layout. The implicit cast is not analyzed again, so its cloned
+        // operand must keep that layout too: unsized fields have no storage in the
+        // original aggregate type and would otherwise disappear from the value.
+        const auto& sourceCast = sourceNode.cast<AstCastExpr>();
+        const auto& clonedCast = sema.node(clonedRef).cast<AstCastExpr>();
+        copyImplicitCastLoweringPayload(sema, cloneContext, sourceCast.nodeExprRef, clonedCast.nodeExprRef);
     }
 
     void foldClonedImplicitCastConstant(Sema& sema, AstNodeRef clonedExprRef, AstNodeRef clonedCastRef)
@@ -817,6 +944,23 @@ namespace
 
     void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, std::unordered_set<AstNodeRef>& activeSourceRefSet);
 
+    void pinResolvedCallCallee(Sema& sema, AstNodeRef calleeRef, const SymbolFunction& fn)
+    {
+        const AstNodeRef identifierRef = SemaHelpers::unwrapCallCalleeRef(sema, calleeRef);
+        if (identifierRef.isInvalid() || !sema.node(identifierRef).is(AstNodeId::Identifier))
+            return;
+
+        const Symbol* calleeSymbol = sema.viewSymbol(identifierRef).sym();
+        if (calleeSymbol && calleeSymbol->isVariable())
+            return;
+
+        // A quoted callee applies its explicit generic arguments again. Preserve the
+        // selected overload's root, rather than the first overload stored on its name.
+        const SymbolFunction* target = identifierRef != calleeRef ? fn.genericRootOrSelf() : &fn;
+        sema.setSymbol(identifierRef, target);
+        sema.node(identifierRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+    }
+
     void copyResolvedIdentifierSymbols(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
         SWC_ASSERT(sourceRef.isValid());
@@ -891,15 +1035,12 @@ namespace
         else if (sourceNode.is(AstNodeId::IntrinsicCallExpr) && clonedNode.is(AstNodeId::IntrinsicCallExpr))
             clonedCallee = clonedNode.cast<AstIntrinsicCallExpr>().nodeExprRef;
 
-        if (clonedCallee.isValid() && sema.node(clonedCallee).is(AstNodeId::Identifier))
+        if (clonedCallee.isValid())
         {
             if (const Symbol* callSym = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym())
             {
-                if (callSym->safeCast<SymbolFunction>())
-                {
-                    sema.setSymbol(clonedCallee, callSym);
-                    sema.node(clonedCallee).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
-                }
+                if (const auto* fn = callSym->safeCast<SymbolFunction>())
+                    pinResolvedCallCallee(sema, clonedCallee, *fn);
             }
         }
     }
@@ -927,17 +1068,25 @@ namespace
         return clonedRef;
     }
 
+    bool shouldReexpandDetachedExpr(Sema& sema, AstNodeRef sourceRef, AstNodeRef resolvedRef)
+    {
+        if (resolvedRef.isInvalid() || resolvedRef == sourceRef || !isDetachedReexpandableExpr(sema.node(sourceRef)))
+            return false;
+
+        // An inlined opIndexPtr keeps its element load outside the expansion. Rebuild
+        // the original index in the detached caller context, just like an inline call,
+        // rather than cloning the expanded body's receiver bindings into a new scope.
+        return SemaInline::expansionPayload(sema, resolvedRef) != nullptr;
+    }
+
     void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, std::unordered_set<AstNodeRef>& activeSourceRefSet)
     {
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());
 
-        const AstNodeRef resolvedRef    = sema.viewZero(sourceRef).nodeRef();
-        const bool       shouldReexpand = resolvedRef.isValid() &&
-                                    resolvedRef != sourceRef &&
-                                    sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
-                                    isDetachedReexpandableExpr(sema.node(sourceRef));
-        const bool sourceHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceRef, resolvedRef);
+        const AstNodeRef resolvedRef                     = sema.viewZero(sourceRef).nodeRef();
+        const bool       shouldReexpand                  = shouldReexpandDetachedExpr(sema, sourceRef, resolvedRef);
+        const bool       sourceHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceRef, resolvedRef);
 
         activeSourceRefSet.insert(sourceRef);
         if (!shouldReexpand && !sourceHasImplicitCastSubstitute)
@@ -958,7 +1107,7 @@ namespace
         {
             if (void* semaPayload = sema.semaPayload<void>(sourceRef); semaPayload && !sema.semaPayload<void>(clonedRef))
                 sema.setSemaPayload(clonedRef, semaPayload);
-            sema.copyResolvedCallArguments(clonedRef, sourceRef);
+            copyClonedCastCallArguments(sema, sourceRef, clonedRef);
         }
         if (sema.node(sourceRef).is(AstNodeId::Identifier) &&
             sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
@@ -987,12 +1136,9 @@ namespace
             if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
                 continue;
 
-            const AstNodeRef resolvedChildRef    = sema.viewZero(sourceChildRef).nodeRef();
-            const bool       shouldReexpandChild = resolvedChildRef.isValid() &&
-                                             resolvedChildRef != sourceChildRef &&
-                                             sema.node(resolvedChildRef).is(AstNodeId::EmbeddedBlock) &&
-                                             isDetachedReexpandableExpr(sema.node(sourceChildRef));
-            const bool sourceChildHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef);
+            const AstNodeRef resolvedChildRef                     = sema.viewZero(sourceChildRef).nodeRef();
+            const bool       shouldReexpandChild                  = shouldReexpandDetachedExpr(sema, sourceChildRef, resolvedChildRef);
+            const bool       sourceChildHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef);
             if (!shouldReexpandChild && !sourceChildHasImplicitCastSubstitute)
                 sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
             else if (!shouldReexpandChild && sourceChildHasImplicitCastSubstitute)
@@ -1066,7 +1212,42 @@ namespace
         if (sourceRef.isValid() && sourceAst == &sema.ast())
             sourceInlinePayload = sema.inlinePayload(sourceRef);
 
-        if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef, storedView ? storedView->sym : nullptr, sourceInlinePayload))
+        const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef, storedView ? storedView->sym : nullptr, sourceInlinePayload);
+
+        // A nested callable is a function of its own, with a frame of its own: an expression
+        // the expansion bound to this name lives in the caller's frame and cannot be read from
+        // inside it. A constant crosses that boundary as a value, and a '#code' block through
+        // '#inject'; anything else is reported here, where the read is met, rather than left to
+        // address the caller's frame from another function.
+        if (binding &&
+            cloneContext.nestedCallableDepth != 0 &&
+            binding->exprRef.isValid() &&
+            binding->cstRef.isInvalid() &&
+            !(binding->sourceParam && binding->sourceParam->type(sema.ctx()).isCodeBlock()) &&
+            !sema.viewConstant(binding->exprRef).hasConstant())
+        {
+            const SourceCodeRef errorRef = nodeTokInRange ? nodeCodeRef : sema.curNode().codeRef();
+            auto                diag     = SemaError::report(sema, DiagnosticId::sema_err_local_function_expansion_parameter, errorRef);
+            diag.addArgument(Diagnostic::ARG_SYM, sema.idMgr().get(binding->idRef).name);
+
+            // The expansion has no payload yet while its body is being cloned, so the call it
+            // comes from is named here rather than by the usual expansion chain.
+            const Symbol* calleeSym = sema.viewSymbol(sema.curNodeRef()).sym();
+            if (const auto* callee = calleeSym ? calleeSym->safeCast<SymbolFunction>() : nullptr)
+            {
+                const bool isMacro = callee->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+                const bool isMixin = callee->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+                diag.addNote(DiagnosticId::sema_note_expansion_invoked_here);
+                diag.last().addArgument(Diagnostic::ARG_WHAT, isMacro ? "macro" : isMixin ? "mixin"
+                                                                                          : "function");
+                diag.last().addArgument(Diagnostic::ARG_SYM, callee->name(sema.ctx()));
+                SemaError::addSpan(sema, diag.last(), sema.curNodeRef());
+            }
+            diag.report(sema.ctx());
+            binding = nullptr;
+        }
+
+        if (binding)
         {
             if (binding->cstRef.isValid())
             {
@@ -1227,15 +1408,11 @@ namespace
         if (!pinResolvedSymbol)
             return;
 
-        if (!sema.node(clonedCalleeRef).is(AstNodeId::Identifier))
-            return;
-
         const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, cloneContext, sourceCallRef);
         if (!storedView || !storedView->sym || !storedView->sym->safeCast<SymbolFunction>())
             return;
 
-        sema.setSymbol(clonedCalleeRef, storedView->sym);
-        sema.node(clonedCalleeRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+        pinResolvedCallCallee(sema, clonedCalleeRef, storedView->sym->cast<SymbolFunction>());
     }
 }
 
@@ -1423,21 +1600,37 @@ AstNodeRef AstAttrDecl::semaClone(Sema& sema, const CloneContext& cloneContext) 
 
 AstNodeRef AstFunctionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::FunctionDecl>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstFunctionDecl>();
-    if (cloneContextAsInline(cloneContext).preserveFunctionGenerics)
+    const auto&      inlineContext = cloneContextAsInline(cloneContext);
+    const AstNodeRef newRef        = cloneNodeCopy<AstNodeId::FunctionDecl>(sema, *this);
+    auto&            cloned        = sema.node(newRef).cast<AstFunctionDecl>();
+    if (inlineContext.preserveFunctionGenerics)
     {
-        cloned.spanGenericParamsRef = cloneSpan(sema, spanGenericParamsRef, cloneContextAsInline(cloneContext));
-        cloned.spanConstraintsRef   = cloneSpan(sema, spanConstraintsRef, cloneContextAsInline(cloneContext));
+        cloned.spanGenericParamsRef = cloneSpan(sema, spanGenericParamsRef, inlineContext);
+        cloned.spanConstraintsRef   = cloneSpan(sema, spanConstraintsRef, inlineContext);
     }
     else
     {
         cloned.spanGenericParamsRef = SpanRef::invalid();
         cloned.spanConstraintsRef   = SpanRef::invalid();
     }
-    cloned.nodeParamsRef     = cloneNodeRef(sema, nodeParamsRef, cloneContextAsInline(cloneContext));
-    cloned.nodeReturnTypeRef = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
-    cloned.nodeBodyRef       = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+
+    // A local function's own parameters shadow the expansion's bindings of the same name
+    // throughout the function: its signature and its body resolve those names to the
+    // parameters, never to the caller's arguments.
+    SmallVector<IdentifierRef>           parameterIdentifiers;
+    SmallVector<SemaClone::ParamBinding> ownBindings;
+    if (!inlineContext.bindings.empty())
+    {
+        if (const Ast* paramsAst = resolveCloneNodeAst(sema, nodeParamsRef, inlineContext))
+            collectCallableParameterIdentifiers(sema, *paramsAst, nodeParamsRef, SpanRef::invalid(), parameterIdentifiers);
+        excludeShadowedCallableBindings(inlineContext.bindings, parameterIdentifiers.span(), ownBindings);
+    }
+    SemaClone::CloneContext ownContext = cloneContextWithBindings(inlineContext, ownBindings.span());
+    ownContext.nestedCallableDepth     = inlineContext.nestedCallableDepth + 1;
+
+    cloned.nodeParamsRef     = cloneNodeRef(sema, nodeParamsRef, ownContext);
+    cloned.nodeReturnTypeRef = cloneNodeRef(sema, nodeReturnTypeRef, ownContext);
+    cloned.nodeBodyRef       = cloneNodeRef(sema, nodeBodyRef, ownContext);
     return newRef;
 }
 
@@ -1992,11 +2185,26 @@ AstNodeRef AstIdentifier::semaClone(Sema& sema, const CloneContext& cloneContext
 
 AstNodeRef AstFunctionExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+
+    // A lambda's own parameters shadow the expansion's bindings of the same name, exactly as
+    // a local function's do.
+    SmallVector<IdentifierRef>           parameterIdentifiers;
+    SmallVector<SemaClone::ParamBinding> ownBindings;
+    if (!inlineContext.bindings.empty())
+    {
+        if (const Ast* argsAst = resolveCloneSpanAst(sema, spanArgsRef, inlineContext))
+            collectCallableParameterIdentifiers(sema, *argsAst, AstNodeRef::invalid(), spanArgsRef, parameterIdentifiers);
+        excludeShadowedCallableBindings(inlineContext.bindings, parameterIdentifiers.span(), ownBindings);
+    }
+    SemaClone::CloneContext ownContext = cloneContextWithBindings(inlineContext, ownBindings.span());
+    ownContext.nestedCallableDepth     = inlineContext.nestedCallableDepth + 1;
+
     auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::FunctionExpr>(tokRef());
     newPtr->flags()           = flags();
-    newPtr->spanArgsRef       = cloneSpan(sema, spanArgsRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeReturnTypeRef = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeBodyRef       = SemaClone::cloneAst(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    newPtr->spanArgsRef       = cloneSpan(sema, spanArgsRef, ownContext);
+    newPtr->nodeReturnTypeRef = cloneNodeRef(sema, nodeReturnTypeRef, ownContext);
+    newPtr->nodeBodyRef       = SemaClone::cloneAst(sema, nodeBodyRef, ownContext);
     return newRef;
 }
 
@@ -2009,11 +2217,21 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     newPtr->spanArgsRef        = cloneSpan(sema, spanArgsRef, inlineContext);
     newPtr->nodeReturnTypeRef  = cloneNodeRef(sema, nodeReturnTypeRef, inlineContext);
 
+    // The captures are caller-side names the expansion binds; the body then owns what it
+    // captured and what its own parameters declare, so neither is substituted inside it.
+    SmallVector<SemaClone::ParamBinding> capturedBindings;
+    excludeCapturedClosureBindings(sema, *this, inlineContext, capturedBindings);
+    SmallVector<IdentifierRef>           parameterIdentifiers;
     SmallVector<SemaClone::ParamBinding> bodyBindings;
-    excludeCapturedClosureBindings(sema, *this, inlineContext, bodyBindings);
-    SemaClone::CloneContext bodyContext{bodyBindings.span(), inlineContext.replacements, inlineContext.preserveFunctionGenerics, inlineContext.sourceAst, inlineContext.preserveBindingExprState, inlineContext.duplicateRuntimeStorage, inlineContext.breakableDepth};
-    inheritCloneContextOptions(bodyContext, inlineContext);
-    newPtr->nodeBodyRef = SemaClone::cloneAst(sema, nodeBodyRef, bodyContext);
+    if (!capturedBindings.empty())
+    {
+        if (const Ast* argsAst = resolveCloneSpanAst(sema, spanArgsRef, inlineContext))
+            collectCallableParameterIdentifiers(sema, *argsAst, AstNodeRef::invalid(), spanArgsRef, parameterIdentifiers);
+        excludeShadowedCallableBindings(capturedBindings.span(), parameterIdentifiers.span(), bodyBindings);
+    }
+    SemaClone::CloneContext bodyContext = cloneContextWithBindings(inlineContext, bodyBindings.span());
+    bodyContext.nestedCallableDepth     = inlineContext.nestedCallableDepth + 1;
+    newPtr->nodeBodyRef                 = SemaClone::cloneAst(sema, nodeBodyRef, bodyContext);
     return newRef;
 }
 

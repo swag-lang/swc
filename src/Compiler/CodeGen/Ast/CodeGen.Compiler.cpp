@@ -536,7 +536,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg                         outputStorageReg = runExprPayload.reg;
     const AstNode&                         exprNode         = codeGen.node(nodeExprRef);
     const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
-    const bool                             needsPersistent  = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), exprView.typeRef());
+    const bool                             needsPersistent  = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), exprView.typeRef());
 
     if (normalizedRet.isIndirect)
     {

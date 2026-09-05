@@ -28,6 +28,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegPtrImm, tryForwardConstantLike);
         r.add(MicroInstrOpcode::ClearReg, tryForwardConstantLike);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyAddIntoLoadAddress);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryForwardLoadAddr);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryForwardLoadAddrAmc);
@@ -64,6 +65,7 @@ Result MicroPreRaPeepholePass::run(MicroPassContext& context)
 
     Context ctx;
     ctx.builder  = context.builder;
+    ctx.encoder  = context.encoder;
     ctx.storage  = context.instructions;
     ctx.operands = context.operands;
     if (ctx.builder)

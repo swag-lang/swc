@@ -29,8 +29,8 @@ namespace
 
     using NaturalLoop = MicroPassHelpers::NaturalLoop;
 
-    // Value-producing opcodes that never touch CPU flags, never write memory,
-    // and never call. Hoisting one only relocates the computation of its single
+    // Value-producing opcodes that never write memory or call. A flag-writing
+    // clear additionally needs dead flags at both sites. Hoisting relocates its single
     // destination register. The vector forms are the three-operand ones that
     // write a destination they do not read: a lane broadcast, a shuffle, a
     // packed operation on invariant inputs.
@@ -39,6 +39,7 @@ namespace
         switch (op)
         {
             case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::ClearReg:
             case MicroInstrOpcode::LoadRegPtrImm:
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadAddrRegMem:
@@ -606,14 +607,13 @@ namespace
                         {
                             if (!acceptedPrefix(destReg, i))
                                 continue;
-                            // A flag-writing continuation writes flags at the
-                            // preheader insertion point and stops producing
-                            // them here; an address computation writes none.
-                            if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                                (!preheaderFlagsDead ||
-                                 !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref)))
-                                continue;
                         }
+                        // Both a full definition such as an integer clear and
+                        // a continuation may write flags. Floating arithmetic
+                        // and XMM clears preserve them despite sharing opcodes.
+                        if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(operands)) &&
+                            (!preheaderFlagsDead || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref)))
+                            continue;
 
                         // A multi-def web is only the value sequence its listing
                         // shows when every member runs on every iteration: a

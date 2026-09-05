@@ -13,35 +13,39 @@ SemaJob::SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, const 
 
 SemaJob::SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, const bool declPass, const bool enqueueFullPassAfterDecl) :
     Job(ctx, JobKind::Sema),
-    sema_(Job::ctx(), nodePayloadContext, declPass),
+    sema_(std::make_unique<Sema>(Job::ctx(), nodePayloadContext, declPass)),
     enqueueFullPassAfterDecl_(enqueueFullPassAfterDecl)
 {
 }
 
 SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root) :
     Job(ctx, JobKind::Sema),
-    sema_(Job::ctx(), parentSema, root)
+    sema_(std::make_unique<Sema>(Job::ctx(), parentSema, root))
 {
 }
 
 SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayloadContext, AstNodeRef root) :
     Job(ctx, JobKind::Sema),
-    sema_(Job::ctx(), parentSema, nodePayloadContext, root)
+    sema_(std::make_unique<Sema>(Job::ctx(), parentSema, nodePayloadContext, root))
 {
 }
 
 JobResult SemaJob::exec()
 {
-    const JobResult result = sema_.exec();
-    if (result == JobResult::Done &&
-        enqueueFullPassAfterDecl_ &&
-        sema_.isDeclPass())
+    const JobResult result = sema_->exec();
+    if (result != JobResult::Done)
+        return result;
+
+    if (enqueueFullPassAfterDecl_ && sema_->isDeclPass())
     {
-        auto* fullPassJob = sema_.compiler().makeJob<SemaJob>(ctx(), sema_.nodePayloadContext(), false);
-        sema_.compiler().global().jobMgr().enqueue(*fullPassJob, JobPriority::Normal, sema_.compiler().jobClientId());
-        sema_.compiler().notifyAlive();
+        auto* fullPassJob = sema_->compiler().makeJob<SemaJob>(ctx(), sema_->nodePayloadContext(), false);
+        sema_->compiler().global().jobMgr().enqueue(*fullPassJob, JobPriority::Normal, sema_->compiler().jobClientId());
+        sema_->compiler().notifyAlive();
     }
 
+    // A completed job stays owned by the compiler until the module ends; what it releases here
+    // is the whole walk state: frames, scopes, escape maps, and the visit stack.
+    sema_.reset();
     return result;
 }
 

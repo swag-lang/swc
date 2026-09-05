@@ -486,9 +486,9 @@ Sema* CompilerInstance::tryGetJobSema(Job* job)
     if (!job)
         return nullptr;
     if (auto* semaJob = job->safeCast<SemaJob>())
-        return &semaJob->sema();
+        return semaJob->trySema();
     if (auto* codeGenJob = job->safeCast<CodeGenJob>())
-        return &codeGenJob->sema();
+        return codeGenJob->trySema();
     return nullptr;
 }
 
@@ -497,9 +497,9 @@ const Sema* CompilerInstance::tryGetJobSema(const Job* job)
     if (!job)
         return nullptr;
     if (const auto* semaJob = job->safeCast<SemaJob>())
-        return &semaJob->sema();
+        return semaJob->trySema();
     if (const auto* codeGenJob = job->safeCast<CodeGenJob>())
-        return &codeGenJob->sema();
+        return codeGenJob->trySema();
     return nullptr;
 }
 

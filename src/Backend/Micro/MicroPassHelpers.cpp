@@ -84,6 +84,9 @@ bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst
 
     switch (inst.op)
     {
+        case MicroInstrOpcode::ClearReg:
+            // XORPS/XORPD clear an XMM value without changing integer flags.
+            return !ops[0].reg.isAnyFloat();
         case MicroInstrOpcode::OpUnaryReg:
         case MicroInstrOpcode::OpUnaryMem:
         case MicroInstrOpcode::OpBinaryRegImm:

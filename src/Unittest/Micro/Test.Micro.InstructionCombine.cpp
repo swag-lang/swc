@@ -847,6 +847,168 @@ SWC_TEST_BEGIN(InstCombine_ZeroExtendOfDwordPhi_BecomesCopy)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_MultiplyAdd_BecomesTwoAddresses)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg product = MicroReg::virtualIntReg(2);
+    constexpr MicroReg addend  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg copied  = MicroReg::virtualIntReg(4);
+
+    for (const uint64_t multiplier : {6ull, 10ull, 12ull, 18ull, 20ull, 24ull, 36ull, 40ull, 72ull})
+    {
+        for (const bool reverse : {false, true})
+        {
+            for (const bool copyProduct : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegMem(product, base, 0, MicroOpBits::B64);
+                builder.emitLoadRegMem(addend, base, 8, MicroOpBits::B64);
+                builder.emitLoadMemReg(base, 24, addend, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(product, ApInt(multiplier, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+                if (copyProduct)
+                    builder.emitLoadRegReg(copied, product, MicroOpBits::B64);
+                const MicroReg scaled = copyProduct ? copied : product;
+                const MicroReg dst    = reverse ? addend : scaled;
+                builder.emitOpBinaryRegReg(dst, reverse ? scaled : addend, MicroOp::Add, MicroOpBits::B64);
+                builder.emitLoadMemReg(base, 16, dst, MicroOpBits::B64);
+                builder.emitRet();
+
+                SWC_RESULT(runInstCombinePass(builder));
+                SWC_RESULT(runInstCombinePass(builder));
+
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem) != 2)
+                    return Result::Error;
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+                    return Result::Error;
+                uint64_t actualMultiplier = 1;
+                uint32_t addressCount     = 0;
+                for (const MicroInstr& inst : builder.instructions().view())
+                {
+                    if (inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                        continue;
+                    const MicroInstrOperand* ops = inst.ops(builder.operands());
+                    actualMultiplier *= addressCount++ == 0 ? 1 + ops[5].valueU64 : ops[5].valueU64;
+                }
+                if (actualMultiplier != multiplier)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_MultiplyAdd_PreservesObservedValuesAndFlags)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg product = MicroReg::virtualIntReg(2);
+    constexpr MicroReg addend  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg copied  = MicroReg::virtualIntReg(4);
+
+    // A live product, either operation's flags, and a changed source after a
+    // copy each prevent changing the intermediate product's meaning.
+    for (uint32_t scenario = 0; scenario < 6; ++scenario)
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef exitLabel = builder.createLabel();
+        builder.emitLoadRegMem(product, base, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(addend, base, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 24, addend, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(product, ApInt(uint64_t{10}, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+        if (scenario == 0)
+            builder.emitLoadMemReg(base, 32, product, MicroOpBits::B64);
+        if (scenario == 4)
+            builder.emitClearReg(MicroReg::virtualFloatReg(1), MicroOpBits::B64);
+        if (scenario == 1 || scenario == 4)
+            builder.emitJumpToLabel(MicroCond::Overflow, MicroOpBits::B32, exitLabel);
+        if (scenario == 3)
+        {
+            builder.emitLoadRegReg(copied, product, MicroOpBits::B64);
+            builder.emitLoadRegMem(product, base, 40, MicroOpBits::B64);
+        }
+        const MicroReg scaled = scenario == 3 ? copied : product;
+        builder.emitOpBinaryRegReg(addend, scaled, MicroOp::Add, MicroOpBits::B64);
+        if (scenario == 5)
+            builder.emitClearReg(MicroReg::virtualFloatReg(1), MicroOpBits::B64);
+        if (scenario == 2 || scenario == 5)
+            builder.emitJumpToLabel(MicroCond::Overflow, MicroOpBits::B32, exitLabel);
+        builder.emitLoadMemReg(base, 16, addend, MicroOpBits::B64);
+        builder.placeLabel(exitLabel);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        MicroOp  op;
+        uint64_t immediate = 0;
+        if (!firstBinaryRegImm(builder, op, immediate) || op != MicroOp::MultiplySigned || immediate != 10)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_AddressCopy_DefinesAccumulatorDirectly)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg acc  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg temp = MicroReg::virtualIntReg(3);
+    for (const bool otherReader : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressAmcRegMem(temp, MicroOpBits::B64, base, acc, 2, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(acc, temp, MicroOpBits::B64);
+        if (otherReader)
+            builder.emitLoadMemReg(base, 0, temp, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, acc, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (otherReader ? 1 : 0))
+            return Result::Error;
+        const MicroInstr& first = *builder.instructions().view().begin();
+        if (first.ops(builder.operands())[0].reg != (otherReader ? temp : acc))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_FloatResultCopy_DefinesAccumulatorDirectly)
+{
+    for (const bool preserve : {false, true})
+        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            constexpr MicroReg acc    = MicroReg::virtualFloatReg(1);
+            constexpr MicroReg src    = MicroReg::virtualFloatReg(2);
+            constexpr MicroReg result = MicroReg::virtualFloatReg(3);
+            constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegMem(acc, base, 0, bits);
+            builder.emitLoadRegMem(src, base, 8, bits);
+            builder.emitOpBinaryRegRegReg(result, acc, src, MicroOp::FloatMultiply, bits);
+            builder.emitLoadRegReg(acc, result, bits);
+            if (preserve)
+                builder.preserveVirtualCopy(acc);
+            builder.emitLoadMemReg(base, 16, acc, bits);
+            builder.emitRet();
+            SWC_RESULT(runInstCombinePass(builder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (preserve ? 1u : 0u) ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg) != 1)
+                return Result::Error;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::OpBinaryRegRegReg)
+                    continue;
+                const MicroInstrOperand* ops = inst.ops(builder.operands());
+                if (ops[0].reg != (preserve ? result : acc) || ops[1].reg != acc || ops[2].reg != src)
+                    return Result::Error;
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

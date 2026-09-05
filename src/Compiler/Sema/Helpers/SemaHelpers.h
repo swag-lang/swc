@@ -150,7 +150,7 @@ namespace SemaHelpers
     void                     addCurrentFunctionCallDependency(Sema& sema, const SymbolFunction* calleeSym);
     Result                   addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result                   addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar);
-    bool                     needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);
+    bool                     needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef);
     bool                     functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
     Result                   currentFunctionUsesIndirectReturnStorage(bool& outUsesIndirectReturnStorage, Sema& sema);
     bool                     usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);

@@ -50,13 +50,12 @@ namespace
         return offset <= localStackSize && size <= localStackSize - offset;
     }
 
-    Result persistCompilerRunValueRec(Sema& sema, DataSegment& segment, TypeRef typeRef, std::span<std::byte> dstBytes, std::span<const std::byte> srcBytes, const std::byte* localStackBase, uint64_t localStackSize)
+    Result persistCompilerRunValueRec(TaskContext& ctx, DataSegment& segment, TypeRef typeRef, std::span<std::byte> dstBytes, std::span<const std::byte> srcBytes, const std::byte* localStackBase, uint64_t localStackSize)
     {
         SWC_ASSERT(typeRef.isValid());
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
-        TaskContext&       ctx      = sema.ctx();
-        const TypeManager& typeMgr  = sema.typeMgr();
+        const TypeManager& typeMgr  = ctx.typeMgr();
         const TypeInfo&    typeInfo = typeMgr.get(typeRef);
         if (typeInfo.isAlias())
         {
@@ -64,7 +63,7 @@ namespace
             SWC_ASSERT(rawTypeRef.isValid());
             if (rawTypeRef.isInvalid())
                 return Result::Error;
-            return persistCompilerRunValueRec(sema, segment, rawTypeRef, dstBytes, srcBytes, localStackBase, localStackSize);
+            return persistCompilerRunValueRec(ctx, segment, rawTypeRef, dstBytes, srcBytes, localStackBase, localStackSize);
         }
 
         if (typeInfo.isEnum())
@@ -73,7 +72,7 @@ namespace
             SWC_ASSERT(rawTypeRef.isValid());
             if (rawTypeRef.isInvalid())
                 return Result::Error;
-            return persistCompilerRunValueRec(sema, segment, rawTypeRef, dstBytes, srcBytes, localStackBase, localStackSize);
+            return persistCompilerRunValueRec(ctx, segment, rawTypeRef, dstBytes, srcBytes, localStackBase, localStackSize);
         }
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
@@ -108,7 +107,7 @@ namespace
             const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
             const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
             const uint64_t  elementSize    = elementType.sizeOf(ctx);
-            const bool      scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef);
+            const bool      scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(ctx, elementTypeRef);
             if (!srcSlice->ptr || !srcSlice->count || !elementSize)
                 return Result::Continue;
 
@@ -129,7 +128,7 @@ namespace
                 for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
                 {
                     const uint64_t elementOffset = idx * elementSize;
-                    SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                    SWC_RESULT(persistCompilerRunValueRec(ctx, segment, elementTypeRef, std::span{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
                 }
             }
 
@@ -141,7 +140,7 @@ namespace
         if (typeInfo.isArray())
         {
             const TypeRef elementTypeRef = typeInfo.payloadArrayElemTypeRef();
-            if (!SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef))
+            if (!SemaHelpers::needsPersistentCompilerRunReturn(ctx, elementTypeRef))
                 return Result::Continue;
 
             const TypeInfo& elementType = typeMgr.get(elementTypeRef);
@@ -157,7 +156,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(ctx, segment, elementTypeRef, std::span{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -167,7 +166,7 @@ namespace
         {
             for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
             {
-                if (!field || !SemaHelpers::needsPersistentCompilerRunReturn(sema, field->typeRef()))
+                if (!field || !SemaHelpers::needsPersistentCompilerRunReturn(ctx, field->typeRef()))
                     continue;
 
                 const TypeRef   fieldTypeRef = field->typeRef();
@@ -178,7 +177,7 @@ namespace
                 if (fieldOffset + fieldSize > dstBytes.size())
                     return Result::Error;
 
-                SWC_RESULT(persistCompilerRunValueRec(sema, segment, fieldTypeRef, std::span{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(ctx, segment, fieldTypeRef, std::span{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -187,9 +186,12 @@ namespace
         return Result::Continue;
     }
 
-    void persistCompilerRunValue(Sema* sema, uint64_t rawTypeRef, void* dst, const void* src, const void* localStackBase, uint64_t localStackSize)
+    // Generated code calls back here with the compiler instance, not with the code-generation
+    // Sema that emitted the call: a '#run' executes after its CodeGenJob has finished and
+    // released that Sema, while the instance outlives every job of its module.
+    void persistCompilerRunValue(CompilerInstance* compiler, uint64_t rawTypeRef, void* dst, const void* src, const void* localStackBase, uint64_t localStackSize)
     {
-        SWC_ASSERT(sema);
+        SWC_ASSERT(compiler);
         SWC_ASSERT(dst);
         SWC_ASSERT(src);
 
@@ -198,15 +200,16 @@ namespace
         if (!typeRef.isValid())
             return;
 
-        const TypeInfo& typeInfo = sema->typeMgr().get(typeRef);
-        const uint64_t  sizeOf   = typeInfo.sizeOf(sema->ctx());
+        TaskContext     ctx(*compiler);
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        const uint64_t  sizeOf   = typeInfo.sizeOf(ctx);
         SWC_ASSERT(sizeOf > 0);
         SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
         if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
             return;
 
-        DataSegment& segment = sema->compiler().compilerSegment();
-        const Result result  = persistCompilerRunValueRec(*sema, segment, typeRef, std::span{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
+        DataSegment& segment = compiler->compilerSegment();
+        const Result result  = persistCompilerRunValueRec(ctx, segment, typeRef, std::span{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
         SWC_ASSERT(result == Result::Continue);
     }
 
@@ -218,9 +221,9 @@ namespace
     }
 }
 
-bool CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef)
+bool CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeRef typeRef)
 {
-    return SemaHelpers::needsPersistentCompilerRunReturn(sema, typeRef);
+    return SemaHelpers::needsPersistentCompilerRunReturn(ctx, typeRef);
 }
 
 bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc)
@@ -1358,8 +1361,8 @@ void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeR
     const MicroReg targetReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&persistCompilerRunValue));
 
-    const MicroReg semaReg = codeGen.nextVirtualIntRegister();
-    builder.emitLoadRegPtrImm(semaReg, reinterpret_cast<uint64_t>(&codeGen.sema()));
+    const MicroReg compilerReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegPtrImm(compilerReg, reinterpret_cast<uint64_t>(&codeGen.compiler()));
 
     const MicroReg typeReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegImm(typeReg, ApInt(typeRef.get(), 64), MicroOpBits::B64);
@@ -1374,7 +1377,7 @@ void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeR
     builder.emitLoadRegImm(stackSizeReg, ApInt(localStackSize, 64), MicroOpBits::B64);
 
     SmallVector<ABICall::PreparedArg> preparedArgs;
-    preparedArgs.push_back({.srcReg = semaReg, .numBits = 64});
+    preparedArgs.push_back({.srcReg = compilerReg, .numBits = 64});
     preparedArgs.push_back({.srcReg = typeReg, .numBits = 64});
     preparedArgs.push_back({.srcReg = dstStorageReg, .numBits = 64});
     preparedArgs.push_back({.srcReg = srcStorageReg, .numBits = 64});

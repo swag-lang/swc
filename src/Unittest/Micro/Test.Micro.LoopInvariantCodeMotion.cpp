@@ -146,6 +146,78 @@ SWC_TEST_BEGIN(LICM_KeepsVolatileLoadInLoop)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_HoistsFloatConversionAcrossCallWithLiveIntegerFlags)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        constexpr MicroReg  base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  count = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  word  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg  flag  = MicroReg::virtualIntReg(4);
+        constexpr MicroReg  value = MicroReg::virtualFloatReg(1);
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(word, MicroReg::intReg(3), bits);
+        builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(word, ApInt(uint64_t{0}, 64), bits);
+        builder.placeLabel(loop);
+        builder.emitClearReg(value, bits);
+        builder.emitOpBinaryRegReg(value, word, MicroOp::ConvertIntToFloat, bits);
+        builder.emitSetCondReg(flag, MicroCond::Equal);
+        builder.emitLoadMemReg(base, 0, value, bits);
+        builder.emitLoadMemReg(base, 8, value, bits);
+        builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+        builder.emitCallReg(MicroReg::intReg(0), CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+        const uint32_t label = firstPositionOf(builder, MicroInstrOpcode::Label);
+        if (firstPositionOf(builder, MicroInstrOpcode::ClearReg) >= label ||
+            firstPositionOf(builder, MicroInstrOpcode::OpBinaryRegReg) >= label ||
+            firstPositionOf(builder, MicroInstrOpcode::SetCondReg) <= label)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LICM_KeepsIntegerClearWhenFlagsAreLiveAtEitherSite)
+{
+    for (const bool liveAtEntry : {false, true})
+    {
+        constexpr MicroReg  base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  count = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  value = MicroReg::virtualIntReg(3);
+        constexpr MicroReg  flag  = MicroReg::virtualIntReg(4);
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(base, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        if (liveAtEntry)
+            builder.emitSetCondReg(flag, MicroCond::Equal);
+        builder.emitClearReg(value, MicroOpBits::B64);
+        if (!liveAtEntry)
+            builder.emitSetCondReg(flag, MicroCond::Equal);
+        builder.emitLoadMemReg(base, 0, value, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+        builder.emitOpBinaryRegImm(count, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+        if (firstPositionOf(builder, MicroInstrOpcode::ClearReg) <= firstPositionOf(builder, MicroInstrOpcode::Label))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -14,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPreRaPeepholePass(MicroBuilder& builder)
+    Result runPreRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr)
     {
         MicroPreRaPeepholePass pass;
         MicroPassManager       passManager;
@@ -22,7 +23,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, encoder, passContext);
     }
 
     const MicroInstr* findFirstOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
@@ -51,6 +52,54 @@ namespace
         return nullptr;
     }
 }
+
+SWC_TEST_BEGIN(PreRAPeephole_FloatBinary_DefinesIndependentResult)
+{
+    for (const MicroOp operation : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide})
+        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            constexpr MicroReg a      = MicroReg::virtualFloatReg(1);
+            constexpr MicroReg b      = MicroReg::virtualFloatReg(2);
+            constexpr MicroReg result = MicroReg::virtualFloatReg(3);
+            MicroBuilder       builder(ctx);
+            X64Encoder         encoder(ctx);
+            builder.emitLoadRegReg(result, a, bits);
+            builder.emitOpBinaryRegReg(result, b, operation, bits);
+            builder.emitRet();
+            SWC_RESULT(runPreRaPeepholePass(builder, &encoder));
+            const MicroInstr* fused = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg);
+            if (!fused || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg))
+                return Result::Error;
+            const MicroInstrOperand* ops = fused->ops(builder.operands());
+            if (ops[0].reg != result || ops[1].reg != a || ops[2].reg != b || ops[3].opBits != bits || ops[4].microOp != operation)
+                return Result::Error;
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PreRAPeephole_FloatBinary_PreservesCopiedSecondOperand)
+{
+    for (const bool preserve : {false, true})
+    {
+        constexpr MicroReg a      = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg b      = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg result = MicroReg::virtualFloatReg(3);
+        MicroBuilder       builder(ctx);
+        X64Encoder         encoder(ctx);
+        builder.emitLoadRegReg(result, a, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(result, preserve ? b : result, MicroOp::FloatAdd, MicroOpBits::B64);
+        if (preserve)
+            builder.preserveVirtualCopy(result);
+        builder.emitRet();
+        SWC_RESULT(runPreRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(PreRAPeephole_ForwardsLoadImmIntoStore)
 {

@@ -988,7 +988,7 @@ namespace
         const CallConv&                        callConv                      = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef                 = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet                 = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        const bool                             needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+        const bool                             needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
         if (normalizedRet.isVoid)
         {
@@ -1158,7 +1158,7 @@ namespace
             const MicroReg            payloadReg      = exprPayload.reg;
             const bool                payloadLValue   = exprPayload.isAddress();
             const AstNode&            exprNode        = codeGen.node(exprRef);
-            const bool                needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+            const bool                needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
             if (normalizedRet.isIndirect)
             {
@@ -1256,8 +1256,8 @@ namespace
         const CallConv&                        callConv                           = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef                      = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet                      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        const bool                             needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
-        const bool                             needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+        const bool                             needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
+        const bool                             needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
         if (isCompilerRunBlockFunction(codeGen))
         {

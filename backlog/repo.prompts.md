@@ -176,7 +176,7 @@ RULES
   - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
     believed, and the Release sequence before anything is recorded. A pass that miscompiles under
     the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
-    catches it (see compiler.optimization.003).
+    catches it; keep that coverage when extending scalar float folds.
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
     takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
@@ -583,14 +583,17 @@ Make swc need a fraction of what it needs today, at the same speed. Memory is wh
 modules can compile at once, and it is what makes the difference between a language you can run as
 a script and one you cannot.
 
-Where it stands:
+Where it stands (2026-09-05, Release swc.exe, --num-cores 6, after the first round: finished
+jobs release their Sema and CodeGen, 64 KiB arena blocks, api-export index dropped):
 
-  - std/core rebuild (50 690 lines): 671.9 MB peak working set in fast-debug, ~490 MB in release.
-    That is roughly 13 KB of resident memory per source line.
-  - Hello world: 81.6 MB peak. To print one line.
-  - From campaign 20260806-174758, building the bench tasks: swc peaks at 106-118 MB where
-    clang-cl peaks at 69 MB and MSVC at 82-101 MB. rustc peaks at 201 MB. On these tiny programs
-    swc is the second-worst of the four.
+  - std/core rebuild (50 690 lines): 517 MB peak working set in devmode, 360 MB in release.
+    Before the round: 731 MB and 638 MB. That is still roughly 10 KB of resident memory per
+    source line in devmode.
+  - Hello world: 60 MB peak (was 73 MB). To print one line.
+  - Building the bench tasks: swc peaks at 58-66 MB (was 74-83 MB) where clang-cl peaks at
+    69 MB and MSVC at 82-101 MB. rustc peaks at 201 MB.
+  - The largest block still resident at peak is the static sanitizer's flow state; see
+    compiler.core.005 for the attribution and the next lever.
 
 Targets:
 

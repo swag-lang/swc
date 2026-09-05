@@ -37,37 +37,26 @@ the shared backlog conventions.
 
 ## Register allocation and frame-slot promotion
 
-### compiler.optimization.003 — Folding copy-then-operate before register allocation miscompiles
+### compiler.optimization.028 — Scalar float literals still reload in the raytrace pixel loop
 
 - Area: compiler/backend
-- Found while: generalizing non-destructive pre-RA operations to the float paths, where
-  `raytrace`'s intersect loop carried 16 copies and
-  11 stores in a loop that only computes, and the post-RA fold converted 6 pairs out of ~22
-- Observation: rewriting an adjacent `mov %d, %a` / `%d op= %b` into `%d = %a op %b` in the
-  PRE-RA peephole does what it promises statically - the loop's copies drop 16 to 6, its stores
-  11 to 5, and three-operand forms go 6 to 22 - and then every script crashes with 0xC0000005
-  under the JIT, after compiling cleanly. The same rewrite is sound post-RA, where it has shipped
-  for a while.
-- Evidence: `swc tools/scripts.swgs dm` fails on every script, right after "tuned"; the failure is an
-  access violation in JIT-executed code, not a compiler error. Minimal float arithmetic through
-  the JIT is fine, so the broken shape needs the surrounding std modules. Unit tests, the native
-  optimizer tests and the earlier phases of `tests.swgs dm` all pass, which is what let it get as
-  far as the scripts.
-- Ruled out by inspection, so the next attempt does not re-walk them: value numbering keys
-  instructions through an explicit per-opcode shape table and simply declines the ones it does not
-  list, so a three-operand form is never numbered, let alone numbered wrongly; copy elimination and
-  dead-code elimination make no positional operand assumptions; the encoder's conformance rules for
-  `OpBinaryRegReg` only fire on integer shapes (shift counts in rcx, mul/div in rax/rdx), which
-  float operations never reach. Above all, the vectorizer already emits `OpBinaryRegRegReg` pre-RA
-  and that path is sound - but at B128. The defect is therefore specific to the B32/B64 float form,
-  not to the opcode existing before allocation.
-- Next step: two suspects remain. LICM treats an adjacent copy plus two-address compute as a pair it
-  hoists together (`isEligiblePairedComputeOpcode`), and the fused form is not in its eligible list;
-  that should only cost a missed hoist, but the interaction is worth confirming rather than
-  assuming. Otherwise it is the register allocator meeting a float destination that is write-only,
-  where every float three-operand instruction it has seen so far arrived after allocation. Bisect
-  cheaply first: restrict the fold to `FloatAdd` alone and run `swc tools/scripts.swgs dm` - a crash
-  there means the shape, a pass means the operation.
+- Found while: comparing the unchanged `bench/src/swagnat/raytrace.swg` with both C++ ports on
+  `9574fdd43`, with the scalar-copy and conversion-web improvements applied (2026-09-05).
+- Evidence: the release pixel loop falls from 76 instructions / 21 memory operations to 65 / 18
+  when the vertical conversion and arithmetic move to the scanline. Clang-cl emits 46 / 6 and
+  MSVC 53 / 6, including its cold sqrt path. The remaining Swag memory operations comprise twelve
+  literal loads, three global loads and three argument stores. In particular, the three positive
+  zero arguments reload a constant while both C++ compilers clear their XMM registers.
+- Observation: before LICM these constants are floating `LoadRegImm` instructions. They become
+  RIP-relative loads during legalization, after LICM's profitability filter has treated their
+  single-use materializations as cheap. The conversion-web improvement adds two saved XMM
+  registers outside both loops; further hoisting must account for that register pressure.
+- Next: lower exact positive-zero scalar literals to XMM clears, preserving negative zero and
+  relocations; then evaluate hoisting nonzero scalar literals using their eventual load cost.
+  Compare each loop in all seven tasks before keeping either change. Do not reopen relocated
+  address materialization hoisting, whose sha256 spill regression is documented in LICM.
+- Complete when: zero arguments no longer read memory and the remaining literal loads have a
+  measured register-pressure decision, with native and script correctness coverage.
 
 ### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own
 
@@ -517,7 +506,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   the `render.parity.stroke.cpu-ogl` golden stays green.
 - Related: compiler.optimization.003.
 
-### compiler.optimization.028 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Area: compiler/backend, compilation time
 - Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in

@@ -230,6 +230,12 @@ void Ast::buildReachableNodeIndex() const
     reachableNodeIndex_ = std::move(index);
 }
 
+void Ast::releaseReachableNodeIndex() const
+{
+    const std::unique_lock lock(reachableNodeIndexMutex_);
+    reachableNodeIndex_.reset();
+}
+
 AstNodeRef Ast::reachableNodeRef(const AstNode* targetNode) const
 {
     if (!targetNode || root_.isInvalid())

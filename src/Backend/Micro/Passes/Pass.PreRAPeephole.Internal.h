@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 class MicroStorage;
 class MicroOperandStorage;
 class MicroBuilder;
+class Encoder;
 
 namespace PreRaPeephole
 {
@@ -27,6 +28,7 @@ namespace PreRaPeephole
     struct Context : MicroPeephole::RewriteQueue<Action>
     {
         MicroBuilder* builder = nullptr;
+        Encoder*      encoder = nullptr;
         // Instructions carrying a relocation: rewriting or consuming one
         // would leave the relocation unbound, so claimAll refuses them.
         std::unordered_set<uint32_t> relocated;
@@ -79,6 +81,7 @@ namespace PreRaPeephole
 
     bool tryForwardConstantLike(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyAddIntoLoadAddress(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldCopyIntoFloatBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardLoadAddr(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryForwardLoadAddrAmc(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);

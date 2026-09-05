@@ -290,8 +290,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
     the back-edge reload cause across the `video` workspace from 5060 to 242. What bounds the
     next instalment is eviction churn under real pressure — see
     [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
-    and the residency notes under
-    [compiler.optimization.013](compiler.optimization.md#compileroptimization013--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
+    and the current split-allocator boundary in
+    [compiler.optimization.024](compiler.optimization.md#compileroptimization024--the-split-allocator-claims-a-whole-instruction-for-an-implicit-operand).
+    These timing and spill counts predate that allocator and need a new baseline.
     Second instalment (2026-08-26 evening), measured on a C twin of the scalar loop filter
     compiled by clang-cl 20 at `/O2`, same checksum on both sides: the early-return decision
     path alone ran **2.5x** behind clang, and it decomposes into the per-call prologue of the

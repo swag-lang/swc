@@ -946,7 +946,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_hasChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasChar</span> <a class="api-item-permalink" href="#TrueType_Face_hasChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L363">src</a></div>
 <p>Returns whether the selected character map contains a glyph for <span class="code-inline">charCode</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasChar</span>(charCode: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span> =&gt; .<span class="SFct">glyphIndex</span>(charCode)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasChar</span>(charCode: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_hasKerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasKerning</span> <a class="api-item-permalink" href="#TrueType_Face_hasKerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L304">src</a></div>
@@ -969,12 +969,12 @@
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_isBold" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isBold</span> <a class="api-item-permalink" href="#TrueType_Face_isBold" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L275">src</a></div>
 <p>Returns whether the font declares a bold style.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isBold</span>()-&gt;<span class="STpe">bool</span> =&gt; .style.has</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isBold</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_isItalic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isItalic</span> <a class="api-item-permalink" href="#TrueType_Face_isItalic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L278">src</a></div>
 <p>Returns whether the font declares an italic style.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isItalic</span>()-&gt;<span class="STpe">bool</span> =&gt; .style.has</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isItalic</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_isPostScript" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isPostScript</span> <a class="api-item-permalink" href="#TrueType_Face_isPostScript" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L406">src</a></div>
@@ -1057,7 +1057,7 @@
 <div class="api-item api-item-func"><span id="TrueType_Outline_decompose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span> <a class="api-item-permalink" href="#TrueType_Outline_decompose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L153">src</a></div>
 <p>Converts the contours into an owned sequence of path commands.</p>
 <p>Quadratic TrueType segments become <span class="code-inline">ConicTo</span> commands. The returned array remains valid independently of the face's reusable glyph slot.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span> =&gt; buildOutlineCommands</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Outline_embolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span> <a class="api-item-permalink" href="#TrueType_Outline_embolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L119">src</a></div>
@@ -1083,7 +1083,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.351</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.357</div>
 </footer>
 </section>
 </main>

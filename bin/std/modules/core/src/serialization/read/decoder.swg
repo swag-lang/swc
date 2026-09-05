@@ -102,6 +102,7 @@ struct(T) Decoder
 
 impl Decoder
 {
+    // Reads a framed type value into caller-owned storage described by its runtime type.
     mtd readTypeValue(typedVal: TypeValue, data: [*] void?) fail
     {
         if !typedVal.pointedType do
@@ -113,6 +114,7 @@ impl Decoder
         .serializer.endElement(typedVal)
     }
 
+    // Reads one value into caller-owned storage large and aligned enough for `dataType`.
     mtd readTypedContent(data: [*] void, dataType: typeinfo?) fail
     {
         if !dataType do

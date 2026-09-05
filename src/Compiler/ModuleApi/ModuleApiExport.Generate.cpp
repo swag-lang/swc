@@ -405,36 +405,15 @@ namespace
             return false;
 
         const auto* functionDecl = symbolFunction->decl()->safeCast<AstFunctionDecl>();
-        if (!functionDecl || !functionDecl->nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl->nodeBodyRef))
+        if (!functionDecl)
             return false;
 
-        const AstNode& rootNode    = ast.node(root.nodeRef);
-        const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, rootNode);
-        if (!startTokRef.isValid())
-            return false;
-
-        const AstNode& bodyNode   = ast.node(functionDecl->nodeBodyRef);
-        TokenRef       bodyTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
-        if (!bodyTokRef.isValid())
-            bodyTokRef = bodyNode.tokRef();
+        const TokenRef bodyTokRef = ModuleApi::moduleApiFunctionBodyStartTokRef(ast, *functionDecl);
         if (!bodyTokRef.isValid())
             return false;
 
         const SourceView& srcView = ast.srcView();
-        if (functionDecl->hasFlag(AstFunctionFlagsE::Short))
-        {
-            for (uint32_t tokIndex = bodyTokRef.get(); tokIndex > startTokRef.get(); --tokIndex)
-            {
-                const TokenRef arrowTokRef(tokIndex - 1);
-                if (srcView.token(arrowTokRef).id != TokenId::SymEqualGreater)
-                    continue;
-
-                outBodyStartOffset = sourceTokenByteStart(srcView, srcView.token(arrowTokRef));
-                return true;
-            }
-        }
-
-        outBodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyTokRef));
+        outBodyStartOffset        = sourceTokenByteStart(srcView, srcView.token(bodyTokRef));
         return true;
     }
 

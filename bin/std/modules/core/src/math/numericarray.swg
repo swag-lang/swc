@@ -11,12 +11,14 @@ struct(T, N: u32) NumericArray
 
 impl NumericArray
 {
+    // Returns the component at the zero-based index, which must be less than `N`.
     #[Inline]
     mtd const opIndex(idx: u64)->T
     {
         return .buf[idx]
     }
 
+    // Reports whether every corresponding component compares equal.
     mtd const opEquals(other: NumericArray)->bool
     {
         for i in N
@@ -79,6 +81,7 @@ impl NumericArray
         }
     }
 
+    // Assigns the same value to every component.
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: T)
     {
@@ -86,6 +89,7 @@ impl NumericArray
             .buf[i] = what
     }
 
+    // Copies exactly `N` components from the supplied slice.
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: const [..] T)
     {
@@ -94,6 +98,7 @@ impl NumericArray
             .buf[i] = what[i]
     }
 
+    // Creates an array from exactly `N` component values.
     #[Safety(.BoundCheck, false)]
     func from(values: T...)->NumericArray
     {

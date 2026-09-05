@@ -1,7 +1,7 @@
 # Swag Scope Shared Viewer Backlog
 
 This backlog covers contracts, behavior, coverage, and product boundaries shared by several
-Swag Scope viewers. A capability owned by one viewer lives in its `scope.<viewer>.md` file;
+Swag Scope viewers. A capability owned by one viewer lives in its `app.scope.<viewer>.md` file;
 window lifecycle, document management, and operating-system integration live in
 [app.scope.md](app.scope.md). Reusable engine work remains in the owning standard-module backlog.
 
@@ -83,7 +83,7 @@ proves it.
 | Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
 | HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md#html-reading) |
 | Image | 4 / 1 | pan, zoom, fit, rotation, mirroring, animated frames | Gwenview-class color/metadata plus histogram, pixel probe, comparison; [app.scope.image.md](app.scope.image.md) |
-| InDesign | 6 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [InDesign roadmap](app.scope.indesign.md) |
+| InDesign | 10 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [InDesign roadmap](app.scope.indesign.md) |
 | Markdown | 7 / 2 | rendered themes, reading measures, progressive layout, search | VS Code-class outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md#markdown-reading) |
 | MIDI | 3 / 1 | parsed tracks, notes, tempo/meter/key and piano roll | MuseScore-class playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
 | OpenDocument | 11 / 3 | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |
@@ -92,7 +92,7 @@ proves it.
 | Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | Subtitle Edit-class current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md#timed-text) |
 | Table | 5 / 1 | parsed CSV/TSV grid and cell search | Calc-class dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md#tabular-text) |
 | Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
-| Video | 17 / 2 | progressive A/V playback, seek, tracks, subtitles and frame stepping | VLC-class chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
+| Video | 19 / 2 | progressive A/V playback, seek, tracks and subtitles | VLC-class chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
 ## Shared reading behavior
 
@@ -114,7 +114,7 @@ proves it.
 - Next: define the application adapter once the GUI pagination and preview contract is ready.
 - Complete when: text, code, Markdown, HTML, image, and hexadecimal dump views print through that
   contract, with actual-size or fit-to-page choices where they have meaning.
-- Related: std.gui.030, std.gui.031, std.gui.034
+- Related: std.gui.030, platform.portability.086, std.gui.034
 
 ### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
 
@@ -132,7 +132,7 @@ proves it.
 - Evidence: viewers independently use workers and the host loading overlay, but parsing, indexing,
   waveform building, rendering, and search cannot consistently report units completed, yield a
   partial result, or distinguish cancellation from failure.
-- Next: extend `ViewerCreateResult` with cancellable phases, determinate or indeterminate progress,
+- Next: extend `Viewer.LifecycleApi` with cancellable phases, determinate or indeterminate progress,
   partial-publication rules, and a shared terminal status.
 - Complete when: opening and analysis operations remain interruptible, replacement files retire old
   work promptly, the overlay names the current phase, and cancellation never becomes an error.
@@ -211,7 +211,7 @@ proves it.
   without resetting selection/playback/scroll, and exercise the live transition in its owning test.
 - Complete when: switching among every shipped language updates all visible and tooltip text in
   every viewer without reconstructing it, changing its logical state, or leaving mixed-language
-  chrome, and the fifteen focused suites protect the behavior.
+  chrome, and the seventeen focused suites protect the behavior.
 
 ### app.scope.viewers.011 — Attacker-controlled decoders share the application process
 

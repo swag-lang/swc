@@ -4,6 +4,7 @@
 
 using Win32
 
+// Creates one directory on Windows; its parent must already exist.
 func createNative(dirname: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirname)
@@ -11,6 +12,7 @@ func createNative(dirname: string) fail
     Errors.transformWinErrors(err, dirname)
 }
 
+// Removes an empty directory on Windows, failing if it cannot be removed.
 func deleteEmptyNative(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)

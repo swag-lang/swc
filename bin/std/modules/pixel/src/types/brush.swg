@@ -61,7 +61,7 @@ struct Brush
         // Set it with [[Pixel.Brush.mapOver]]. Without it a texture, hatch, or gradient covers the
         // bounds of the shape being painted, so the same brush lands differently on two shapes.
         paintRect:    Math.Rectangle
-        hasPaintRect: bool
+        hasPaintRect: bool     // Whether [[Pixel.Brush.paintRect]] replaces the painted shape's bounds; false by default.
 
         gradientStart:   Math.Vector2               // Linear start point or radial/sweep center.
         gradientEnd:     Math.Vector2               // Linear end point or secondary radial center.

@@ -223,34 +223,13 @@ is the current scorecard.
   recorded next to the 2026-07-08 numbers.
 - Related: compiler.optimization.md owns the pass once it is scoped.
 
-### compiler.safety.009 — An enum value outside its members walks past a `switch #complete`
-
-- Area: language, compiler/codegen
-- Evidence: `switch #complete c` over a three-member enum, reached with `cast(Color) 99`, panics in
-  `devmode` under the `.Switch` guard; with the guard off the value matches no case and continues
-  after the switch. That is the same behavior as a plain `switch`, and it is the right one: the
-  point of `#complete` is that the dispatch carries no range test at all, so the "outside the set"
-  case costs zero branches and is faster, and a caller who wants the check builds a target that
-  keeps `.Switch` on.
-- What is left is what the value does after walking past. The missing-return rule now rejects a
-  function that relied on the switch to produce its result, so the fall-off-the-epilogue case is
-  closed; a `switch` that assigns rather than returns simply leaves the previous value in place.
-- Next: nothing here on its own. The remaining exposure is that the out-of-range value existed at
-  all, which is compiler.safety.010, and that a `release` build does not have to keep the guard,
-  which is the deliberate design compiler.safety.008 records. Delete this entry once
-  compiler.safety.010 is decided.
-- Complete when: converting an integer to an enum has a rule (compiler.safety.010), or a measured
-  reason to reopen the guard default appears.
-- Related: compiler.safety.010 is where the out-of-range value comes from; language.design.001 is
-  the separate question of whether exhaustiveness should be the default.
-
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
 - Area: language
 - Evidence: `cast(Color) 99` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
   declared member. It is a value that fails every invariant the enum was declared to express, and
-  it is what walks past a `switch #complete` (compiler.safety.009).
+  an unchecked forged value can therefore walk past every arm of `switch #complete`.
 - Elsewhere: Rust makes an out-of-range enum discriminant undefined behavior and forbids the
   conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
   returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
@@ -263,7 +242,6 @@ is the current scorecard.
 - Complete when: converting an integer to an enum has one documented rule, the flags case is
   specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
   combination.
-- Related: compiler.safety.009.
 
 ### compiler.safety.011 — `!` and `Swag.Late` stop asserting in release
 
@@ -290,19 +268,14 @@ is the current scorecard.
   application workload is recorded.
 - Related: compiler.safety.008 is what makes that configuration affordable.
 
-### compiler.safety.012 — Stack exhaustion has no defined behavior and no diagnostic
+### compiler.safety.012 — Stack exhaustion has no documented language contract
 
 - Area: runtime, compiler/backend
-- Evidence: a recursion deep enough to exhaust the stack ends the process with no message and exit
-  code 0. Run through the compile-time JIT it takes the compiler down with it, so a `#run` or a
-  `#test` that recurses too far reports nothing at all — the build simply stops after "tuned". Large
-  frames are handled correctly: `expandLargePrologueStackAdjustments` already emits the Windows
-  guard-page probes, so this is the depth case, not a stack clash.
-- Consequence: the diagnosis half is now covered - every thread that runs user code claims a
-  stack reserve before starting, so the reporter has a frame of its own and names the fault
-  (`EXCEPTION_STACK_OVERFLOW`, with the task state and the faulting function) instead of dying
-  on the exhausted stack. What is still missing is what the LANGUAGE says: the depth at which a
-  program dies is a property of the host, not of the source, and nothing bounds or declares it.
+- Evidence: each thread that runs user code now claims a stack reserve for the fault reporter.
+  Stack exhaustion reports `EXCEPTION_STACK_OVERFLOW`, the task state and the faulting function.
+  `expandLargePrologueStackAdjustments` also emits Windows guard-page probes for large frames.
+  The remaining gap is the reference: it does not state the language's abort contract or explain
+  that the available recursion depth depends on the host stack.
 - Next: decide whether that is a language question at all. Rust and Go abort the same way; Go
   additionally grows its stacks, which is a runtime design Swag has not chosen. If the answer is
   "abort with a message", this entry is done and only the reference needs the sentence.

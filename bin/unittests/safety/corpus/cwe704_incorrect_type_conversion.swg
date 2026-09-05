@@ -61,7 +61,7 @@ func rankForgedValue(colour: Colour)->s32
     Swag.assert(rankForgedValue(forged) == -1)
 }
 
-// GAP compiler.safety.009 / compiler.safety.010 - the same forged value reaching a
+// GAP compiler.safety.010 - the same forged value reaching a
 // 'switch #complete'. With '.Switch' on it panics; with the guard off it matches no arm and
 // walks past the switch, which is the deliberate design: '#complete' is the promise that
 // makes the dispatch branch-free. What is missing is the rule that stops the forged value

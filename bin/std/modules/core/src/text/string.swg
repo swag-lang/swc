@@ -22,6 +22,7 @@ struct StringRunes
 
 impl StringRunes
 {
+    // Visits each decoded rune with its zero-based character index and UTF-8 byte offset.
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool) const opVisit(stmt: #code(value: rune, charIndex: u64, byteIndex: u64))
         where !ptr

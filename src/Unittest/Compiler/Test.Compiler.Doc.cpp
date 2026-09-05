@@ -399,6 +399,19 @@ struct RestrictedRecord
     defaultValue: u64 // Restricted to the module by the default.
 }
 
+private namespace DocSignatureImplementation
+{
+    func read(value: s32)->s32 { return value }
+}
+
+// A short body must not appear in its declaration signature.
+func forwarded(value: s32)->s32 => DocSignatureImplementation.read(value)
+
+// A literal body is also omitted.
+func literal()->s32 => 123456789
+
+attr DocLabel(text: string)
+
 // A generic record whose declaration is documented without a concrete instance.
 struct(T) GenericBox
 {
@@ -434,6 +447,18 @@ impl GenericBox
 
     #[Swag.NoDoc]
     mtd hiddenMethod() {}
+
+    #[Swag.Inline]
+    #[Swag.NoDoc]
+    mtd hiddenAfterInline() {}
+
+    #[DocLabel("]")]
+    #[Swag.NoDoc]
+    mtd hiddenAfterBracket() {}
+
+    // Attribute arguments do not name documentation attributes.
+    #[DocLabel("Swag.NoDoc")]
+    mtd visibleWithLabel() {}
 }
 
 // Keep this compiler-only helper out of the API page.
@@ -565,7 +590,13 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!(genericAlpha < genericInterp && genericInterp < genericInWeight && genericInWeight < genericValue && genericValue < genericZeta && genericZeta < genericTableEnd) || genericDetail < genericTableEnd)
         return Result::Error;
-    if (content.contains(">hidden<") || content.contains("hiddenByAttribute") || content.contains("hiddenMethod") || content.contains("SECRET"))
+    if (content.contains(">hidden<") || content.contains("hiddenByAttribute") || content.contains("hiddenMethod") || content.contains("hiddenAfterInline") || content.contains("hiddenAfterBracket") || content.contains("SECRET"))
+        return Result::Error;
+    if (!content.contains("id=\"Compiler_doc_test_DocApi_GenericBox_visibleWithLabel\""))
+        return Result::Error;
+    if (content.contains("DocSignatureImplementation") || content.contains("123456789") || content.contains("=&gt;"))
+        return Result::Error;
+    if (!content.contains("id=\"Compiler_doc_test_DocApi_forwarded\"") || !content.contains("id=\"Compiler_doc_test_DocApi_literal\""))
         return Result::Error;
 
     if (content.contains("id=\"Example\"") || !content.contains("Compiler_doc_test_DocApi_Counter_0_Example"))

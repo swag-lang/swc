@@ -110,14 +110,17 @@ struct RenderOgl
         shaderFont:     ShaderFont        // Built-in bitmap-font shader.
         shaderFontMsdf: ShaderFont        // Built-in MSDF-font shader.
 
-        // Device pixels the overlap-safe path has cleared as alpha scratch, and what the same
-        // batches would have cleared had each been given the whole clipping rectangle.
+        // Device pixels the overlap-safe path has cleared as alpha scratch.
         //
-        // The pair is what makes the bound measurable from a single run: the second is the cost
-        // of the unbounded behaviour, on the very geometry the first was measured on. Reset them
-        // with [[Pixel.RenderOgl.resetScratchCounters]].
+        // Compare with [[Pixel.RenderOgl.scratchFullPixels]] to measure the saving on the same
+        // batches. Reset both counters with [[Pixel.RenderOgl.resetScratchCounters]].
         readonly scratchClearedPixels: u64
-        readonly scratchFullPixels:    u64
+
+        // Device pixels the same batches would clear using their whole clipping rectangles.
+        //
+        // This is the reference cost for [[Pixel.RenderOgl.scratchClearedPixels]], accumulated
+        // since the last call to [[Pixel.RenderOgl.resetScratchCounters]].
+        readonly scratchFullPixels: u64
     }
 
     // The GPU objects and the state mirror of the context. Everything here belongs to the

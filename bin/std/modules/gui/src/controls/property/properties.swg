@@ -173,9 +173,7 @@ struct Properties
             selItem: *PropertiesItem?            // Selected row, or 'null'.
         }
 
-            // Scrolling viewport of the grid, established when it is created. A host configures the
-            // scrollbars or scrolls the grid through it; the grid decides which window it is.
-            late readonly scrollWnd: *ScrollWnd
+            late readonly scrollWnd: *ScrollWnd     // Borrowed scrolling viewport, available after the grid is created.
     }
 
     // View the rows are painted in, established when the grid is created.

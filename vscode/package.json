@@ -2,13 +2,13 @@
   "name": "swag",
   "displayName": "Swag",
   "description": "Language support for the Swag programming language",
-  "version": "0.0.164",
+  "version": "0.0.165",
   "publisher": "swag-lang",
   "icon": "images/swag_icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/swag-lang/swag"
+    "url": "https://github.com/swag-lang/swc"
   },
   "engines": {
     "vscode": "^1.41.0"
@@ -18,8 +18,12 @@
     "Themes"
   ],
   "main": "./extension.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
   "activationEvents": [
-    "onLanguage:swag"
+    "onLanguage:swag",
+    "onTaskType:swag-build"
   ],
   "contributes": {
     "themes": [
@@ -47,10 +51,12 @@
     "taskDefinitions": [
       {
         "type": "swag-build",
+        "required": ["command"],
         "properties": {
-          "cmdLine": {
+          "command": {
             "type": "string",
-            "description": "The command line"
+            "enum": ["build", "rebuild", "format"],
+            "description": "The compiler task to run"
           }
         }
       }
@@ -62,14 +68,13 @@
         "owner": "swag",
         "fileLocation": [ "absolute" ],
         "pattern": {
-          "regexp": "(warning|error):\\s(.*):(\\d+):(\\d+):(\\d+):(\\d+):\\s(.*)$",
-          "severity": 1,
-          "file": 2,
-          "line": 3,
-          "column": 4,
-          "endLine": 5,
-          "endColumn": 6,
-          "message": 7
+          "regexp": "^(.*):(\\d+):(\\d+)(?:-(\\d+))?: (warning|error)(?:\\[[^\\]]+\\])?: (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "endColumn": 4,
+          "severity": 5,
+          "message": 6
         }
       },
       {
@@ -78,14 +83,13 @@
         "owner": "swag",
         "fileLocation": [ "absolute" ],
         "pattern": {
-          "regexp": "(warning|error):\\s(.*):(\\d+):(\\d+):(\\d+):(\\d+):\\s(.*)$",
-          "severity": 1,
-          "file": 2,
-          "line": 3,
-          "column": 4,
-          "endLine": 5,
-          "endColumn": 6,
-          "message": 7
+          "regexp": "^(.*):(\\d+):(\\d+)(?:-(\\d+))?: (warning|error)(?:\\[[^\\]]+\\])?: (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "endColumn": 4,
+          "severity": 5,
+          "message": 6
         },
         "background": {
           "activeOnStart": true,

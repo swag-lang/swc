@@ -237,7 +237,10 @@ impl TagBin
         return false
     }
 
-    // Returns the wire identity written for a type value. See [[Core.Serialization.wireTypeCrc]].
+    // Returns the wire identity written for a type value.
+    //
+    // Aliases are resolved, enums use their underlying type, and named structs use the CRC of
+    // their qualified name. A missing type returns zero.
     mtd typeCrcOf(type: typeinfo?)->u32
     {
         return wireTypeCrc(type)

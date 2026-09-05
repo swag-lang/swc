@@ -81,10 +81,11 @@ easy to read for developers coming from C or C++ backgrounds.
 {
     let a = 1.5
     Swag.assert(a == 1.5)
-    #assert(#typeof(a) == f32)     // Default float type is 'f32'
+    #assert(#typeof(a) == f32)     // This value fits exactly in 'f32'
 
     let b = 0.11
     Swag.assert(b == 0.11)
+    #assert(#typeof(b) == f64)
 
     let c = 15e2
     Swag.assert(c == 15e2)     // Equivalent to 1500
@@ -99,8 +100,13 @@ easy to read for developers coming from C or C++ backgrounds.
 /**
 # Default Floating-Point Type
 
-By default, floating-point literals are of type 'f32'. This differs from C and C++,
-where floating-point literals default to 'double' ('f64').
+Without a suffix or an imposed type, a floating-point literal becomes 'f32' when its
+parsed value can be represented in 'f32' without further rounding, and 'f64' otherwise.
+For example, '1.5' infers 'f32', while '0.1' infers 'f64'. This differs from C and C++,
+where an unsuffixed floating-point literal has type 'double'.
+
+Use a type annotation or a suffix when the width matters. An explicit 'f32' accepts
+rounding to that width; an explicit 'f64' keeps that width even for an exact small value.
 */
 #test
 {
@@ -108,6 +114,17 @@ where floating-point literals default to 'double' ('f64').
     Swag.assert(a == 1.5)
     #assert(#typeof(a) == f32)
     #assert(#typeof(a) != f64)
+
+    let b = 0.1
+    #assert(#typeof(b) == f64)
+
+    let c = 16777216.0
+    let d = 16777217.0
+    #assert(#typeof(c) == f32)
+    #assert(#typeof(d) == f64)
+
+    let rounded: f32 = 0.1
+    #assert(#typeof(rounded) == f32)
 }
 
 /**

@@ -162,8 +162,8 @@ entries already in backlog/compiler.optimization.md are failed attempts written 
 one does not repeat them. When something does not work:
 
   - Revert it cleanly.
-  - Write down what it ruled out, with the measurement, as a B-NNN entry in
-    backlog/compiler.optimization.md (take the identifier from backlog/README.md and advance it).
+  - Write down what it ruled out, with the measurement, as a compiler.optimization.NNN entry in
+    backlog/compiler.optimization.md (allocate the next file-scoped identifier as backlog/README.md states).
   - Take the next hypothesis from the same mechanism, or move to the next task.
 
 The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
@@ -683,10 +683,10 @@ state; never reset or overwrite it merely to make the campaign start clean.
 
 Use the main checkout's compiler explicitly for every repository tool, for example
 `bin\swc.exe tools\tests.swgs`; never use an unrelated `swc` found on PATH. Compiler builds and test
-runs launched by AI agents, including Codex and Claude, are exclusive with one another across all
-worktrees. Follow the agent-to-agent serialization rules in modify-swag-codebase before every build
-and every test campaign. IDE builds and manually launched user commands do not occupy the agent
-slot; never terminate or interfere with them.
+runs launched by AI agents, including Codex and Claude, share the machine with every worktree,
+IDE build, and user command. Follow the CPU and memory admission rules in modify-swag-codebase
+before every build and test command, and cap compiler workers at six. Never terminate or interfere
+with another session's processes to create headroom.
 
 Record the starting commit, `git status --short --branch`, toolchain versions, and the available
 external prerequisites before changing anything. A starting failure is useful attribution, but it

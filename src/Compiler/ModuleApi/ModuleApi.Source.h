@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Ast;
 struct AstNode;
+struct AstFunctionDecl;
 
 namespace ModuleApi
 {
@@ -16,6 +17,7 @@ namespace ModuleApi
 
     const SourceView& moduleApiNodeSourceView(TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef);
     TokenRef          moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node);
+    TokenRef          moduleApiFunctionBodyStartTokRef(const Ast& ast, const AstFunctionDecl& functionDecl);
     uint32_t          sourceTokenByteStart(const SourceView& srcView, const Token& token);
     uint32_t          sourceTokenByteEnd(const SourceView& srcView, const Token& token);
     bool              tryGetModuleApiSnippetOffsets(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset, uint32_t& outEndOffset);

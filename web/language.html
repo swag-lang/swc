@@ -1300,10 +1300,11 @@ indent-style = spaces</span></div>
 {
     <span class="SKwd">let</span> a = <span class="SNum">1.5</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SNum">1.5</span>)
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) == <span class="STpe">f32</span>)     <span class="SCmt">// Default float type is 'f32'</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) == <span class="STpe">f32</span>)     <span class="SCmt">// This value fits exactly in 'f32'</span>
 
     <span class="SKwd">let</span> b = <span class="SNum">0.11</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">0.11</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(b) == <span class="STpe">f64</span>)
 
     <span class="SKwd">let</span> c = <span class="SNum">15e2</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(c == <span class="SNum">15e2</span>)     <span class="SCmt">// Equivalent to 1500</span>
@@ -1315,13 +1316,25 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e == -<span class="SNum">0.1</span>)
 }</span></div>
 <h3 id="_003_002_number_literals_swg_Default_Floating-Point_Type">Default Floating-Point Type</h3>
-<p>By default, floating-point literals are of type <span class="code-inline">f32</span>. This differs from C and C++, where floating-point literals default to <span class="code-inline">double</span> (<span class="code-inline">f64</span>).</p>
+<p>Without a suffix or an imposed type, a floating-point literal becomes <span class="code-inline">f32</span> when its parsed value can be represented in <span class="code-inline">f32</span> without further rounding, and <span class="code-inline">f64</span> otherwise. For example, <span class="code-inline">1.5</span> infers <span class="code-inline">f32</span>, while <span class="code-inline">0.1</span> infers <span class="code-inline">f64</span>. This differs from C and C++, where an unsuffixed floating-point literal has type <span class="code-inline">double</span>.</p>
+<p>Use a type annotation or a suffix when the width matters. An explicit <span class="code-inline">f32</span> accepts rounding to that width; an explicit <span class="code-inline">f64</span> keeps that width even for an exact small value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a = <span class="SNum">1.5</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SNum">1.5</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) == <span class="STpe">f32</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) != <span class="STpe">f64</span>)
+
+    <span class="SKwd">let</span> b = <span class="SNum">0.1</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(b) == <span class="STpe">f64</span>)
+
+    <span class="SKwd">let</span> c = <span class="SNum">16777216.0</span>
+    <span class="SKwd">let</span> d = <span class="SNum">16777217.0</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(c) == <span class="STpe">f32</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(d) == <span class="STpe">f64</span>)
+
+    <span class="SKwd">let</span> rounded: <span class="STpe">f32</span> = <span class="SNum">0.1</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(rounded) == <span class="STpe">f32</span>)
 }</span></div>
 <h3 id="_003_002_number_literals_swg_Literal_Suffix">Literal Suffix</h3>
 <p>You can specify the type of a literal explicitly by adding a <b>suffix</b> to it. This is useful when a specific type is required, such as <span class="code-inline">f64</span> or <span class="code-inline">u8</span>.</p>
@@ -5763,6 +5776,35 @@ indent-style = spaces</span></div>
 <h3 id="_006_009_custom_copy_and_move_swg_Drop_Elision">Drop Elision</h3>
 <p>When the source of a <span class="code-inline">#move</span> is a plain local that is provably never used again — no read or write after the move, no taken address, no capture, and a move that always executes when its scope exits — the compiler elides both the reset of the source and its scope-exit drop: <span class="code-inline">opDrop</span> is then NOT called on the reset value. A program can therefore not rely on counting the drops of fully consumed locals. Any use after the move (or any use the compiler cannot prove harmless) keeps the documented reset-then-drop behavior.</p>
 <p>Returning a named local moves it out the same way: the value is transferred to the caller, <span class="code-inline">opPostMove</span> restores its invariants in the caller's storage, and the local's own drop is elided — the resource is released exactly once, by the caller. Only a local still observed after the return — by a <span class="code-inline">defer</span> body or a closure — cannot move: the return then deep-copies through <span class="code-inline">opPostCopy</span> and the local drops normally.</p>
+<h3 id="_006_009_custom_copy_and_move_swg_Ownership_And_The_Copy">Ownership And The Copy</h3>
+<p>A struct that declares <span class="code-inline">opDrop</span> owns what that method releases, so it states no copy: a bitwise duplicate would leave two values releasing the same resource. Nothing has to be written for that; declaring <span class="code-inline">opDrop</span> is the declaration.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Owner</span>
+{
+    handle: *<span class="STpe">u8</span>?
+}
+
+<span class="SKwd">impl</span> <span class="SCst">Owner</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">opDrop</span>() { <span class="SCmt">/* releases 'handle' */</span> }
+}
+
+<span class="SKwd">var</span> a: <span class="SCst">Owner</span>
+<span class="SKwd">var</span> b = a           <span class="SCmt">// error: 'Owner' owns what its 'opDrop' releases</span>
+<span class="SKwd">var</span> c = <span class="SItr">#move</span> a     <span class="SCmt">// the transfer is accepted</span></span></div>
+<p>Declaring <span class="code-inline">opPostCopy</span> beside it opts the copy back in, because it is where the type says what a duplicate owns. The rule reaches through members: a struct holding a value that owns a release owns one too, and states no copy either, unless the member's type declares its own <span class="code-inline">opPostCopy</span>. <span class="code-inline">#[Swag.NoCopy]</span> remains the way to refuse a copy for any other reason.</p>
+<p>A generic type decides per instantiation, by declaring the operation inside a '#static if'. That is how the standard containers hold elements they cannot duplicate: <span class="code-inline">Array'T</span>, <span class="code-inline">ArrayPtr'T</span> and <span class="code-inline">HashTable'(K, V)</span> offer a copy only when their elements can be copied, and are otherwise handed over with <span class="code-inline">#move</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">Bag</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">opDrop</span>() { <span class="SCmt">/* releases every element */</span> }
+
+    <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCst">Reflection</span>.<span class="SFct">canCopy</span>(<span class="SCst">T</span>)
+    {
+        <span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()
+        {
+            <span class="SCmt">/* duplicates every element */</span>
+        }
+    }
+}</span></div>
 <h3 id="_006_009_custom_copy_and_move_swg_Lifecycle_Safety">Lifecycle Safety</h3>
 <p>Reading a value abandoned by <span class="code-inline">#relocate</span> — or by <span class="code-inline">#move</span> when the type has no <span class="code-inline">opDrop</span>, which leaves the source unreset — reads stale bits. Under the <span class="code-inline">Swag.SafetyWhat.Lifecycle</span> safety guard (part of <span class="code-inline">All</span>, so enabled by default in <span class="code-inline">devmode</span>), the compiler reports proven reads of moved-from locals at compile time, and poisons abandoned or dropped storage with <span class="code-inline">0xDD</span> bytes at runtime so hidden violations fail deterministically instead of silently reading stale data. A <span class="code-inline">#move</span> of a type with <span class="code-inline">opDrop</span> is not concerned: the source is reset to its defaults, which is defined behavior.</p>
 <h3 id="_006_009_custom_copy_and_move_swg_Move_Semantics_in_Functions">Move Semantics in Functions</h3>
@@ -9627,7 +9669,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.353</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.357</div>
 </footer>
 </section>
 </main>
@@ -10271,6 +10313,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Standard Views|_006_008_custom_iteration_swg_Standard_Views|",
 "h|Custom Copy and Move|_006_009_custom_copy_and_move_swg|",
 "h|Drop Elision|_006_009_custom_copy_and_move_swg_Drop_Elision|",
+"h|Ownership And The Copy|_006_009_custom_copy_and_move_swg_Ownership_And_The_Copy|",
 "h|Lifecycle Safety|_006_009_custom_copy_and_move_swg_Lifecycle_Safety|",
 "h|Move Semantics in Functions|_006_009_custom_copy_and_move_swg_Move_Semantics_in_Functions|",
 "h|Custom Literals|_006_010_custom_literals_swg|",

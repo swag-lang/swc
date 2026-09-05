@@ -30,6 +30,7 @@ struct NativeLibrary
 
 impl NativeLibrary
 {
+    // Closes the library and invalidates every symbol address borrowed from it.
     mtd opDrop()
     {
         .close()

@@ -104,7 +104,7 @@ tags form a union; combined file and tag filters form an intersection.
 | `goldens.swgs test` | Run every `golden`-tagged test and report all `.actual` differences |
 | `goldens.swgs` | Promote reviewed `.actual` snapshots to goldens |
 | `bench.swgs` | Run or regenerate the cross-language performance campaign |
-| `vsix.swgs` | Refresh the extension images and build the VSIX package |
+| `vsix.swgs` | Test the extension, refresh its images, and build the VSIX package |
 | `setup.swgs` | Register `bin/` in the current user's environment and claim `.swgs` |
 
 `setup.swgs` is the one-time step. It puts `bin/` on `PATH`, points `SWAG_PATH` at it, and hands

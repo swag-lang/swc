@@ -100,7 +100,7 @@ glyph, another app's icon, or a letter tile.
 
 ## Build The Standard Surface
 
-- Default to `ThemeColors.setSwagDark()`. When the app exposes a theme choice, offer the shipped
+- Default to `Theme.setSwagDark()`. When the app exposes a theme choice, offer the shipped
   Swag dark, neutral dark, and neutral light palettes. Never invent an app-local accent.
 - Use Voltage only for focus, the primary action, and the active state, plus exactly one
   four-pixel accent rail across the top edge of the application surface. One rail per window, not

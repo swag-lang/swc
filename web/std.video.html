@@ -1202,16 +1202,16 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_PlanarFrame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.PlanarFrame</span> <a class="api-item-permalink" href="#Video_PlanarFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L26">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_PlanarFrame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.PlanarFrame</span> <a class="api-item-permalink" href="#Video_PlanarFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L29">src</a></div>
 <p>One decoded picture in planar 4:2:0, the layout every modern video codec produces.</p>
-<p>A codec reconstructs luma and two half-resolution chroma planes; turning them into packed RGB costs more than every other stage of a 4K decode put together, and a consumer that draws the picture through a renderer does not need it done on the processor at all. A reader hands the planes over as they are, and <a href="std.pixel.html#Pixel_Painter_drawVideoFrame">Pixel.Painter.drawVideoFrame</a> converts them where the picture is drawn.</p>
+<p>A codec reconstructs luma and two half-resolution chroma planes; turning them into packed RGB costs more than every other stage of a 4K decode put together, and a consumer that draws the picture through a renderer does not need it done on the processor at all. A reader hands the planes over as they are through <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a>. The resulting texture is drawn with <a href="std.pixel.html#Pixel_Painter_drawTexture">Pixel.Painter.drawTexture</a>; a shader backend converts it while sampling.</p>
 <p>Rows are tightly packed: <span class="code-inline">strideLuma</span> is <span class="code-inline">width</span> and <span class="code-inline">strideChroma</span> is <span class="code-inline">(width + 1) / 2</span>. The chroma planes carry <span class="code-inline">(height + 1) / 2</span> rows. Storage is reused across frames, so a caller decoding a whole stream allocates one picture in total.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> picture: <span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span>
-<span class="SLgc">while</span> reader.<span class="SFct">decodeFramePlanesInto</span>(&amp;picture, index)
-{
-    painter.<span class="SFct">drawVideoFrame</span>(rectangle, &amp;picture)
-    index += <span class="SNum">1</span>
-}</span></div>
+<span class="SKwd">try</span> reader.<span class="SFct">decodeFramePlanesInto</span>(&amp;picture, index)
+<span class="SKwd">let</span> planes = picture.<span class="SFct">view</span>()
+<span class="SKwd">var</span> texture = renderer.<span class="SFct">addImage</span>(&amp;planes)
+painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
+<p>Keep <span class="code-inline">texture</span> alive until the submitted frame is rendered, then release it with <a href="std.pixel.html#Pixel_IRenderer_removeTexture">Pixel.IRenderer.removeTexture</a>. Reuse it for later pictures of the same size with <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -1450,7 +1450,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Video_StreamInfo_displayHeight" class="code-type">displayHeight</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="Video_StreamInfo_displayHeight" class="code-type">displayHeight</td><td class="code-type">s32</td><td><p>Display height in pixels; zero uses the stored frame height.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Video_StreamInfo_displayWidth">displayWidth</a></td><td class="code-type">s32</td><td><p>Size the frame is meant to be shown at, in pixels, when that is not its stored size.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_StreamInfo_frameCount">frameCount</a></td><td class="code-type">u64</td><td><p>Number of frames in the stream, or zero when the format cannot report it without</p>
@@ -1572,22 +1573,22 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_frameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.frameCount</span> <a class="api-item-permalink" href="#Video_Clip_frameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L56">src</a></div>
 <p>Returns the number of frames in the clip.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .frames</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_frameRate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.frameRate</span> <a class="api-item-permalink" href="#Video_Clip_frameRate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L53">src</a></div>
 <p>Returns the exact frame rate.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameRate</span>()-&gt;<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameRate</span>()-&gt;<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_height" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.height</span> <a class="api-item-permalink" href="#Video_Clip_height" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L50">src</a></div>
 <p>Returns the frame height, in pixels.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">height</span>()-&gt;<span class="STpe">s32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">height</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.isValid</span> <a class="api-item-permalink" href="#Video_Clip_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L44">src</a></div>
 <p>Reports whether the clip has valid geometry and timing.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span> =&gt; .frameWidth &gt; <span class="SNum">0</span> <span class="SLgc">and</span> .frameHeight &gt; <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.save</span> <a class="api-item-permalink" href="#Video_Clip_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L130">src</a></div>
@@ -1600,17 +1601,17 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_width" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.width</span> <a class="api-item-permalink" href="#Video_Clip_width" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L47">src</a></div>
 <p>Returns the frame width, in pixels.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">width</span>()-&gt;<span class="STpe">s32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">width</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Cue_endTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Cue.endTime</span> <a class="api-item-permalink" href="#Video_Subtitle_Cue_endTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L37">src</a></div>
 <p>Returns the exclusive cue end.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">endTime</span>()-&gt;<span class="STpe">f64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">endTime</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Cue_startTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Cue.startTime</span> <a class="api-item-permalink" href="#Video_Subtitle_Cue_startTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L34">src</a></div>
 <p>Returns the inclusive cue start.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">startTime</span>()-&gt;<span class="STpe">f64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">startTime</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_FrameRate_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.create</span> <a class="api-item-permalink" href="#Video_FrameRate_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L25">src</a></div>
@@ -1621,7 +1622,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_FrameRate_denominator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.denominator</span> <a class="api-item-permalink" href="#Video_FrameRate_denominator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L36">src</a></div>
 <p>Returns the rate denominator, in seconds.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">denominator</span>()-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">denominator</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_FrameRate_framesPerSecond" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.framesPerSecond</span> <a class="api-item-permalink" href="#Video_FrameRate_framesPerSecond" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L39">src</a></div>
@@ -1631,12 +1632,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_FrameRate_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.isValid</span> <a class="api-item-permalink" href="#Video_FrameRate_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L47">src</a></div>
 <p>Reports whether both parts are positive.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span> =&gt; .numeratorValue != <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_FrameRate_numerator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FrameRate.numerator</span> <a class="api-item-permalink" href="#Video_FrameRate_numerator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L33">src</a></div>
 <p>Returns the rate numerator, in frames.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">numerator</span>()-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">numerator</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_IAudioDecoder_audioTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAudioDecoder.audioTrack</span> <a class="api-item-permalink" href="#Video_IAudioDecoder_audioTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L83">src</a></div>
@@ -1735,22 +1736,22 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frameTimestamp</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.chromaHeight</span> <a class="api-item-permalink" href="#Video_PlanarFrame_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L55">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.chromaHeight</span> <a class="api-item-permalink" href="#Video_PlanarFrame_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L58">src</a></div>
 <p>Returns the number of chroma rows, which is half the luma rows rounded up.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chromaHeight</span>()-&gt;<span class="STpe">s32</span> =&gt; (.height + <span class="SNum">1</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chromaHeight</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.isValid</span> <a class="api-item-permalink" href="#Video_PlanarFrame_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L52">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.isValid</span> <a class="api-item-permalink" href="#Video_PlanarFrame_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L55">src</a></div>
 <p>Reports whether the picture holds samples.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span> =&gt; .width &gt; <span class="SNum">0</span> <span class="SLgc">and</span> .height &gt; <span class="SNum">0</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.resize</span> <a class="api-item-permalink" href="#Video_PlanarFrame_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L76">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.resize</span> <a class="api-item-permalink" href="#Video_PlanarFrame_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L79">src</a></div>
 <p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(width, height: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_view" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.view</span> <a class="api-item-permalink" href="#Video_PlanarFrame_view" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_view" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.view</span> <a class="api-item-permalink" href="#Video_PlanarFrame_view" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L64">src</a></div>
 <p>Describes the picture as a borrowed planar view.</p>
 <p>Hand it to <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a> or <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a> and the renderer converts where it draws, which is the whole reason a decoder produces planes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">view</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Yuv420View">Yuv420View</a></span></span></div>
@@ -1759,12 +1760,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Presentation_content" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Presentation.content</span> <a class="api-item-permalink" href="#Video_Subtitle_Presentation_content" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L54">src</a></div>
 <p>Borrows the active cue text.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">content</span>()-&gt;<span class="STpe">string</span> =&gt; .text.toString</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">content</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Presentation_nextChange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Presentation.nextChange</span> <a class="api-item-permalink" href="#Video_Subtitle_Presentation_nextChange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L57">src</a></div>
 <p>Returns the next cue start or end, or positive infinity after the track.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">nextChange</span>()-&gt;<span class="STpe">f64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">nextChange</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_audioTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.audioTrack</span> <a class="api-item-permalink" href="#Video_Reader_audioTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L334">src</a></div>
@@ -1775,12 +1776,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_audioTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.audioTrackCount</span> <a class="api-item-permalink" href="#Video_Reader_audioTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L329">src</a></div>
 <p>Returns the number of decoded sound tracks carried by the opened stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioTrackCount</span>()-&gt;<span class="STpe">u32</span> =&gt; .audioDecoder</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioTrackCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_canOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.canOpen</span> <a class="api-item-permalink" href="#Video_Reader_canOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L190">src</a></div>
 <p>Reports whether a registered decoder claims <span class="code-inline">fileName</span>, by its extension alone.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canOpen</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">findDecoder</span>(fileName)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canOpen</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.close</span> <a class="api-item-permalink" href="#Video_Reader_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L262">src</a></div>
@@ -1794,37 +1795,37 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Reader_decodeFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFrame</span> <a class="api-item-permalink" href="#Video_Reader_decodeFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L427">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Reader_decodeFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFrame</span> <a class="api-item-permalink" href="#Video_Reader_decodeFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L428">src</a></div>
 <p>Decodes frame <span class="code-inline">index</span> into an owned RGB8 image.</p>
 <p><span class="code-inline">index</span> is zero-based. Prefer <a href="#Video_Reader_decodeFrameInto">Video.Reader.decodeFrameInto</a> when decoding more than one frame: it reuses the pixel storage instead of allocating a frame every time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decodeFrame</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Reader_decodeFrameInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFrameInto</span> <a class="api-item-permalink" href="#Video_Reader_decodeFrameInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L441">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Reader_decodeFrameInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFrameInto</span> <a class="api-item-permalink" href="#Video_Reader_decodeFrameInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L442">src</a></div>
 <p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span>, reusing its pixel storage when it already matches the stream geometry.</p>
 <p>Decoding frames in order never seeks and never rereads what it already read, so a player costs one frame of memory and one frame of work per displayed frame, whatever the length of the stream. Fails past the end of the stream, which is how the end of a stream with an unknown frame count is reached.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decodeFrameInto</span>(target: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, index: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Reader_decodeFramePlanesInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFramePlanesInto</span> <a class="api-item-permalink" href="#Video_Reader_decodeFramePlanesInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L387">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Reader_decodeFramePlanesInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFramePlanesInto</span> <a class="api-item-permalink" href="#Video_Reader_decodeFramePlanesInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L388">src</a></div>
 <p>Decodes frame <span class="code-inline">index</span> into <span class="code-inline">target</span> in the codec's own planar 4:2:0 layout.</p>
-<p>Converting a picture to packed RGB is, at high resolutions, the most expensive stage of decoding it, and a consumer that draws through a renderer does not need it: hand the result to <a href="std.pixel.html#Pixel_Painter_drawVideoFrame">Pixel.Painter.drawVideoFrame</a> instead. <span class="code-inline">target</span> keeps its storage across calls, so decoding a whole stream allocates one picture.</p>
+<p>Converting a picture to packed RGB is, at high resolutions, the most expensive stage of decoding it, and a consumer that draws through a renderer does not need it: hand the view from <a href="#Video_PlanarFrame_view">Video.PlanarFrame.view</a> to <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a> or <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a>. <span class="code-inline">target</span> keeps its storage across calls, so decoding a whole stream allocates one picture.</p>
 <p>Fails on a stream whose codec does not produce planar pictures; ask <a href="#Video_Reader_hasPlanarFrames">Video.Reader.hasPlanarFrames</a> first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decodeFramePlanesInto</span>(target: *<span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span>, index: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_displayHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.displayHeight</span> <a class="api-item-permalink" href="#Video_Reader_displayHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L309">src</a></div>
 <p>Returns the height the frames are meant to be shown at, or the stored height.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayHeight</span>()-&gt;<span class="STpe">s32</span> =&gt; .info.displayHeight</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayHeight</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_displayWidth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.displayWidth</span> <a class="api-item-permalink" href="#Video_Reader_displayWidth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L306">src</a></div>
 <p>Returns the width the frames are meant to be shown at, or the stored width.</p>
 <p>A stream whose samples are not square states a size to show its pictures at that is not the size it stores them in. Draw a frame into a rectangle of this shape and the picture has the geometry it was mastered with; use <a href="#Video_Reader_width">Video.Reader.width</a> to size a buffer.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayWidth</span>()-&gt;<span class="STpe">s32</span> =&gt; .info.displayWidth</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayWidth</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Reader_durationInSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.durationInSeconds</span> <a class="api-item-permalink" href="#Video_Reader_durationInSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L413">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Reader_durationInSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.durationInSeconds</span> <a class="api-item-permalink" href="#Video_Reader_durationInSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L414">src</a></div>
 <p>Returns the stream duration in seconds, or zero when the format cannot report it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">durationInSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
@@ -1836,12 +1837,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_frameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.frameCount</span> <a class="api-item-permalink" href="#Video_Reader_frameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L315">src</a></div>
 <p>Returns the number of frames, or zero when the format cannot report it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .deferred</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_frameRate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.frameRate</span> <a class="api-item-permalink" href="#Video_Reader_frameRate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L312">src</a></div>
 <p>Returns the exact frame rate.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameRate</span>()-&gt;<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span> =&gt; .deferred</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameRate</span>()-&gt;<span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_frameTimestamp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.frameTimestamp</span> <a class="api-item-permalink" href="#Video_Reader_frameTimestamp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L354">src</a></div>
@@ -1853,17 +1854,17 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Reader_hasPlanarFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.hasPlanarFrames</span> <a class="api-item-permalink" href="#Video_Reader_hasPlanarFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L376">src</a></div>
 <p>Reports whether this stream can be decoded without converting its pictures to RGB.</p>
 <p>See <a href="#Video_Reader_decodeFramePlanesInto">Video.Reader.decodeFramePlanesInto</a> for what that is worth.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasPlanarFrames</span>()-&gt;<span class="STpe">bool</span> =&gt; .planarDecoder != <span class="SKwd">null</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasPlanarFrames</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_height" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.height</span> <a class="api-item-permalink" href="#Video_Reader_height" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L299">src</a></div>
 <p>Returns the frame height, in pixels.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">height</span>()-&gt;<span class="STpe">s32</span> =&gt; .info</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">height</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.isOpen</span> <a class="api-item-permalink" href="#Video_Reader_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L284">src</a></div>
 <p>Reports whether the reader still owns an open stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span> =&gt; .decoder</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.opDrop</span> <a class="api-item-permalink" href="#Video_Reader_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L256">src</a></div>
@@ -1902,17 +1903,17 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.sourcePath</span> <a class="api-item-permalink" href="#Video_Reader_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L293">src</a></div>
 <p>Returns the file the reader streams, or an empty string for a memory stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span> =&gt; .source.sourcePath</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_streamFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.streamFormat</span> <a class="api-item-permalink" href="#Video_Reader_streamFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L290">src</a></div>
 <p>Returns the format of the opened stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">streamFormat</span>()-&gt;<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">streamFormat</span>()-&gt;<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_streamInfo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.streamInfo</span> <a class="api-item-permalink" href="#Video_Reader_streamInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L287">src</a></div>
 <p>Returns everything the decoder reported about the stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">streamInfo</span>()-&gt;<span class="SCst"><a href="#Video_StreamInfo">StreamInfo</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">streamInfo</span>()-&gt;<span class="SCst"><a href="#Video_StreamInfo">StreamInfo</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_subtitleTrack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.subtitleTrack</span> <a class="api-item-permalink" href="#Video_Reader_subtitleTrack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L346">src</a></div>
@@ -1923,10 +1924,10 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_subtitleTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.subtitleTrackCount</span> <a class="api-item-permalink" href="#Video_Reader_subtitleTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L340">src</a></div>
 <p>Returns the number of decoded subtitle tracks carried by the opened stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">subtitleTrackCount</span>()-&gt;<span class="STpe">u32</span> =&gt; .subtitleDecoder</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">subtitleTrackCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Reader_syncFrameAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.syncFrameAt</span> <a class="api-item-permalink" href="#Video_Reader_syncFrameAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L405">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Reader_syncFrameAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.syncFrameAt</span> <a class="api-item-permalink" href="#Video_Reader_syncFrameAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L406">src</a></div>
 <p>Returns the first frame at or after <span class="code-inline">index</span> that decodes without any earlier frame.</p>
 <p>See <a href="#Video_IDecoder_syncFrameAt">Video.IDecoder.syncFrameAt</a>; the result is the frame count when none remains.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">syncFrameAt</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
@@ -1934,7 +1935,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_width" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.width</span> <a class="api-item-permalink" href="#Video_Reader_width" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L296">src</a></div>
 <p>Returns the frame width, in pixels.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">width</span>()-&gt;<span class="STpe">s32</span> =&gt; .info</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">width</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Sink_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sink.close</span> <a class="api-item-permalink" href="#Video_Sink_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/sink.swg#L152">src</a></div>
@@ -1968,12 +1969,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Sink_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sink.position</span> <a class="api-item-permalink" href="#Video_Sink_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/sink.swg#L64">src</a></div>
 <p>Returns the number of bytes written so far.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Sink_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sink.sourcePath</span> <a class="api-item-permalink" href="#Video_Sink_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/sink.swg#L61">src</a></div>
 <p>Returns the file this sink writes, or an empty string for a memory sink.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Sink_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Sink.write</span> <a class="api-item-permalink" href="#Video_Sink_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/sink.swg#L67">src</a></div>
@@ -1993,7 +1994,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_isAtEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.isAtEnd</span> <a class="api-item-permalink" href="#Video_Source_isAtEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L83">src</a></div>
 <p>Reports whether the read position reached the end of the stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isAtEnd</span>()-&gt;<span class="STpe">bool</span> =&gt; .cursor</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isAtEnd</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.openFile</span> <a class="api-item-permalink" href="#Video_Source_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L44">src</a></div>
@@ -2009,7 +2010,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.position</span> <a class="api-item-permalink" href="#Video_Source_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L77">src</a></div>
 <p>Returns the read position, in bytes from the start of the stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_readByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.readByte</span> <a class="api-item-permalink" href="#Video_Source_readByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L151">src</a></div>
@@ -2031,7 +2032,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_remaining" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.remaining</span> <a class="api-item-permalink" href="#Video_Source_remaining" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L80">src</a></div>
 <p>Returns the number of bytes between the read position and the end of the stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">remaining</span>()-&gt;<span class="STpe">u64</span> =&gt; .length</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">remaining</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_seek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.seek</span> <a class="api-item-permalink" href="#Video_Source_seek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L89">src</a></div>
@@ -2042,7 +2043,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_size" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.size</span> <a class="api-item-permalink" href="#Video_Source_size" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L74">src</a></div>
 <p>Returns the total size of the stream, in bytes.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">size</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">size</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_skip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.skip</span> <a class="api-item-permalink" href="#Video_Source_skip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L97">src</a></div>
@@ -2052,7 +2053,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Source_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.sourcePath</span> <a class="api-item-permalink" href="#Video_Source_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/source.swg#L71">src</a></div>
 <p>Returns the file this source reads, or an empty string for a memory source.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_StreamFormat_matches" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StreamFormat.matches</span> <a class="api-item-permalink" href="#Video_StreamFormat_matches" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/streamformat.swg#L40">src</a></div>
@@ -2104,7 +2105,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cue</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L484">src</a></div>
 <p>Borrows one cue, or returns null when <span class="code-inline">index</span> is outside the track.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cue</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Subtitle_Cue">Cue</a></span>? =&gt; index &lt; .cues.count</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cue</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Subtitle_Cue">Cue</a></span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueContent</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L488">src</a></div>
@@ -2116,19 +2117,19 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueCount</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L481">src</a></div>
 <p>Returns the number of timed cues.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .cues</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueEndTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueEndTime</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueEndTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L511">src</a></div>
 <p>Returns the exclusive end of one cue, or zero outside the track.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueEndTime</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span> =&gt; index &lt; .cues.count</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueEndTime</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueStartTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueStartTime</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueStartTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L507">src</a></div>
 <p>Returns the inclusive start of one cue, or zero outside the track.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueStartTime</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span> =&gt; index &lt; .cues.count</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueStartTime</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueTextData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueTextData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueTextData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L515">src</a></div>
@@ -2140,7 +2141,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueTextLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueTextLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueTextLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L524">src</a></div>
 <p>Returns the UTF-8 byte count for one cue, or zero outside the track.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueTextLength</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt; index &lt; .cues.count</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueTextLength</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.decode</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L571">src</a></div>
@@ -2163,42 +2164,42 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayName</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L453">src</a></div>
 <p>Borrows the container or file display name.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayName</span>()-&gt;<span class="STpe">string</span> =&gt; .name.toString</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayName</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayNameData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayNameData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayNameData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L528">src</a></div>
 <p>Borrows the display-name bytes. Use <a href="#Video_Subtitle_Track_displayNameLength">Video.Subtitle.Track.displayNameLength</a> for the size.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>? =&gt; .name</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayNameLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayNameLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayNameLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L532">src</a></div>
 <p>Returns the display-name byte count.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameLength</span>()-&gt;<span class="STpe">u64</span> =&gt; .name</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameLength</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_durationInSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.durationInSeconds</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_durationInSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L543">src</a></div>
 <p>Returns the end of the last cue, or zero for an empty track.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">durationInSeconds</span>()-&gt;<span class="STpe">f64</span> =&gt; .cues.count</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">durationInSeconds</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTag" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTag</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L457">src</a></div>
 <p>Borrows the BCP 47 or container language tag.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTag</span>()-&gt;<span class="STpe">string</span> =&gt; .language.toString</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTag</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTagData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTagData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTagData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L536">src</a></div>
 <p>Borrows the language-tag bytes. Use <a href="#Video_Subtitle_Track_languageTagLength">Video.Subtitle.Track.languageTagLength</a> for the size.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>? =&gt; .language</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTagLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTagLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTagLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L540">src</a></div>
 <p>Returns the language-tag byte count.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagLength</span>()-&gt;<span class="STpe">u64</span> =&gt; .language</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagLength</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.load</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L616">src</a></div>
@@ -2232,7 +2233,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_sourceFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.sourceFormat</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_sourceFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L477">src</a></div>
 <p>Returns the decoded source syntax.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
-<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourceFormat</span>()-&gt;<span class="SCst"><a href="#Video_Subtitle_Format">Format</a></span> =&gt;</span></div>
+<span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourceFormat</span>()-&gt;<span class="SCst"><a href="#Video_Subtitle_Format">Format</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_addFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.addFrame</span> <a class="api-item-permalink" href="#Video_Writer_addFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L212">src</a></div>
@@ -2243,7 +2244,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_canCreate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.canCreate</span> <a class="api-item-permalink" href="#Video_Writer_canCreate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L117">src</a></div>
 <p>Reports whether a registered encoder claims <span class="code-inline">fileName</span>, by its extension alone.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canCreate</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">findEncoder</span>(fileName)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canCreate</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.create</span> <a class="api-item-permalink" href="#Video_Writer_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L149">src</a></div>
@@ -2284,7 +2285,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_frameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.frameCount</span> <a class="api-item-permalink" href="#Video_Writer_frameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L244">src</a></div>
 <p>Returns the number of frames appended so far.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.opDrop</span> <a class="api-item-permalink" href="#Video_Writer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L203">src</a></div>
@@ -2301,16 +2302,16 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_sourcePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.sourcePath</span> <a class="api-item-permalink" href="#Video_Writer_sourcePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L250">src</a></div>
 <p>Returns the file the writer streams, or an empty string for a memory stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span> =&gt; .sink.sourcePath</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourcePath</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_streamFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.streamFormat</span> <a class="api-item-permalink" href="#Video_Writer_streamFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L247">src</a></div>
 <p>Returns the format of the encoded stream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">streamFormat</span>()-&gt;<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">streamFormat</span>()-&gt;<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.351</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.357</div>
 </footer>
 </section>
 </main>
@@ -2588,7 +2589,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 "v|Video.StreamFormat.extensions|Video_StreamFormat_extensions|Accepted extensions, lowercase, dot-prefixed, separated by ;.",
 "v|Video.StreamFormat.name|Video_StreamFormat_name|Display name of the format, such as Y4M - YUV4MPEG2 video.",
 "s|Video.StreamInfo|Video_StreamInfo|Describes the video stream a codec opened or is about to write.",
-"v|Video.StreamInfo.displayHeight|Video_StreamInfo_displayHeight|",
+"v|Video.StreamInfo.displayHeight|Video_StreamInfo_displayHeight|Display height in pixels; zero uses the stored frame height.",
 "v|Video.StreamInfo.displayWidth|Video_StreamInfo_displayWidth|Size the frame is meant to be shown at, in pixels, when that is not its stored size.",
 "v|Video.StreamInfo.frameCount|Video_StreamInfo_frameCount|Number of frames in the stream, or zero when the format cannot report it without",
 "v|Video.StreamInfo.frameRate|Video_StreamInfo_frameRate|Exact playback rate.",

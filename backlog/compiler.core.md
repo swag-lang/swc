@@ -52,7 +52,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 ### compiler.core.004 — The benchmark campaign measures only hello world
 
-**Evidence.** `bench/history.json` currently uses protocol 2 and contains three records, all dated 2026-08-07. They cover only `hello_build_ms` (99.5432–112.6252 ms) and `hello_build_peak_mb` (105.28125–107.4375 MiB). They do not establish full-core, warm no-op, or touched-file baselines.
+**Evidence.** `bench/history.json` currently uses protocol 2 and contains four records dated 2026-08-07 and 2026-08-12. Compiler workloads cover only `hello_build_ms` (99.5432–137.6237 ms) and `hello_build_peak_mb` (105.28125–123.97265625 MiB). They do not establish full-core, warm no-op, or touched-file baselines.
 
 **Intent.** Extend the reproducible benchmark campaign with a full core rebuild, a warm no-op rebuild, and a single-file incremental edit. Measure Release and DevMode where their behavior differs.
 
@@ -203,22 +203,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 **Related:** compiler.core.008, compiler.core.012.
 
 ## Tier C — Command-line and script workflows
-
-### compiler.core.015 — The VSCode task provider emits obsolete command lines
-
-**Evidence.** `vscode/src/providers.js` currently constructs `swag build -w:${workspaceFolder}` and `swag format -f:${file}` as command strings. These spellings do not match the current long-form CLI and string concatenation makes paths with spaces shell-dependent. The module-level task array can also accumulate duplicates across repeated provider calls.
-
-**Intent.** Build tasks from the current compiler argument contract and pass executable plus argument vector through VSCode's task API.
-
-**Complete when.**
-
-- Build, rebuild, and format tasks invoke the intended compiler command with the correct current arguments.
-- Workspace and file paths containing spaces or shell metacharacters reach the compiler as one argument.
-- Repeated task discovery returns a stable set without duplicates.
-- An automated extension test, or an injectable command-builder test, asserts the exact executable and argument vector.
-
-**Related:** compiler.core.008.
-
 
 ### compiler.core.016 — Tool scripts recompile on every invocation
 

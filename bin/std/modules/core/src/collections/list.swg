@@ -35,6 +35,7 @@ struct(T) ReversedList
 
 impl ReversedList
 {
+    // Visits borrowed list elements from tail to head, with a zero-based traversal index.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, node, index: u64))
     {
@@ -70,6 +71,7 @@ impl List
     #[Swag.Inline]
     mtd const isEmpty()->bool => .count == 0
 
+    // Copies the nodes into independently owned storage while preserving their order.
     mtd opPostCopy()
     {
         if !.head do

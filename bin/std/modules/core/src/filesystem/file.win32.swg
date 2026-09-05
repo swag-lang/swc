@@ -4,6 +4,7 @@
 
 using Win32
 
+// Deletes a file on Windows, reporting an OS failure through a filesystem error.
 func deleteNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
@@ -11,6 +12,7 @@ func deleteNative(fullName: string) fail
     Errors.transformWinErrors(err, fullName)
 }
 
+// Moves `oldName` to `newName`, replacing an existing file and permitting a cross-volume copy.
 func moveNative(newName, oldName: string) fail
 {
     let winOld = Utf16.toZeroTerminated(oldName)
@@ -19,6 +21,7 @@ func moveNative(newName, oldName: string) fail
     Errors.transformWinErrors(err, oldName)
 }
 
+// Opens an existing file exclusively and requests its modification time be set to the current UTC time.
 func touchNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
@@ -51,6 +54,7 @@ func exists(fullName: string)->bool
     return true
 }
 
+// Opens a Windows file handle with the requested mode, access, and sharing policy.
 func openNative(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileHandle fail
 {
     var wMode: DWORD

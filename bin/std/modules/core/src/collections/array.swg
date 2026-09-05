@@ -42,12 +42,13 @@ impl Array
         .free()
     }
 
-    // Handles the deep copy of the array when it is copied.
-    // A new me.buffer is allocated and the content is copied over.
-    // An element that owns a release states no copy of its own, and nothing here can duplicate
-    // what it owns: the array then states none either, and is handed over with '#move'.
     #static if Reflection.canCopy(T)
     {
+        // Handles the deep copy of the array when it is copied.
+        //
+        // A new me.buffer is allocated and the content is copied over.
+        // An element that owns a release states no copy of its own, and nothing here can duplicate
+        // what it owns: the array then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
             if !.buffer do

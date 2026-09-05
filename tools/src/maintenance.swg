@@ -268,6 +268,15 @@ public func runWeb(context: *Context, options: *Options)->s32 fail
 public func runVsix(context: *Context, _options: *Options)->s32 fail
 {
     let vscodeDir = Path.combine(context.root.toString(), "vscode")
+    {
+        // The command processor resolves a PATH batch launcher before its directory-relative loads.
+        var info    = Env.StartInfo{fileName: "cmd.exe", arguments: "/d /c npm.cmd test", workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
+        var process = try Env.startProcess(info)
+        let code    = try process.waitForExit()
+        if code != 0 do
+            return code
+    }
+
     let imagesDir = Path.combine(vscodeDir.toString(), "images")
     if !Directory.exists(imagesDir) do
         try Directory.create(imagesDir.toString())
@@ -279,7 +288,7 @@ public func runVsix(context: *Context, _options: *Options)->s32 fail
         try File.duplicate(target.toString(), source.toString())
     }
 
-    var info    = Env.StartInfo{fileName: "vsce.cmd", arguments: "package", workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
+    var info    = Env.StartInfo{fileName: "cmd.exe", arguments: "/d /c vsce.cmd package", workingDirectory: vscodeDir.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
     return try process.waitForExit()
 }

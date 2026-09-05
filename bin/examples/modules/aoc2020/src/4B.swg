@@ -164,7 +164,7 @@ func day4B1()
 
     // A compiled expression owns its program, so a rule states no copy: build it in a local
     // and hand it over with '#move'.
-    var map: HashTable'(string, Day4Rule)
+    var map:  HashTable'(string, Day4Rule)
     var rule: Day4Rule
 
     rule = {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}

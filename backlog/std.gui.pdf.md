@@ -30,7 +30,7 @@ with them: constant alpha, every blend mode the format defines, and the graphics
 a transparency group carries, which is how a drop shadow, a vignette and a gradient fade are all
 written.
 
-Three things stand out.
+The following capabilities are already implemented.
 
 - **It writes as well as it reads.** Poppler and pdf.js do not write at all; PDFium's writer is an
   afterthought. A `Document` here is editable and round-trippable, and the writer emits a
@@ -430,12 +430,14 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier E — Proof
 
-### std.gui.pdf.030 — No rendered page is compared against a golden
+### std.gui.pdf.030 — Corpus rendering has no fixed page goldens
 
-- Intent: `pdf.corpus.test.swg` renders 354 pages and asserts `image.isValid()`. That catches a crash
-  and a hard failure and nothing else: every entry in Tier B above would pass it today, and so
-  would a regression that painted a page entirely black. The repository already has command-stream
-  visual regression goldens in `pixel` and `gui`; this module has none.
+- Evidence: `pdf.corpus.test.swg` renders pages and asserts `image.isValid()`. The two golden-tagged
+  cases in `pdf.prepare.test.swg` compare prepared and unprepared renders of the same corpus page,
+  so they prove preparation parity but also pass if both paths acquire the same rendering defect.
+  The PDF corpus has no fixed page expectations spanning its document families.
+- Intent: protect the decoded output against an independently reviewed stored image, including a
+  regression that paints a valid page entirely black.
 - Complete when: a representative page from each corpus family has a golden, the fixtures that
   exercise text, images, strokes and forms compare rendered output rather than model fields, and a
   round trip through the writer is judged on its rendered result.

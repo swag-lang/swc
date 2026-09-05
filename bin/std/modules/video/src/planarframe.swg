@@ -7,8 +7,8 @@ using Core, Pixel
 // A codec reconstructs luma and two half-resolution chroma planes; turning them into packed RGB
 // costs more than every other stage of a 4K decode put together, and a consumer that draws the
 // picture through a renderer does not need it done on the processor at all. A reader hands the
-// planes over as they are, and [[Pixel.Painter.drawVideoFrame]] converts them where the picture
-// is drawn.
+// planes over as they are through [[Pixel.IRenderer.addImage]]. The resulting texture is drawn
+// with [[Pixel.Painter.drawTexture]]; a shader backend converts it while sampling.
 //
 // Rows are tightly packed: `strideLuma` is `width` and `strideChroma` is `(width + 1) / 2`. The
 // chroma planes carry `(height + 1) / 2` rows. Storage is reused across frames, so a caller
@@ -16,12 +16,15 @@ using Core, Pixel
 //
 // ```swag
 // var picture: PlanarFrame
-// while reader.decodeFramePlanesInto(&picture, index)
-// {
-//     painter.drawVideoFrame(rectangle, &picture)
-//     index += 1
-// }
+// try reader.decodeFramePlanesInto(&picture, index)
+// let planes = picture.view()
+// var texture = renderer.addImage(&planes)
+// painter.drawTexture(rectangle, texture)
 // ```
+//
+// Keep `texture` alive until the submitted frame is rendered, then release it with
+// [[Pixel.IRenderer.removeTexture]]. Reuse it for later pictures of the same size with
+// [[Pixel.IRenderer.updateTexture]].
 struct PlanarFrame
 {
     public

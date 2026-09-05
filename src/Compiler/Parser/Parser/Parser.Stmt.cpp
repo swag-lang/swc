@@ -152,14 +152,14 @@ AstNodeRef Parser::parseConstraint()
     {
         auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ConstraintBlock>(consume());
         nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::EmbeddedBlock, TokenId::SymLeftCurly);
-        const auto endRange     = curToken_[-1].codeRange(*ctx_, ast_->srcView());
+        const auto endRange      = curToken_[-1].codeRange(*ctx_, ast_->srcView());
         nodePtr->sourceLength    = endRange.offset + endRange.len - startOffset;
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConstraintExpr>(consume());
     nodePtr->nodeExprRef    = parseExpression();
-    const auto endRange    = curToken_[-1].codeRange(*ctx_, ast_->srcView());
+    const auto endRange     = curToken_[-1].codeRange(*ctx_, ast_->srcView());
     nodePtr->sourceLength   = endRange.offset + endRange.len - startOffset;
     return nodeRef;
 }

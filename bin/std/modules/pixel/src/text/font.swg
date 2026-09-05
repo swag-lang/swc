@@ -184,7 +184,7 @@ public struct FontCache
     internal
     {
         glyphCaches: Array'(*GlyphCache?)     // Glyph storage, one per typeface / reference size / style.
-        fonts:       ArrayPtr'Font           // Views handed out by this cache.
+        fonts:       ArrayPtr'Font            // Views handed out by this cache.
     }
 }
 
@@ -208,8 +208,9 @@ public impl FontCache
         .glyphCaches.clear()
     }
 
-    // A glyph cache owns the descriptors it hands out and states no copy, so the array holds
-    // pointers and this cache releases them.
+    // Releases every glyph cache and font view owned by this cache.
+    //
+    // Uses the same cleanup contract as [[Pixel.FontCache.clear]].
     mtd opDrop()
     {
         .clear()

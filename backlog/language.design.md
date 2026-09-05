@@ -29,9 +29,8 @@ ships; history lives in git, not here.
   `--warn-*`) — without one, the only two answers available are "error" and "silence".
 - Complete when: enum-switch exhaustiveness has one documented default, one explicit opt-out, and
   compiler and reference tests covering a member added after the switch was written.
-- Related: compiler.safety.009 (a value outside the enum walks past a `switch #complete`) and
-  compiler.safety.010 (an integer converts to an enum value no member names) are the safety half of
-  the same subject, and are decided independently of this default. language.design.002 is not: a
+- Related: compiler.safety.010 owns forged enum values, including their unchecked fall-through
+  past `switch #complete`, independently of this default. language.design.002 is not: a
   closed payload-carrying choice is exhaustive by construction, so the case for making `#complete`
   the default is far stronger there than on an open enum, and the two defaults are better decided
   together than one after the other.
@@ -112,11 +111,11 @@ ships; history lives in git, not here.
   it in a switch, and diagnose a missing or mismatched arm in focused reference tests.
 - Related: language.design.001 — a tagged union is where exhaustive matching earns its keep, and the two
   defaults are better decided together, since the case for `#complete` is far stronger on a closed choice
-  than on an open enum. compiler.safety.009 is the floor rather than a neighbour: this feature multiplies
+  than on an open enum. compiler.safety.010 is a prerequisite: this feature multiplies
   `switch #complete`, and a tag outside the set then walks past the match with no arm having run.
   The ownership rule that denies the copy of a type declaring `opDrop` has to cover the generated drop of
   an owning payload. compiler.safety.010 is where a forged tag
-  comes from, with `= undefined`, `Swag.memcpy`, `#relocate`, a binary read into the struct and a
+  comes from, with `Swag.memcpy`, `#relocate`, a binary read into the struct and a
   `#[Foreign]` call as the other routes. compiler.safety.011 applies to whatever spelling asserts a tag. It
   narrows, rather than removes, the union bullet of compiler.safety.006: the untagged form stays for C
   interop and bit views, which is where the marker belongs. The error-handling design already shipped
@@ -235,7 +234,7 @@ with exactly one language and keeps deliberately.
   conversion, and the guard is a `release`-time no-op.
 - Evidence: a constant `-1's8 + 1'u8` is rejected at compile time ("cannot cast '-1' to 'u8' …
   value is negative, but the target type is unsigned"). The same expression through runtime
-  variables panics with "integer overflow" in `fast-debug` — and in `release`, where the overflow
+  variables panics with "integer overflow" in the guarded configuration now named `devmode` — and in `release`, where the overflow
   guard is off, it wraps.
 - Elsewhere: nobody narrows the signed operand. C and C++ promote both to `int` first, so `s8 + u8`
   is computed in a type that holds every value of each — the "unsigned wins" hazard exists there
@@ -443,7 +442,7 @@ with exactly one language and keeps deliberately.
   four directives lack
   ([002_008_sigils.swg:101-121](../bin/reference/modules/language/src/002_008_sigils.swg#L101-L121)).
 - Evidence: `let c = "a" ++ (b + 1) ++ "!"` is folded at compile time; the same line with a runtime
-  `b` does not compile, and the fix is a `Std.Core` builder.
+  `b` does not compile, and the fix is a `Core.String` builder.
 - Elsewhere: the restriction has one exact precedent and the spelling has none. Zig's `++` is also
   compile-time only — both operands must be comptime-known, and runtime text goes through
   `std.fmt` — so the design is not an oddity, it is Zig's. What Zig does not do is give that
@@ -634,49 +633,17 @@ with exactly one language and keeps deliberately.
 - Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
   is what turns the difference into arithmetic.
 
-### language.design.022 — The width of an inferred float literal depends on its digits
+### language.design.022 — The cost of value-dependent float inference is unmeasured
 
-- Area: language
-- Found while: the same pass
-- Observation: the reference states plainly that "by default, floating-point literals are of type
-  `f32`", twice, and contrasts it with C
-  ([003_002_number_literals.swg:99-111](../bin/reference/modules/language/src/003_002_number_literals.swg#L99-L111)).
-  What actually happens is narrower: an untyped float literal is an `f32` only when its decimal text
-  is exactly representable in `f32`, and an `f64` otherwise. So the rule holds for `1.5` and fails
-  for `0.1`, `3.14` and most decimals anyone writes — and two locals initialized on adjacent lines
-  can have different types with nothing in the source saying so. The choice is defensible on its own
-  terms: it is the rule that never loses a digit the author wrote. What it is not is "the default
-  is `f32`".
-- Evidence: an isolated probe, `swc test -d <dir>`, same result under the JIT and the forged binary:
-
-  ```
-  1.5 = f32      16777216.0 = f32      16777217.0 = f64
-  0.1 = f64      3.1415927  = f64      3.141592653589793 = f64
-  ```
-
-  `let sum = 1.5 + 16777217.0` is therefore an `f64`, and `#typeof(a) == #typeof(b)` is false for two
-  literals that read alike. The reference's assertion `#assert(#typeof(a) == f32)` passes only
-  because its example is `1.5`
-  ([003_002_number_literals.swg:82-86](../bin/reference/modules/language/src/003_002_number_literals.swg#L82-L86));
-  the same assertion two lines below it, on the `let b = 0.11` of the same test, would fail — and
-  the page does not make it.
-- Elsewhere: no language makes a literal's width depend on its value. C, C++, Java, C#, JavaScript
-  and Swift all default to 64-bit; Go's untyped float constant carries arbitrary precision and
-  becomes `float64` when it needs a type; Rust infers `f64`; Zig's `comptime_float` is 128-bit and
-  resolves to `f64`. Where a language does police the digits it does so at the *annotation* and as a
-  diagnostic — Rust rejects a literal outside the range of the type it was annotated with — never by
-  letting the digits choose how wide the variable is. So the "widen instead of round" rule is
-  genuinely Swag's own, and the 32-bit default it is attached to is already unusual on its own.
-- Next: fix the page first, because it is wrong today for the common case and one paragraph
-  fixes it — state the rule as "the narrowest of `f32` and `f64` that holds the written value
-  exactly". Then decide whether the value-dependence should be visible in a second way: an
-  inferred-`f64` literal in a context the author expected to be `f32` changes arithmetic width in a
-  hot loop, and the only current way to see it is `#typeof`. A warning is the wrong tool here — a
-  query on the doc page, and the habit of writing `'f32` where the width matters, is probably
-  enough. Measure how many `bin/` locals are inferred from a float literal before deciding.
-- Complete when: the reference states the implemented inference rule, inferred-float usage is
-  measured, and focused tests protect one stable width rule for exactly and inexactly representable
-  literals.
+- Evidence: `ApFloat::minBits` and scalar concretization select `f32` when the parsed value fits
+  without further rounding, otherwise `f64`. The number-literals reference now states that rule
+  and tests `1.5`, `0.1`, `16777216.0`, `16777217.0` and an explicitly rounded `f32`.
+- Next: classify inferred floating-point locals under `bin/` by their resulting width and by
+  whether the width is deliberate. Use that census to decide whether value-dependent inference
+  needs additional discovery or a different default; keep explicit suffixes and annotations as
+  the stable way to state the desired width.
+- Complete when: the census supports a recorded inference-policy decision and the reference and
+  compiler tests agree with it. The documentation correction itself is complete.
 
 ## Conversions the call site does not show
 

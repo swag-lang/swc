@@ -58,6 +58,7 @@ struct ReversedConcatBuffer
 
 impl ReversedConcatBuffer
 {
+    // Visits borrowed buckets from the last bucket to the first.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(bucket))
     {

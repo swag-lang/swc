@@ -80,18 +80,19 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   installation passes the same workflows without extraction or `SWAG_PATH`.
 - Related: compiler.distribution.001, compiler.distribution.003, compiler.distribution.010.
 
-### compiler.distribution.003 — An unsupported host can fail before it can explain itself
+### compiler.distribution.003 — Release acceptance does not verify unsupported hosts
 
-- Evidence: the current compiler and generated programs require Windows x86-64-v3, including AVX2.
-  A processor that cannot execute the compiler's earliest instructions cannot reach `swc help` or a
-  diagnostic that explains this prerequisite.
-- Intent: make the release entry point validate Windows version, architecture, and CPU baseline
-  before entering code that assumes the baseline. It must name the observed host fact, the required
-  fact, the supported release/target boundary, and the compatible action. The path must be available
-  equally to a lone executable and a complete `bin/` installation.
-- Next: decide whether `swc.exe` is a baseline-compatible bootstrap hosting an optimized compiler
-  payload, or whether the release policy supplies another equally single-file preflight mechanism.
-  Do not promise an error path that the host cannot execute.
+- Evidence: `src/Main/HostCpuGuard.cpp` already checks AVX2 from a baseline-compatible TLS callback
+  before the allocator and CRT callbacks. Its translation unit disables extended instructions and
+  whole-program optimization in `swc.vcxproj`. The compiler therefore has an early prerequisite
+  report; the release workflow does not yet test it on an unsupported processor or define the
+  Windows-version and architecture acceptance matrix.
+- Intent: verify the published host contract against the actual final executable, equally for a
+  lone executable and a complete `bin/` installation. The report must remain reachable before any
+  code that assumes the compiler's CPU baseline.
+- Next: add disposable-host acceptance cases with AVX2 absent and present, checking exit status,
+  message and initialization ordering for DevMode and Release. Specify the supported Windows and
+  architecture boundaries and test their prerequisite reports in the same release matrix.
 - Complete when: supported hosts retain the existing fast path, and every unsupported supported-OS
   host receives one deterministic, non-crashing, non-networked prerequisite report before runtime,
   allocator, or compiler initialization.
@@ -284,4 +285,3 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 - Related: compiler.distribution.001, compiler.distribution.002, compiler.distribution.004,
   compiler.distribution.005, compiler.distribution.006, compiler.distribution.007,
   compiler.distribution.008, compiler.distribution.009, compiler.distribution.010.
-

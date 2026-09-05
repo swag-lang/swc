@@ -265,7 +265,7 @@ whether a JPEG preview decoded.
   measures 972 to 2 884 ms and the test fails. A budget in a suite that also runs under load
   reports how busy the machine was, not whether the reader stayed prompt.
 - Evidence: 2026-09-04. One failure inside `tests.swgs` started seconds after
-  `tests.swgs dm --all-cfg` finished; six consecutive isolated runs on the settled machine
+  `tests.swgs dm --all-cfg` finished; five consecutive isolated runs on the settled machine
   afterwards measured 436, 585, 553, 567 and 551 ms. `app.scope.video.017` is the same shape in
   the video viewer.
 - Next: state what "promptly" defends instead of how long it took — the open resolves the first

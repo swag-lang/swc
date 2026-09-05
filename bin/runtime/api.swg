@@ -419,7 +419,7 @@ namespace Swag
         public
         {
             modules: const [..] Module?     // The list of all modules
-            args:    string?                // The application arguments, as returned by [[Swag.args()]]
+            args:    string?                // The application arguments, as returned by [[Swag.args]].
         }
     }
 
@@ -1131,8 +1131,8 @@ namespace Swag
 
     // A message received in a '#message' function.
     //
-    // In a '#message' function, you can retreive the associated message by calling 'getMessage' of the
-    // interface returned by [[Swag.compiler()]]
+    // In a '#message' function, retrieve the associated message by calling 'getMessage' on the
+    // interface returned by [[Swag.compiler]].
     struct CompilerMessage
     {
         public

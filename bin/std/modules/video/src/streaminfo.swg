@@ -20,7 +20,7 @@ struct StreamInfo
         // shown with. Zero means the stored size is the shown size, which is what every modern
         // encode states.
         displayWidth:  s32
-        displayHeight: s32
+        displayHeight: s32     // Display height in pixels; zero uses the stored frame height.
 
         frameRate: FrameRate     // Exact playback rate.
 

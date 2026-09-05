@@ -53,7 +53,7 @@ moving with it.
 * **Nullability in the type system**: the `?` type suffix marks what can be null, the compiler narrows it through the control flow, and `?.`, `orelse`, and the postfix `!` handle the rest.
 * **Move semantics** (`#move`, `#fwd`, `#relocate`) and automatic return value optimization.
 * **Interfaces** for dynamic dispatch, inspired by `Go`.
-* **Modules**, compiled as separate dynamic libraries.
+* **Modules**, with dependencies linked into executables by default and explicit shared-library imports when needed.
 * **Unordered global declarations**: the order of global declarations does not matter, in any file, in any order.
 * **Tests in the language**: `#test` blocks are compiled and executed by `swc test`.
 

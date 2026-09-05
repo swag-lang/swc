@@ -115,6 +115,7 @@ public struct PacketDurationProbe
 
 public impl PacketDurationProbe
 {
+    // Releases the duration-tracking state owned by this probe.
     mtd opDrop()
     {
         if .vorbis != null do

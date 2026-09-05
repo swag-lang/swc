@@ -273,13 +273,6 @@ Implement lifecycle, periodic rescheduling, callback/context dispatch, and cance
 
 ## Tier B — Application portability enforcement
 
-### platform.portability.030 — Shipped applications have no native-import boundary check
-
-Reject raw OS imports and native-constant comparisons outside named application backends and
-platform integration tests.
-
----
-
 ## Tier C — Optional ownership, not a Linux prerequisite
 
 ### platform.portability.031 — Decide deliberately whether Swag should ship its own libm
@@ -480,14 +473,14 @@ resize/move/minimize, renderer presentation, and cursor as the first independent
 Implement monitor enumeration and per-monitor scale for the platform whose surface exists under
 platform.portability.050.
 
-- Related: platform.portability.050, std.gui.007, platform.portability.052, platform.portability.055, platform.portability.056
+- Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.055, platform.portability.056
 
 ### platform.portability.052 — No second-platform keyboard routing
 
 Translate native key identity, modifier, repeat, and layout state into the portable keyboard
 events.
 
-- Related: platform.portability.050, std.gui.008, platform.portability.053, platform.portability.054
+- Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054
 
 ### platform.portability.053 — No second-platform text-input routing
 
@@ -513,7 +506,7 @@ contract.
 
 Translate the platform's live theme and high-contrast changes into the portable settings event.
 
-- Related: std.gui.005, platform.portability.050, std.gui.006
+- Related: platform.portability.082, platform.portability.050, platform.portability.083
 
 ### platform.portability.057 — No second-platform GUI packaging
 
@@ -791,3 +784,73 @@ associations the portable script contract. Machine-wide mutation remains explici
   interoperate with C/C++ fixtures, unsupported conventions fail semantically, and the contract is
   documented per target.
 - Related: cpu.simd.002.
+
+## Live desktop integration
+
+### platform.portability.082 — System theme changes are ignored
+
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` handles `WM_SETTINGCHANGE` only by calling `refreshSystemMotionPreference`; it does not refresh theme policy.
+
+Handle the platform settings-change notification and update live light/dark policy without
+restarting the application.
+
+- Related: platform.portability.083
+
+### platform.portability.083 — System high-contrast changes are ignored
+
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` handles settings changes for reduced motion, but neither that handler nor `application.swg` refreshes high-contrast policy.
+
+Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
+theme choices as required for accessibility.
+
+- Related: platform.portability.048, platform.portability.082
+
+### platform.portability.084 — Display-topology changes are ignored
+
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` has no `WM_DISPLAYCHANGE` route; monitor enumeration is not refreshed from a topology notification.
+
+Refresh monitor enumeration, placement constraints, and dependent application state when a monitor
+is added, removed, or rearranged.
+
+- Related: platform.portability.071, platform.portability.051
+
+### platform.portability.085 — Input-language changes are ignored
+
+- Owner: std/gui
+- Evidence: `gui/src/surface.win32.swg` handles key and character messages but has no `WM_INPUTLANGCHANGE` route.
+
+Handle the platform input-language notification and update keyboard-layout-dependent state.
+
+- Related: platform.portability.049
+
+### platform.portability.086 — No printer discovery or native print-job backend
+
+- Owner: std/gui
+- Evidence: `bin/std/modules/gui/src` has no printer enumeration or print-job backend; the portable pagination contract remains std.gui.030.
+
+Enumerate printers and capabilities, open a native job, spool every page from std.gui.030, and report
+failure at each stage. Keep one optional virtual-PDF integration test; correctness must
+not depend on an installed driver.
+
+- Related: std.gui.030, std.gui.033, std.gui.032
+
+### platform.portability.087 — Polled mouse input cannot see occlusion or activation
+
+- Evidence: `Application.sendMouseEvents` builds hover and click events from the globally polled
+  cursor and button state, not from this application's own message stream. A press made on another
+  application's window that happens to overlap a Swag surface therefore lands on the control
+  underneath, and hover tracking lights rows under windows that cover them. The keyboard had the
+  same defect for shortcuts and is now gated on `Application.isActivated`; headless hosts no longer
+  receive the polled mouse at all, which is what had a parked desktop cursor lighting a popup row
+  inside two golden images. The remaining hole is the active-application case with an overlapping
+  foreign window, which polling cannot detect.
+- Next: derive mouse position and button transitions from the surface's own `WM_MOUSE*` messages,
+  keeping the polled path only for what messages cannot express, then decide whether the activating
+  click should reach the control it lands on.
+- Complete when: a click on an overlapping foreign window never reaches a Swag control, hover
+  follows what the compositor actually shows, and the existing capture and drag behaviors survive
+  the change.
+- Related: std.gui.011

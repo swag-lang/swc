@@ -102,8 +102,8 @@ a release owns one too, and states no copy either, unless the member's type decl
 own 'opPostCopy'. '#[Swag.NoCopy]' remains the way to refuse a copy for any other reason.
 
 A generic type decides per instantiation, by declaring the operation inside a '#static if'. That
-is how the standard containers hold elements they cannot duplicate: 'Array'T', 'ArrayPtr'T' and
-'HashTable'(K, V)' offer a copy only when their elements can be copied, and are otherwise handed
+is how the standard containers hold elements they cannot duplicate: `Array'T`, `ArrayPtr'T` and
+`HashTable'(K, V)` offer a copy only when their elements can be copied, and are otherwise handed
 over with '#move'.
 
 ```swag

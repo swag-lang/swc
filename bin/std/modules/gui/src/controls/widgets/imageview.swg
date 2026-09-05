@@ -420,17 +420,6 @@ impl ImageView
         .invalidate()
     }
 
-    // Displays a planar 4:2:0 picture, which the renderer converts while it draws.
-    //
-    // This is what a video stream should reach the screen through. Converting a picture to packed
-    // RGB costs more processor time at high resolutions than decoding it did, and none of it is
-    // needed: the renderer holds the planes the decoder produced and converts them where it
-    // samples. The view never owns the picture, so `view` is borrowed for the call alone.
-    //
-    // ```swag
-    // try reader.decodeFramePlanesInto(&picture, index)
-    // view.updateVideoFrame(picture.view())
-    // ```
     // States the size the content is shown at, whatever size it is stored in.
     //
     // A picture mastered for a television standard stores samples that are not square: 720 by 576
@@ -452,6 +441,18 @@ impl ImageView
         .invalidate()
     }
 
+    // Displays a planar 4:2:0 picture, which the renderer converts while it draws.
+    //
+    // This is what a video stream should reach the screen through. Converting a picture to packed
+    // RGB costs more processor time at high resolutions than decoding it did, and none of it is
+    // needed: the renderer holds the planes the decoder produced and converts them where it
+    // samples. The view never owns the picture, so `view` is borrowed for the call alone.
+    //
+    // ```swag
+    // try reader.decodeFramePlanesInto(&picture, index)
+    // let planes = picture.view()
+    // view.updateVideoFrame(&planes)
+    // ```
     mtd updateVideoFrame(view: const *Yuv420View)
     {
         if view.width <= 0 or view.height <= 0

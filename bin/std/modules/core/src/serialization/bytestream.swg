@@ -161,7 +161,7 @@ public impl ByteStream
         .writeNative(cast(u8) v)
     }
 
-    // Reads an unsigned LEB128 varint written by [[writeVarint]].
+    // Reads an unsigned LEB128 varint written by [[Core.ByteStream.writeVarint]].
     //
     // Fails when the stream ends inside the value or the encoding exceeds 64 bits.
     mtd readVarint()->u64 fail

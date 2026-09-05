@@ -11,7 +11,7 @@ engine lives beside its widget inside `gui`, as [std.gui.pdf.md](std.gui.pdf.md#
 records for the document family; application-level zoom stays in
 [app.scope.text.md](app.scope.text.md), shared printing in
 [app.scope.viewers.md](app.scope.viewers.md), and shell thumbnail integration in
-[app.scope.md](app.scope.md).
+[platform.portability.md](platform.portability.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it

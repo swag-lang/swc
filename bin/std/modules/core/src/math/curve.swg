@@ -91,9 +91,9 @@ struct Curve
         // ordinate between `startY` and `endY`. The defaults leave both axes normalized, and an end
         // below its start mirrors that axis.
         startX: f32
-        endX:   f32 = 1
-        startY: f32
-        endY:   f32 = 1
+        endX:   f32 = 1     // Abscissa mapped from normalized one; defaults to one.
+        startY: f32         // Ordinate mapped from normalized zero; defaults to zero.
+        endY:   f32 = 1     // Ordinate mapped from normalized one; defaults to one.
     }
 }
 

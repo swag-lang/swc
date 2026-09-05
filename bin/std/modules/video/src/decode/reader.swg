@@ -378,8 +378,9 @@ impl Reader
     //
     // Converting a picture to packed RGB is, at high resolutions, the most expensive stage of
     // decoding it, and a consumer that draws through a renderer does not need it: hand the
-    // result to [[Pixel.Painter.drawVideoFrame]] instead. `target` keeps its storage across
-    // calls, so decoding a whole stream allocates one picture.
+    // view from [[Video.PlanarFrame.view]] to [[Pixel.IRenderer.addImage]] or
+    // [[Pixel.IRenderer.updateTexture]]. `target` keeps its storage across calls, so decoding a
+    // whole stream allocates one picture.
     //
     // Fails on a stream whose codec does not produce planar pictures; ask
     // [[Video.Reader.hasPlanarFrames]] first.

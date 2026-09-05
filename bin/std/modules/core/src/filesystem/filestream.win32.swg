@@ -6,6 +6,7 @@ using Win32
 
 impl FileStream
 {
+    // Reads up to `length` bytes into caller-owned writable storage and returns the number read.
     mtd readNative(buffer: *void, length: u32)->u32 fail
     {
         var read: DWORD
@@ -14,6 +15,7 @@ impl FileStream
         return read
     }
 
+    // Writes up to `length` bytes from borrowed storage and returns the number written.
     mtd writeNative(buffer: const *void, length: u32)->u32 fail
     {
         var written: DWORD
@@ -22,11 +24,13 @@ impl FileStream
         return written
     }
 
+    // Closes the underlying Windows handle; the caller must not reuse that handle.
     mtd closeNative()
     {
         CloseHandle(.handle)
     }
 
+    // Returns the current file size in bytes.
     mtd sizeNative()->u64 fail
     {
         var result: LARGE_INTEGER
@@ -35,18 +39,21 @@ impl FileStream
         return cast(u64) result
     }
 
+    // Truncates or extends the file at the current stream position.
     mtd resizeNative() fail
     {
         catch SetEndOfFile(cast(HANDLE) .handle) as err
         Errors.transformWinErrors(err, .name)
     }
 
+    // Flushes buffered file data through the Windows file handle.
     mtd flushNative() fail
     {
         catch FlushFileBuffers(cast(HANDLE) .handle) as err
         Errors.transformWinErrors(err, .name)
     }
 
+    // Returns the current byte offset from the beginning of the file.
     mtd positionNative()->u64 fail
     {
         var result: LARGE_INTEGER
@@ -55,6 +62,7 @@ impl FileStream
         return cast(u64) result
     }
 
+    // Moves the position by the signed 64-bit interpretation of `offset` relative to `origin`.
     mtd seekNative(origin: SeekOrigin, offset: u64) fail
     {
         var seekMode: DWORD

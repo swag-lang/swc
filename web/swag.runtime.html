@@ -1701,7 +1701,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_CompilerMessage" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.CompilerMessage</span> <a class="api-item-permalink" href="#Swag_CompilerMessage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1137">src</a></div>
 <p>A message received in a <span class="code-inline">#message</span> function.</p>
-<p>In a <span class="code-inline">#message</span> function, you can retreive the associated message by calling <span class="code-inline">getMessage</span> of the interface returned by <a href="swag.runtime.html#Swag_compiler__">Swag.compiler()</a></p>
+<p>In a <span class="code-inline">#message</span> function, retrieve the associated message by calling <span class="code-inline">getMessage</span> on the interface returned by <a href="#Swag_compiler">Swag.compiler</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_CompilerMessage">CompilerMessage</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -1883,7 +1883,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_ProcessInfos_args" class="code-type">args</td><td class="code-type">string?</td><td><p>The application arguments, as returned by <a href="swag.runtime.html#Swag_args__">Swag.args()</a></p>
+<tr><td id="Swag_ProcessInfos_args" class="code-type">args</td><td class="code-type">string?</td><td><p>The application arguments, as returned by <a href="#Swag_args">Swag.args</a>.</p>
 </td></tr>
 <tr><td id="Swag_ProcessInfos_modules" class="code-type">modules</td><td class="code-type">const [..] <a href="#Swag_Module">Swag.Module</a>?</td><td><p>The list of all modules</p>
 </td></tr>
@@ -3044,8 +3044,7 @@
 <div class="api-item api-item-func"><span id="pairs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">pairs</span> <a class="api-item-permalink" href="#pairs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L220">src</a></div>
 <p>Returns a zero-allocation view over adjacent elements of <span class="code-inline">values</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
-<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">pairs</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">Pairs</span>'<span class="SCst">T</span>
-    =&gt; pairsView</span></div>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">pairs</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">Pairs</span>'<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="range" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">range</span> <a class="api-item-permalink" href="#range" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/iteration.swg#L46">src</a></div>
@@ -3069,19 +3068,15 @@
           (<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_TypeInfoNative">TypeInfoNative</a></span>) <span class="SItr">#typeof</span>(<span class="SItr">#type</span> <span class="SCst">T</span>)).nativeKind &lt;= .<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span></span></div>
 <p>Returns the same interval with descending traversal.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
-<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(value: <span class="SFct">IterationRange</span>'<span class="SCst">T</span>)-&gt;<span class="SFct">ReversedRange</span>'<span class="SCst">T</span>
-    =&gt;</span></div>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(value: <span class="SFct">IterationRange</span>'<span class="SCst">T</span>)-&gt;<span class="SFct">ReversedRange</span>'<span class="SCst">T</span></span></div>
 <p>Returns a mutable zero-allocation view that traverses <span class="code-inline">values</span> in reverse order.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
-<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(values: [..] <span class="SCst">T</span>)-&gt;<span class="SFct">ReversedSlice</span>'<span class="SCst">T</span>
-    =&gt; reverseSlice</span></div>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(values: [..] <span class="SCst">T</span>)-&gt;<span class="SFct">ReversedSlice</span>'<span class="SCst">T</span></span></div>
 <p>Returns an immutable zero-allocation view that traverses <span class="code-inline">values</span> in reverse order.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
-<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">ConstReversedSlice</span>'<span class="SCst">T</span>
-    =&gt; reverseSlice</span></div>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">reversed</span>(values: <span class="SKwd">const</span> [..] <span class="SCst">T</span>)-&gt;<span class="SFct">ConstReversedSlice</span>'<span class="SCst">T</span></span></div>
 <p>Returns an immutable zero-allocation view over a null-terminated byte string.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reversed</span>(value: <span class="SKwd">const</span> <span class="STpe">cstring</span>)-&gt;<span class="SCst"><a href="#ReversedCString">ReversedCString</a></span>
-    =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reversed</span>(value: <span class="SKwd">const</span> <span class="STpe">cstring</span>)-&gt;<span class="SCst"><a href="#ReversedCString">ReversedCString</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_abs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.abs</span> <a class="api-item-permalink" href="#Swag_abs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1327">src</a></div>
@@ -3104,8 +3099,8 @@
 <div class="api-item api-item-func"><span id="Swag_acos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.acos</span> <a class="api-item-permalink" href="#Swag_acos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1722">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.acosf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.acos</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Align" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Align</span> <a class="api-item-permalink" href="#Swag_Align" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L325">src</a></div>
@@ -3171,8 +3166,8 @@
 <p>Inverse trigonometric functions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.asinf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.asin</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_assert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.assert</span> <a class="api-item-permalink" href="#Swag_assert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1182">src</a></div>
@@ -3183,16 +3178,16 @@
 <div class="api-item api-item-func"><span id="Swag_atan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atan</span> <a class="api-item-permalink" href="#Swag_atan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1724">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.atanf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.atan</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_atan2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atan2</span> <a class="api-item-permalink" href="#Swag_atan2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1744">src</a></div>
 <p>Arctangent of y/x with quadrant selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.atan2f</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.atan2</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_atomadd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomadd</span> <a class="api-item-permalink" href="#Swag_atomadd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1221">src</a></div>
@@ -3249,8 +3244,8 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_atomicGet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomicGet</span> <a class="api-item-permalink" href="#Swag_atomicGet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L130">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atomicGet</span>(addr: *<span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span> =&gt; <span class="SNsp">Swag</span>.</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atomicGet</span>(addr: *<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt; <span class="SNsp">Swag</span>.</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atomicGet</span>(addr: *<span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atomicGet</span>(addr: *<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_atomicSubU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomicSubU32</span> <a class="api-item-permalink" href="#Swag_atomicSubU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L147">src</a></div>
@@ -3415,15 +3410,15 @@
 <div class="api-item api-item-func"><span id="Swag_cos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.cos</span> <a class="api-item-permalink" href="#Swag_cos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1706">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.cosf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.cos</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_cosh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.cosh</span> <a class="api-item-permalink" href="#Swag_cosh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1714">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.coshf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.cosh</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_currentAllocatorThreadHeap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.currentAllocatorThreadHeap</span> <a class="api-item-permalink" href="#Swag_currentAllocatorThreadHeap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L181">src</a></div>
@@ -3460,15 +3455,15 @@
 <p>Exponentials and power.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>  =&gt; __Win32RT.expf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>  =&gt; __Win32RT.exp</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_exp2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.exp2</span> <a class="api-item-permalink" href="#Swag_exp2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1738">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.exp2f</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.exp2</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_ExportType" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ExportType</span> <a class="api-item-permalink" href="#Swag_ExportType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L241">src</a></div>
@@ -3531,29 +3526,29 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_jit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.jit</span> <a class="api-item-permalink" href="#Swag_jit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/core.swg#L257">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">jit</span>()-&gt;<span class="STpe">bool</span>    =&gt; <span class="SNsp">Swag</span>.<span class="SFct">getContext</span>().runtimeFlags &amp; .<span class="SCst"><a href="#Swag_RuntimeFlags_FromCompiler">FromCompiler</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">jit</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_log" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.log</span> <a class="api-item-permalink" href="#Swag_log" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1728">src</a></div>
 <p>Logarithms.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>   =&gt; __Win32RT.logf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>   =&gt; __Win32RT.log</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_log10" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.log10</span> <a class="api-item-permalink" href="#Swag_log10" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1732">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.log10f</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.log10</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_log2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.log2</span> <a class="api-item-permalink" href="#Swag_log2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1730">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>  =&gt; __Win32RT.log2f</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>  =&gt; __Win32RT.log2</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Macro" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Macro</span> <a class="api-item-permalink" href="#Swag_Macro" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L75">src</a></div>
@@ -3735,8 +3730,8 @@
 <div class="api-item api-item-func"><span id="Swag_pow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.pow</span> <a class="api-item-permalink" href="#Swag_pow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1740">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.powf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.pow</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_print" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.print</span> <a class="api-item-permalink" href="#Swag_print" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/print.swg#L159">src</a></div>
@@ -3802,7 +3797,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_runtimeFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.runtimeFlags</span> <a class="api-item-permalink" href="#Swag_runtimeFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/core.swg#L256">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runtimeFlags</span>() =&gt; <span class="SNsp">Swag</span>.<span class="SFct">getContext</span>()</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runtimeFlags</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_Safety" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Safety</span> <a class="api-item-permalink" href="#Swag_Safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L292">src</a></div>
@@ -3835,16 +3830,16 @@
 <p>Trigonometric functions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.sinf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.sin</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_sinh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.sinh</span> <a class="api-item-permalink" href="#Swag_sinh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1712">src</a></div>
 <p>Hyperbolic trigonometric functions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.sinhf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.sinh</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_sqrt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.sqrt</span> <a class="api-item-permalink" href="#Swag_sqrt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1299">src</a></div>
@@ -3873,15 +3868,15 @@
 <div class="api-item api-item-func"><span id="Swag_tan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.tan</span> <a class="api-item-permalink" href="#Swag_tan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1708">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.tanf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.tan</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_tanh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.tanh</span> <a class="api-item-permalink" href="#Swag_tanh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L1716">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; __Win32RT.tanhf</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; __Win32RT.tanh</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Swag_TestTag" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.TestTag</span> <a class="api-item-permalink" href="#Swag_TestTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/api.swg#L40">src</a></div>
@@ -4233,7 +4228,7 @@
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.351</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.357</div>
 </footer>
 </section>
 </main>
@@ -4655,7 +4650,7 @@
 "v|Swag.Module.name|Swag_Module_name|Name of the module",
 "v|Swag.Module.types|Swag_Module_types|All exported types",
 "s|Swag.ProcessInfos|Swag_ProcessInfos|Defined some information about the current process",
-"v|Swag.ProcessInfos.args|Swag_ProcessInfos_args|The application arguments, as returned by Swag.args()",
+"v|Swag.ProcessInfos.args|Swag_ProcessInfos_args|The application arguments, as returned by Swag.args.",
 "v|Swag.ProcessInfos.modules|Swag_ProcessInfos_modules|The list of all modules",
 "s|Swag.ScratchAllocator|Swag_ScratchAllocator|",
 "v|Swag.ScratchAllocator.allocator|Swag_ScratchAllocator_allocator|",

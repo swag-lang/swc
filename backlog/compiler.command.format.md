@@ -46,7 +46,7 @@ The command only reads paths and writes files in place. Accept a buffer on stand
 return the formatted result on standard output so an editor can format unsaved content without a
 filesystem round trip.
 
-- Related: compiler.command.format.003, compiler.core.015
+- Related: compiler.command.format.003
 
 ### compiler.command.format.003 — Format a selected source range
 

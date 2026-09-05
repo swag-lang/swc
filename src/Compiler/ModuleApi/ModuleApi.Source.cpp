@@ -520,6 +520,37 @@ namespace ModuleApi
         return sourceTokenByteStart(srcView, token) + token.byteLength;
     }
 
+    TokenRef moduleApiFunctionBodyStartTokRef(const Ast& ast, const AstFunctionDecl& functionDecl)
+    {
+        if (!ast.hasSourceView() || !functionDecl.nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl.nodeBodyRef))
+            return TokenRef::invalid();
+
+        const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, functionDecl);
+        if (!startTokRef.isValid())
+            return TokenRef::invalid();
+
+        const AstNode& bodyNode   = ast.node(functionDecl.nodeBodyRef);
+        TokenRef       bodyTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
+        if (!bodyTokRef.isValid())
+            bodyTokRef = bodyNode.tokRef();
+        if (!bodyTokRef.isValid())
+            return TokenRef::invalid();
+
+        // A call's own token names its opening parenthesis. The declaration ends before the
+        // complete expression and its arrow, including when the expression starts with a callee.
+        if (functionDecl.hasFlag(AstFunctionFlagsE::Short))
+        {
+            for (uint32_t tokIndex = bodyTokRef.get(); tokIndex > startTokRef.get(); --tokIndex)
+            {
+                const TokenRef arrowTokRef(tokIndex - 1);
+                if (ast.srcView().token(arrowTokRef).id == TokenId::SymEqualGreater)
+                    return arrowTokRef;
+            }
+        }
+
+        return bodyTokRef;
+    }
+
     TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
     {
         if (node.is(AstNodeId::VarDeclList))

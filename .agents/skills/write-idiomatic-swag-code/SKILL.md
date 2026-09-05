@@ -215,13 +215,14 @@ let renderer: IRenderer = &cpu
 ## Make Ownership Scope-Bound
 
 - Give owning value types an idempotent `close`/`reset` operation when early release is useful and
-  an `opDrop` that safely releases remaining ownership. Mark exclusive owners `#[Swag.NoCopy]`.
+  an `opDrop` that safely releases remaining ownership. A type with `opDrop` is non-copyable
+  unless it supplies `opPostCopy`; use `#[Swag.NoCopy]` for an additional copy restriction.
 - Immediately place `defer` after a successful manual acquisition when the resource cannot own its
   cleanup. Order acquisitions so deferred releases naturally run in reverse dependency order.
 - Use `defer` for cleanup, state restoration, and failure-safe unwinding. Keep an explicit `end`
   when it is semantic finalization whose result must be inspected before leaving the scope.
 - Never retain a borrow beyond its owner. Prefer non-null pointers (`*T`) for borrowed values,
-  nullable pointers (`#null *T`) only for real absence, and slices instead of pointer/count pairs
+  nullable pointers (`*T?`) only for real absence, and slices instead of pointer/count pairs
   outside native code.
 
 ### Choose `defer` by what the cleanup is for

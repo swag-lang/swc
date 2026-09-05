@@ -56,6 +56,7 @@ struct(K, V) ReversedHashTable
 
 impl ReversedHashTable
 {
+    // Visits borrowed key-value pairs in descending storage-slot order.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
@@ -136,12 +137,13 @@ impl HashTable
             .add(v.k, v.v)
     }
 
-    // Handles the deep copy of the me.table when it is copied.
-    // A new me.table is allocated and all entries are copied over.
-    // A key or a value that owns a release states no copy of its own, and nothing here can
-    // duplicate what it owns: the table then states none either, and is handed over with '#move'.
     #static if Reflection.canCopy(K) and Reflection.canCopy(V)
     {
+        // Handles the deep copy of the me.table when it is copied.
+        //
+        // A new me.table is allocated and all entries are copied over.
+        // A key or a value that owns a release states no copy of its own, and nothing here can
+        // duplicate what it owns: the table then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
             if !.table do
@@ -184,7 +186,7 @@ impl HashTable
     }
 
     // Provides mutable access to the value associated with a key.
-    // Asserts if the key is not found. See [[opIndexSet]] for insertion or update.
+    // Asserts if the key is not found. See [[Core.HashTable.opIndexSet]] for insertion or update.
     mtd opIndexPtr(key: K)->*V
     {
         let it = .find(key)
@@ -561,7 +563,7 @@ impl HashTable
     }
 
     // Finds the entry for a given key.
-    // Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.
+    // Asserts and will likely crash if the key is not found. Use [[Core.HashTable.tryFind]] for safe searching.
     mtd find(key: K)->*HashTableEntry
     {
         let result = .tryFind(key)
@@ -570,7 +572,7 @@ impl HashTable
     }
 
     // Finds the entry for a given key.
-    // Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.
+    // Asserts and will likely crash if the key is not found. Use [[Core.HashTable.tryFind]] for safe searching.
     mtd const find(key: K)->const *HashTableEntry
     {
         let result = .tryFind(key)

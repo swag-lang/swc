@@ -256,8 +256,8 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
 
 ### app.scope.document.022 — Jupyter notebooks have no document reader
 
-- Evidence: `.ipynb` has no registered viewer and therefore offers only Binary and Hexadecimal,
-  despite being a textual JSON container. Markdown cells, code cells, execution order,
+- Evidence: `.ipynb` has no notebook renderer. The content probe offers the Text viewer for its
+  raw JSON, alongside Binary and Hexadecimal. Markdown cells, code cells, execution order,
   attachments, stored images, tables, errors, and metadata lose their document structure. GitHub
   renders notebooks as static HTML without activating custom JavaScript, while Visual Studio Code
   adds cell/output search and outline and hides rich outputs in untrusted workspaces. Those are the

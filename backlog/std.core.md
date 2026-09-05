@@ -149,9 +149,11 @@ API.
 
 - Related: std.core.010
 
-### std.core.013 — No BLAKE2 implementation
+### std.core.013 — No BLAKE2s implementation
 
-Add BLAKE2 variants with keyed and unkeyed modes independently of BLAKE3.
+`Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed hashing, with
+variable digest lengths and tests in `src/tests/crypto/blake2b.test.swg`. Add BLAKE2s with the
+same operation family and published vectors; BLAKE3 remains independent.
 
 - Related: std.core.014
 

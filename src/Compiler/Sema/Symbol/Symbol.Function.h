@@ -281,24 +281,24 @@ public:
 
     const GenericInstanceOrigin* genericInstanceOrigin() const noexcept;
 
-    bool                    isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
-    void                    setGenericRoot(bool value) noexcept;
-    bool                    isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
-    void                    setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept;
-    bool                    hasUnmaterializedGenericBody() const noexcept;
-    SymbolFunction*         genericRootOrSelf() noexcept;
-    const SymbolFunction*   genericRootOrSelf() const noexcept;
-    SymbolFunction*         genericRootSym() noexcept;
-    const SymbolFunction*   genericRootSym() const noexcept;
-    const SymbolImpl*       declImplContext() const noexcept;
-    const SymbolInterface*  declInterfaceContext() const noexcept;
-    void                    setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
-    bool                    isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
-    bool                    isGenericCompletionActive(const TaskContext& ctx) const noexcept;
-    bool                    tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
-    void                    finishGenericCompletion() const noexcept;
-    bool                    isGenericNodeCompleted() const noexcept;
-    void                    setGenericNodeCompleted() const noexcept;
+    bool                   isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
+    void                   setGenericRoot(bool value) noexcept;
+    bool                   isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
+    void                   setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept;
+    bool                   hasUnmaterializedGenericBody() const noexcept;
+    SymbolFunction*        genericRootOrSelf() noexcept;
+    const SymbolFunction*  genericRootOrSelf() const noexcept;
+    SymbolFunction*        genericRootSym() noexcept;
+    const SymbolFunction*  genericRootSym() const noexcept;
+    const SymbolImpl*      declImplContext() const noexcept;
+    const SymbolInterface* declInterfaceContext() const noexcept;
+    void                   setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool                   isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool                   isGenericCompletionActive(const TaskContext& ctx) const noexcept;
+    bool                   tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
+    void                   finishGenericCompletion() const noexcept;
+    bool                   isGenericNodeCompleted() const noexcept;
+    void                   setGenericNodeCompleted() const noexcept;
 
 private:
     struct GenericData;

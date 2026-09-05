@@ -164,61 +164,15 @@ the shared backlog conventions.
     PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
     `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
     already run on vectors. The whole path is too small to pay for the two shuffle tables.
-- The register half was then traced to its mechanism and moved to
-  [compiler.optimization.007](#compileroptimization007--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers), which
-  carries the numbers.
-- Next step: this is [compiler.optimization.005](#compileroptimization005--complex-loop-carried-frame-slots-still-lose-registers) seen
-  from a second workload, and the case is small enough to drive the fix — a loop whose whole
-  live set fits in registers twice over and is spilled anyway. The bottleneck is the allocator's
-  policy, local linear scan with furthest-use eviction, and the work that addresses it is the
-  global interval allocator, not another peephole.
-
-### compiler.optimization.007 — A whole-hull reservation cannot keep a loop's working set in registers
-
-- Area: compiler/backend
-- Found while: chasing the register half of
-  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) into
-  `assignGlobalRegisters`, with a temporary trace over its candidate list.
-- Observation: a value that crosses a control-flow boundary is either given one physical
-  register for **the whole hull of its live range**, or it is given a stable spill slot and
-  lives in memory for the rest of the function (`preallocateLoopCarriedSlots`). There is
-  nothing in between. Three things follow, and they compound:
-  - **The ranking inverts on exactly the values the mechanism exists for.** Candidates are
-    ordered by density — benefit divided by span length — which is right between comparable
-    values, because a hull is held across its holes too. A loop cursor lives from the top of
-    the function to the bottom, so its density is microscopic while its reload count is the
-    largest in the function. It queues behind every short-lived candidate and finds the
-    registers gone.
-  - **The benefit model cannot tell a cursor from a base pointer.** `computeGlobalBenefits`
-    counts boundary crossings weighted by loop depth, so a value read six times an iteration
-    and one read once score the same if they cross the same boundaries. Fixing the ranking
-    alone therefore hands the registers to the function's parameters.
-  - **The supply is four.** In a function with calls, a hull crossing one may only ride a
-    callee-saved register, and the floor keeps two back
-    (`totalPersistent - K_MIN_FREE_PERSISTENT_INT` = 6 - 2). Whole-function hulls all overlap,
-    so each needs its own register: four, for a loop whose working set is ten.
-- Evidence: measured 2026-08-15 on `Inflate.parseBlock` (1469 instructions, 124 candidates,
-  6 callee-saved and 7 caller-saved int registers free, all 6 callee-saved proven-free). The
-  four loop cursors carry a raw benefit of 163,201,810 each and are rejected; twenty-five
-  candidates carrying 2,000,000 — eighty times less — are granted. Raising the ranking with a
-  raw-benefit tier fixes the order and changes nothing: the four registers go to the
-  parameters, whose raw benefit ties at 164,701,810 because the model counts crossings, not
-  uses. Forcing the cursors in by hand pinned two of the four, worth about 4% on a machine
-  too noisy to resolve it.
-- Ruled out on the way, and worth not repeating: a raw-benefit tier gated only relatively
-  (`maxRawBenefit / 4`) degenerates on functions with no hot loop — `__setupRuntime`, whose
-  busiest candidate is worth 4, puts every candidate in the first tier, loses the density
-  ranking entirely and **miscompiles** (access violation writing through a null context). Any
-  such tier needs an absolute floor as well, high enough to mean a deep loop.
-- Next step: interval splitting, which is the thing whole-hull reservation cannot express.
-  clang keeps ten values in registers here not by picking better hulls but by holding a value
-  in a register where it is hot and letting it live in memory where it is not. Reordering or
-  reweighting redistributes four registers; it cannot produce ten. This is the same conclusion
-  the float side reached from `raytrace` — the bottleneck is the policy, local linear scan with
-  furthest-use eviction — and the two workloads now bracket it: a float kernel with no calls,
-  and an integer loop with calls in its body. Start from the existing candidate machinery,
-  which already computes the spans, the benefits and the concrete-claim positions a splitting
-  allocator needs.
+- Current boundary: `Pass.RegisterAllocation.Interval.cpp` now supplies live-range splitting for
+  optimizing builds, with the older scan retained for `-O0` and failed preconditions. The historical
+  spill counts above predate that allocator and cannot establish the current gap.
+- Next: repeat the same Inflate/clang comparison and count frame accesses with the current Release
+  compiler. If a gap remains, attribute it to the split allocator or its fallback before selecting
+  a change; do not implement a second interval allocator.
+- Complete when: the current emitted loop and alternating timing decide whether an allocator gap
+  remains, with any surviving cause reduced to one actionable change.
+- Related: compiler.optimization.005, compiler.optimization.024.
 
 ### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
 
@@ -258,7 +212,7 @@ the shared backlog conventions.
   and the result — to that frame before the branch and reloading them on both sides. Sixteen
   integer registers exist and the function needs about half of them.
 - This is [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
-  [compiler.optimization.007](#compileroptimization007--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) without
+  the earlier whole-hull allocator without
   the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
   happens. That makes it a much smaller reproducer than the inflate block loop for the same
   allocator policy, which is why it is worth keeping separately.
@@ -279,13 +233,15 @@ the shared backlog conventions.
   subtract at entry and one add before the return, so the unwind codes describe it in full
   without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
   instructions against 143.
-- Next step: what remains is the spills themselves — three values still cross the one branch
-  through the frame while a dozen registers are free. That half is the global interval
-  allocator's case, not a peephole's. Use it as the small reproducer while that work proceeds:
-  `#[Swag.PrintMicro("post-emit")]` on `CabacReader.decision`, release. Separately, `lzcnt`/`tzcnt`
-  would retire the remaining bit-scan sequence, but they are ABM/BMI1 and the backend's stated
-  baseline is AVX, so adopting them raises the Intel floor from Sandy Bridge to Haswell — a
-  decision about what the compiler targets, not an optimization to slip in.
+- Current boundary: the default optimizing allocator now splits live ranges. The instruction and
+  frame counts above describe the earlier scan, so they need a new dump before directing a fix.
+- Next: dump `CabacReader.decision` in Release and attribute any remaining branch-crossing spills
+  to the selected allocator. Keep it as the small companion to the Inflate workload. The target is
+  now x86-64-v3; adopting `lzcnt`/`tzcnt` no longer needs the AVX-to-AVX2 target-policy change
+  previously stated here, but still needs encoder and zero-operand tests.
+- Complete when: the current dump decides whether the branch-spill gap remains and any remaining
+  allocation defect has a reduced test.
+- Related: compiler.optimization.006, compiler.optimization.024.
 
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 
@@ -346,10 +302,13 @@ the shared backlog conventions.
   belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
   The remaining traffic is
   [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
-- Next step: use `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` as the large
-  acceptance workloads for compiler.optimization.006's interval allocator work. Re-run the recorded frame-access and
-  per-segment measurements after that allocator can split live ranges; do not extend the post-RA
-  hoist unless one of these dumps first shows an invariant value with a reusable destination.
+- Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
+  shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
+  gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
+  first shows an invariant value with a reusable destination.
+- Complete when: current dumps and alternating timings establish the remaining allocation cost
+  on both large kernels and identify a specific next change or retire this lead.
+- Related: compiler.optimization.006, compiler.optimization.024.
 
 ### compiler.optimization.012 — A lane broadcast now leaves the loop with the replication that feeds it
 
@@ -374,124 +333,6 @@ the shared backlog conventions.
 - Next: read `Video.H264.mcChroma` again in release and confirm its four broadcasts left the row
   loop.
 - Complete when: the chroma interpolation loop shows no `movd` or `pshufd` in its body.
-
-### compiler.optimization.013 — A loop header drops every mapping, and the register to fix it is already spoken for
-
-- Area: compiler/backend
-- Found while: taking
-  [compiler.optimization.007](#compileroptimization007--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) and
-  [compiler.optimization.010](#compileroptimization010--a-short-branching-function-spills-with-the-whole-register-file-free) at their
-  word and instrumenting the allocator instead of reading its output.
-- Observation: **the allocator reloads values at points where it has registers to spare, so what
-  costs is the decision that put them in memory, not the supply at the use.** Over a release build
-  of `core` — twelve thousand emitted reloads, each recorded with the pool state at that
-  instruction and with why the value had lost its register — four reloads in five happen with at
-  least one usable register, and one in three with eight or more. Eviction under genuine pressure
-  accounts for 7%. Everything above it is a rule that gave a register away while registers were
-  plentiful, and one rule dominates: **a label with a back-edge predecessor drops every mapping,
-  because the linear scan has not seen the back-edge state yet.**
-- Evidence: `swc tools/std.swgs dm build core -bc release --rebuild`, one line per emitted reload.
-  12211 reloads. Why the value had lost its register:
-
-  | cause | reloads | share |
-  | --- | --- | --- |
-  | boundary drop: next use more than 48 instructions away | 3795 | 31% |
-  | join: a back-edge, or an edge with no recorded state | 2147 | 18% |
-  | join: the incoming edges disagreed on the register | 1874 | 15% |
-  | never mapped: first use of a value with a memory home | 1691 | 14% |
-  | its register was taken by a copy destination | 1181 | 10% |
-  | evicted to make room | 820 | 7% |
-  | boundary: not live out | 353 | 3% |
-  | cleared after a terminator that does not fall through | 350 | 3% |
-
-  The first row is not a cause, and that is the useful part. Removing
-  `K_KEEP_MAX_NEXT_USE_DISTANCE` entirely — keeping every mapping across a boundary however far
-  its next use — moves the total by **59 reloads out of 12211**. Its 3795 do not disappear; they
-  redistribute, 1787 of them onto the back-edge row, which grows to 3934 and becomes a third of
-  all reloads on its own. So the constant is only the first mechanism that happens to catch these
-  values, and tuning it is pointless in either direction. The same measurement retires the other
-  cheap idea beside it: letting the edge-register hint outrank a copy's transfer source, which the
-  code declines to do, is worth 12 reloads out of 1874 on the row it targets.
-- **The shape of what the back-edge drops, and why the obvious repair does not land.** Of the 2113
-  mappings dropped at a loop header, **1696 — four in five — are values the loop never writes**.
-  Such a value asks for almost nothing: give it a register for `[header, back-edge tail]` and the
-  two edges agree by construction, its memory home stays coherent so leaving the loop owes no
-  store, and no edge anywhere needs a reconciliation copy. All it costs is one load, placed before
-  the header label so the back-edge jumps over it. Every loop header measured is entered by
-  falling into it, so even the load has nowhere awkward to go.
-
-  That was built and measured, as a reservation pass running after `assignGlobalRegisters`. All
-  suites pass and it is worth **17 reloads out of 12211**, because it almost never fires: 30
-  grants against 491 refusals for a class budget already spent by the whole-span reservations, and
-  899 refusals for no register free of concrete claims over the loop's extent. Most loop bodies
-  contain a call, which claims every caller-saved register across the range, so only callee-saved
-  registers qualify — and those are exactly what the whole-span reservations took first. Two
-  mechanisms cannot be appended one after the other when they compete for the same six registers.
-- A first pass at this entry read all of this from the wrong counter, and the mistake is worth
-  stating so it is not repeated: counting the times `allocatePhysical` exhausts its free pools says
-  almost nothing. Those counts came out as 100% hull-owned, which looked decisive. They are not,
-  because an exhausted pool is followed by an eviction that is usually free — `isCandidateBetter`
-  ranks dead values first and `allocatePhysical` takes them without emitting a spill. Measure
-  emitted spills and reloads, never failed lookups.
-- Ruled out, with numbers, so none of it is tried again. Admitting values that cross no
-  control-flow boundary as hull candidates on the access ranking: the raytrace kernel gained 7
-  instructions and 3 frame accesses, the Levenshtein loop lost 7 and 6, a byte scan lost 3 and 4.
-  A callee-saved fallback for ordinary floats gated on loop depth (the variant compiler.optimization.006 left open):
-  seventeen failed lookups became eleven for two more instructions. Reserving only the live
-  sub-ranges of a hull instead of its whole span: the blocking hulls were live at every contended
-  point in all four kernels, so there is nothing to hand back. And removing every hull from the
-  CABAC bin of compiler.optimization.010 changes its emitted code by not one instruction, so the mechanism is inert
-  there.
-- The candidate-list route was built next and measured to lose, so it is retired: one loop-scoped
-  reservation candidate per (value, loop), competing on the whole-span ranking, displaces short
-  whole-span hulls that were already loop-scoped in effect and are strictly better (no fill, no
-  write-through, no out-of-range reload) — `Decoder.interpolateChroma` gained 15 stores that way.
-  Granting loop candidates only on leftover capacity was neutral: the same budgets that starve the
-  standalone pass starve the leftovers.
-- **What shipped instead (2026-08-26): loop residency in `rewriteInstructions`.** At the header of
-  a sealed loop — entered only by falling in, no outside jump landing past it
-  (`collectLoopRegions`) — the boundary flush keeps the arriving mappings instead of dropping
-  them, preloads home-resident values the loop reads into whatever registers are free, and every
-  back-edge restores exactly that committed state before jumping (`conformLoopResidency`), so the
-  two sides of each back-edge agree by construction with no edge split. The mappings stay
-  ordinary — evictable under pressure — and a pair nothing ever read through the mapping is
-  demoted at the back-edge rather than refilled forever. On the `video` workspace the back-edge
-  reload cause fell 5060 to 242 and `Video.H264.mcChroma` lost 19 of its 61 emitted reloads; the
-  serial HEVC conformance decode (wpp-main10 + ipred, processor time of the test binary, order
-  alternated) came out 3 to 7 percent faster across five interleaved campaigns — real, and far
-  from the 2.2x.
-- Three invariants paid for in miscompiles while building it, recorded so they are not
-  rediscovered: **exporting a pair through a boundary snapshot is a consumption** — the adoption
-  at the target lets later iterations read the register, so a snapshotted pair may never be
-  demoted (`interpolateChroma` read a demoted taps pointer as garbage through exactly that path);
-  back-edge fixups must be emitted before the jump's own operands are allocated and the pair
-  values protected from that allocation, or a fixup overwrites the register the jump just chose;
-  and preloads must stop above a per-class free floor, or they take exactly the claim-free
-  registers and push the body's short-lived values onto ABI-touched ones where every concrete
-  touch spills them.
-- Next step: from the residency-era cause histogram of the hot decoder functions
-  (`interpolateLuma` with residency: keep 31, back-edge 7, evict 65 of 117 use-reloads): the
-  boundary family is now mostly paid for, and what is left is eviction churn under genuine
-  pressure in fat bodies plus the join-disagree row. Swapping eviction priority to
-  distance-before-clean measured flat on the HEVC decode and was reverted; the remaining lever is
-  allocation quality with a real cost model — interval-style assignment with live-range
-  splitting, whose justification stands unchanged in
-  [compiler.optimization.010](#compileroptimization010--a-short-branching-function-spills-with-the-whole-register-file-free): at equal
-  supply this allocator spills an order of magnitude more than clang on the same body.
-- Re-measured 2026-08-27 with the cause trace rebuilt on build 224 (the patch is parked in the
-  session scratchpad, `ratrace-parked.diff` — reapply it locally, never land it). Whole video
-  workspace, release, static counts: 19928 spill reloads. Concrete-touch is now the largest row
-  (5840, 29% — a new code the old taxonomy folded elsewhere; `Decoder.configureMetadata`, a cold
-  call-dense builder, owns 1747 of them alone), then boundary-48 (3576, 17%), join-disagree
-  (3567, 17% — diamond-heavy comparison chains: the generated `opEquals` bodies, `Swag.typeCmp`,
-  `Allocator.reallocate`), evict (2736, 14%), residency-prune (2382, 11%). Join-backedge is down
-  to 149 — residency holds — and join-nosnap is zero: every conditional-jump edge does record a
-  snapshot, so there is no missing-snapshot lot to take. The static join-disagree row lives in
-  cold code; the HOT decoder functions are all eviction-bound: `Decoder.idct` 101 reloads, every
-  one an eviction; `interpolateLuma` 72 of 119; `filterLumaEdge` 34 of 77; `interpolateChroma`
-  40 of 71. An edge-resolution pass (copies where edges disagree, the phase this allocator
-  deliberately lacks) would clean the cold 17% and barely touch the decoder. The decoder's row
-  is the fat-body pressure the entry's conclusion already names — see compiler.optimization.024.
 
 ## The pipeline measured against LLVM's
 
@@ -543,9 +384,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   `interpolateLuma` 1583 -> 1684 instructions and 314 -> 398 frame references, video.dll +2 KB.
   The shared names the lowering leaves behind are accidental coalescing the hull allocator
   depends on - splitting them multiplies concurrent hulls, and the allocator pays in spills more
-  than the loop passes earn. LLVM affords SSA-grade names because greedy RA re-splits and
-  re-coalesces live ranges; this allocator does not yet. Blocked behind pre-RA re-coalescing of
-  non-interfering webs or live-range splitting in the allocator. Prototype parked in the session
+  than the loop passes earn. That result predates the split allocator now shipped here. Re-measure before treating
+  the old hull interference as a current blocker. Prototype parked in the session
   scratchpad (`webrename-parked/`: `Pass.WebRename.{h,cpp}` plus the registration diff).
 - Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
 
@@ -637,7 +477,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   still fires at all.
 - Complete when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.010, compiler.optimization.013, compiler.optimization.016.
+- Related: compiler.optimization.010, compiler.optimization.016.
 
 ### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
 

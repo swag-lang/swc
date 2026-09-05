@@ -32,7 +32,7 @@ impl Keyboard
 
     // Presents every key of the current state as released.
     //
-    // The next [[Input.Keyboard.update]] resumes from the real device, so this quiets exactly
+    // The next [[Core.Input.Keyboard.update]] resumes from the real device, so this quiets exactly
     // one update. Use it when the polled device must not reach the consumer, such as an
     // application whose keyboard belongs to another one for as long as it is not active.
     mtd releaseAllKeys()

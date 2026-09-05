@@ -54,6 +54,7 @@ struct(K) ReversedHashSet
 
 impl ReversedHashSet
 {
+    // Visits borrowed set elements in descending storage-slot order.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key))
     {

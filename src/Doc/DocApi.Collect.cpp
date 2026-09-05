@@ -364,8 +364,9 @@ namespace
         if (!ModuleApi::tryGetModuleApiSnippetOffsets(ctx, file, rootRef, startOffset, endOffset))
             return {};
 
-        const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, rootRef);
-        const AstNodeRef  bodyRef = declarationBodyRef(ast.node(declRef));
+        const SourceView& srcView     = ModuleApi::moduleApiNodeSourceView(ctx, ast, rootRef);
+        const AstNode&    declaration = ast.node(declRef);
+        const AstNodeRef  bodyRef     = declarationBodyRef(declaration);
         if (bodyRef.isValid() && ast.hasNode(bodyRef))
         {
             const AstNode& bodyNode = ast.node(bodyRef);
@@ -373,7 +374,16 @@ namespace
             {
                 const SourceView& bodyView = ModuleApi::moduleApiNodeSourceView(ctx, ast, bodyRef);
                 if (&bodyView == &srcView)
-                    endOffset = ModuleApi::sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
+                {
+                    TokenRef bodyTokRef = bodyNode.tokRef();
+                    if (const auto* function = declaration.safeCast<AstFunctionDecl>())
+                    {
+                        const TokenRef functionBodyRef = ModuleApi::moduleApiFunctionBodyStartTokRef(ast, *function);
+                        if (functionBodyRef.isValid())
+                            bodyTokRef = functionBodyRef;
+                    }
+                    endOffset = ModuleApi::sourceTokenByteStart(srcView, srcView.token(bodyTokRef));
+                }
             }
         }
 
@@ -504,16 +514,45 @@ namespace
         return result;
     }
 
-    bool hasSourceNoDocAttribute(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef)
+    bool hasSourceNoDocAttribute(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef)
     {
-        if (nodeRef.isInvalid() || !file.ast().hasNode(nodeRef) || !file.ast().node(nodeRef).is(AstNodeId::AttributeList))
-            return false;
+        const Ast& ast = file.ast();
+        while (nodeRef.isValid() && ast.hasNode(nodeRef))
+        {
+            const AstNode& node = ast.node(nodeRef);
+            if (const auto* access = node.safeCast<AstAccessModifier>())
+            {
+                nodeRef = access->nodeWhatRef;
+                continue;
+            }
 
-        std::string_view source;
-        if (!ModuleApi::tryGetModuleApiSnippet(ctx, file, nodeRef, source))
-            return false;
-        const size_t attributesEnd = source.find(']');
-        return attributesEnd != std::string_view::npos && source.substr(0, attributesEnd).find("Swag.NoDoc") != std::string_view::npos;
+            const auto* attributes = node.safeCast<AstAttributeList>();
+            if (!attributes)
+                break;
+
+            // Generic declarations may not have resolved attributes. Read the parsed names,
+            // including every stacked list, without mistaking an argument string for a name.
+            const size_t count = ast.spanSize(attributes->spanChildrenRef);
+            for (size_t i = 0; i < count; ++i)
+            {
+                const auto& attribute = ast.node(ast.nthNode(attributes->spanChildrenRef, i)).cast<AstAttribute>();
+                const auto& call      = ast.node(attribute.nodeCallRef).cast<AstCallExpr>();
+                const auto* name      = ast.node(call.nodeExprRef).safeCast<AstMemberAccessExpr>();
+                if (!name)
+                    continue;
+
+                const AstNode& owner = ast.node(name->nodeLeftRef);
+                const AstNode& ident = ast.node(name->nodeRightRef);
+                if (!owner.is(AstNodeId::Identifier) || !ident.is(AstNodeId::Identifier))
+                    continue;
+
+                const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, call.nodeExprRef);
+                if (srcView.tokenString(owner.tokRef()) == "Swag" && srcView.tokenString(ident.tokRef()) == "NoDoc")
+                    return true;
+            }
+            nodeRef = attributes->nodeBodyRef;
+        }
+        return false;
     }
 
     bool hasSourceNoDocAttribute(TaskContext& ctx, const Symbol& symbol)

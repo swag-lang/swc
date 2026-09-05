@@ -14,3 +14,16 @@ using Swag, Core
     assertPixel(img, 0, 0, Color.fromArgb(77'u8, 56'u8, 56'u8, 56'u8))
     assertPixel(img, 1, 0, Color.fromArgb(88'u8, 81'u8, 81'u8, 81'u8))
 }
+
+// Fractional blending uses the parallel scalar visitor in both channel orders.
+#test
+{
+    var rgba = makeImage(1, 1, .RGBA8, [100'u8, 50, 0, 77])
+    var bgra = makeImage(1, 1, .BGRA8, [0'u8, 50, 100, 77])
+    rgba.grayscale(0.5)
+    bgra.grayscale(0.5)
+
+    let expected = Color.fromArgb(77'u8, 78'u8, 53'u8, 28'u8)
+    assertPixel(rgba, 0, 0, expected)
+    assertPixel(bgra, 0, 0, expected)
+}

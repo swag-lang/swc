@@ -10,11 +10,13 @@ SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class SymbolImpl;
+struct SemaInlinePayload;
 
 namespace SemaInline
 {
-    bool   canInlineCall(Sema& sema, const SymbolFunction& fn);
-    Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs = {});
+    const SemaInlinePayload* expansionPayload(Sema& sema, AstNodeRef nodeRef);
+    bool                     canInlineCall(Sema& sema, const SymbolFunction& fn);
+    Result                   tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs = {});
 }
 
 struct SemaInlinePayload

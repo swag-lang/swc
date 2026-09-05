@@ -184,6 +184,7 @@ SWC_DIAG_DEF(sema_err_closure_capture_too_large, Error, "closure capture of type
 SWC_DIAG_DEF(sema_err_closure_capture_missing, Error, "closure does not capture outer variable '{sym}'; [help] add '{sym}' to the capture list, for example 'func|{sym}| ...'")
 SWC_DIAG_DEF(sema_err_closure_capture_missing, Error, "closure does not capture this outer-scope identifier")
 SWC_DIAG_DEF(sema_err_local_function_outer_scope_variable, Error, "local function cannot reference outer-scope variable '{sym}'; [help] use a closure expression if you need to capture outer locals")
+SWC_DIAG_DEF(sema_err_local_function_expansion_parameter, Error, "local function cannot reference parameter '{sym}' of the function being expanded; [help] pass the value as an argument of the local function")
 SWC_DIAG_DEF(sema_err_closure_capture_let_by_ref, Error, "cannot capture 'let' variable '{sym}' by reference; [help] remove '&' to capture it by value, or declare it with 'var'")
 SWC_DIAG_DEF(sema_err_closure_capture_var_by_ref, Error, "capture '{sym}' is already writable because '&' captures the source variable itself; [help] remove 'var', or remove '&' to give the closure a writable copy")
 SWC_DIAG_DEF(sema_err_closure_capture_var_by_ref, Error, "a capture taken by reference is already writable; [help] remove 'var', or remove '&' to give the closure a writable copy")

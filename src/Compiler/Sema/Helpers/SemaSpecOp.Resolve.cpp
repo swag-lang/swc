@@ -933,8 +933,9 @@ namespace
 
     void applyIndexReadSpecOpResult(Sema& sema, AstNodeRef indexExprRef, SymbolFunction& calledFn)
     {
-        auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
-        payload->calledFn = &calledFn;
+        const AstNodeRef inlineRootRef = sema.hasSubstitute(indexExprRef) ? sema.viewZero(indexExprRef).nodeRef() : AstNodeRef::invalid();
+        auto*            payload       = sema.compiler().allocate<IndexSpecOpSemaPayload>();
+        payload->calledFn              = &calledFn;
         // A re-resolved clone (a detached binding expression carried its source's
         // selection) legitimately replaces the previous selection.
         sema.clearSemaPayload(indexExprRef);
@@ -956,6 +957,26 @@ namespace
             sema.setType(indexExprRef, returnTypeRef);
             sema.setIsValue(indexExprRef);
             sema.unsetIsLValue(indexExprRef);
+        }
+
+        if (inlineRootRef.isValid())
+        {
+            if (calledFn.specOpKind() == SpecOpKind::OpIndexPtr)
+            {
+                // The expansion produces an address; the index expression designates
+                // its element. Keep both nodes so assigning the element's type cannot
+                // erase the expansion or make codegen read the pointer as the value.
+                auto [loadRef, load] = sema.ast().makeNode<AstNodeId::IndexExpr>(sema.node(indexExprRef).tokRef());
+                load->setCodeRef(sema.node(indexExprRef).codeRef());
+                load->nodeExprRef = inlineRootRef;
+                load->nodeArgRef  = makeSyntheticU64Arg(sema, sema.node(indexExprRef).codeRef(), 0);
+                sema.setType(loadRef, returnType.payloadTypeRef());
+                sema.setIsValue(loadRef);
+                sema.setIsLValue(loadRef);
+                sema.setSubstitute(indexExprRef, loadRef);
+            }
+            else
+                sema.setSubstitute(indexExprRef, inlineRootRef);
         }
     }
 

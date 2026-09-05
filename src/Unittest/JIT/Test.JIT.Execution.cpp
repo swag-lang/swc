@@ -473,9 +473,9 @@ namespace
     // pass grouping them into packed code, and a scalar readback verifying
     // the values. The data lives outside the frame so scalar promotion
     // cannot dissolve the memory accesses the vectorizer seeds on.
-    uint32_t slpLanesData[16];
+    uint32_t slpLanesData[20];
 
-    void buildReturnZeroAfterSlpVectorizedLanes(MicroBuilder& builder, const CallConv& callConv)
+    void buildSlpVectorizedLanes(MicroBuilder& builder, const CallConv& callConv, uint64_t baseOffset)
     {
         Runtime::BuildCfgBackend buildCfg{};
         buildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
@@ -487,22 +487,31 @@ namespace
         constexpr MicroReg basePtr  = MicroReg::virtualIntReg(0);
         constexpr uint32_t laneBase = 1;
 
-        builder.emitLoadRegPtrImm(basePtr, reinterpret_cast<uint64_t>(slpLanesData));
+        builder.emitLoadRegPtrImm(basePtr, reinterpret_cast<uint64_t>(slpLanesData) + baseOffset);
 
         const auto computeLabel = builder.createLabel();
         builder.placeLabel(computeLabel);
+
+        if (baseOffset)
+        {
+            // Subword stores near displacement zero must terminate the location
+            // scan without aliasing the negative-offset vector lanes below.
+            builder.emitLoadMemImm(basePtr, static_cast<uint64_t>(-3), ApInt(0x12, 8), MicroOpBits::B8);
+            builder.emitLoadMemImm(basePtr, static_cast<uint64_t>(-2), ApInt(0x34, 8), MicroOpBits::B8);
+            builder.emitLoadMemImm(basePtr, static_cast<uint64_t>(-1), ApInt(0x56, 8), MicroOpBits::B8);
+        }
 
         // out[i] = rol((in[i] + key[i]) ^ mask[i], 7), one scalar chain per lane.
         for (uint32_t lane = 0; lane < 4; ++lane)
         {
             const MicroReg laneReg  = MicroReg::virtualIntReg(laneBase + lane * 2);
             const MicroReg otherReg = MicroReg::virtualIntReg(laneBase + lane * 2 + 1);
-            builder.emitLoadRegMem(laneReg, basePtr, static_cast<uint64_t>(lane) * 4, MicroOpBits::B32);
-            builder.emitLoadRegMem(otherReg, basePtr, 16 + static_cast<uint64_t>(lane) * 4, MicroOpBits::B32);
+            builder.emitLoadRegMem(laneReg, basePtr, static_cast<uint64_t>(lane) * 4 - baseOffset, MicroOpBits::B32);
+            builder.emitLoadRegMem(otherReg, basePtr, 16 + static_cast<uint64_t>(lane) * 4 - baseOffset, MicroOpBits::B32);
             builder.emitOpBinaryRegReg(laneReg, otherReg, MicroOp::Add, MicroOpBits::B32);
-            builder.emitOpBinaryRegMem(laneReg, basePtr, 32 + static_cast<uint64_t>(lane) * 4, MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegMem(laneReg, basePtr, 32 + static_cast<uint64_t>(lane) * 4 - baseOffset, MicroOp::Xor, MicroOpBits::B32);
             builder.emitOpBinaryRegImm(laneReg, ApInt(7, 8), MicroOp::RotateLeft, MicroOpBits::B32);
-            builder.emitLoadMemReg(basePtr, 48 + static_cast<uint64_t>(lane) * 4, laneReg, MicroOpBits::B32);
+            builder.emitLoadMemReg(basePtr, 48 + static_cast<uint64_t>(lane) * 4 - baseOffset, laneReg, MicroOpBits::B32);
         }
 
         // The packed replacement writes flags at the insertion point, which
@@ -518,11 +527,21 @@ namespace
         builder.emitClearReg(callConv.intReturn, MicroOpBits::B64);
         for (uint32_t lane = 0; lane < 4; ++lane)
         {
-            builder.emitLoadRegMem(rdx, basePtr, 48 + lane * 4, MicroOpBits::B32);
+            builder.emitLoadRegMem(rdx, basePtr, 48 + lane * 4 - baseOffset, MicroOpBits::B32);
             builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[lane], 32), MicroOp::Xor, MicroOpBits::B32);
             builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
         }
         builder.emitRet();
+    }
+
+    void buildReturnZeroAfterSlpVectorizedLanes(MicroBuilder& builder, const CallConv& callConv)
+    {
+        buildSlpVectorizedLanes(builder, callConv, 0);
+    }
+
+    void buildReturnZeroAfterSlpNegativeOffsets(MicroBuilder& builder, const CallConv& callConv)
+    {
+        buildSlpVectorizedLanes(builder, callConv, sizeof(slpLanesData));
     }
 }
 
@@ -617,6 +636,11 @@ SWC_TEST_BEGIN(JIT_SlpVectorizedLanes)
     }
 
     SWC_RESULT(runCase(ctx, &buildReturnZeroAfterSlpVectorizedLanes, 0));
+    for (uint32_t lane = 12; lane < std::size(slpLanesData); ++lane)
+        slpLanesData[lane] = 0;
+    SWC_RESULT(runCase(ctx, &buildReturnZeroAfterSlpNegativeOffsets, 0));
+    if (slpLanesData[19] != 0x56341200)
+        return Result::Error;
 }
 SWC_TEST_END()
 

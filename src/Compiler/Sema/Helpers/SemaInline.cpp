@@ -539,10 +539,9 @@ namespace
         if (argNode.is(AstNodeId::CastExpr) || argNode.is(AstNodeId::AutoCastExpr))
             return argRef;
 
-        if (argNode.is(AstNodeId::EmbeddedBlock))
+        if (const auto* inlinePayload = SemaInline::expansionPayload(sema, argRef))
         {
-            const auto* inlinePayload = sema.inlinePayload(argRef);
-            if (inlinePayload && inlinePayload->callRef.isValid())
+            if (inlinePayload->callRef.isValid())
                 return inlinePayload->callRef;
         }
 
@@ -554,7 +553,7 @@ namespace
         // inline block into a new inline context would orphan its `return` statements from the
         // payload that gives that block expression semantics, so let the cloned call re-inline.
         if (resolvedRef != argRef &&
-            sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
+            SemaInline::expansionPayload(sema, resolvedRef) &&
             isInlineReexpandableExpr(sema.node(argRef)))
             return argRef;
 
@@ -576,10 +575,9 @@ namespace
         for (uint32_t depth = 0; depth < 8 && exprRef.isValid(); ++depth)
         {
             const AstNode& exprNode = sema.node(exprRef);
-            if (exprNode.is(AstNodeId::EmbeddedBlock))
+            if (const auto* inlinePayload = SemaInline::expansionPayload(sema, exprRef))
             {
-                const SemaInlinePayload* inlinePayload = sema.inlinePayload(exprRef);
-                if (inlinePayload && inlinePayload->callRef.isValid())
+                if (inlinePayload->callRef.isValid())
                     return inlinePayload->callRef;
                 return AstNodeRef::invalid();
             }
@@ -587,7 +585,7 @@ namespace
             if (isInlineReexpandableExpr(exprNode))
             {
                 const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
-                if (resolvedRef.isValid() && resolvedRef != exprRef && sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock))
+                if (resolvedRef.isValid() && resolvedRef != exprRef && SemaInline::expansionPayload(sema, resolvedRef))
                     return exprRef;
             }
 
@@ -833,42 +831,23 @@ namespace
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
-        const Ast* declAst = declNode->sourceAst(sema.ctx());
+        // Every reference the inline analysis follows is an index into one node store, so the
+        // declaration's Ast must be the store that really holds it. Where it was WRITTEN does not
+        // answer that: an expansion clones a body - a local function, a generic instance - into
+        // the Ast it expands in, and the clone keeps the source location of the text it came
+        // from. Reading such a clone against the file that owns its tokens resolves every child
+        // reference in the wrong store, which lands on whatever node that index happens to hit.
+        const Ast* declAst = nullptr;
+        if (sema.ast().tryFindNodeRef(declNode).isValid())
+            declAst = &sema.ast();
+        else if (const Ast* writtenAst = declNode->sourceAst(sema.ctx()); writtenAst && writtenAst->tryFindNodeRef(declNode).isValid())
+            declAst = writtenAst;
         if (!declAst)
             return false;
 
         outDecl    = &declNode->cast<AstFunctionDecl>();
         outDeclAst = declAst;
         return true;
-    }
-
-    // A materialized inline body is cloned and re-sema'd in the caller's scope. Identifier symbols
-    // are pinned (PreResolvedSymbol) so private references survive, but a nested `CallExpr`
-    // re-runs overload selection AND drives re-resolution/coercion in downstream subsystems that the
-    // clone does not reproduce faithfully: a lambda argument loses the contextual parameter-type
-    // inference it took from the callee signature, a const `typeinfo` member access const-folds a
-    // func-typed field that cannot be evaluated at compile time, intrinsic calls lose their argument
-    // typing, etc. These failures live in const-folding / typeinfo / lambda-inference, not in the
-    // inliner, so until they are addressed there, any body containing a call stays out of line. The
-    // guard is shared by the auto-inline heuristic (same-Ast) and the explicit cross-Ast inline path.
-    bool bodyHasNestedCallExpr(const Ast& ast, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
-            return false;
-
-        const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CallExpr))
-            return true;
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, ast);
-        for (const AstNodeRef childRef : children)
-        {
-            if (bodyHasNestedCallExpr(ast, childRef))
-                return true;
-        }
-
-        return false;
     }
 
     using AliasIdentifierArray = std::array<IdentifierRef, 10>;
@@ -1146,13 +1125,15 @@ namespace
         node.collectChildrenFromAst(outChildren, nodeAst);
     }
 
-    void collectInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    void collectInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers, bool& outHasGeneratedCode)
     {
         const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
         if (!nodeAst)
             return;
 
         const AstNode& node = nodeAst->node(nodeRef);
+        if ((node.is(AstNodeId::CompilerFunc) || node.is(AstNodeId::CompilerShortFunc)) && sema.token(node.codeRef()).id == TokenId::CompilerAst)
+            outHasGeneratedCode = true;
         if (const auto* singleVar = node.safeCast<AstSingleVarDecl>())
             appendInlineLocalIdentifier(sema, node, singleVar->tokNameRef, outIdentifiers);
         else if (const auto* multiVar = node.safeCast<AstMultiVarDecl>())
@@ -1167,7 +1148,7 @@ namespace
         SmallVector<AstNodeRef> children;
         collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
-            collectInlineLocalIdentifiers(sema, sourceAst, childRef, outIdentifiers);
+            collectInlineLocalIdentifiers(sema, sourceAst, childRef, outIdentifiers, outHasGeneratedCode);
     }
 
     IdentifierRef collectResolvedIdentifier(Sema& sema, AstNodeRef nodeRef)
@@ -1488,6 +1469,14 @@ namespace
         {
             if (sourceSubtreeUsesIdentifier(sema, sourceAst, assignStmt->nodeLeftRef, idRef))
                 return true;
+        }
+        if (const auto* unary = node.safeCast<AstUnaryExpr>();
+            unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand &&
+            sourceSubtreeUsesIdentifier(sema, sourceAst, unary->nodeExprRef, idRef))
+        {
+            // Taking the address of a member or indexed element must preserve the
+            // parameter's mutable storage just as taking its own address does.
+            return true;
         }
 
         SmallVector<AstNodeRef> children;
@@ -1858,6 +1847,7 @@ namespace
         std::unordered_set<IdentifierRef> locals;
         std::unordered_set<IdentifierRef> captured;
         std::unordered_set<IdentifierRef> capturedByRef;
+        bool                              hasGeneratedCode = false;
     };
 
     // The callee side of an expansion: what every binding is classified against.
@@ -1873,7 +1863,7 @@ namespace
     void collectInlineBodyIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, InlineBodyIdentifiers& outIdentifiers)
     {
         SmallVector<IdentifierRef> identifiers;
-        collectInlineLocalIdentifiers(sema, sourceAst, bodyRef, identifiers);
+        collectInlineLocalIdentifiers(sema, sourceAst, bodyRef, identifiers, outIdentifiers.hasGeneratedCode);
         outIdentifiers.locals.insert(identifiers.begin(), identifiers.end());
 
         identifiers.clear();
@@ -1978,7 +1968,11 @@ namespace
 
         // The reasons below feed nothing but this disjunction, so they scan the body only
         // until one of them answers.
-        const bool forced = needsStandaloneHome ||
+        // Generated source can read, repeat, or modify a parameter without naming it
+        // in the template AST. Give ordinary inline parameters real local homes so
+        // these later name lookups never reach the callee's original ABI parameters.
+        const bool forGeneratedCode = context.isOrdinaryInline && context.identifiers.hasGeneratedCode;
+        const bool forced           = forGeneratedCode || needsStandaloneHome ||
                             forReceiverHome ||
                             mat.forRuntimeSafety ||
                             mat.forVariadic ||
@@ -1993,7 +1987,7 @@ namespace
 
         mat.required = forced || isCaptured || inlineBindingNeedsMaterialization(sema, binding.exprRef, context.identifiers.locals);
         if (mat.required)
-            mat.needsMutableHome = inlineBindingNeedsMutableMaterialization(sema, sourceAst, bodyRef, binding.idRef);
+            mat.needsMutableHome = forGeneratedCode || inlineBindingNeedsMutableMaterialization(sema, sourceAst, bodyRef, binding.idRef);
         return mat;
     }
 
@@ -2733,6 +2727,23 @@ namespace
 
 }
 
+const SemaInlinePayload* SemaInline::expansionPayload(Sema& sema, AstNodeRef nodeRef)
+{
+    // Argument coercion can wrap an already-expanded index. The conversion must
+    // not hide the expansion from callers that rebuild its original syntax.
+    while (const auto* cast = sema.node(nodeRef).safeCast<AstCastExpr>())
+    {
+        if (cast->hasFlag(AstCastExprFlagsE::Explicit))
+            return nullptr;
+        nodeRef = cast->nodeExprRef;
+    }
+    const AstNode& node = sema.node(nodeRef);
+    if (const auto* index = node.safeCast<AstIndexExpr>())
+        nodeRef = index->nodeExprRef;
+    const SemaInlinePayload* payload = sema.inlinePayload(nodeRef);
+    return payload && payload->inlineRootRef == nodeRef ? payload : nullptr;
+}
+
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
     // Structural guards that hold in every inline mode.
@@ -2891,26 +2902,22 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (isAutoSelected && isInsideDefer(sema))
         return Result::Continue;
 
-    // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
-    // Regular inline relies on the body's identifiers already carrying their resolved symbols
-    // so cloning can preserve them (PreResolvedSymbol) instead of re-resolving by name in the
-    // caller's scope (which can't see the callee's private/internal symbols, picks wrong
-    // overloads, and trips shadowing). That resolution only exists once the callee has been
-    // sema-completed, so wait for it before proceeding.
-    // Generic functions instantiated cross-Ast still re-bind their generic parameters and
-    // intrinsic argument matching in the caller's Ast, which is not handled yet. Letting those
-    // instances through corrupts vector arithmetic assembled from generic operators.
-    if (isCrossAstInline && isOrdinaryInline && (fn.isGenericInstance() || fn.isGenericRoot()))
-        return Result::Continue;
-    if (isCrossAstInline && isOrdinaryInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
-        return Result::Continue;
-
     // Wait for the callee to be sema-completed before materializing its body. A cross-Ast inline
     // needs this so its identifiers carry resolved symbols (they cannot be re-resolved by name in
     // another file); an auto-selected same-Ast inline that pins resolved symbols needs it for the
     // same reason - a not-yet-resolved reference (e.g. a file-scope const used in the body) would
     // otherwise be cloned with nothing to pin and fail to re-resolve. Self-recursive callees are
     // already filtered out above, so this does not wait on the function being expanded.
+    //
+    // A function declared inside another function's body is analyzed by the job walking that
+    // body, and every call to it sits inside that same body. Meeting such a call before the
+    // declaration - a local function of a macro calling a sibling declared after it - would make
+    // the job wait on a completion only it can produce. The walk settles local declarations in
+    // source order, so a nested callee is a candidate once its own analysis is done and stays a
+    // call before that. A local function of an expansion is owned by the scope the expansion
+    // opened, not by a function, so it is known by its flag rather than by its lexical parent.
+    if (isAutoSelected && !fn.isSemaCompleted() && (fn.hasExtraFlag(SymbolFunctionFlagsE::InlineLocalFunction) || fn.parentLexicalFunction()))
+        return Result::Continue;
     if ((isCrossAstInline || isAutoSelected) && isOrdinaryInline)
         SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
 
@@ -2954,7 +2961,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         if (variadicExprRef.isInvalid() || variadicExprTypeRef.isInvalid())
             return Result::Continue;
         if (variadicBinding.param->idRef().isValid())
-            bindings.push_back({variadicBinding.param->idRef(), variadicExprRef, variadicExprTypeRef, ConstantRef::invalid(), variadicBinding.allArgsConstant});
+            bindings.push_back({variadicBinding.param->idRef(), variadicExprRef, variadicExprTypeRef, ConstantRef::invalid(), variadicBinding.allArgsConstant, false, false, variadicBinding.param});
     }
 
     TypeRef returnTypeRef = fn.returnTypeRef();

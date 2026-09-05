@@ -7,6 +7,8 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Parser/Parser.h"
+#include "Compiler/Sema/Core/NodePayload.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
@@ -283,6 +285,79 @@ func leaf() => useCandidates()
     if (wrapsMixin->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
     if (wrapsClosure->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ExplicitInlineExpandsCrossFileBody)
+{
+    static constexpr std::string_view PROVIDER     = R"(#[Swag.Inline]
+private func increment(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func nested(value: s32)->s32 => increment(value) * 2
+#[Swag.Inline]
+func(T) identity(value: T)->T => value
+struct Buffer { value: *s32 }
+impl Buffer
+{
+    #[Swag.Inline]
+    mtd const opIndexPtr(index: s32)->*s32 => .value
+}
+)";
+    static constexpr std::string_view CALLER       = R"(func checkNested(value: s32)->s32 => nested(value)
+func checkGeneric(value: s32)->s32 => identity(value)
+func checkIndex(value: *s32)->s32
+{
+    let buffer = Buffer{value}
+    return buffer[0]
+}
+)";
+    const fs::path                    providerPath = Unittest::makeTestSourcePath("Compiler", "ExplicitInlineProvider");
+    const fs::path                    callerPath   = Unittest::makeTestSourcePath("Compiler", "ExplicitInlineCaller");
+    CommandLine                       cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_explicit_inline_cross_file";
+    cmdLine.silent   = true;
+    cmdLine.numCores = 6;
+    cmdLine.files.insert(providerPath);
+    cmdLine.files.insert(callerPath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, providerPath, PROVIDER);
+    Unittest::registerTestSource(compiler, callerPath, CALLER);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    size_t      calls    = 0;
+    size_t      expanded = 0;
+    TaskContext compilerCtx(compiler);
+    for (SourceFile* file : compiler.files())
+    {
+        if (!FileSystem::pathEquals(file->path(), callerPath))
+            continue;
+        Sema sema(compilerCtx, file->nodePayloadContext(), false);
+        Ast::visit(file->ast(), file->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
+            if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::IndexExpr))
+            {
+                ++calls;
+                if (sema.hasSubstitute(ref))
+                {
+                    AstNodeRef bodyRef = sema.viewZero(ref).nodeRef();
+                    if (sema.node(bodyRef).is(AstNodeId::IndexExpr))
+                        bodyRef = sema.node(bodyRef).cast<AstIndexExpr>().nodeExprRef;
+                    if (sema.inlinePayload(bodyRef))
+                        ++expanded;
+                }
+            }
+            return Ast::VisitResult::Continue;
+        });
+    }
+    // A written '#[Inline]' is a contract: a body that calls, a generic instance, and an index
+    // operator are all expanded in the file that calls them.
+    if (calls != 3 || expanded != 3)
         return Result::Error;
 }
 SWC_TEST_END()

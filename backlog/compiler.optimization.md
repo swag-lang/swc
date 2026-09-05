@@ -516,3 +516,26 @@ cmov-to-branch back-conversion, and profile-gated passes.
   `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
   the `render.parity.stroke.cpu-ogl` golden stays green.
 - Related: compiler.optimization.003.
+
+### compiler.optimization.028 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Area: compiler/backend, compilation time
+- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
+  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
+- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
+  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
+  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
+  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
+  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
+  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
+  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
+  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
+  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
+- Next: count rebuilds and mutating passes per function on std/core to size the win, then keep the
+  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
+  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
+  `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the
+  generated code is proven unchanged.
+- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
+  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
+- Related: compiler.core.004, compiler.core.030.

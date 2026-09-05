@@ -65,6 +65,12 @@ void Allocator::configure()
     // commit keeps the process charge tied to pages the compiler actually touches. The value 2
     // retains full commit on overcommitting systems, where that charge is free.
     mi_option_set(mi_option_page_commit_on_demand, 2);
+
+    // The process gives its memory back when it exits, so collecting every heap and
+    // decommitting every arena first is work nobody can observe. mimalloc's exit hook skips
+    // all of it above 1; measured at 6 to 12 percent of a short command such as a hello
+    // world build or a no-op workspace build, all of it after the last byte was written.
+    mi_option_set(mi_option_destroy_on_exit, 2);
     mi_register_output(&mimallocOutputWithStack, nullptr);
 }
 

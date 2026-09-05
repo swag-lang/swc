@@ -920,7 +920,7 @@ namespace
         paths.erase(std::ranges::unique(paths).begin(), paths.end());
     }
 
-    void normalizeWorkspaceRelativePaths(std::vector<fs::path>& paths)
+    void normalizeWorkspacePathsLexically(std::vector<fs::path>& paths)
     {
         for (fs::path& path : paths)
             path = path.lexically_normal();
@@ -1325,7 +1325,11 @@ namespace
         appendWorkspaceInputFiles(outInputs, setupCompilerInputFiles);
         appendWorkspaceInputFiles(outInputs, buildCompilerInputFiles);
 
-        normalizeWorkspacePaths(outInputs);
+        // Every path here is already canonical: the module directory was normalized when the
+        // workspace was scanned, the enumeration below it yields on-disk names, and a loaded or
+        // registered file was normalized when it was registered. Resolving each one again on
+        // disk was a third of a no-op build.
+        normalizeWorkspacePathsLexically(outInputs);
     }
 
     void collectWorkspaceOutputArtifacts(std::vector<fs::path>& outArtifacts, const fs::path& outDir)
@@ -1357,7 +1361,7 @@ namespace
             outArtifacts.push_back(relativePath.lexically_normal());
         }
 
-        normalizeWorkspaceRelativePaths(outArtifacts);
+        normalizeWorkspacePathsLexically(outArtifacts);
     }
 
     bool readWorkspaceArtifactManifest(WorkspaceArtifactManifest& outManifest, const fs::path& manifestPath)
@@ -1451,9 +1455,10 @@ namespace
             start = end + 1;
         }
 
-        normalizeWorkspacePaths(outManifest.inputs);
-        normalizeWorkspacePaths(outManifest.dependencyDirs);
-        normalizeWorkspaceRelativePaths(outManifest.artifacts);
+        // Written canonical by the build that produced it, so read as it is.
+        normalizeWorkspacePathsLexically(outManifest.inputs);
+        normalizeWorkspacePathsLexically(outManifest.dependencyDirs);
+        normalizeWorkspacePathsLexically(outManifest.artifacts);
         return validVersion && hasDebugInfo;
     }
 

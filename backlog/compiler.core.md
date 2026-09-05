@@ -48,6 +48,20 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.004.
 
+### compiler.core.030 — Every executable lowers the runtime's functions again
+
+**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
+
+**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup — and give the prelude its build configuration as a compiler-materialized constant instead of a JIT run.
+
+**Complete when.**
+
+- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
+- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
+- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.028.
+
 ## Tier B — Measurement and budgets
 
 ### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
@@ -80,6 +94,8 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ## Tier B — Reused and parallel compiler work
 
 ### compiler.core.006 — Every process rebuilds the prelude state
+
+**Evidence.** On 2026-09-05 (Release 0.1.369, six worker cores, quiet machine): `swc help` 34 ms, `swc syntax` on an empty file 35 ms, `swc sema` on the same 165 ms. The prelude is 14 files and 32 948 tokens; its semantic pass, including the JIT run compiler.core.030 describes, is what separates the last two numbers, and every module setup used to pay it once more until the setup cache of 0.1.367 kept the result.
 
 **Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
 

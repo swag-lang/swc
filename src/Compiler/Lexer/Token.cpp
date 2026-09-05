@@ -84,14 +84,23 @@ std::string_view Token::intrinsicName(const TokenId id)
 
 TokenId Token::intrinsicFromName(const std::string_view name)
 {
-    for (uint32_t i = 0; i < static_cast<uint32_t>(TokenId::Count); ++i)
-    {
-        const auto id = static_cast<TokenId>(i);
-        if (intrinsicName(id) == name)
-            return id;
-    }
+    // The parser asks twice per intrinsic call and the formatter once per candidate piece, so
+    // walking every token id with a string compare each time was 9 percent of a formatting
+    // pass. The table is built once, from the same names.
+    static const std::unordered_map<std::string_view, TokenId> intrinsics = [] {
+        std::unordered_map<std::string_view, TokenId> table;
+        for (uint32_t i = 0; i < static_cast<uint32_t>(TokenId::Count); ++i)
+        {
+            const auto             id       = static_cast<TokenId>(i);
+            const std::string_view intrinsic = intrinsicName(id);
+            if (!intrinsic.empty())
+                table.emplace(intrinsic, id);
+        }
+        return table;
+    }();
 
-    return TokenId::Invalid;
+    const auto it = intrinsics.find(name);
+    return it == intrinsics.end() ? TokenId::Invalid : it->second;
 }
 
 TokenId Token::toRelated(TokenId id)

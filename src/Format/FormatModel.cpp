@@ -161,6 +161,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     auto pushPiece = [&](const uint32_t byteStart, const std::string_view text, const TokenId id, const uint32_t tokenIndex) {
         FormatGap gap;
         gap.origText = pendingGap;
+        gap.newlines = countGapNewlines(pendingGap);
         gaps_.push_back(std::move(gap));
         pendingGap = {};
 
@@ -211,6 +212,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     // Trailing whitespace before the end of file.
     FormatGap gap;
     gap.origText = pendingGap;
+    gap.newlines = countGapNewlines(pendingGap);
     gaps_.push_back(std::move(gap));
 
     detectEol();
@@ -372,8 +374,9 @@ bool FormatModel::gapHasNewline(const uint32_t pieceIndex) const
 
 uint32_t FormatModel::gapNewlineCount(const uint32_t pieceIndex) const
 {
-    const FormatGap& gap      = gaps_[pieceIndex];
-    const uint32_t   newlines = gap.modified ? gap.newlines : countGapNewlines(gap.origText);
+    // Counted once when the model was built for an original gap, and set by whoever
+    // modified it since: every pass reads this for every piece it looks at.
+    const uint32_t newlines = gaps_[pieceIndex].newlines;
 
     // The blank-line caps are applied when the gap is rendered, so a pass that
     // reads the raw count reasons about a layout the reader will never see: a
@@ -574,7 +577,7 @@ void FormatModel::renderOriginalGap(Utf8& output, const uint32_t gapIndex) const
     const bool     rewriteEol    = options_->endOfLineStyle != FormatEndOfLineStyle::Preserve;
     const bool     trimTrailing  = !options_->preserveTrailingWhitespace.value_or(true);
     const uint32_t maxNewlines   = maxAllowedNewlines(gapIndex);
-    const uint32_t totalNewlines = countGapNewlines(text);
+    const uint32_t totalNewlines = gap.newlines;
 
     const bool limitsNewlines = totalNewlines > maxNewlines;
     if (!rewriteIndent && !rewriteEol && !trimTrailing && !limitsNewlines)

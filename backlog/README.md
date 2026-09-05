@@ -45,6 +45,7 @@ command uses `compiler.command.doc`. A deliberately cross-cutting domain can rem
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
+| [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |

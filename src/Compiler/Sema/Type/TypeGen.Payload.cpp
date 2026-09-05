@@ -142,6 +142,17 @@ namespace
         }
     }
 
+    // Whether a struct offers a copy of its own storage. Two rules deny one: the explicit
+    // '#[Swag.NoCopy]', and ownership - a struct that declares 'opDrop' owns what it releases,
+    // so a bitwise duplicate would release the same resource twice. Declaring 'opPostCopy'
+    // states what a duplicate owns and opts the copy back in.
+    bool structDeclaresCopy(const SymbolStruct& symStruct)
+    {
+        if (symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy))
+            return false;
+        return symStruct.opDrop() == nullptr || symStruct.opPostCopy() != nullptr;
+    }
+
     void mergeFieldLifecycle(TypeGen::LifecycleFlags& ioFlags, const TypeGen::LifecycleFlags& fieldFlags)
     {
         ioFlags.hasPostCopy = ioFlags.hasPostCopy || fieldFlags.hasPostCopy;
@@ -173,6 +184,53 @@ namespace
         return flags;
     }
 
+    TypeRef owningDropTypeRefRec(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    {
+        if (typeRef.isInvalid() || !visiting.insert(typeRef).second)
+            return TypeRef::invalid();
+
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+
+        if (type.isAlias())
+            return owningDropTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
+
+        if (type.isArray())
+            return owningDropTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visiting);
+
+        if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
+            {
+                const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, fieldTypeRef, visiting);
+                if (owningTypeRef.isValid())
+                    return owningTypeRef;
+            }
+
+            return TypeRef::invalid();
+        }
+
+        if (!type.isStruct())
+            return TypeRef::invalid();
+
+        const SymbolStruct& symStruct = type.payloadSymStruct();
+        if (!symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy) && !structDeclaresCopy(symStruct))
+            return typeRef;
+
+        if (!symStruct.isSemaCompleted())
+            return TypeRef::invalid();
+
+        for (const SymbolVariable* field : symStruct.fields())
+        {
+            if (!field)
+                continue;
+            const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, field->typeRef(), visiting);
+            if (owningTypeRef.isValid())
+                return owningTypeRef;
+        }
+
+        return TypeRef::invalid();
+    }
+
     TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting)
     {
         if (type.isVoid() || type.isNull())
@@ -202,7 +260,7 @@ namespace
             flags.hasDrop     = symStruct.opDrop() != nullptr;
             flags.hasPostCopy = symStruct.opPostCopy() != nullptr;
             flags.hasPostMove = symStruct.opPostMove() != nullptr;
-            flags.canCopy     = !symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy);
+            flags.canCopy     = structDeclaresCopy(symStruct);
             return flags;
         }
 
@@ -218,9 +276,7 @@ namespace
         flags.hasDrop                = flags.hasDrop || hasDirectDrop;
         flags.hasPostCopy            = flags.hasPostCopy || hasDirectPostCopy;
         flags.hasPostMove            = flags.hasPostMove || hasDirectPostMove;
-        // A struct is copyable unless explicitly marked with #[Swag.NoCopy] (or it contains
-        // a non-copyable field): 'opPostCopy' only customizes the copy, it does not gate it.
-        flags.canCopy = !symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy) && flags.canCopy;
+        flags.canCopy                = structDeclaresCopy(symStruct) && flags.canCopy;
         return flags;
     }
 
@@ -991,6 +1047,15 @@ TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfTypeRef(TaskContext& ctx, const
 {
     std::unordered_set<TypeRef> visiting;
     return lifecycleFlagsOfTypeRefRec(ctx, typeRef, visiting);
+}
+
+// The type that denies a copy because it owns a release: the first struct reached from
+// 'typeRef' that declares 'opDrop' without an 'opPostCopy'. Invalid when the copy is denied
+// for another reason, or not denied at all.
+TypeRef TypeGen::owningDropTypeRef(TaskContext& ctx, const TypeRef typeRef)
+{
+    std::unordered_set<TypeRef> visiting;
+    return owningDropTypeRefRec(ctx, typeRef, visiting);
 }
 
 void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry)

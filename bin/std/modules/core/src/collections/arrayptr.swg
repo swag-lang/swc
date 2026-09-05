@@ -21,23 +21,28 @@ impl ArrayPtr
     // Handles the deep copy of the array and the objects it points to.
     // When the array is copied, new memory is allocated for each element, and the
     // content is copied over, ensuring the new array owns its own set of objects.
-    mtd opPostCopy()
+    // An element that owns a release states no copy of its own, and nothing here can duplicate
+    // what it owns: the array then states none either, and is handed over with '#move'.
+    #static if Reflection.canCopy(T)
     {
-        if !.count do
-            return
-        let buffer = .buffer!
-        for i in .count
+        mtd opPostCopy()
         {
-            let oldPtr = buffer[i]
-            if !oldPtr
+            if !.count do
+                return
+            let buffer = .buffer!
+            for i in .count
             {
-                buffer[i] = null
-                continue
-            }
+                let oldPtr = buffer[i]
+                if !oldPtr
+                {
+                    buffer[i] = null
+                    continue
+                }
 
-            let newPtr = Memory.new'T(.allocator)
-            newPtr[]  = oldPtr[]
-            buffer[i] = newPtr
+                let newPtr = Memory.new'T(.allocator)
+                newPtr[]  = oldPtr[]
+                buffer[i] = newPtr
+            }
         }
     }
 

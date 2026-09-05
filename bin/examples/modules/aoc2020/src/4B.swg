@@ -149,19 +149,38 @@ func day4B0()
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
+
+// One field rule: the expression a value has to match, and the bit it sets once it does.
+struct Day4Rule
+{
+    r: Parser.RegExp
+    b: u32
+}
+
 func day4B1()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var map: HashTable'(string, { r: Parser.RegExp, b: u32 })
-    map.add("byr", {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1})
-    map.add("iyr", {expect Parser.RegExp.create("201[0-9]|2020"), 2})
-    map.add("eyr", {expect Parser.RegExp.create("202[0-9]|2030"), 4})
-    map.add("hgt", {expect Parser.RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in"), 8})
-    map.add("hcl", {expect Parser.RegExp.create("#([a-f0-9]){6}"), 16})
-    map.add("ecl", {expect Parser.RegExp.create("amb|blu|brn|gry|grn|hzl|oth"), 32})
-    map.add("pid", {expect Parser.RegExp.create("[0-9]{9}"), 64})
+    // A compiled expression owns its program, so a rule states no copy: build it in a local
+    // and hand it over with '#move'.
+    var map: HashTable'(string, Day4Rule)
+    var rule: Day4Rule
+
+    rule = {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}
+    map.add("byr", #move rule)
+    rule = {expect Parser.RegExp.create("201[0-9]|2020"), 2}
+    map.add("iyr", #move rule)
+    rule = {expect Parser.RegExp.create("202[0-9]|2030"), 4}
+    map.add("eyr", #move rule)
+    rule = {expect Parser.RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in"), 8}
+    map.add("hgt", #move rule)
+    rule = {expect Parser.RegExp.create("#([a-f0-9]){6}"), 16}
+    map.add("hcl", #move rule)
+    rule = {expect Parser.RegExp.create("amb|blu|brn|gry|grn|hzl|oth"), 32}
+    map.add("ecl", #move rule)
+    rule = {expect Parser.RegExp.create("[0-9]{9}"), 64}
+    map.add("pid", #move rule)
 
     var total, pass: u32
     for l, index in lines

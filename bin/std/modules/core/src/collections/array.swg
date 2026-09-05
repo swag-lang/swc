@@ -44,25 +44,30 @@ impl Array
 
     // Handles the deep copy of the array when it is copied.
     // A new me.buffer is allocated and the content is copied over.
-    mtd opPostCopy()
+    // An element that owns a release states no copy of its own, and nothing here can duplicate
+    // what it owns: the array then states none either, and is handed over with '#move'.
+    #static if Reflection.canCopy(T)
     {
-        if !.buffer do
-            return
-
-        let oldBuffer = .buffer
-        .buffer = null
-        .realloc(.count)
-
-        #static if Reflection.hasPostCopy(T)
+        mtd opPostCopy()
         {
-            .initNewSlots(0, .count)
-            let buffer = .buffer!
-            for index in .count do
-                buffer[index] = #nodrop oldBuffer[index]
-        }
-        else
-        {
-            Memory.copy(.buffer, oldBuffer, #sizeof(T) * .count)
+            if !.buffer do
+                return
+
+            let oldBuffer = .buffer
+            .buffer = null
+            .realloc(.count)
+
+            #static if Reflection.hasPostCopy(T)
+            {
+                .initNewSlots(0, .count)
+                let buffer = .buffer!
+                for index in .count do
+                    buffer[index] = #nodrop oldBuffer[index]
+            }
+            else
+            {
+                Memory.copy(.buffer, oldBuffer, #sizeof(T) * .count)
+            }
         }
     }
 

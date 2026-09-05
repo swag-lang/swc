@@ -88,9 +88,9 @@ ships; history lives in git, not here.
   that page says the leading dot no longer has room for.
 - What the feature must carry, and what it therefore depends on:
   - Lifecycle dispatched on the tag: `opInit`, `opDrop`, `opPostCopy`, `#move` and assignment, none of which
-    a union has today. A tagged union with an owning payload **is** the type compiler.safety.002 describes,
-    so without its inferred `NoCopy` the compiler would generate a drop for a type it also lets you copy
-    bitwise — turning an author's double-free into the compiler's.
+    a union has today. A tagged union with an owning payload is a type that owns a release, so the rule
+    that takes the copy away from a type declaring `opDrop` has to reach its generated drop too; without
+    that, the compiler would generate a drop for a type it also lets you copy bitwise.
   - Changing the case invalidates every borrow of the payload:
     `let p = &cmd.color; cmd.params = .Font{...}; p[]` reads the wrong case with no free involved. That is
     view invalidation, which `SemaEscape` already models for containers, and it has to be designed in rather
@@ -114,7 +114,8 @@ ships; history lives in git, not here.
   defaults are better decided together, since the case for `#complete` is far stronger on a closed choice
   than on an open enum. compiler.safety.009 is the floor rather than a neighbour: this feature multiplies
   `switch #complete`, and a tag outside the set then walks past the match with no arm having run.
-  compiler.safety.002 is a prerequisite for any owning payload. compiler.safety.010 is where a forged tag
+  The ownership rule that denies the copy of a type declaring `opDrop` has to cover the generated drop of
+  an owning payload. compiler.safety.010 is where a forged tag
   comes from, with `= undefined`, `Swag.memcpy`, `#relocate`, a binary read into the struct and a
   `#[Foreign]` call as the other routes. compiler.safety.011 applies to whatever spelling asserts a tag. It
   narrows, rather than removes, the union bullet of compiler.safety.006: the untagged form stays for C

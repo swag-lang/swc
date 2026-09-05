@@ -10,8 +10,9 @@ using Corpus
 // free list, and the failure surfaces inside an unrelated allocation far from the fault.
 //
 // Swag: proven at compile time on the direct shape, through the same FREES summary that
-// carries CWE-416. The gap is ownership: nothing stops a value that owns a release from
-// being copied, and then each copy releases the same block.
+// carries CWE-416, and closed on the ownership shape: a value that declares 'opDrop' owns
+// what it releases and states no copy, so two owners of one block cannot be written. What is
+// left is the shape nothing marks as an owner at all.
 // -----------------------------------------------------------------------------
 
 // --- Faults ---
@@ -50,42 +51,53 @@ func freeTwiceThroughWrapper()
     freeTwiceThroughWrapper()
 }
 
+// A value that owns a release is not copied like an integer: declaring 'opDrop' states the
+// ownership, and the copy is rejected without the type having to say anything more. This is
+// the rule every ownership language shares, and it closes the whole class rather than one
+// shape of it.
+struct Owner
+{
+    pointer: *s32?
+}
+
+impl Owner
+{
+    mtd opDrop()
+    {
+        if .pointer != null
+        {
+            heapFree(.pointer!, 4)
+            .pointer = null
+        }
+    }
+}
+
+// A struct owning through a member states no copy either.
+struct OwnerHolder
+{
+    owner: Owner
+}
+
+#test
+{
+    var first: Owner
+    first.pointer = cast(*s32) heapAlloc(4)
+    var second = first     // swc-expected-error {{sema_err_cannot_copy_owning}}
+    discard second
+}
+
+#test
+{
+    var first: OwnerHolder
+    var second = first     // swc-expected-error {{sema_err_cannot_copy_owning}}
+    discard second
+}
+
 // --- Known misses ---
 
-// GAP compiler.safety.002 - a value that OWNS a release is copied like an integer, and both
-// copies release the same block at scope exit. Nothing is reported, in any configuration:
-// this is the single largest ownership hole, and the one every ownership language closes by
-// making a type with a destructor non-copyable. Left commented because it really does
-// double-free and corrupts the compile-time heap.
-//
-// struct Owner
-// {
-//     pointer: *s32?
-// }
-//
-// impl Owner
-// {
-//     mtd opDrop()
-//     {
-//         if .pointer != null
-//         {
-//             heapFree(.pointer!, 4)
-//             .pointer = null
-//         }
-//     }
-// }
-//
-// #test
-// {
-//     var first: Owner
-//     first.pointer = cast(*s32) heapAlloc(4)
-//     var second = first          // expected: a copy of an owning value must be rejected
-//     discard second
-// }
-
-// GAP compiler.safety.002 - the same fault without 'opDrop': a plain struct carrying a
-// pointer, released through a helper, copied in between. The analysis has no notion of an
-// owner here at all.
+// GAP compiler.safety.004 - the same fault without 'opDrop': a plain struct carrying a
+// pointer, released through a helper, copied in between. Nothing marks the type as an owner,
+// so no ownership rule can see the second one; this is the half a runtime net is for.
 //
 // struct Handle { pointer: *s32? }
 //

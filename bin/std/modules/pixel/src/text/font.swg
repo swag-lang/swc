@@ -183,7 +183,7 @@ public struct FontCache
 
     internal
     {
-        glyphCaches: ArrayPtr'GlyphCache     // Glyph storage, one per typeface / reference size / style.
+        glyphCaches: Array'(*GlyphCache?)     // Glyph storage, one per typeface / reference size / style.
         fonts:       ArrayPtr'Font           // Views handed out by this cache.
     }
 }
@@ -203,7 +203,16 @@ public impl FontCache
     mtd clear()
     {
         .fonts.clear()
+        for it in .glyphCaches do
+            Memory.delete(it)
         .glyphCaches.clear()
+    }
+
+    // A glyph cache owns the descriptors it hands out and states no copy, so the array holds
+    // pointers and this cache releases them.
+    mtd opDrop()
+    {
+        .clear()
     }
 
     // Get or create the glyph storage for a (typeface, style, mode, refSize, spread).
@@ -221,7 +230,8 @@ public impl FontCache
                 return cache
         }
 
-        let cache = .glyphCaches.addNew()
+        let cache = Memory.new'GlyphCache()
+        .glyphCaches.add(cache)
         cache.typeFace    = typeFace
         cache.renderMode  = renderMode
         cache.refSize     = refSize

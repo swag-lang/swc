@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -177,6 +178,19 @@ namespace
             if (argView.typeRef().isValid() && sema.typeMgr().get(argView.typeRef()).isAnyTypeInfo(sema.ctx()))
                 return Result::Continue;
             return makeAttributeTypeInfoCallArgument(sema, argValueRef, argView);
+        }
+
+        // A type argument becomes a runtime 'typeinfo' only when the selected overload really
+        // needs the payload. Materializing it here, while candidates are still being collected,
+        // pulls in the pointed-to type of every field of the whole graph, and a compile-time
+        // query that is about to fold the answer never gets its turn. The type value carries
+        // everything matching needs; 'Cast::castFromTypeValue' materializes the payload later,
+        // and only when it is asked for a result.
+        SemaHelpers::normalizeTypeOperandToConstant(sema, argView);
+        if (argView.cstRef().isValid() && sema.cstMgr().get(argView.cstRef()).isTypeValue())
+        {
+            sema.setIsValue(argValueRef);
+            return Result::Continue;
         }
 
         return SemaCheck::isValueOrTypeInfo(sema, argView);

@@ -1359,8 +1359,11 @@ namespace
                 const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(ctx, checkTypeRef);
                 if (lifecycle.hasDrop || lifecycle.hasPostCopy || lifecycle.hasPostMove || !lifecycle.canCopy)
                 {
-                    const DiagnosticId diagId = !lifecycle.canCopy ? DiagnosticId::sema_err_closure_capture_nocopy
-                                                                   : DiagnosticId::sema_err_closure_capture_lifecycle;
+                    // A lifecycle operation is the more precise reason, and it is the one that
+                    // also denies the copy of an owning type: report it before non-copyability.
+                    const bool         hasLifecycle = lifecycle.hasDrop || lifecycle.hasPostCopy || lifecycle.hasPostMove;
+                    const DiagnosticId diagId       = hasLifecycle ? DiagnosticId::sema_err_closure_capture_lifecycle
+                                                                   : DiagnosticId::sema_err_closure_capture_nocopy;
 
                     auto diag = SemaError::report(sema, diagId, captureArg.nodeIdentifierRef);
                     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);

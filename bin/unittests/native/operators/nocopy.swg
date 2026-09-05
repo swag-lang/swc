@@ -42,8 +42,8 @@ func makeHandle(v: s32)->Handle
     Swag.assert(d.x == 7)
 }
 
-// A struct with 'opDrop' but no 'opPostCopy' remains copyable ('opPostCopy' only
-// customizes the copy; only '#[Swag.NoCopy]' forbids it).
+// A struct with 'opDrop' owns what that method releases, so it states no copy and is handed
+// over with '#move'. Declaring 'opPostCopy' beside it opts the copy back in.
 struct DropOnly
 {
     x: s32
@@ -54,12 +54,33 @@ impl DropOnly
     mtd opDrop() {}
 }
 
+struct DropAndCopy
+{
+    x: s32
+}
+
+impl DropAndCopy
+{
+    mtd opDrop() {}
+    mtd opPostCopy() {}
+}
+
 #test
 {
     var a = DropOnly{5}
-    var b = a
+    var b = #move a
     Swag.assert(b.x == 5)
     var c: DropOnly
+    c = #move b
+    Swag.assert(c.x == 5)
+}
+
+#test
+{
+    var a = DropAndCopy{5}
+    var b = a
+    Swag.assert(b.x == 5)
+    var c: DropAndCopy
     c = a
     Swag.assert(c.x == 5)
 }

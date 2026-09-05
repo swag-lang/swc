@@ -127,7 +127,9 @@ impl HashTable
     }
 
     // Replaces the content of the me.table with key-value pairs from a slice.
+    // Every pair is copied in, so this only exists when both halves can be copied.
     mtd opSet(slice: const [..] { k: K, v: V })
+        where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
         .clear()
         for v in slice do
@@ -136,36 +138,41 @@ impl HashTable
 
     // Handles the deep copy of the me.table when it is copied.
     // A new me.table is allocated and all entries are copied over.
-    mtd opPostCopy()
+    // A key or a value that owns a release states no copy of its own, and nothing here can
+    // duplicate what it owns: the table then states none either, and is handed over with '#move'.
+    #static if Reflection.canCopy(K) and Reflection.canCopy(V)
     {
-        if !.table do
-            return
-
-        if !.allocator do
-            .allocator = Swag.getContext().allocator
-
-        let oldTable = .tablePtr()
-        let newTable = cast([*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
-        Memory.clear(newTable, .capacity * #sizeof(HashTableEntry'(K, V)))
-        #static if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
+        mtd opPostCopy()
         {
-            for i in .capacity
+            if !.table do
+                return
+
+            if !.allocator do
+                .allocator = Swag.getContext().allocator
+
+            let oldTable = .tablePtr()
+            let newTable = cast([*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
+            Memory.clear(newTable, .capacity * #sizeof(HashTableEntry'(K, V)))
+            #static if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
             {
-                let hashVal = oldTable[i].hash
-                if hashVal < HashTable.HASH_DELETED do
-                    continue
+                for i in .capacity
+                {
+                    let hashVal = oldTable[i].hash
+                    if hashVal < HashTable.HASH_DELETED do
+                        continue
 
-                newTable[i].hash  = hashVal
-                newTable[i].key   = #nodrop oldTable[i].key
-                newTable[i].value = #nodrop oldTable[i].value
+                    newTable[i].hash  = hashVal
+                    newTable[i].key   = #nodrop oldTable[i].key
+                    newTable[i].value = #nodrop oldTable[i].value
+                }
             }
-        }
-        else
-        {
-            Memory.copy(newTable, oldTable, .capacity * #sizeof(HashTableEntry'(K, V)))
-        }
+            else
+            {
+                Memory.copy(newTable, oldTable, .capacity * #sizeof(HashTableEntry'(K, V)))
+            }
 
-        .table = newTable
+            .table = newTable
+        }
     }
 
     // Provides read-only access to the value associated with a key.
@@ -185,7 +192,9 @@ impl HashTable
     }
 
     // Assigns a value to a key, updating it if it exists or adding it if it doesn't.
+    // The value is copied in, so this only exists when it can be copied.
     mtd opIndexSet(key: K, val: V)
+        where Reflection.canCopy(#typeof(V))
     {
         .add(key, val)
     }
@@ -415,8 +424,10 @@ impl HashTable
 
     // Internal helper to add a new element with a pre-computed hash. Use with care.
     #[Discardable, Swag.NoDoc]
+    // Rehashing relocates every entry rather than copying it, so a value that owns a release
+    // travels here untouched. The key is still compared by value through getNewIndex.
     mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->*HashTableEntry
-        where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
+        where Reflection.canCopy(#typeof(K))
     {
         .grow()
 

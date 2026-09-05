@@ -116,7 +116,7 @@ struct TagBin
         sections:     ArrayPtr'TagBinSection                                 // Stack of currently active sections.
         outStack:     Array'(*ConcatBuffer?)                                 // Output buffers of the enclosing sections.
         elemStack:    Array'{ compressed: bool, tmpBuf: *ConcatBuffer? }     // Element stack.
-        freeTmpBuf:   ArrayPtr'ConcatBuffer                                  // Pool of reusable scratch buffers.
+        freeTmpBuf:   Array'(*ConcatBuffer?)                                 // Pool of reusable scratch buffers, owned by the writer.
     }
 }
 
@@ -147,6 +147,14 @@ private impl TagBin
         .freeSections.add(ptr)
     }
 
+    // Releases the scratch buffers the writer still owns. A concatenation buffer owns its
+    // bucket chain and states no copy, so the pool holds pointers and releases them here.
+    mtd opDrop()
+    {
+        for buf in .freeTmpBuf do
+            Memory.delete(buf)
+    }
+
     mtd acquireTmpBuf()->*ConcatBuffer
     {
         if .freeTmpBuf.count
@@ -156,7 +164,7 @@ private impl TagBin
             return b
         }
 
-        return .freeTmpBuf.allocate()
+        return Memory.new'ConcatBuffer()
     }
 
     mtd releaseTmpBuf(b: *ConcatBuffer)

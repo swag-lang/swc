@@ -23,12 +23,13 @@ turns them on — `buildCfg.safetyGuards`, or a target of its own — and a fix 
 instruction to a guard-free build is not a fix. What the entries below ask for instead is more
 proof at compile time, where the cost is the compiler's rather than the program's.
 
-Measured against that line, the frame is in good shape and the heap is not. Escapes, view
+Measured against that line, the frame is in good shape and the heap is catching up. Escapes, view
 invalidation, iterator invalidation, definite initialization, non-null types and mandatory error
-handling are all enforced without a single annotation. Ownership of heap memory is not modelled at
-all: a value that owns a resource is copied like an integer, the use-after-free proof rarely
-survives contact with real code, and the operations that forge a pointer out of nothing are spelled
-like ordinary code. The entries below are ordered by how much of that gap each one closes.
+handling are all enforced without a single annotation, and a value that owns a release now states
+no copy without being annotated either. What is left on the heap side is the shape nothing marks
+as an owner at all, a use-after-free proof that rarely survives contact with real code, and the
+operations that forge a pointer out of nothing being spelled like ordinary code. The entries below
+are ordered by how much of that gap each one closes.
 
 Every entry below is backed by a compilable case in
 [bin/unittests/safety/corpus](../bin/unittests/safety/corpus): one file per CWE, a fault half
@@ -39,62 +40,6 @@ is the current scorecard.
 [README.md](README.md) defines the shared backlog conventions.
 
 ## Ownership of the heap
-
-### compiler.safety.002 — A value that owns a resource is copied implicitly, and both copies release it
-
-- Area: compiler/sema, lifecycle
-- Evidence: a struct with an `opDrop` that releases what it points at is bitwise-copyable with no
-  diagnostic. `var o2 = o1` then drops the same allocation twice at scope exit; run against the
-  compile-time JIT it corrupts the compiler's own heap, which is how it was found. The same shape
-  without `opDrop` — a plain struct holding a pointer, released through a helper — double-frees the
-  same way. Neither is reported in any configuration.
-- Consequence: `opDrop` is currently a destructor without the rule that makes a destructor safe.
-  Every owning type in `bin/` relies on nobody writing the copy, and the analysis that would catch
-  the use-after-free proof cannot see a second owner: it tracks one pointer, and here there are
-  two, each released once.
-- Elsewhere: this is the one rule every ownership language shares, whatever else it disagrees on.
-  Rust makes `Drop` imply `!Copy` and requires `Clone` to be written; C++ turns it into the rule of
-  three and a linter; Swift reference-counts instead; Zig has no destructor at all, so the question
-  does not arise. Nobody allows a silent bitwise copy of a type that owns a release.
-- The machinery already exists and needs no new syntax. `#[Swag.NoCopy]` already rejects the copy
-  with the right message ("cannot copy a value of non-copyable type 'Owner'; [help] transfer
-  ownership with '#move'"), `#move` already transfers, `#fwd` already gives one function both call
-  styles, and `opPostCopy` already declares what a duplicate means. What is missing is the
-  inference: a type that declares or contains `opDrop` and does not declare `opPostCopy` is not
-  copyable. That is zero annotation at the use site, zero runtime cost, and it closes the whole
-  double-free class rather than one shape of it.
-- MEASURED. The inference was implemented and swept over the whole repository: a struct that
-  declares `opDrop` and does not declare `opPostCopy` is not copyable, and containing one makes
-  the container non-copyable through the existing field merge. The result is **one** rejected
-  copy in the entire tree — `bin/std/modules/core/src/collections/arrayptr.swg:39`, reached
-  through `ArrayPtr'ConcatBuffer` — and it is a real latent double-free: `ArrayPtr.opPostCopy`
-  deep-copies each element with `newPtr[] = oldPtr[]`, so two `ConcatBuffer` values would end up
-  sharing one heap buffer and each would release it. Every workspace reports the same single
-  site, so the migration cost of the rule is one function.
-- The single site is NOT user code to migrate, and it is not caused by the rule. `ArrayPtr'T`
-  instantiates an `opPostCopy` that deep-copies each element, for every `T`, including a `T`
-  that cannot be copied at all. Writing `#[Swag.NoCopy]` on `ConcatBuffer` by hand, with the
-  inference reverted, produces the identical error at the identical line — so the prerequisite
-  exists today and the rule only reveals it.
-- Three resolutions were tried and each has a measured cost:
-  - `#static if Reflection.canCopy(T)` around the whole `opPostCopy`, so a container of
-    non-copyable elements declares no copy and becomes non-copyable itself. This is the required shape.
-  - `#[Swag.NoCopy]` on `ArrayPtr` itself, since it owns its elements exclusively. Rejected:
-    a non-copyable type has its copy overloads discarded at resolution, which breaks
-    `HashTable.add`.
-  - An `opPostCopy` on `ConcatBuffer`. Rejected: it would invent a deep-copy semantic for a
-    bucket chain plus a cursor that nothing in the tree needs, to satisfy a copy that never
-    happens.
-- Next: gate `ArrayPtr.opPostCopy` with `#static if Reflection.canCopy(T)` and restore the
-  inferred non-copyability rule, so `ArrayPtr` stops offering a copy it cannot perform.
-- Complete when: copying a value that owns a release is rejected without the type having to say so,
-  the reference states the rule next to `opDrop`, and `bin/unittests` covers the inferred case, the
-  `opPostCopy` opt-in, the `#move` transfer, and a type that owns through a member.
-- Related: compiler.safety.004 is the same fault caught later and less
-  reliably; this entry is the one that removes the fault instead. language.design.002 depends on it:
-  a tagged union with an owning payload is exactly this shape, and the compiler would be the one
-  generating its drop, so shipping one before this rule turns an author's double-free into the
-  compiler's.
 
 ### compiler.safety.016 — Compile-time execution is judged against summaries that are still growing
 
@@ -138,11 +83,11 @@ is the current scorecard.
 - Next: the runtime answer before the static one. A `devmode` allocator that counts live
   blocks and reports what is still held at shutdown costs nothing in `release`, needs no
   analysis, and finds real leaks the day it lands. Whether a static rule follows — a type that
-  allocates and has no `opDrop` — is a separate decision, and depends on how much
-  compiler.safety.002 changes about ownership first.
+  allocates and has no `opDrop` — is a separate decision, now that a type declaring one owns
+  what it releases and states no copy.
 - Complete when: a `devmode` run reports the blocks an application leaked, and the four cases
   in `cwe401_memory_leak.swg` are either reported or documented as out of scope with a reason.
-- Related: compiler.safety.002 and compiler.safety.004.
+- Related: compiler.safety.004.
 
 ### compiler.safety.004 — Nothing makes a missed use-after-free fail deterministically
 
@@ -163,7 +108,8 @@ is the current scorecard.
   desirable.
 - Complete when: a freed block read in `devmode` faults or reports at the read, the cost is measured
   on an application workload, and `release` is unaffected.
-- Related: compiler.safety.002.
+- Related: the ownership rule now rejects the copy of a value that declares 'opDrop', so what
+  reaches this entry is what nothing marks as an owner.
 
 ### compiler.safety.005 — A pointer into a value survives the move of that value
 
@@ -433,10 +379,10 @@ is the current scorecard.
   others. Neither is legible, so the language gets judged on its mechanisms rather than on its
   guarantee.
 - Next: this entry is written last on purpose. The statement cannot be written honestly until
-  compiler.safety.002, 006 and 008 are decided, because each one changes what belongs in it. What can
+  compiler.safety.006 and 008 are decided, because each one changes what belongs in it. What can
   be done now is the inventory: one page listing every fault class, what excludes it today, and in
   which configuration.
 - Complete when: the reference carries one page stating, per fault class, whether the safe subset
   excludes it, in which build configurations, and by which mechanism — and every claim on it is
   backed by a test in `bin/unittests`.
-- Related: compiler.safety.002, compiler.safety.006, compiler.safety.008.
+- Related: compiler.safety.006, compiler.safety.008.

@@ -75,6 +75,10 @@ impl ApTracked
     {
         g_ApDropCount += 1
     }
+
+    // The drop counts releases rather than owning one, so the type keeps its copy: an
+    // element that states no copy takes the copy away from the array that holds it.
+    mtd opPostCopy() {}
 }
 
 // getFirst/getLast, indexOf/contains, insertNewPtr, and the delete* helpers (which must

@@ -580,6 +580,19 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     if (TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), checkTypeRef).canCopy)
         return Result::Continue;
 
+    // Ownership and the explicit attribute deny the copy for different reasons, and their
+    // repairs differ: an owning type opts the copy back in with 'opPostCopy'.
+    const TypeRef owningTypeRef = TypeGen::owningDropTypeRef(sema.ctx(), checkTypeRef);
+    if (owningTypeRef.isValid())
+    {
+        auto owningDiag = SemaError::report(sema, DiagnosticId::sema_err_cannot_copy_owning, srcRef);
+        owningDiag.addArgument(Diagnostic::ARG_TYPE, checkTypeRef);
+        if (owningTypeRef != checkTypeRef)
+            owningDiag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, owningTypeRef);
+        owningDiag.report(sema.ctx());
+        return Result::Error;
+    }
+
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_copy_nocopy, srcRef);
     diag.addArgument(Diagnostic::ARG_TYPE, checkTypeRef);
     diag.report(sema.ctx());

@@ -56,8 +56,9 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
     Swag.assert(skewed.minX > 20 and skewed.maxX > 60)
 
     // Nested transforms compose: the inner turn happens in the space the outer one placed.
-    let nested = inkBounds("<svg viewBox='0 0 100 100'><g transform='translate(50,50)'><g transform='rotate(45)'>" ++
-                           "<rect x='-20' y='-5' width='40' height='10' fill='#000'/></g></g></svg>")
+    let nested = inkBounds("""\
+                           <svg viewBox='0 0 100 100'><g transform='translate(50,50)'><g transform='rotate(45)'>\
+                           <rect x='-20' y='-5' width='40' height='10' fill='#000'/></g></g></svg>""")
     Swag.assert(Math.abs(nested.minX - 32) <= 1 and Math.abs(nested.maxX - 67) <= 1)
     Swag.assert(Math.abs(nested.minY - 32) <= 1 and Math.abs(nested.maxY - 67) <= 1)
 }

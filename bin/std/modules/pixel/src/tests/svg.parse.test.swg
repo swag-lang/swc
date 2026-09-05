@@ -2,22 +2,23 @@
 
 using Swag, Core
 
-private const ManyStopSvg = "<svg width='20' height='8'>" ++
-                            "<style>.accent { fill: url(#many); }</style>" ++
-                            "<rect class='accent' width='20' height='8'/>" ++
-                            "<defs><linearGradient id='many' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='20' y2='0'>" ++
-                            "<stop offset='0%' stop-color='red'/>" ++
-                            "<stop offset='10%' stop-color='#e61920'/>" ++
-                            "<stop offset='20%' stop-color='#cc3333'/>" ++
-                            "<stop offset='30%' stop-color='#b34c46'/>" ++
-                            "<stop offset='40%' stop-color='#99665a'/>" ++
-                            "<stop offset='50%' stop-color='#807f6d'/>" ++
-                            "<stop offset='60%' stop-color='#669981'/>" ++
-                            "<stop offset='70%' stop-color='#4cb294'/>" ++
-                            "<stop offset='80%' stop-color='#33cca8'/>" ++
-                            "<stop offset='90%' stop-color='#19e5bb'/>" ++
-                            "<stop offset='100%' stop-color='cyan'/>" ++
-                            "</linearGradient></defs></svg>"
+private const ManyStopSvg = """\
+    <svg width='20' height='8'>\
+    <style>.accent { fill: url(#many); }</style>\
+    <rect class='accent' width='20' height='8'/>\
+    <defs><linearGradient id='many' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='20' y2='0'>\
+    <stop offset='0%' stop-color='red'/>\
+    <stop offset='10%' stop-color='#e61920'/>\
+    <stop offset='20%' stop-color='#cc3333'/>\
+    <stop offset='30%' stop-color='#b34c46'/>\
+    <stop offset='40%' stop-color='#99665a'/>\
+    <stop offset='50%' stop-color='#807f6d'/>\
+    <stop offset='60%' stop-color='#669981'/>\
+    <stop offset='70%' stop-color='#4cb294'/>\
+    <stop offset='80%' stop-color='#33cca8'/>\
+    <stop offset='90%' stop-color='#19e5bb'/>\
+    <stop offset='100%' stop-color='cyan'/>\
+    </linearGradient></defs></svg>"""
 
 // Paint servers resolve after the complete document, so forward references,
 // class rules, named colors, percentages and more than eight stops compose.
@@ -33,10 +34,11 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     Swag.assert(right.b > right.r)
     Swag.assert(left.a == 255 and right.a == 255)
 
-    const ColorSource = "<svg width='30' height='10'>" ++
-                        "<rect width='10' height='10' fill='rgba(255,0,0,0.5)'/>" ++
-                        "<rect x='10' width='10' height='10' fill='hsl(120,100%,50%)'/>" ++
-                        "<rect x='20' width='10' height='10' fill='rgb(0%,0%,100%)' fill-opacity='50%'/></svg>"
+    const ColorSource = """\
+        <svg width='30' height='10'>\
+        <rect width='10' height='10' fill='rgba(255,0,0,0.5)'/>\
+        <rect x='10' width='10' height='10' fill='hsl(120,100%,50%)'/>\
+        <rect x='20' width='10' height='10' fill='rgb(0%,0%,100%)' fill-opacity='50%'/></svg>"""
     let colorDrawing = expect Svg.Drawing.parse(ColorSource)
     let colors       = colorDrawing.rasterize(30, 10, 1)
     let red          = colors.pixelColor(5, 5)
@@ -50,11 +52,12 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 // A radial paint server carries its inner radius, stop opacity and repeat policy.
 #test
 {
-    const Source = "<svg viewBox='0 0 20 20'>" ++
-                   "<defs><radialGradient id='r' cx='50%' cy='50%' r='50%' fr='20%' spreadMethod='reflect'>" ++
-                   "<stop offset='0' stop-color='white' stop-opacity='0.5'/>" ++
-                   "<stop offset='1' style='stop-color:black;stop-opacity:1'/>" ++
-                   "</radialGradient></defs><circle cx='10' cy='10' r='10' fill='url(#r)'/></svg>"
+    const Source = """\
+        <svg viewBox='0 0 20 20'>\
+        <defs><radialGradient id='r' cx='50%' cy='50%' r='50%' fr='20%' spreadMethod='reflect'>\
+        <stop offset='0' stop-color='white' stop-opacity='0.5'/>\
+        <stop offset='1' style='stop-color:black;stop-opacity:1'/>\
+        </radialGradient></defs><circle cx='10' cy='10' r='10' fill='url(#r)'/></svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source)
     let image   = drawing.rasterize(20, 20, 1)
@@ -104,8 +107,9 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     Swag.assert(image.pixelColor(78, 100).a == 0)
     Swag.assert(image.pixelColor(90, 100).a > 0)
 
-    const OffsetSource = "<svg width='100' height='20'><line x1='0' y1='10' x2='100' y2='10' " ++
-                         "stroke='blue' stroke-width='2' stroke-dasharray='10 10' stroke-dashoffset='5'/></svg>"
+    const OffsetSource = """\
+        <svg width='100' height='20'><line x1='0' y1='10' x2='100' y2='10' \
+        stroke='blue' stroke-width='2' stroke-dasharray='10 10' stroke-dashoffset='5'/></svg>"""
     let offsetDrawing = expect Svg.Drawing.parse(OffsetSource)
     let offsetImage   = offsetDrawing.rasterize(100, 20, 1)
     Swag.assert(offsetImage.pixelColor(2, 10).a > 0)
@@ -116,10 +120,11 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 // Sample-aligned tiles preserve every resolved byte when geometry crosses both tile axes.
 #test
 {
-    const Source = "<svg viewBox='0 0 300 260'>" ++
-                   "<rect x='20' y='18' width='270' height='232' rx='31' fill='#2878d0'/>" ++
-                   "<circle cx='256' cy='210' r='46' fill='#f4b43c' fill-opacity='0.63'/>" ++
-                   "<path d='M4 257 L296 3' stroke='white' stroke-width='3'/></svg>"
+    const Source = """\
+        <svg viewBox='0 0 300 260'>\
+        <rect x='20' y='18' width='270' height='232' rx='31' fill='#2878d0'/>\
+        <circle cx='256' cy='210' r='46' fill='#f4b43c' fill-opacity='0.63'/>\
+        <path d='M4 257 L296 3' stroke='white' stroke-width='3'/></svg>"""
 
     let drawing             = expect Svg.Drawing.parse(Source)
     var cpu:      RenderCpu
@@ -167,29 +172,32 @@ private func gradientBand(source: string)->[5] Color
 {
     // The referenced gradient is defined after the reference, so the chain is followed once the
     // whole document is read.
-    let forward = gradientBand("<svg width='40' height='8'><rect width='40' height='8' fill='url(#a)'/>" ++
-                               "<linearGradient id='a' href='#b'/>" ++
-                               "<linearGradient id='b'><stop offset='0' stop-color='#ff0000'/>" ++
-                               "<stop offset='1' stop-color='#0000ff'/></linearGradient></svg>")
+    let forward = gradientBand("""\
+                               <svg width='40' height='8'><rect width='40' height='8' fill='url(#a)'/>\
+                               <linearGradient id='a' href='#b'/>\
+                               <linearGradient id='b'><stop offset='0' stop-color='#ff0000'/>\
+                               <stop offset='1' stop-color='#0000ff'/></linearGradient></svg>""")
     Swag.assert(forward[0].r > 200 and forward[0].b < 60)
     Swag.assert(forward[4].b > 200 and forward[4].r < 60)
 
     // A two-step chain, where the middle link states only the geometry.
-    let chained = gradientBand("<svg width='40' height='8'>" ++
-                               "<linearGradient id='c'><stop offset='0' stop-color='#00ff00'/>" ++
-                               "<stop offset='1' stop-color='#000000'/></linearGradient>" ++
-                               "<linearGradient id='d' href='#c' x1='0' y1='0' x2='1' y2='0'/>" ++
-                               "<linearGradient id='e' href='#d'/>" ++
-                               "<rect width='40' height='8' fill='url(#e)'/></svg>")
+    let chained = gradientBand("""\
+                               <svg width='40' height='8'>\
+                               <linearGradient id='c'><stop offset='0' stop-color='#00ff00'/>\
+                               <stop offset='1' stop-color='#000000'/></linearGradient>\
+                               <linearGradient id='d' href='#c' x1='0' y1='0' x2='1' y2='0'/>\
+                               <linearGradient id='e' href='#d'/>\
+                               <rect width='40' height='8' fill='url(#e)'/></svg>""")
     Swag.assert(chained[0].g > 200 and chained[4].g < 60)
 
     // A gradient states its own stops, and inheritance never overwrites them.
-    let own = gradientBand("<svg width='40' height='8'>" ++
-                           "<linearGradient id='f'><stop offset='0' stop-color='#ff0000'/>" ++
-                           "<stop offset='1' stop-color='#0000ff'/></linearGradient>" ++
-                           "<linearGradient id='g' href='#f'><stop offset='0' stop-color='#000000'/>" ++
-                           "<stop offset='1' stop-color='#ffffff'/></linearGradient>" ++
-                           "<rect width='40' height='8' fill='url(#g)'/></svg>")
+    let own = gradientBand("""\
+                           <svg width='40' height='8'>\
+                           <linearGradient id='f'><stop offset='0' stop-color='#ff0000'/>\
+                           <stop offset='1' stop-color='#0000ff'/></linearGradient>\
+                           <linearGradient id='g' href='#f'><stop offset='0' stop-color='#000000'/>\
+                           <stop offset='1' stop-color='#ffffff'/></linearGradient>\
+                           <rect width='40' height='8' fill='url(#g)'/></svg>""")
     Swag.assert(own[0].r < 60 and own[0].g < 60 and own[0].b < 60)
     Swag.assert(own[4].r > 200 and own[4].g > 200 and own[4].b > 200)
 }
@@ -198,10 +206,11 @@ private func gradientBand(source: string)->[5] Color
 // keeps what it states itself.
 #test
 {
-    let cycle = gradientBand("<svg width='40' height='8'>" ++
-                             "<linearGradient id='h' href='#i'><stop offset='0' stop-color='#ffffff'/>" ++
-                             "<stop offset='1' stop-color='#000000'/></linearGradient>" ++
-                             "<linearGradient id='i' href='#h'/>" ++
-                             "<rect width='40' height='8' fill='url(#h)'/></svg>")
+    let cycle = gradientBand("""\
+                             <svg width='40' height='8'>\
+                             <linearGradient id='h' href='#i'><stop offset='0' stop-color='#ffffff'/>\
+                             <stop offset='1' stop-color='#000000'/></linearGradient>\
+                             <linearGradient id='i' href='#h'/>\
+                             <rect width='40' height='8' fill='url(#h)'/></svg>""")
     Swag.assert(cycle[0].r > 200 and cycle[4].r < 60)
 }

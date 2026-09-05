@@ -898,14 +898,14 @@ indent-style = spaces</span></div>
 </thead>
 <tbody>
 <tr><td><span class="code-inline">#assert(condition)</span> rejects the build</td><td><span class="code-inline">Swag.assert(condition)</span> checks in its execution context</td></tr>
-<tr><td><span class="code-inline">#print(text)</span> writes while compiling</td><td><span class="code-inline">Swag.print(...)</span> writes when the containing code executes</td></tr>
+<tr><td><span class="code-inline">#print(...)</span> writes while compiling</td><td><span class="code-inline">Swag.print(...)</span> writes when the containing code executes</td></tr>
 <tr><td>'#init { ... }' declares a module hook</td><td><span class="code-inline">Swag.init(...)</span> initializes values or memory</td></tr>
 <tr><td>'#drop { ... }' declares a module hook</td><td><span class="code-inline">Swag.drop(...)</span> drops values or memory</td></tr>
 </tbody>
 </table>
-<p>The pairs are related, not symmetrical. The compile-time diagnostics <span class="code-inline">#print</span>, <span class="code-inline">#assert</span>, <span class="code-inline">#error</span> and <span class="code-inline">#warning</span> each take exactly <b>one</b> compile-time expression, so several parts are joined with the <span class="code-inline">++</span> concatenation operator. Their intrinsic counterparts follow ordinary call rules, and <span class="code-inline">Swag.print</span> is variadic:</p>
-<div class="code-block"><span class="SCde"><span class="SCmp">#print</span>(<span class="SStr">"kind: "</span> ++ <span class="SItr">#nameof</span>(<span class="SItr">#typeof</span>(value)))     <span class="SCmt">// one expression, joined with '++'</span>
-<span class="SNsp">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"kind: "</span>, name, <span class="SStr">"\n"</span>)                    <span class="SCmt">// variadic at runtime</span></span></div>
+<p>The pairs are related, not symmetrical. <span class="code-inline">#assert</span> judges one compile-time condition, while <span class="code-inline">#print</span>, <span class="code-inline">#error</span> and <span class="code-inline">#warning</span> take the parts of their message the way <span class="code-inline">Swag.print</span> does; on the compile-time side every part is a constant:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#print</span>(<span class="SStr">"kind: "</span>, <span class="SItr">#nameof</span>(<span class="SItr">#typeof</span>(value)))     <span class="SCmt">// parts, each a compile-time value</span>
+<span class="SNsp">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"kind: "</span>, name, <span class="SStr">"\n"</span>)              <span class="SCmt">// variadic at runtime</span></span></div>
 <p>Inside <span class="code-inline">#run</span>, a <span class="code-inline">Swag</span> intrinsic executes during compilation because the containing code does. In an ordinary function, the same call becomes generated runtime behavior.</p>
 <h3 id="_002_008_sigils_swg_The_Four_Modifier_Families">The Four Modifier Families</h3>
 <p>The modifiers are not one list. Each one belongs to exactly one of four families, and the family says what it annotates.</p>
@@ -1392,22 +1392,22 @@ indent-style = spaces</span></div>
     <span class="SKwd">const</span> c = <span class="SStr">"æ¯Xæ¯"</span>
     <span class="SCmp">#assert</span>(c[<span class="SNum">1</span>] != '<span class="SFct">X</span>')
 }</span></div>
-<h3 id="_003_003_string_swg_String_Concatenation">String Concatenation</h3>
-<p>Swag allows compile-time concatenation of strings and other values using the <span class="code-inline">++</span> operator.</p>
+<h3 id="_003_003_string_swg_Compile-Time_String_Building">Compile-Time String Building</h3>
+<p>There is no string concatenation operator: <span class="code-inline">+</span> is not defined on <span class="code-inline">string</span>, and runtime text is built with <span class="code-inline">Std.Core</span> (<span class="code-inline">String</span>, <span class="code-inline">ConcatBuffer</span>, <span class="code-inline">Format</span>). At compile time, <span class="code-inline">#stringof</span> takes any number of constant parts and writes them one after the other, each shown the way a constant prints.</p>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
-<p><span class="code-inline">++</span> is a <b>compile-time</b> operator: every operand must be a constant expression. The <span class="code-inline">let</span> bindings below hold a value the compiler already folded, not a runtime concatenation. Two runtime strings cannot be joined by an operator at all — <span class="code-inline">+</span> is not defined on <span class="code-inline">string</span>, and <span class="code-inline">++</span> reports that the expression needs a compile-time value. Build runtime text with <span class="code-inline">Std.Core</span> (<span class="code-inline">String</span>, <span class="code-inline">ConcatBuffer</span>, <span class="code-inline">Format</span>) instead.</p>
+<p>Every part must be a constant expression. The <span class="code-inline">let</span> bindings below hold a value the compiler already folded, not a runtime concatenation; a part that needs a runtime value reports that the expression needs a compile-time value.</p>
 </div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">const</span> a = <span class="SStr">"the devil's number is "</span> ++ <span class="SNum">666</span>
+    <span class="SKwd">const</span> a = <span class="SItr">#stringof</span>(<span class="SStr">"the devil's number is "</span>, <span class="SNum">666</span>)
     <span class="SCmp">#assert</span>(a == <span class="SStr">"the devil's number is 666"</span>)
 
     <span class="SKwd">const</span> b = <span class="SNum">666</span>
-    <span class="SKwd">let</span> c = <span class="SStr">"the devil's number is not "</span> ++ (b + <span class="SNum">1</span>) ++ <span class="SStr">"!"</span>
+    <span class="SKwd">let</span> c = <span class="SItr">#stringof</span>(<span class="SStr">"the devil's number is not "</span>, b + <span class="SNum">1</span>, <span class="SStr">"!"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(c == <span class="SStr">"the devil's number is not 667!"</span>)
 
-    <span class="SKwd">let</span> d = <span class="SStr">"there are "</span> ++ <span class="SNum">4</span> ++ <span class="SStr">" apples in "</span> ++ (<span class="SNum">2</span> * <span class="SNum">2</span>) ++ <span class="SStr">" baskets"</span>
+    <span class="SKwd">let</span> d = <span class="SItr">#stringof</span>(<span class="SStr">"there are "</span>, <span class="SNum">4</span>, <span class="SStr">" apples in "</span>, <span class="SNum">2</span> * <span class="SNum">2</span>, <span class="SStr">" baskets"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(d == <span class="SStr">"there are 4 apples in 4 baskets"</span>)
 }</span></div>
 <h3 id="_003_003_string_swg_Null_Strings">Null Strings</h3>
@@ -1567,12 +1567,13 @@ indent-style = spaces</span></div>
               "</span><span class="SStr">""</span>
 }</span></div>
 <h3 id="_003_003_string_swg_The___stringof__and___nameof__Intrinsics">The <span class="code-inline">#stringof</span> and <span class="code-inline">#nameof</span> Intrinsics</h3>
-<p>The <span class="code-inline">#stringof</span> intrinsic returns the string representation of a constant expression at compile time.</p>
+<p>The <span class="code-inline">#stringof</span> intrinsic returns the string representation of a constant expression at compile time. Given several arguments, it writes their representations one after the other.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">const</span> <span class="SCst">X</span> = <span class="SNum">1</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#stringof</span>(<span class="SCst">X</span>) == <span class="SStr">"1"</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#stringof</span>(<span class="SCst">X</span> + <span class="SNum">10</span>) == <span class="SStr">"11"</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#stringof</span>(<span class="SStr">"x = "</span>, <span class="SCst">X</span>, <span class="SStr">";"</span>) == <span class="SStr">"x = 1;"</span>)
 }</span></div>
 <p>The <span class="code-inline">#nameof</span> intrinsic returns the name of a variable, function, etc., as a string.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2009,7 +2010,7 @@ indent-style = spaces</span></div>
 <p>Precedence runs from tightest (top) to loosest (bottom). Operators listed on the same line share a level.</p>
 <div class="code-block"><span class="SCde">! ~ - +      (prefix)
 * / %
-+ - ++
++ -
 &gt;&gt; &lt;&lt;
 &amp;
 ^
@@ -2019,7 +2020,7 @@ indent-style = spaces</span></div>
 <span class="SLgc">and</span>
 <span class="SLgc">or</span>
 <span class="SLgc">orelse</span>  ? :</span></div>
-<p>The prefix operators bind tighter than every binary operator, so '!a == b' parses as '(!a) == b' and '-a <i> b' parses as '(-a) </i> b'. The string concatenation operator <span class="code-inline">++</span> shares the additive level.</p>
+<p>The prefix operators bind tighter than every binary operator, so '!a == b' parses as '(!a) == b' and '-a <i> b' parses as '(-a) </i> b'.</p>
 <p>When two operators share the same precedence level, expressions are evaluated from left to right. The loosest level, <span class="code-inline">orelse</span> and the ternary, groups to the right: 'a orelse b ? c : d' parses as 'a orelse (b ? c : d)'.</p>
 <p>Unlike C, the bitwise operators '&amp; ^ |' all bind <b>tighter</b> than the comparison operators. This makes 'flags &amp; Mask == 0' parse as '(flags &amp; Mask) == 0', which is almost always the intent, so the classic C footgun is avoided by design. Among the comparisons, the ordering operators '&lt;=&gt; &lt; &lt;= &gt; &gt;=' bind tighter than the equality operators '== !=', so 'a &lt; b == c' parses as '(a &lt; b) == c'.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -5881,7 +5882,7 @@ indent-style = spaces</span></div>
         <span class="SLgc">case</span> <span class="SStr">"ms"</span>:  <span class="STpe">me</span>.timeInSeconds = value / <span class="SNum">1000.0</span>
         <span class="SLgc">case</span> <span class="SStr">"min"</span>: <span class="STpe">me</span>.timeInSeconds = value * <span class="SNum">60.0</span>
         <span class="SLgc">case</span> <span class="SStr">"h"</span>:   <span class="STpe">me</span>.timeInSeconds = value * <span class="SNum">3600.0</span>
-        <span class="SLgc">default</span>:    <span class="SCmp">#error</span>(<span class="SStr">"invalid duration literal suffix '"</span> ++ suffix ++ <span class="SStr">"'"</span>)
+        <span class="SLgc">default</span>:    <span class="SCmp">#error</span>(<span class="SStr">"invalid duration literal suffix '"</span>, suffix, <span class="SStr">"'"</span>)
         }
     }
 }</span></div>
@@ -9457,6 +9458,13 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SFct">#ast</span> <span class="SStr">"var x = 666"</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">666</span>)
 }</span></div>
+<p>Written as a call, <span class="code-inline">#ast</span> takes the parts of the source and writes them one after the other, each shown the way a constant prints.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">const</span> <span class="SCst">Value</span> = <span class="SNum">666</span>
+    <span class="SFct">#ast</span>(<span class="SStr">"var y = "</span>, <span class="SCst">Value</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">666</span>)
+}</span></div>
 <h3 id="_015_003_generated_code_with_ast_swg_Returning_Source_from___ast_">Returning Source from <span class="code-inline">#ast</span></h3>
 <p>A <span class="code-inline">#ast</span> block can include logic and must return a string to compile.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -9465,7 +9473,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SFct">#ast</span>
     {
         <span class="SKwd">const</span> <span class="SCst">INC</span> = <span class="SNum">5</span>
-        <span class="SLgc">return</span> <span class="SStr">"cpt += "</span> ++ <span class="SCst">INC</span>
+        <span class="SLgc">return</span> <span class="SItr">#stringof</span>(<span class="SStr">"cpt += "</span>, <span class="SCst">INC</span>)
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">7</span>)
@@ -9494,7 +9502,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     {
         <span class="SFct">#ast</span>
         {
-            <span class="SLgc">return</span> <span class="SStr">"x, y: "</span> ++ <span class="SItr">#typeof</span>(<span class="SCst">T</span>).name
+            <span class="SLgc">return</span> <span class="SItr">#stringof</span>(<span class="SStr">"x, y: "</span>, <span class="SItr">#typeof</span>(<span class="SCst">T</span>).name)
         }
 
         z: <span class="STpe">string</span>?
@@ -9557,7 +9565,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <div class="code-block"><span class="SCde"><span class="SFct">#ast</span>
 {
     <span class="SKwd">const</span> value = <span class="SNum">666</span>
-    <span class="SLgc">return</span> <span class="SStr">"const myGeneratedConst = "</span> ++ value
+    <span class="SLgc">return</span> <span class="SItr">#stringof</span>(<span class="SStr">"const myGeneratedConst = "</span>, value)
 }
 
 <span class="SCmp">#assert</span>(myGeneratedConst == <span class="SNum">666</span>)</span></div>
@@ -9669,7 +9677,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.357</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.366</div>
 </footer>
 </section>
 </main>
@@ -10037,7 +10045,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|String Comparison|_003_003_string_swg_String_Comparison|",
 "h|The rune Type|_003_003_string_swg_The__rune__Type|",
 "h|String Indexing|_003_003_string_swg_String_Indexing|",
-"h|String Concatenation|_003_003_string_swg_String_Concatenation|",
+"h|Compile-Time String Building|_003_003_string_swg_Compile-Time_String_Building|",
 "h|Null Strings|_003_003_string_swg_Null_Strings|",
 "h|Character Literals|_003_003_string_swg_Character_Literals|",
 "h|Default Type of Character Literals|_003_003_string_swg_Default_Type_of_Character_Literals|",

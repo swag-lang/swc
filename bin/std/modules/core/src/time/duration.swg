@@ -22,7 +22,7 @@ impl Duration
         case "ms":  .seconds = value / 1000.0
         case "min": .seconds = value * 60.0
         case "h":   .seconds = value * 3600.0
-        default:    #error("invalid duration literal suffix '" ++ suffix ++ "'")
+        default:    #error("invalid duration literal suffix '", suffix, "'")
         }
     }
 

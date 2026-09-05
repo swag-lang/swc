@@ -66,13 +66,14 @@ func semaTestGeneric001()
 #assert(#stringof(1 + 2 * 3) == "7")
 
 #assert(#stringof("hello") == "hello")
-#assert(#stringof("foo" ++ "bar") == "foobar")
+#assert(#stringof("foo", "bar") == "foobar")
 
 #assert(#stringof(bool) == "bool")
 #assert(#stringof(Test) == "Test")
 
 var S: string = "Swag"
 #assert(#stringof(S) == "S")
+#assert(#stringof("var ", S, ";") == "var S;")
 
 const B = 2 + 3
 #assert(#stringof(B) == "5")

@@ -179,7 +179,8 @@ private:
     AstNodeRef parseClosureArg();
     AstNodeRef parseCompilerExpression();
     AstNodeRef parseCompilerDiagnostic();
-    AstNodeRef parseCompilerCall(uint32_t numParams);
+    void       parseCompilerArgumentList(TokenRef tokRef, uint32_t minCount, uint32_t maxCount, bool asCompilerExpressions, SmallVector<AstNodeRef>& outArgs);
+    AstNodeRef parseCompilerCall(uint32_t minCount, uint32_t maxCount);
     AstNodeRef parseCompilerCallOne();
     AstNodeRef parseCompilerRun();
     AstNodeRef parseCompilerCode();

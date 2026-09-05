@@ -16,9 +16,9 @@ public func(T) hash64(value: T)->u64
     #static if Reflection.isString(T) do
         return Hash.murmur3(value.buffer, value.count, 0)
     elif Reflection.isStruct(T) and #defined(T.IHash64) do
-        #ast "return " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"
+        #ast("return ", #typeof(T).fullname, ".IHash64.compute(value)")
     elif Reflection.isStruct(T) and #defined(T.IHash32) do
-        #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
+        #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
     elif Reflection.isStruct(T) do
         return Hash.murmur3(cast(const [*] u8) &value, #sizeof(T), 0)
     elif #sizeof(T) == 8 do

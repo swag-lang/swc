@@ -26,13 +26,15 @@ AstNodeRef Parser::parseCompilerExpression()
 
 AstNodeRef Parser::parseCompilerDiagnostic()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerDiagnostic>(consume());
+    const TokenRef tokRef   = consume();
+    const TokenId  tokenId  = ast_->srcView().token(tokRef).id;
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerDiagnostic>(tokRef);
 
-    const TokenRef openRef = ref();
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeArgRef = parseCompilerExpression();
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
+    // '#assert' judges one condition; '#print', '#error' and '#warning' take the parts of a message.
+    const uint32_t          maxCount = tokenId == TokenId::CompilerAssert ? 1 : UINT32_MAX;
+    SmallVector<AstNodeRef> nodeArgs;
+    parseCompilerArgumentList(tokRef, 1, maxCount, true, nodeArgs);
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }
 
@@ -82,28 +84,17 @@ AstNodeRef Parser::parseCompilerTypeOf()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
+void Parser::parseCompilerArgumentList(TokenRef tokRef, uint32_t minCount, uint32_t maxCount, bool asCompilerExpressions, SmallVector<AstNodeRef>& outArgs)
 {
-    if (numParams == 1)
-        return parseCompilerCallOne();
-
-    const TokenRef tokRef   = consume();
-    const TokenId  tokenId  = ast_->srcView().token(tokRef).id;
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(tokRef);
-
-    const TokenRef          openRef = ref();
-    SmallVector<AstNodeRef> nodeArgs;
+    const TokenRef openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
-    ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
-    if (tokenId == TokenId::CompilerDefined)
-        parseFlags = ParserContextFlagsE::InCompilerDefined;
-    const PushContextFlags context(this, parseFlags);
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (!nodeArgs.empty())
+        if (!outArgs.empty())
         {
+            // Error recovery can land on a container closer from the surrounding syntax. Stop
+            // there and let expectAndConsumeClosing report it instead of eating the parent's tokens.
             if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
                 break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
@@ -112,22 +103,31 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
                 break;
         }
 
-        nodeArgs.push_back(parseExpression());
+        outArgs.push_back(asCompilerExpressions ? parseCompilerExpression() : parseExpression());
     }
 
-    if (nodeArgs.size() < numParams)
+    if (outArgs.size() < minCount)
     {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), numParams, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), minCount, static_cast<uint32_t>(outArgs.size()), maxCount == UINT32_MAX);
         diag.report(*ctx_);
     }
-    else if (nodeArgs.size() > numParams)
+    else if (outArgs.size() > maxCount)
     {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[numParams], numParams, static_cast<uint32_t>(nodeArgs.size()));
+        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, outArgs[maxCount], maxCount, static_cast<uint32_t>(outArgs.size()));
         diag.report(*ctx_);
     }
 
-    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
+}
+
+AstNodeRef Parser::parseCompilerCall(uint32_t minCount, uint32_t maxCount)
+{
+    const TokenRef tokRef   = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(tokRef);
+
+    SmallVector<AstNodeRef> nodeArgs;
+    parseCompilerArgumentList(tokRef, minCount, maxCount, false, nodeArgs);
+    nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }
 
@@ -137,43 +137,14 @@ AstNodeRef Parser::parseCompilerCallOne()
     const TokenId  tokenId  = ast_->srcView().token(tokRef).id;
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(tokRef);
 
-    const TokenRef          openRef = ref();
-    SmallVector<AstNodeRef> nodeArgs;
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
     ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
     if (tokenId == TokenId::CompilerDefined)
         parseFlags = ParserContextFlagsE::InCompilerDefined;
     const PushContextFlags context(this, parseFlags);
 
-    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
-    {
-        if (!nodeArgs.empty())
-        {
-            if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
-                break;
-            if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
-                skipTo({TokenId::SymComma, TokenId::SymRightParen});
-            if (is(TokenId::SymRightParen))
-                break;
-        }
-
-        nodeArgs.push_back(parseExpression());
-    }
-
-    if (nodeArgs.empty())
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokRef, ref(), 1, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-    else if (nodeArgs.size() > 1)
-    {
-        const Diagnostic diag = reportArgumentCountError(DiagnosticId::parser_err_too_many_arguments, tokRef, nodeArgs[1], 1, static_cast<uint32_t>(nodeArgs.size()));
-        diag.report(*ctx_);
-    }
-
+    SmallVector<AstNodeRef> nodeArgs;
+    parseCompilerArgumentList(tokRef, 1, 1, false, nodeArgs);
     nodePtr->nodeArgRef = nodeArgs.empty() ? AstNodeRef::invalid() : nodeArgs[0];
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymRightCurly, TokenId::SymRightBracket});
     return nodeRef;
 }
 
@@ -193,11 +164,19 @@ AstNodeRef Parser::parseCompilerFunc()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>(consume());
-    if (what == TokenId::CompilerAst)
-        nodePtr->nodeBodyRef = parseExpression();
-    else
+    const TokenRef tokRef   = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerShortFunc>(tokRef);
+    if (what != TokenId::CompilerAst)
         nodePtr->nodeBodyRef = parseEmbeddedStmt();
+    else if (is(TokenId::SymLeftParen))
+    {
+        // '#ast(part, ...)' writes its parts one after the other into the generated source.
+        SmallVector<AstNodeRef> nodeParts;
+        parseCompilerArgumentList(tokRef, 1, UINT32_MAX, false, nodeParts);
+        nodePtr->spanPartsRef = ast_->pushSpan(nodeParts.span());
+    }
+    else
+        nodePtr->nodeBodyRef = parseExpression();
     return nodeRef;
 }
 

@@ -188,8 +188,9 @@ private func edgeSpread(image: *Image, row: s32)->s32
 // plateaus of the measured row are the two edges of the disc.
 #test
 {
-    const Source = "<svg viewBox='0 0 40 40'><rect width='40' height='40' fill='#FFFFFF'/>" ++
-                   "<circle cx='20' cy='20' r='16' fill='#FF0000'/></svg>"
+    const Source = """\
+        <svg viewBox='0 0 40 40'><rect width='40' height='40' fill='#FFFFFF'/>\
+        <circle cx='20' cy='20' r='16' fill='#FF0000'/></svg>"""
 
     var host: Testing.HeadlessHost
     host.setup(240, 240)

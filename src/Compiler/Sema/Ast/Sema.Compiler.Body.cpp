@@ -517,9 +517,7 @@ namespace
 
 Result AstCompilerShortFunc::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeBodyRef)
-        return Result::Continue;
-
+    // The generated source of '#ast', whether one expression or several parts, is a constant.
     if (sema.token(codeRef()).id == TokenId::CompilerAst)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;
@@ -529,6 +527,15 @@ Result AstCompilerShortFunc::semaPostNode(Sema& sema) const
 {
     if (sema.token(codeRef()).id != TokenId::CompilerAst)
         return Result::Continue;
+
+    if (sema.ast().hasSpan(spanPartsRef))
+    {
+        SmallVector<AstNodeRef> parts;
+        sema.ast().appendNodes(parts, spanPartsRef);
+        Utf8 generated;
+        SWC_RESULT(SemaHelpers::appendConstantText(sema, parts.span(), generated));
+        return substituteCompilerAstString(sema, sema.curNodeRef(), generated.view());
+    }
 
     SWC_RESULT(SemaCheck::isConstant(sema, nodeBodyRef));
     SemaNodeView view = sema.viewNodeTypeConstant(nodeBodyRef);

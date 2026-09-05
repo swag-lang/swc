@@ -20,9 +20,10 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
     let fontPath = getTestDataPath("segoeui.ttf")
     var options: Svg.ParseOptions
     options.fontFileName = fontPath.toString()
-    const Source = "<svg width='64' height='24'>" ++
-                   "<text x='3' y='19' font-size='17' fill='white'>Hi" ++
-                   "<tspan x='34' fill='#ff0000' font-weight='bold'>A</tspan></text></svg>"
+    const Source = """\
+        <svg width='64' height='24'>\
+        <text x='3' y='19' font-size='17' fill='white'>Hi\
+        <tspan x='34' fill='#ff0000' font-weight='bold'>A</tspan></text></svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(64, 24, 1)
@@ -149,9 +150,10 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     var options: Svg.ParseOptions
     options.fontFileName = fontPath.toString()
 
-    const Source = "<svg width='60' height='30'>" ++
-                   "<rect x='4' y='4' width='52' height='22' fill='none' stroke='#ffffff' stroke-width='2'/>" ++
-                   "<text x='10' y='21' font-size='14' fill='white'>Hi</text></svg>"
+    const Source = """\
+        <svg width='60' height='30'>\
+        <rect x='4' y='4' width='52' height='22' fill='none' stroke='#ffffff' stroke-width='2'/>\
+        <text x='10' y='21' font-size='14' fill='white'>Hi</text></svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(60, 30, 2)

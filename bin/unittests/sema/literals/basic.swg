@@ -13,7 +13,7 @@
 
 #assert("true" == "true")
 #assert("" == "")
-#assert("a" ++ "b" == "ab")
+#assert(#stringof("a", "b") == "ab")
 #assert("hello" != "world")
 #assert("a" != "b")
 

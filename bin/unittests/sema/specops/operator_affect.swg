@@ -133,7 +133,7 @@ impl LiteralSetTarget
             .timeInSeconds = value * 3600.0
 
         default:
-            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+            #error("invalid duration literal suffix '", suffix, "'")
         }
     }
 }
@@ -166,7 +166,7 @@ impl LiteralOverloadTarget
             .timeInSeconds = value * 3600.0
 
         default:
-            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+            #error("invalid duration literal suffix '", suffix, "'")
         }
     }
 
@@ -190,7 +190,7 @@ impl LiteralOverloadTarget
             .timeInSeconds = value * 3600.0
 
         default:
-            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+            #error("invalid duration literal suffix '", suffix, "'")
         }
     }
 }

@@ -28,7 +28,7 @@ impl Angle
         {
         case "rad": .radians = value
         case "deg": .radians = Math.toRadians(value)
-        default:    #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
+        default:    #error("invalid angle literal suffix [[", suffix, "]]")
         }
     }
 

@@ -515,10 +515,10 @@ impl SurfaceWnd
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None
                     .sigPressed  += &onClose
-                    .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseBk))
-                    .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_PressedBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotBk))
-                    .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotIcon) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotIcon))
-                    .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_PressedIcon) ++ " $" ++ #nameof(ThemeColors.wnd_BtnClosePressedIcon))
+                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_HotBk), " $", #nameof(ThemeColors.wnd_BtnCloseBk)))
+                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_PressedBk), " $", #nameof(ThemeColors.wnd_BtnCloseHotBk)))
+                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_HotIcon), " $", #nameof(ThemeColors.wnd_BtnCloseHotIcon)))
+                    .style.addStyleSheetColors(#stringof(#nameof(ThemeColors.btnIcon_PressedIcon), " $", #nameof(ThemeColors.wnd_BtnClosePressedIcon)))
                 }
             }
         }

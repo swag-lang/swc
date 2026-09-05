@@ -429,35 +429,6 @@ with exactly one language and keeps deliberately.
 
 ## Strings, mixins, and macros
 
-### language.design.016 — `++` is compile-time only, and there is no runtime string concatenation at all
-
-- Area: language
-- Found while: the same pass
-- Observation: `++` joins strings and constants at compile time, and two runtime strings cannot be
-  joined by any operator — `+` is not defined on `string`, and `++` reports that it needs a constant
-  ([003_003_string.swg:64-89](../bin/reference/modules/language/src/003_003_string.swg#L64-L89)).
-  The operator is also the one C-family spelling every reader arrives with a different meaning for.
-  Meanwhile the compile-time diagnostics (`#print`, `#assert`, `#error`, `#warning`) each take
-  exactly one expression, so `++` is not really an operator so much as the argument separator those
-  four directives lack
-  ([002_008_sigils.swg:101-121](../bin/reference/modules/language/src/002_008_sigils.swg#L101-L121)).
-- Evidence: `let c = "a" ++ (b + 1) ++ "!"` is folded at compile time; the same line with a runtime
-  `b` does not compile, and the fix is a `Core.String` builder.
-- Elsewhere: the restriction has one exact precedent and the spelling has none. Zig's `++` is also
-  compile-time only — both operands must be comptime-known, and runtime text goes through
-  `std.fmt` — so the design is not an oddity, it is Zig's. What Zig does not do is give that
-  operator a spelling the reader arrives with another meaning for: `++` is increment in C, C++,
-  Java, C# and JavaScript, and it is *runtime* concatenation in Haskell and Elixir. D chose `~` for
-  concatenation precisely to keep it clear of the arithmetic operators. Rust refuses `&str + &str`
-  outright and makes the allocation visible (`String + &str`, `format!`), which is the same
-  "concatenation is not an operator" position Swag takes at runtime.
-- Next: the honest question is whether the four diagnostics should be variadic instead, which
-  removes most of `++`'s remaining job. That is a small parser change and it would let `++` be
-  judged on its own merits — as a constant-folding operator that a `#[Swag.ConstExpr]` function
-  could arguably provide instead.
-- Complete when: diagnostic argument structure and `++` each have a recorded purpose, and parser,
-  semantic, formatter, and reference tests agree on the resulting surface.
-
 ### language.design.017 — Mixins resolve their body in the caller's scope
 
 - Area: language

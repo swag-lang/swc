@@ -1263,42 +1263,34 @@ namespace
         return semaCompilerLayoutQuery(sema, node, DiagnosticId::sema_err_invalid_alignof, true);
     }
 
-    Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
+    Result resolveCompilerNameOf(Sema& sema, AstNodeRef childRef, Utf8& outName)
     {
         const TaskContext& ctx        = sema.ctx();
-        const AstNodeRef   childRef   = node.nodeArgRef;
         SemaNodeView       symbolView = sema.viewSymbol(childRef);
         if (symbolView.sym() && !symbolView.sym()->isType())
         {
-            const std::string_view name  = symbolView.sym()->name(ctx);
-            const ConstantValue    value = ConstantValue::makeString(ctx, name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            outName = Utf8{symbolView.sym()->name(ctx)};
             return Result::Continue;
         }
 
         SemaNodeView typeView = sema.viewTypeConstant(childRef);
         SWC_RESULT(SemaCheck::isValueOrType(sema, typeView));
-        if (const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView); resolvedTypeRef.isValid())
+        const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
+        if (resolvedTypeRef.isValid())
         {
-            const Utf8          name  = sema.typeMgr().get(resolvedTypeRef).toName(ctx);
-            const ConstantValue value = ConstantValue::makeString(ctx, name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            outName = sema.typeMgr().get(resolvedTypeRef).toName(ctx);
             return Result::Continue;
         }
 
         if (symbolView.sym() && symbolView.sym()->isType() && typeView.typeRef().isValid())
         {
-            const Utf8          name  = sema.typeMgr().get(typeView.typeRef()).toName(ctx);
-            const ConstantValue value = ConstantValue::makeString(ctx, name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            outName = sema.typeMgr().get(typeView.typeRef()).toName(ctx);
             return Result::Continue;
         }
 
         if (symbolView.sym())
         {
-            const std::string_view name  = symbolView.sym()->name(ctx);
-            const ConstantValue    value = ConstantValue::makeString(ctx, name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            outName = Utf8{symbolView.sym()->name(ctx)};
             return Result::Continue;
         }
 
@@ -1307,6 +1299,15 @@ namespace
             diag.addArgument(Diagnostic::ARG_TYPE, typeView.typeRef());
         diag.report(sema.ctx());
         return Result::Error;
+    }
+
+    Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
+    {
+        Utf8 name;
+        SWC_RESULT(resolveCompilerNameOf(sema, node.nodeArgRef, name));
+        const ConstantValue value = ConstantValue::makeString(sema.ctx(), name);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+        return Result::Continue;
     }
 
     Utf8 compilerTypeFullName(Sema& sema, const TypeRef typeRef)
@@ -1356,29 +1357,42 @@ namespace
         return semaCompilerNameOf(sema, node);
     }
 
-    Result semaCompilerStringOf(Sema& sema, const AstCompilerCallOne& node)
+    // A '#code' part contributes its source text, a constant its value, and anything else the
+    // name it resolves to.
+    Result appendCompilerStringOfPart(Sema& sema, AstNodeRef partRef, Utf8& outText)
     {
-        const TaskContext& ctx      = sema.ctx();
-        const AstNodeRef   childRef = node.nodeArgRef;
-        Utf8               codeValue;
-        if (tryGetCodeString(sema, childRef, codeValue))
+        Utf8 codeValue;
+        if (tryGetCodeString(sema, partRef, codeValue))
         {
-            const ConstantValue value = ConstantValue::makeString(ctx, codeValue);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            outText += codeValue;
             return Result::Continue;
         }
 
-        const SemaNodeView view = sema.viewConstant(childRef);
-
+        const SemaNodeView view = sema.viewConstant(partRef);
         if (view.cst())
         {
-            const Utf8          name  = view.cst()->toString(ctx);
-            const ConstantValue value = ConstantValue::makeString(ctx, name);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            outText += view.cst()->toString(sema.ctx());
             return Result::Continue;
         }
 
-        return semaCompilerNameOf(sema, node);
+        Utf8 name;
+        SWC_RESULT(resolveCompilerNameOf(sema, partRef, name));
+        outText += name;
+        return Result::Continue;
+    }
+
+    Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
+    {
+        SmallVector<AstNodeRef> parts;
+        node.collectChildrenFromAst(parts, sema.ast());
+
+        Utf8 text;
+        for (const AstNodeRef partRef : parts)
+            SWC_RESULT(appendCompilerStringOfPart(sema, partRef, text));
+
+        const ConstantValue value = ConstantValue::makeString(sema.ctx(), text);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+        return Result::Continue;
     }
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCallOne& node)
@@ -1670,8 +1684,6 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerNameOf(sema, *this);
         case TokenId::CompilerFullNameOf:
             return semaCompilerFullNameOf(sema, *this);
-        case TokenId::CompilerStringOf:
-            return semaCompilerStringOf(sema, *this);
         case TokenId::CompilerSizeOf:
             return semaCompilerSizeOf(sema, *this);
         case TokenId::CompilerOffsetOf:
@@ -1744,6 +1756,8 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerGetTag:
             return semaCompilerGetTag(sema, *this);
+        case TokenId::CompilerStringOf:
+            return semaCompilerStringOf(sema, *this);
 
         default:
             SWC_INTERNAL_ERROR();

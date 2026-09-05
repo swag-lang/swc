@@ -22,7 +22,7 @@ using Swag, Core
 #test
 {
     const Embedded = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
-    const Source   = "<svg width='4' height='4'><image width='4' height='4' href='data:image/png;base64," ++ Embedded ++ "'/></svg>"
+    const Source   = #stringof("<svg width='4' height='4'><image width='4' height='4' href='data:image/png;base64,", Embedded, "'/></svg>")
     let drawing = expect Svg.Drawing.parse(Source)
     let image   = drawing.rasterize(4, 4, 1)
     Swag.assert(image.pixelColor(2, 2).a > 0)

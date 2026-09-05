@@ -9,8 +9,8 @@ public func depPlaceholderExport(value: DepPlaceholderScalar)->DepPlaceholderSca
 {
     let itf = Swag.compiler()
     itf.compileString(
-        "public func depPlaceholderExport(value: s32)->s32\n" ++
-        "{\n" ++
-        "    return value + DEP_VALUE\n" ++
-        "}\n")
+        #stringof("public func depPlaceholderExport(value: s32)->s32\n",
+                  "{\n",
+                  "    return value + DEP_VALUE\n",
+                  "}\n"))
 }

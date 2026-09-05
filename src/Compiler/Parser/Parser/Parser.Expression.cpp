@@ -104,10 +104,9 @@ namespace
             case TokenId::SymPercent:
                 return 40;
 
-                // Additive (including ++ if you treat it as concat/add)
+                // Additive
             case TokenId::SymPlus:
             case TokenId::SymMinus:
-            case TokenId::SymPlusPlus:
                 return 30;
 
                 // Shifts
@@ -134,7 +133,7 @@ namespace
 
     bool isBinaryOperator(TokenId id)
     {
-        return Token::isOpArithmeticOrBitwise(id) || id == TokenId::SymPlusPlus;
+        return Token::isOpArithmeticOrBitwise(id);
     }
 
     int getRelationalPrecedence(TokenId id)
@@ -777,7 +776,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerAlignOf:
         case TokenId::CompilerOffsetOf:
         case TokenId::CompilerDeclType:
-        case TokenId::CompilerStringOf:
         case TokenId::CompilerNameOf:
         case TokenId::CompilerFullNameOf:
         case TokenId::CompilerRunes:
@@ -792,7 +790,9 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseCompilerCallOne();
 
         case TokenId::CompilerGetTag:
-            return parseCompilerCall(3);
+            return parseCompilerCall(3, 3);
+        case TokenId::CompilerStringOf:
+            return parseCompilerCall(1, UINT32_MAX);
 
         case TokenId::CompilerRun:
             return parseCompilerRun();

@@ -103,18 +103,17 @@ Some concepts have both a directive and an intrinsic:
 | Compile-time form | Intrinsic form |
 |---|---|
 | '#assert(condition)' rejects the build | 'Swag.assert(condition)' checks in its execution context |
-| '#print(text)' writes while compiling | 'Swag.print(...)' writes when the containing code executes |
+| '#print(...)' writes while compiling | 'Swag.print(...)' writes when the containing code executes |
 | '#init { ... }' declares a module hook | 'Swag.init(...)' initializes values or memory |
 | '#drop { ... }' declares a module hook | 'Swag.drop(...)' drops values or memory |
 
-The pairs are related, not symmetrical. The compile-time diagnostics '#print',
-'#assert', '#error' and '#warning' each take exactly **one** compile-time
-expression, so several parts are joined with the '++' concatenation operator.
-Their intrinsic counterparts follow ordinary call rules, and 'Swag.print' is variadic:
+The pairs are related, not symmetrical. '#assert' judges one compile-time
+condition, while '#print', '#error' and '#warning' take the parts of their message
+the way 'Swag.print' does; on the compile-time side every part is a constant:
 
 ```swag
-#print("kind: " ++ #nameof(#typeof(value)))     // one expression, joined with '++'
-Swag.print("kind: ", name, "\n")                    // variadic at runtime
+#print("kind: ", #nameof(#typeof(value)))     // parts, each a compile-time value
+Swag.print("kind: ", name, "\n")              // variadic at runtime
 ```
 
 Inside '#run', a 'Swag' intrinsic executes during compilation because the

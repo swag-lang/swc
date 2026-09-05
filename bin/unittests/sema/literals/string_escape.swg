@@ -8,12 +8,12 @@
 #assert('\x09' == '\t')
 #assert('\x00' == '\0')
 
-#assert("\n" ++ "\t" == "\n\t")
-#assert("\r" ++ "\n" == "\r\n")
+#assert(#stringof("\n", "\t") == "\n\t")
+#assert(#stringof("\r", "\n") == "\r\n")
 #assert("A\\B" == #raw "A\B")
 #assert("The quote is: \"Hello\"" == "The quote is: \"Hello\"")
 #assert("Line one.\r\nLine two." == "Line one.\r\nLine two.")
-#assert("A" ++ "\n" ++ "B" == "A\nB")
+#assert(#stringof("A", "\n", "B") == "A\nB")
 #assert("Hello\u0020World" == "Hello World")
 #assert("Quote: \"test\"" == "Quote: \"test\"")
 
@@ -50,7 +50,7 @@
 #assert("\t" != " ")
 
 #assert("\0" == "\0")
-#assert("" ++ "\0" ++ "" == "\0")
+#assert(#stringof("", "\0", "") == "\0")
 
 #assert("\x42" == "B")
 #assert("\x42" == "\x42")
@@ -90,24 +90,24 @@ const MultiAlign = """this is
                      a
                      string
                      """
-#assert(MultiAlign == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+#assert(MultiAlign == #stringof("this is", Eol, "a", Eol, "string", Eol))
 
 const RawAlign = #raw """this is
                   a
                   string
                   """
-#assert(RawAlign == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+#assert(RawAlign == #stringof("this is", Eol, "a", Eol, "string", Eol))
 
 const MultiKeepShorter = """first
                             second
                         third
                               fourth
                             """
-#assert(MultiKeepShorter == "first" ++ Eol ++ "second" ++ Eol ++ "third" ++ Eol ++ "  fourth" ++ Eol)
+#assert(MultiKeepShorter == #stringof("first", Eol, "second", Eol, "third", Eol, "  fourth", Eol))
 
 const MultiTrimAfterContinuation = """\
                                      this is
                                      a
                                      string
                                      """
-#assert(MultiTrimAfterContinuation == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+#assert(MultiTrimAfterContinuation == #stringof("this is", Eol, "a", Eol, "string", Eol))

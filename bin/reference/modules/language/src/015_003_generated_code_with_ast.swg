@@ -19,6 +19,17 @@ A '#ast' block can return a simple string expression representing Swag code.
 }
 
 /**
+Written as a call, '#ast' takes the parts of the source and writes them one after
+the other, each shown the way a constant prints.
+*/
+#test
+{
+    const Value = 666
+    #ast("var y = ", Value)
+    Swag.assert(y == 666)
+}
+
+/**
 # Returning Source from '#ast'
 A '#ast' block can include logic and must return a string to compile.
 */
@@ -28,7 +39,7 @@ A '#ast' block can include logic and must return a string to compile.
     #ast
     {
         const INC = 5
-        return "cpt += " ++ INC
+        return #stringof("cpt += ", INC)
     }
 
     Swag.assert(cpt == 7)
@@ -63,7 +74,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
     {
         #ast
         {
-            return "x, y: " ++ #typeof(T).name
+            return #stringof("x, y: ", #typeof(T).name)
         }
 
         z: string?
@@ -142,7 +153,7 @@ struct(T) IsSet
 #ast
 {
     const value = 666
-    return "const myGeneratedConst = " ++ value
+    return #stringof("const myGeneratedConst = ", value)
 }
 
 #assert(myGeneratedConst == 666)

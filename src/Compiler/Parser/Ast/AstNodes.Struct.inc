@@ -160,7 +160,7 @@ struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
 };
 
 // -----------------------------------------------------------------------------
-struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnostic>
+struct AstCompilerDiagnostic : AstCompoundT<AstNodeId::CompilerDiagnostic>
 {
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
@@ -475,9 +475,15 @@ struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
 // -----------------------------------------------------------------------------
 struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 {
-    AstNodeRef nodeBodyRef;
+    AstNodeRef nodeBodyRef;  // the statement, or the one expression of '#ast expr'
+    SpanRef    spanPartsRef; // the parts of '#ast(part, ...)'
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, {nodeBodyRef});
+        AstNode::collectChildren(out, ast, spanPartsRef);
+    }
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -664,7 +670,6 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
     AstModifierFlags modifierFlags;
 
     Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

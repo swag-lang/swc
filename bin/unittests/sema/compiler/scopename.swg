@@ -9,7 +9,7 @@ struct ScopeNameOwner {}
 func assertScopedValue(name: string, expectedScope: string)
 {
     #assert(#scopename == expectedScope)
-    #ast "#assert(\"" ++ #scopename ++ "." ++ name ++ "\" == \"" ++ expectedScope ++ "." ++ name ++ "\")"
+    #ast("#assert(\"", #scopename, ".", name, "\" == \"", expectedScope, ".", name, "\")")
 }
 
 impl ScopeNameOwner

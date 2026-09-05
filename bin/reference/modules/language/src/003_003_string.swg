@@ -62,29 +62,28 @@ the underlying UTF-8 encoding.
 }
 
 /**
-# String Concatenation
+# Compile-Time String Building
 
-Swag allows compile-time concatenation of strings and other values using the
-'++' operator.
+There is no string concatenation operator: '+' is not defined on 'string', and
+runtime text is built with 'Std.Core' ('String', 'ConcatBuffer', 'Format').
+At compile time, '#stringof' takes any number of constant parts and writes them
+one after the other, each shown the way a constant prints.
 
 > WARNING:
-> '++' is a **compile-time** operator: every operand must be a constant expression.
-> The 'let' bindings below hold a value the compiler already folded, not a runtime
-> concatenation. Two runtime strings cannot be joined by an operator at all — '+'
-> is not defined on 'string', and '++' reports that the expression needs a
-> compile-time value. Build runtime text with 'Std.Core' ('String', 'ConcatBuffer',
-> 'Format') instead.
+> Every part must be a constant expression. The 'let' bindings below hold a value
+> the compiler already folded, not a runtime concatenation; a part that needs a
+> runtime value reports that the expression needs a compile-time value.
 */
 #test
 {
-    const a = "the devil's number is " ++ 666
+    const a = #stringof("the devil's number is ", 666)
     #assert(a == "the devil's number is 666")
 
     const b = 666
-    let c = "the devil's number is not " ++ (b + 1) ++ "!"
+    let c = #stringof("the devil's number is not ", b + 1, "!")
     Swag.assert(c == "the devil's number is not 667!")
 
-    let d = "there are " ++ 4 ++ " apples in " ++ (2 * 2) ++ " baskets"
+    let d = #stringof("there are ", 4, " apples in ", 2 * 2, " baskets")
     Swag.assert(d == "there are 4 apples in 4 baskets")
 }
 
@@ -316,13 +315,15 @@ end-of-line from being included.
 # The '#stringof' and '#nameof' Intrinsics
 
 The '#stringof' intrinsic returns the string representation of a constant
-expression at compile time.
+expression at compile time. Given several arguments, it writes their
+representations one after the other.
 */
 #test
 {
     const X = 1
     #assert(#stringof(X) == "1")
     #assert(#stringof(X + 10) == "11")
+    #assert(#stringof("x = ", X, ";") == "x = 1;")
 }
 
 /**

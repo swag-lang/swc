@@ -1966,6 +1966,7 @@ AstNodeRef AstCompilerShortFunc::semaClone(Sema& sema, const CloneContext& clone
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerShortFunc>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstCompilerShortFunc>();
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    cloned.spanPartsRef     = cloneSpan(sema, spanPartsRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
@@ -2054,8 +2055,8 @@ AstNodeRef AstCompilerLiteral::semaClone(Sema& sema, const CloneContext& cloneCo
 
 AstNodeRef AstCompilerDiagnostic::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CompilerDiagnostic>(tokRef());
-    newPtr->nodeArgRef    = SemaClone::cloneAst(sema, nodeArgRef, cloneContextAsInline(cloneContext));
+    auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::CompilerDiagnostic>(tokRef());
+    newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

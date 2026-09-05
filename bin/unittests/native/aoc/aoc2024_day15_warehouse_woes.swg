@@ -5,7 +5,7 @@
 // (100*row + col) of all boxes after executing every move.
 // Part 1 uses single-width boxes; Part 2 is omitted (double-width).
 // Exercises: .buffer, Swag.makeSlice, #stringof, Swag.sqrt/Swag.floor math intrinsics,
-// .count on fixed arrays, string concatenation (++), #typeof.
+// .count on fixed arrays, #typeof.
 
 const SmallInput =
     """########

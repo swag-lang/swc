@@ -387,7 +387,7 @@ same line share a level.
 ```swag
 ! ~ - +      (prefix)
 * / %
-+ - ++
++ -
 >> <<
 &
 ^
@@ -400,8 +400,7 @@ orelse  ? :
 ```
 
 The prefix operators bind tighter than every binary operator, so '!a == b' parses as
-'(!a) == b' and '-a * b' parses as '(-a) * b'. The string concatenation operator '++'
-shares the additive level.
+'(!a) == b' and '-a * b' parses as '(-a) * b'.
 
 When two operators share the same precedence level, expressions are evaluated
 from left to right. The loosest level, 'orelse' and the ternary, groups to the right:

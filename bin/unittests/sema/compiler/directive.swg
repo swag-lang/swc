@@ -1,6 +1,7 @@
 #global private
 
-#warning("toto")     // swc-expected-warning {{sema_warn_compiler_warning}}
+#warning("toto")                       // swc-expected-warning {{sema_warn_compiler_warning}}
+#warning("part ", 1, " of ", true)     // swc-expected-warning {{sema_warn_compiler_warning}}
 
 const ENABLED  = 1
 const DISABLED = 0

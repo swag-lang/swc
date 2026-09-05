@@ -293,34 +293,12 @@ namespace
         return Result::Continue;
     }
 
-    Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
-    {
-        SWC_UNUSED(node);
-        const TaskContext& ctx = sema.ctx();
-        Utf8               str = nodeLeftView.cst()->toString(ctx);
-        str += nodeRightView.cst()->toString(ctx);
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));
-        return Result::Continue;
-    }
-
     Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (op == TokenId::SymPlusPlus)
-            return constantFoldPlusPlus(sema, result, node, nodeLeftView, nodeRightView);
         if (Token::isOpArithmeticOrBitwise(op))
             return constantFoldOp(sema, result, op, node, nodeLeftView, nodeRightView);
 
         return Result::Error;
-    }
-
-    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
-    {
-        SWC_UNUSED(nodeLeftView);
-        SWC_UNUSED(nodeRightView);
-        SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
-        SWC_RESULT(SemaCheck::isConstant(sema, node.nodeLeftRef));
-        SWC_RESULT(SemaCheck::isConstant(sema, node.nodeRightRef));
-        return Result::Continue;
     }
 
     Result checkOp(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
@@ -516,9 +494,6 @@ namespace
         if (nodeRightView.cstRef().isValid())
             SWC_RESULT(SemaHelpers::checkDivideByZeroConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
-        if (op == TokenId::SymPlusPlus)
-            return checkPlusPlus(sema, node, nodeLeftView, nodeRightView);
-
         SWC_INTERNAL_CHECK(Token::isOpArithmeticOrBitwise(op));
         return checkOp(sema, nodeRef, op, node, nodeLeftView, nodeRightView);
     }
@@ -535,14 +510,6 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
     }
 
-    return Result::Continue;
-}
-
-Result AstBinaryExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    const TokenId op = Token::canonicalBinary(sema.token(codeRef()).id);
-    if (op == TokenId::SymPlusPlus && (childRef == nodeLeftRef || childRef == nodeRightRef))
-        SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;
 }
 

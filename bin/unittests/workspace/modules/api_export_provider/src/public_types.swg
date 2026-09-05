@@ -162,7 +162,7 @@ namespace DepTools
     func(T) hash32WithGeneratedFullName(value: T)->u32
     {
         #static if #defined(T.IHash32) do
-            #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
+            #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
         else do
             return 0
     }
@@ -170,7 +170,7 @@ namespace DepTools
     #[Swag.Mixin]
     func depMakeGeneratedCommandId(name: string)
     {
-        #ast "const " ++ name ++ " = \"DepTools.DepGeneratedCommandOwner." ++ name ++ "\""
+        #ast("const ", name, " = \"DepTools.DepGeneratedCommandOwner.", name, "\"")
     }
 
     struct DepGeneratedCommandOwner {}

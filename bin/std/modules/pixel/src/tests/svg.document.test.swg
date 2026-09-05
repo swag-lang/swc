@@ -120,13 +120,14 @@ func makeTrianglePath()->LinePath
 #[Swag.TestTag("golden")]
 #test
 {
-    const Source = "<svg width='120' height='72' viewBox='0 0 120 72'>" ++
-                   "<rect width='120' height='72' fill='#f6f2ea'/>" ++
-                   "<path d='M8 60 L28 14 L48 60 L68 14 L88 60' fill='none' stroke='#23201c' stroke-width='1.5'/>" ++
-                   "<path d='M8 8 Q60 40 112 8' fill='none' stroke='#c0392b' stroke-width='0.4'/>" ++
-                   "<circle cx='96' cy='40' r='16' fill='none' stroke='#2b6cb0' stroke-width='3'/>" ++
-                   "<path d='M8 66 H112' fill='none' stroke='#2f855a' stroke-width='6' stroke-linecap='round'/>" ++
-                   "</svg>"
+    const Source = """\
+        <svg width='120' height='72' viewBox='0 0 120 72'>\
+        <rect width='120' height='72' fill='#f6f2ea'/>\
+        <path d='M8 60 L28 14 L48 60 L68 14 L88 60' fill='none' stroke='#23201c' stroke-width='1.5'/>\
+        <path d='M8 8 Q60 40 112 8' fill='none' stroke='#c0392b' stroke-width='0.4'/>\
+        <circle cx='96' cy='40' r='16' fill='none' stroke='#2b6cb0' stroke-width='3'/>\
+        <path d='M8 66 H112' fill='none' stroke='#2f855a' stroke-width='6' stroke-linecap='round'/>\
+        </svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source)
 

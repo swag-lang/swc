@@ -1085,11 +1085,6 @@ void Lexer::lexSymbol()
                 token_.id = TokenId::SymMinusGreater;
                 buffer_ += 2;
             }
-            else if (buffer_[1] == '-')
-            {
-                token_.id = TokenId::SymMinusMinus;
-                buffer_ += 2;
-            }
             else
             {
                 token_.id = TokenId::SymMinus;
@@ -1101,11 +1096,6 @@ void Lexer::lexSymbol()
             if (buffer_[1] == '=')
             {
                 token_.id = TokenId::SymPlusEqual;
-                buffer_ += 2;
-            }
-            else if (buffer_[1] == '+')
-            {
-                token_.id = TokenId::SymPlusPlus;
                 buffer_ += 2;
             }
             else

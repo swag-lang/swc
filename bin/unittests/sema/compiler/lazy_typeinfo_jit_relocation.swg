@@ -19,7 +19,7 @@ impl LazySignal
             #ast
             {
                 let ts = #typeof(T)
-                return "fn(cast(" ++ ts.parameters[0].pointedType.fullname ++ ") params[0])"
+                return #stringof("fn(cast(", ts.parameters[0].pointedType.fullname, ") params[0])")
             }
         }
     }

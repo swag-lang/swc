@@ -5,7 +5,7 @@
 #[Swag.Mixin]
 func acceptOwnCmdIds()
 {
-    #ast "mtd impl accept(cxt: ActionContext)->bool { return Utf8.startsWith(cxt.id, \"" ++ #scopename ++ ".\") }"
+    #ast("mtd impl accept(cxt: ActionContext)->bool { return Utf8.startsWith(cxt.id, \"", #scopename, ".\") }")
 }
 
 // What a purely-mechanical command needs to be enabled; evaluated by updateFromTable

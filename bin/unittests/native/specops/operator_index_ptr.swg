@@ -78,7 +78,7 @@ impl FullContainer
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: s32)
     {
         g_AssignCalls += 1
-        #ast ".values[index] " ++ op.symbol() ++ " value"
+        #ast(".values[index] ", op.symbol(), " value")
     }
 }
 

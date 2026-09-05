@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaAccess.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -216,6 +217,19 @@ void SemaHelpers::pushConstExprRequirement(Sema& sema, AstNodeRef childRef)
     auto frame = sema.frame();
     frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
     sema.pushFramePopOnPostChild(frame, childRef);
+}
+
+Result SemaHelpers::appendConstantText(Sema& sema, std::span<const AstNodeRef> parts, Utf8& outText)
+{
+    for (const AstNodeRef partRef : parts)
+    {
+        SWC_RESULT(SemaCheck::isConstant(sema, partRef));
+        const SemaNodeView partView = sema.viewConstant(partRef);
+        SWC_ASSERT(partView.hasConstant());
+        outText += partView.cst()->toString(sema.ctx());
+    }
+
+    return Result::Continue;
 }
 
 IdentifierRef SemaHelpers::getUniqueIdentifier(Sema& sema, const std::string_view& name)

@@ -131,7 +131,7 @@ impl Array
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         let buffer = .buffer!
-        #ast "buffer[index] " ++ op.symbol() ++ " value"
+        #ast("buffer[index] ", op.symbol(), " value")
     }
 
     // Replaces the content of the array with elements copied from a slice.

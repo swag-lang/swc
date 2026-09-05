@@ -71,7 +71,7 @@ line3"""
                a
                string
                """
-    Swag.assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+    Swag.assert(a == #stringof("this is", Eol, "a", Eol, "string", Eol))
 }
 
 #test
@@ -80,7 +80,7 @@ line3"""
               a
               string
               """
-    Swag.assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+    Swag.assert(a == #stringof("this is", Eol, "a", Eol, "string", Eol))
 }
 
 #test
@@ -90,7 +90,7 @@ line3"""
            third
                  fourth
                """
-    Swag.assert(a == "first" ++ Eol ++ "second" ++ Eol ++ "third" ++ Eol ++ "  fourth" ++ Eol)
+    Swag.assert(a == #stringof("first", Eol, "second", Eol, "third", Eol, "  fourth", Eol))
 }
 
 #test
@@ -100,7 +100,7 @@ line3"""
             a
             string
             """
-    Swag.assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+    Swag.assert(a == #stringof("this is", Eol, "a", Eol, "string", Eol))
 }
 
 // Multiline empty

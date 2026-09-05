@@ -15,9 +15,9 @@ interface IHash64
 func(T) generatedHash32(value: T)->u32
 {
     #static if #defined(T.IHash32) do
-        #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
+        #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
     elif #defined(T.IHash64) do
-        #ast "return cast(u32) " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"
+        #ast("return cast(u32) ", #typeof(T).fullname, ".IHash64.compute(value)")
     else do
         return 0
 }
@@ -26,9 +26,9 @@ func(T) generatedHash32(value: T)->u32
 func(T) generatedHash64(value: T)->u64
 {
     #static if #defined(T.IHash64) do
-        #ast "return " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"
+        #ast("return ", #typeof(T).fullname, ".IHash64.compute(value)")
     elif #defined(T.IHash32) do
-        #ast "return cast(u64) " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
+        #ast("return cast(u64) ", #typeof(T).fullname, ".IHash32.compute(value)")
     else do
         return 0
 }

@@ -27,8 +27,9 @@ const Accents = [
     Argb.SeaGreen,
     Argb.SlateBlue,
     Argb.Crimson]
-const Subtitle = "Reusable LaTeX parsing, TeX atom spacing, scalable scripts, fractions, radicals, " ++
-                 "limits, delimiters and matrices."
+const Subtitle = """\
+    Reusable LaTeX parsing, TeX atom spacing, scalable scripts, fractions, radicals, \
+    limits, delimiters and matrices."""
 
 struct SceneLayout
 {

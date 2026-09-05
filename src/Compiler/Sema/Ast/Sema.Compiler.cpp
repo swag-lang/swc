@@ -728,43 +728,36 @@ Result AstCompilerSwitch::semaPostNode(Sema& sema) const
 
 Result AstCompilerDiagnostic::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeArgRef)
-        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    SemaHelpers::pushConstExprRequirement(sema, childRef);
     return Result::Continue;
 }
 
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
+    SmallVector<AstNodeRef> parts;
+    collectChildrenFromAst(parts, sema.ast());
+
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::CompilerAssert)
-        SWC_RESULT(castCompilerConditionToBool(sema, nodeArgRef));
-
-    const SemaNodeView   argView  = sema.viewConstant(nodeArgRef);
-    const ConstantValue& constant = *(argView.cst());
-    SWC_ASSERT(argView.hasConstant());
-    switch (tok.id)
     {
-        case TokenId::CompilerError:
-        case TokenId::CompilerWarning:
-            if (!constant.isString())
-                return SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeString());
-            break;
-
-        case TokenId::CompilerAssert:
-            if (!constant.getBool())
-                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
-            break;
-
-        default:
-            break;
+        SWC_ASSERT(parts.size() == 1);
+        SWC_RESULT(castCompilerConditionToBool(sema, parts[0]));
+        const SemaNodeView conditionView = sema.viewConstant(parts[0]);
+        SWC_ASSERT(conditionView.hasConstant());
+        if (!conditionView.cst()->getBool())
+            return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
+        return Result::Continue;
     }
+
+    Utf8 text;
+    SWC_RESULT(SemaHelpers::appendConstantText(sema, parts.span(), text));
 
     switch (tok.id)
     {
         case TokenId::CompilerError:
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, codeRef());
-            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString());
+            diag.addArgument(Diagnostic::ARG_BECAUSE, text);
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -772,7 +765,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         case TokenId::CompilerWarning:
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, codeRef());
-            diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString());
+            diag.addArgument(Diagnostic::ARG_BECAUSE, text);
             diag.report(sema.ctx());
             return Result::Continue;
         }
@@ -781,22 +774,15 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
         {
             const TaskContext& ctx = sema.ctx();
             ctx.global().logger().lock();
-            Logger::print(ctx, constant.toString(ctx));
+            Logger::print(ctx, text);
             Logger::print(ctx, "\n");
             ctx.global().logger().unlock();
             return Result::Continue;
         }
 
-        case TokenId::CompilerAssert:
-            if (!constant.getBool())
-                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
-            break;
-
         default:
-            break;
+            SWC_INTERNAL_ERROR();
     }
-
-    return Result::Continue;
 }
 
 Result AstCompilerLiteral::semaPostNode(Sema& sema)

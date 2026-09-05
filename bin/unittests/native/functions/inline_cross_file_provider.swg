@@ -64,7 +64,7 @@ namespace InlineCrossFile
         mtd(op: Swag.Operator) opIndexAssign(index: u64, value: T)
         {
             let buffer = .data!
-            #ast "buffer[index] " ++ op.symbol() ++ " value"
+            #ast("buffer[index] ", op.symbol(), " value")
         }
 
         #[Swag.Inline]

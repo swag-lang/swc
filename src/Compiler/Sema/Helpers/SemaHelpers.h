@@ -177,6 +177,9 @@ namespace SemaHelpers
     bool                  isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param);
     AstNodeRef            unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef);
     void                  pushConstExprRequirement(Sema& sema, AstNodeRef childRef);
+    // The text of several constant parts written one after the other, each shown the way a
+    // constant prints: the argument form of '#print', '#error', '#warning' and '#ast'.
+    Result                appendConstantText(Sema& sema, std::span<const AstNodeRef> parts, Utf8& outText);
     IdentifierRef         getUniqueIdentifier(Sema& sema, const std::string_view& name);
     IdentifierRef         resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef);
     IdentifierRef         resolveCodeParamIdentifier(const Sema& sema, uint32_t slot);

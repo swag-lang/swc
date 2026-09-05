@@ -22,7 +22,7 @@ impl AA
 #[Swag.Mixin]
 func makeImplConst(name: string, value: string)
 {
-    #ast "const " ++ name ++ " = \"" ++ value ++ "\""
+    #ast("const ", name, " = \"", value, "\"")
 }
 
 struct ImplGeneratedMember {}

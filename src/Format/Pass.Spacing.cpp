@@ -10,7 +10,7 @@ namespace
 
     bool isSymbolOperatorId(const TokenId id)
     {
-        return Token::isOpArithmeticOrBitwise(id) || Token::isOpRelational(id) || Token::isOpLogical(id) || id == TokenId::SymPlusPlus;
+        return Token::isOpArithmeticOrBitwise(id) || Token::isOpRelational(id) || Token::isOpLogical(id);
     }
 
     bool isAssignRole(const FormatPiece& piece)

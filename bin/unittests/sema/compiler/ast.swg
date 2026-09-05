@@ -13,6 +13,16 @@ const LocalAstValue = #run
 
 #assert(LocalAstValue == 14)
 
+const LocalAstParts = #run
+{
+    var value = 1
+    const Increment = 41
+    #ast("value += ", Increment)
+    return value
+}
+
+#assert(LocalAstParts == 42)
+
 struct GeneratedFields
 {
     #ast
@@ -25,8 +35,15 @@ struct(T) GenericFields
 {
     #ast
     {
-        return "first, second: " ++ #typeof(T).name
+        return #stringof("first, second: ", #typeof(T).name)
     }
+
+    label: string
+}
+
+struct(T) GenericPartsFields
+{
+    #ast("first, second: ", #typeof(T).name)
 
     label: string
 }
@@ -81,12 +98,13 @@ impl AstStringBox
 
 #ast
 {
-    return "const GeneratedGraphA = GeneratedGraphB | GeneratedGraphC\n" ++
-           "const GeneratedGraphB = GeneratedGraphD & GeneratedGraphE\n" ++
-           "const GeneratedGraphC = GeneratedGraphF >> 1\n" ++
-           "const GeneratedGraphD = 1\n" ++
-           "const GeneratedGraphE = 3\n" ++
-           "const GeneratedGraphF = 8"
+    return """\
+        const GeneratedGraphA = GeneratedGraphB | GeneratedGraphC\n\
+        const GeneratedGraphB = GeneratedGraphD & GeneratedGraphE\n\
+        const GeneratedGraphC = GeneratedGraphF >> 1\n\
+        const GeneratedGraphD = 1\n\
+        const GeneratedGraphE = 3\n\
+        const GeneratedGraphF = 8"""
 }
 #assert(GeneratedGraphA == 5)
 
@@ -104,6 +122,11 @@ impl AstStringBox
     var genericFloat: GenericFields'f64
     #assert(#typeof(genericFloat.first) == f64)
     #assert(#typeof(genericFloat.second) == f64)
+
+    var genericParts: GenericPartsFields'u16
+    #assert(#typeof(genericParts.first) == u16)
+    #assert(#typeof(genericParts.second) == u16)
+    #assert(#typeof(genericParts.label) == string)
 
     let vec: Vector3
     #assert(vec.x == 1)

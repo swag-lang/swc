@@ -32,7 +32,7 @@ impl LiteralAngle
             .radians = value
 
         default:
-            #error("invalid angle suffix '" ++ suffix ++ "'")
+            #error("invalid angle suffix '", suffix, "'")
         }
     }
 }

@@ -5,9 +5,10 @@ using Swag, Core
 // Filter primitives compose in declaration order: blur first, then offset the result.
 #test
 {
-    const Source = "<svg width='32' height='20'><defs><filter id='soft-shift'>" ++
-                   "<feGaussianBlur stdDeviation='2'/><feOffset dx='5' dy='0'/>" ++
-                   "</filter></defs><rect x='4' y='6' width='8' height='8' fill='#ff0000' filter='url(#soft-shift)'/></svg>"
+    const Source = """\
+        <svg width='32' height='20'><defs><filter id='soft-shift'>\
+        <feGaussianBlur stdDeviation='2'/><feOffset dx='5' dy='0'/>\
+        </filter></defs><rect x='4' y='6' width='8' height='8' fill='#ff0000' filter='url(#soft-shift)'/></svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source)
     let image   = drawing.rasterize(32, 20, 1)

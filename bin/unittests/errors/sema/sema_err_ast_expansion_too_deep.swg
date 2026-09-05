@@ -4,9 +4,9 @@
 func(const Depth: s32) expandDeeper()->string
 {
     let next   = Depth + 1
-    let source = "#ast expandDeeper'" ++ #stringof(next) ++ "()"
+    let source = #stringof("#ast expandDeeper'", next, "()")
     if next == 64 do
-        return source ++ " // swc-expected-error {{sema_err_ast_expansion_too_deep}}"
+        return #stringof(source, " // swc-expected-error {{sema_err_ast_expansion_too_deep}}")
     return source
 }
 

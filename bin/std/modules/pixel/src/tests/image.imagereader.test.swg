@@ -3,6 +3,70 @@
 
 using Swag, Core
 
+#test
+{
+    var reader = expect ImageReader.load(getTestDataPath("imageset-restore.apng"))
+    let pixels = expect File.readAllBytes(getTestDataPath("imageset-restore.apng.rgba"))
+    Swag.assert(reader.info.frames.count == 4 and reader.info.frames[2].disposal == .Previous)
+    for index in [0'u32, 1, 2, 3, 1, 3]
+    {
+        let image = expect reader.read(index)
+        Swag.assert(Memory.compare(image.pixels.buffer, pixels.buffer! + cast(u64) index * 64, 64) == 0)
+    }
+    var poster = expect ImageReader.load(getTestDataPath("imageset-poster.apng"))
+    Swag.assert(poster.info.frames.count == 2)
+    let animated = expect poster.read(0)
+    let still = expect Image.load(getTestDataPath("imageset-poster.apng"))
+    Swag.assert(still.pixelColor(0, 0).r == 255 and animated.pixelColor(0, 0).a == 0)
+}
+
+// Metadata remains optional for both still PNG and WebP animation readers.
+#test
+{
+    var source = Image.create(2, 2, .RGBA8)
+    source.fill(Argb.White)
+    var metadata: ImageMetadata
+    metadata.signature = 1
+    metadata.tag = "Exif"
+    const ExifBytes: [26] u8 = ['I', 'I', 42, 0, 8, 0, 0, 0, 1, 0, 18, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
+    metadata.value.add(ExifBytes)
+    source.metadata.add(metadata)
+    let encoded = expect source.encode("metadata.png")
+    let decoded = expect Image.decode("metadata.png", encoded.toSlice())
+    Swag.assert(decoded.metadata.count == 1 and decoded.metadata[0].signature == 1)
+    let properties = expect Exif.decode(decoded.metadata[0].toSlice())
+    Swag.assert(properties.count == 1 and properties[0].value == "6")
+
+    var webp = expect File.readAllBytes(getTestDataPath("imageset-animation.webp"))
+    webp[20] |= 8
+    webp.add("EXIF")
+    webp.add([26'u8, 0, 0, 0])
+    webp.add(ExifBytes)
+    (webp.buffer! + 4)[as u32] = cast(u32) webp.count - 8
+    for enabled in [false, true]
+    {
+        var reader = expect ImageReader.decode("metadata.webp", webp.toSlice(), {decodeMetadata: enabled})
+        let frame = expect reader.read(2)
+        Swag.assert(frame.metadata.count == (enabled ? 1'u64 : 0'u64))
+        if enabled do Swag.assert(frame.metadata[0].isTag("Exif") and frame.metadata[0].value.count == 26)
+    }
+}
+
+// Cyclic page chains and oversized indexed containers fail during indexing.
+#test
+{
+    var tiff = expect File.readAllBytes(getTestDataPath("imageset-pages-raw.tiff"))
+    let first = (tiff.buffer! + 4)[as u32]
+    let entries = (tiff.buffer! + first)[as u16]
+    (tiff.buffer! + first + 2 + cast(u64) entries * 12)[as u32] = first
+    var reader = catch ImageReader.decode("cycle.tiff", tiff.toSlice()) as cycleError
+    Swag.assert(cycleError != null)
+    var dds = expect File.readAllBytes(getTestDataPath("imageset-array.dds"))
+    (dds.buffer! + 140)[as u32] = Swag.U32.Max
+    reader = catch ImageReader.decode("oversized.dds", dds.toSlice()) as arrayError
+    Swag.assert(arrayError != null)
+}
+
 // Reference canvases use Pillow's raw decoders and source-over compositor, independently of Pixel.
 #test
 {

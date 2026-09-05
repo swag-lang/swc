@@ -104,11 +104,14 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         else
         {
             result.details = Format.toString(imageStrings().ui_DetailsStill, frame.width, frame.height, frame.bitsPerPixel)
-            result.image = frame[]
+            result.image   = frame[]
         }
+
         result.information.addImageMetadata(frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
-        if result.movie.frameCount <= 1 do result.movie.clear()
+        if result.movie.frameCount <= 1 do
+            result.movie.clear()
     }
+
     return #move result
 }
 
@@ -506,7 +509,8 @@ private impl ImageViewer
         }
         result.imageView.sigDecodeFailed += func|view = result|(imageView)
         {
-            if view.reportFailure do view.reportFailure!(view, imageView.movie.failureReason.toString())
+            if view.reportFailure do
+                view.reportFailure!(view, imageView.movie.failureReason.toString())
         }
 
         result.applyLayout()

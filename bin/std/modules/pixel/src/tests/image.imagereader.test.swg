@@ -8,8 +8,8 @@ using Swag, Core
 {
     for extension in ["webp", "apng", "gif"]
     {
-        let name = Format.toString("imageset-animation.%", extension)
-        var reader = expect ImageReader.load(getTestDataPath(name.toString()))
+        let name     = Format.toString("imageset-animation.%", extension)
+        var reader   = expect ImageReader.load(getTestDataPath(name.toString()))
         let expected = expect File.readAllBytes(getTestDataPath(Format.toString("%.rgba", name.toString()).toString()))
         Swag.assert(reader.info.frames.count == 3)
         Swag.assert(reader.info.canvasWidth == 4 and reader.info.canvasHeight == 4)
@@ -23,6 +23,7 @@ using Swag, Core
             Swag.assert(frame.width == 4 and frame.height == 4 and frame.pixelFormat == .RGBA8)
             Swag.assert(Memory.compare(frame.pixels.buffer, expected.buffer! + cast(u64) index * 64, 64) == 0)
         }
+
         let retained = expect reader.read(2)
         reader.close()
         reader.close()
@@ -41,14 +42,15 @@ using Swag, Core
         Swag.assert(reader.info.frames[0].kind == .Page)
         for index in [2'u32, 0, 1]
         {
-            let image = expect reader.read(index)
-            let width = index == 0 ? 2 : (index == 1 ? 4 : 1)
+            let image  = expect reader.read(index)
+            let width  = index == 0 ? 2 : (index == 1 ? 4 : 1)
             let height = index == 0 ? 3 : (index == 1 ? 2 : 1)
             Swag.assert(image.width == width and image.height == height)
             let expected: [3] u32 = [0xFFFF0000, 0xFF008000, 0xFF0000FF]
             Swag.assert(image.pixelColor(0, 0).argb == expected[index])
         }
     }
+
     var icons = expect ImageReader.load(getTestDataPath("imageset-icons.ico"))
     Swag.assert(icons.info.frames.count == 2 and icons.info.representativeIndex == 1)
     let small = expect icons.read(0)
@@ -64,11 +66,11 @@ using Swag, Core
         for variant in ["array", "cube", "volume"]
         {
             var reader = expect ImageReader.load(getTestDataPath(Format.toString("imageset-%.%", variant, extension).toString()))
-            let count = variant == "array" ? 4'u64 : (variant == "cube" ? 12'u64 : 3'u64)
+            let count  = variant == "array" ? 4'u64 : (variant == "cube" ? 12'u64 : 3'u64)
             Swag.assert(reader.info.frames.count == count)
             for index in range(0'u64, count).reversed()
             {
-                let info = &reader.info.frames[index]
+                let info  = &reader.info.frames[index]
                 let image = expect reader.read(cast(u32) index)
                 Swag.assert(info.kind == .Texture and image.width == cast(s32) (2 >> info.level))
                 Swag.assert(image.pixelColor(0, 0).r == 20 + index * 10)
@@ -76,6 +78,7 @@ using Swag, Core
             }
         }
     }
+
     var compressed = expect ImageReader.load(getTestDataPath("imageset-zlib.ktx2"))
     Swag.assert(compressed.info.frames.count == 4)
     let last = expect compressed.read(3)
@@ -104,8 +107,8 @@ using Swag, Core
         Swag.assert(reader.info.frames.count == 3 and reader.info.representativeIndex == 0)
         Swag.assert(reader.info.frames[1].kind == .Layer and reader.info.frames[2].name == "Layer 2")
         let composite = expect reader.read(0)
-        let second = expect reader.read(2)
-        let first = expect reader.read(1)
+        let second    = expect reader.read(2)
+        let first     = expect reader.read(1)
         Swag.assert(composite.width == 4 and composite.pixelColor(0, 0).argb == 0xFFFF0000)
         Swag.assert(first.width == 2 and first.pixelColor(0, 0).argb == 0xFFFF0000)
         Swag.assert(second.width == 2 and second.pixelColor(0, 0).argb == 0x8000FF00)
@@ -118,7 +121,7 @@ using Swag, Core
     var source = Image.create(2, 2, .RGBA8)
     source.fill(Argb.Red)
     let encoded = expect source.encode("still.bmp")
-    var reader = expect ImageReader.decode("still.bmp", nnBytes(encoded.toSlice()))
+    var reader  = expect ImageReader.decode("still.bmp", nnBytes(encoded.toSlice()))
     Swag.assert(reader.info.frames.count == 1)
     let decoded = expect reader.read(0)
     Swag.assert(decoded.pixelColor(0, 0).argb == 0xFFFF0000)

@@ -11,7 +11,7 @@ using Core, Pixel, Gui
     host.setup(1000, 760)
     defer host.shutdown()
     var session = openTestViewer(imageViewerPlugin(), &host.root, fileName)
-    let view = cast(*ImageViewer) session.view!
+    let view    = cast(*ImageViewer) session.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     let movie = &view.imageView.movie
     Swag.assert(view.failureReason.isEmpty() and movie.isValid())
@@ -26,7 +26,8 @@ using Core, Pixel, Gui
     host.app.timing.maximumDeltaSeconds = 0.062
     host.app.timing.update()
     host.app.timing.update()
-    for 32 do discard host.render(&host.root)
+    for 32 do
+        discard host.render(&host.root)
     Swag.assert(movie.frameIndex == 32 and movie.failureReason.isEmpty())
     Swag.assert(Memory.compare(first.pixels.buffer, movie.frame.pixels.buffer, first.byteCount) != 0)
     discard host.render(&host.root)

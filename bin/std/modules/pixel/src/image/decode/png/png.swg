@@ -123,8 +123,8 @@ internal struct Decoder
         seenBKGD:      bool                   // Whether a background chunk was seen.
         seenPLTE:      bool                   // Whether a palette chunk was seen.
         orderDefilter: bool                   // Whether scanlines defilter in interlaced order.
-        input: const [..] u8?
-        animation: ImageSetInfo
+        input:         const [..] u8?
+        animation:     ImageSetInfo
     }
 }
 
@@ -256,14 +256,14 @@ impl Decoder
         // was already loaded by the look-ahead; the flow analysis cannot prove it.
         var ch: ChunkHeader
 
-        var firstChunk = true
-        var seenIEND   = false
-        var seenIDAT   = false
-        var chIsHere   = false
+        var firstChunk          = true
+        var seenIEND            = false
+        var seenIDAT            = false
+        var chIsHere            = false
         var declaredFrames: u32
-        var sequence: u64
-        var frameHasData = false
-        var currentFrame: s32 = -1
+        var sequence:       u64
+        var frameHasData        = false
+        var currentFrame:   s32 = -1
 
         while !seenIEND
         {
@@ -286,16 +286,17 @@ impl Decoder
                 if !firstChunk do
                     fail InvalidFormatError{"PNG data contains more than one IHDR chunk"}
                 .readHeader(ch)
-                .animation.canvasWidth = cast(s32) .header.width
+                .animation.canvasWidth  = cast(s32) .header.width
                 .animation.canvasHeight = cast(s32) .header.height
 
             case .ACTL:
                 if declaredFrames or seenIDAT or ch.length != 8 do
                     fail InvalidFormatError{"PNG animation control chunk is invalid or misplaced"}
                 let chunk = .readChunk(ch)
-                let data = Decoder.safeDatas(chunk).buffer
+                let data  = Decoder.safeDatas(chunk).buffer
                 declaredFrames = Math.bigEndianToNative(data[as u32])
-                if !declaredFrames do fail InvalidFormatError{"PNG animation declares no frames"}
+                if !declaredFrames do
+                    fail InvalidFormatError{"PNG animation declares no frames"}
                 .decOptions.checkFrameCount(declaredFrames)
                 .animation.loopCount = Math.bigEndianToNative((data + 4)[as u32])
 
@@ -303,18 +304,19 @@ impl Decoder
                 if !declaredFrames or ch.length != 26 or (currentFrame >= 0 and !frameHasData) do
                     fail InvalidFormatError{"PNG animation frame control is invalid or misplaced"}
                 let chunk = .readChunk(ch)
-                let data = Decoder.safeDatas(chunk).buffer
+                let data  = Decoder.safeDatas(chunk).buffer
                 if Math.bigEndianToNative(data[as u32]) != sequence do
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
-                sequence += 1
+                sequence     += 1
                 currentFrame += 1
                 frameHasData = false
-                if cast(u32) currentFrame >= declaredFrames do fail InvalidFormatError{"PNG animation has too many frames"}
-                let width = Math.bigEndianToNative((data + 4)[as u32])
-                let height = Math.bigEndianToNative((data + 8)[as u32])
-                let x = Math.bigEndianToNative((data + 12)[as u32])
-                let y = Math.bigEndianToNative((data + 16)[as u32])
-                let numerator = Math.bigEndianToNative((data + 20)[as u16])
+                if cast(u32) currentFrame >= declaredFrames do
+                    fail InvalidFormatError{"PNG animation has too many frames"}
+                let width       = Math.bigEndianToNative((data + 4)[as u32])
+                let height      = Math.bigEndianToNative((data + 8)[as u32])
+                let x           = Math.bigEndianToNative((data + 12)[as u32])
+                let y           = Math.bigEndianToNative((data + 16)[as u32])
+                let numerator   = Math.bigEndianToNative((data + 20)[as u16])
                 let denominator = Math.bigEndianToNative((data + 22)[as u16])
                 if !width or !height or width > .header.width or height > .header.height or x > .header.width - width or y > .header.height - height or data[24] > 2 or data[25] > 1 do
                     fail InvalidFormatError{"PNG animation frame rectangle or operation is invalid"}
@@ -327,12 +329,13 @@ impl Decoder
                 if !seenIDAT or currentFrame < 0 or ch.length < 4 do
                     fail InvalidFormatError{"PNG animation frame data is invalid or misplaced"}
                 let chunk = .readChunk(ch)
-                let data = Decoder.safeDatas(chunk)
+                let data  = Decoder.safeDatas(chunk)
                 if Math.bigEndianToNative(data.buffer[as u32]) != sequence do
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
-                sequence += 1
+                sequence     += 1
                 frameHasData = true
-                if selected == currentFrame do iDataBuf.add(data[4 to])
+                if selected == currentFrame do
+                    iDataBuf.add(data[4 to])
 
             case .TRNS:
                 if .seenTRSN do
@@ -372,8 +375,10 @@ impl Decoder
                 while ch.type == IDAT
                 {
                     let chunk = .readChunk(ch)
-                    if selected < 0 or selected == currentFrame do iDataBuf.add(Decoder.safeDatas(chunk))
-                    if currentFrame >= 0 do frameHasData = true
+                    if selected < 0 or selected == currentFrame do
+                        iDataBuf.add(Decoder.safeDatas(chunk))
+                    if currentFrame >= 0 do
+                        frameHasData = true
                     .stream.peek32Be(cast([*] u8) &ch.length)
                     .stream.peek32(cast([*] u8) &ch.type)
                     if .stream.isEof() do
@@ -430,9 +435,9 @@ impl Decoder
                 if .decOptions.decodeMetadata
                 {
                     var metadata: ImageMetadata
-                    metadata.tag = "Exif"
+                    metadata.tag       = "Exif"
                     metadata.signature = 1
-                    metadata.value = cast(string) Decoder.safeDatas(chunk)
+                    metadata.value     = cast(string) Decoder.safeDatas(chunk)
                     result.metadata.add(#move metadata)
                 }
 
@@ -454,8 +459,9 @@ impl Decoder
             fail InvalidFormatError{"PNG animation frame count or data is incomplete"}
         if selected >= 0
         {
-            if selected >= .animation.frames.count do fail InvalidFormatError{"PNG animation frame index is out of range"}
-            .header.width = cast(u32) .animation.frames[selected].width
+            if selected >= .animation.frames.count do
+                fail InvalidFormatError{"PNG animation frame index is out of range"}
+            .header.width  = cast(u32) .animation.frames[selected].width
             .header.height = cast(u32) .animation.frames[selected].height
         }
 
@@ -477,7 +483,8 @@ impl Decoder
         result.init(cast(s32) .header.width, cast(s32) .header.height, outputFormat)
         result.metadata = #move metadata
         .decOptions.checkImage(result.width, result.height, outputFormat)
-        for &frame in .animation.frames do frame.pixelFormat = outputFormat
+        for &frame in .animation.frames do
+            frame.pixelFormat = outputFormat
 
         // We are done if user does not want pixels
         if !.decOptions.decodePixels do
@@ -493,6 +500,7 @@ impl Decoder
             Memory.free(.dstPixels, .dstPixelsSize)
             .dstPixels = null
         }
+
         if .header.bitDepth == 8 and .inChannels == .outChannels
         {
             result.allocPixels()
@@ -500,7 +508,7 @@ impl Decoder
         }
         else
         {
-            .dstPixels = Memory.alloc(.dstPixelsSize)
+            .dstPixels      = Memory.alloc(.dstPixelsSize)
             ownsDestination = true
         }
 
@@ -537,8 +545,8 @@ impl IImageSetDecoder for Decoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
-        .input = buffer
-        .decOptions = options
+        .input                   = buffer
+        .decOptions              = options
         .decOptions.decodePixels = false
         let probe = .doIt(buffer)
         if !.animation.frames.count do
@@ -548,7 +556,8 @@ impl IImageSetDecoder for Decoder
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .animation.frames.count do fail InvalidFormatError{"PNG image index is out of range"}
+        if index >= .animation.frames.count do
+            fail InvalidFormatError{"PNG image index is out of range"}
         var decoder: Decoder
         decoder.decOptions = options
         return decoder.doIt(.input!, .animation.frames[index].kind == .Animation ? cast(s32) index : -1)

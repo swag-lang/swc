@@ -15,7 +15,7 @@ struct ImageView
         sigZoomChanged:      SigArray'func||(*ImageView)     // Emitted after the effective zoom changes.
         sigFrameChanged:     SigArray'func||(*ImageView)     // Emitted after an animation frame changes.
         sigTransformChanged: SigArray'func||(*ImageView)     // Emitted after the temporary view transform changes.
-        sigDecodeFailed: SigArray'func||(*ImageView) // Emitted once when frame decoding fails; movie.failureReason contains the error.
+        sigDecodeFailed:     SigArray'func||(*ImageView)     // Emitted once when frame decoding fails; movie.failureReason contains the error.
 
         readonly
         {
@@ -28,10 +28,10 @@ struct ImageView
         }
     }
 
-    image:           Image          // Still image owned by the view, empty for a planar picture.
-    uploadedTexture: Texture        // Renderer texture for the current still, movie or planar frame.
-    isPanning:       bool           // Whether the left mouse button currently pans the image.
-    lastPointer:     Math.Point     // Previous surface position of a pan gesture.
+    image:                Image          // Still image owned by the view, empty for a planar picture.
+    uploadedTexture:      Texture        // Renderer texture for the current still, movie or planar frame.
+    isPanning:            bool           // Whether the left mouse button currently pans the image.
+    lastPointer:          Math.Point     // Previous surface position of a pan gesture.
     reportedMovieFailure: bool
 
     // Vector document shown instead of a bitmap, or an empty drawing.
@@ -142,10 +142,12 @@ private impl ImageView
         let frame = &.movie.frame
         if !.uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
         {
-            if .uploadedTexture.isValid() do .app().renderer.removeTexture(&.uploadedTexture)
+            if .uploadedTexture.isValid() do
+                .app().renderer.removeTexture(&.uploadedTexture)
             .uploadedTexture = .app().renderer.addImage(frame[])
         }
-        else do .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+        else do
+            .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
     }
 
     mtd applyZoom(value: f32, anchor: const *Math.Point? = null)
@@ -230,6 +232,7 @@ impl IWnd for ImageView
             .updateUploadedFrame()
             .sigFrameChanged.call(me)
         }
+
         if !.reportedMovieFailure and !.movie.failureReason.isEmpty()
         {
             .reportedMovieFailure = true

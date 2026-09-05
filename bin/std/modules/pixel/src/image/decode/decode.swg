@@ -21,10 +21,10 @@ public struct DecodeOptions
 
         decodeMetadata = true     // Preserve supported format metadata in `Image.metadata`.
 
-        maxFrames: u32 = 65536     // Maximum number of images indexed by an image reader; zero removes the limit.
-        maxPixels: u64 = 134217728     // Maximum pixels in one decoded image or animation canvas; zero removes the limit.
+        maxFrames:       u32 = 65536         // Maximum number of images indexed by an image reader; zero removes the limit.
+        maxPixels:       u64 = 134217728     // Maximum pixels in one decoded image or animation canvas; zero removes the limit.
         maxDecodedBytes: u64 = 536870912     // Maximum bytes in one decoded pixel buffer; zero removes the limit.
-        maxInputBytes: u64 = 536870912     // Maximum encoded bytes accepted by an image reader; zero removes the limit.
+        maxInputBytes:   u64 = 536870912     // Maximum encoded bytes accepted by an image reader; zero removes the limit.
     }
 }
 
@@ -84,11 +84,12 @@ impl Image
         if options.decodePixels and (options.maxPixels or options.maxDecodedBytes)
         {
             var probeOptions = options
-            probeOptions.decodePixels = false
+            probeOptions.decodePixels   = false
             probeOptions.decodeMetadata = false
             let probe = decode(decoder, bytes, probeOptions)
             options.checkImage(probe.width, probe.height, probe.pixelFormat)
         }
+
         // Create a decoder instance
         let ptrDecoder = Memory.new(decoder.type)
         defer

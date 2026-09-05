@@ -16,8 +16,9 @@ impl Decoder
 {
     mtd readImage(decodePixels = true) fail
     {
-        .descriptorOffset = cast(u64) (.stream - .streamStart)
+        .descriptorOffset    = cast(u64) (.stream - .streamStart)
         .descriptorRemaining = .streamLen
+
         // Image descriptor
         .fx = .readU16()
         .fy = .readU16()
@@ -44,12 +45,15 @@ impl Decoder
         else do
             .palette = &.gct
 
-        if !.palette!.size do fail InvalidFormatError{"GIF frame has no color table"}
-        if decodePixels do .readImageData(interlace)
+        if !.palette!.size do
+            fail InvalidFormatError{"GIF frame has no color table"}
+        if decodePixels do
+            .readImageData(interlace)
         else
         {
             let codeSize = .readU8()
-            if codeSize < 2 or codeSize > 8 do fail InvalidFormatError{"GIF LZW code size is invalid"}
+            if codeSize < 2 or codeSize > 8 do
+                fail InvalidFormatError{"GIF LZW code size is invalid"}
             .discardSubBlocks()
         }
     }

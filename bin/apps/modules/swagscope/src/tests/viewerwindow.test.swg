@@ -6,7 +6,7 @@ using Core, Pixel, Gui
 struct RetiringTestView
 {
     using wnd: Wnd
-    retired: bool
+    retired:   bool
 }
 
 func saveViewerState(window: *ViewerWindow)->String
@@ -1663,8 +1663,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         view.retired = true
         return true
     }
-    window.currentView            = loading
-    window.activeChoiceIndex      = 0
+    window.currentView       = loading
+    window.activeChoiceIndex = 0
     loading.setPosition({17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)

@@ -17,7 +17,7 @@ const LumaFlag   = 0x00020000'u32
 
 internal struct Decoder
 {
-    bytes: const [..] u8?
+    bytes:  const [..] u8?
     frames: Array'ImageFrameInfo
 }
 
@@ -169,16 +169,19 @@ impl Decoder
         var directCopy:       bool
         var forceOpaqueAlpha: bool
         var alphaMode = AlphaMode.Straight
-        let caps2 = readU32(buffer.buffer + 112)
-        var layers = 1'u32
-        var faces: Array'u32
-        var depth = (caps2 & 0x200000) ? readU32(buffer.buffer + 24) : 1'u32
+        let caps2     = readU32(buffer.buffer + 112)
+        var layers    = 1'u32
+        var faces:            Array'u32
+        var depth     = (caps2 & 0x200000) ? readU32(buffer.buffer + 24) : 1'u32
         if caps2 & 0x200
         {
-            for face in 6'u32 where caps2 & (0x400'u32 << face) do faces.add(face)
-            if !faces.count do fail InvalidFormatError{"DDS cubemap declares no faces"}
+            for face in 6'u32 where caps2 & (0x400'u32 << face) do
+                faces.add(face)
+            if !faces.count do
+                fail InvalidFormatError{"DDS cubemap declares no faces"}
         }
-        else do faces.add(0)
+        else do
+            faces.add(0)
 
         if pfFlags & FourCcFlag
         {
@@ -192,16 +195,21 @@ impl Decoder
                 if dimension < 2 or dimension > 4 or arraySize == 0 do
                     fail InvalidFormatError{"DDS texture dimension or array size is invalid"}
                 layers = arraySize
-                depth = dimension == 4 ? readU32(buffer.buffer + 24) : 1
-                if dimension == 4 and arraySize != 1 do fail InvalidFormatError{"DDS volume texture cannot be an array"}
-                if dimension == 2 and height != 1 do fail InvalidFormatError{"DDS one-dimensional texture has multiple rows"}
+                depth  = dimension == 4 ? readU32(buffer.buffer + 24) : 1
+                if dimension == 4 and arraySize != 1 do
+                    fail InvalidFormatError{"DDS volume texture cannot be an array"}
+                if dimension == 2 and height != 1 do
+                    fail InvalidFormatError{"DDS one-dimensional texture has multiple rows"}
                 faces.clear()
                 if readU32(buffer.buffer + 136) & 4
                 {
-                    if dimension != 3 or width != height do fail InvalidFormatError{"DDS cubemap dimensions are invalid"}
-                    for face in 6'u32 do faces.add(face)
+                    if dimension != 3 or width != height do
+                        fail InvalidFormatError{"DDS cubemap dimensions are invalid"}
+                    for face in 6'u32 do
+                        faces.add(face)
                 }
-                else do faces.add(0)
+                else do
+                    faces.add(0)
                 if !dxgiFormat(dxgi, &format, &blocks) do
                     fail UnsupportedFormatError{"DDS DXGI pixel format is not supported"}
                 let mode = readU32(buffer.buffer + 144) & 7
@@ -237,55 +245,63 @@ impl Decoder
 
         if blocks != .None do
             format = .RGBA8
-        if !depth or (depth > 1 and faces.count != 1) do fail InvalidFormatError{"DDS volume depth is invalid"}
+        if !depth or (depth > 1 and faces.count != 1) do
+            fail InvalidFormatError{"DDS volume depth is invalid"}
         let levels = Math.max(readU32(buffer.buffer + 28), 1'u32)
-        if levels > 32 do fail InvalidFormatError{"DDS mip count exceeds its dimensions"}
+        if levels > 32 do
+            fail InvalidFormatError{"DDS mip count exceeds its dimensions"}
         options.checkFrameCount(cast(u64) layers * faces.count * levels)
-        let baseWidth = width
+        let baseWidth  = width
         let baseHeight = height
-        var cursor = offset
-        var current = 0'u64
-        var selectedPitch: u64
+        var cursor     = offset
+        var current    = 0'u64
+        var selectedPitch:  u64
         var selectedLength: u64
-        if collect do .frames.clear()
+        if collect do
+            .frames.clear()
         for layer in layers
         {
             for face in faces
             {
                 for level in levels
                 {
-                    let frameWidth = Math.max(baseWidth >> level, 1'u32)
+                    let frameWidth  = Math.max(baseWidth >> level, 1'u32)
                     let frameHeight = Math.max(baseHeight >> level, 1'u32)
-                    let slices = Math.max(depth >> level, 1'u32)
+                    let slices      = Math.max(depth >> level, 1'u32)
                     options.checkFrameCount(current + slices)
                     options.checkImage(cast(s32) frameWidth, cast(s32) frameHeight, format)
-                    let rowBytes = directCopy ? cast(u64) frameWidth * format.bitsPerPixel() / 8 : (cast(u64) frameWidth * bits + 7) / 8
+                    let rowBytes      = directCopy ? cast(u64) frameWidth * format.bitsPerPixel() / 8 : (cast(u64) frameWidth * bits + 7) / 8
                     let declaredPitch = level == 0 ? cast(u64) readU32(buffer.buffer + 20) : 0
-                    let pitch = Math.max(rowBytes, declaredPitch)
-                    let length = blocks != .None ? cast(u64) ((frameWidth + 3) / 4) * ((frameHeight + 3) / 4) * TextureBlocks.blockBytes(blocks) : pitch * frameHeight
+                    let pitch         = Math.max(rowBytes, declaredPitch)
+                    let length        = blocks != .None ? cast(u64) ((frameWidth + 3) / 4) * ((frameHeight + 3) / 4) * TextureBlocks.blockBytes(blocks) : pitch * frameHeight
                     for slice in slices
                     {
-                        if cursor > buffer.count or length > buffer.count - cursor do fail InvalidFormatError{"DDS texture subresource is truncated"}
+                        if cursor > buffer.count or length > buffer.count - cursor do
+                            fail InvalidFormatError{"DDS texture subresource is truncated"}
                         if current == selected
                         {
-                            width = frameWidth
-                            height = frameHeight
-                            offset = cursor
-                            selectedPitch = pitch
+                            width          = frameWidth
+                            height         = frameHeight
+                            offset         = cursor
+                            selectedPitch  = pitch
                             selectedLength = length
                         }
+
                         if collect
                         {
                             let frame: ImageFrameInfo = {kind: .Texture, width: cast(s32) frameWidth, height: cast(s32) frameHeight, pixelFormat: format, layer: layer, face: face, level: level, depthSlice: slice}
                             .frames.add(frame)
                         }
-                        cursor += length
+
+                        cursor  += length
                         current += 1
                     }
                 }
             }
         }
-        if selected >= current do fail InvalidFormatError{"DDS image index is out of range"}
+
+        if selected >= current do
+            fail InvalidFormatError{"DDS image index is out of range"}
         var result: retval
         result.init(cast(s32) width, cast(s32) height, format, alphaMode)
         if !options.decodePixels do

@@ -3,27 +3,27 @@ using Swag, Core, Core.Errors
 // Meaning of an image within its container.
 public enum ImageFrameKind
 {
-    Still // A representative still image.
-    Animation // A timed update to the animation canvas.
-    Page // An independent document page.
-    Variant // An alternative image, such as an icon size.
-    Layer // A document layer.
-    Texture // A texture level, array layer, cube face, or depth slice.
+    Still         // A representative still image.
+    Animation     // A timed update to the animation canvas.
+    Page          // An independent document page.
+    Variant       // An alternative image, such as an icon size.
+    Layer         // A document layer.
+    Texture       // A texture level, array layer, cube face, or depth slice.
 }
 
 // Canvas operation performed after an animation frame's duration expires.
 public enum ImageDisposal
 {
-    Keep // Retain the displayed frame.
-    Background // Clear the frame rectangle to the animation background.
-    Previous // Restore the canvas from before the frame.
+    Keep           // Retain the displayed frame.
+    Background     // Clear the frame rectangle to the animation background.
+    Previous       // Restore the canvas from before the frame.
 }
 
 // How an animation frame updates its rectangle.
 public enum ImageBlend
 {
-    Replace // Replace every pixel, including transparent pixels.
-    Over // Composite straight alpha over the preceding canvas.
+    Replace     // Replace every pixel, including transparent pixels.
+    Over        // Composite straight alpha over the preceding canvas.
 }
 
 // Describes one image without allocating its pixels.
@@ -31,20 +31,20 @@ public struct ImageFrameInfo
 {
     public
     {
-        kind: ImageFrameKind // Role in the container; only Animation frames are timed.
-        width: s32 // Width of the decoded frame rectangle in pixels.
-        height: s32 // Height of the decoded frame rectangle in pixels.
-        x: s32 // Left edge in canvas coordinates, measured from the top left.
-        y: s32 // Top edge in canvas coordinates, measured from the top left.
-        pixelFormat: PixelFormat = .RGBA8 // Storage format returned by the frame decoder.
-        durationSeconds: f64 // Encoded display duration; zero means unspecified.
-        disposal: ImageDisposal // Operation after displaying an animation frame.
-        blend: ImageBlend // Operation when displaying an animation frame.
-        level: u32 // Zero-based texture mip level.
-        layer: u32 // Zero-based texture array layer or document layer.
-        face: u32 // Cube face in +X, -X, +Y, -Y, +Z, -Z order.
-        depthSlice: u32 // Zero-based slice at this mip level.
-        name: String // Optional owned page, layer, or part name.
+        kind:            ImageFrameKind           // Role in the container; only Animation frames are timed.
+        width:           s32                      // Width of the decoded frame rectangle in pixels.
+        height:          s32                      // Height of the decoded frame rectangle in pixels.
+        x:               s32                      // Left edge in canvas coordinates, measured from the top left.
+        y:               s32                      // Top edge in canvas coordinates, measured from the top left.
+        pixelFormat:     PixelFormat = .RGBA8     // Storage format returned by the frame decoder.
+        durationSeconds: f64                      // Encoded display duration; zero means unspecified.
+        disposal:        ImageDisposal            // Operation after displaying an animation frame.
+        blend:           ImageBlend               // Operation when displaying an animation frame.
+        level:           u32                      // Zero-based texture mip level.
+        layer:           u32                      // Zero-based texture array layer or document layer.
+        face:            u32                      // Cube face in +X, -X, +Y, -Y, +Z, -Z order.
+        depthSlice:      u32                      // Zero-based slice at this mip level.
+        name:            String                   // Optional owned page, layer, or part name.
     }
 }
 
@@ -53,12 +53,12 @@ public struct ImageSetInfo
 {
     public
     {
-        frames: Array'ImageFrameInfo // Images in encoded order, with texture indices identifying subresources.
-        canvasWidth: s32 // Animation canvas width; zero for an independent image set.
-        canvasHeight: s32 // Animation canvas height; zero for an independent image set.
-        loopCount: u32 = 1 // Total animation plays; zero means unlimited.
-        background: Color = {a: 0} // Color used when clearing an animation canvas; transparent by default.
-        representativeIndex: u32 // Image selected by a still-image view of the container.
+        frames:              Array'ImageFrameInfo     // Images in encoded order, with texture indices identifying subresources.
+        canvasWidth:         s32                      // Animation canvas width; zero for an independent image set.
+        canvasHeight:        s32                      // Animation canvas height; zero for an independent image set.
+        loopCount:           u32   = 1                // Total animation plays; zero means unlimited.
+        background:          Color = {a: 0}           // Color used when clearing an animation canvas; transparent by default.
+        representativeIndex: u32                      // Image selected by a still-image view of the container.
     }
 }
 
@@ -92,14 +92,14 @@ public interface IImageSetDecoder
 // ```
 public struct ImageReader
 {
-    public readonly info: ImageSetInfo // Indexed images; valid until close or replacement of the reader.
-    bytes: Array'u8
-    decoder: *void?
-    decoderType: const *TypeInfoStruct?
-    options: DecodeOptions
-    canvas: Image
-    previous: Image
-    lastIndex: s32 = -1
+    public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.
+    bytes:                Array'u8
+    decoder:              *void?
+    decoderType:          const *TypeInfoStruct?
+    options:              DecodeOptions
+    canvas:               Image
+    previous:             Image
+    lastIndex:            s32 = -1
 }
 
 impl ImageReader
@@ -142,17 +142,18 @@ impl ImageReader
             {
                 let source = image.pixels.buffer! + cast(u64) sourceRow * image.rowStride + cast(u64) x * image.bytesPerPixel
                 let target = .canvas.pixels.buffer! + cast(u64) targetRow * .canvas.rowStride + cast(u64) (frame.x + x) * .canvas.bytesPerPixel
-                var value = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
+                var value  = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
                 if frame.blend == .Over and value.a < 1
                 {
-                    let behind = readPixelValue(target, .canvas.pixelFormat)
+                    let behind    = readPixelValue(target, .canvas.pixelFormat)
                     let remainder = behind.a * (1 - value.a)
-                    let alpha = value.a + remainder
+                    let alpha     = value.a + remainder
                     if alpha > 0 do
                         value = {(value.r * value.a + behind.r * remainder) / alpha, (value.g * value.a + behind.g * remainder) / alpha, (value.b * value.a + behind.b * remainder) / alpha, alpha}
                     else do
                         value = {0, 0, 0, 0}
                 }
+
                 writePixelValue(target, .canvas.pixelFormat, value)
             }
         }
@@ -188,20 +189,21 @@ public impl ImageReader
             fail UnsupportedFormatError{"no matching image decoder"}
         var result: retval
         result.bytes.add(bytes)
-        result.options = options
+        result.options     = options
         result.decoderType = found.type
-        result.decoder = Memory.new(found.type)
+        result.decoder     = Memory.new(found.type)
         let multiple = Swag.makeInterface(result.decoder, found.type, IImageSetDecoder)
         if multiple do
             result.info = multiple.open(result.bytes.toSlice(), options)
         else
         {
-            let single = Swag.makeInterface(result.decoder, found.type, IImageDecoder)!
+            let single       = Swag.makeInterface(result.decoder, found.type, IImageDecoder)!
             var probeOptions = options
             probeOptions.decodePixels = false
             let probe = single.decode(result.bytes.toSlice(), probeOptions)
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
+
         if !result.info.frames.count or result.info.representativeIndex >= result.info.frames.count do
             fail InvalidFormatError{"image container has no representative image"}
         options.checkFrameCount(result.info.frames.count)
@@ -215,6 +217,7 @@ public impl ImageReader
                     fail InvalidFormatError{"animation frame lies outside its canvas"}
             }
         }
+
         return result
     }
 
@@ -239,6 +242,7 @@ public impl ImageReader
             let single = Swag.makeInterface(.decoder, .decoderType!, IImageDecoder)!
             return single.decode(.bytes.toSlice(), .options)
         }
+
         if .info.frames[index].kind != .Animation do
             return multiple.readFrame(index, .options)
         if !.options.decodePixels
@@ -251,7 +255,8 @@ public impl ImageReader
         }
 
         var succeeded = false
-        defer if !succeeded do .lastIndex = -1
+        defer if !succeeded do
+            .lastIndex = -1
         if .lastIndex < 0 or cast(s32) index < .lastIndex
         {
             let format: PixelFormat = .info.frames[0].pixelFormat.bitDepth() > 8 ? .RGBA16 : .RGBA8
@@ -259,6 +264,7 @@ public impl ImageReader
             .canvas.fill(.info.background)
             .lastIndex = -1
         }
+
         while .lastIndex < cast(s32) index
         {
             if .lastIndex >= 0
@@ -267,18 +273,20 @@ public impl ImageReader
                 switch prior.disposal
                 {
                 case .Background: .clearRectangle(prior[])
-                case .Previous: .canvas = .previous
+                case .Previous:   .canvas = .previous
                 }
             }
-            let current = cast(u32) (.lastIndex + 1)
+
+            let current    = cast(u32) (.lastIndex + 1)
             let descriptor = &.info.frames[current]
             if descriptor.disposal == .Previous do
                 .previous = .canvas
             let image = multiple!.readFrame(current, .options)
             .composite(descriptor[], image)
             .canvas.metadata = image.metadata
-            .lastIndex += 1
+            .lastIndex       += 1
         }
+
         succeeded = true
         return .canvas
     }

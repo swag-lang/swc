@@ -245,6 +245,7 @@ impl Encoder
                 .finishChunk()
                 continue
             }
+
             .writePtr = .writeHeader(TypeTEXt, md.tag.count + 1 + md.value.count)
             Memory.copy(.writePtr, md.tag.buffer, md.tag.count)
             .writePtr[md.tag.count] = 0

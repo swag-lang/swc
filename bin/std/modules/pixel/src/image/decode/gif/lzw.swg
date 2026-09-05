@@ -144,10 +144,12 @@ impl Decoder
                 break
             if ret == 1 do
                 keySize += 1
-            if key >= .table.nentries do fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
+            if key >= .table.nentries do
+                fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
             entry  = .table.entries.buffer![key]
             strLen = entry.length
-            if !strLen or strLen > frmSize - frmOff do fail InvalidFormatError{"GIF LZW string exceeds its frame"}
+            if !strLen or strLen > frmSize - frmOff do
+                fail InvalidFormatError{"GIF LZW string exceeds its frame"}
             for i in strLen
             {
                 let p = frmOff + entry.length - 1
@@ -158,7 +160,8 @@ impl Decoder
                 .frame[(.fy + y) * .width + .fx + x] = entry.suffix
                 if entry.prefix == 0xFFF do
                     break
-                if entry.prefix >= .table.nentries do fail InvalidFormatError{"GIF LZW prefix is outside its dictionary"}
+                if entry.prefix >= .table.nentries do
+                    fail InvalidFormatError{"GIF LZW prefix is outside its dictionary"}
                 entry = .table.entries.buffer![entry.prefix]
             }
 
@@ -167,7 +170,8 @@ impl Decoder
                 .table.entries[.table.nentries - 1].suffix = entry.suffix
         }
 
-        if frmOff != frmSize do fail InvalidFormatError{"GIF LZW frame has too few pixels"}
+        if frmOff != frmSize do
+            fail InvalidFormatError{"GIF LZW frame has too few pixels"}
         if key == stop do
             subLen = .readU8()     // Must be zero!
         .stream    = .streamStart + end

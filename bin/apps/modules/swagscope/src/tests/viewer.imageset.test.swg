@@ -13,7 +13,7 @@ using Core, Pixel, Gui
         host.setup(960, 540)
         defer host.shutdown()
         var session = openTestViewer(imageViewerPlugin(), &host.root, fileName)
-        let view = cast(*ImageViewer) session.view!
+        let view    = cast(*ImageViewer) session.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         let movie = &view.imageView.movie
         Swag.assert(view.failureReason.isEmpty() and movie.isValid() and movie.frameCount > 1)

@@ -20,32 +20,32 @@ struct Movie
         loops:                bool = true                 // Restart at the first frame after the last frame.
         isPaused:             bool                        // Suspend time-based frame advancement.
         frameDurationSeconds: f32  = 0.05                 // Duration for sprite sheets or frames with no encoded duration, in seconds.
-        usesFrameDurations = true // Honor encoded frame durations; disable to use frameDurationSeconds for every frame.
-        usesEncodedLoops = true // Honor the encoded play count when loops is enabled.
-        maxCacheBytes: u64 = 67108864 // Maximum total cached pixel bytes; zero disables frame caching.
+        usesFrameDurations         = true                 // Honor encoded frame durations; disable to use frameDurationSeconds for every frame.
+        usesEncodedLoops           = true                 // Honor the encoded play count when loops is enabled.
+        maxCacheBytes:        u64  = 67108864             // Maximum total cached pixel bytes; zero disables frame caching.
         sigFrameChanged:      SigArray'func||(*Movie)     // Signal emitted after the visible frame changes.
-        sigDecodeFailed: SigArray'func||(*Movie) // Emitted when later frame decoding fails; playback pauses and failureReason describes the failure.
+        sigDecodeFailed:      SigArray'func||(*Movie)     // Emitted when later frame decoding fails; playback pauses and failureReason describes the failure.
 
         // Where the movie is. The playback advances all three; seek with 'setFrame'.
 
         readonly
         {
-            frameCount: s32       // Number of frames exposed by the source.
-            frameIndex: s32       // Frame currently decoded.
-            frame:      Image     // Pixels of the current frame.
-            failureReason: String // Last frame decoding failure, empty after a successful load or seek.
+            frameCount:    s32        // Number of frames exposed by the source.
+            frameIndex:    s32        // Frame currently decoded.
+            frame:         Image      // Pixels of the current frame.
+            failureReason: String     // Last frame decoding failure, empty after a successful load or seek.
         }
     }
 
     // The source the frames come from, and the decoding state that walks it.
     source:              MovieSource = None     // Kind of source the movie plays.
     imgList:             ImageList              // Frames of an image-list source.
-    reader: ImageReader
-    cachedFrames:        Array'Image            // Decoded GIF frames retained when caching is enabled.
-    elapsedFrameSeconds: f32                    // Time accumulated toward the next frame.
-    dirtyFrame:          bool                   // Whether a seek changed the current frame.
-    cachedBytes: u64
-    completedLoops: u32
+    reader:              ImageReader
+    cachedFrames:        Array'Image     // Decoded GIF frames retained when caching is enabled.
+    elapsedFrameSeconds: f32             // Time accumulated toward the next frame.
+    dirtyFrame:          bool            // Whether a seek changed the current frame.
+    cachedBytes:         u64
+    completedLoops:      u32
 }
 
 private impl Movie
@@ -61,20 +61,23 @@ private impl Movie
 
     mtd decodeFrame(index: s32)->bool
     {
-        if index < .cachedFrames.count do .frame = .cachedFrames[index]
+        if index < .cachedFrames.count do
+            .frame = .cachedFrames[index]
         else
         {
             var frame = catch .reader.read(cast(u32) index) as error
             if error != null
             {
                 .failureReason = Errors.message(error)
-                .isPaused = true
+                .isPaused      = true
                 .sigDecodeFailed.call(me)
                 return false
             }
+
             .frame = #move frame
             .cacheFrame(index, .frame)
         }
+
         .failureReason.clear()
         return true
     }
@@ -93,6 +96,7 @@ private impl Movie
                 .isPaused = true
                 return false
             }
+
             nextIndex = 0
         }
 
@@ -105,7 +109,8 @@ private impl Movie
             break
 
         case .Gif, .ImageSet:
-            if !.decodeFrame(nextIndex) do return false
+            if !.decodeFrame(nextIndex) do
+                return false
         }
 
         .frameIndex = nextIndex
@@ -128,8 +133,8 @@ private impl Movie
         .frameIndex          = 0
         .elapsedFrameSeconds = 0
         .dirtyFrame          = false
-        .cachedBytes = 0
-        .completedLoops = 0
+        .cachedBytes         = 0
+        .completedLoops      = 0
         .failureReason.clear()
     }
 }
@@ -158,16 +163,16 @@ impl Movie
     // paused at their representative image and can be browsed with setFrameIndex.
     mtd load(fileName: string) fail
     {
-        var reader = ImageReader.load(fileName)
+        var reader     = ImageReader.load(fileName)
         let firstIndex = reader.info.representativeIndex
         var firstFrame = reader.read(firstIndex)
         .clear()
-        .source = .ImageSet
-        .reader = #move reader
+        .source     = .ImageSet
+        .reader     = #move reader
         .frameCount = cast(s32) .reader.info.frames.count
         .frameIndex = cast(s32) firstIndex
-        .frame = #move firstFrame
-        .isPaused = !.isAnimated()
+        .frame      = #move firstFrame
+        .isPaused   = !.isAnimated()
         .cacheFrame(.frameIndex, .frame)
     }
 
@@ -177,7 +182,8 @@ impl Movie
     // Returns the indexed description of the current encoded frame, or null for a sprite sheet.
     mtd const frameInfo()->const *ImageFrameInfo?
     {
-        if !.reader.isOpen() do return null
+        if !.reader.isOpen() do
+            return null
         return &.reader.info.frames[cast(u32) .frameIndex]
     }
 
@@ -187,8 +193,10 @@ impl Movie
         if .usesFrameDurations and .reader.isOpen()
         {
             let duration = .reader.info.frames[cast(u32) .frameIndex].durationSeconds
-            if duration > 0 do return cast(f32) duration
+            if duration > 0 do
+                return cast(f32) duration
         }
+
         return .frameDurationSeconds
     }
 
@@ -197,10 +205,12 @@ impl Movie
     // Call this on a loading worker before publishing a movie to a GUI control.
     mtd prepareCache() fail
     {
-        if !.isAnimated() or !.cachesFrames do return
+        if !.isAnimated() or !.cachesFrames do
+            return
         while .cachedFrames.count < cast(u64) .frameCount
         {
-            if .cachedBytes > .maxCacheBytes or .frame.byteCount > .maxCacheBytes - .cachedBytes do break
+            if .cachedBytes > .maxCacheBytes or .frame.byteCount > .maxCacheBytes - .cachedBytes do
+                break
             let index = cast(s32) .cachedFrames.count
             let frame = .reader.read(cast(u32) index)
             .cacheFrame(index, frame)
@@ -212,8 +222,8 @@ impl Movie
     {
         switch #complete .source
         {
-        case .None:        return false
-        case .SpriteSheet: return .imgList.isValid()
+        case .None:           return false
+        case .SpriteSheet:    return .imgList.isValid()
         case .Gif, .ImageSet: return .frame.isValid()
         }
 
@@ -236,16 +246,17 @@ impl Movie
             break
 
         case .Gif, .ImageSet:
-            if !.decodeFrame(targetIndex) do return
+            if !.decodeFrame(targetIndex) do
+                return
 
         case .SpriteSheet:
             break
         }
 
-        .frameIndex = targetIndex
-        .dirtyFrame = true
+        .frameIndex          = targetIndex
+        .dirtyFrame          = true
         .elapsedFrameSeconds = 0
-        .completedLoops = 0
+        .completedLoops      = 0
         .sigFrameChanged.call(me)
     }
 
@@ -253,7 +264,8 @@ impl Movie
     mtd setPaused(paused: bool)
     {
         .isPaused = paused
-        if !paused do .completedLoops = 0
+        if !paused do
+            .completedLoops = 0
     }
 
     // Advances playback by `deltaSeconds` and reports whether the frame changed.

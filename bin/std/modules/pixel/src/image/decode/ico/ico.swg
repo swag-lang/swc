@@ -50,7 +50,7 @@ struct DibHeader
 // Decodes Windows icon containers and selects their embedded BMP or PNG image.
 internal struct Decoder
 {
-    bytes: const [..] u8?
+    bytes:      const [..] u8?
     entryCount: u32
 }
 
@@ -233,7 +233,8 @@ impl Decoder
         var found:     bool
         for i in dir.count
         {
-            if index >= 0 and i != index do continue
+            if index >= 0 and i != index do
+                continue
             let entry = (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))[as IconDirEntry]
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)
             let score = (area << 16) + entry.bitCount
@@ -277,7 +278,8 @@ impl Decoder
             return result
 
         result.allocPixels()
-        if dib.size > imgLen do fail InvalidFormatError{"icon DIB header is truncated"}
+        if dib.size > imgLen do
+            fail InvalidFormatError{"icon DIB header is truncated"}
         decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
         return result
     }
@@ -296,10 +298,10 @@ impl IImageSetDecoder for Decoder
         var probeOptions = options
         probeOptions.decodePixels = false
         discard .decodeEntry(buffer, probeOptions)
-        .bytes = buffer
+        .bytes      = buffer
         .entryCount = buffer.buffer[as IconDir].count
         options.checkFrameCount(.entryCount)
-        var result: retval
+        var result:    retval
         var bestScore: u64
         for index in .entryCount
         {
@@ -311,14 +313,17 @@ impl IImageSetDecoder for Decoder
                 bestScore = score
                 result.representativeIndex = index
             }
+
             result.frames.add({kind: ImageFrameKind.Variant, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
+
         return result
     }
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .entryCount do fail InvalidFormatError{"icon entry index is out of range"}
+        if index >= .entryCount do
+            fail InvalidFormatError{"icon entry index is out of range"}
         return .decodeEntry(.bytes!, options, cast(s32) index)
     }
 }

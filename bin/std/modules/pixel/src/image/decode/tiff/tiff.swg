@@ -41,7 +41,7 @@ const PHOTO_PALETTE       = 3
 // Decodes baseline TIFF images with uncompressed, PackBits, or LZW strips.
 internal struct Decoder
 {
-    bytes: const [..] u8?
+    bytes:       const [..] u8?
     directories: Array'u32
 }
 
@@ -451,7 +451,7 @@ impl IImageSetDecoder for Decoder
         var probeOptions = options
         probeOptions.decodePixels = false
         discard .decodePage(buffer, probeOptions)
-        let le = buffer[0] == 0x49
+        let le     = buffer[0] == 0x49
         var offset = rd32(buffer.buffer + 4, le)
         var result: retval
         while offset
@@ -462,7 +462,7 @@ impl IImageSetDecoder for Decoder
             if cast(u64) offset + 2 > buffer.count do
                 fail InvalidFormatError{"TIFF directory offset is outside the input"}
             let count = rd16(buffer.buffer + offset, le)
-            let next = cast(u64) offset + 2 + cast(u64) count * 12
+            let next  = cast(u64) offset + 2 + cast(u64) count * 12
             if next + 4 > buffer.count do
                 fail InvalidFormatError{"TIFF directory chain is truncated"}
             let probe = .decodePage(buffer, probeOptions, offset)
@@ -470,6 +470,7 @@ impl IImageSetDecoder for Decoder
             .directories.add(offset)
             offset = rd32(buffer.buffer + next, le)
         }
+
         return result
     }
 

@@ -13,7 +13,7 @@ const HeaderSize          = 80'u64
 
 internal struct Decoder
 {
-    bytes: const [..] u8?
+    bytes:  const [..] u8?
     frames: Array'ImageFrameInfo
 }
 
@@ -79,10 +79,11 @@ impl Decoder
         for i in Identifier.count where buffer[i] != Identifier[i] do
             fail InvalidFormatError{"KTX2 identifier is invalid"}
 
-        let vkFormat         = readU32(buffer.buffer + 12)
-        let baseWidth        = readU32(buffer.buffer + 20)
-        let baseHeight       = readU32(buffer.buffer + 24)
-        if levelIndex >= 32 do fail InvalidFormatError{"KTX2 mip level is out of range"}
+        let vkFormat   = readU32(buffer.buffer + 12)
+        let baseWidth  = readU32(buffer.buffer + 20)
+        let baseHeight = readU32(buffer.buffer + 24)
+        if levelIndex >= 32 do
+            fail InvalidFormatError{"KTX2 mip level is out of range"}
         let width            = Math.max(baseWidth >> levelIndex, 1'u32)
         let height           = Math.max(baseHeight >> levelIndex, 1'u32)
         let depth            = readU32(buffer.buffer + 28)
@@ -159,7 +160,7 @@ impl Decoder
         result.init(cast(s32) width, cast(s32) height, format, alphaMode)
         options.checkImage(result.width, result.height, format)
 
-        let levelEntry = HeaderSize + cast(u64) levelIndex * 24
+        let levelEntry  = HeaderSize + cast(u64) levelIndex * 24
         let levelOffset = readU64(buffer.buffer + levelEntry)
         let levelLength = readU64(buffer.buffer + levelEntry + 8)
         let rawLength   = readU64(buffer.buffer + levelEntry + 16)
@@ -169,11 +170,15 @@ impl Decoder
         if imageCount == 0 or rawLength % imageCount do
             fail InvalidFormatError{"KTX2 base level has an invalid layer size"}
         options.checkFrameCount(imageCount)
-        if imageIndex >= imageCount do fail InvalidFormatError{"KTX2 image index is out of range"}
+        if imageIndex >= imageCount do
+            fail InvalidFormatError{"KTX2 image index is out of range"}
         let oneImageLength = blocks == .None ? result.byteCount : cast(u64) ((width + 3) / 4) * ((height + 3) / 4) * TextureBlocks.blockBytes(blocks)
-        if rawLength / imageCount != oneImageLength do fail InvalidFormatError{"KTX2 level size disagrees with its image dimensions"}
-        if options.maxDecodedBytes and rawLength > options.maxDecodedBytes do fail UnsupportedFormatError{"KTX2 level exceeds the decoded byte limit"}
-        if !options.decodePixels do return result
+        if rawLength / imageCount != oneImageLength do
+            fail InvalidFormatError{"KTX2 level size disagrees with its image dimensions"}
+        if options.maxDecodedBytes and rawLength > options.maxDecodedBytes do
+            fail UnsupportedFormatError{"KTX2 level exceeds the decoded byte limit"}
+        if !options.decodePixels do
+            return result
 
         var inflated: Array'u8
         var level = buffer[levelOffset until levelOffset + levelLength]
@@ -216,11 +221,11 @@ impl IImageSetDecoder for Decoder
         discard .decodeImage(buffer, probeOptions)
         let levels = Math.max(readU32(buffer.buffer + 40), 1'u32)
         let layers = Math.max(readU32(buffer.buffer + 32), 1'u32)
-        let faces = readU32(buffer.buffer + 36)
-        let depth = readU32(buffer.buffer + 28)
+        let faces  = readU32(buffer.buffer + 36)
+        let depth  = readU32(buffer.buffer + 28)
         for level in levels
         {
-            let probe = .decodeImage(buffer, probeOptions, level)
+            let probe  = .decodeImage(buffer, probeOptions, level)
             let slices = Math.max(depth >> level, 1'u32)
             options.checkFrameCount(.frames.count + cast(u64) layers * faces * slices)
             for layer in layers
@@ -235,6 +240,7 @@ impl IImageSetDecoder for Decoder
                 }
             }
         }
+
         var result: retval
         result.frames = .frames
         return result
@@ -242,10 +248,11 @@ impl IImageSetDecoder for Decoder
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .frames.count do fail InvalidFormatError{"KTX2 image index is out of range"}
-        let frame = &.frames[index]
+        if index >= .frames.count do
+            fail InvalidFormatError{"KTX2 image index is out of range"}
+        let frame  = &.frames[index]
         let buffer = .bytes!
-        let faces = readU32(buffer.buffer + 36)
+        let faces  = readU32(buffer.buffer + 36)
         let slices = Math.max(readU32(buffer.buffer + 28) >> frame.level, 1'u32)
         return .decodeImage(buffer, options, frame.level, (cast(u64) frame.layer * faces + frame.face) * slices + frame.depthSlice)
     }

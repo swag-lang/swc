@@ -71,10 +71,12 @@ impl ImageRect
         let frame = &.movie.frame
         if !.uploadedTexture.isValid() or .uploadedTexture.width != frame.width or .uploadedTexture.height != frame.height or .uploadedTexture.pixelFormat != frame.pixelFormat
         {
-            if .uploadedTexture.isValid() do .app().renderer.removeTexture(&.uploadedTexture)
+            if .uploadedTexture.isValid() do
+                .app().renderer.removeTexture(&.uploadedTexture)
             .uploadedTexture = .app().renderer.addImage(frame[])
         }
-        else do .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+        else do
+            .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
     }
 
     // Creates an empty image window.
@@ -160,7 +162,7 @@ impl ImageRect
     {
         Debug.assert(seconds > 0, "frame duration must be positive")
         .movie.frameDurationSeconds = seconds
-        .movie.usesFrameDurations = false
+        .movie.usesFrameDurations   = false
     }
 
     // Enables or disables restart after the final frame.

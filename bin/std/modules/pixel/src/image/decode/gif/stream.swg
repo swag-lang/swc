@@ -111,7 +111,7 @@ impl Decoder
         {
             // Discard block size (0x03) and constant byte (0x01).
             .seek(2)
-            .loopCount = .readU16()
+            .loopCount        = .readU16()
             .hasLoopExtension = true
 
             // Skip block terminator.

@@ -78,18 +78,15 @@ is the current scorecard.
   exists today and the rule only reveals it.
 - Three resolutions were tried and each has a measured cost:
   - `#static if Reflection.canCopy(T)` around the whole `opPostCopy`, so a container of
-    non-copyable elements declares no copy and becomes non-copyable itself. This is the right
-    shape and it is blocked by a compiler assertion: a generated copy still calls the
-    `opPostCopy` the instance no longer has (compiler.core.028).
+    non-copyable elements declares no copy and becomes non-copyable itself. This is the required shape.
   - `#[Swag.NoCopy]` on `ArrayPtr` itself, since it owns its elements exclusively. Rejected:
     a non-copyable type has its copy overloads discarded at resolution, which breaks
     `HashTable.add`.
   - An `opPostCopy` on `ConcatBuffer`. Rejected: it would invent a deep-copy semantic for a
     bucket chain plus a cursor that nothing in the tree needs, to satisfy a copy that never
     happens.
-- Next: fix compiler.core.028 first - a method a generic instance does not declare must not be
-  called by its generated copy. The `#static if` gate then works, `ArrayPtr` stops offering a
-  copy it cannot perform, and the rule ships with a migration cost of zero.
+- Next: gate `ArrayPtr.opPostCopy` with `#static if Reflection.canCopy(T)` and restore the
+  inferred non-copyability rule, so `ArrayPtr` stops offering a copy it cannot perform.
 - Complete when: copying a value that owns a release is rejected without the type having to say so,
   the reference states the rule next to `opDrop`, and `bin/unittests` covers the inferred case, the
   `opPostCopy` opt-in, the `#move` transfer, and a type that owns through a member.

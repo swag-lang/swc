@@ -2,6 +2,12 @@
 
 using Core, Pixel, Gui
 
+// Offers the page surface for a document that carries the PDF header, whatever it is called.
+private func pdfPluginProbe(content: Viewer.ProbeContent)->bool
+{
+    return content.startsWith("%PDF-")
+}
+
 // Describes the PDF viewer to the host.
 func pdfViewerPlugin()->Viewer.Plugin
 {
@@ -12,6 +18,7 @@ func pdfViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Pdf
     result.create       = &createPdfViewer
+    result.probe        = &pdfPluginProbe
     result.smokeFixture = "viewer.pdf"
     result.addSelectors(".pdf")
     return result

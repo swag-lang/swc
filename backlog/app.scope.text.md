@@ -18,22 +18,6 @@ implicit network access, macros, or source mutation.
 
 ## Shared text reading
 
-### app.scope.text.025 — Textual formats can hide their raw source
-
-- Evidence: `Basic text` registers a closed list of extensions rather than a raw-source
-  capability. A `.md` file therefore offers Markdown, Binary, and Hexadecimal, but not Basic text;
-  HTML offers rendered HTML and Code, while CSV, JSON, XML, YAML, TOML, and subtitles expose
-  inconsistent source alternatives. The README's claim that Basic text follows a format-specific
-  viewer is consequently not true for Markdown or CSV.
-- Next: let a format descriptor declare that its bytes are inherently textual and offer Basic text
-  after the preferred semantic viewer, beginning with every Markdown selector.
-- Complete when: `.md` and `.markdown` offer Markdown, Basic text, Binary, and Hexadecimal in that
-  order; every inherently textual built-in has one predictable raw-source choice; unreadable bytes
-  fail with an encoding explanation rather than fabricated text; binary documents are never
-  admitted merely because a printable prefix passes a probe; and remembered viewer choice keeps
-  working per format.
-- Related: app.scope.document.002, app.scope.viewers.003
-
 ### app.scope.text.001 — Text zoom is not persisted and has no Ctrl+wheel gesture
 
 - Evidence: basic text, code, Markdown, and HTML now expose the same percentage menu and

@@ -2,6 +2,12 @@
 
 using Core, Pixel, Gui
 
+// Offers the score surface for a Standard MIDI File, whatever it is called.
+private func midiPluginProbe(content: Viewer.ProbeContent)->bool
+{
+    return content.startsWith("MThd")
+}
+
 // Describes the MIDI viewer to the host.
 func midiViewerPlugin()->Viewer.Plugin
 {
@@ -12,6 +18,7 @@ func midiViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Midi
     result.create       = &createMidiViewer
+    result.probe        = &midiPluginProbe
     result.smokeFixture = "viewer.mid"
     result.addSelectors(".mid;.midi")
     return result

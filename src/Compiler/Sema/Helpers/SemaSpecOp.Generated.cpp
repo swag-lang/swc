@@ -27,7 +27,7 @@ namespace
         const std::string_view expectedName = SemaSpecOp::specOpFunctionName(kind);
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
         {
-            if (!symFunc || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+            if (!symFunc || symFunc->isIgnored() || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
             if (const SymbolImpl* symImpl = symFunc->declImplContext(); symImpl && symImpl->isForInterface())
                 continue;

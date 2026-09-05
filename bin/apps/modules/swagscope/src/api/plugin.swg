@@ -7,7 +7,7 @@ using Core, Gui
 //
 // A descriptor whose version the host does not support is rejected before any of its callbacks
 // runs. Increasing this value denotes an incompatible contract change.
-const ApiVersion = 3'u32
+const ApiVersion = 4'u32
 
 // Prepares one plugin for the application it joined, before any other callback runs.
 //
@@ -23,11 +23,71 @@ alias PluginAttach = func(*Application)
 // background, with progress and retirement exposed through [[Viewer.LifecycleApi]].
 alias PluginCreate = func(Host)
 
+// Bytes of a file the host reads before it asks any content probe.
+//
+// A few kilobytes carry every signature a format announces itself with and every encoding a text
+// file uses. Reading more answers no better and delays the first screen.
+const ProbeHeadSize = 4 * 1024'u64
+
+// What a content probe is shown about the file being classified.
+//
+// The host opens the file once and hands the same beginning of it to every probe, because what a
+// file is costs one read whatever the number of viewers asking. `head` is empty when the file
+// could not be read at all, and shorter than [[Viewer.ProbeHeadSize]] when the file is.
+struct ProbeContent
+{
+    public
+    {
+        fileName:    string            // Name of the file being classified.
+        head:        const [..] u8     // Beginning of the file, at most `ProbeHeadSize` bytes.
+        claimed:     bool              // Whether a viewer already offered itself for this file.
+        claimedText: bool              // Whether every viewer that did reads the file as text.
+    }
+}
+
+impl ProbeContent
+{
+    // Reports whether the file opens with `signature`, byte for byte.
+    //
+    // This is how a format that puts a magic number at offset zero recognizes itself.
+    mtd const startsWith(signature: string)->bool
+    {
+        if .head.count < signature.count do
+            return false
+        for index in signature.count where .head[index] != signature[index] do
+            return false
+        return true
+    }
+
+    // Reports whether the file opens with `marker`, past a byte-order mark and any leading blank,
+    // and whatever the letter case.
+    //
+    // This is how a textual format that begins with a keyword rather than a signature recognizes
+    // itself. `marker` is ASCII, because a format keyword always is.
+    mtd const opensWith(marker: string)->bool
+    {
+        var start = 0'u64
+        if .head.count >= 3 and .head[0] == 0xEF and .head[1] == 0xBB and .head[2] == 0xBF do
+            start = 3
+        while start < .head.count and Latin1.isSpace(.head[start]) do
+            start += 1
+        if .head.count - start < marker.count do
+            return false
+        for index in marker.count where Latin1.toLower(.head[start + index]) != Latin1.toLower(marker[index]) do
+            return false
+        return true
+    }
+}
+
 // Performs content-aware discovery after named associations have been evaluated.
 //
-// `hasNamedMatch` reports whether any plugin already claimed the file by name. A probe must not
-// reach GUI resources because the host may call it on a worker thread.
-alias PluginProbe = func(string, bool)->bool
+// This is what makes a misnamed or extensionless file reach the viewer that can show it. Probes
+// run in registration order, so `claimed` reports whether any plugin already offered itself for
+// the file, by name or through an earlier probe, and `claimedText` whether all of them read it as
+// text. A last-resort reader declines what a format viewer took; a raw-source reader follows one.
+//
+// A probe must not reach GUI resources because the host may call it on a worker thread.
+alias PluginProbe = func(ProbeContent)->bool
 
 // Resolves a translated or otherwise dynamic viewer name on the GUI thread.
 alias PluginName = func()->string
@@ -51,6 +111,7 @@ struct Plugin
         late create:  PluginCreate          // Synchronous presentation factory.
         probe:        PluginProbe?          // Optional content-aware discovery callback.
         matchNames:   bool = true           // Whether non-wildcard selectors offer this plugin directly.
+        textual:      bool                  // Whether this format's bytes are text a reader may also want raw.
         smokeFixture: String                // Immutable basename used by application smoke review.
         selectors:    Array'String          // Lowercase extensions, exact basenames, or `*` for fallback.
     }

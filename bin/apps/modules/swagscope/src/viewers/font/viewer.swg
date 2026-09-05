@@ -2,6 +2,19 @@
 
 using Core, Pixel, Gui, TrueType
 
+// Offers the glyph surface for an sfnt font with TrueType outlines, whatever it is called.
+//
+// The version number of such a font is `1.0` written as a fixed-point number, which is why the
+// signature is four bytes rather than four letters. `ttcf` opens a collection of them, and `true`
+// is what an older Apple font writes in the same place. A font with CFF outlines announces itself
+// as `OTTO` and is deliberately not claimed here: this viewer does not draw those.
+private func fontPluginProbe(content: Viewer.ProbeContent)->bool
+{
+    if content.startsWith("ttcf") or content.startsWith("true") do
+        return true
+    return content.head.count >= 4 and content.head[0] == 0 and content.head[1] == 1 and content.head[2] == 0 and content.head[3] == 0
+}
+
 // Describes the font viewer to the host.
 func fontViewerPlugin()->Viewer.Plugin
 {
@@ -12,6 +25,7 @@ func fontViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Font
     result.create       = &createFontViewer
+    result.probe        = &fontPluginProbe
     result.smokeFixture = "segoeui.ttf"
     result.addSelectors(".ttf;.ttc")
     return result

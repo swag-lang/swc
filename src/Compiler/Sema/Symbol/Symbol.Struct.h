@@ -92,12 +92,12 @@ public:
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
     Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);
     SymbolFunction*              selfEqualsFunction(TaskContext& ctx) const;
-    SymbolFunction*              opDrop() { return opDrop_; }
-    const SymbolFunction*        opDrop() const { return opDrop_; }
-    SymbolFunction*              opPostCopy() { return opPostCopy_; }
-    const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
-    SymbolFunction*              opPostMove() { return opPostMove_; }
-    const SymbolFunction*        opPostMove() const { return opPostMove_; }
+    SymbolFunction*              opDrop();
+    const SymbolFunction*        opDrop() const;
+    SymbolFunction*              opPostCopy();
+    const SymbolFunction*        opPostCopy() const;
+    SymbolFunction*              opPostMove();
+    const SymbolFunction*        opPostMove() const;
     const SymbolFunction*        effectiveOpInit(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpDrop(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpPostCopy(const TaskContext& ctx) const;

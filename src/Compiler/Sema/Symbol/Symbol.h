@@ -87,7 +87,7 @@ enum class SymbolKind : uint8_t
     Impl,
 };
 
-enum class SymbolFlagsE : uint8_t
+enum class SymbolFlagsE : uint16_t
 {
     Zero                = 0,
     Public              = 1 << 0,
@@ -98,6 +98,7 @@ enum class SymbolFlagsE : uint8_t
     CodeGenPreSolved    = 1 << 5,
     CodeGenCompleted    = 1 << 6,
     CodeGenJobScheduled = 1 << 7,
+    ExcludedByCondition = 1 << 8,
 };
 
 using SymbolFlags             = AtomicEnumFlags<SymbolFlagsE>;
@@ -145,6 +146,8 @@ public:
     void setDeclared(TaskContext& ctx);
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
     void setIgnored(TaskContext& ctx) noexcept;
+    bool isExcludedByCondition() const noexcept { return flags_.has(SymbolFlagsE::ExcludedByCondition); }
+    void setExcludedByCondition(TaskContext& ctx) noexcept;
 
     SymbolExtraFlagsStorage extraFlags() const noexcept { return extraFlags_.load(std::memory_order_relaxed); }
 

@@ -13,12 +13,34 @@ struct ViewerPluginRegistry
     plugins: Array'Viewer.Plugin
 }
 
+// Reads the beginning of a file, which is what every content probe decides from.
+//
+// A file that cannot be opened or read yields no bytes rather than an error: not being able to
+// look inside says the same thing as looking and recognizing nothing.
+private func readProbeHead(fileName: string)->Array'u8
+{
+    var result: retval
+    var stream = catch File.openRead(fileName) as openError
+    if openError != null do
+        return result
+    defer stream.close()
+
+    result.resize(Viewer.ProbeHeadSize)
+    let count = catch stream.read(result.toSlice()) as readError
+    if readError != null do
+        result.clear()
+    else do
+        result.resize(count)
+    return result
+}
+
 // Creates the complete built-in plugin registry.
 //
 // Order is the whole content of this list: the first plugin whose selectors name a file is the one
 // the reader gets, and the reading probes and the wildcard fallbacks follow in the order written
-// here. Each descriptor comes from the viewer that implements it, so adding a format means adding
-// one line here and nothing else.
+// here. A format that recognizes itself from its own bytes therefore has to be registered before
+// the readers that answer for anything printable. Each descriptor comes from the viewer that
+// implements it, so adding a format means adding one line here and nothing else.
 func createViewerPluginRegistry()->ViewerPluginRegistry
 {
     var result: retval
@@ -131,28 +153,37 @@ impl ViewerPluginRegistry
     }
 
     // Returns every viewer available for `fileName` in selection order.
+    //
+    // The name is asked first, then the content, then the fallbacks. Reading the head is what
+    // makes an extensionless note, a renamed archive or a Markdown page reach the viewer that can
+    // show it, and it costs one open shared by every probe.
     mtd const choices(fileName: string)->Array'ViewerPluginChoice
     {
         var result:  retval
         var matched: Array'bool
         matched.resize(.plugins.count)
-        var hasNamedMatch: bool
         var extension = String.from(Path.extension(fileName) orelse "")
         extension = extension.toLower()
         var baseName = String.from(Path.fileName(fileName) orelse "")
         baseName = baseName.toLower()
 
+        let head    = readProbeHead(fileName)
+        var content = Viewer.ProbeContent{fileName: fileName, head: head.toSlice(), claimedText: true}
+
         for plugin, index in .plugins where plugin.matchNames and .matches(plugin, baseName.toString(), extension.toString(), wildcard: false)
         {
             result.add({index, plugin.key})
-            matched[index] = true
-            hasNamedMatch  = true
+            matched[index]      = true
+            content.claimed     = true
+            content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where !matched[index] and plugin.probe and plugin.probe!(fileName, hasNamedMatch)
+        for plugin, index in .plugins where !matched[index] and plugin.probe and plugin.probe!(content)
         {
             result.add({index, plugin.key})
-            matched[index] = true
+            matched[index]      = true
+            content.claimed     = true
+            content.claimedText = content.claimedText and plugin.textual
         }
 
         for plugin, index in .plugins where !matched[index] and .matches(plugin, baseName.toString(), extension.toString(), wildcard: true) do

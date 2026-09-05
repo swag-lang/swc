@@ -91,7 +91,7 @@ proves it.
 | Sound | 9 / 1 | streamed playback, seek, volume/mute and bounded waveform | Audacity-class ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
 | Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | Subtitle Edit-class current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md#timed-text) |
 | Table | 5 / 1 | parsed CSV/TSV grid and cell search | Calc-class dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md#tabular-text) |
-| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | raw alternatives, address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
+| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
 | Video | 17 / 2 | progressive A/V playback, seek, tracks, subtitles and frame stepping | VLC-class chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
 ## Shared reading behavior
@@ -248,6 +248,24 @@ proves it.
   in the application or shell-host process.
 - Related: app.scope.viewers.011, platform.portability.072, platform.portability.073
 
+### app.scope.viewers.013 — Half the viewers cannot answer a content probe
+
+- Evidence: `choices` reads the head of a file once and lets a descriptor claim it from its own
+  bytes, and `html`, `code`, `pdf`, `font`, `midi`, `archive`, and `text` do. `image`, `video`,
+  `sound`, `opendocument`, and `indesign` cannot: `Pixel.Image.decode`, `Video.Reader.open`, and
+  `Audio.SoundFile.load` select a codec from the filename extension alone, and the two office
+  viewers read `.fodt` against `.odt` and `.indd` against `.idml` to decide how to open the file.
+  A JPEG named `.dat` is therefore still offered as bytes only, and a viewer that claimed it from
+  its signature would then fail to open it.
+- Next: give the three decoder registries a content-based lookup, as a signature predicate declared
+  beside the extension list each codec already publishes plus one `decoderFor(bytes)` entry point
+  per module, then add the missing probes and let the two office viewers decide their container
+  from the head instead of the name.
+- Complete when: a raster image, a video container, a sound file, an OpenDocument package, and an
+  InDesign document are each offered their own viewer through a copy renamed to an extension
+  nothing claims, and every viewer a probe offers can open the file it claimed.
+- Related: app.scope.image.001, app.scope.viewers.012
+
 ## Format coverage
 
 `Today` uses **full** for a dedicated renderer, **structure** for a decoded `Binary` tree,
@@ -259,26 +277,26 @@ proves it.
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | Plain text | `.txt` | full, streamed | addresses, gutter, non-resident ranges | [app.scope.text.002](app.scope.text.md) |
-| Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code; no raw text | raw text, sections, keys, dialect diagnostics | [app.scope.text.025](app.scope.text.md), [app.scope.text.040](app.scope.text.md) |
+| Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.text.040](app.scope.text.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
-| Markdown | `.md` `.markdown` | rendered; no raw text | raw text, outline, synchronized source, resource diagnostics | [app.scope.text.025](app.scope.text.md), [app.scope.document.001](app.scope.document.md) |
-| HTML | `.html` `.htm` `.xhtml` | rendered and code | basic text, DOM/source/resource inspection; advanced engine layout | [app.scope.text.025](app.scope.text.md), [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
-| JSON and JSON Lines | `.json` `.jsonl` | code / signature | raw text, semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md), [app.scope.text.025](app.scope.text.md) |
-| XML | `.xml` `.xsd` `.xsl` `.xslt` | code | raw text, namespace-aware tree and paths | [app.scope.text.025](app.scope.text.md), [app.scope.text.038](app.scope.text.md) |
-| YAML and TOML | `.yaml` `.yml` `.toml` | code | raw text, typed tree and paths | [app.scope.text.025](app.scope.text.md), [app.scope.text.039](app.scope.text.md) |
+| Markdown | `.md` `.markdown` | rendered and raw text | outline, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
+| HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
+| JSON and JSON Lines | `.json` `.jsonl` | code and raw text | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
+| XML | `.xml` `.xsd` `.xsl` `.xslt` | code and raw text | namespace-aware tree and paths | [app.scope.text.038](app.scope.text.md) |
+| YAML and TOML | `.yaml` `.yml` `.toml` | code and raw text | typed tree and paths | [app.scope.text.039](app.scope.text.md) |
 | Diff and patch | `.diff` `.patch` | text | parsed files/hunks, intraline and side-by-side views | [app.scope.text.022](app.scope.text.md) |
 | Log | `.log` | text | entries, tail/follow, queries, structured fields, timelines | [app.scope.text.023](app.scope.text.md), [app.scope.text.034](app.scope.text.md) |
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
-| Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB; no raw text | raw text, bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md), [app.scope.text.025](app.scope.text.md) |
+| Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
 | OpenDocument | `.odt` `.ott` `.fodt` `.ods` `.ots` `.fods` `.odp` `.otp` `.fodp` `.odg` `.otg` `.fodg` | readable text, sheets, slides, and drawing pages | layout, semantics, inspection, and fidelity | [OpenDocument roadmap](app.scope.opendocument.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
-| RTF | `.rtf` | signature | raw text or a safe document renderer | [app.scope.text.025](app.scope.text.md) |
+| RTF | `.rtf` | raw text, recognized from its content | a safe document renderer | — |
 | Mail | `.eml` `.msg` | none | — | — |
-| Notebook | `.ipynb` | signature | raw JSON plus safe rendered cells and stored outputs | [app.scope.text.025](app.scope.text.md), [app.scope.document.022](app.scope.document.md) |
+| Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |
 
 #### Images

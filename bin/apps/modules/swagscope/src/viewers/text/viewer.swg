@@ -11,10 +11,27 @@ private const NamedExtensions = ".txt;.text;.log;.nfo;.diz;.rst;.adoc;.asc;.srt;
 
 private func textPluginName()->string => textStrings().ui_Name
 
+// Offers the text surface for whatever reads as text, once the formats have had their turn.
+//
+// Reading the head is a weak question asked alone: a PDF, an office document and a font all open
+// with enough printable bytes to pass it, and offering to read one of them as a page of text says
+// something untrue about the file. The formats that recognize themselves answer first, so what
+// reaches this probe is either a file nothing claimed — an extensionless note, a log named `.dat`,
+// a UTF-16 export — or a document whose viewer reads text anyway, where the raw source is a second
+// reading of the same thing rather than a contradiction of the first.
+private func textPluginProbe(content: Viewer.ProbeContent)->bool
+{
+    if content.claimed and !content.claimedText do
+        return false
+    if !content.head.count do
+        return false
+    return TextView.probeHead(content.head).accepted
+}
+
 // Describes the text viewer to the host.
 //
-// The surface registers the extensions and extensionless names it owns. Unknown files fall
-// through to the hexadecimal viewer instead of treating readable bytes as a second format.
+// The surface registers the extensions and extensionless names it owns, and answers for any other
+// file whose beginning reads as text, whichever encoding spells it.
 func textViewerPlugin()->Viewer.Plugin
 {
     var result: retval
@@ -24,6 +41,8 @@ func textViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Text
     result.create       = &createTextViewer
+    result.probe        = &textPluginProbe
+    result.textual      = true
     result.smokeFixture = TextSmokeFixture
     result.addSelectors(NamedExtensions)
     return result
@@ -271,10 +290,6 @@ impl TextView
     }
 
     // Reads the head of a file once and reports how it spells its characters.
-    //
-    // Deciding and accepting are two questions: code page 1252 gives every byte a meaning, so an
-    // executable also decodes into characters. The encoding answers the first, and what those
-    // characters are answers the second.
     func probe(fileName: string)->TextProbe
     {
         var result: retval
@@ -289,10 +304,21 @@ impl TextView
         if readError != null do
             return result
         bytes.resize(count)
+        result = probeHead(bytes.toSlice())
+        return result
+    }
 
-        result.encoding     = Text.detectEncoding(bytes.toSlice())
-        result.contentStart = Text.hasBom(bytes.toSlice(), result.encoding) ? Text.bomLength(result.encoding) : 0
-        result.accepted     = Text.looksLikeText(bytes.toSlice()[result.contentStart to], result.encoding)
+    // Reports how the beginning of a file spells its characters, and whether it is text at all.
+    //
+    // Deciding and accepting are two questions: code page 1252 gives every byte a meaning, so an
+    // executable also decodes into characters. The encoding answers the first, and what those
+    // characters are answers the second.
+    func probeHead(head: const [..] u8)->TextProbe
+    {
+        var result: retval
+        result.encoding     = Text.detectEncoding(head)
+        result.contentStart = Text.hasBom(head, result.encoding) ? Text.bomLength(result.encoding) : 0
+        result.accepted     = Text.looksLikeText(head[result.contentStart to], result.encoding)
         return result
     }
 

@@ -407,7 +407,10 @@ namespace
             if (local.symbol->idRef() == idRef)
             {
                 if (local.symbol->isIgnored())
-                    lookUpCxt.addIgnoredSymbol(local.priority);
+                {
+                    if (!local.symbol->isExcludedByCondition())
+                        lookUpCxt.addIgnoredSymbol(local.priority);
+                }
                 else
                     lookUpCxt.addSymbol(local.symbol, local.priority);
             }

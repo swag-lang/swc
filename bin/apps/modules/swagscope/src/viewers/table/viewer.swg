@@ -12,6 +12,7 @@ func tableViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Table
     result.create       = &createTableViewer
+    result.textual      = true
     result.smokeFixture = "viewer.csv"
     result.addSelectors(".csv;.tsv;.tab")
     return result

@@ -549,6 +549,9 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
 
 Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
 {
+    if (sym.isIgnored())
+        return Result::Continue;
+
     const SpecOpKind kind = sym.specOpKind();
     if (kind == SpecOpKind::None)
         return Result::Continue;

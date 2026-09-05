@@ -35,8 +35,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     return result
 }
 
-// The registry treats every built-in, including basic text, as an ordinary named plugin
-// descriptor. Readable bytes do not make an unknown extension a text format.
+// A name the registry does not know is not the end of the question. Bytes that read as text reach
+// the text surface whatever the file is called, and bytes that do not stay with the fallbacks.
 #test
 {
     let textFile   = Gui.Testing.tempFilePath("scope-index-", ".unknown")
@@ -58,9 +58,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(choiceName(&registry, &picture[2]) == "Hexadecimal")
 
     let unknown = registry.choices(textFile)
-    Swag.assert(unknown.count == 2)
-    Swag.assert(choiceName(&registry, &unknown[0]) == "Binary")
-    Swag.assert(choiceName(&registry, &unknown[1]) == "Hexadecimal")
+    Swag.assert(unknown.count == 3)
+    Swag.assert(unknown[0].key == TextViewerKey)
+    Swag.assert(choiceName(&registry, &unknown[1]) == "Binary")
+    Swag.assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
     Swag.assert(registry.explicitlySupports("clip.gif"))
     Swag.assert(!registry.explicitlySupports("clip.bin"))
 }
@@ -137,8 +138,84 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let registry = createViewerPluginRegistry()
     let choices  = registry.choices(fileName)
-    Swag.assert(choices[0].key == "code" and choices[1].key == "binary" and choices[2].key == "hex")
+    Swag.assert(choices[0].key == "code" and choices[1].key == TextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
     Swag.assert(codeLanguage(fileName) == .Python)
+}
+
+// A format whose bytes are text is offered twice: as the document it is, then as the source it is
+// made of. A format whose bytes are not stays with the viewer that understands them.
+#test
+{
+    let registry = createViewerPluginRegistry()
+
+    let markdown = registry.choices(viewerRegistryFixturePath("comprehensive.md").toString())
+    Swag.assert(markdown.count == 4)
+    Swag.assert(markdown[0].key == "markdown" and markdown[1].key == TextViewerKey and markdown[2].key == "binary" and markdown[3].key == "hex")
+
+    let source = registry.choices(viewerRegistryFixturePath("sample.cpp").toString())
+    Swag.assert(source[0].key == "code" and source[1].key == TextViewerKey)
+
+    let table = registry.choices(viewerRegistryFixturePath("viewer.csv").toString())
+    Swag.assert(table[0].key == "table" and table[1].key == TextViewerKey)
+
+    let subtitles = registry.choices(viewerRegistryFixturePath("viewer.srt").toString())
+    Swag.assert(subtitles[0].key == "subtitle" and subtitles[1].key == TextViewerKey)
+
+    let page = registry.choices(viewerRegistryFixturePath("viewer.html").toString())
+    Swag.assert(page[0].key == "html" and page[1].key == "code" and page[2].key == TextViewerKey)
+
+    for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf").toString()) do
+        Swag.assert(choice.key != TextViewerKey)
+    for choice in registry.choices(viewerRegistryFixturePath("segoeui.ttf").toString()) do
+        Swag.assert(choice.key != TextViewerKey)
+}
+
+// A name that says nothing leaves the file to say it. Every format that opens on a signature is
+// recognized through a copy renamed to an extension nothing claims.
+#test
+{
+    const Fixtures: [5] string = ["viewer.pdf", "viewer.mid", "segoeui.ttf", "viewer.archive.zip", "viewer.html"]
+    const Keys:     [5] string = ["pdf", "midi", "font", "archive", "html"]
+
+    let registry = createViewerPluginRegistry()
+    for fixture, index in Fixtures
+    {
+        let renamed = Gui.Testing.tempFilePath("scope-sniff-", ".unknown")
+        defer discard catch File.delete(renamed)
+        expect File.duplicate(renamed, viewerRegistryFixturePath(fixture).toString())
+        Swag.assert(registry.choices(renamed)[0].key == Keys[index])
+    }
+}
+
+// Text is text whichever encoding spells it, and a file with no extension at all is still read
+// rather than dumped as bytes.
+#test
+{
+    var utf16: Array'u8
+    utf16.add(0xFF)
+    utf16.add(0xFE)
+    for c in "a wide export nothing claims"
+    {
+        utf16.add(cast(u8) c)
+        utf16.add(0)
+    }
+
+    let fileName = Gui.Testing.tempFilePath("scope-wide-", "")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, utf16.toSlice())
+
+    let registry = createViewerPluginRegistry()
+    Swag.assert(registry.choices(fileName)[0].key == TextViewerKey)
+
+    // Deciding an encoding is not accepting the file: bytes that decode into control characters
+    // are not offered as a page of text.
+    var binary: Array'u8
+    for i in 512'u32 do
+        binary.add(cast(u8) ((i * 7) & 0xFF))
+    let opaque = Gui.Testing.tempFilePath("scope-opaque-", "")
+    defer discard catch File.delete(opaque)
+    expect File.writeAllBytes(opaque, binary.toSlice())
+    Swag.assert(registry.choices(opaque)[0].key == "binary")
 }
 
 // Stable keys and icon contexts belong to descriptors rather than hard-coded choice variants.

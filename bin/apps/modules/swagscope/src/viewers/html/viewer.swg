@@ -2,6 +2,15 @@
 
 using Core, Gui
 
+// Offers the rendered surface for a page that announces itself, whatever the file is called.
+//
+// The two spellings a document begins with are the only markers taken. Anything looser claims an
+// XML file, a template, or a source file that merely mentions a tag.
+private func htmlPluginProbe(content: Viewer.ProbeContent)->bool
+{
+    return content.opensWith("<!doctype html") or content.opensWith("<html")
+}
+
 // Describes the HTML viewer to the host.
 func htmlViewerPlugin()->Viewer.Plugin
 {
@@ -12,6 +21,8 @@ func htmlViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Html
     result.create       = &createHtmlViewer
+    result.probe        = &htmlPluginProbe
+    result.textual      = true
     result.smokeFixture = "viewer.html"
     result.addSelectors(".htm;.html;.shtml;.xht;.xhtml")
     return result

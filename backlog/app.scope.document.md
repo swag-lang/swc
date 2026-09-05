@@ -19,14 +19,14 @@ integration around those engines.
 
 ### app.scope.document.002 — Markdown cannot switch between rendered, source, and synchronized split views
 
-- Evidence: `.md` and `.markdown` currently offer Markdown, Binary, and Hexadecimal, but not Basic
-  text. There is no direct source inspection, synchronized split view, or mapping from a rendered
-  block to its source range.
-- Next: first expose Basic text through app.scope.text.025, then retain parser source ranges in the
-  adapter and host rendered/source panes with a shared logical position.
+- Evidence: `.md` and `.markdown` now offer Markdown, Basic text, Binary, and Hexadecimal, so the
+  source is reachable as its own view. There is still no synchronized split view and no mapping
+  from a rendered block to its source range.
+- Next: retain parser source ranges in the adapter and host rendered/source panes with a shared
+  logical position.
 - Complete when: Rendered, Source, and Split modes preserve the nearest block, scroll can
   synchronize in either direction, search results map across modes, and large files stay streamed.
-- Related: app.scope.text.025
+- Related: std.gui.markdown.005
 
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
 
@@ -269,4 +269,4 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   output remain inspectable; outline and search address inputs and outputs separately; unsupported or
   suppressed rich output is named and available as source; large output is collapsed and bounded;
   and opening a notebook never starts a kernel, executes code, or fetches a resource.
-- Related: app.scope.document.003, app.scope.text.024, app.scope.text.025, app.scope.viewers.011
+- Related: app.scope.document.003, app.scope.text.024, app.scope.viewers.011

@@ -579,7 +579,7 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
     {
         for (Symbol* sym : ignoredIfData->symbols)
             if (sym)
-                sym->setIgnored(sema.ctx());
+                sym->setExcludedByCondition(sema.ctx());
     }
 
     return Result::Continue;
@@ -718,7 +718,7 @@ Result AstCompilerSwitch::semaPostNode(Sema& sema) const
             for (Symbol* sym : caseData.branch->symbols)
             {
                 if (sym)
-                    sym->setIgnored(sema.ctx());
+                    sym->setExcludedByCondition(sema.ctx());
             }
         }
     }

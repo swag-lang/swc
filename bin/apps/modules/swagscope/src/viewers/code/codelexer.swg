@@ -68,18 +68,15 @@ internal struct CodeShebang
     language: CodeLanguage
 }
 
-// Reads the interpreter named by an extensionless script without retaining the file.
-internal func codeShebang(fileName: string)->CodeShebang
+// Reads the interpreter named by an extensionless script, from the beginning of its source.
+//
+// The line is what a script without a suffix uses to name the language it is written in, so it is
+// read from the bytes rather than from the file: the classifier has already read them.
+internal func codeShebang(source: string)->CodeShebang
 {
-    var stream = catch File.openRead(fileName) as openError
-    if openError != null do
+    if !Utf8.startsWith(source, "#!") do
         return {}
-    defer stream.close()
-
-    let head = catch stream.readUtf8Chunk(512) as readError
-    if readError != null or !head.startsWith("#!") do
-        return {}
-    let lines = Tokenize.split(head.toString(), '\n'u8, maxSplit: 1)
+    let lines = Tokenize.split(source, '\n'u8, maxSplit: 1)
     let line  = String.from(lines[0])
     let lower = line.toLower()
     if Utf8.contains(lower.toString(), "python") do
@@ -95,6 +92,20 @@ internal func codeShebang(fileName: string)->CodeShebang
     if Utf8.contains(lower.toString(), "node") or Utf8.contains(lower.toString(), "bun") do
         return {true, .JavaScript}
     return {true, .Shell}
+}
+
+// Reads the interpreter line of a file without retaining it.
+private func codeFileShebang(fileName: string)->CodeShebang
+{
+    var stream = catch File.openRead(fileName) as openError
+    if openError != null do
+        return {}
+    defer stream.close()
+
+    let head = catch stream.readUtf8Chunk(512) as readError
+    if readError != null do
+        return {}
+    return codeShebang(head.toString())
 }
 
 private func codeLooksLikeObjectiveC(fileName: string)->bool
@@ -189,7 +200,7 @@ internal func codeLanguage(fileName: string)->CodeLanguage
     case ".nix":                                                                       return .Nix
     }
 
-    let shebang = codeShebang(fileName)
+    let shebang = codeFileShebang(fileName)
     return shebang.found ? shebang.language : .C
 }
 

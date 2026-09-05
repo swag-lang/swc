@@ -236,7 +236,10 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
         for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
         {
             if (cur->isIgnored())
-                lookUpCxt.addIgnoredSymbol();
+            {
+                if (!cur->isExcludedByCondition())
+                    lookUpCxt.addIgnoredSymbol();
+            }
             else
                 lookUpCxt.addSymbol(cur);
         }
@@ -259,7 +262,10 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
         for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
         {
             if (cur->isIgnored())
-                lookUpCxt.addIgnoredSymbol();
+            {
+                if (!cur->isExcludedByCondition())
+                    lookUpCxt.addIgnoredSymbol();
+            }
             else
                 lookUpCxt.addSymbol(cur);
         }
@@ -281,7 +287,10 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
     {
         if (cur->isIgnored())
-            lookUpCxt.addIgnoredSymbol();
+        {
+            if (!cur->isExcludedByCondition())
+                lookUpCxt.addIgnoredSymbol();
+        }
         else
             lookUpCxt.addSymbol(cur);
     }

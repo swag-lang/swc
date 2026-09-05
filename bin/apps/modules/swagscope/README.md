@@ -16,11 +16,19 @@ to one creation callback. Image, video, and sound selectors are derived from the
 registries, so their application coverage cannot drift behind the formats the modules expose.
 There is no runtime index, dynamic library, exported entry point, or versioned ABI yet.
 
-Several viewers may claim the same extension. The selector lists format-specific viewers first,
-`Basic text` next when nothing else claims the file and it reads as text, or when the file is one
-of the text formats that surface names, then the `Binary` and `Hexadecimal` fallbacks, each beside
-the glyph its viewer owns. Changing the selector reuses a view already opened for the
-current file or creates it on demand; it does not reopen the window.
+A file is classified in three passes: its name, then its content, then the fallbacks. Several
+viewers may claim the same extension, so the selector lists format-specific viewers first, then the
+viewers that recognized the file from its own bytes, then `Basic text` when the file reads as text
+and nothing that claimed it reads as something else, and finally the `Binary` and `Hexadecimal`
+fallbacks, each beside the glyph its viewer owns. Changing the selector reuses a view already
+opened for the current file or creates it on demand; it does not reopen the window.
+
+The content pass is what a name cannot answer. A descriptor may carry a probe, and the host reads
+the first four kilobytes of the file once and shows the same bytes to every one of them, so an
+extensionless note, a log named `.dat`, a UTF-16 export, a renamed PDF, font, MIDI file, ZIP
+container or HTML page all reach the viewer that can open them. A probe sees whether an earlier
+viewer already claimed the file, which is how a signature states a fact while a last-resort reader
+declines what a format viewer took.
 
 The first choice is the default, and choosing another one is remembered for that kind of file: the
 choice is kept against the viewer the file would have opened in, so turning one video into bytes
@@ -28,11 +36,13 @@ opens the next video in bytes whatever container it arrives in. Choosing the ord
 removes the decision rather than recording one more. The stable key, not the display name, is what
 the persisted state carries.
 
-Basic text is available for a readable text file no other viewer answers for, and for the text
-formats it owns by name — a subtitle track is played against its film and is still a text file a
-reader may want to read. It never offers itself for a document another viewer claims: a PDF, an
-office file and a font all open with enough printable bytes to pass a content probe, and offering
-to read one as a page of text says something untrue about the file. It loads small UTF-8 segments
+Basic text is available for a readable text file no other viewer answers for, for the text formats
+it owns by name, and for every format whose descriptor declares that its bytes are text: Markdown,
+HTML, source code, tables and subtitles are documents and are also files a reader may want to read
+raw, so they offer the rendered document first and its source right after it. It never offers
+itself for a document another viewer claims as binary: a PDF, an office file and a font all open
+with enough printable bytes to pass a content probe, and offering to read one as a page of text
+says something untrue about the file. It loads small UTF-8 segments
 on demand and stays about two viewports ahead, so a large source file does not need to fit in
 memory before its first screen appears. Binary content directs the reader to the hexadecimal
 alternative instead of guessing an encoding.
@@ -206,8 +216,9 @@ own strings. Then add one `register` line to `createViewerPluginRegistry`, in th
 viewer should be offered from. That is the only file outside the folder that changes.
 
 The descriptor carries a stable lowercase key, a static or resolved display name, the vector
-document and cell its glyph lives in, an immutable smoke fixture, its selectors, an optional
-content probe, and an optional `attach` that prepares the viewer for the application it joined.
+document and cell its glyph lives in, an immutable smoke fixture, its selectors, whether its bytes
+are text a reader may also want raw, an optional content probe, and an optional `attach` that
+prepares the viewer for the application it joined.
 A plugin publishes its embedded translations from `attach`, so its name reads in the reader's
 language before any file is opened.
 

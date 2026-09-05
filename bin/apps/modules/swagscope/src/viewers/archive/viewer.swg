@@ -27,6 +27,17 @@ func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s
     return result
 }
 
+// Offers the entry tree for a ZIP container, whatever the format built on it is called.
+//
+// An archive opens either on the header of its first entry or, when it holds nothing at all, on
+// its end record.
+private func archivePluginProbe(content: Viewer.ProbeContent)->bool
+{
+    if !content.startsWith("PK") or content.head.count < 4 do
+        return false
+    return (content.head[2] == 3 and content.head[3] == 4) or (content.head[2] == 5 and content.head[3] == 6)
+}
+
 func archiveViewerPlugin()->Viewer.Plugin
 {
     var result: retval
@@ -37,6 +48,7 @@ func archiveViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Archive
     result.create       = &createArchiveViewer
+    result.probe        = &archivePluginProbe
     result.smokeFixture = "viewer.archive.zip"
     result.addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
     return result

@@ -224,6 +224,14 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     ctx.compiler().notifyAlive();
 }
 
+void Symbol::setExcludedByCondition(TaskContext& ctx) noexcept
+{
+    // Unlike a declaration that failed sema, an excluded declaration must not
+    // shadow another candidate or suppress a missing-symbol diagnostic.
+    flags_.add(SymbolFlagsE::Ignored | SymbolFlagsE::ExcludedByCondition);
+    ctx.compiler().notifyAlive();
+}
+
 const AttributeList& Symbol::attributes() const
 {
     if (attributes_ != nullptr)

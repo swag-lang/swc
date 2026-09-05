@@ -142,7 +142,7 @@ namespace
         // one exists, then fall back to the registered pointer.
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
         {
-            if (!symFunc || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+            if (!symFunc || symFunc->isIgnored() || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
             if (const SymbolImpl* symImpl = symFunc->declImplContext(); symImpl && symImpl->isForInterface())
                 continue;
@@ -1231,7 +1231,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
     const std::shared_lock lk(mutexSpecOps_);
     for (SymbolFunction* symFunc : specOps_)
     {
-        if (symFunc->idRef() == identifierRef)
+        if (!symFunc->isIgnored() && symFunc->idRef() == identifierRef)
             result.push_back(symFunc);
     }
 
@@ -1263,15 +1263,15 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     switch (kind)
     {
         case SpecOpKind::OpDrop:
-            SWC_ASSERT(!opDrop_);
+            SWC_ASSERT(!opDrop());
             opDrop_ = &symFunc;
             break;
         case SpecOpKind::OpPostCopy:
-            SWC_ASSERT(!opPostCopy_);
+            SWC_ASSERT(!opPostCopy());
             opPostCopy_ = &symFunc;
             break;
         case SpecOpKind::OpPostMove:
-            SWC_ASSERT(!opPostMove_);
+            SWC_ASSERT(!opPostMove());
             opPostMove_ = &symFunc;
             break;
         default:
@@ -1279,6 +1279,38 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     }
 
     return Result::Continue;
+}
+
+// Conditional methods can be registered before their branch is discarded.
+// Every lifecycle consumer must observe the selected method set.
+SymbolFunction* SymbolStruct::opDrop()
+{
+    return opDrop_ && !opDrop_->isIgnored() ? opDrop_ : nullptr;
+}
+
+const SymbolFunction* SymbolStruct::opDrop() const
+{
+    return opDrop_ && !opDrop_->isIgnored() ? opDrop_ : nullptr;
+}
+
+SymbolFunction* SymbolStruct::opPostCopy()
+{
+    return opPostCopy_ && !opPostCopy_->isIgnored() ? opPostCopy_ : nullptr;
+}
+
+const SymbolFunction* SymbolStruct::opPostCopy() const
+{
+    return opPostCopy_ && !opPostCopy_->isIgnored() ? opPostCopy_ : nullptr;
+}
+
+SymbolFunction* SymbolStruct::opPostMove()
+{
+    return opPostMove_ && !opPostMove_->isIgnored() ? opPostMove_ : nullptr;
+}
+
+const SymbolFunction* SymbolStruct::opPostMove() const
+{
+    return opPostMove_ && !opPostMove_->isIgnored() ? opPostMove_ : nullptr;
 }
 
 const SymbolFunction* SymbolStruct::effectiveOpInit(const TaskContext& ctx) const

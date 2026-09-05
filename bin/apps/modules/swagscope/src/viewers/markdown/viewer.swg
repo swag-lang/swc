@@ -20,6 +20,7 @@ func markdownViewerPlugin()->Viewer.Plugin
     result.iconAtlas    = viewerIcons()
     result.iconIndex    = cast(s32) ViewerIcons.Markdown
     result.create       = &createMarkdownViewer
+    result.textual      = true
     result.smokeFixture = "comprehensive.md"
     result.addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
     return result

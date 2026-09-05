@@ -88,3 +88,27 @@ being compiled by it.
 - Complete when: an incremental Release build after ids are added to a `.msg` file either
   recompiles what depends on them, or cannot produce a binary whose reported id and printed text
   disagree.
+
+### repo.tooling.006 — A tag-gated source is compiled by nothing, because a tag is not part of the cache key
+
+- Area: tooling, compiler/incrementality
+- Found while: the Release rung of a repository health reset, reaching `vault.swgs` for the first
+  time since the missing-return rule landed
+- Observation: `bin/apps/modules/swagvault/src/tests/integration.win32.swg` opens with
+  `#global if WINDOWS and #hastag("vault.integration")`, so every ordinary build removes it. It had
+  stopped compiling a week earlier — `findFreeMountPoint` ends on `failWith`, which is a call, not
+  a `fail` — and nothing said so until someone needed the tag. It is the only source in `bin/` that
+  a tag switches on as a whole; the other thirteen `#hastag` sites gate expressions inside files
+  that are always compiled.
+- Why the obvious check does not work: `swc sema -w bin/apps -m swagvault --tag vault.integration`
+  answers `up-to-date` right after the untagged build, because the tag set is not part of the
+  artifact cache key. `vault.swgs` already works around this by passing `--rebuild` with the tag
+  (`tools/src/maintenance.swg`), and that rebuilds the workspace's std dependency copies too:
+  measured at 24.5 s on a warm tree, against 1.3 s for the semantic pass itself and 1 min 34 s for
+  the whole of `build.swgs`. Paying a quarter of the build campaign to compile one file is why this
+  is an entry rather than a check.
+- Next: put the registered tag set in the artifact cache key, so a tagged compilation of an
+  untagged artifact is a miss rather than a hit. `vault.swgs` can then drop its `--rebuild`, and a
+  tagged semantic pass becomes cheap enough for `build.swgs` to run one per tag-gated module.
+- Complete when: `swc sema` with a tag recompiles a module the untagged build just made, and
+  `build.swgs` fails when a `#hastag`-gated source stops compiling.

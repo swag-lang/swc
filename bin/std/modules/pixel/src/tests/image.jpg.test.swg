@@ -205,6 +205,38 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.assert(!img.isValid())
 }
 
+// JPEG metadata collection is independent of pixel decoding, including header-only probes.
+#test
+{
+    var source = Image.create(8, 8, .RGB8)
+    source.fill(Color.fromRgb(32, 64, 96))
+    var record: ImageMetadata
+    record.signature = 1
+    record.tag       = "Source"
+    record.value     = "camera"
+    source.metadata.add(record)
+    let encoded = expect source.encode("metadata.jpg")
+    for pixels in [true, false]
+    {
+        for metadata in [true, false]
+        {
+            let decoded = expect Image.decode("metadata.jpg", encoded.toSlice(), {decodePixels: pixels, decodeMetadata: metadata})
+            Swag.assert(decoded.isValid() == pixels)
+            Swag.assert(decoded.width == 8 and decoded.height == 8)
+            var found = false
+            for item in decoded.metadata where item.isTag("Source")
+            {
+                Swag.assert(cast(string) item.toSlice() == "camera")
+                found = true
+            }
+
+            Swag.assert(found == metadata)
+            if !metadata do
+                Swag.assert(decoded.metadata.isEmpty())
+        }
+    }
+}
+
 // Invalid and truncated buffers should fail without producing an image.
 #test
 {

@@ -1,0 +1,26 @@
+# French strings of the shared image and video information panel.
+title       Informations
+close       Fermer les informations
+copy        Copier les informations
+property    Propriété
+value       Valeur
+image       Image
+video       Vidéo
+metadata    Métadonnées
+format      Format
+dimensions  Dimensions
+displaySize Taille d'affichage
+pixelFormat Format des pixels
+depth       Bits par pixel
+frames      Images
+duration    Durée
+frameRate   Cadence
+audio       Pistes audio
+subtitles   Sous-titres
+name        Nom
+language    Langue
+encoding    Encodage
+sampleRate  Échantillonnage
+channels    Canaux
+empty       Aucune
+unavailable Erreur de lecture

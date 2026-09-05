@@ -39,10 +39,11 @@ private func gifCommandWidth(metrics: const *ThemeMetrics)->f32
 
 struct ImageViewerContent
 {
-    image:   Image
-    movie:   Movie
-    drawing: Svg.Drawing     // Vector document, for a format that has no pixels of its own.
-    details: String
+    image:       Image
+    movie:       Movie
+    drawing:     Svg.Drawing     // Vector document, for a format that has no pixels of its own.
+    details:     String
+    information: MediaInfoData
 }
 
 // Rasterizes a vector document at the size it declares, bounded so a poster-sized view box
@@ -79,6 +80,8 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
     var result: retval
     var extension = String.from(Path.extension(fileName) orelse "")
     extension = extension.toLower()
+    result.information.add(.Image, group: true)
+    result.information.add(.Format, extension.toUpper().toString())
     if extension == ".gif"
     {
         try result.movie.load(fileName)
@@ -89,6 +92,9 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         result.movie.setFrameIndex(0)
         let frame = &result.movie.frame
         result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.movie.frameCount))
+        result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height).toString())
+        result.information.add(.Frames, Format.toString("%", result.movie.frameCount).toString())
+        result.information.addImageMetadata(frame.metadata.toSlice())
     }
     elif extension == ".svg"
     {
@@ -96,11 +102,16 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         // the view draws it at the scale it shows it at, and zooming stays sharp.
         result.drawing = try loadViewerDrawing(fileName)
         result.details = Format.toString(imageStrings().ui_DetailsVector, formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height))
+        result.information.add(.Dimensions, Format.toString("% × %", formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height)).toString())
     }
     else
     {
         result.image   = try loadViewerImage(fileName)
         result.details = Format.toString(imageStrings().ui_DetailsStill, result.image.width, result.image.height, result.image.bitsPerPixel)
+        result.information.add(.Dimensions, Format.toString("% × % px", result.image.width, result.image.height).toString())
+        result.information.add(.PixelFormat, Format.toString("%", result.image.pixelFormat).toString())
+        result.information.add(.Depth, Format.toString("%", result.image.bitsPerPixel).toString())
+        result.information.addImageMetadata(result.image.metadata.toSlice(), extension == ".png")
     }
 
     return #move result
@@ -131,6 +142,7 @@ internal struct ImageViewer
         playButton:      *IconButton
         timeline:        *Slider
         frameLabel:      *Label
+        information:     *MediaInfoPanel
     }
 
     navigateFile:         Viewer.NavigateFile?
@@ -300,6 +312,7 @@ private impl IWnd for ImageViewer
             .imageView.takeImage(&content.image)
 
         .details = #move content.details
+        .information.publish(&content.information)
         .refreshZoom()
         .applyLayout()
         .setInitialFocus(.imageView)
@@ -395,8 +408,9 @@ private impl ImageViewer
         result.reportChromeChanged  = services.reportChromeChanged
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.actions = host.createCommandGroup(imageCommandWidth(result.themeMetrics()))
-        result.info    = host.createInfoGroup(ImageInfoWidth)
+        result.actions     = host.createCommandGroup(imageCommandWidth(result.themeMetrics()))
+        result.info        = host.createInfoGroup(ImageInfoWidth)
+        result.information = MediaInfoPanel.create(host)
 
         with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {

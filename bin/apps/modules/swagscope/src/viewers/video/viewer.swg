@@ -544,17 +544,22 @@ internal struct VideoViewer
         volumeSlider:    *Slider
         imageView:       *ImageView
         subtitleOverlay: *VideoSubtitleOverlay
+        information:     *MediaInfoPanel
     }
 
     seekOverlay: *VideoSeekOverlay?
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
     // thread affinity. `openState` is zero while opening, one on success and two on failure.
-    openFileName: String
-    pendingVideo: Reader
-    openFailure:  String
-    openState:    u32
-    openFinished: bool
+    openFileName:         String
+    pendingVideo:         Reader
+    openFailure:          String
+    openState:            u32
+    openFinished:         bool
+    informationReady:     bool
+    informationFrames:    u64
+    informationAudio:     u32
+    informationSubtitles: u32
 
     // Opening retains bounded metadata while progressive indexes and payloads stay in the file.
     video:               Reader
@@ -1813,6 +1818,67 @@ private impl IWnd for VideoViewer
 
 private impl VideoViewer
 {
+    // Refreshes the snapshot when progressive indexing discovers stream or track properties.
+    mtd refreshInformation()
+    {
+        if !.video.isOpen() do
+            return
+        let frames    = .video.frameCount()
+        let audio     = .video.audioTrackCount()
+        let subtitles = .video.subtitleTrackCount()
+        if .informationReady and frames == .informationFrames and audio == .informationAudio and subtitles == .informationSubtitles do
+            return
+        .informationReady     = true
+        .informationFrames    = frames
+        .informationAudio     = audio
+        .informationSubtitles = subtitles
+
+        var data: MediaInfoData
+        data.add(.Video, group: true)
+        data.add(.Format, .video.streamFormat().name)
+        data.add(.Dimensions, Format.toString("% × % px", .video.width(), .video.height()).toString())
+        data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()).toString())
+        let rate = .video.frameRate()
+        data.add(.FrameRate, Format.toString("% fps", rate.framesPerSecond()).toString())
+        if frames do
+            data.add(.Frames, Format.toString("%", frames).toString())
+        if .video.durationInSeconds() > 0 do
+            data.add(.Duration, Viewer.durationText(.video.durationInSeconds()).toString())
+        data.add(.Audio, Format.toString("%", audio).toString())
+        data.add(.Subtitles, Format.toString("%", subtitles).toString())
+        for index in audio
+        {
+            let candidate = .video.audioTrack(index)
+            if !candidate do
+                continue
+            let track = candidate!
+            data.add(.Audio, Format.toString("%", index + 1).toString(), group: true)
+            if track.displayName().count do
+                data.add(.Name, track.displayName())
+            if track.language().count do
+                data.add(.Language, track.language())
+            data.add(.Encoding, Format.toString("%", track.sampleEncoding()).toString())
+            data.add(.SampleRate, Format.toString("% Hz", track.sampleRateHz()).toString())
+            data.add(.Channels, Format.toString("%", track.numChannels()).toString())
+        }
+
+        for index in subtitles
+        {
+            let candidate = .video.subtitleTrack(index)
+            if !candidate do
+                continue
+            let track = candidate!
+            data.add(.Subtitles, Format.toString("%", index + 1).toString(), group: true)
+            if !track.name.isEmpty() do
+                data.add(.Name, track.name.toString())
+            if !track.language.isEmpty() do
+                data.add(.Language, track.language.toString())
+            data.add(.Format, Format.toString("%", track.format).toString())
+        }
+
+        .information.publish(&data)
+    }
+
     mtd refreshDetails()
     {
         let duration = .video.durationInSeconds()
@@ -1870,6 +1936,7 @@ private impl VideoViewer
 
     mtd finishMetadata() fail
     {
+        .refreshInformation()
         let duration = .video.durationInSeconds()
         let rate     = .video.frameRate().framesPerSecond()
         let count    = .video.frameCount()
@@ -1953,7 +2020,8 @@ private impl VideoViewer
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.commands = host.createCommandGroup(VideoCommandWidth)
+        result.commands    = host.createCommandGroup(VideoCommandWidth)
+        result.information = MediaInfoPanel.create(host)
 
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {

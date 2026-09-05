@@ -143,7 +143,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     Swag.assert(window.currentActions == null)
     Swag.assert(window.currentInfo != null and window.currentInfo!.parent == window.infoContentGroup)
-    Swag.assert(window.infoContentGroup.position.x + window.currentInfo!.position.right() == window.infoBar.paddedClientRect().right())
+    Swag.assert(window.currentSidePanelButton != null)
+    Swag.assert(window.currentInfo!.position.right() + ViewerInfoSideButtonSpacing == window.currentSidePanelButton!.position.x)
     Swag.assert(window.currentInfo!.themeColors().label_TextLight == window.themeColors().label_TextFaint)
     Swag.assert(Math.abs(window.infoStatsLabel.position.right() + ViewerInfoGroupSpacing - window.currentInfo!.position.x) < 0.01)
     Swag.assert(window.currentCommands != null and window.currentCommands!.parent == window.viewerBar)

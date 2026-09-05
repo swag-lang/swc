@@ -252,11 +252,12 @@ impl Decoder
     mtd safeSampleBuf()->[*] u8 => .pSampleBuf!
     mtd safeInBufOfs()->[*] u8  => .inBufOfs!
 
-    mtd init(buffer: const [..] u8) fail
+    mtd init(buffer: const [..] u8, options: DecodeOptions) fail
     {
         Swag.init(me, 1)
-        .stream    = buffer.buffer
-        .streamLen = cast(s32) buffer.count
+        .decOptions = options
+        .stream     = buffer.buffer
+        .streamLen  = cast(s32) buffer.count
 
         .inBufOfs = .inBuf
         .prepareInBuffer()
@@ -328,15 +329,17 @@ internal impl IImageDecoder for Decoder
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         var result: retval
-        .decOptions = options
-
-        .init(buffer)
+        .init(buffer, options)
         .start()
 
         // Creates image
         result.init(.imageSizeX, .imageSizeY, PixelFormat.BGR8)
-        if !options.decodePixels do
+        if !options.decodePixels
+        {
+            result.metadata = #move .metadata
             return result
+        }
+
         result.allocPixels()
 
         .doit(cast([*] u8) result.pixels.buffer!)

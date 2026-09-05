@@ -124,6 +124,57 @@ class LateTaskTests(unittest.TestCase):
         self.assertEqual(with_task["headline"]["tasks"], 2)
 
 
+def add_loop(result, wall_ms, hello_ms=None, error=None):
+    """Give one campaign an edit-build loop measurement."""
+    result["loop"] = {"core_rebuild": {"wall_ms": wall_ms, "peak_bytes": 2097152,
+                                       "samples": [wall_ms, wall_ms + 1.0]}}
+    if error:
+        result["loop"]["doc_std"] = {"error": error}
+    if hello_ms is not None:
+        result["hello_build"] = {"swag-release": {"wall_ms": hello_ms, "peak_bytes": 1048576}}
+    return result
+
+
+class EditLoopTests(unittest.TestCase):
+    def test_a_workload_is_corrected_by_the_build_context(self):
+        baseline = add_loop(campaign("run-01", False), 2000.0, hello_ms=80.0)
+        slower = add_loop(campaign("run-02", False, build_scale=1.25), 2500.0, hello_ms=100.0)
+
+        entries = history.build_entries([baseline, slower])
+        loop = entries[1]["loop"]
+
+        self.assertAlmostEqual(loop["core_rebuild"]["wall_ms"], 2500.0)
+        self.assertAlmostEqual(loop["core_rebuild"]["adjusted_ms"], 2000.0)
+        self.assertAlmostEqual(loop["core_rebuild"]["index"], 1.0)
+        self.assertAlmostEqual(loop["hello_build"]["adjusted_ms"], 80.0)
+        self.assertAlmostEqual(loop["core_rebuild"]["peak_mb"], 2.0)
+        self.assertEqual(loop["core_rebuild"]["samples"], 2)
+        self.assertEqual(loop["core_rebuild"]["since"], "run-01")
+
+    def test_a_workload_added_later_is_indexed_from_its_first_clean_campaign(self):
+        baseline = campaign("run-01", False)
+        dirty = add_loop(campaign("run-02", True), 1000.0)
+        first = add_loop(campaign("run-03", False), 2000.0)
+        faster = add_loop(campaign("run-04", False), 1000.0)
+
+        entries = history.build_entries([baseline, dirty, first, faster])
+        index = [(e["loop"].get("core_rebuild") or {}).get("index") for e in entries]
+
+        self.assertEqual(entries[0]["loop"], {})
+        self.assertAlmostEqual(index[1], 0.5)
+        self.assertAlmostEqual(index[2], 1.0)
+        self.assertAlmostEqual(index[3], 0.5)
+        self.assertEqual(entries[3]["loop"]["core_rebuild"]["since"], "run-03")
+
+    def test_a_failed_workload_leaves_no_number_behind(self):
+        failed = add_loop(campaign("run-01", False), 2000.0, error="exit=1")
+
+        loop = history.build_entries([failed])[0]["loop"]
+
+        self.assertIn("core_rebuild", loop)
+        self.assertNotIn("doc_std", loop)
+
+
 class ResolutionTests(unittest.TestCase):
     def test_an_unchanged_control_reads_one_when_the_machine_only_scales(self):
         baseline = campaign("run-01", False)

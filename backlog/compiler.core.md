@@ -30,7 +30,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Editing a private body reanalyzes only the changed file and its semantic dependents.
 - Changing a public signature invalidates every consumer that observed it.
 - Adding, removing, or renaming a file, changing relevant configuration, and changing compiler versions invalidate the correct state.
-- Statistics from compiler.core.004 report reused and rebuilt files, tokens, and semantic work.
+- The compiler.core.004 `core_touch` workload lands far below `core_rebuild`, which today it does not: one saved file rebuilds every file of the module.
 - Clean and incremental workspace builds are covered by equivalent-result tests.
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
@@ -50,18 +50,17 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 ## Tier B — Measurement and budgets
 
-### compiler.core.004 — The benchmark campaign measures only hello world
+### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
 
-**Evidence.** `bench/history.json` currently uses protocol 2 and contains four records dated 2026-08-07 and 2026-08-12. Compiler workloads cover only `hello_build_ms` (99.5432–137.6237 ms) and `hello_build_peak_mb` (105.28125–123.97265625 MiB). They do not establish full-core, warm no-op, or touched-file baselines.
+**Evidence.** Since 2026-09-05 the campaign measures the edit-build loop beside the seven tasks: `core_rebuild`, `core_noop`, `core_touch`, `hello_build`, `doc_std` and `format_tree` (`bench/toolchains.py`, `make_compiler_workloads`), each recorded with wall time, every sample and peak memory, corrected by the campaign's compilation context and indexed against the first clean campaign that measured it (`history.py`, `index_loop`). `bench/compile.py` answers the round-by-round A/B between two compilers. On 2026-09-05, Release 0.1.366, six worker cores, medians of five on a quiet machine: `core_rebuild` 3 485 ms, `core_noop` 334 ms, `core_touch` 3 214 ms, `format_tree` 5.6 s at one busy core, `doc_std` 142 s and 3.3 GiB peak, the standard-library publish pass included. No recorded campaign carries these workloads yet: the four records of protocol 2 predate them.
 
-**Intent.** Extend the reproducible benchmark campaign with a full core rebuild, a warm no-op rebuild, and a single-file incremental edit. Measure Release and DevMode where their behavior differs.
+**Intent.** Record enough clean campaigns to know the resolution of each workload, then make the campaign report a regression instead of only plotting it.
 
 **Complete when.**
 
-- Each history record contains wall time, peak memory, processed and reused files, and processed and reused tokens for every workload.
-- Results include a normalized control, clean-worktree provenance, compiler revision, host description, and configuration.
-- At least five clean baseline campaigns establish stable thresholds before regressions are enforced.
-- The campaign and CI report threshold violations without silently rewriting the baseline.
+- At least five clean baseline campaigns establish the resolution band of every edit-build workload, as the null indices already do for the tasks.
+- The campaign reports a workload that moved past its band without silently rewriting the baseline.
+- Release and DevMode are measured where their behavior differs, and the report says which one a number belongs to.
 
 **Related:** compiler.core.002, compiler.core.005, compiler.core.007.
 

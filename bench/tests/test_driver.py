@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import campaign
 import driver
+import toolchains
 import winproc
 
 
@@ -55,6 +56,45 @@ class ScheduleTests(unittest.TestCase):
             gaps = [b - a for a, b in zip(cycles, cycles[1:])]
             self.assertLessEqual(max(gaps) - min(gaps), 1, cycles)
             self.assertGreaterEqual(cycles[-1], driver.RUN_MAX_REPS - reps)
+
+
+class EditLoopTests(unittest.TestCase):
+    def test_every_workload_is_defined_and_capped_when_asked(self):
+        workloads = toolchains.make_compiler_workloads("swc.exe", cores=6)
+        self.assertEqual(list(workloads), toolchains.COMPILER_WORKLOADS)
+        for workload in workloads.values():
+            self.assertEqual(workload["cmd"][0], "swc.exe")
+            self.assertIn("6", workload["cmd"][workload["cmd"].index("--num-cores") + 1])
+            self.assertTrue(os.path.isabs(workload["cwd"]))
+
+    def test_an_uncapped_workload_leaves_the_core_count_to_the_compiler(self):
+        for workload in toolchains.make_compiler_workloads("swc.exe").values():
+            self.assertNotIn("--num-cores", workload["cmd"])
+
+    def test_only_the_cold_rebuild_needs_no_preparation(self):
+        workloads = toolchains.make_compiler_workloads("swc.exe")
+        self.assertIsNone(workloads["core_rebuild"]["prepare"])
+        for name in toolchains.COMPILER_WORKLOADS[1:]:
+            self.assertIsNotNone(workloads[name]["prepare"], name)
+
+    def test_a_failing_workload_reports_and_keeps_nothing(self):
+        failed = {"exit": 3, "wall_ms": 1.0, "cpu_ms": 1.0, "peak_job_bytes": 1,
+                  "stdout": "", "stderr": "boom"}
+        with mock.patch.object(winproc, "run", return_value=failed):
+            r, err = driver.workload_once({"cmd": ["x"], "cwd": ".", "prepare": None}, {})
+        self.assertIsNone(r)
+        self.assertIn("exit=3", err)
+        self.assertIn("boom", err)
+
+    def test_a_workload_keeps_its_minimum_and_every_sample(self):
+        acc = {}
+        for wall in (30.0, 20.0, 25.0):
+            driver.keep_workload(acc, {"wall_ms": wall, "cpu_ms": wall * 2,
+                                       "peak_job_bytes": int(wall)})
+        self.assertEqual(acc["wall_ms"], 20.0)
+        self.assertEqual(acc["cpu_ms"], 40.0)
+        self.assertEqual(acc["peak_bytes"], 30)
+        self.assertEqual(acc["samples"], [30.0, 20.0, 25.0])
 
 
 class PinTests(unittest.TestCase):

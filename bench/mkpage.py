@@ -61,6 +61,17 @@ HIST_SERIES = [
     ("swc-jit-fast-debug", "devmode JIT",      "h-d"),
 ]
 
+# The edit-build loop, in the order a person meets it: the first build, the build where
+# nothing changed, the build after one save, and the two commands that are not builds.
+LOOP = [
+    ("core_rebuild", "std/core &agrave; froid", "tous les fichiers, sorties supprim&eacute;es"),
+    ("core_noop", "std/core sans changement", "rien n'a boug&eacute; depuis la derni&egrave;re construction"),
+    ("core_touch", "std/core, un fichier sauv&eacute;", "une seule date de modification a avanc&eacute;"),
+    ("hello_build", "hello world &rarr; exe", "le co&ucirc;t fixe, source jusqu'&agrave; l'ex&eacute;cutable"),
+    ("doc_std", "documentation de std", "tout le site de la biblioth&egrave;que standard"),
+    ("format_tree", "formatage du d&eacute;p&ocirc;t", "toutes les sources Swag, sur une copie"),
+]
+
 
 def latest_campaign():
     """The most recent campaign of the current protocol.
@@ -394,6 +405,29 @@ def history_section(entries):
                                              compact=True, band=band)))
     parts.append("</div>")
 
+    loop_ids = [wid for wid, _, _ in LOOP
+                if any((e.get("loop") or {}).get(wid) for e in entries)]
+    if loop_ids:
+        parts.append("<h3>La boucle d'&eacute;dition &mdash; millisecondes corrig&eacute;es</h3>")
+        parts.append('<p class="cap">Le temps brut de chaque charge divis&eacute; par le contexte '
+                     "de compilation de sa campagne, la m&ecirc;me correction que les t&acirc;ches. "
+                     "Une charge ajout&eacute;e apr&egrave;s la campagne de r&eacute;f&eacute;rence est "
+                     "index&eacute;e sur la premi&egrave;re campagne propre qui l'a mesur&eacute;e, "
+                     "indiqu&eacute;e sous son nom.</p>")
+        parts.append('<div class="small-mult">')
+        for wid, name, _ in LOOP:
+            if wid not in loop_ids:
+                continue
+            vals = [((e.get("loop") or {}).get(wid) or {}).get("adjusted_ms") for e in entries]
+            since = next((((e.get("loop") or {}).get(wid) or {}).get("since")
+                          for e in reversed(entries)
+                          if ((e.get("loop") or {}).get(wid) or {}).get("since")), None)
+            note = " depuis %s" % since if since else ""
+            parts.append('<div class="sm"><b>%s<span class="mode">%s</span></b>%s</div>'
+                         % (name, note, svg_lines(labels, [("h-a", "", vals)], "ms",
+                                                  nd=0, compact=True)))
+        parts.append("</div>")
+
     rows = []
     dirty_seen = False
     busy_seen = False
@@ -559,6 +593,32 @@ def main():
                          fmt((R["hello_build"].get(r) or {}).get("wall_ms"), 0)]
                       for r in border], "wide")
 
+    # The edit-build loop of this campaign, from its condensed entry: that is where the
+    # correction and the index live, and the raw file only holds what was measured.
+    current = next((e for e in entries if e["meta"].get("stamp") == R["meta"].get("stamp")),
+                   entries[-1] if entries else {})
+    loop = current.get("loop") or {}
+    loop_rows = []
+    for wid, name, what in LOOP:
+        rec = loop.get(wid)
+        if not rec:
+            continue
+        since = rec.get("since")
+        loop_rows.append([
+            "swag", "%s <span class=\"mode\">%s</span>" % (name, what),
+            fmt(rec.get("wall_ms"), 0), fmt(rec.get("adjusted_ms"), 0),
+            fmt(rec.get("peak_mb"), 0),
+            "%s%s" % (fmt(rec.get("index")),
+                      (" <span class=\"mode\">depuis %s</span>" % since) if since else ""),
+            "%d" % rec["samples"] if rec.get("samples") else "&mdash;",
+        ])
+    loop_table = (table(["charge", "brut (ms)", "corrig&eacute; (ms)", "m&eacute;moire (Mo)",
+                         "indice", "&eacute;chantillons"], loop_rows, "wide")
+                  if loop_rows else '<p class="cap">Aucune charge mesur&eacute;e.</p>')
+    loop_cores = (R.get("meta", {}).get("settings") or {}).get("swc_cores")
+    loop_cores = (", le compilateur born&eacute; &agrave; %d c&oelig;urs" % loop_cores
+                  if loop_cores else "")
+
     me_hi, me_ticks = lin_axis([bmem[r] for r in aot])
     me_chart = chart(sorted(((r, bmem[r], fmt(bmem[r], 0)) for r in aot), key=lambda x: -x[1]),
                      0, me_hi, me_ticks, "Mo", "lin")
@@ -658,6 +718,7 @@ def main():
         "{{bu_chart}}": bu_chart, "{{bu_table}}": bu_table,
         "{{me_chart}}": me_chart, "{{rm_chart}}": rm_chart,
         "{{st_chart}}": st_chart, "{{sz_chart}}": sz_chart,
+        "{{loop_table}}": loop_table, "{{loop_cores}}": loop_cores,
         "{{task_table}}": "\n".join(tt),
         "{{history}}": history_section(entries),
         "{{swag_geo}}": fmt(swag),

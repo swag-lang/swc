@@ -109,6 +109,23 @@ def build_once(recipe, env):
     return r, None
 
 
+def workload_once(workload, env):
+    """One timed run of a compiler workload, after its untimed preparation."""
+    if workload["prepare"]:
+        workload["prepare"](env)
+    r = winproc.run(workload["cmd"], cwd=workload["cwd"], env=env)
+    if r["exit"] != 0:
+        return None, "exit=%d %s" % (r["exit"], (r["stdout"] + r["stderr"])[-900:])
+    return r, None
+
+
+def keep_workload(acc, r):
+    acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
+    acc["cpu_ms"] = r["cpu_ms"] if acc.get("cpu_ms") is None else min(acc["cpu_ms"], r["cpu_ms"])
+    acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
+    acc.setdefault("samples", []).append(round(r["wall_ms"], 1))
+
+
 def run_once(cmd, env):
     r = winproc.run(cmd, cwd=tc.BENCH, env=env, pin=True)
     m = PAT.search(r["stdout"] + r["stderr"])
@@ -208,6 +225,9 @@ def main():
     ap.add_argument("--tasks", default="",
                     help="comma-separated subset of the tasks to sweep, for iterating on one of "
                          "them; a partial sweep is never recorded")
+    ap.add_argument("--swc-cores", type=int, default=0,
+                    help="cap on the compiler's worker pool for the edit-build loop workloads; "
+                         "0 leaves the compiler to its own count, and the value is recorded")
     args = ap.parse_args()
 
     RUN_BUDGET_MS = args.budget
@@ -335,6 +355,36 @@ def main():
         else:
             print("  %-20s build=%9.1f ms  mem=%7.1f MB" %
                   (name, acc["wall_ms"], acc["peak_bytes"] / 1048576.0))
+    sys.stdout.flush()
+
+    # ------------------------------------------------------- the edit-build loop
+    # Not pinned, like every build: a rebuild is meant to use the whole machine. The
+    # order is fixed on purpose — a no-op right after the full rebuild it warms — and
+    # nothing here competes with anything else, so there is no rotation to keep fair.
+    print("== the edit-build loop (compiler workloads%s) ==" %
+          (", %d cores" % args.swc_cores if args.swc_cores else ""))
+    workloads = tc.make_compiler_workloads(swc, args.swc_cores)
+    results["loop"] = {}
+    loop_plan = {}
+    for rep in range(BUILD_MAX_REPS):
+        for name, workload in workloads.items():
+            if rep >= loop_plan.get(name, BUILD_MAX_REPS):
+                continue
+            r, err = workload_once(workload, env)
+            acc = results["loop"].setdefault(name, {})
+            if err:
+                acc["error"] = err
+                loop_plan[name] = 0
+            else:
+                keep_workload(acc, r)
+                loop_plan.setdefault(name, plan_builds(r["wall_ms"]))
+    for name, acc in results["loop"].items():
+        if acc.get("error"):
+            print("  %-20s ERROR %s" % (name, acc["error"][:150]))
+        else:
+            print("  %-20s wall=%9.1f ms (%dx, %+4.0f%%)  mem=%7.1f MB" %
+                  (name, acc["wall_ms"], len(acc["samples"]), spread_pct(acc["samples"]),
+                   acc["peak_bytes"] / 1048576.0))
     sys.stdout.flush()
 
     # ------------------------------------------------------ time to first output
@@ -500,6 +550,7 @@ def main():
         "max_reps": RUN_MAX_REPS,
         "build_budget_ms": BUILD_BUDGET_MS,
         "warmup_s": args.warmup,
+        "swc_cores": args.swc_cores,
     })
 
     if args.quick:

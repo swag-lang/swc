@@ -405,7 +405,50 @@ def condense(results, refs=None, baseline=None):
     hb = results.get("hello_build", {}).get("swag-release", {})
     entry["hello_build_ms"] = hb.get("wall_ms")
     entry["hello_build_peak_mb"] = (hb.get("peak_bytes") or 0) / 1048576.0 or None
+
+    # The edit-build loop, corrected like every build: the raw wall time is divided by
+    # this campaign's compilation context, so two campaigns compare on one machine
+    # state. Memory is kept raw, as everywhere else. The index against the first clean
+    # campaign that measured each workload is filled in once every campaign has been
+    # condensed, in build_entries.
+    measured = {}
+    if hb:
+        measured["hello_build"] = hb
+    measured.update(results.get("loop") or {})
+    build_factor = context["build"]["factor"] or 1.0
+    loop = {}
+    for name, acc in measured.items():
+        if acc.get("error") or not acc.get("wall_ms"):
+            continue
+        loop[name] = {
+            "wall_ms": acc["wall_ms"],
+            "adjusted_ms": acc["wall_ms"] / build_factor,
+            "peak_mb": (acc.get("peak_bytes") or 0) / 1048576.0 or None,
+            "samples": len(acc.get("samples") or []) or None,
+            "index": None,
+            "since": None,
+        }
+    entry["loop"] = loop
     return entry
+
+
+def index_loop(entries):
+    """Index every edit-build workload against the first clean campaign that measured
+    it, which reads 1.00 — exactly as a task added after the baseline is indexed."""
+    first = {}
+    for entry in entries:
+        if entry["meta"].get("dirty"):
+            continue
+        for name, rec in (entry.get("loop") or {}).items():
+            if name not in first and rec.get("adjusted_ms"):
+                first[name] = (entry["meta"].get("commit"), rec["adjusted_ms"])
+    for entry in entries:
+        for name, rec in (entry.get("loop") or {}).items():
+            reference = first.get(name)
+            if reference and rec.get("adjusted_ms"):
+                rec["index"] = rec["adjusted_ms"] / reference[1]
+                rec["since"] = reference[0]
+    return entries
 
 
 def load_results():
@@ -426,7 +469,7 @@ def build_entries(results):
                      key=lambda result: datetime.datetime.fromisoformat(result["meta"]["date"]))
     baseline = _select_baseline(results)
     refs = _task_references(results, baseline)
-    return [condense(result, refs, baseline) for result in results]
+    return index_loop([condense(result, refs, baseline) for result in results])
 
 
 def load():

@@ -8,6 +8,7 @@ name and skipped, never guessed at.
 import glob
 import json
 import os
+import shutil
 import subprocess
 
 BENCH = os.path.dirname(os.path.abspath(__file__))
@@ -267,6 +268,99 @@ def make_hello_runs(t, swc):
         "luajit2.1":          [t["luajit"], os.path.join(hello, "hello.lua")],
         "lua5.4":             [t["lua"], os.path.join(hello, "hello.lua")],
         "python3.12":         [t["py"], "-3", os.path.join(hello, "hello.py")],
+    }
+
+
+# ------------------------------------------------------------ compiler workloads
+# The seven tasks and the hello world price a compiler on a small program. None of them
+# contains what an edit-build loop costs: a real module, a warm no-op, one touched
+# file, the documentation, a formatting pass. These do, and every one is what a person
+# actually types — the standard library's own core module, built in place the way the
+# repository tools build it.
+COMPILER_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "doc_std", "format_tree"]
+
+# The trees the format tool walks, relative to the repository root, in its order.
+FORMAT_TREES = [os.path.join("bin", d) for d in
+                ("examples", "apps", "reference", "runtime", "std", "unittests")] + \
+               [os.path.join("tools", "src")]
+
+# One leaf of core whose write time the touched-file workload bumps. Its content never
+# changes: the compiler decides staleness from write times, exactly as it would after an
+# editor saved the file.
+TOUCHED_FILE = os.path.join("bin", "std", "modules", "core", "src", "text", "utf8.swg")
+
+
+def _mirror_sources(src, dst):
+    """Copy every Swag source below `src` to `dst`, keeping the layout and nothing else."""
+    for folder, dirs, files in os.walk(src):
+        dirs[:] = [d for d in dirs if d not in (".output", ".tmp")]
+        rel = os.path.relpath(folder, src)
+        for name in files:
+            if name.endswith((".swg", ".swgs")):
+                target = os.path.join(dst, rel, name)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(os.path.join(folder, name), "rb") as f:
+                    data = f.read()
+                with open(target, "wb") as f:
+                    f.write(data)
+
+
+def make_compiler_workloads(swc, cores=0):
+    """(id -> workload) for the edit-build loop.
+
+    A workload is a timed command plus an untimed `prepare` that puts the tree in the
+    state the command is meant to find: outputs removed before a cold build, a warm
+    build before a no-op, one write time bumped before an incremental build, a private
+    copy of the sources before a formatting pass. `cores` caps the compiler's worker
+    pool; zero leaves the compiler to its own count.
+    """
+    root = worktree()
+    std = os.path.join(root, "bin", "std")
+    jobs = ["--num-cores", str(cores)] if cores else []
+    build_core = [swc, "build", "--workspace", std, "--workspace-module", "core",
+                  "--build-cfg", "devmode"] + jobs
+    touched = os.path.join(root, TOUCHED_FILE)
+    doc_out = os.path.join(OUT, "doc")
+    format_out = os.path.join(OUT, "format")
+
+    def warm(env):
+        # A no-op and a touched-file build are measured against a build this very
+        # compiler produced: the manifest also records which compiler wrote it, so a
+        # binary swapped in between would otherwise be measured on a full rebuild.
+        subprocess.run(build_core, cwd=root, env=env, capture_output=True)
+
+    def touch(env):
+        warm(env)
+        os.utime(touched, None)
+
+    def clear_doc(env):
+        shutil.rmtree(doc_out, ignore_errors=True)
+        os.makedirs(doc_out, exist_ok=True)
+
+    def mirror(env):
+        shutil.rmtree(format_out, ignore_errors=True)
+        for tree in FORMAT_TREES:
+            _mirror_sources(os.path.join(root, tree), os.path.join(format_out, tree))
+
+    return {
+        "core_rebuild": {
+            "cmd": build_core + ["--rebuild"], "cwd": root, "prepare": None,
+            "what": "std/core, every file, from nothing"},
+        "core_noop": {
+            "cmd": build_core, "cwd": root, "prepare": warm,
+            "what": "std/core again, nothing changed"},
+        "core_touch": {
+            "cmd": build_core, "cwd": root, "prepare": touch,
+            "what": "std/core after one file was saved"},
+        "doc_std": {
+            "cmd": [swc, "doc", "--workspace", std, "--doc-output-dir", doc_out,
+                    "--rebuild"] + jobs,
+            "cwd": root, "prepare": clear_doc,
+            "what": "the documentation of the whole standard library"},
+        "format_tree": {
+            "cmd": [swc, "format", "-d", format_out] + jobs,
+            "cwd": root, "prepare": mirror,
+            "what": "every Swag source of the repository, formatted"},
     }
 
 

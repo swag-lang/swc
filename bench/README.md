@@ -15,6 +15,7 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 | `swc tools\bench.swgs --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
 | `swc tools\bench.swgs --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
 | `py driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |
+| `py compile.py --against bin\swc_baseline.exe` | A/B the edit-build loop between two compilers, order alternated; records nothing |
 
 A full campaign takes roughly twenty minutes: a ninety-second warm-up, the NativeAOT
 publishes, and CPython on the two rescaled tasks. It will not start while something else
@@ -33,6 +34,36 @@ has measured nothing** — fix the ports before believing any number.
 
 Fourteen runtimes in total: swag native and JIT in both configurations, two C++ compilers,
 Rust, Swift, C# ahead-of-time and jitted, V8, LuaJIT, Lua and CPython.
+
+## The edit-build loop
+
+The seven tasks and the hello world price a compiler on a small program. None of them
+contains what an edit-build loop costs a person, so the campaign also measures the compiler
+under test on the repository's own sources — what the tools in `../tools` actually run:
+
+| workload | command | what it isolates |
+|---|---|---|
+| `core_rebuild` | `swc build --workspace bin/std -m core --rebuild` | a real module from nothing: 300 files, every stage |
+| `core_noop` | the same, right after it, nothing changed | the up-to-date check and whatever runs before it |
+| `core_touch` | the same, after one file's write time moved | what one save costs — today, the whole module again |
+| `hello_build` | `swc build -f hello.swg` | the fixed cost, source to linked executable |
+| `doc_std` | `swc doc --workspace bin/std --rebuild` | the standard library's documentation, into `out/doc` |
+| `format_tree` | `swc format -d out/format` | every Swag source of the repository, on a private copy |
+
+Each one is prepared outside the clock — outputs removed, a warm build made, a write time
+bumped, the sources mirrored — then timed once, like a build: minimum kept, every sample
+recorded, no pinning, because a build is meant to use the whole machine. `--swc-cores` caps
+the compiler's worker pool and is stored with the campaign, since the number depends on it.
+
+In the history each workload is corrected by the campaign's compilation context, exactly as
+the tasks are, and indexed against the first clean campaign that measured it. The three
+`core` workloads build `bin/std` in place, in `devmode`, which leaves that module built the
+way `std.swgs` would leave it.
+
+Between campaigns, `compile.py` answers the round-by-round question: it runs the same
+workloads on one compiler, or on two with the order alternated every round, and reports the
+median of the per-round ratios beside the minimums — a pair measured back to back shares the
+machine's drift, where two minimums taken minutes apart do not.
 
 ## The rules that keep the numbers honest
 
@@ -183,6 +214,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | `../tools/bench.swgs` | the entry point |
 | `campaign.py` | rebuild, measure, report |
 | `driver.py` | the sweep itself |
+| `compile.py` | the edit-build loop alone, on one compiler or A/B between two; records nothing |
 | `toolchains.py` | where each toolchain lives and how it builds a task |
 | `winproc.py` | process timing, peak memory, core pinning, and how busy the machine is |
 | `history.py` | the compact, normalised record |

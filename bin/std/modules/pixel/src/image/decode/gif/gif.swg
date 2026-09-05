@@ -72,20 +72,20 @@ public struct Decoder
 
     private
     {
-        width:      u16           // Width of the logical screen.
-        height:     u16           // Height of the logical screen.
-        loopCount:  u16           // Loop count from the animation extension, zero for endless.
-        gce:        Gce           // Graphic control extension of the current frame.
-        palette:    *Palette?     // Palette the current frame resolves against.
-        lct:        Palette       // Local color table of the current frame.
-        gct:        Palette       // Global color table of the stream.
-        fx:         u16           // Left edge of the current frame in the logical screen.
-        fy:         u16           // Top edge of the current frame in the logical screen.
-        fw:         u16           // Width of the current frame.
-        fh:         u16           // Height of the current frame.
-        bgIndex:    u8            // Background color index of the logical screen.
-        frame:      Array'u8      // Indices of the frame being decoded.
-        table:      Table         // LZW dictionary of the current frame.
+        width:     u16           // Width of the logical screen.
+        height:    u16           // Height of the logical screen.
+        loopCount: u16           // Loop count from the animation extension, zero for endless.
+        gce:       Gce           // Graphic control extension of the current frame.
+        palette:   *Palette?     // Palette the current frame resolves against.
+        lct:       Palette       // Local color table of the current frame.
+        gct:       Palette       // Global color table of the stream.
+        fx:        u16           // Left edge of the current frame in the logical screen.
+        fy:        u16           // Top edge of the current frame in the logical screen.
+        fw:        u16           // Width of the current frame.
+        fh:        u16           // Height of the current frame.
+        bgIndex:   u8            // Background color index of the logical screen.
+        frame:     Array'u8      // Indices of the frame being decoded.
+        table:     Table         // LZW dictionary of the current frame.
 
         streamStart:         const [*] u8?     // Start of the input, kept for looping.
         stream:              const [*] u8?     // Current read position in the input.
@@ -157,7 +157,6 @@ public impl Decoder
 
         .read(.gct.colors, 3'u64 * .gct.size)
         .palette = &.gct
-
     }
 
     // Decodes the next composited frame into `image`.
@@ -167,8 +166,9 @@ public impl Decoder
     mtd nextFrame(img: *Image)->bool fail
     {
         Debug.assert(.reader.isOpen())
-        if .nextIndex >= .reader.info.frames.count do return false
-        img[] = .reader.read(.nextIndex)
+        if .nextIndex >= .reader.info.frames.count do
+            return false
+        img[]      = .reader.read(.nextIndex)
         .nextIndex += 1
         return true
     }
@@ -187,6 +187,7 @@ public impl Decoder
         .nextIndex = 0
     }
 }
+
 public impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
@@ -197,7 +198,7 @@ public impl IImageDecoder for Decoder
         var result: retval = reader.read(0)
         if options.decodePixels and reader.info.frames[0].pixelFormat == .RGB8 do
             result.convertTo(.RGB8)
-        .reader = #move reader
+        .reader    = #move reader
         .nextIndex = 1
         return result
     }

@@ -335,7 +335,6 @@ impl Decoder
 
     mtd convert(result: *Image)
     {
-
         if .header.bitDepth == 16
         {
             .convert16(result)

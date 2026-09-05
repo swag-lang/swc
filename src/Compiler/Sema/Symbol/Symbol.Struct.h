@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Generic/GenericInstanceKey.h"
+#include "Compiler/Sema/Generic/GenericInstanceOrigin.h"
 #include "Compiler/Sema/Helpers/SemaCloneTypes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -108,7 +109,8 @@ public:
     void                          setGenericRoot(bool value) noexcept;
     bool                          isGenericInstance() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericInstance); }
     bool                          isUnion() const noexcept { return hasExtraFlag(SymbolStructFlagsE::Union); }
-    void                          setGenericInstance(SymbolStruct* root) noexcept;
+    void                          setGenericInstance(SymbolStruct* root, const GenericInstanceOrigin& origin) noexcept;
+    const GenericInstanceOrigin*   genericInstanceOrigin() const noexcept;
     bool                          sameGenericFamily(const SymbolStruct& other) const noexcept;
     SymbolStruct*                 genericRootOrSelf() noexcept;
     const SymbolStruct*           genericRootOrSelf() const noexcept;

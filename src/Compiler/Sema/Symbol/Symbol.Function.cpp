@@ -597,6 +597,7 @@ namespace
 
 struct SymbolFunction::GenericData
 {
+    GenericInstanceOrigin                         origin;
     GenericInstanceStorage                        instances;
     std::atomic<const TaskContext*>               completionOwner = nullptr;
     mutable std::atomic<uint32_t>                 completionDepth = 0;
@@ -1151,12 +1152,20 @@ void SymbolFunction::setGenericRoot(bool value) noexcept
         removeExtraFlag(SymbolFunctionFlagsE::GenericRoot);
 }
 
-void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* root) noexcept
+const GenericInstanceOrigin* SymbolFunction::genericInstanceOrigin() const noexcept
+{
+    const auto* data = genericData();
+    return data && data->rootSym ? &data->origin : nullptr;
+}
+
+void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept
 {
     if (root)
     {
         addExtraFlag(SymbolFunctionFlagsE::GenericInstance);
-        ensureGenericData(ctx).rootSym = root;
+        auto& data   = ensureGenericData(ctx);
+        data.rootSym = root;
+        data.origin  = origin;
     }
     else
     {

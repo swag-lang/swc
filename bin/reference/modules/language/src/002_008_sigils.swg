@@ -280,9 +280,12 @@ clearly than disabling overflow checks for a file.
 
 # Contextual Keywords Are Different
 
-Bare 'as' and 'is' are grammar keywords used by matching constructs. 'Swag.typeAs' and
-'Swag.typeIs' are intrinsics and can appear in expressions. The spelling is related,
-but the parser and type checker give the two forms distinct roles.
+Bare 'as' and 'is' are grammar keywords used by matching and conversion expressions.
+`value as IFoo` converts a value to its interface, like `cast(IFoo) value`;
+`T is IFoo` tests a type's interface contract at compile time and can constrain
+a generic declaration with 'where'. 'Swag.typeAs' and 'Swag.typeIs' are runtime
+intrinsics that operate on type metadata. The parser and type checker give
+these forms distinct roles.
 */
 
 #test

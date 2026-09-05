@@ -35,6 +35,55 @@ by different `where` clauses.
 }
 
 /**
+# Interface Requirements
+The preferred declaration-site form for an interface requirement is
+`where T is IValue`. With a type on the left and an interface on the right,
+`is` evaluates to a compile-time `bool`: a struct satisfies the contract if
+it implements that interface, directly or through a `using` field. An
+interface satisfies its own contract. Other types answer `false`.
+
+The bound participates in overload selection just like other `where` clauses.
+Combine requirements with `and`, or write one `where` per interface.
+
+Borrow the concrete argument through the required interface to call its
+operations. The body is checked for each concrete specialization; the
+bound does not make the generic parameter an interface type or check
+the body independently of instantiation.
+
+A type that does not implement `IValue` is rejected at the call. The
+diagnostic names the function, its generic arguments, and the failed
+`where T is IValue` declaration.
+With a value on the left, `is` retains its dynamic type-test behavior.
+For exact type equality, use `T == U`.
+*/
+
+interface IValue
+{
+    mtd value()->s32
+}
+
+struct ConstantValue {}
+
+impl IValue for ConstantValue
+{
+    mtd value()->s32 => 42
+}
+
+func(T) readValue(value: *T)->s32
+    where T is IValue
+{
+    let view = value as IValue
+    return view.value()
+}
+
+#test
+{
+    var value: ConstantValue
+    Swag.assert(readValue(&value) == 42)
+    Swag.assert(readValue'ConstantValue(&value) == 42)
+}
+
+/**
 # Block-based Constraints
 `where` can also be a block returning a compile-time `bool`. This is useful
 when the constraint is clearer as ordinary control flow.

@@ -78,6 +78,20 @@ namespace
         diag.last().addSpan(root.codeRange(sema.ctx()));
     }
 
+    void addGenericContextNotesFromSymbolMap(Sema& sema, Diagnostic& diag, const SymbolMap* symMap, SmallVector<const Symbol*>& seen);
+
+    void addGenericOriginContext(Sema& sema, Diagnostic& diag, const GenericInstanceOrigin* origin, SmallVector<const Symbol*>& seen)
+    {
+        if (!origin)
+            return;
+        if (origin->codeRange.srcView)
+        {
+            diag.addNote(DiagnosticId::sema_note_generic_requested_here);
+            diag.last().addSpan(origin->codeRange);
+        }
+        addGenericContextNotesFromSymbolMap(sema, diag, origin->caller, seen);
+    }
+
     void addFunctionGenericContext(Sema& sema, Diagnostic& diag, const SymbolFunction& function, SmallVector<const Symbol*>& seen)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
@@ -87,12 +101,13 @@ namespace
 
         const SymbolFunction* root = function.genericRootSym();
         SWC_ASSERT(root != nullptr);
-        if (hasSeenGenericContext(seen.span(), root))
+        if (hasSeenGenericContext(seen.span(), &function))
             return;
 
-        seen.push_back(root);
+        seen.push_back(&function);
         const Utf8 bindings = SemaGeneric::Internal::formatGenericInstanceBindings(sema, params.span(), args.span());
         addGenericContextNote(sema, diag, *root, "function", bindings);
+        addGenericOriginContext(sema, diag, function.genericInstanceOrigin(), seen);
     }
 
     void addStructGenericContext(Sema& sema, Diagnostic& diag, const SymbolStruct& st, SmallVector<const Symbol*>& seen)
@@ -104,12 +119,13 @@ namespace
 
         const SymbolStruct* root = st.genericRootSym();
         SWC_ASSERT(root != nullptr);
-        if (hasSeenGenericContext(seen.span(), root))
+        if (hasSeenGenericContext(seen.span(), &st))
             return;
 
-        seen.push_back(root);
+        seen.push_back(&st);
         const Utf8 bindings = SemaGeneric::Internal::formatGenericInstanceBindings(sema, params.span(), args.span());
         addGenericContextNote(sema, diag, *root, "struct", bindings);
+        addGenericOriginContext(sema, diag, st.genericInstanceOrigin(), seen);
     }
 
     void addGenericContextNotesFromSymbolMap(Sema& sema, Diagnostic& diag, const SymbolMap* symMap, SmallVector<const Symbol*>& seen)

@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -179,6 +180,20 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView exprTypeView = sema.viewType(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
+    const TypeRef targetTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), nodeTypeView.typeRef());
+    if (sema.typeMgr().get(targetTypeRef).isInterface())
+    {
+        // Share the cast node itself so conversions, borrowing, and lowering stay identical.
+        auto [castRef, castNode] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
+        castNode->setCodeRef(codeRef());
+        castNode->addFlag(AstCastExprFlagsE::Explicit);
+        castNode->nodeExprRef = nodeExprRef;
+        castNode->nodeTypeRef = nodeTypeRef;
+        sema.setSubstitute(sema.curNodeRef(), castRef);
+        sema.restartCurrentNode(castRef);
+        return Result::Continue;
+    }
+
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     DynamicStructCastSourceInfo castInfo;
@@ -199,8 +214,36 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
 Result AstIsTypeExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
-    const SemaNodeView exprTypeView = sema.viewType(nodeExprRef);
+    const SemaNodeView exprTypeView = sema.viewTypeConstant(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
+
+    TypeRef representedTypeRef = TypeRef::invalid();
+    if (!sema.isValue(nodeExprView.nodeRef()))
+        representedTypeRef = exprTypeView.typeRef();
+    else if (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), exprTypeView.typeRef()))
+        representedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, exprTypeView);
+
+    if (representedTypeRef.isValid())
+    {
+        const TypeRef   interfaceTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), nodeTypeView.typeRef());
+        const TypeInfo& interfaceType    = sema.typeMgr().get(interfaceTypeRef);
+        if (!interfaceType.isInterface())
+            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_is_needs_interface, nodeTypeRef, interfaceTypeRef);
+
+        const TypeRef   sourceTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), representedTypeRef);
+        const TypeInfo& sourceType    = sema.typeMgr().get(sourceTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&sourceType, nodeExprRef));
+        SWC_RESULT(sema.waitSemaCompleted(&interfaceType, nodeTypeRef));
+        bool satisfies = false;
+        if (sourceType.isStruct())
+            satisfies = sourceType.payloadSymStruct().implementsInterfaceOrUsingFields(sema, interfaceType.payloadSymInterface());
+        else if (sourceType.isInterface())
+            satisfies = &sourceType.payloadSymInterface() == &interfaceType.payloadSymInterface();
+
+        sema.setConstant(sema.curNodeRef(), satisfies ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
+        sema.setIsValue(*this);
+        return Result::Continue;
+    }
 
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 

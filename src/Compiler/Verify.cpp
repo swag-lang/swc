@@ -9,6 +9,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Report/DiagnosticBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -206,7 +207,8 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
                 continue;
 
             if (elem->idName().find(directive.match) == Utf8::npos &&
-                elem->message().find(directive.match) == Utf8::npos)
+                elem->message().find(directive.match) == Utf8::npos &&
+                DiagnosticBuilder(ctx, diag).formatMessage(*elem).find(directive.match) == Utf8::npos)
                 continue;
 
             directive.touched = true;

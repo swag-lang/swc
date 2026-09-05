@@ -551,6 +551,7 @@
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\CodeGenLoweringPayload.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h"/>
+        <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceOrigin.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>

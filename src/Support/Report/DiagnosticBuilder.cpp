@@ -1003,6 +1003,11 @@ Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
     return std::visit(DiagnosticArgumentToStringVisitor{ctx_}, arg.val);
 }
 
+Utf8 DiagnosticBuilder::formatMessage(const DiagnosticElement& element) const
+{
+    return buildMessage(Utf8(resolveMessageTemplate(element.id(), &element)), &element);
+}
+
 void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const
 {
     if (elements.empty())
@@ -1013,7 +1018,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     for (size_t idx = elements.size(); idx-- > 0;)
     {
         DiagnosticElement* element = elements[idx].get();
-        const Utf8         msg     = buildMessage(Utf8(resolveMessageTemplate(element->id(), element)), element);
+        const Utf8         msg     = formatMessage(*element);
         SmallVector<Part>  parts   = parseParts(std::string_view(msg));
 
         // Base element keeps the first part

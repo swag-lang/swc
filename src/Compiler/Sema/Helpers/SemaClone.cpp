@@ -2559,6 +2559,7 @@ AstNodeRef AstCompilerTypeExpr::semaClone(Sema& sema, const CloneContext& cloneC
 AstNodeRef AstConstraintExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ConstraintExpr>(tokRef());
+    newPtr->sourceLength  = sourceLength;
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     return newRef;
 }

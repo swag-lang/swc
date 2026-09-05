@@ -801,11 +801,13 @@ namespace
         if (failure.noteNodeRef.isValid())
         {
             diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_VALUE, failure.valueStr);
             SemaError::addSpan(sema, diag.last(), failure.noteNodeRef);
         }
         else if (failure.noteCodeRef.isValid())
         {
             diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_VALUE, failure.valueStr);
             const SourceView& srcView = sema.ctx().compiler().srcView(failure.noteCodeRef.srcViewRef);
             diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), failure.noteCodeRef.tokRef));
         }
@@ -832,7 +834,7 @@ namespace
                             return std::format("its 'where' constraint is not a compile-time constant{}", bindingText);
 
                         case DiagnosticId::sema_err_function_where_failed:
-                            return std::format("its 'where' constraint evaluated to false{}", bindingText);
+                            return std::format("its constraint '{}' evaluated to false{}", fail.castFailure.valueStr, bindingText);
 
                         default:
                             break;

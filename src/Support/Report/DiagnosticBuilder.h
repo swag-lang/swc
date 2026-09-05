@@ -10,6 +10,7 @@ class DiagnosticBuilder
 public:
     DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag);
     Utf8 build();
+    Utf8 formatMessage(const DiagnosticElement& element) const;
 
 private:
     enum class DiagPart : uint8_t

@@ -279,6 +279,7 @@ SWC_DIAG_DEF(sema_err_generic_struct_where_not_const, Error, "generic struct '{s
 SWC_DIAG_DEF(sema_err_generic_struct_where_failed, Error, "cannot instantiate generic struct '{sym}' because its 'where' constraint evaluated to false; [help] choose generic arguments that satisfy the constraint")
 SWC_DIAG_DEF(sema_err_function_where_not_bool, Error, "'where' constraint for function '{sym}' produces '{type}', not 'bool'; [help] return 'bool' from the constraint expression")
 SWC_DIAG_DEF(sema_err_function_where_not_const, Error, "function '{sym}' has a 'where' constraint that is not a compile-time constant; [help] make the constraint depend only on generic parameters and other compile-time values")
+SWC_DIAG_DEF(sema_err_type_is_needs_interface, Error, "type-level 'is' needs an interface, found '{type}'; [help] use '==' to compare types for equality")
 SWC_DIAG_DEF(sema_err_function_where_failed, Error, "cannot use function '{sym}' because its 'where' constraint evaluated to false; [help] choose arguments or generic parameters that satisfy the constraint")
 SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no matching overload found for the given arguments")
 SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no matching overload found for call to '{sym}'")

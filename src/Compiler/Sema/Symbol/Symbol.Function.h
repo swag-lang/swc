@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Generic/GenericInstanceKey.h"
+#include "Compiler/Sema/Generic/GenericInstanceOrigin.h"
 #include "Compiler/Sema/Helpers/SemaCloneTypes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -277,10 +278,13 @@ public:
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
+
+    const GenericInstanceOrigin* genericInstanceOrigin() const noexcept;
+
     bool                    isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
     void                    setGenericRoot(bool value) noexcept;
     bool                    isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
-    void                    setGenericInstance(const TaskContext& ctx, SymbolFunction* root) noexcept;
+    void                    setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept;
     bool                    hasUnmaterializedGenericBody() const noexcept;
     SymbolFunction*         genericRootOrSelf() noexcept;
     const SymbolFunction*   genericRootOrSelf() const noexcept;

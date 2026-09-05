@@ -978,6 +978,7 @@ namespace
 struct SymbolStruct::GenericData
 {
     // Keep generic-only state off the main symbol so non-generic structs stay compact.
+    GenericInstanceOrigin                         origin;
     GenericInstanceStorage                        instances;
     std::atomic<const TaskContext*>               completionOwner = nullptr;
     mutable std::atomic<uint32_t>                 completionState = 0;
@@ -1362,12 +1363,20 @@ void SymbolStruct::setGenericRoot(bool value) noexcept
         removeExtraFlag(SymbolStructFlagsE::GenericRoot);
 }
 
-void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
+const GenericInstanceOrigin* SymbolStruct::genericInstanceOrigin() const noexcept
+{
+    const auto* data = genericData();
+    return data && data->rootSym ? &data->origin : nullptr;
+}
+
+void SymbolStruct::setGenericInstance(SymbolStruct* root, const GenericInstanceOrigin& origin) noexcept
 {
     if (root)
     {
         addExtraFlag(SymbolStructFlagsE::GenericInstance);
-        ensureGenericData().rootSym = root;
+        auto& data   = ensureGenericData();
+        data.rootSym = root;
+        data.origin  = origin;
     }
     else
     {

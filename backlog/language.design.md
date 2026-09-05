@@ -123,50 +123,6 @@ ships; history lives in git, not here.
 
 ## Generic contracts and execution semantics
 
-### language.design.003 — The generic instantiation chain omits the call site
-
-- Evidence: the diagnostic reports the error inside the generic *and*
-  attaches a note naming the specialization (`while checking generic function 'doubleIt' with
-  T = Point`). What it does not do is name the call site that caused the instantiation — the one
-  line the user has to change. Adding that frame to the instantiation chain is a small, immediate
-  win.
-- Next: retain the call expression that requested each generic instantiation and append it to the
-  diagnostic context without duplicating frames during nested or repeated instantiations.
-- Complete when: a failing nested generic reports the original error, every specialization in the
-  chain, and the source span of each call that requested the next specialization.
-- Related: language.design.004
-
-### language.design.004 — Generic interface requirements have no first-class spelling
-
-- Evidence: `where` is a compile-time boolean over generic parameters
-  ([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)),
-  and the standard library can already express an interface requirement as
-  `where Reflection.hasInterface(T, IFoo)`. `Reflection.hasInterface` is a public `#[ConstExpr]`
-  predicate ([struct.swg:145-168](../bin/std/modules/core/src/reflection/struct.swg#L145-L168)),
-  just as generic operations already use predicates such as `where Reflection.canCompare(T)`
-  ([array.swg:730](../bin/std/modules/core/src/collections/array.swg#L730)).
-  What is missing is a first-class bound that declares the contract, participates directly in
-  overload diagnostics, and lets the generic body be checked against the interface rather than
-  waiting for each concrete instantiation.
-- `T is IFoo` is not that bound. Bare `is` requires a value on the left and performs a dynamic
-  struct/interface cast test
-  ([Sema.Cast.cpp:199-208](../src/Compiler/Sema/Ast/Sema.Cast.cpp#L199-L208)).
-  `Swag.typeIs(IFoo, T)` accepts type information, but follows exact type and `using`-field ancestry;
-  it does not inspect the interfaces implemented by `T`
-  ([core.swg:21-55](../bin/runtime/core.swg#L21-L55)).
-  `where T is IFoo` remains a plausible new bound spelling, but it would add a type-level meaning
-  to today's value-level operator rather than reuse behavior the language already has.
-- Elsewhere: Rust traits, Swift protocols, C# interface constraints, and Go type constraints all
-  put the required named contract in the generic declaration and diagnose its absence at the call.
-- Next: decide whether the existing predicate is the permanent contract or whether generic
-  parameters need a first-class interface-bound spelling. In either case, make the interface name
-  part of the failed-constraint diagnostic and document the preferred declaration-site form.
-- Complete when: a generic declaration can state a required interface in the reference's preferred
-  spelling, a conforming type can use the interface operations in its body, and a non-conforming
-  call is rejected at the call site with the interface and declaration named.
-
-- Related: language.design.003
-
 ### language.design.005 — The concurrency model is undecided
 
 - Evidence: the library omissions are split into std.core.025 (tasks), std.core.026 (channels), std.core.027 (condition

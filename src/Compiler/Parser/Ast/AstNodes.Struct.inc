@@ -1310,6 +1310,8 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier, AstAccessModifier
 // -----------------------------------------------------------------------------
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
 {
+    uint32_t sourceLength = 0;
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1317,6 +1319,7 @@ struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
 struct AstConstraintExpr : AstNodeT<AstNodeId::ConstraintExpr>
 {
     AstNodeRef nodeExprRef;
+    uint32_t   sourceLength = 0;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

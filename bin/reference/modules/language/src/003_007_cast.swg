@@ -18,6 +18,38 @@ specified 'type'.
 }
 
 /**
+# Interface Conversion with 'as'
+`value as IFoo` is equivalent to `cast(IFoo) value`. It produces an 'IFoo'
+interface value and follows the same implementation, constness, nullability,
+and borrowing rules as the explicit cast. Pass a pointer when borrowing an
+existing object. A type alias for an interface works as the target too.
+
+With a concrete struct as the target, `value as T` remains a dynamic cast
+that returns a nullable pointer to 'T'.
+*/
+
+interface ICount
+{
+    mtd count()->s32
+}
+
+struct Counter { value: s32 }
+
+impl ICount for Counter
+{
+    mtd count()->s32 => .value
+}
+
+#test
+{
+    var counter  = Counter{42}
+    let view     = (&counter) as ICount
+    let explicit = cast(ICount) &counter
+    Swag.assert(view.count() == explicit.count())
+    #assert(#typeof(view) == ICount)
+}
+
+/**
 # Automatic Cast with 'cast()'
 
 A 'cast()' without a type performs an **automatic cast**, allowing the compiler

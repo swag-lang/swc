@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -280,7 +281,16 @@ namespace SemaGeneric
             return root.structFlags().mask(inheritedFlags);
         }
 
-        Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef)
+        GenericInstanceOrigin genericInstanceOrigin(Sema& sema)
+        {
+            GenericInstanceOrigin origin;
+            if (sema.curNodeRef().isValid())
+                origin.codeRange = SemaError::getNodeCodeRange(sema, sema.curNodeRef(), SemaError::ReportLocation::Children);
+            origin.caller = sema.currentFunction() ? sema.currentFunction() : (sema.curScopePtr() ? sema.curSymMap() : sema.topSymMap());
+            return origin;
+        }
+
+        Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef, const GenericInstanceOrigin& origin)
         {
             if (auto* function = root.safeCast<SymbolFunction>())
             {
@@ -296,7 +306,7 @@ namespace SemaGeneric
                 instance->setDeclNodeRef(cloneRef);
                 instance->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
                 instance->setOwnerSymMap(function->ownerSymMap());
-                instance->setGenericInstance(sema.ctx(), function);
+                instance->setGenericInstance(sema.ctx(), function, origin);
                 return instance;
             }
 
@@ -311,7 +321,7 @@ namespace SemaGeneric
                 instance->setAttributes(sema.ctx(), st.attributes());
                 instance->setOwnerSymMap(st.ownerSymMap());
                 instance->setDeclNodeRef(cloneRef);
-                instance->setGenericInstance(&st);
+                instance->setGenericInstance(&st, origin);
                 return instance;
             }
 
@@ -324,7 +334,7 @@ namespace SemaGeneric
             instance->setAttributes(sema.ctx(), st.attributes());
             instance->setOwnerSymMap(st.ownerSymMap());
             instance->setDeclNodeRef(cloneRef);
-            instance->setGenericInstance(&st);
+            instance->setGenericInstance(&st, origin);
             return instance;
         }
 
@@ -373,7 +383,7 @@ namespace SemaGeneric
                 instance.cast<SymbolStruct>().setGenericNodeCompleted();
         }
 
-        Symbol* findOrCreateGenericInstance(Sema& sema, Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs)
+        Symbol* findOrCreateGenericInstance(Sema& sema, Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, const GenericInstanceOrigin& origin)
         {
             SmallVector<GenericInstanceKey> keys;
             buildGenericKeys(params, resolvedArgs, keys);
@@ -384,17 +394,19 @@ namespace SemaGeneric
             if (auto* instance = storage.find(keys.span()))
                 return instance;
 
-            std::unique_lock lk(storage.getMutex());
-            if (auto* instance = storage.findNoLock(keys.span()))
-                return instance;
-
+            // Recursive specialization reads this root's cached arguments for ambient bindings.
+            // Collect them before taking the exclusive lock on the same instance storage.
             const ResolvedGenericBindingSource   source{params, resolvedArgs};
             SmallVector<SemaClone::ParamBinding> bindings;
             buildResolvedGenericContextBindings(sema, root, source, bindings);
 
+            std::unique_lock lk(storage.getMutex());
+            if (auto* instance = storage.findNoLock(keys.span()))
+                return instance;
+
             const SemaClone::CloneContext cloneContext{bindings};
             const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
-            Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef);
+            Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef, origin);
             setGenericCompletionOwner(*created, sema.ctx());
             sema.setSymbol(cloneRef, created);
             return storage.addNoLock(keys.span(), created);
@@ -423,9 +435,9 @@ namespace SemaGeneric
             return Result::Continue;
         }
 
-        Result createGenericInstance(Sema& sema, Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, Symbol*& outInstance, AstNodeRef errorNodeRef = AstNodeRef::invalid())
+        Result createGenericInstance(Sema& sema, Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, Symbol*& outInstance, const GenericInstanceOrigin& origin, AstNodeRef errorNodeRef = AstNodeRef::invalid())
         {
-            outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs);
+            outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs, origin);
             if (!outInstance->isSemaCompleted())
             {
                 if (!isGenericCompletionOwner(*outInstance, sema.ctx()))
@@ -523,7 +535,7 @@ namespace SemaGeneric
                     return outWhereFailure ? Result::Continue : Result::Error;
             }
 
-            return createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, errorNodeRef);
+            return createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, genericInstanceOrigin(sema), errorNodeRef);
         }
 
         void resolveArgsFromGenericContext(std::span<const GenericParamDesc> contextParams, std::span<const GenericInstanceKey> contextArgs, std::span<const GenericParamDesc> targetParams, std::span<GenericResolvedArg> resolvedArgs, bool allowKindFallback)
@@ -827,7 +839,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, errorNodeRef));
+        SWC_RESULT(createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), errorNodeRef));
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -868,7 +880,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(createGenericInstance(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, genericDeclNodeRef(genericRoot)));
+        SWC_RESULT(createGenericInstance(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), sema.curNodeRef()));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }

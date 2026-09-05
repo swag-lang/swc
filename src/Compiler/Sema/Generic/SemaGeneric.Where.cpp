@@ -143,6 +143,19 @@ namespace SemaGeneric
             return {};
         }
 
+        Utf8 genericConstraintText(Sema& sema, AstNodeRef whereRef)
+        {
+            const auto& node   = sema.node(whereRef);
+            const auto  range  = node.codeRange(sema.ctx());
+            const auto  length = node.is(AstNodeId::ConstraintExpr) ? node.cast<AstConstraintExpr>().sourceLength : node.cast<AstConstraintBlock>().sourceLength;
+            Utf8        text{range.srcView->codeView(range.offset, length)};
+            text.replace_loop("\r\n", " ");
+            text.replace_loop("\n", " ");
+            text.replace_loop("\r", " ");
+            text.replace_loop("\t", " ");
+            return text;
+        }
+
         Diagnostic reportGenericConstraintDiag(Sema& sema, DiagnosticId diagId, const GenericConstraintContext& context, AstNodeRef whereRef)
         {
             SWC_ASSERT(context.mainRef.isValid());
@@ -158,7 +171,8 @@ namespace SemaGeneric
             if (whereRef.isValid())
             {
                 diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
-                SemaError::addSpan(sema, diag.last(), whereRef);
+                diag.last().addArgument(Diagnostic::ARG_VALUE, genericConstraintText(sema, whereRef));
+                diag.last().addSpan(SemaError::getNodeCodeRange(sema, whereRef, SemaError::ReportLocation::Children));
             }
 
             return diag;
@@ -170,7 +184,10 @@ namespace SemaGeneric
             outFailure.diagId     = genericConstraintDiagId(context, outcome.kind);
             outFailure.srcTypeRef = outcome.typeRef;
             if (whereRef.isValid())
+            {
                 outFailure.noteCodeRef = sema.node(whereRef).codeRef();
+                outFailure.valueStr    = genericConstraintText(sema, whereRef);
+            }
             if (hasGenericConstraintBindingText(context))
                 outFailure.addArgument(Diagnostic::ARG_VALUES, *context.bindingText);
         }

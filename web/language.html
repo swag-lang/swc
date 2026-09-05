@@ -984,7 +984,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <p>Both spellings are legitimate, and the rule above says which is which: <span class="code-inline">#wrap</span> annotates one operation, <span class="code-inline">Swag.Safety</span> annotates a scope. Use the narrowest one that expresses the intent. A local <span class="code-inline">#wrap</span> documents one deliberate wrap more clearly than disabling overflow checks for a file.</p>
 <h3 id="_002_008_sigils_swg_Contextual_Keywords_Are_Different">Contextual Keywords Are Different</h3>
-<p>Bare <span class="code-inline">as</span> and <span class="code-inline">is</span> are grammar keywords used by matching constructs. <span class="code-inline">Swag.typeAs</span> and <span class="code-inline">Swag.typeIs</span> are intrinsics and can appear in expressions. The spelling is related, but the parser and type checker give the two forms distinct roles.</p>
+<p>Bare <span class="code-inline">as</span> and <span class="code-inline">is</span> are grammar keywords used by matching and conversion expressions. <span class="code-inline">value as IFoo</span> converts a value to its interface, like <span class="code-inline">cast(IFoo) value</span>; <span class="code-inline">T is IFoo</span> tests a type's interface contract at compile time and can constrain a generic declaration with <span class="code-inline">where</span>. <span class="code-inline">Swag.typeAs</span> and <span class="code-inline">Swag.typeIs</span> are runtime intrinsics that operate on type metadata. The parser and type checker give these forms distinct roles.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value: <span class="STpe">any</span> = <span class="SStr">"text"</span>
@@ -2051,6 +2051,29 @@ indent-style = spaces</span></div>
     <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) x     <span class="SCmt">// Explicit cast to 's32'</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">1</span>)
+}</span></div>
+<h3 id="_003_007_cast_swg_Interface_Conversion_with__as_">Interface Conversion with <span class="code-inline">as</span></h3>
+<p><span class="code-inline">value as IFoo</span> is equivalent to <span class="code-inline">cast(IFoo) value</span>. It produces an <span class="code-inline">IFoo</span> interface value and follows the same implementation, constness, nullability, and borrowing rules as the explicit cast. Pass a pointer when borrowing an existing object. A type alias for an interface works as the target too.</p>
+<p>With a concrete struct as the target, <span class="code-inline">value as T</span> remains a dynamic cast that returns a nullable pointer to <span class="code-inline">T</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">ICount</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">count</span>()-&gt;<span class="STpe">s32</span>
+}
+
+<span class="SKwd">struct</span> <span class="SCst">Counter</span> { value: <span class="STpe">s32</span> }
+
+<span class="SKwd">impl</span> <span class="SCst">ICount</span> <span class="SLgc">for</span> <span class="SCst">Counter</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">count</span>()-&gt;<span class="STpe">s32</span> =&gt; .value
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> counter  = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
+    <span class="SKwd">let</span> view     = (&amp;counter) <span class="SLgc">as</span> <span class="SCst">ICount</span>
+    <span class="SKwd">let</span> explicit = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view.<span class="SFct">count</span>() == explicit.<span class="SFct">count</span>())
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(view) == <span class="SCst">ICount</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Automatic_Cast_with__cast___">Automatic Cast with <span class="code-inline">cast()</span></h3>
 <p>A <span class="code-inline">cast()</span> without a type performs an <b>automatic cast</b>, allowing the compiler to infer the target type based on the left-hand side of the assignment.</p>
@@ -7060,6 +7083,36 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">classify</span>(<span class="SNum">1</span>'<span class="STpe">s32</span>) == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">classify</span>(<span class="SNum">1.5</span>'<span class="STpe">f32</span>) == <span class="SNum">2</span>)
 }</span></div>
+<h3 id="_009_003_where_constraints_swg_Interface_Requirements">Interface Requirements</h3>
+<p>The preferred declaration-site form for an interface requirement is <span class="code-inline">where T is IValue</span>. With a type on the left and an interface on the right, <span class="code-inline">is</span> evaluates to a compile-time <span class="code-inline">bool</span>: a struct satisfies the contract if it implements that interface, directly or through a <span class="code-inline">using</span> field. An interface satisfies its own contract. Other types answer <span class="code-inline">false</span>.</p>
+<p>The bound participates in overload selection just like other <span class="code-inline">where</span> clauses. Combine requirements with <span class="code-inline">and</span>, or write one <span class="code-inline">where</span> per interface.</p>
+<p>Borrow the concrete argument through the required interface to call its operations. The body is checked for each concrete specialization; the bound does not make the generic parameter an interface type or check the body independently of instantiation.</p>
+<p>A type that does not implement <span class="code-inline">IValue</span> is rejected at the call. The diagnostic names the function, its generic arguments, and the failed <span class="code-inline">where T is IValue</span> declaration. With a value on the left, <span class="code-inline">is</span> retains its dynamic type-test behavior. For exact type equality, use <span class="code-inline">T == U</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IValue</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">value</span>()-&gt;<span class="STpe">s32</span>
+}
+
+<span class="SKwd">struct</span> <span class="SCst">ConstantValue</span> {}
+
+<span class="SKwd">impl</span> <span class="SCst">IValue</span> <span class="SLgc">for</span> <span class="SCst">ConstantValue</span>
+{
+    <span class="SKwd">mtd</span> <span class="SFct">value</span>()-&gt;<span class="STpe">s32</span> =&gt; <span class="SNum">42</span>
+}
+
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">readValue</span>(value: *<span class="SCst">T</span>)-&gt;<span class="STpe">s32</span>
+    <span class="SLgc">where</span> <span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">IValue</span>
+{
+    <span class="SKwd">let</span> view = value <span class="SLgc">as</span> <span class="SCst">IValue</span>
+    <span class="SLgc">return</span> view.<span class="SFct">value</span>()
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> value: <span class="SCst">ConstantValue</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">readValue</span>(&amp;value) == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">readValue</span>'<span class="SFct">ConstantValue</span>(&amp;value) == <span class="SNum">42</span>)
+}</span></div>
 <h3 id="_009_003_where_constraints_swg_Block-based_Constraints">Block-based Constraints</h3>
 <p><span class="code-inline">where</span> can also be a block returning a compile-time <span class="code-inline">bool</span>. This is useful when the constraint is clearer as ordinary control flow.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -9574,7 +9627,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.351</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.353</div>
 </footer>
 </section>
 </main>
@@ -9986,6 +10039,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Operator Precedence|_003_006_operators_swg_Operator_Precedence|",
 "h|Cast|_003_007_cast_swg|",
 "h|Explicit Cast with cast|_003_007_cast_swg_Explicit_Cast_with__cast_|",
+"h|Interface Conversion with as|_003_007_cast_swg_Interface_Conversion_with__as_|",
 "h|Automatic Cast with cast()|_003_007_cast_swg_Automatic_Cast_with__cast___|",
 "h|Bit Cast|_003_007_cast_swg_Bit_Cast|",
 "h|Implicit Casts|_003_007_cast_swg_Implicit_Casts|",
@@ -10323,6 +10377,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Where Constraints|_009_003_where_constraints_swg|",
 "h|Generic where Constraints|_009_003_where_constraints_swg_Generic__where__Constraints|",
 "h|Function Specialization|_009_003_where_constraints_swg_Function_Specialization|",
+"h|Interface Requirements|_009_003_where_constraints_swg_Interface_Requirements|",
 "h|Block-based Constraints|_009_003_where_constraints_swg_Block-based_Constraints|",
 "h|Generic Struct Constraints|_009_003_where_constraints_swg_Generic_Struct_Constraints|",
 "h|Generic Methods with Inherited Arguments|_009_003_where_constraints_swg_Generic_Methods_with_Inherited_Arguments|",

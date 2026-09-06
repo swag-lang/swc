@@ -79,6 +79,18 @@ class FILETIME(ctypes.Structure):
     _fields_ = [("dwLowDateTime", w.DWORD), ("dwHighDateTime", w.DWORD)]
 
 
+class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+    _fields_ = [("cb", w.DWORD), ("PageFaultCount", w.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+
+
+k32.K32GetProcessMemoryInfo.argtypes = [w.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), w.DWORD]
+k32.K32GetProcessMemoryInfo.restype = w.BOOL
+
+
 def _ft(f):
     return ((f.dwHighDateTime << 32) | f.dwLowDateTime) / 10000.0  # ms
 
@@ -260,6 +272,14 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None):
     k32.GetProcessTimes(pi.hProcess, ctypes.byref(creation), ctypes.byref(exit_),
                         ctypes.byref(kernel), ctypes.byref(user))
 
+    # The OS retains the process's peak after exit, until its handle is closed.
+    # This is resident memory of the timed process; the job peaks below are
+    # committed memory and include its helper processes.
+    memory = PROCESS_MEMORY_COUNTERS()
+    memory.cb = ctypes.sizeof(memory)
+    memory_ok = k32.K32GetProcessMemoryInfo(pi.hProcess, ctypes.byref(memory), memory.cb)
+    memory_error = ctypes.get_last_error() if not memory_ok else 0
+
     info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
     ret = w.DWORD()
     k32.QueryInformationJobObject(h_job, JobObjectExtendedLimitInformation, ctypes.byref(info),
@@ -283,12 +303,16 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None):
     os.unlink(path_out)
     os.unlink(path_err)
 
+    if not memory_ok:
+        raise ctypes.WinError(memory_error)
+
     return {
         "exit": code.value,
         "wall_ms": (t1.value - t0.value) * 1000.0 / freq.value,
         "cpu_ms": _ft(kernel) + _ft(user),
         "peak_job_bytes": info.PeakJobMemoryUsed,
         "peak_proc_bytes": info.PeakProcessMemoryUsed,
+        "peak_working_set_bytes": memory.PeakWorkingSetSize,
         "stdout": out,
         "stderr": err_txt,
     }

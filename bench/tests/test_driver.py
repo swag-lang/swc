@@ -124,11 +124,20 @@ class EditLoopTests(unittest.TestCase):
         acc = {}
         for wall in (30.0, 20.0, 25.0):
             driver.keep_workload(acc, {"wall_ms": wall, "cpu_ms": wall * 2,
-                                       "peak_job_bytes": int(wall)})
+                                       "peak_job_bytes": int(wall), "peak_working_set_bytes": int(wall * 3)})
         self.assertEqual(acc["wall_ms"], 20.0)
         self.assertEqual(acc["cpu_ms"], 40.0)
         self.assertEqual(acc["peak_bytes"], 30)
+        self.assertEqual(acc["peak_working_set_bytes"], 90)
         self.assertEqual(acc["samples"], [30.0, 20.0, 25.0])
+
+
+class MemoryTests(unittest.TestCase):
+    def test_a_terminated_process_keeps_its_resident_peak(self):
+        result = winproc.run([sys.executable, "-c", "data = bytearray(64 * 1024 * 1024)"])
+        self.assertEqual(result["exit"], 0)
+        self.assertGreaterEqual(result["peak_working_set_bytes"], 64 * 1024 * 1024)
+        self.assertGreater(result["peak_job_bytes"], 0)
 
 
 class PinTests(unittest.TestCase):

@@ -30,6 +30,34 @@ private func keepFirstBatchError(batch: *CryptoBatch, err: any?)
         batch.error = err
 }
 
+// Splits a path into its names, on either separator.
+//
+// Windows never allows '/' inside a name, so a '/' that reaches the volume can only be a
+// separator a caller left unconverted: a verbatim `\\?\` path skips the conversion Win32 applies
+// to every other path. Keeping it inside a name would store an entry Windows can neither list
+// under its directory nor open, which is how a container came to hold hundreds of unreachable
+// files under names such as `vid/clip.mp4`.
+private func splitPath(path: string)->Array'string
+{
+    var result: retval
+    let bytes = cast(const [..] u8) path
+    var start = 0'u64
+    for i in bytes.count + 1
+    {
+        if i < bytes.count and bytes[i] != cast(u8) '\\' and bytes[i] != cast(u8) '/' do
+            continue
+        if i > start
+        {
+            let name: string = cast() Swag.makeSlice(bytes.buffer + start, i - start)
+            result.add(name)
+        }
+
+        start = i + 1
+    }
+
+    return result
+}
+
 // Serialized timestamps use 100-nanosecond ticks since 1601-01-01 UTC.
 // Keeping the epoch in the format layer preserves compatibility with existing volumes.
 const VolumeTimestampEpoch = 504_911_232_000_000_000'u64
@@ -1503,7 +1531,7 @@ impl Volume
 
     mtd resolve(path: string)->*Node?
     {
-        let parts   = Tokenize.split(path, cast(u8) '\\', removeEmpty: true)
+        let parts   = splitPath(path)
         var current = .nodeById(1)
         if !current do
             return null
@@ -1519,7 +1547,7 @@ impl Volume
 
     mtd resolveParent(path: string)->{parent: *Node?, name: string}
     {
-        let parts = Tokenize.split(path, cast(u8) '\\', removeEmpty: true)
+        let parts = splitPath(path)
         if !parts.count do
             return {null, ""}
         var parent = .nodeById(1)

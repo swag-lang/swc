@@ -372,6 +372,31 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     volume.close()
 }
 
+// A verbatim `\\?\` path reaches the volume with the '/' separators its caller wrote. They must
+// split exactly like '\\', or the entry lands under the root with a name Windows cannot open.
+#test
+{
+    let path = testContainerPath("slashes")
+    defer discard catch File.delete(path)
+
+    var volume   = expect Volume.create(path, testPassword(), MinimumSize)
+    let folderId = expect volume.createNode("\\folder", true, FileAttributeDirectory, emptyBytes())
+    let fileId   = expect volume.createNode("\\folder/file.bin", false, FileAttributeNormal, emptyBytes())
+    Swag.assert(volume.nodeById(fileId)!.parentId == folderId)
+    Swag.assert(volume.nodeById(fileId)!.name == "file.bin")
+    Swag.assert(volume.resolve("\\folder\\file.bin")!.id == fileId)
+    Swag.assert(volume.resolve("/folder/file.bin")!.id == fileId)
+    Swag.assert(volume.resolve("\\folder/file.bin")!.id == fileId)
+
+    let nestedId = expect volume.createNode("/folder/nested", true, FileAttributeDirectory, emptyBytes())
+    expect volume.renameNode(fileId, "\\folder/nested/moved.bin", false)
+    Swag.assert(volume.nodeById(fileId)!.parentId == nestedId)
+    Swag.assert(volume.nodeById(fileId)!.name == "moved.bin")
+    Swag.assert(volume.resolve("\\folder\\nested\\moved.bin")!.id == fileId)
+    Swag.assert(volume.resolve("\\folder\\file.bin") == null)
+    volume.close()
+}
+
 #test
 {
     let path = testContainerPath("validation")

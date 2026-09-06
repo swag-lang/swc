@@ -282,7 +282,7 @@ COMPILER_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "doc_std", "for
 # The trees the format tool walks, relative to the repository root, in its order.
 FORMAT_TREES = [os.path.join("bin", d) for d in
                 ("examples", "apps", "reference", "runtime", "std", "unittests")] + \
-               [os.path.join("tools", "src")]
+               ["tools", os.path.join("bench", "src"), os.path.join("web", "tools")]
 
 # One leaf of core whose write time the touched-file workload bumps. Its content never
 # changes: the compiler decides staleness from write times, exactly as it would after an
@@ -291,12 +291,12 @@ TOUCHED_FILE = os.path.join("bin", "std", "modules", "core", "src", "text", "utf
 
 
 def _mirror_sources(src, dst):
-    """Copy every Swag source below `src` to `dst`, keeping the layout and nothing else."""
+    """Copy Swag sources and formatter configuration, preserving the tree's layout."""
     for folder, dirs, files in os.walk(src):
-        dirs[:] = [d for d in dirs if d not in (".output", ".tmp")]
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
         rel = os.path.relpath(folder, src)
         for name in files:
-            if name.endswith((".swg", ".swgs")):
+            if name.endswith((".swg", ".swgs")) or name == ".swc-format":
                 target = os.path.join(dst, rel, name)
                 os.makedirs(os.path.dirname(target), exist_ok=True)
                 with open(os.path.join(folder, name), "rb") as f:
@@ -339,6 +339,10 @@ def make_compiler_workloads(swc, cores=0):
 
     def mirror(env):
         shutil.rmtree(format_out, ignore_errors=True)
+        os.makedirs(format_out, exist_ok=True)
+        root_config = os.path.join(root, ".swc-format")
+        if os.path.isfile(root_config):
+            shutil.copyfile(root_config, os.path.join(format_out, ".swc-format"))
         for tree in FORMAT_TREES:
             _mirror_sources(os.path.join(root, tree), os.path.join(format_out, tree))
 

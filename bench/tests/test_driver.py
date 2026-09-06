@@ -1,6 +1,8 @@
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -59,6 +61,38 @@ class ScheduleTests(unittest.TestCase):
 
 
 class EditLoopTests(unittest.TestCase):
+    def test_format_mirror_preserves_configuration_and_maintenance_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "repo"
+            output = Path(directory) / "out"
+            expected = {
+                ".swc-format": b"end-of-line-style = crlf\r\n",
+                "bin/unittests/.swc-format": b"indent-style = preserve\n",
+                "bin/unittests/lexer/.swc-format": b"spacing-style = preserve\n",
+                "bin/unittests/lexer/input.swg": b"let x=1\n",
+                "tools/format.swgs": b"#run {}\n",
+                "bench/src/hello/hello.swg": b"func main() {}\n",
+                "web/tools/build.swgs": b"#run {}\n",
+            }
+            excluded = {
+                "bin/unittests/.output/generated.swg": b"generated",
+                "bin/unittests/.cache/generated.swg": b"generated",
+                "bin/unittests/fixture.txt": b"fixture",
+            }
+            for name, content in (expected | excluded).items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(content)
+            with (
+                mock.patch.object(toolchains, "worktree", return_value=str(root)),
+                mock.patch.object(toolchains, "OUT", str(output)),
+            ):
+                toolchains.make_compiler_workloads("swc.exe")["format_tree"]["prepare"](None)
+            mirrored = output / "format"
+            actual = {path.relative_to(mirrored).as_posix(): path.read_bytes()
+                      for path in mirrored.rglob("*") if path.is_file()}
+            self.assertEqual(actual, expected)
+
     def test_every_workload_is_defined_and_capped_when_asked(self):
         workloads = toolchains.make_compiler_workloads("swc.exe", cores=6)
         self.assertEqual(list(workloads), toolchains.COMPILER_WORKLOADS)

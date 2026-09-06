@@ -625,10 +625,10 @@ impl InlineView
             atom.imageLoaded = entry != null
             if entry
             {
-                let width = cast(f32) entry!.image.width
+                let width = entry!.naturalSize.x
                 let scale = availableWidth > 0 ? Math.min(availableWidth / width, 1) : 1
                 atom.position.width  = width * scale
-                atom.position.height = cast(f32) entry!.image.height * scale
+                atom.position.height = entry!.naturalSize.y * scale
                 atom.ascent          = atom.position.height
                 atom.descent         = 0
                 return

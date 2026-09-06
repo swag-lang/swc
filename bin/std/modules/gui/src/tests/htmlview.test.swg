@@ -3,6 +3,28 @@
 
 using Core, Pixel
 
+// SVG image dimensions come from the root attributes; CSS dimensions can override them.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("html_svg_size_%.svg", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    let source = "<svg width='120' height='60' viewBox='0 0 480 240'><rect width='480' height='240' fill='#285078'/></svg>"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source)
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+    let html = Format.toString("<style>body { margin: 0 }</style><img id='natural' src='%'><img id='sized' src='%' width='240'>", fileName, fileName)
+    let view = HtmlView.createText(&host.root, html.toString())
+    view.resize(640, 480)
+    view.applyLayout()
+    view.rebuild()
+    let natural = view.layout.constBox(view.boxOfNode(view.elementById("natural"))).content
+    let sized   = view.layout.constBox(view.boxOfNode(view.elementById("sized"))).content
+    Swag.assert(natural.width == 120 and natural.height == 60)
+    Swag.assert(sized.width == 240 and sized.height == 120)
+    Swag.assert(view.images.entries.count == 1 and view.images.entries[0].image.width == 480)
+}
+
 // Every offline resource path uses the same lexical boundary before filesystem access.
 #test
 {

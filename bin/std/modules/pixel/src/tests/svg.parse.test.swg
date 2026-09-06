@@ -2,6 +2,42 @@
 
 using Swag, Core
 
+// Image dimensions and drawing coordinates are separate, including offset view boxes.
+#test
+{
+    let drawing = expect Svg.Drawing.parse("<svg width='464' height='464px' viewBox='40 40 928 928'/>")
+    Swag.assert(drawing.width == 928 and drawing.height == 928)
+    Swag.assert(drawing.naturalSize() == Math.Vector2{464, 464})
+
+    let widthOnly = expect Svg.Drawing.parse("<svg width='200' viewBox='0 0 400 100'/>")
+    Swag.assert(widthOnly.naturalSize() == Math.Vector2{200, 50})
+    let heightOnly = expect Svg.Drawing.parse("<svg height='50' viewBox='0 0 400 100'/>")
+    Swag.assert(heightOnly.naturalSize() == Math.Vector2{200, 50})
+    let relative = expect Svg.Drawing.parse("<svg width='100%' height='auto' viewBox='0 0 400 100'/>")
+    Swag.assert(relative.naturalSize() == Math.Vector2{400, 100})
+    let noViewBox = expect Svg.Drawing.parse("<svg width='20' height='10'/>")
+    Swag.assert(noViewBox.naturalSize() == Math.Vector2{20, 10})
+}
+
+// Absolute CSS units resolve without a host; relative and nonpositive lengths remain unspecified.
+#test
+{
+    for length in ["96", "96px", "1in", "2.54cm", "25.4mm", "101.6Q", "72pt", "6pc"]
+    {
+        let source  = Format.toString("<svg width='%' viewBox='0 0 200 100'/>", length)
+        let drawing = expect Svg.Drawing.parse(source.toString())
+        Swag.assert(Math.abs(drawing.naturalSize().x - 96) < 0.001)
+        Swag.assert(Math.abs(drawing.naturalSize().y - 48) < 0.001)
+    }
+
+    for length in ["100%", "auto", "2em", "-4", "0"]
+    {
+        let source  = Format.toString("<svg width='%' height='50' viewBox='0 0 200 100'/>", length)
+        let drawing = expect Svg.Drawing.parse(source.toString())
+        Swag.assert(drawing.naturalSize() == Math.Vector2{100, 50})
+    }
+}
+
 private const ManyStopSvg = """\
     <svg width='20' height='8'>\
     <style>.accent { fill: url(#many); }</style>\

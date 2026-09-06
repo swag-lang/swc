@@ -1116,8 +1116,7 @@ impl HtmlLayout
             let entry = .images!.fetch(.document.attribute(node, "src"))
             if entry
             {
-                natural.x = cast(f32) entry!.image.width
-                natural.y = cast(f32) entry!.image.height
+                natural = entry!.naturalSize
             }
         }
 

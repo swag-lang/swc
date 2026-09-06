@@ -26,11 +26,12 @@ internal func htmlLocalResourcePath(basePath, source: string)->String
 #[Swag.NoDoc]
 public struct HtmlImageEntry
 {
-    source:   String
-    image:    Image
-    texture:  Texture
-    loaded:   bool
-    uploaded: bool
+    source:      String
+    image:       Image
+    texture:     Texture
+    naturalSize: Math.Vector2     // Layout dimensions; cached raster resolution may differ.
+    loaded:      bool
+    uploaded:    bool
 }
 
 // The images of one document, resolved against the folder the document was read from.
@@ -103,8 +104,9 @@ impl HtmlImageCache
             let embedded = catch Image.fromDataUri(source) as decodeError
             if decodeError != null do
                 return null
-            .entries[slot].image  = embedded
-            .entries[slot].loaded = true
+            .entries[slot].image       = embedded
+            .entries[slot].naturalSize = {cast(f32) embedded.width, cast(f32) embedded.height}
+            .entries[slot].loaded      = true
             return &.entries[slot]
         }
 
@@ -124,8 +126,9 @@ impl HtmlImageCache
             let scale   = largest > HtmlSvgRasterLimit ? HtmlSvgRasterLimit / largest : 1
             let width   = cast(s32) Math.max(Math.round(drawing.width * scale), 1)
             let height  = cast(s32) Math.max(Math.round(drawing.height * scale), 1)
-            .entries[slot].image  = drawing.rasterize(width, height, 1)
-            .entries[slot].loaded = .entries[slot].image.isValid()
+            .entries[slot].image       = drawing.rasterize(width, height, 1)
+            .entries[slot].naturalSize = drawing.naturalSize()
+            .entries[slot].loaded      = .entries[slot].image.isValid()
             return .entries[slot].loaded ? &.entries[slot] : null
         }
 
@@ -133,8 +136,9 @@ impl HtmlImageCache
         if loadError != null do
             return null
 
-        .entries[slot].image  = image
-        .entries[slot].loaded = true
+        .entries[slot].image       = image
+        .entries[slot].naturalSize = {cast(f32) image.width, cast(f32) image.height}
+        .entries[slot].loaded      = true
         return &.entries[slot]
     }
 

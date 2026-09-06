@@ -89,7 +89,8 @@ struct Drawing
         height: f32     // View-box height, in user units.
     }
 
-    shapes: Array'Shape     // Parsed vector shapes, including hidden definitions.
+    shapes:    Array'Shape     // Parsed vector shapes, including hidden definitions.
+    imageSize: Vector2         // Absolute root dimensions in CSS pixels, independent of view-box units.
 
     public
     {
@@ -443,6 +444,29 @@ private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
     }
 
     return result
+}
+
+// Image dimensions have no containing viewport or font against which to resolve relative units.
+private func parseImageLength(value: string)->f32
+{
+    let text = Latin1.trim(value)
+    if !text.count or !isNumberStart(text[0]) do
+        return 0
+    var pos    = 0'u64
+    let number = scanNumber(text, &pos)
+    if number <= 0 do
+        return 0
+    switch Latin1.trim(text[pos to])
+    {
+    case "", "px": return number
+    case "in":     return number * 96
+    case "cm":     return number * (96 / 2.54)
+    case "mm":     return number * (96 / 25.4)
+    case "Q", "q": return number * (96 / 101.6)
+    case "pt":     return number * (96 / 72.0)
+    case "pc":     return number * 16
+    default:       return 0
+    }
 }
 
 private func parsePaintId(value: string)->String
@@ -2549,6 +2573,10 @@ private impl Parser
                 .svgDepth += 1
                 if isRoot
                 {
+                    if let width = geo.tryFind("width") do
+                        .drawing.imageSize.x = parseImageLength(width.value.toString())
+                    if let height = geo.tryFind("height") do
+                        .drawing.imageSize.y = parseImageLength(height.value.toString())
                     let vb = geo.tryFind("viewBox")
                     if vb
                     {
@@ -3399,6 +3427,24 @@ impl Drawing
 {
     // Returns the number of parsed shapes.
     mtd const shapeCount()->u64 => .shapes.count
+
+    // Returns the preferred image dimensions in CSS pixels.
+    //
+    // Absolute root `width` and `height` attributes determine this size. A missing or relative
+    // dimension is inferred from the other dimension and the view-box aspect ratio; if neither
+    // dimension is absolute, the view-box size is returned. Nonpositive dimensions are treated
+    // as unspecified. This query does not change the user-space coordinates used by
+    // [[Pixel.Svg.Drawing.paint]] and [[Pixel.Svg.Drawing.rasterize]].
+    mtd const naturalSize()->Vector2
+    {
+        if .imageSize.x > 0 and .imageSize.y > 0 do
+            return .imageSize
+        if .imageSize.x > 0 and .width > 0 do
+            return {.imageSize.x, .imageSize.x * .height / .width}
+        if .imageSize.y > 0 and .height > 0 do
+            return {.imageSize.y * .width / .height, .imageSize.y}
+        return {.width, .height}
+    }
 
     // Parses an SVG document authored in the supported subset.
     //

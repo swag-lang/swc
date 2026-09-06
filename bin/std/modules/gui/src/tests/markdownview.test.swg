@@ -33,6 +33,30 @@ using Swag, Core
     Swag.assert(entry!.image.pixelColor(20, 10).argb == 0xFF285078)
 }
 
+// A standalone SVG uses its declared image dimensions, not the size of its internal view box.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_svg_size_%.svg", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    let source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"464\" height=\"464\" viewBox=\"40 40 928 928\"><rect x=\"40\" y=\"40\" width=\"928\" height=\"928\" fill=\"#285078\"/></svg>"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source)
+
+    var host: Testing.HeadlessHost
+    host.setup(1000, 700)
+    defer host.shutdown()
+    let view = Markdown.View.createText(&host.root, Format.toString("![Figure](<%>)", fileName).toString())
+    view.resize(1000, 700)
+    view.applyLayout()
+    let atom = &view.blocks[0].inline!.atoms[0]
+    Swag.assert(atom.imageLoaded and atom.position.width == 464 and atom.position.height == 464)
+    view.resize(360, 700)
+    view.applyLayout()
+    Swag.assert(atom.position.width < 464 and atom.position.width == atom.position.height)
+    view.resize(1000, 700)
+    view.applyLayout()
+    Swag.assert(atom.position.width == 464 and atom.position.height == 464)
+}
+
 // Local, embedded, reference and inline-HTML images share layout, search, and cache ownership.
 #test
 {

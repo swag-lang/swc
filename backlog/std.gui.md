@@ -33,6 +33,23 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
+
+- Recorded: 2026-09-06 21:57
+- Evidence: `Gui.WndId` is `string`, and `MenuCtrl.addItem` and `addRadioItem` keep the view
+  they are handed. Swag Scope built the identifiers of its slideshow-pace submenu with
+  `Format.toString(...).toString()` inside the call: the temporary `String` was dropped at the
+  end of the statement, every entry kept a dangling identifier, nothing failed at build or run
+  time, and the headless driver's `clickPopupMenuItem` simply never matched an entry
+  (2026-09-06). The borrow-escape analysis did not see the escape through the `WndId`
+  parameter. The video viewer avoids it by keeping an `Array'String` of commands alive across
+  `doModal`; Swag Scope now uses a literal table, `ViewerSlideIds`.
+- Next: decide whether `Item.id` and the other retained `WndId` fields should own a `String`, or
+  whether the sanitizer can flag a `string` view of a temporary escaping into a struct through a
+  parameter; prototype the owning field on `PopupMenuItem` and measure the churn on consumers.
+- Complete when: an identifier formatted at the call site either works or is rejected at build
+  time, and a test in `menu.test.swg` pins whichever it is.
+
 ### std.gui.003 — Construction-time text does not automatically retranslate
 
 - Recorded: 2026-08-09 11:30

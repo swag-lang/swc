@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-06 21:14 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-06 19:13 |
@@ -46,7 +47,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-06 17:42 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-06 17:42 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
-| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 17:42 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-06 17:42 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-06 15:21 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-06 15:21 |

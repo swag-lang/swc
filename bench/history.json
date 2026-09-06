@@ -196,7 +196,7 @@
           "leven": 153.486805786404,
           "chacha": 543.228355201724
         },
-        "build_geo_adjusted_ms": 155.64932755094839,
+        "build_geo_adjusted_ms": 155.64932755094827,
         "build_index": {
           "wordfreq": 0.87534504052451,
           "csvagg": 1.045513832455301,
@@ -328,7 +328,18 @@
     "sample_spread_pct": 29.626079879765854,
     "hello_jit_ms": 84.362,
     "hello_build_ms": 99.5432,
-    "hello_build_peak_mb": 105.28125
+    "hello_build_peak_mb": 105.28125,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 99.5432,
+        "adjusted_ms": 98.17758399797933,
+        "peak_mb": 105.28125,
+        "peak_working_set_mb": null,
+        "samples": null,
+        "index": 0.8717195085822651,
+        "since": "d36631d85"
+      }
+    }
   },
   {
     "meta": {
@@ -405,7 +416,7 @@
           "leven": 16.372708826039595,
           "chacha": 29.745896403469818
         },
-        "run_geo_adjusted_ms": 33.699059391801356,
+        "run_geo_adjusted_ms": 33.69905939180134,
         "run_index": {
           "wordfreq": 1.02929326013579,
           "csvagg": 1.0376979250891858,
@@ -659,7 +670,18 @@
     "sample_spread_pct": 28.973966919860516,
     "hello_jit_ms": 90.043,
     "hello_build_ms": 111.6313,
-    "hello_build_peak_mb": 106.62890625
+    "hello_build_peak_mb": 106.62890625,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 111.6313,
+        "adjusted_ms": 112.56519630338717,
+        "peak_mb": 106.62890625,
+        "peak_working_set_mb": null,
+        "samples": null,
+        "index": 0.9994672267253435,
+        "since": "d36631d85"
+      }
+    }
   },
   {
     "meta": {
@@ -798,7 +820,7 @@
           "leven": 16.91969996,
           "chacha": 29.95429991
         },
-        "run_geo_adjusted_ms": 33.27249142823787,
+        "run_geo_adjusted_ms": 33.272491428237856,
         "run_index": {
           "wordfreq": 1.0,
           "csvagg": 1.0,
@@ -858,7 +880,7 @@
           "leven": 146.8701,
           "chacha": 493.5548
         },
-        "build_geo_adjusted_ms": 160.544487603954,
+        "build_geo_adjusted_ms": 160.54448760395385,
         "build_index": {
           "wordfreq": 1.0,
           "csvagg": 1.0,
@@ -891,7 +913,7 @@
           "leven": 43.29950002,
           "chacha": 96.36179998
         },
-        "run_geo_adjusted_ms": 70.64050993569099,
+        "run_geo_adjusted_ms": 70.64050993569104,
         "run_index": {
           "wordfreq": 1.0,
           "csvagg": 1.0,
@@ -990,7 +1012,18 @@
     "sample_spread_pct": 42.15829633428166,
     "hello_jit_ms": 92.1767,
     "hello_build_ms": 112.6252,
-    "hello_build_peak_mb": 107.4375
+    "hello_build_peak_mb": 107.4375,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 112.6252,
+        "adjusted_ms": 112.6252,
+        "peak_mb": 107.4375,
+        "peak_working_set_mb": null,
+        "samples": null,
+        "index": 1.0,
+        "since": "d36631d85"
+      }
+    }
   },
   {
     "meta": {
@@ -1067,7 +1100,7 @@
           "leven": 15.606610288351305,
           "chacha": 28.48264209767167
         },
-        "run_geo_adjusted_ms": 33.0905034550527,
+        "run_geo_adjusted_ms": 33.090503455052726,
         "run_index": {
           "wordfreq": 1.0988709135367127,
           "csvagg": 0.8801127458843863,
@@ -1096,7 +1129,7 @@
           "leven": 131.59072254968797,
           "chacha": 134.58773319698324
         },
-        "build_geo_adjusted_ms": 147.6537464034908,
+        "build_geo_adjusted_ms": 147.6537464034909,
         "build_index": {
           "wordfreq": 1.5470272044708562,
           "csvagg": 1.5190821712377605,
@@ -1222,7 +1255,7 @@
           "leven": 42.87416956918221,
           "chacha": 97.48128899032176
         },
-        "run_geo_adjusted_ms": 75.38330960058153,
+        "run_geo_adjusted_ms": 75.3833096005816,
         "run_index": {
           "wordfreq": 1.2759477713658647,
           "csvagg": 1.1467149862525299,
@@ -1321,6 +1354,405 @@
     "sample_spread_pct": 20.413656823240956,
     "hello_jit_ms": 107.8057,
     "hello_build_ms": 137.6237,
-    "hello_build_peak_mb": 123.97265625
+    "hello_build_peak_mb": 123.97265625,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 137.6237,
+        "adjusted_ms": 141.7787998654425,
+        "peak_mb": 123.97265625,
+        "peak_working_set_mb": null,
+        "samples": null,
+        "index": 1.258855033024958,
+        "since": "d36631d85"
+      }
+    }
+  },
+  {
+    "meta": {
+      "protocol": 2,
+      "settings": {
+        "pin_mask": "0x55401",
+        "pin_cores": 6,
+        "budget_ms": 4500,
+        "min_reps": 3,
+        "max_reps": 24,
+        "build_budget_ms": 3000,
+        "warmup_s": 30,
+        "swc_cores": 0
+      },
+      "stamp": "20260906-143159",
+      "date": "2026-09-06T14:31:59+00:00",
+      "label": "",
+      "commit": "a4677422e",
+      "subject": "Integrate master fixes before merging sanitizer memory changes",
+      "master": "a4677422e",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 6630400
+    },
+    "drift_pct": -12.688397860071873,
+    "machine_spread_pct": 12.151104326439622,
+    "worst_moment": "wordfreq",
+    "calibration_ms": 44.1884,
+    "context": {
+      "baseline": "20260807-134858",
+      "baseline_commit": "d36631d85",
+      "task_baselines": {},
+      "run_factor": 0.9506284064471116,
+      "run_task_factors": {
+        "wordfreq": 0.8782636139722163,
+        "csvagg": 0.9172327488529634,
+        "sha256": 0.936936932590327,
+        "dijkstra": 0.9022136967846304,
+        "raytrace": 0.9068005873139281,
+        "leven": 1.2010831388017076,
+        "chacha": 0.9459461916795413
+      },
+      "run_controls": 70,
+      "run_dispersion_pct": 2.418938909683789,
+      "build_factor": 0.9308159588628167,
+      "build_task_factors": {
+        "wordfreq": 0.8428965008289009,
+        "csvagg": 0.9953638109290752,
+        "sha256": 0.9246418727506213,
+        "dijkstra": 1.0708373280939347,
+        "raytrace": 0.9029761521286293,
+        "leven": 0.8682447360352699,
+        "chacha": 0.929555123402322
+      },
+      "build_controls": 42,
+      "build_dispersion_pct": 6.857402002694327
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 58.12649999,
+          "csvagg": 21.5947,
+          "sha256": 43.33090002,
+          "dijkstra": 36.98179999,
+          "raytrace": 11.9245,
+          "leven": 14.02349997,
+          "chacha": 24.86
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 66.18343179117383,
+          "csvagg": 23.54331550743805,
+          "sha256": 46.247403120511116,
+          "dijkstra": 40.99006712245471,
+          "raytrace": 13.150079705309919,
+          "leven": 11.675711295048997,
+          "chacha": 26.280564601524222
+        },
+        "run_geo_adjusted_ms": 27.508146591614032,
+        "run_index": {
+          "wordfreq": 0.9152938211363577,
+          "csvagg": 0.8027644584099426,
+          "sha256": 0.7865137731908932,
+          "dijkstra": 0.906559041847324,
+          "raytrace": 0.7432404909886284,
+          "leven": 0.7031231387785091,
+          "chacha": 0.9021882939613967
+        },
+        "run_geo_index": 0.8189250341514863,
+        "build_ms": {
+          "wordfreq": 116.3554,
+          "csvagg": 129.1802,
+          "sha256": 127.728,
+          "dijkstra": 118.754,
+          "raytrace": 113.9378,
+          "leven": 118.1162,
+          "chacha": 143.9087
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 138.04233365018908,
+          "csvagg": 129.7818933957654,
+          "sha256": 138.1378063920415,
+          "dijkstra": 110.89826333508502,
+          "raytrace": 126.1802980415473,
+          "leven": 136.04021435173075,
+          "chacha": 154.81459504334816
+        },
+        "build_geo_adjusted_ms": 132.82393760970055,
+        "build_index": {
+          "wordfreq": 1.247744432293917,
+          "csvagg": 1.183263631957001,
+          "sha256": 1.219863285470923,
+          "dijkstra": 1.1215915657328186,
+          "raytrace": 1.1543365557484078,
+          "leven": 1.1870283445913314,
+          "chacha": 1.1710891921483009
+        },
+        "build_geo_index": 1.1829390438736247,
+        "build_peak_mb": 115.66796875,
+        "exe_kb": 77.42607099117012
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 56.8352,
+          "csvagg": 20.846,
+          "sha256": 125.56399999,
+          "dijkstra": 40.1484,
+          "raytrace": 12.28150004,
+          "leven": 14.97029996,
+          "chacha": 25.12189996
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 64.71314431773553,
+          "csvagg": 22.727055947434025,
+          "sha256": 134.01542368797035,
+          "dijkstra": 44.49987862419243,
+          "raytrace": 13.543771598538047,
+          "leven": 12.46399976519154,
+          "chacha": 26.557430201601317
+        },
+        "run_geo_adjusted_ms": 32.622625731578346,
+        "run_index": {
+          "wordfreq": 0.8584489551268176,
+          "csvagg": 0.8853478331853286,
+          "sha256": 2.2907366400898956,
+          "dijkstra": 0.9817196387223672,
+          "raytrace": 0.7802835412545991,
+          "leven": 0.7366560751465915,
+          "chacha": 0.8865982607303513
+        },
+        "run_geo_index": 0.9804683788690383
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 82.51829998,
+          "csvagg": 40.71480001,
+          "sha256": 182.93149996,
+          "dijkstra": 62.63959996,
+          "raytrace": 13.58560001,
+          "leven": 50.0096,
+          "chacha": 66.5596
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 93.95618657909064,
+          "csvagg": 44.38873346041722,
+          "sha256": 195.24419797846338,
+          "dijkstra": 69.4287840932134,
+          "raytrace": 14.981904731935026,
+          "leven": 41.63708438192997,
+          "chacha": 70.36298743570441
+        },
+        "run_geo_adjusted_ms": 58.97561683613125,
+        "run_index": {
+          "wordfreq": 1.0486708210527373,
+          "csvagg": 0.782894931645864,
+          "sha256": 0.7585144483550254,
+          "dijkstra": 1.3448935407370435,
+          "raytrace": 0.6682115692067544,
+          "leven": 0.8786234003761701,
+          "chacha": 0.7472665018840144
+        },
+        "run_geo_index": 0.8667299711173384,
+        "build_ms": {
+          "wordfreq": 135.8874,
+          "csvagg": 200.9018,
+          "sha256": 153.0482,
+          "dijkstra": 138.9575,
+          "raytrace": 135.4994,
+          "leven": 149.7455,
+          "chacha": 522.0042
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 161.2148109125722,
+          "csvagg": 201.83755707621893,
+          "sha256": 165.52159761563985,
+          "dijkstra": 129.76527466346462,
+          "raytrace": 150.05866952364215,
+          "leven": 172.46922876122918,
+          "chacha": 561.5634692963449
+        },
+        "build_geo_adjusted_ms": 193.50158202019043,
+        "build_index": {
+          "wordfreq": 1.1508003174587367,
+          "csvagg": 1.3256764721513206,
+          "sha256": 1.1838632077265057,
+          "dijkstra": 1.1624390041149941,
+          "raytrace": 1.3172643349989523,
+          "leven": 1.174297755371782,
+          "chacha": 1.1377935526031657
+        },
+        "build_geo_index": 1.205283251440798,
+        "build_peak_mb": 196.578125,
+        "exe_kb": 109.22574745588476
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 85.70190001,
+          "csvagg": 41.00790003,
+          "sha256": 183.87820001,
+          "dijkstra": 65.34770003,
+          "raytrace": 14.74000001,
+          "leven": 55.24309998,
+          "chacha": 81.20200003
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 97.58106637526164,
+          "csvagg": 44.70828160167857,
+          "sha256": 196.25461822882397,
+          "dijkstra": 72.43040120416096,
+          "raytrace": 16.254951988575534,
+          "leven": 45.9944013826676,
+          "chacha": 85.8420920177549
+        },
+        "run_geo_adjusted_ms": 63.093353272882055,
+        "run_index": {
+          "wordfreq": 1.0592832433536234,
+          "csvagg": 0.7287793599359305,
+          "sha256": 0.7342984248514485,
+          "dijkstra": 1.2799853175516134,
+          "raytrace": 0.6603972550136105,
+          "leven": 1.062238625421144,
+          "chacha": 0.8908311388493315
+        },
+        "run_geo_index": 0.8931610676412212
+      }
+    },
+    "headline": {
+      "tasks": 7,
+      "exec_vs_best": 1.1678991260330356,
+      "exec_fastest": "cpp-clang-cl",
+      "jit_gap_pct": 18.592598097915758,
+      "build_edge": 3.3383732467636165
+    },
+    "null": {
+      "run": {
+        "controls": 10,
+        "geo": [
+          0.9439533397181435,
+          1.0560380776269696
+        ],
+        "tasks": {
+          "wordfreq": [
+            0.9784704907945501,
+            1.0095421570693237
+          ],
+          "csvagg": [
+            0.8615796100895844,
+            1.1725540758084618
+          ],
+          "sha256": [
+            0.9756221581426592,
+            1.1496285116212295
+          ],
+          "dijkstra": [
+            0.9411529505182806,
+            1.0691605847162298
+          ],
+          "raytrace": [
+            0.919244347541651,
+            1.1470179957571105
+          ],
+          "leven": [
+            0.9189107493082652,
+            1.0221054666547025
+          ],
+          "chacha": [
+            0.9215023615745035,
+            1.1695879096106332
+          ]
+        }
+      },
+      "build": {
+        "controls": 6,
+        "geo": [
+          0.7189955076940905,
+          1.099774914727153
+        ],
+        "tasks": {
+          "wordfreq": [
+            0.8712321360138062,
+            1.1271490493488259
+          ],
+          "csvagg": [
+            0.38683559537057494,
+            1.235796774021553
+          ],
+          "sha256": [
+            0.735512661707327,
+            1.1283570402969891
+          ],
+          "dijkstra": [
+            0.8602412306868099,
+            1.0762736679074298
+          ],
+          "raytrace": [
+            0.479922065969403,
+            1.0939073730891147
+          ],
+          "leven": [
+            0.4238492691612361,
+            1.1205181431679927
+          ],
+          "chacha": [
+            0.8675801716237691,
+            1.1078322509219523
+          ]
+        }
+      }
+    },
+    "sample_spread_pct": 29.750944248456868,
+    "hello_jit_ms": 108.1311,
+    "hello_build_ms": 110.3016,
+    "hello_build_peak_mb": 105.69921875,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 110.3016,
+        "adjusted_ms": 118.49990210176038,
+        "peak_mb": 105.69921875,
+        "peak_working_set_mb": 77.24609375,
+        "samples": null,
+        "index": 1.0521615242570967,
+        "since": "d36631d85"
+      },
+      "core_rebuild": {
+        "wall_ms": 2914.6259,
+        "adjusted_ms": 3131.2590552925367,
+        "peak_mb": 686.05859375,
+        "peak_working_set_mb": 613.51171875,
+        "samples": 2,
+        "index": 1.0,
+        "since": "a4677422e"
+      },
+      "core_noop": {
+        "wall_ms": 56.4289,
+        "adjusted_ms": 60.62304740556825,
+        "peak_mb": 7.4453125,
+        "peak_working_set_mb": 14.2421875,
+        "samples": 8,
+        "index": 1.0,
+        "since": "a4677422e"
+      },
+      "core_touch": {
+        "wall_ms": 2780.312,
+        "adjusted_ms": 2986.962109455798,
+        "peak_mb": 604.203125,
+        "peak_working_set_mb": 559.89453125,
+        "samples": 2,
+        "index": 1.0,
+        "since": "a4677422e"
+      },
+      "doc_std": {
+        "wall_ms": 35162.624,
+        "adjusted_ms": 37776.12928226799,
+        "peak_mb": 2573.42578125,
+        "peak_working_set_mb": 2166.43359375,
+        "samples": 2,
+        "index": 1.0,
+        "since": "a4677422e"
+      },
+      "format_tree": {
+        "wall_ms": 426.2899,
+        "adjusted_ms": 457.97442119578704,
+        "peak_mb": 495.23046875,
+        "peak_working_set_mb": 415.4609375,
+        "samples": 6,
+        "index": 1.0,
+        "since": "a4677422e"
+      }
+    }
   }
 ]

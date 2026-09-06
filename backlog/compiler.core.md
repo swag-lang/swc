@@ -469,8 +469,10 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 - Evidence: the unchanged DevMode compiler built from `89c7c0e7a` (0.1.381) fails a standalone JIT
   test in the `release` program configuration. A `#[Swag.NoInline]` function taking an `f64` and
   returning `cast(u64) value` does not return `0x8000_0000_0000_0800'u64` for
-  `9223372036854777856.0'f64` (exactly 2^63 + 2048). The assertion fails before native execution;
-  the value is finite, exactly representable, and within the destination's unsigned range.
+  `9223372036854777856.0'f64` (exactly 2^63 + 2048). The assertion fails before native execution.
+  A second run with `--no-test-jit` fails the same assertion in the generated executable, confirming
+  the native path independently. The value is finite, exactly representable, and within the
+  destination's unsigned range.
   Reproduce with a standalone `#test` calling that function and comparing those values, using
   `bin/swc.dm.exe test --artifact-kind executable -f <probe.swg> --build-cfg release --rebuild
   --num-cores 6`, with output and work directories under a temporary root.

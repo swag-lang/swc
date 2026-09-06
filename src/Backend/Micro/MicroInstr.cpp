@@ -42,6 +42,12 @@ namespace
                     modes[0] = MicroInstrRegMode::UseDef;
                     modes[1] = MicroInstrRegMode::UseDef;
                 }
+                else if (ops[info.microOpIndex].microOp == MicroOp::ConvertFloatToInt)
+                {
+                    // CVTTSS2SI/CVTTSD2SI replace the integer destination. Unlike
+                    // scalar XMM operations, no old destination bits survive.
+                    modes[0] = MicroInstrRegMode::Def;
+                }
                 break;
             case MicroInstrRegSpecial::OpBinaryMemReg:
                 if (ops[info.microOpIndex].microOp == MicroOp::Exchange)

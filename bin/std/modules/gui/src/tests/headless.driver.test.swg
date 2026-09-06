@@ -28,3 +28,49 @@ using Swag, Core
     Swag.assert(!host.autoArmed and !host.autoHandled)
     Swag.assert(host.autoFailure == "modal appeared without button 'missing'; observed button identifiers: 'close'")
 }
+
+// A visible button whose validator refuses the action remains pending until the driver reports
+// that preparation did not complete; finding the button alone is not a successful stage.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 120)
+    defer host.shutdown()
+
+    let dlg = Dialog.create(&host.surface, 260, 150, title: "Validate")
+    dlg.addButton("Ok", Dialog.BtnOk, true)
+    dlg.validateResult = func(bdlg, id)->bool
+    {
+        discard bdlg
+        discard id
+        return false
+    }
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk, maxFrames: 1)
+    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    Swag.assert(!host.autoArmed and !host.autoHandled)
+    Swag.assert(host.autoFailure == "modal preparation did not complete for button 'Dialog.BtnOk'")
+}
+
+// Advancing a stage before its click lets a validator open a nested confirmation synchronously;
+// the nested modal consumes the next action and the original action then completes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 120)
+    defer host.shutdown()
+
+    let dlg = Dialog.create(&host.surface, 260, 150, title: "Validate")
+    dlg.addButton("Ok", Dialog.BtnOk, true)
+    dlg.validateResult = func(bdlg, id)->bool
+    {
+        if id != Dialog.BtnOk do
+            return true
+        return MessageDlg.confirm(bdlg.surface!, "Continue?") == Dialog.BtnYes
+    }
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    host.thenClickModalButton(Dialog.BtnYes)
+    Swag.assert(dlg.doModal() == Dialog.BtnOk)
+    Swag.assert(host.autoHandled and host.autoFailure.isEmpty())
+}

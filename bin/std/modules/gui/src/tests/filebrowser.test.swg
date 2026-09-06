@@ -17,7 +17,7 @@ using Swag, Core, File
     var opt: FileDlgOptions
     opt.mode              = .SelectFile
     opt.showLocationsPane = false
-    opt.filters.add({"Text", ".txt"})
+    opt.filters.add({"Text", ".txt;.md"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     Swag.assert((fb.editFile != null))
@@ -54,6 +54,12 @@ using Swag, Core, File
     let name2     = fb.selectedPath()
     let fileName2 = Path.fileName(name2.toString())!
     Swag.assert(fileName2 == "report.txt")
+
+    // Every extension offered by one filter is accepted as-is, not only its first one.
+    fb.setFileName("readme.md")
+    let name3     = fb.selectedPath()
+    let fileName3 = Path.fileName(name3.toString())!
+    Swag.assert(fileName3 == "readme.md")
     Swag.assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
     Swag.assert(!fb.createFolder("bad/name"))
 }

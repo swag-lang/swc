@@ -959,12 +959,21 @@ impl FileBrowserCtrl
             // Get the full name
             var val = Path.combine(.currentFolder, t1.toString())
 
-            // Append extension if not done by the user
-            if .options.mode != .SelectFolder and filterExtensions.count and !Path.hasExtension(val, filterExtensions!)
+            // A filter can offer several extensions. Keep any one of them when it is already
+            // present; otherwise append the first, preferred extension.
+            var hasFilterExtension = false
+            let extensions         = Tokenize.split(filterExtensions orelse "", ';'rune)
+            for extension in extensions where extension.count
             {
-                let exts = Tokenize.split(filterExtensions!, ';'rune)
-                val += exts[0]
+                if Path.hasExtension(val, extension)
+                {
+                    hasFilterExtension = true
+                    break
+                }
             }
+
+            if .options.mode != .SelectFolder and filterExtensions.count and !hasFilterExtension and extensions.count do
+                val += extensions[0]
 
             result.add(val)
         }

@@ -303,9 +303,13 @@ impl HeadlessHost
             }
         }
 
+        // Advance before the action: clicking one modal can synchronously open another from its
+        // validator, and the nested modal loop must see the next staged action. Roll back when
+        // the click was rejected without advancing a nested stage.
+        let stageIndex = .autoStage
+        .autoStage += 1
         if .runAutoStage(stage)
         {
-            .autoStage     += 1
             .autoFrames    = 0
             .autoSawModal  = false
             .autoSawButton = false
@@ -316,8 +320,14 @@ impl HeadlessHost
                 .autoHandled = true
             }
         }
-        elif .autoFrames > .autoMaxFrames
+        else
         {
+            if .autoStage == stageIndex + 1 do
+                .autoStage = stageIndex
+
+            if .autoFrames <= .autoMaxFrames do
+                return
+
             if stage.kind == .ModalButton
             {
                 if !.autoSawModal do
@@ -728,7 +738,7 @@ impl HeadlessHost
         if !wnd do
             return false
         .clickWnd(wnd)
-        return true
+        return .app.endModal
     }
 
     // Finds edit ctrl by label.
@@ -799,7 +809,6 @@ impl HeadlessHost
 
         if !browser or !(browser.editFile != null) do
             return false
-
         if folder.count
         {
             if !Directory.exists(folder) do

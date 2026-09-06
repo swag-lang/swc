@@ -32,7 +32,11 @@ func subtitleViewerFixturePath()->String
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
 
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(subtitleViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root, infoParent: &host.root)
@@ -54,6 +58,19 @@ func subtitleViewerFixturePath()->String
     Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
     Swag.assert(view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines.")
+
+    let oldCount = String.from(view.cueButton.text())
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    let expectedCount = Format.toString(subtitleStrings().ui_Cues, 2)
+    Debug.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
+                 Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount).toString())
+    Swag.assert(view.cueButton.toolTip == subtitleStrings().ui_GoToCue)
+    Swag.assert(view.durationButton.toolTip == subtitleStrings().ui_GoToTime)
+    Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(view.cueButton.text() == oldCount.toString())
 }
 
 // The shipped palette renders the timestamped transcript as the primary document.

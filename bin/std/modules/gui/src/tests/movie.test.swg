@@ -37,7 +37,13 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
     expect movie.prepareCache()
     Swag.assert(movie.cachedBytes == 64 and movie.cachedFrames.count == 1)
     movie.setFrameIndex(2)
-    Swag.assert(movie.frameIndex == 2 and movie.frame.pixelColor(0, 0).b == 255)
+    Swag.assert(movie.frameIndex == 2)
+
+    // The independent WebP decoder places this frame's blue square in the lower left.
+    // Disposal clears the rest of the canvas, including the upper-left pixel.
+    for y in 4 do
+        for x in 4 do
+            Swag.assert(movie.frame.pixelColor(x, y).argb == (x < 2 and y >= 2 ? 0xFF0000FF : 0))
     movie.setFrameIndex(0)
     Swag.assert(movie.frameIndex == 0 and movie.frame.pixelColor(0, 0).r == 255)
     Swag.assert(movie.cachedBytes == 64)

@@ -512,6 +512,43 @@ namespace
             builder.functionBySymbol.emplace(info.symbol, &info);
     }
 
+    bool discardIgnoredCallers(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
+    {
+        SmallVector<SymbolFunction*> ignored;
+        for (SymbolFunction* function : functions)
+            if (function->isIgnored())
+                ignored.push_back(function);
+        if (ignored.empty())
+            return false;
+
+        // CodeGenPreSolved breaks recursive call cycles before emission finishes. A caller
+        // can therefore complete before a callee reports an expected sanity error. Propagate
+        // that failure only after the jobs have drained, including through completed callers.
+        std::unordered_map<SymbolFunction*, SmallVector<SymbolFunction*>> callers;
+        for (SymbolFunction* function : functions)
+        {
+            SmallVector<SymbolFunction*> dependencies;
+            function->appendCallDependencies(dependencies);
+            for (SymbolFunction* dependency : dependencies)
+                callers[dependency].push_back(function);
+        }
+
+        for (size_t index = 0; index < ignored.size(); ++index)
+        {
+            const auto found = callers.find(ignored[index]);
+            if (found == callers.end())
+                continue;
+            for (SymbolFunction* caller : found->second)
+            {
+                if (caller->isIgnored())
+                    continue;
+                caller->setIgnored(builder.ctx());
+                ignored.push_back(caller);
+            }
+        }
+        return true;
+    }
+
     Result scheduleCodeGen(NativeBackendBuilder& builder)
     {
         if (builder.functionInfos.empty())
@@ -998,6 +1035,17 @@ Result NativeBackendBuilder::prepare()
         const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions);
         if (!addedCallDeps && !addedConstantDeps)
         {
+            if (discardIgnoredCallers(*this, functions))
+            {
+                filterPreparedSymbols(functions, *this);
+                filterPreparedSymbols(testFunctions, *this);
+                filterPreparedSymbols(initFunctions, *this);
+                filterPreparedSymbols(preMainFunctions, *this);
+                filterPreparedSymbols(dropFunctions, *this);
+                filterPreparedSymbols(mainFunctions, *this);
+                rebuildFunctionInfos(*this, functions);
+            }
+
             // Preparing native code also serves the JIT, which must keep the complete lowered
             // segment available. Restrict only the final executable function table after every
             // function has therefore been lowered successfully.

@@ -262,7 +262,7 @@ private impl SplitterCtrl
 
                     countNotPreserve -= 1
 
-                    var realDiff = countPreserve ? diff : dispatch
+                    var realDiff = countNotPreserve ? diff : dispatch
                     if it.maximumSize > 0 and realDiff > 0 and it.size + realDiff > it.maximumSize do
                         realDiff = it.maximumSize - it.size
                     elif realDiff < 0 and it.size + realDiff < it.minimumSize do
@@ -287,7 +287,7 @@ private impl SplitterCtrl
 
                     countPreserve -= 1
 
-                    var realDiff = countNotPreserve ? diff : dispatch
+                    var realDiff = countPreserve ? diff : dispatch
                     if it.maximumSize > 0 and realDiff > 0 and it.size + realDiff > it.maximumSize do
                         realDiff = it.maximumSize - it.size
                     elif realDiff < 0 and it.size + realDiff < it.minimumSize do
@@ -464,6 +464,9 @@ impl SplitterCtrl
     mtd const isVertical() => .flags.has(.Vertical)
 
     // Adds `pane` and optionally creates a title label for it.
+    //
+    // Before the splitter has an extent, `paneSize` supplies the initial size for layout.
+    // Once sized, a sole pane fills the splitter and a new pane takes room from its neighbours.
     #[Swag.Discardable]
     mtd addPane(pane: *Wnd, paneSize: f32 = 100, showTitle = false)->*SplitterItem
     {
@@ -485,16 +488,30 @@ impl SplitterCtrl
 
         .items.add(item)
 
-        if .items.count == 1
+        let rect      = .paddedClientRect()
+        let available = .isVertical() ? rect.height : rect.width
+        if available <= 0
         {
-            let rect = .paddedClientRect()
-            if .isVertical() do
-                item.size = rect.height
-            else do
-                item.size = rect.width
+            item.size = Math.max(item.minimumSize, paneSize)
+        }
+        elif .items.count == 1
+        {
+            item.size = available
         }
         else
         {
+            // A new divider consumes room before the new pane borrows from its neighbour.
+            // Otherwise layout has to shrink the explicitly requested pane again.
+            for var index = cast(s64) .items.count - 2; index >= 0; index -= 1
+            {
+                let previous = .items[cast(u64) index]!
+                if previous.visible
+                {
+                    previous.size -= .themeMetrics().splitView_BarSize
+                    break
+                }
+            }
+
             .setPaneSize(cast(u32) .items.count - 1, paneSize)
         }
 

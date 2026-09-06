@@ -9,9 +9,10 @@ public struct MessageDlg
 
         readonly
         {
-            late labelIcon: *Label     // Optional large icon label.
-            late label:     *Label     // Rich message label.
-            extension:      *Wnd?      // Optional caller-owned extension docked below the message.
+            late labelIcon: *Label          // Optional large icon label.
+            late label:     *Label          // Rich message label.
+            extension:      *Wnd?           // Optional caller-owned extension docked below the message.
+            messageScroll:  *ScrollWnd?     // Scrollable message viewport, created when the fitted text exceeds the available height.
         }
     }
 }
@@ -90,11 +91,11 @@ public impl MessageDlg
     // of the same family opens at, so a question and a prompt are one object on screen.
     internal const MinMessageWidth = 450.0'f32
 
-    // Tallest a message is allowed to grow before the box stops following it.
+    // Tallest a message viewport grows; additional text remains available by scrolling.
     private const MaxMessageHeight = 512.0'f32
 
     // Gives the surface the width its message wants and the height that width then calls for.
-    internal mtd adaptSizeToMessage()
+    internal mtd adaptSizeToMessage(maxSurfaceHeight = Swag.F32.Inf)
     {
         let metrics = .themeMetrics()
         let srf     = .surface!
@@ -111,7 +112,8 @@ public impl MessageDlg
         var w = 0'f32
         for btn in .buttons do
             w += btn.position.width
-        w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
+        if .buttons.count > 1 do
+            w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
         w += chrome
         w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x + iconRoom + chrome)
 
@@ -131,13 +133,72 @@ public impl MessageDlg
         srf.setPosition(pos)
         .applyLayout()
 
-        var contentHeight = Math.min(MaxMessageHeight, .label.itf.measureContent({.label.position.width, 0}).y)
+        let ext             = .extension
+        let extensionHeight = ext ? ext.margin.y + ext.position.height + ext.margin.w : 0
+        var availableHeight = maxSurfaceHeight
+        if srf.app.renderer.needsNativeWindow()
+        {
+            let monitor = Env.monitorForPoint(.parentSurface!.position.center())
+            availableHeight = Math.min(availableHeight, monitor.physicalWorkArea.height / srf.dpiScale - 2 * metrics.dialog_Padding)
+        }
+
+        var overhead = chrome + .buttonBar.position.height + 2 * srf.shadowMargin()
+        if srf.flags & .SmallCaption do
+            overhead += metrics.wnd_SmallCaptionCY
+        elif srf.flags & .LargeCaption do
+            overhead += metrics.wnd_BigCaptionCY
+        let limit  = Math.max(1.0, Math.min(MaxMessageHeight, Math.floor(availableHeight - overhead - extensionHeight) - 1))
+        var needed = .label.itf.measureContent({.label.position.width, 0}).y
+        if needed > limit or .messageScroll
+        {
+            if !.messageScroll
+            {
+                let scroll = Wnd.create'ScrollWnd(.label.parent!)
+                scroll.dockStyle   = .Center
+                scroll.padding     = 0
+                scroll.focusPolicy = .Tab
+                scroll.updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
+                scroll.createView'Wnd()
+                .label.setParent(scroll.view)
+                .label.dockStyle   = .Top
+                .messageScroll     = scroll
+                scroll.hookOnEvent = func(wnd, evt)
+                {
+                    let key = evt as KeyEvent
+                    if !key or key.kind != .Pressed or key.modifiers != .None do
+                        return false
+                    let scroll = cast(*ScrollWnd) wnd
+                    var y      = scroll.scrollPosition().y
+                    switch key.key
+                    {
+                    case .Up:       y -= scroll.verticalScrollStep
+                    case .Down:     y += scroll.verticalScrollStep
+                    case .PageUp:   y -= scroll.view.position.height
+                    case .PageDown: y += scroll.view.position.height
+                    case .Home:     y = 0
+                    case .End:      y = scroll.scrollSize.y
+                    default:        return false
+                    }
+
+                    scroll.setScrollPos(0, y)
+                    key.accepted = true
+                    return true
+                }
+            }
+
+            .messageScroll!.setScrollSize(0, needed)
+            .applyLayout()
+
+            // The vertical bar takes horizontal room, which can add another wrapped line.
+            needed                 = Math.ceil(.label.itf.measureContent({.messageScroll!.view.position.width, 0}).y)
+            .label.position.height = needed
+            .messageScroll!.setScrollSize(0, needed)
+        }
+
+        var contentHeight = Math.min(limit, needed)
         if .labelIcon != null do
             contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
-
-        let ext = .extension
-        if ext do
-            contentHeight += ext.margin.y + ext.position.height + ext.margin.w
+        contentHeight += extensionHeight
 
         .fitHeightToContent(contentHeight)
     }

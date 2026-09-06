@@ -74,6 +74,16 @@ the return then deep-copies through 'opPostCopy' and the local drops normally.
 */
 
 /**
+# Move Expression Positions
+
+An explicit '#move' can transfer into a variable declaration or assignment, or into a
+call parameter. It cannot currently appear as a struct-literal field, an array-literal
+element, or a branch of the conditional operator. Initialize the destination through
+ordinary statements and assign its owning fields with '#move' instead. This restriction
+does not prevent moving the completed aggregate as a whole.
+*/
+
+/**
 # Ownership And The Copy
 
 A struct that declares 'opDrop' owns what that method releases, so it states no copy: a

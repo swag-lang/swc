@@ -69,8 +69,20 @@ private func subtitleCueCountText(count: u64)->String
     return count == 1 ? String.from(subtitleStrings().ui_OneCue) : Format.toString(subtitleStrings().ui_Cues, count)
 }
 
-private impl SubtitleViewer
+internal impl IWnd for SubtitleViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged
+        {
+            .cueButton.setText(subtitleCueCountText(.track!.cueCount()).toString())
+            .cueButton.toolTip      = subtitleStrings().ui_GoToCue
+            .durationButton.toolTip = subtitleStrings().ui_GoToTime
+        }
+
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
@@ -78,7 +90,10 @@ private impl SubtitleViewer
             Subtitle.Track.destroy(.track!)
         .track = null
     }
+}
 
+private impl SubtitleViewer
+{
     mtd buildTranscript()
     {
         for index in .track!.cueCount()

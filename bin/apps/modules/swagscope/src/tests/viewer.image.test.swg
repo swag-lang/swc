@@ -33,6 +33,51 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(image.width == 128 and image.height == 64)
 }
 
+// Changing language refreshes image facts and commands without changing the displayed frame.
+#test
+{
+    for name in ["sample.svg", "imageset-animation.gif"]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(720, 440)
+        defer
+        {
+            discard catch host.app.setLanguage(ReferenceLanguage)
+            host.shutdown()
+        }
+
+        let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+        var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName)
+        Swag.assert(session.view != null)
+        let view = cast(*ImageViewer) session.view!
+        completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+        view.imageView.setPaused(true)
+        if view.imageView.movie.frameCount > 1 do
+            view.imageView.setFrameIndex(1)
+        view.imageView.setZoom(1.5)
+        view.mirrorHorizontally()
+        let oldTip     = String.from(view.transformButton.toolTip)
+        let oldDetails = String.from(view.details)
+        let frameIndex = view.imageView.movie.frameIndex
+        view.information.list.selectLine(1)
+        let selectedFact = view.information.list.selectedLine()
+        Swag.assert(selectedFact != null)
+        expect host.app.setLanguage("fr")
+        host.notify(.LanguageChanged)
+        Swag.assert(view.transformButton.toolTip == imageStrings().ui_TipTransform and view.transformButton.toolTip != oldTip)
+        Swag.assert(view.zoomLabel.toolTip == imageStrings().ui_ZoomMenu and view.playButton.toolTip == imageStrings().ui_TipPlay)
+        Swag.assert(Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
+        Swag.assert(view.details != oldDetails)
+        Swag.assert(view.information.list.selectedLine() == selectedFact)
+        Swag.assert(view.imageView.zoom == 1.5 and view.imageView.isMirrored and view.imageView.movie.frameIndex == frameIndex)
+        if view.imageView.movie.frameCount > 1 do
+            Swag.assert(view.imageView.movie.isPaused)
+        expect host.app.setLanguage(ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        Swag.assert(view.transformButton.toolTip == oldTip and view.details == oldDetails)
+    }
+}
+
 // Pins the still-image tools beside a real vector document: zoom, fit, native size, and rotate
 // read as one icon family while the numeric zoom remains a value rather than an action.
 #[Swag.TestTag("golden")]

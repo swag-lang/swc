@@ -32,18 +32,17 @@ module's roadmap.
 - Related: a bounded cache is also the natural place to put an explicit memory budget, which any
   later working-set investigation will need.
 
-
-
-
 ---
 
 ## Tier B — Automatic and forced unmounting
 
-### app.vault.002 — A busy volume cannot be forcibly unmounted
+### app.vault.002 — Unmounting has no explicit busy-versus-force contract
 
 - Owner: Swag Vault
-- Add an explicit forced-unmount flow when an open handle keeps a volume busy, including user
-  confirmation, outstanding-I/O cancellation, and a truthful result.
+- Current `WinFspMount.stop` stops the dispatcher, removes the mount point, and destroys the
+  filesystem without a busy-result or force parameter. Define an ordinary unmount result for
+  open handles and an explicit forced-unmount flow, including confirmation, outstanding-I/O
+  cancellation, and a truthful result.
 - Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.
@@ -57,17 +56,19 @@ module's roadmap.
   hold four passwords and the interface only ever writes the one a reader opened it with.
 - Fix: a key-slot list that can add and revoke passwords and show how many slots are occupied
   without claiming which password maps to which slot.
-- Note: `KeySlotCount` is 4. Version 4 derives one slot key per password attempt and then checks
-  every slot cheaply, so raising the count costs one constant and a wider `keySlotMask` without
-  multiplying the Argon2 cost.
+- Note: the current format version is 1 and `KeySlotCount` is fixed at four. A password attempt
+  performs one Argon2id derivation followed by four authenticated opens. Changing the slot count
+  would change the physical header/data offsets and requires a format decision; it is not needed
+  to expose the four existing slots.
 
 ## Tier B — Container maintenance
 
 ### app.vault.004 — Header backup and restore
 
 - Owner: Swag Vault
-- Problem: the key slots and both header slots live in the same file, in its first megabytes. One
-  bad sector there destroys the whole container, including data blocks that are perfectly intact.
+- Problem: key slots and both alternating headers live in the same file. Damage to the only
+  usable password slot or to both header copies can make otherwise intact data inaccessible.
+  A damaged header alone can already fall back to the other checkpoint and replay the journal.
 - Fix: export and restore of an independent encrypted header file, exposed in the interface. The
   export must cover the key slot area as well, because that is now where the master key lives.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
@@ -92,12 +93,12 @@ module's roadmap.
 ### app.vault.006 — Hidden volume
 
 - Owner: Swag Vault
-- The format already permits it: the container is entirely random, carries no magic, and derives
-  its record locators from the key (`Crypto.recordLocator`). A second key slot area and header at a
-  key-derived offset hide naturally.
-- The real work is not the format. It is the protect-hidden-volume mode, where the outer volume
-  must refuse writes into the hidden region without ever revealing that the region exists, and the
-  interface for that constraint.
+- The current format has fixed key-slot, header, journal, and data regions. `Crypto.recordLocator`
+  derives authentication markers from keys and record coordinates; it does not choose a hidden
+  header's physical location. No inner-volume layout or protected-region write policy exists.
+- First define the threat model and on-disk layout, including how an outer mount avoids overwriting
+  an inner volume and what information mounting, free space, and failure behavior reveal. The UI
+  can expose a hidden-volume mode only after that contract has independent review.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
@@ -122,22 +123,25 @@ module's roadmap.
   reproducible corpora and sanitizer coverage.
 - Related: app.vault.007, app.vault.012
 
-### app.vault.010 — Crash tests do not cover torn records or checkpoint kills
+### app.vault.010 — Crash tests do not interrupt writes and checkpoints
 
 - Owner: Swag Vault
-- Extend crash consistency beyond between-operation snapshots to torn writes inside a record and
-  process termination during checkpointing.
+- `volume.test.swg` already corrupts a journal record and verifies that replay stops before later
+  records; it also checks alternating-header recovery and misplaced journal sequences. These are
+  completed-file mutations. Add deterministic partial-write injection and process termination
+  during checkpoint persistence to exercise the ordering of actual writes.
 - Related: app.vault.007
 
 ## Tier C — Scale and independent assurance
 
-### app.vault.011 — Metadata scaling stops at 1,200 files
+### app.vault.011 — Large metadata has no end-to-end scale benchmark
 
 - Owner: Swag Vault
-- Add a bounded performance and correctness test at one hundred thousand files.
+- `nodeindex.test.swg` already exercises 100,000 in-memory nodes, and `volume.test.swg` crosses
+  metadata paging with 300 nodes using smaller test headers. Add a bounded end-to-end correctness
+  and performance run at 100,000 files, covering durable creation, reopen, lookup, enumeration,
+  checkpointing, deletion, and memory usage.
 - Related: app.vault.001, app.vault.007
-
-
 
 ### app.vault.012 — External audit
 
@@ -150,19 +154,16 @@ module's roadmap.
 
 ## Out of scope
 
-**Partition and system-disk encryption.** WinFsp is a filesystem proxy, not a volume driver.
-Supporting this means writing a kernel-mode virtual disk driver and a pre-boot authenticator: a
-different product, and one that destroys the portable, no-installation property that is currently
-Swag Vault's genuine advantage. This is a case where a mature block-level tool is simply the right
-answer, and Swag Vault should say so rather than chase it.
+**Partition and system-disk encryption.** The application hosts a filesystem through WinFsp.
+A block-device and pre-boot encryption product would require a different driver, boot integration,
+and recovery contract. The bundled WinFsp path already uses an elevated helper to register its
+signed runtime; describing the application as requiring no driver setup would be inaccurate.
 
-**Cipher cascades and a user-facing cipher menu.** Format agility yes; a dropdown no. Cascades are
-theatre; they triple the bug surface for no defensible gain over a correctly implemented modern
-AEAD. The format carries a version, so changing algorithm later stays possible without exposing the
-choice.
+**Cipher cascades and a user-facing cipher menu.** Keep the cryptographic suite part of the
+versioned format contract. A user-facing algorithm menu and cascade combinations are outside the
+product scope; future suite changes require format compatibility and independent review.
 
-**Reading a container older than format version 3.** Version 3 replaced the key schedule, the KDF
-and the record framing at once, so nothing an earlier version wrote can be read without a parallel
-implementation of all three. The container also reports the same outcome for a wrong password, a
-damaged container and an older format, deliberately: telling them apart is exactly what the design
-refuses to do.
+**Reading an incompatible historical format.** The current decoder accepts format version 1 of
+its present key-slot and record layout. Earlier layouts require separate decoders and an explicit
+migration contract. Unsupported layout, wrong password, and damaged authentication records retain
+the format's deliberately indistinguishable unlock failure.

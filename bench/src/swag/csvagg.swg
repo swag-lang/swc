@@ -5,35 +5,37 @@ const REGIONS: [8] string = ["EMEA", "APAC", "AMER", "LATAM", "NORDIC", "IBERIA"
 func writeUInt(buf: [*] u8, pos, v: u64)->u64
 {
     var tmp: [24] u8
-    var n                = 0'u64
-    var x                = v
+    var n = 0'u64
+    var x = v
     if x == 0
     {
         tmp[0] = '0'
         n      = 1
     }
+
     while x > 0
     {
-        tmp[n] = cast(u8)(48 + (x % 10))
-        n += 1
-        x /= 10
+        tmp[n] = cast(u8) (48 + (x % 10))
+        n      += 1
+        x      /= 10
     }
 
     var p = pos
     var i = n
     while i > 0
     {
-        i -= 1
+        i      -= 1
         buf[p] = tmp[i]
-        p += 1
+        p      += 1
     }
+
     return p
 }
 
 func writeUInt2(buf: [*] u8, pos, v: u64)->u64
 {
-    buf[pos]     = cast(u8)(48 + (v / 10))
-    buf[pos + 1] = cast(u8)(48 + (v % 10))
+    buf[pos]     = cast(u8) (48 + (v / 10))
+    buf[pos + 1] = cast(u8) (48 + (v % 10))
     return pos + 2
 }
 
@@ -48,7 +50,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         if j > 0
         {
             text[n] = '\n'
-            n += 1
+            n       += 1
         }
 
         let region = REGIONS[rnd() % 8]
@@ -60,30 +62,31 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
 
         n       = writeUInt(text, n, j)
         text[n] = ','
-        n += 1
+        n       += 1
         for i in region.count
         {
             text[n] = region[i]
-            n += 1
+            n       += 1
         }
+
         text[n] = ','
-        n += 1
+        n       += 1
         n       = writeUInt(text, n, y)
         text[n] = '-'
-        n += 1
+        n       += 1
         n       = writeUInt2(text, n, m)
         text[n] = '-'
-        n += 1
+        n       += 1
         n       = writeUInt2(text, n, d)
         text[n] = ','
-        n += 1
+        n       += 1
         n       = writeUInt(text, n, qty)
         text[n] = ','
-        n += 1
+        n       += 1
         n       = writeUInt(text, n, cents / 100)
         text[n] = '.'
-        n += 1
-        n = writeUInt2(text, n, cents % 100)
+        n       += 1
+        n       = writeUInt2(text, n, cents % 100)
     }
 
     // ---- timed work ----
@@ -128,25 +131,28 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         var qty = 0'u64
         while p < eol and text[p] != ','
         {
-            qty = qty * 10 + cast(u64)(text[p] - 48)
-            p += 1
+            qty = qty * 10 + cast(u64) (text[p] - 48)
+            p   += 1
         }
+
         p += 1
 
         // field 4: price
         var ip = 0'u64
         while p < eol and text[p] != '.'
         {
-            ip = ip * 10 + cast(u64)(text[p] - 48)
-            p += 1
+            ip = ip * 10 + cast(u64) (text[p] - 48)
+            p  += 1
         }
+
         p += 1
         var fr = 0'u64
         while p < eol
         {
-            fr = fr * 10 + cast(u64)(text[p] - 48)
-            p += 1
+            fr = fr * 10 + cast(u64) (text[p] - 48)
+            p  += 1
         }
+
         let price = cast(f64) ip + cast(f64) fr / 100.0'f64
 
         let idx = mapProbe(&agg, rs, rlen)
@@ -163,26 +169,26 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         {
             let slot = agg.val[idx]
             slotCount[slot] += 1
-            slotQty[slot] += qty
-            slotRev[slot] += cast(f64) qty * price
+            slotQty[slot]   += qty
+            slotRev[slot]   += cast(f64) qty * price
             if price > slotMax[slot] do
                 slotMax[slot] = price
         }
 
         rows += 1
-        pos = eol + 1
+        pos  = eol + 1
     }
 
     // sort the region keys, then fold them in order
-    var order: [64] u64
+    var order:  [64] u64
     var keyIdx: [64] u64
-    var nk               = 0'u64
+    var nk = 0'u64
     for i in 64'u64
     {
         if agg.used[i] != 0
         {
             keyIdx[nk] = i
-            nk += 1
+            nk         += 1
         }
     }
 
@@ -204,8 +210,9 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
             if c < 0 or (c == 0 and agg.keyLen[b] < agg.keyLen[a]) do
                 best = j
         }
-        let t      = order[i]
-        order[i]   = order[best]
+
+        let t = order[i]
+        order[i]    = order[best]
         order[best] = t
     }
 
@@ -213,8 +220,8 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     for k in nk
     {
         let slot = agg.val[keyIdx[order[k]]]
-        check += (k + 1) * (cast(u64)(slotRev[slot] * 100.0'f64 + 0.5'f64) % 1000003)
-        check += slotCount[slot] + slotQty[slot] + cast(u64)(slotMax[slot] * 100.0'f64 + 0.5'f64)
+        check += (k + 1) * (cast(u64) (slotRev[slot] * 100.0'f64 + 0.5'f64) % 1000003)
+        check += slotCount[slot] + slotQty[slot] + cast(u64) (slotMax[slot] * 100.0'f64 + 0.5'f64)
     }
 
     let t1 = now()

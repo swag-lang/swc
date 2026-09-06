@@ -118,7 +118,7 @@ public:
     bool       collectReachableNodePath(SmallVector<AstNodeRef>& outPath, AstNodeRef targetRef) const;
     // The module api export is the one pass that asks thousands of reachable-node questions
     // per file. Once it has run the index only holds memory; a later caller rebuilds it.
-    void       releaseReachableNodeIndex() const;
+    void releaseReachableNodeIndex() const;
 
     enum class VisitResult
     {

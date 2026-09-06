@@ -5,6 +5,16 @@
 
 #global namespace Unicode
 
+// General_Category=Z (Zs, Zl, Zp), from Unicode 17.0.0 UnicodeData.txt.
+// Unlike White_Space, this category contains no control characters.
+const TableSeparator: [?] Range = [
+    {0x0020, 0x0020, 1},
+    {0x00A0, 0x1680, 5600},
+    {0x2000, 0x200A, 1},
+    {0x2028, 0x2029, 1},
+    {0x202F, 0x205F, 48},
+    {0x3000, 0x3000, 1}]
+
 const TableWhiteSpace: [?] Range = [
     {0x0009, 0x000D, 1},
     {0x0020, 0x0085, 101},

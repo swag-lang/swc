@@ -53,18 +53,23 @@ struct HeadlessHost
 
         // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
         // is true once every armed stage has completed.
-        autoHandled:       bool                // Auto handled associated with this value.
-        autoArmed:         bool                // Auto armed associated with this value.
-        autoHookInstalled: bool                // Auto hook installed associated with this value.
-        autoFrames:        u32                 // Auto frames associated with this value.
-        autoMaxFrames:     u32                 // Auto max frames associated with this value.
-        autoStages:        Array'AutoStage     // Auto stages associated with this value.
-        autoStage:         u32                 // Auto stage associated with this value.
+        autoHandled:          bool                // Auto handled associated with this value.
+        autoArmed:            bool                // Auto armed associated with this value.
+        autoHookInstalled:    bool                // Auto hook installed associated with this value.
+        autoFrames:           u32                 // Auto frames associated with this value.
+        autoMaxFrames:        u32                 // Auto max frames associated with this value.
+        autoStages:           Array'AutoStage     // Auto stages associated with this value.
+        autoStage:            u32                 // Auto stage associated with this value.
+        readonly autoFailure: String              // Timeout explanation, empty until an armed stage fails.
 
         // Payload the simulated drag helpers hand to the routing, reused across one gesture the
         // way the platform layer reuses the one it reads from the source.
         dragData: DragData
     }
+
+    autoSawModal:  bool
+    autoSawButton: bool
+    autoButtonIds: Array'String
 }
 
 impl HeadlessHost
@@ -88,6 +93,7 @@ impl HeadlessHost
 
         .app.setRenderer(&.renderer)
         .app.setMotionPreference(.Reduced)
+        .app.deterministicStreaming = true
 
         .surface.rc = expect .app.renderer.createContext(null, cast(s32) (width * dpiScale), cast(s32) (height * dpiScale))
         .surface.bindPainterToRenderer(.app.renderer)
@@ -142,14 +148,14 @@ impl HeadlessHost
         .surfaceWnd.position = {0, 0, width, height}
         .surface.wnd         = &.surfaceWnd
         .surfaceWnd.view     = root
+        .app.registerSurface(&.surface)
     }
 
     // Delivers an application-wide notification to the hosted tree.
     //
-    // The host builds its surface by hand and keeps it off the application's surface list on
-    // purpose: that list is walked by the frame and modal loops, which drive native windows. The
-    // broadcasts that walk it — [[Gui.Application.setLanguage]] and the theme change — therefore
-    // reach nothing here, so a test that needs the tree to react to one asks for it directly.
+    // The host registers its software surface with the application. A test can also build a
+    // tree directly under the standalone root, which is not a child of the surface window;
+    // this helper reaches both forms, including trees outside application-wide broadcasts.
     mtd notify(kind: NotifyEvent.Kind)
     {
         // Tolerant of a handler that rebuilds its own content, the way the application's own
@@ -211,6 +217,7 @@ impl HeadlessHost
         // would leave it behind. The host built the surface, so the host takes it down; a test
         // that showed a tip therefore needs no teardown of its own.
         .app.toolTip.hide()
+        .app.unregisterSurface(&.surface)
 
         if !.root.isPendingDestroy do
             .root.destroy()
@@ -270,10 +277,39 @@ impl HeadlessHost
         .autoFrames += 1
 
         let stage = .autoStages.buffer! + .autoStage
+        if stage.kind == .ModalButton
+        {
+            func collectButtons(wnd: *Wnd, ids: *Array'String)
+            {
+                if !wnd.isVisible() do
+                    return
+                if wnd.type == PushButton and wnd.id
+                {
+                    let id = String.from(wnd.id!)
+                    if !ids.contains(id) do
+                        ids.add(id)
+                }
+
+                for child in wnd.children do
+                    collectButtons(child, ids)
+            }
+
+            for surface in app.modalSurfaces
+            {
+                .autoSawModal = true
+                let view = surface.view()
+                .autoSawButton = .autoSawButton or view.childById(stage.button) != null
+                collectButtons(view, &.autoButtonIds)
+            }
+        }
+
         if .runAutoStage(stage)
         {
-            .autoStage  += 1
-            .autoFrames = 0
+            .autoStage     += 1
+            .autoFrames    = 0
+            .autoSawModal  = false
+            .autoSawButton = false
+            .autoButtonIds.clear()
             if .autoStage == .autoStages.count
             {
                 .autoArmed   = false
@@ -282,8 +318,27 @@ impl HeadlessHost
         }
         elif .autoFrames > .autoMaxFrames
         {
-            // The expected UI never showed up: unblock the pumping loop so the test
-            // can fail on 'autoHandled' instead of hanging.
+            if stage.kind == .ModalButton
+            {
+                if !.autoSawModal do
+                    .autoFailure = Format.toString("modal did not appear while waiting for button '%'", stage.button)
+                elif .autoSawButton do
+                    .autoFailure = Format.toString("modal preparation did not complete for button '%'", stage.button)
+                else
+                {
+                    .autoFailure = Format.toString("modal appeared without button '%'; observed button identifiers:", stage.button)
+                    if .autoButtonIds.isEmpty() do
+                        .autoFailure += " none"
+                    for id in .autoButtonIds do
+                        .autoFailure += Format.toString(" '%'", id)
+                }
+            }
+            else do
+                .autoFailure = "popup action did not complete before the frame limit"
+
+            Console.println("headless UI stage ", .autoStage + 1, ": ", .autoFailure)
+
+            // Unblock the pumping loop; the retained explanation also lets a test inspect failure.
             .autoArmed = false
             if stage.kind == .ModalButton do
                 app.exitModal(Dialog.BtnCancel)
@@ -301,6 +356,10 @@ impl HeadlessHost
         .autoFrames    = 0
         .autoHandled   = false
         .autoArmed     = true
+        .autoFailure.clear()
+        .autoSawModal  = false
+        .autoSawButton = false
+        .autoButtonIds.clear()
     }
 
     private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder, file, label: string? = null)->*AutoStage
@@ -459,11 +518,12 @@ impl HeadlessHost
         return .root.windowAt(pt.x, pt.y, true)
     }
 
-    // Drains posted events, destruction events, and deferred object deletion.
+    // Drains posted events, destruction, deferred layout, and object deletion.
     mtd pump()
     {
         .pumpPostedEvents()
         .pumpDestroyEvents()
+        .root.flushLayout()
         .deleteQueuedObjects()
     }
 

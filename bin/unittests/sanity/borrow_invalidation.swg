@@ -466,6 +466,38 @@ func borrowInvViewAsArgument()->u64
     return buf.length
 }
 
+// Parameter borrows are judged independently of the order of neighbouring bodies and of whether
+// the later read is returned directly or passed to another function.
+func borrowInvReadByte(value: u8)->u8 => value
+
+func borrowInvParameterDirectFirst(buf: *BorrowInvBuffer)->u8
+{
+    let view = buf.view()
+    buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+func borrowInvParameterArgumentSecond(buf: *BorrowInvBuffer)->u8
+{
+    let view = buf.view()
+    buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return borrowInvReadByte(view[0])
+}
+
+func borrowInvParameterArgumentFirst(buf: *BorrowInvBuffer)->u8
+{
+    let view = buf.view()
+    buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return borrowInvReadByte(view[0])
+}
+
+func borrowInvParameterDirectSecond(buf: *BorrowInvBuffer)->u8
+{
+    let view = buf.view()
+    buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
 // Mutating a different owner leaves this view alone.
 func borrowInvOtherOwner()->u8
 {

@@ -106,7 +106,7 @@ public:
     void     addFreesParam(size_t paramIndex) noexcept
     {
         if (paramIndex < 64)
-            freesParamsMask_ |= 1ULL << paramIndex;
+            freesParamsMask_.fetch_or(1ULL << paramIndex, std::memory_order_release);
     }
 
     // Bit i set = the returned value is a view INTO the heap payload parameter #i owns,
@@ -338,7 +338,7 @@ private:
     uint64_t                                  returnBorrowsParamsMask_                   = 0;
     uint64_t                                  storesParamsMask_                          = 0;
     uint64_t                                  storesIntoParamPairs_                      = 0;
-    uint64_t                                  freesParamsMask_                           = 0;
+    std::atomic<uint64_t>                     freesParamsMask_                           = 0;
     uint64_t                                  reallocatesParamsMask_                     = 0;
     uint64_t                                  reallocatesUnknownProjectionParamsMask_    = 0;
     uint64_t                                  returnsPayloadParamsMask_                  = 0;

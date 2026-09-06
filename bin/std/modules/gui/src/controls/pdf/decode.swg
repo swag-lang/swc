@@ -1580,7 +1580,10 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
     // no readable trailer is noticed.
     var catalog = resolvedCatalog(parser, parser.trailerRoot)
     var info    = resolvedInfo(parser, parser.trailerInfo)
-    if catalog == InvalidNode or info == InvalidNode
+
+    // An absent Info entry is valid and must not turn a lazy open into a repair scan.
+    // A scan already needed for a damaged index still searches for unnamed dictionaries.
+    if parser.hasScanned or catalog == InvalidNode or (parser.trailerInfo != InvalidNode and info == InvalidNode)
     {
         // The search needs every object, which is exactly what the scan produces.
         parser.ensureScanned()

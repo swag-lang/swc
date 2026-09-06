@@ -2,6 +2,23 @@
 
 using Core, Pixel
 
+// Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
+internal func htmlLocalResourcePath(basePath, source: string)->String
+{
+    if !Path.isValidPathName(source) or Utf8.contains(source, "://") or Utf8.startsWith(source, "data:") do
+        return {}
+    let colon = Utf8.indexOf(source, ':'rune)
+    if colon != Swag.U64.Max and !(WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
+        return {}
+    if basePath.count and !Path.isValidPathName(basePath) do
+        return {}
+
+    let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(basePath, source)
+    if fileName.count >= 2 and Path.isDirectorySeparator(fileName[0]) and Path.isDirectorySeparator(fileName[1]) do
+        return {}
+    return fileName
+}
+
 // One image a document referenced, decoded at most once.
 #[Swag.NoDoc]
 public struct HtmlImageEntry
@@ -88,11 +105,11 @@ impl HtmlImageCache
             return &.entries[slot]
         }
 
-        if Utf8.contains(source, "://") or Utf8.startsWith(source, "//") do
+        let fileName = htmlLocalResourcePath(.basePath.toString(), source)
+        if fileName.isEmpty() do
             return null
 
-        let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(.basePath.toString(), source)
-        let image    = catch Image.load(fileName.toString()) as loadError
+        let image = catch Image.load(fileName.toString()) as loadError
         if loadError != null do
             return null
 

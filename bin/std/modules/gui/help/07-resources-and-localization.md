@@ -2,7 +2,7 @@
 
 Every [[Gui.Application]] owns a [[Core.Resources.Bundle]] in
 [[Gui.Application.resources]]. A resource is a run of bytes addressed by a
-`/`-separated name, such as `theme/widgets.png` or `lang/fr/gui.tweak`. The
+`/`-separated name, such as `theme/widgets.svg` or `lang/fr/gui.tweak`. The
 embedded content of every loaded module registers itself as the fallback
 provider, so a bare application needs no configuration; a disk folder added
 before the first surface lets files override any of those names without

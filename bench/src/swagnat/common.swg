@@ -21,7 +21,7 @@ func benchAlloc(size: u64)->[*] void?
     if !request.address do
         return null
 
-    let header       = cast(*BenchAllocationHeader) request.address
+    let header = cast(*BenchAllocationHeader) request.address
     header.totalSize = request.size
     header._padding  = 0
     return cast([*] void) (cast([*] u8) header + #sizeof(BenchAllocationHeader))
@@ -36,7 +36,7 @@ func benchFree(ptr: [*] void?)
     var request: Swag.AllocatorRequest
     request.address = header
     request.size    = header.totalSize
-    let allocator   = Swag.getContext().allocator!
+    let allocator = Swag.getContext().allocator!
     allocator.free(&request)
 }
 

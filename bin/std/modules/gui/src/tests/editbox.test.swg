@@ -49,6 +49,29 @@ func editHeadlessEscape(eb: *EditBox)
     Swag.assert(edit.text() == "World")
 }
 
+// Cancellation reports the focus transition without committing; the next ordinary exit commits.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 100)
+    defer host.shutdown()
+    let edit = EditBox.create(&host.root, "before", {10, 10, 180, 26})
+    let next = PushButton.create(&host.root, "Next", {10, 50, 100, 26})
+    var lost, committed: u32
+    edit.sigFocusLost += func|lost = &lost|(box) { discard box; lost[] += 1 }
+    edit.sigCommitted += func|committed = &committed|(box) { discard box; committed[] += 1 }
+
+    edit.setFocus()
+    edit.setText("cancelled")
+    edit.cancelEdit(next)
+    Swag.assert(edit.text() == "before" and next.hasFocus())
+    Swag.assert(lost == 1 and committed == 0)
+    edit.setFocus()
+    edit.setText("kept")
+    next.setFocus()
+    Swag.assert(edit.text() == "kept" and lost == 2 and committed == 1)
+}
+
 // Typing runes inserts text at the caret.
 #test
 {

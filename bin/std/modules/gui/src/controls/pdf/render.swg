@@ -108,12 +108,10 @@ private const MaxSubstituteCondense = 2.0'f32
 
 // Typefaces resolved once per page rather than once per text item.
 //
-// Resolving an embedded face hashes the complete font program to key the process-wide
-// typeface cache, so a page with thousands of runs must not pay it per run: at one hash per
-// item, re-rendering a dense page reads hundreds of megabytes of font bytes before it draws
-// a single glyph, which is what a viewer experiences as a freeze on every zoom step. An
-// offline render owns one for its lifetime; [[Gui.PdfView]] keeps one per displayed page, so
-// no paint resolves a face the previous paint already resolved.
+// FontResource already carries the program hash. This cache also avoids repeating typeface
+// table lookups and substitute-font selection for each run. An offline render owns one for
+// its lifetime; [[Gui.PdfView]] keeps one per displayed page, so no paint resolves a face
+// the previous paint already resolved.
 //
 // Dependency-visible backing type required by the concrete [[Gui.PdfView]] layout.
 #[Swag.Opaque, Swag.NoDoc]

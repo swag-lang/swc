@@ -380,6 +380,13 @@ internal impl CodeViewer
 
 internal impl IWnd for CodeViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged and .zoomLabel do
+            .zoomLabel!.toolTip = codeStrings().ui_ZoomMenu
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .stopLoading()

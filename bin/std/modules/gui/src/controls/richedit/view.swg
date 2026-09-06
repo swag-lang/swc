@@ -137,6 +137,15 @@ impl IWnd for RichEditView
                 }
             }
 
+            // Enter inserts a line through the following character event. Other keys belong
+            // to the editor only when its shortcut table names a command for them.
+            if edn.commandForShortcut(evt.key, evt.modifiers) == .None and
+               (evt.key != .Return or edn.isReadOnly())
+            {
+                evt.accepted = false
+                return
+            }
+
             evt.accepted = true
             edn.keyPressed(evt.key, evt.modifiers)
             .forceVisibleCaret()

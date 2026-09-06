@@ -144,7 +144,7 @@ internal impl Properties
             if Reflection.hasAttribute(value, Properties.FilePath) do
                 .updateFlags(.AcceptFileDrop)
 
-            .sigFocusLost += func|prop = me, item|(ed) { prop.validateDynamicString(item); }
+            .sigCommitted += func|prop = me, item|(ed) { prop.validateDynamicString(item); }
         }
 
         me.adaptCondensedControl(edit)

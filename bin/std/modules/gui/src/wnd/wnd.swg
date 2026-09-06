@@ -1216,12 +1216,29 @@ impl Wnd
     // Layout sizing contract
     //////////////////////////////////////////////
 
-    // Marks cached measurement dirty and propagates the invalidation to the root.
+    // Requests measurement and arrangement before the next paint, propagating to the root.
     mtd invalidateLayout()
     {
         .layoutDirty = true
         if .parent do
             .parent.invalidateLayout()
+    }
+
+    // Drains deferred layout from the root down. Measuring alone does not arrange a container.
+    internal mtd flushLayout()
+    {
+        if .isPendingDestroy do
+            return
+        if .layoutDirty
+        {
+            .layoutDirty = false
+            .sendResizeEvent()
+            .applyLayout()
+            .invalidate()
+        }
+
+        for child in .children do
+            child.flushLayout()
     }
 
     // Returns the component-wise sum of legacy and container layout margins.
@@ -1285,7 +1302,6 @@ impl Wnd
             result.max.y = result.preferred.y
 
         .cachedSizeHint                = result
-        .layoutDirty                   = false
         .layoutDebug.measuredMin       = result.min
         .layoutDebug.measuredPreferred = result.preferred
         .layoutDebug.measuredMax       = result.max
@@ -1975,10 +1991,49 @@ impl Wnd
     // Reports whether keyboard traversal stops on this window.
     mtd isFocusStop()->bool => .focusPolicy == .Tab
 
+    // Reveals the incoming focus from the innermost scrolling viewport outwards.
+    private mtd revealFocus()
+    {
+        var child  = me
+        var parent = .parent
+        while parent
+        {
+            if child.wndFlags.has(.NoScroll) do
+                return
+            if parent.type == ScrollWnd
+            {
+                let scroll = cast(*ScrollWnd) parent
+                if scroll.view == child
+                {
+                    let visible  = child.surfaceRect()
+                    let target   = .surfaceRect()
+                    var position = scroll.scrollPosition()
+
+                    // Prefer the leading edge for a control larger than its viewport.
+                    if target.x < visible.x or target.width > visible.width do
+                        position.x += target.x - visible.x
+                    elif target.right() > visible.right() do
+                        position.x += target.right() - visible.right()
+                    if target.y < visible.y or target.height > visible.height do
+                        position.y += target.y - visible.y
+                    elif target.bottom() > visible.bottom() do
+                        position.y += target.bottom() - visible.bottom()
+                    scroll.setScrollPos(position)
+                    if .isPendingDestroy or .app().keyboardFocusWnd != me do
+                        return
+                }
+            }
+
+            child  = parent
+            parent = parent.parent
+        }
+    }
+
     // Requests keyboard focus after both the old and new windows approve the transition.
     //
     // The focus goes to [[Gui.Wnd.focusTarget]], so asking a composite for the focus reaches
-    // the part of it that reads the keys.
+    // the part of it that reads the keys. A disabled window or surface cannot take focus.
+    // Scrolling ancestors reveal the accepted control before it receives the focus event.
     mtd setFocus()
     {
         let target = .focusTarget()
@@ -1991,7 +2046,7 @@ impl Wnd
         let srfn = .surface!
         if srfn.app.keyboardFocusWnd == me do
             return
-        if !.isEnabled() do
+        if !.isEnabled() or srfn.isDisabled do
             return
 
         let last = srfn.app.keyboardFocusWnd
@@ -2034,6 +2089,10 @@ impl Wnd
 
         // The Lost callback is allowed to destroy the incoming control or deliberately move the
         // focus elsewhere. In either case that nested operation owns the resulting state.
+        if .isPendingDestroy or srfn.app.keyboardFocusWnd != me do
+            return
+
+        .revealFocus()
         if .isPendingDestroy or srfn.app.keyboardFocusWnd != me do
             return
 

@@ -66,9 +66,9 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.006 — Tempo, meter, key, marker, and lyric changes are reduced to first-value summary
 
-- Evidence: summary helpers report only the first tempo, time signature, and key signature. Later
-  changes do affect duration calculation but are not drawn; lyrics, markers, and cue points are not
-  parsed into visible lanes.
+- Evidence: summary helpers report only the first tempo, time signature, and key signature.
+  Subsequent tempo changes affect PPQN duration calculation, but none of these changes has a
+  timeline lane; lyrics, markers, and cue points are not parsed into visible lanes.
 - Next: add ruler lanes for tempo, meter, key, markers/cues, and lyrics over the exact event timeline.
 - Complete when: every change is positioned and selectable, ramps versus steps are not confused,
   bar numbering follows meter changes, lyrics preserve syllable/order metadata, and lane visibility
@@ -97,9 +97,9 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.009 — The piano roll cannot zoom vertically or adapt its keyboard and note labels
 
-- Evidence: horizontal zoom exists, while pitch rows, visible range, keyboard width, note-name
-  convention, octave numbering, drum names, scale highlighting, and black/white-key contrast are
-  fixed.
+- Evidence: horizontal zoom exists. The pitch range fits the score with two keys of padding and
+  row height adapts to the viewport, but neither has a user zoom/pan control. Keyboard width,
+  note-name convention and octave numbering are fixed; drum names and scale overlays are absent.
 - Next: add vertical zoom/pan and configurable pitch labelling before scale/drum overlays.
 - Complete when: vertical fit and zoom preserve selected notes, MIDI key number and chosen note name
   are visible, octave convention is declared, channel-10 drum maps can replace pitch names, and
@@ -110,7 +110,8 @@ remain available in the Binary viewer.
 ### app.scope.midi.010 — SMF timing and structural edge cases have no explicit support matrix
 
 - Evidence: the parser caps input at 32 MiB and one million notes, calculates PPQN duration from a
-  tempo map, and parses core chunks. Support for SMPTE division, format 2 independent sequences,
+  tempo map, and has a separate SMPTE duration branch. It accepts format values 0 through 2,
+  but its tests cover only a format-0 PPQN score. SMPTE division, format 2 independent sequences,
   multiple End-of-Track cases, running status boundaries, RIFF RMID, karaoke conventions, huge delta
   times, and conflicting tempo tracks is not presented as a tested contract.
 - Next: document current semantics and add focused fixtures for every SMF format/division plus
@@ -121,9 +122,10 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.011 — Large MIDI files are fully materialized and hard-capped
 
-- Evidence: the entire file, tracks, and up to one million note objects remain resident before the
-  view is useful. Event-dense captures can hit the 32 MiB or note cap despite needing only a small
-  visible time range.
+- Evidence: opening reads the entire file and materializes tracks and up to one million notes
+  before publication. The source byte buffer is released after parsing; decoded records remain
+  resident. Event-dense captures can hit the 32 MiB or note cap despite needing only a small visible
+  time range.
 - Next: split a bounded chunk/event index from lazily decoded visible events and publish metadata as
   soon as the header and track directory are known.
 - Complete when: opening and scrolling memory are explicitly bounded, note/event limits can page

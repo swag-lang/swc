@@ -6,15 +6,8 @@ also belongs here; rendered Markdown and HTML integration lives in
 [app.scope.document.md](app.scope.document.md). Engine work owned by `std/gui` remains in
 [std.gui.html.md](std.gui.html.md), [std.gui.markdown.md](std.gui.markdown.md), or [std.gui.md](std.gui.md).
 
-The competitive baseline is deliberately read-only. [Visual Studio Code's basic editor](https://code.visualstudio.com/docs/editing/codebasics)
-provides encoding choice, folding, file comparison, and direct navigation, while its
-[editor surface](https://code.visualstudio.com/docs/editing/userinterface) adds a minimap, sticky
-scope, indentation guides, and breadcrumbs. [EmEditor](https://help.emeditor.com/en/features_index.html)
-sets the large-file baseline with partial-file opening, markers, filtering, and bounded work on
-multi-gigabyte inputs. [klogg](https://github.com/variar/klogg/blob/master/DOCUMENTATION.md) sets the
-log-reading baseline with regular-expression result panes, match overviews, reusable highlighters,
-marks, and follow mode. Swag Scope should adopt those inspection outcomes without adding editing,
-implicit network access, macros, or source mutation.
+The intended surface is read-only: navigation, comparison, structured inspection and bounded
+large-file work without editing, implicit network access, macros or source mutation.
 
 ## Shared text reading
 
@@ -23,8 +16,8 @@ implicit network access, macros, or source mutation.
 - Evidence: basic text, code, Markdown, and HTML now expose the same percentage menu and
   Ctrl+plus/minus/reset gestures. The value is per-view only, is not persisted, and Ctrl+wheel is
   not connected to it.
-- Complete when: a shared zoom command changes text size in every basic and format-specific text view, is
-  persisted, and leaves the streaming window arithmetic correct.
+- Complete when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
+  format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
 
 ### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
 
@@ -70,9 +63,8 @@ implicit network access, macros, or source mutation.
 ### app.scope.text.026 — Whole-file search has no inspectable result set or context projection
 
 - Evidence: shared search supports case, whole-word, and regular-expression matching across the
-  whole file, but exposes only one highlighted occurrence and a current/total counter. EmEditor and
-  klogg can retain matching lines, surrounding context, and a whole-file match overview, which is
-  the difference between finding one error and investigating a large report.
+  whole file, but exposes only one highlighted occurrence and a current/total counter. There is no
+  retained matching-line view, surrounding context or whole-file match overview.
 - Next: publish the streamed match index as a virtual result pane with configurable context lines
   and an optional matches-only projection over immutable source ranges.
 - Complete when: results show line, byte offset, matched text, and bounded before/after context;
@@ -82,12 +74,14 @@ implicit network access, macros, or source mutation.
 
 ### app.scope.text.043 — Regular-expression search has no declared resource budget
 
-- Evidence: the host scans regular expressions over asynchronous chunks, but the backlog and
-  compatibility matrix do not state a complexity policy, per-chunk deadline, cancellation latency,
-  match-count ceiling, zero-length-match rule, or behavior for a pattern whose match crosses chunk
-  boundaries. A valid but pathological expression can therefore undermine the bounded-reader claim.
-- Next: specify the accepted expression engine and streamed matching contract, then add adversarial
-  patterns and boundary-spanning fixtures before exposing result projections more widely.
+- Evidence: the generic file path reads chunks on timers but retains the complete source before
+  evaluating a regular expression on the GUI thread. This preserves cross-chunk matches and
+  document anchors at the cost of unbounded source retention. `Viewer.collectTextMatches` already
+  skips zero-width matches and returns non-overlapping spans. `Parser.RegExp` has bounded DFA
+  caches and a 20-million-step backtracking budget, but the viewer has no cumulative query memory,
+  result-count or cancellation contract and cannot distinguish exhaustion from no match.
+- Next: move evaluation behind a cancellable, budgeted query operation, retaining the existing
+  anchor and nonzero-span semantics, and add adversarial plus boundary-spanning fixtures.
 - Complete when: regex compilation and matching have explicit time, memory, stack, and result
   limits; cancellation meets a measured latency; zero-length and overlapping matches advance
   deterministically; boundary-spanning results are correct or the documented maximum look-behind
@@ -98,8 +92,7 @@ implicit network access, macros, or source mutation.
 
 - Evidence: a reader can jump through search results and to the file ends, but cannot mark a line,
   revisit arbitrary investigation points, or move backward after a distant seek. Binary already
-  demonstrates a bounded row-navigation history, and klogg exposes marks plus previous/next-mark
-  navigation.
+  demonstrates a bounded row-navigation history.
 - Next: define byte-backed text locations with an optional label and a bounded back/forward trail.
 - Complete when: bookmark current line, previous/next bookmark, back, forward, list, rename, and
   clear are keyboard reachable; locations survive streamed-window eviction; stale locations are
@@ -190,9 +183,9 @@ implicit network access, macros, or source mutation.
 
 ### app.scope.text.009 — Syntax language and highlighting rules cannot be inspected or overridden
 
-- Evidence: `codeLanguage` chooses from file name and extension, and `GenericCodeLexer` applies a
-  fixed keyword lexer. A misclassified or extensionless file has no language selector, and the UI
-  gives no language name or reason for the choice.
+- Evidence: `codeLanguage` chooses from file name, extension and supported shebangs, and
+  `GenericCodeLexer` applies fixed lexical rules. The details already show `languageName`.
+  A misclassified file has no language override or explanation of the detection decision.
 - Next: publish language identity in the command bar and allow a temporary or persisted override,
   including Plain Text.
 - Complete when: every supported language is selectable, detection evidence is visible, overrides
@@ -210,9 +203,8 @@ implicit network access, macros, or source mutation.
 
 ### app.scope.text.031 — Source structure has no sticky scope, indentation guides, or delimiter matching
 
-- Evidence: lexical color is the only structural cue inside the code surface. VS Code keeps the
-  current nested scope visible while scrolling, draws indentation guides, and pairs brackets;
-  those aids remain useful in a read-only single-file reader and do not require project semantics.
+- Evidence: lexical color is the only structural cue inside the code surface. There is no sticky
+  scope, indentation guide or delimiter-pair view independent of project semantics.
 - Next: derive indentation, delimiter pairs, and sticky headings from the same bounded lexical and
   outline ranges planned by app.scope.text.006 and .010.
 - Complete when: the current scope path remains visible and navigable, indentation guides survive
@@ -323,7 +315,7 @@ implicit network access, macros, or source mutation.
 ### app.scope.text.018 — Table values have no type inference or professional formatting
 
 - Evidence: every cell is a string. Numbers, dates, times, booleans, nulls, percentages, and units
-  cannot align, sort, filter, or format by their meaning, and inference errors are silent.
+  cannot align, sort, filter, or format by their meaning; no type inference runs today.
 - Next: sample then incrementally refine a nullable column type with locale-independent parsing and
   an explicit user override.
 - Complete when: original text is always inspectable, inferred type/confidence and failures are
@@ -376,8 +368,8 @@ implicit network access, macros, or source mutation.
 - Evidence: unified diffs are among the most frequently opened developer files and are the format
   where flat text costs the most. The current Text view cannot distinguish file headers, metadata,
   hunks, additions, removals, context, no-newline markers, binary notices, renames, modes, or
-  malformed ranges. VS Code's diff viewer adds inline/side-by-side layouts, collapsed unchanged
-  regions, previous/next-change navigation, and an accessible unified representation.
+  malformed ranges. There is no inline/side-by-side layout, collapsed unchanged region,
+  previous/next-change navigation or accessible change representation.
 - Next: parse unified and Git patch syntax into immutable file/hunk/line ranges, beginning with a
   themed unified view and a file/hunk outline before adding a synchronized side-by-side projection.
 - Complete when: file and hunk navigation, inline and side-by-side layouts, intraline differences,
@@ -387,8 +379,7 @@ implicit network access, macros, or source mutation.
 ### app.scope.text.033 — Two local text files cannot be compared
 
 - Evidence: Swag Scope can read a patch that another tool produced, but it cannot compare the open
-  text with another local file or clipboard snapshot. VS Code exposes file-to-file and
-  file-to-clipboard comparison independently of its source-control write operations.
+  text with another local file or clipboard snapshot.
 - Next: reuse the immutable diff presentation from app.scope.text.022 with a cancellable,
   memory-budgeted line matcher and explicit left/right source identities.
 - Complete when: the reader can select a second local text file or clipboard snapshot, choose
@@ -398,16 +389,15 @@ implicit network access, macros, or source mutation.
 
 ### app.scope.text.023 — Log files have no dedicated view
 
-- Intent: a log is the archetypal huge file, which is where the streaming architecture already
-  wins — but it opens at the beginning, uncolored, with no way to reach the end that matters.
+- Intent: a log opens as Basic text at the beginning. End and Ctrl+End already seek to the file
+  tail, but there is no start-at-tail preference, severity/timestamp model or event navigation.
 - Complete when: common severity and timestamp spellings are recognized with confidence, the
   reader can start at the tail, entries rather than wrapped screen lines are navigable, multiline
   stack traces remain attached to their event, and uncertain parsing falls back to exact text.
 
 ### app.scope.text.034 — Live logs cannot follow append, truncation, or rotation
 
-- Evidence: opening a log snapshots its current size. klogg's follow mode keeps the viewport at the
-  tail, while real services can append, truncate in place, atomically replace, or rotate and
+- Evidence: opening a log snapshots its current size. Services can append, truncate in place, atomically replace, or rotate and
   recreate a path; treating those events alike either loses records or joins unrelated files.
 - Next: specialize the host replacement contract with a log cursor carrying file identity, byte
   offset, decoder state, and whether the reader has scrolled away from the tail.
@@ -421,8 +411,6 @@ implicit network access, macros, or source mutation.
 
 - Evidence: the shared query can highlight one expression, but an investigation commonly needs
   several named patterns, include/exclude logic, per-pattern colors, and context around each match.
-  klogg supports logical regular-expression filters, quick highlighters, match overviews, and
-  marks; EmEditor likewise combines filters, markers, and extraction over huge files.
 - Next: layer an immutable event projection over the streamed log index with named query clauses,
   highlight rules, exclusion, and before/after context.
 - Complete when: literal and regular-expression clauses compose with AND, OR, and NOT; colors remain
@@ -496,9 +484,6 @@ implicit network access, macros, or source mutation.
 - Evidence: `.json` opens in the Code viewer and `.jsonl` has no registered semantic surface, so
   objects and arrays cannot be explored as a tree, properties cannot be addressed by JSON Pointer,
   duplicate keys and malformed ranges are not summarized, and schema-derived meaning is absent.
-  Visual Studio Code provides property navigation, structural folding, validation, and schema
-  explanations; Swag Scope can add the read-only parts without inheriting editing or implicit
-  network access.
 - Next: build a bounded JSON token/range index and a synchronized virtual tree/source view, starting
   with strict JSON and independently streamed JSON Lines before adding optional local schemas.
 - Complete when: tree nodes retain exact source byte ranges and original number/string spelling;

@@ -80,8 +80,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
 
-- Evidence: host search appends every occurrence to `ViewerWindow.searchMatches`, enables
-  navigation only after EOF, and exposes no progress or cancellation action. A file filled with a
+- Evidence: the streamed-file search path used by Hexadecimal appends every occurrence to
+  `ViewerWindow.searchMatches` and finalizes its presentation only at EOF. Other viewer-owned
+  match collectors already publish intermediate results. This file-scanning path exposes no byte
+  progress or cancellation action. A file filled with a
   frequent byte sequence can make result memory proportional to file size even though display is
   bounded.
 - Next: extend the search contract with incremental batches, cancellation, progress, and a paged or

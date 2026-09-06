@@ -461,7 +461,7 @@ internal namespace Shell32Priv
         func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL)->BOOL
         func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT
         func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT
-        func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO)->SHSTDAPI
+        func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: *SHSTOCKICONINFO)->SHSTDAPI
         func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL
         func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL
         func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE
@@ -515,10 +515,11 @@ const SHCNF_IDLIST       = 0x0000'u32
         return res
     }
 
-    func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO) fail
+    func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: *SHSTOCKICONINFO) fail
     {
-        if Shell32Priv.SHGetStockIconInfo(siid, uFlags, psii) != S_OK do
-            failWinError(GetLastError())
+        let result = Shell32Priv.SHGetStockIconInfo(siid, uFlags, psii)
+        if result != S_OK do
+            failWinError(cast #bit (u32) result)
     }
 
     func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) fail
@@ -537,7 +538,6 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do
-            // ?!
             failWinError(GetLastError())
         return result
     }
@@ -546,7 +546,6 @@ const SHCNF_IDLIST       = 0x0000'u32
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do
-            // ?!
             failWinError(GetLastError())
         return result
     }

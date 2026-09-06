@@ -30,7 +30,7 @@ func qsort(lowIn, highIn: s64)
 
     while low < high
     {
-        let p = g_Idx[cast(u64)((low + high) / 2)]
+        let p = g_Idx[cast(u64) ((low + high) / 2)]
         var i = low
         var j = high
 
@@ -42,11 +42,11 @@ func qsort(lowIn, highIn: s64)
                 j -= 1
             if i <= j
             {
-                let t                = g_Idx[cast(u64) i]
-                g_Idx[cast(u64) i]   = g_Idx[cast(u64) j]
-                g_Idx[cast(u64) j]   = t
-                i += 1
-                j -= 1
+                let t = g_Idx[cast(u64) i]
+                g_Idx[cast(u64) i] = g_Idx[cast(u64) j]
+                g_Idx[cast(u64) j] = t
+                i                  += 1
+                j                  -= 1
             }
         }
 
@@ -71,14 +71,14 @@ func qsort(lowIn, highIn: s64)
         vocabLen[i] = l
         for k in l
         {
-            vocabBytes[vp] = cast(u8)(97 + (nn % 26))
-            vp += 1
-            nn = nn / 26 + 7 * k
+            vocabBytes[vp] = cast(u8) (97 + (nn % 26))
+            vp             += 1
+            nn             = nn / 26 + 7 * k
         }
     }
 
     g_Text = cast([*] u8) (benchAlloc(WORDS * 12))!
-    var n  = 0'u64
+    var n = 0'u64
     for j in WORDS
     {
         let idx = rnd() % VOCAB
@@ -87,8 +87,9 @@ func qsort(lowIn, highIn: s64)
         for k in l
         {
             g_Text[n] = vocabBytes[o + k]
-            n += 1
+            n         += 1
         }
+
         if (j + 1) % 12 == 0 do
             g_Text[n] = '\n'
         else do
@@ -126,6 +127,7 @@ func qsort(lowIn, highIn: s64)
                 counts.val[idx] += 1
             open = false
         }
+
         i += 1
     }
 
@@ -139,10 +141,10 @@ func qsort(lowIn, highIn: s64)
     }
 
     let distinct = counts.count
-    g_Cnt        = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
-    g_Off        = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
-    g_Len        = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
-    g_Idx        = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
+    g_Cnt = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
+    g_Off = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
+    g_Len = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
+    g_Idx = cast([*] u64) (benchAlloc(distinct * #sizeof(u64)))!
 
     var ni = 0'u64
     for s in CAP
@@ -153,7 +155,7 @@ func qsort(lowIn, highIn: s64)
         g_Off[ni] = counts.keyOff[s]
         g_Len[ni] = counts.keyLen[s]
         g_Idx[ni] = ni
-        ni += 1
+        ni        += 1
     }
 
     qsort(0, cast(s64) distinct - 1)

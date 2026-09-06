@@ -91,6 +91,19 @@ internal struct PdfViewer
 
 private impl IWnd for PdfViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged
+        {
+            .previousButton.toolTip = pdfStrings().ui_Previous
+            .nextButton.toolTip     = pdfStrings().ui_Next
+            .pageLabel.toolTip      = pdfStrings().ui_GoToPage
+            .zoomLabel.toolTip      = pdfStrings().ui_ZoomMenu
+        }
+
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .loadTimer

@@ -1,13 +1,19 @@
 #global export
 
-// Fail with a [[Swag.SystemError]]
+// Raises a [[Swag.SystemError]] for an operation that has already reported failure.
+//
+// The supplied code is preserved, including zero when Windows provides no extended error.
+// Callers must test the native failure condition before calling this function. A zero code
+// receives a generic failure message instead of the system's success message.
 func failWinError(errorMessageID: u32) fail
 {
-    if errorMessageID == 0 do
-        return
-
     var err: Swag.SystemError
     err.errorID = errorMessageID
+    if errorMessageID == 0
+    {
+        err.message = "the Windows operation failed without an error code"
+        fail err
+    }
 
     let cxt = Swag.getContext()
 

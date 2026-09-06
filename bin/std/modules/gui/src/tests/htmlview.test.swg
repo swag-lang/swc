@@ -3,6 +3,26 @@
 
 using Core, Pixel
 
+// Every offline resource path uses the same lexical boundary before filesystem access.
+#test
+{
+    Swag.assert(Path.equals(htmlLocalResourcePath("pages", "images/title.png").toString(), "pages/images/title.png"))
+    Swag.assert(htmlLocalResourcePath("pages", "https://example.invalid/image.png").isEmpty())
+    Swag.assert(htmlLocalResourcePath("pages", "//server/share/image.png").isEmpty())
+    Swag.assert(htmlLocalResourcePath("pages", "data:image/png;base64,AA==").isEmpty())
+    Swag.assert(htmlLocalResourcePath("pages", "file:picture.png").isEmpty())
+    Swag.assert(htmlLocalResourcePath("pages", "bad\x00.png").isEmpty())
+    Swag.assert(htmlLocalResourcePath("//server/share", "image.png").isEmpty())
+    if WINDOWS
+    {
+        Swag.assert(htmlLocalResourcePath("pages", #raw "\\server\share\image.png").isEmpty())
+        Swag.assert(htmlLocalResourcePath("pages", #raw "/\server\share\image.png").isEmpty())
+        Swag.assert(htmlLocalResourcePath("pages", #raw "\\?\UNC\server\share\image.png").isEmpty())
+        Swag.assert(htmlLocalResourcePath("pages", #raw "\\.\pipe\image.png").isEmpty())
+        Swag.assert(htmlLocalResourcePath("pages", "C:/images/title.png") == "C:/images/title.png")
+    }
+}
+
 func guiFixturePath(name: string)->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
@@ -239,6 +259,29 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let emphasis = findTag(&view.document, .Em)
     Swag.assert(!view.layout.styleOfNode(emphasis).italic)
+}
+
+// Unsupported complex functional selectors cannot silently become their first compound.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 220)
+    defer host.shutdown()
+    var source: String = "<style>* {color:#123456; font-size:16px}"
+    source += ":is(nav a) {color:#ff0000} :not(nav a) {font-size:37px}"
+    source += "section > :is(nav a) {color:#00ff00}"
+    source += ":is(.accepted, .also) {font-size:23px}</style>"
+    source += "<section><nav id='nav'><a id='link'>link</a></nav></section>"
+    source += "<p id='accepted' class='accepted'>accepted</p>"
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 200)
+    view.rebuild()
+
+    let nav  = view.layout.styleOfNode(view.elementById("nav"))
+    let link = view.layout.styleOfNode(view.elementById("link"))
+    Swag.assert(nav.color == Color.fromArgb(0xFF123456) and nav.fontSize == 16)
+    Swag.assert(link.color == Color.fromArgb(0xFF123456) and link.fontSize == 16)
+    Swag.assert(view.layout.styleOfNode(view.elementById("accepted")).fontSize == 23)
 }
 
 // Lengths read every unit a document uses, and math expressions keep what layout must resolve.

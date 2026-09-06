@@ -56,6 +56,52 @@ using Swag, Core
     Swag.assert(Math.abs(total - client.width) < 1.5)
 }
 
+// Panes authored before the splitter has a rectangle keep their initial sizes for first layout.
+#test
+{
+    for vertical in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(640, 640)
+        defer host.shutdown()
+        let splitter = SplitterCtrl.create(&host.root, vertical: vertical)
+        let first    = splitter.addPane(Wnd.create'Wnd(splitter), 188)
+        first.preserveSize = true
+        first.minimumSize  = 88
+        let second = splitter.addPane(Wnd.create'Wnd(splitter), 100)
+        Swag.assert(first.size == 188 and second.size == 100)
+
+        splitter.resize(600, 600)
+        Swag.assert(first.size == 188)
+        Swag.assert(Math.abs(first.size + second.size + splitter.themeMetrics().splitView_BarSize - 600) < 0.01)
+    }
+}
+
+// A size change is shared within each priority group, including when every pane preserves size.
+#test
+{
+    for preserve in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(640, 240)
+        defer host.shutdown()
+        let splitter = SplitterCtrl.create(&host.root)
+        for 3
+        {
+            let item = splitter.addPane(Wnd.create'Wnd(splitter), 100)
+            item.preserveSize = preserve
+        }
+
+        let extent = 300 + 2 * splitter.themeMetrics().splitView_BarSize
+        splitter.resize(extent, 200)
+        for item in splitter.items do
+            Swag.assert(item!.size == 100)
+        splitter.resize(extent + 90, 200)
+        for item in splitter.items do
+            Swag.assert(item!.size == 130)
+    }
+}
+
 // A pane can be hidden and shown again, updating the visible-pane count.
 #test
 {

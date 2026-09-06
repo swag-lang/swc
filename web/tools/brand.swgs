@@ -59,8 +59,8 @@ two directions a cut runs in are read from the neighboring corners.
 */
 struct Corner
 {
-    x, y: f32       // Position on the design grid.
-    cut:  f32       // Width of the diagonal that replaces the square corner.
+    x, y: f32     // Position on the design grid.
+    cut:  f32     // Width of the diagonal that replaces the square corner.
 }
 
 /**
@@ -71,13 +71,13 @@ the lean is applied on the way.
 */
 struct MarkPen
 {
-    path:    *LinePath      // The outline being built.
-    scale:   f32            // Design units to pixels.
-    originX: f32            // Where the design box sits on the canvas.
+    path:    *LinePath     // The outline being built.
+    scale:   f32           // Design units to pixels.
+    originX: f32           // Where the design box sits on the canvas.
     originY: f32
-    lastX:   f32            // Last point emitted, in pixels.
+    lastX:   f32     // Last point emitted, in pixels.
     lastY:   f32
-    started: bool           // Whether the first point has been emitted.
+    started: bool     // Whether the first point has been emitted.
 }
 
 impl MarkPen
@@ -129,27 +129,27 @@ func buildMark(scale, originX, originY: f32)->LinePath
 {
     let w  = WIDTH
     let s  = STROKE
-    let m0 = s + GAP              // Top of the middle bar.
-    let m1 = m0 + s               // Bottom of the middle bar.
-    let b0 = GRID - s             // Top of the bottom bar.
+    let m0 = s + GAP      // Top of the middle bar.
+    let m1 = m0 + s       // Bottom of the middle bar.
+    let b0 = GRID - s     // Top of the bottom bar.
 
     // Clockwise from the top-left, the corner every edge of the outline runs between.
     let corners: [12] Corner = [
-        {0, 0, SHOULDER},         // The shoulder that opens the top of the S.
-        {w, 0, TERMINAL},         // The free end of the top bar,
-        {w, s, NOTCH},            // closing onto the upper counter.
+        {0, 0, SHOULDER},     // The shoulder that opens the top of the S.
+        {w, 0, TERMINAL},     // The free end of the top bar,
+        {w, s, NOTCH},        // closing onto the upper counter.
         {s, s, NOTCH},
-        {s, m0, NOTCH},           // The blind end of the upper counter.
+        {s, m0, NOTCH},     // The blind end of the upper counter.
         {w, m0, NOTCH},
-        {w, GRID, SHOULDER},      // The shoulder that opens the bottom of the S.
-        {0, GRID, TERMINAL},      // The free end of the bottom bar,
-        {0, b0, NOTCH},           // closing onto the lower counter.
+        {w, GRID, SHOULDER},     // The shoulder that opens the bottom of the S.
+        {0, GRID, TERMINAL},     // The free end of the bottom bar,
+        {0, b0, NOTCH},          // closing onto the lower counter.
         {w - s, b0, NOTCH},
-        {w - s, m1, NOTCH},       // The blind end of the lower counter.
+        {w - s, m1, NOTCH},     // The blind end of the lower counter.
         {0, m1, NOTCH}]
 
     var result: retval
-    var pen    = MarkPen{&result, scale, originX, originY}
+    var pen = MarkPen{&result, scale, originX, originY}
 
     let count = corners.count
     for &corner, index in corners do
@@ -262,7 +262,7 @@ func wrote(path: string)
         try writeIcon(Path.combine(ROOT, "imgs/swag_icon.png"), 256)
         try writeFavicon(Path.combine(ROOT, "favicon.svg"), Path.combine(ROOT, "favicon.ico"))
     }
-    as err
+        as err
 
     if err != null
     {

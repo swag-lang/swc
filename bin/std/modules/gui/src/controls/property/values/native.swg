@@ -351,7 +351,7 @@ internal impl Properties
         }
         elif item.editBox != null
         {
-            item.editBox.sigFocusLost += func|prop = me, item|(ed)
+            item.editBox.sigCommitted += func|prop = me, item|(ed)
             {
                 if ed.isValid() do
                     prop.validateNative(item)

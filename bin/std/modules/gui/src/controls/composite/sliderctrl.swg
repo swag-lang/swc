@@ -101,7 +101,7 @@ impl SliderCtrl
             .edit.setForm(.Rectangle)
             .edit.updateFlags(.RightAligned)
             .edit.setTrailingMargin(metrics.editBox_UnitMargin)
-            .edit.sigFocusLost += func|ctrl|(edit)
+            .edit.sigCommitted += func|ctrl|(edit)
             {
                 switch edit.inputMode
                 {

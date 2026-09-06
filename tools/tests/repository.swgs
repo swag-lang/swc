@@ -1,0 +1,105 @@
+#import("core", location: "swag@std")
+#load("../src/tool.swg")
+
+using Core
+
+// Run the public audit in a child so expected rejection diagnostics stay captured.
+func checkRelated(root: string, related: string, expectedExit: s32) fail
+{
+    let content = Format.toString("### repo.sample.001 — Sample\n\n%\n", related)
+    discard File.writeAllBytes(Path.combine(root, "backlog", "repo.sample.md").toString(), cast(const [..] u8) content.toString())
+
+    var arguments: Tool.Arguments
+    arguments.add(["--num-cores", "6", #curlocation.fileName!, root])
+    let commandLine = Tool.joinArguments(arguments.toSlice())
+    let executable  = Env.Process.currentExecutablePath()
+    let process     = Env.runProcess(executable.toString(), commandLine.toString())
+    Debug.assert(process.exitCode() == expectedExit, process.standardOutput())
+    if expectedExit != 0 do
+        Swag.assert(Utf8.indexOf(cast(const [..] u8) process.standardOutput(), "Related identifier 'repo.sample.002' is not live") != Swag.U64.Max)
+}
+
+#main
+{
+    let args = Env.arguments()
+    if args.count > 1 and args[1] == "--check-capture"
+    {
+        // A process can print a valid marker before failing. Its output is usable only after
+        // a successful exit, and a failure must preserve both streams for the report.
+        let fonts = Env.realSpecialDirectory(.Font)
+        let shell = Path.combine(Path.directoryName(fonts.toString())!, "System32", "cmd.exe")
+        var context: Tool.Context
+        context.childEnv = Env.currentEnvironment()
+        var success: Tool.Arguments
+        success.add(["/d", "/c", "echo CAPTURE_SUCCESS"])
+        let output = expect context.captureProgram(shell.toString(), success)
+        Swag.assert(output.contains("CAPTURE_SUCCESS"))
+        var failure: Tool.Arguments
+        failure.add(["/d", "/c", "echo CAPTURE_MARKER& echo CAPTURE_DIAGNOSTIC 1>&2& exit 42"])
+        discard catch context.captureProgram(shell.toString(), failure) as err
+        Swag.assert(err != null)
+        Swag.assert(Utf8.contains(Errors.message(err), "exited with code 42"))
+        Console.println("capture failure was detected")
+        Env.exit(0)
+    }
+
+    if args.count > 1
+    {
+        var context: Tool.Context
+        context.root = String.from(args[1])
+        Env.exit(expect Tool.auditBacklog(&context))
+    }
+
+    let temporary = Env.getSpecialDirectory(.Temp)
+    let name      = Format.toString("swag-backlog-%", Guid64.random())
+    let root      = Path.combine(temporary.toString(), name.toString())
+    expect Directory.create(root.toString())
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+    expect Directory.create(Path.combine(root.toString(), "backlog").toString())
+    discard expect File.writeAllBytes(Path.combine(root.toString(), "backlog", "README.md").toString(), "[Sample](repo.sample.md)\n")
+
+    expect checkRelated(root.toString(), "- Related: repo.sample.001.", 0)
+    expect checkRelated(root.toString(), "**Related:** repo.sample.001.", 0)
+    expect checkRelated(root.toString(), "- Related: repo.sample.002.", 1)
+    expect checkRelated(root.toString(), "**Related:** repo.sample.002.", 1)
+    expect checkRelated(root.toString(), "- **Related:** repo.sample.002.", 1)
+    expect checkRelated(root.toString(), "- Related: repo.sample.001,\n  repo.sample.002.", 1)
+
+    // A focused tool must reject a configuration sweep it cannot run, rather than silently
+    // proving just the default configuration.
+    let testsDir = Path.directoryName(#curlocation.fileName)!
+    let toolsDir = Path.directoryName(testsDir)!
+    var arguments: Tool.Arguments
+    arguments.add(["--num-cores", "6", Path.combine(toolsDir, "std.swgs").toString(), "--all-cfg"])
+    let commandLine = Tool.joinArguments(arguments.toSlice())
+    let executable  = expect Env.Process.currentExecutablePath()
+    let parsed      = expect Tool.parseOptions(["test"], ["dm", "test", "--tool-relaunched"])
+    Swag.assert(parsed.toolRelaunched)
+    Swag.assert(parsed.extra.toSlice().count == 0)
+    var relaunched:  Tool.Context
+    var noArguments: Array'string
+    relaunched.compiler = String.from(executable.toString())
+    let sameCompiler = expect Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true)
+    Swag.assert(!sameCompiler.didRun)
+    relaunched.compiler = Path.combine(root.toString(), "a-different-compiler.exe")
+    discard catch Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true) as relaunchError
+    Swag.assert(relaunchError != null)
+    Swag.assert(Utf8.contains(Errors.message(relaunchError), "the relaunched tool is running under"))
+    var reportedExecutable = String.from(executable)
+    Path.normalize(&reportedExecutable)
+    Swag.assert(Utf8.contains(Errors.message(relaunchError), reportedExecutable.toString()))
+    Swag.assert(Utf8.contains(Errors.message(relaunchError), "a-different-compiler.exe"))
+    let process = expect Env.runProcess(executable.toString(), commandLine.toString())
+    Swag.assert(process.exitCode() != 0)
+    Swag.assert(Utf8.contains(process.standardOutput(), "'--all-cfg' is supported only by build, tests, and goldens"))
+
+    var captureArguments: Tool.Arguments
+    captureArguments.add(["--num-cores", "6", #curlocation.fileName!, "--check-capture"])
+    let captureLine = Tool.joinArguments(captureArguments.toSlice())
+    let captured    = expect Env.runProcess(executable.toString(), captureLine.toString())
+    Debug.assert(captured.exitCode() == 0, captured.standardOutput())
+    Swag.assert(Utf8.contains(captured.standardOutput(), "CAPTURE_MARKER"))
+    Swag.assert(Utf8.contains(captured.standardOutput(), "CAPTURE_DIAGNOSTIC"))
+    Swag.assert(Utf8.contains(captured.standardOutput(), "capture failure was detected"))
+    Console.println("repository tooling regression checks passed")
+}

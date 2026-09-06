@@ -257,6 +257,7 @@ public:
     void                                 addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
     std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
     void                                 addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
+    std::vector<SemaEscapeSummaryEdge>   copyEscapeSummaryEdges() const;
     std::vector<SemaEscapeSummaryEdge>   takeEscapeSummaryEdges();
     void                                 registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
     void                                 onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
@@ -555,7 +556,7 @@ private:
     std::unordered_map<IdentifierRef, uint32_t>                                                                  pendingImplRegistrations_;
     std::mutex                                                                                                   reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;
-    std::mutex                                                                                                   deferredEscapeChecksMutex_;
+    mutable std::mutex                                                                                           deferredEscapeChecksMutex_;
     std::vector<SemaEscapeDeferredCheck>                                                                         deferredEscapeChecks_;
     std::vector<SemaEscapeSummaryEdge>                                                                           escapeSummaryEdges_;
     mutable std::mutex                                                                                           compilerMessageDispatchMutex_;

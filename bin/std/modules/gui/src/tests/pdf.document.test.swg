@@ -428,6 +428,11 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
 
     var reader = expect Reader.open(path.toString())
     Swag.assert(reader.pageCount() == 1)
+
+    // Both trailers deliberately omit the optional Info entry. The content object stays lazy.
+    Swag.assert(!reader.parser.hasScanned)
+    Swag.assert(reader.parser.objects.tryFind(5) == null)
+    Swag.assert(reader.metadata().producer.isEmpty())
     var page = expect reader.loadPage(0)
     Swag.assert(pageText(&page) == "second")
 }

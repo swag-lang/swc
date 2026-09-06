@@ -49,7 +49,7 @@ public struct Span
 // | `[^abc]`          | any scalar value but those
 // | `[[:alpha:]]`     | a POSIX class: `alnum`, `alpha`, `ascii`, `blank`, `cntrl`, `digit`, `graph`, `lower`, `print`, `punct`, `space`, `upper`, `word`, `xdigit`
 // | `\d` `\w` `\s` `\l` `\u` | digit, word, space, lower-case and upper-case classes; the upper-case spelling of each is its complement
-// | `\pL` `\p{Lu}`    | a Unicode property: `L`, `Ll`, `Lu`, `Lt`, `N`, `Nd`, `S`, `Sm`, `Z`; `\P` is its complement
+// | `\pL` `\p{Lu}`    | a Unicode property: `L`, `Ll`, `Lu`, `Lt`, `N`, `Nd`, `S`, `Sm`, `Z`, `White_Space`; `\P` is its complement
 // | `^` `$`           | start and end of the subject, or of a line under `(?m)`
 // | `\A` `\z`         | start and end of the subject, whatever the flags
 // | `\b` `\B`         | at a word boundary, and anywhere but at one

@@ -267,16 +267,17 @@ impl RuneClass
 
         switch name
         {
-        case "L", "Letter":                   result.value.addTable(Unicode.TableLetter)
-        case "Ll", "Lowercase_Letter":        result.value.addTable(Unicode.TableLower)
-        case "Lu", "Uppercase_Letter":        result.value.addTable(Unicode.TableUpper)
-        case "Lt", "Titlecase_Letter":        result.value.addTable(Unicode.TableTitle)
-        case "N", "Number":                   result.value.addTable(Unicode.TableNumber)
-        case "Nd", "Decimal_Number":          result.value.addTable(Unicode.TableDigit)
-        case "S", "Symbol":                   result.value.addTable(Unicode.TableSymbol)
-        case "Sm", "Math_Symbol":             result.value.addTable(Unicode.TableSymbolMath)
-        case "Z", "Separator", "White_Space": result.value.addTable(Unicode.TableWhiteSpace)
-        default:                              return result
+        case "L", "Letter":            result.value.addTable(Unicode.TableLetter)
+        case "Ll", "Lowercase_Letter": result.value.addTable(Unicode.TableLower)
+        case "Lu", "Uppercase_Letter": result.value.addTable(Unicode.TableUpper)
+        case "Lt", "Titlecase_Letter": result.value.addTable(Unicode.TableTitle)
+        case "N", "Number":            result.value.addTable(Unicode.TableNumber)
+        case "Nd", "Decimal_Number":   result.value.addTable(Unicode.TableDigit)
+        case "S", "Symbol":            result.value.addTable(Unicode.TableSymbol)
+        case "Sm", "Math_Symbol":      result.value.addTable(Unicode.TableSymbolMath)
+        case "Z", "Separator":         result.value.addTable(Unicode.TableSeparator)
+        case "White_Space":            result.value.addTable(Unicode.TableWhiteSpace)
+        default:                       return result
         }
 
         result.value.normalize()

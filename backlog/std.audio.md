@@ -24,8 +24,8 @@ driver that preserves the entire lifecycle without opening a device, wired into 
 test run never makes noise — that last part is better integrated than in most libraries of this
 size.
 
-The shape is sound. What is missing here is breadth: one container, no spatialization, no effects,
-and no capture. Operating-system backend work lives in
+The remaining gaps are compressed-format variants, spatialization, effects,
+and capture. Operating-system backend work lives in
 [platform.portability.md](platform.portability.md).
 
 ---
@@ -45,31 +45,35 @@ and no capture. Operating-system backend work lives in
 - Complete when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
 
-### std.audio.002 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
+### std.audio.002 — MP3 synthesis has not been measured or factored
 
-- Intent: Layer III decodes correctly at every sampling frequency of the three versions, within
-  2.3e-5 of full scale of FFmpeg. Nothing about its speed has been measured, and its ISO-BMFF
-  carriage is not read; Matroska carriage is complete.
+- Intent: Layer III decodes at every sampling frequency of the three versions, within the
+  reference-error limits in `mp3.test.swg`. Its transform and filter-bank cost has not been measured.
 - What is slow by construction, and was written that way on purpose: the inverse transform is the
   normative matrix, 648 multiplications a subband where a factored transform needs a fraction of
   that, and the polyphase bank is the normative 64 by 32 matrixing per block. Both are stated in
   `synthesis.swg` exactly as clause 2.4.3.4.10 states them, which is what made them checkable.
   `Math.pow` also computes every magnitude above fifteen. Measure before replacing any of it: at
   128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
-- What is not carried: an ISO-BMFF `mp4a` entry whose object type is 0x69 or 0x6B is Layer III,
-  and `mp4.swg` rejects every object type but AAC's 0x40.
+- Next: measure synthesis separately from entropy decoding, then compare factored transforms
+  against the current reference implementation on the same granules.
+- Complete when: synthesis cost is recorded and any retained optimization preserves the complete
+  MPEG-1/2/2.5, channel-mode, block-type, and reservoir regression corpus.
+- Related: std.video.008
+
 ## Tier A — Playback control
 
-### std.audio.003 — Volume changes are instantaneous, so they click
+### std.audio.003 — Gain changes have no sample-based ramp
 
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
-  applies it at the next processing pass without smoothing, so any gain change during playback is a
-  discontinuity in the waveform — an audible click. There is no fade-in, no fade-out, and no ramp.
-- Consequence: stopping a sound cleanly is impossible. Every practical use — ducking music under a
-  voice line, fading a loop out, starting a sound without a transient — needs a ramp.
+  applies a target gain without a ramp owned by this module. An abrupt change on a nonzero sample
+  can produce a discontinuity; this is a risk, not evidence that every gain change audibly clicks.
+  There is no fade-in, fade-out, or sample-based interpolation contract.
+- Consequence: a caller cannot request a timed fade or ducking envelope through the audio API.
 - Fix: a ramp duration on the gain setters, and explicit `fadeIn`/`fadeOut` on `Voice` and `Bus`,
   interpolated over a frame count rather than applied at once.
-- Cost: low. This is the highest value-to-effort entry in the module.
+- Next: define the ramp's interaction with batches, pause, seek, and bus routing, then verify its
+  samples with the no-sound backend before judging playback on a device.
 
 ## Tier A — Output-device lifecycle
 
@@ -97,8 +101,7 @@ an explicit policy when headphones, USB audio, or the default device changes.
 
 ## Tier B — Spatialization and channel control
 
-Two features are already paid for in the backend and simply not exposed. They are cheap in a way
-the rest of this list is not.
+The native backend has channel-routing facilities, but the module has no portable pan contract.
 
 
 ### std.audio.007 — No stereo pan control

@@ -225,6 +225,34 @@ using Swag, Core, Pixel
     }
 }
 
+// An oversized message stays inside the available surface height and exposes its final line.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 900)
+    defer host.shutdown()
+    var message: String
+    for index in 80 do
+        message += Format.toString("Line % remains readable.\n", index)
+    let dlg = MessageDlg.create(&host.surface, message.toString())
+    dlg.addButton("Close", Dialog.BtnCancel, true)
+    dlg.adaptSizeToMessage(400)
+    Swag.assert(dlg.surface!.size().y <= 400)
+    Swag.assert(dlg.messageScroll != null)
+    let scroll = dlg.messageScroll!
+    let needed = dlg.label.itf.measureContent({dlg.label.position.width, 0}).y
+    Swag.assert(dlg.label.position.height >= needed)
+    Swag.assert(scroll.scrollSize.y > scroll.view.position.height)
+    scroll.setFocus()
+    host.keyPress(.End)
+    Swag.assert(scroll.scrollPosition().y > 0)
+    Swag.assert(Math.abs(dlg.label.surfaceRect().bottom() - scroll.view.surfaceRect().bottom()) <= 1)
+    host.keyPress(.Home)
+    Swag.assert(scroll.scrollPosition().y == 0)
+    dlg.surface!.destroy()
+    host.pump()
+}
+
 // An application block added to the about box grows it, and stops growing it at the measure.
 //
 // What an application lists there — the formats it opens, the plugins it carries — has no natural

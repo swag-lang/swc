@@ -199,7 +199,8 @@ struct MediaInfoPanel
         list:        *ListCtrl
     }
 
-    data: MediaInfoData
+    data:  MediaInfoData
+    lines: Array'(*ListLine)
 }
 
 impl MediaInfoPanel
@@ -275,6 +276,25 @@ impl MediaInfoPanel
     mtd publish(data: *MediaInfoData)
     {
         .data = #move data[]
+        .lines.clear()
+        .list.clear()
+        var parent: *ListLine?
+        var groups: Array'*ListLine
+        for row in .data.rows
+        {
+            let line = .list.createLine(row.group ? null : parent)
+            .lines.add(line)
+            line.setItem(0, row.label())
+            line.setItem(1, row.value.toString())
+            if row.group
+            {
+                parent = line
+                groups.add(line)
+            }
+        }
+
+        for group in groups do
+            .list.expand(group)
         .retranslate()
     }
 
@@ -288,23 +308,8 @@ impl MediaInfoPanel
         .list.header.itemAt(0).name = g_MediaInfoStrings.property
         .list.header.itemAt(1).name = g_MediaInfoStrings.value
         .list.header.invalidate()
-        .list.clear()
-        var parent: *ListLine?
-        var groups: Array'*ListLine
-        for row in .data.rows
-        {
-            let line = .list.createLine(row.group ? null : parent)
-            line.setItem(0, row.label())
-            line.setItem(1, row.value.toString())
-            if row.group
-            {
-                parent = line
-                groups.add(line)
-            }
-        }
-
-        for group in groups do
-            .list.expand(group)
+        for row, index in .data.rows do
+            .lines[index].setItem(0, row.label())
         .list.computeLayout()
         .applyLayout()
         .invalidate()

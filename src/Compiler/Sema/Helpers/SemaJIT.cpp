@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -535,6 +536,10 @@ namespace
                 knownFunctionCount = knownFunctions.size();
             }
 
+            // The module-wide summary fixpoint runs after sema drains, but #run must emit
+            // and execute this completed call graph now. Publish its transitive frees first
+            // so the static lifecycle pass sees the same facts as ordinary code generation.
+            SemaEscape::propagateCompletedFreesSummaries(ctx);
             for (SymbolFunction* function : stableJitOrder)
             {
                 SWC_RESULT(function->emit(ctx));

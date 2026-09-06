@@ -3,9 +3,27 @@
 
 using Core, Pixel, Gui
 
+// A file URI is checked after percent decoding, before any linked-image probe can run.
+#test
+{
+    Swag.assert(idmlFileUriPath("file:///images/title%20page.png") == "/images/title page.png")
+    Swag.assert(idmlFileUriPath("file://localhost/images/title.png") == "/images/title.png")
+    Swag.assert(idmlFileUriPath("file://server/share/image.png").isEmpty())
+    Swag.assert(idmlFileUriPath("file:////server/share/image.png").isEmpty())
+    Swag.assert(idmlFileUriPath("file:%2F%2Fserver/share/image.png").isEmpty())
+    Swag.assert(idmlFileUriPath("file:///images/bad%00.png").isEmpty())
+    Swag.assert(idmlFileUriPath("file:///images/bad%2.png").isEmpty())
+    if WINDOWS
+    {
+        Swag.assert(idmlFileUriPath("file:%5C%5Cserver/share/image.png").isEmpty())
+        Swag.assert(idmlFileUriPath("file:%2F%5Cserver/share/image.png").isEmpty())
+        Swag.assert(idmlFileUriPath("file:%5C%5C%3F%5CUNC%5Cserver%5Cshare%5Cimage.png").isEmpty())
+        Swag.assert(idmlFileUriPath("file:///C:/images/title%20page.png") == "C:/images/title page.png")
+    }
+}
+
 // The fixed 4 KiB master-page unit is the file-level contract this fixture records.
-private const IndesignFixtureHeaderSize     = 4096'u64
-private const LinkedIdmlInteractiveBudgetMs = 1_000'u64
+private const IndesignFixtureHeaderSize = 4096'u64
 
 // Returns the minimal dual-header document fixture shared by this viewer and the smoke run.
 private func indesignFixturePath()->String
@@ -130,8 +148,8 @@ private func linkedIdmlFixturePath()->String
     Swag.assert(Utf8.contains(rendered.toString(), "idml-text-column"))
 }
 
-// Opening an external editorial source must reach its first usable page promptly, then retain the
-// resolved local image sources through navigation and painting.
+// Opening an external editorial source decodes only the first page's images. Navigation loads
+// the selected page's resources, and painting reuses that page's decoded images.
 #[Swag.TestTag("linked")]
 #test
 {
@@ -139,14 +157,13 @@ private func linkedIdmlFixturePath()->String
     host.setup(800, 520)
     defer host.shutdown()
 
-    var opening: Time.Stopwatch
-    opening.start()
     var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: &host.root)
     let viewer = cast(*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    opening.stop()
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
-    Swag.assert(opening.elapsedMilliseconds() < LinkedIdmlInteractiveBudgetMs)
+    let firstPageImages = Testing.htmlImageSources(viewer.htmlView!)
+    Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
+    Swag.assert(Path.fileName(firstPageImages[0].toString()) == "title.png")
     Swag.assert(!viewer.goToTypedPage("0") and !viewer.goToTypedPage("5") and !viewer.goToTypedPage("page 1"))
     Swag.assert(viewer.goToTypedPage("2") and viewer.previewIndex == 1)
     Swag.assert(viewer.goToTypedPage("1") and viewer.previewIndex == 0)
@@ -164,16 +181,19 @@ private func linkedIdmlFixturePath()->String
     }
 
     Swag.assert(qrcodePage != Swag.U64.Max)
-    var pageRender: Time.Stopwatch
-    pageRender.start()
     viewer.selectMarkupPage(qrcodePage)
+    let selectedPageImages = Testing.htmlImageSources(viewer.htmlView!)
+    Swag.assert(selectedPageImages.count == 1)
+    Swag.assert(Path.fileName(selectedPageImages[0].toString()) == "qrcode.png")
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
-    pageRender.stop()
     Testing.assertContentFits(viewer)
     let image = host.render(&host.root)
     Swag.assert(image.isValid())
-    Swag.assert(pageRender.elapsedMilliseconds() < LinkedIdmlInteractiveBudgetMs)
+    let paintedImages = Testing.htmlImageSources(viewer.htmlView!)
+    Swag.assert(paintedImages.count == selectedPageImages.count)
+    for index in paintedImages.count do
+        Swag.assert(paintedImages[index] == selectedPageImages[index])
 }
 
 // The linked editorial source must remain a painted document surface, including its two supplied

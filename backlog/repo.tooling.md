@@ -74,18 +74,20 @@ being compiled by it.
   session reported the wrong diagnostic for an unknown symbol: `var v: MissingType` came back as
   `modifier 'MissingType' needs an integer type, found` — the message of the id that follows
   `sema_err_unknown_symbol` in `Errors.Sema.msg`. The DevMode compiler built from the same sources
-  reported it correctly. A translation unit compiled against an older precompiled header raises
-  the ordinal that enum had then, while `Diagnostic.cpp` maps ordinals through the table it was
-  compiled with: the two disagree by however many ids were added in between.
+  reported it correctly. These results are consistent with translation units compiled against
+  different diagnostic identifiers, but the dependency that failed to invalidate was not isolated.
+  The current `pch.h` contains no diagnostic declarations: `DiagnosticDef.h` takes identifiers
+  from `Errors.inc` and `Notes.inc`, while `Diagnostic.cpp` takes message variants from the
+  separate `.msg` catalogs and maps each group through its explicit `DiagnosticId`.
 - Evidence: 2026-09-04, sources at `SWC_BUILD_NUM` 343. `MSBuild swc.sln /p:Configuration=Release`
   produced a binary that failed nine `bin/unittests/errors/sema` fixtures whose expected ids never
   matched; recompiling `Diagnostic.cpp` alone changed nothing; `MSBuild /t:Rebuild` on the same
   sources produced a binary that reports `unknown symbol 'MissingType'` and passes the suite.
-- Next: find what the Release configuration fails to invalidate — the precompiled header is the
-  first suspect, since the diagnostic enum reaches every translation unit through `pch.h` and the
-  message table reaches only `Diagnostic.cpp`. Either make the header dependency explicit, or make
-  the id-to-message mapping independent of the enum's ordinals.
-- Complete when: an incremental Release build after ids are added to a `.msg` file either
+- Next: reproduce a catalog edit over a warm Release object tree and inspect the MSBuild tracked
+  reads for `DiagnosticDef.h`, its `.inc` catalogs, and the affected translation units. Distinguish
+  an identifier insertion in `.inc` from a message-only edit in `.msg`, then fix the dependency
+  that fails to invalidate.
+- Complete when: an incremental Release build after ids are added to an `.inc` catalog either
   recompiles what depends on them, or cannot produce a binary whose reported id and printed text
   disagree.
 

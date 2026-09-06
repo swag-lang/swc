@@ -52,7 +52,7 @@ private func visualHeadingKind(level: u32)->BlockKind
 
 private func appendBlock(blocks: *Array'Block, kind: BlockKind, text: String)
 {
-    if text.isEmpty() do
+    if text.isEmpty() and (kind < .AlertNote or kind > .AlertCaution) do
         return
     var block: Block
     block.kind = kind
@@ -86,6 +86,23 @@ private func alertTitle(kind: BlockKind)->string
     case .AlertCaution:   return strings().markdown_AlertCaution
     default:              return ""
     }
+}
+
+// Keep parsed alert bodies independent of the current language, including queued stream blocks.
+internal func blockDisplayText(kind: BlockKind, body: string)->String
+{
+    let title = alertTitle(kind)
+    if !title.count do
+        return body
+
+    var result = Format.toString("<b><p1>%</p></b>", title)
+    if body.count
+    {
+        result += "\n"
+        result += body
+    }
+
+    return result
 }
 
 // One live ordinal of the ordered list being rendered, per indentation level.
@@ -429,10 +446,11 @@ internal func parseBlocks(source: string)->Array'Block
         {
             var quote: String
             var quoteKind = BlockKind.Quote
+            var firstLine = true
             while index < lines.count and Utf8.startsWith(Latin1.trim(lines[index]), ">")
             {
                 var content = Latin1.trim(Latin1.trim(lines[index])[1 to])
-                if quote.isEmpty() and Utf8.startsWith(content, "[!")
+                if firstLine and Utf8.startsWith(content, "[!")
                 {
                     let close = Utf8.indexOf(content, ']'rune, 2)
                     if close != Swag.U64.Max
@@ -440,7 +458,6 @@ internal func parseBlocks(source: string)->Array'Block
                         quoteKind = alertKind(content[2 until close])
                         if quoteKind != .Quote
                         {
-                            quote   += Format.toString("<b><p1>%</p></b>", alertTitle(quoteKind))
                             content = Latin1.trim(content[close + 1 to])
                         }
                     }
@@ -453,7 +470,8 @@ internal func parseBlocks(source: string)->Array'Block
                     quote += renderInline(content, references.toSlice())
                 }
 
-                index += 1
+                firstLine = false
+                index     += 1
             }
 
             appendBlock(&result, quoteKind, #move quote)

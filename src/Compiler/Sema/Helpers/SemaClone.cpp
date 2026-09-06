@@ -933,6 +933,35 @@ namespace
         return sema.ast().pushSpan(tokens.span());
     }
 
+    AstNodeRef cloneMemberSelector(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
+    {
+        const Ast* sourceAst = resolveCloneNodeAst(sema, nodeRef, cloneContext);
+        if (!sourceAst)
+            return AstNodeRef::invalid();
+
+        // The member's name belongs to the left-hand scope. Its quoted arguments still belong
+        // to the enclosing generic context: Ns.Box'T must substitute T without substituting Box.
+        const AstNode& sourceNode       = sourceAst->node(nodeRef);
+        const auto     argumentsContext = cloneContextWithoutReplacements(cloneContext);
+        if (const auto* quoted = sourceNode.safeCast<AstQuotedExpr>())
+        {
+            const AstNodeRef newRef = cloneNodeCopy<AstNodeId::QuotedExpr>(sema, *quoted);
+            auto&            cloned = sema.node(newRef).cast<AstQuotedExpr>();
+            cloned.nodeExprRef      = cloneMemberSelector(sema, quoted->nodeExprRef, argumentsContext);
+            cloned.nodeSuffixRef    = cloneNodeRef(sema, quoted->nodeSuffixRef, argumentsContext);
+            return newRef;
+        }
+        if (const auto* quoted = sourceNode.safeCast<AstQuotedListExpr>())
+        {
+            const AstNodeRef newRef = cloneNodeCopy<AstNodeId::QuotedListExpr>(sema, *quoted);
+            auto&            cloned = sema.node(newRef).cast<AstQuotedListExpr>();
+            cloned.nodeExprRef      = cloneMemberSelector(sema, quoted->nodeExprRef, argumentsContext);
+            cloned.spanChildrenRef  = cloneSpan(sema, quoted->spanChildrenRef, argumentsContext);
+            return newRef;
+        }
+        return cloneNodeRefWithoutBindings(sema, nodeRef, cloneContext);
+    }
+
     SpanRef cloneSpanWithoutReplacements(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
     {
         if (spanRef.isInvalid())
@@ -2414,7 +2443,7 @@ AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneC
     newPtr->setCodeRef(codeRef());
     newPtr->flags()      = flags();
     newPtr->nodeLeftRef  = SemaClone::cloneAst(sema, nodeLeftRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeRightRef = cloneNodeRefWithoutBindings(sema, nodeRightRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeRightRef = cloneMemberSelector(sema, nodeRightRef, cloneContextAsInline(cloneContext));
     newPtr->projectionId = projectionId;
     return newRef;
 }

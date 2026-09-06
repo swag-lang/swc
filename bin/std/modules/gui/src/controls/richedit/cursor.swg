@@ -125,12 +125,15 @@ impl RichEditCtrl
     mtd cursorDisplayPosition(cp: RichEditCursor)->Math.Point
     {
         var result: retval
+        result.x = .leftMargin()
+        result.y = .lineHeight()
+        if .lines.isEmpty() do
+            return result
 
         let lineIndex = Math.min(cp.lineIndex, .lines.count - 1)
         let line      = .lines[lineIndex]!
         result.y = line.drawingRect.bottom()
 
-        result.x = .leftMargin()
         for i in Math.min(cp.charPosInLine, line.length()) do
             result.x = .advanceRuneX(line, i, result.x)
 

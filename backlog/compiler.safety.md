@@ -27,14 +27,14 @@ Measured against that line, the frame is in good shape and the heap is catching 
 invalidation, iterator invalidation, definite initialization, non-null types and mandatory error
 handling are all enforced without a single annotation, and a value that owns a release now states
 no copy without being annotated either. What is left on the heap side is the shape nothing marks
-as an owner at all, a use-after-free proof that rarely survives contact with real code, and the
+as an owner at all, a use-after-free must-analysis with aliasing and conditional-release limits, and the
 operations that forge a pointer out of nothing being spelled like ordinary code. The entries below
 are ordered by how much of that gap each one closes.
 
 Every entry below is backed by a compilable case in
 [bin/unittests/safety/corpus](../bin/unittests/safety/corpus): one file per CWE, a fault half
 that names the diagnostic it expects and a sound half that must stay silent, with each gap
-commented out and tagged with the entry that owns it. `grep -rn "GAP " bin/unittests/safety/corpus`
+commented out and tagged with the entry that owns it. `rg "GAP " bin/unittests/safety/corpus`
 is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
@@ -63,53 +63,38 @@ is the current scorecard.
   get and the corpus notes say so.
 - Related: compiler.safety.004 is what covers the shapes no must-analysis can prove.
 
-### compiler.safety.017 — Memory leaks are not modelled at all
+### compiler.safety.017 — Allocation ownership has no static leak proof
 
 - Area: compiler/sema, language
-- Evidence: nothing in the language or the tooling tracks whether an allocation is released.
-  Not the borrow rules, not the lifetime proofs, not a runtime guard. Four shapes were written
-  in `cwe401_memory_leak.swg` and all four are silent in every configuration: an allocation
-  never released; one released on a single path; a pointer overwritten before its block is
-  released; and a type that owns an allocation without an `opDrop` to release it.
-- Consequence: this is the third of SV-COMP's memory-safety sub-properties (`valid-memtrack`,
-  next to `valid-deref` and `valid-free`), and the only one Swag does not attempt. A leak is
-  not a memory-safety fault in the exploitable sense, which is why it sits below the other
-  entries, but a systems language that says nothing about it cannot claim the property.
-- Elsewhere: Rust ties release to ownership, so the default is no leak and `mem::forget` is
-  the deliberate exception; C++ has the same through RAII plus a linter for the rest; Go and
-  Java collect instead. Zig makes the allocator explicit and ships a debug allocator that
-  reports leaks at shutdown — which is the cheapest useful answer and the one that fits Swag's
-  own `IAllocator`.
-- Next: the runtime answer before the static one. A `devmode` allocator that counts live
-  blocks and reports what is still held at shutdown costs nothing in `release`, needs no
-  analysis, and finds real leaks the day it lands. Whether a static rule follows — a type that
-  allocates and has no `opDrop` — is a separate decision, now that a type declaring one owns
-  what it releases and states no copy.
-- Complete when: a `devmode` run reports the blocks an application leaked, and the four cases
-  in `cwe401_memory_leak.swg` are either reported or documented as out of scope with a reason.
-- Related: compiler.safety.004.
+- Evidence: the four allocation-loss shapes in `cwe401_memory_leak.swg` compile without a static
+  diagnostic: no release, release on one path, overwritten pointer, and an owner without `opDrop`.
+  The runtime half already exists: `Allocator.stats` counts live allocations, `printLeaks` reports
+  them at release, and `allocatorTrackAllocations` adds allocation details. DevMode enables
+  `allocatorLeaks`; Release disables it by default. `allocator_debug_modes.swg` covers live counts,
+  tracking and quarantine. The former claim that no tooling tracks leaks was stale.
+- Next: decide whether static allocation-loss checking adds useful coverage beyond the existing
+  runtime report. Start with one must-leak shape and its released-on-every-path counterpart before
+  choosing an owner annotation or inferring ownership from arbitrary allocation calls.
+- Complete when: the compiler either diagnoses a documented set of proven leak shapes with sound
+  counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
+  the corpus reflects that decision.
+- Related: runtime.allocator.010.
 
-### compiler.safety.004 — Nothing makes a missed use-after-free fail deterministically
+### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
 
 - Area: runtime/allocator, `bin/runtime`
-- Evidence: `.Lifecycle` poisons storage abandoned by a move or a drop with `0xDD` so hidden
-  violations fail loudly, and that half is deliberate and documented. The heap has no equivalent: a
-  freed block goes straight back to the allocator's free list, so a read after free returns whatever
-  the next allocation put there. The aliasing probes in `cwe416_use_after_free.swg` read garbage and kept
-  running; the double-free probe corrupted mimalloc's free list and killed the process inside an
-  unrelated allocation, far from the fault.
-- Consequence: aliases and conditional frees are documented misses of the static proof "by design",
-  which is the right call — the proof now reaches fields, elements, casts and the generic release,
-  so what is left for it to miss is exactly what a must-analysis cannot decide. That is the half a
-  runtime net is for, and there is none on the heap side.
-- Next: measure what a devmode-only quarantine costs. mimalloc already ships the pieces
-  (`MI_SECURE`, `mi_option_guarded_*`); the question is whether poisoning freed blocks and delaying
-  their reuse is affordable in `devmode` on the heaviest consumer in `bin/`, not whether it is
-  desirable.
-- Complete when: a freed block read in `devmode` faults or reports at the read, the cost is measured
-  on an application workload, and `release` is unaffected.
-- Related: the ownership rule now rejects the copy of a value that declares 'opDrop', so what
-  reaches this entry is what nothing marks as an owner.
+- Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
+  allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
+  and electric allocations ending at a guard page. Electric mode retains freed addresses, but
+  `freeHeaderBlock` leaves their payload readable; `checkFree` can find a changed fill pattern,
+  not a read that leaves it intact. `allocator_debug_modes.swg` explicitly reads the freed pattern.
+  Ordinary page allocations reuse storage and provide no stale-read instrumentation.
+- Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
+  metadata to diagnose release errors, or instrument reads. Measure its cost on an application
+  workload and specify how it composes with the existing electric/quarantine modes.
+- Complete when: a stale read through an alias is detected at the read in the selected diagnostic
+  mode, with its limits and measured cost documented; Release defaults remain unchanged.
+- Related: runtime.allocator.010.
 
 ### compiler.safety.005 — A pointer into a value survives the move of that value
 
@@ -129,11 +114,12 @@ is the current scorecard.
 
 ## The unsafe surface
 
-### compiler.safety.006 — The operations that forge memory are spelled like ordinary code
+### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
-  distinguishable from safe code by reading it, by grepping for it, or by any compiler flag:
+  subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
+  casts and intrinsics are visible, but no single marker identifies the boundary:
   - `cast(*T) someInteger` — an arbitrary integer becomes a pointer;
   - `cast(*Big) &small` — a reinterpreting cast between unrelated pointee types, reading past the
     object;
@@ -150,11 +136,6 @@ is the current scorecard.
   only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
   and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
   is actually asking about.
-- Elsewhere: `unsafe` is not a safety mechanism in Rust and never was — it is an *audit* mechanism,
-  and it is most of why the guarantee is believed. Zig marks the same boundary by making
-  `@ptrCast`/`@intFromPtr` visibly intrinsic and its undefined behavior builtin-checked; C# has
-  `unsafe` blocks and a compiler switch; Swift puts `Unsafe` in the name of every type that can do
-  it. There is no safe-by-default systems language whose unsafe operations are invisible.
 - The shape must be Swag's, not Rust's. A block that swallows a page of code is the wrong unit here:
   the operations above are single expressions, and Swag already spells a compiler instruction on an
   expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
@@ -206,13 +187,9 @@ is the current scorecard.
   taken against code generation that emits `cmp`/`jb`/call at every index and has no pass dedicated
   to removing them. The two idiomatic Swag forms — `for v in arr` and `for i in arr.count` — are
   provably in range on every iteration, and a range analysis over the Micro SSA removes those checks
-  entirely rather than hoisting them. What would remain is the set of checks that genuinely cannot
-  be proven, which is precisely the set worth paying for.
-- Elsewhere: Rust keeps bounds checks in release and pays 1-5% for them, and that single fact is the
-  one most often cited both for and against it. Go keeps them and has a documented elimination pass
-  for exactly the loop shapes above. Zig keeps them in `ReleaseSafe` and drops them in
-  `ReleaseFast`, making it the user's build-time choice — which is what Swag has today, minus the
-  elimination that makes the safe choice affordable.
+  where a guard was emitted for an explicit index. Direct element iteration already uses the
+  compiler's own traversal; it must be measured separately from indexed accesses. The remaining
+  cost belongs to checks that cannot be proven redundant.
 - Next: implement bound-check elimination as a backend pass (induction-variable range against the
   container's `.count`, dominating comparisons, constant indices), then re-measure the two loops
   above with guards on. The deliverable is the pass, not a change of default: `release` stays
@@ -221,15 +198,16 @@ is the current scorecard.
 - Complete when: a bound-check-elimination pass exists, `devmode` compile time and generated code
   are measured before and after, and the residual cost of `.BoundCheck` on the two loops above is
   recorded next to the 2026-07-08 numbers.
-- Related: compiler.optimization.md owns the pass once it is scoped.
+- Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
 - Area: language
 - Evidence: `cast(Color) 99` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
-  declared member. It is a value that fails every invariant the enum was declared to express, and
-  an unchecked forged value can therefore walk past every arm of `switch #complete`.
+  declared member. A plain switch can fall through on it. `switch #complete` already panics when
+  `.Switch` safety is enabled; with that guard disabled, the conversion still permits a value
+  outside the cases. The missing contract is at conversion, not the guarded switch.
 - Elsewhere: Rust makes an out-of-range enum discriminant undefined behavior and forbids the
   conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
   returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
@@ -268,18 +246,7 @@ is the current scorecard.
   application workload is recorded.
 - Related: compiler.safety.008 is what makes that configuration affordable.
 
-### compiler.safety.012 — Stack exhaustion has no documented language contract
 
-- Area: runtime, compiler/backend
-- Evidence: each thread that runs user code now claims a stack reserve for the fault reporter.
-  Stack exhaustion reports `EXCEPTION_STACK_OVERFLOW`, the task state and the faulting function.
-  `expandLargePrologueStackAdjustments` also emits Windows guard-page probes for large frames.
-  The remaining gap is the reference: it does not state the language's abort contract or explain
-  that the available recursion depth depends on the host stack.
-- Next: decide whether that is a language question at all. Rust and Go abort the same way; Go
-  additionally grows its stacks, which is a runtime design Swag has not chosen. If the answer is
-  "abort with a message", this entry is done and only the reference needs the sentence.
-- Complete when: the reference states what exhausting the stack does, or a bound exists.
 
 ## Borrow invalidation
 

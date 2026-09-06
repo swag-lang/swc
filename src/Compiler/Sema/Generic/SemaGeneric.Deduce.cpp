@@ -422,6 +422,13 @@ namespace
         if (identRef.isInvalid())
             return Result::Continue;
 
+        bool qualified = false;
+        while (const auto* member = sema.node(identRef).safeCast<AstMemberAccessExpr>())
+        {
+            qualified = true;
+            identRef  = member->nodeRightRef;
+        }
+
         AstNodeRef     exprRef   = AstNodeRef::invalid();
         const AstNode& identNode = sema.node(identRef);
         if (const auto* quotedExpr = identNode.safeCast<AstQuotedExpr>())
@@ -459,7 +466,9 @@ namespace
             break;
         }
 
-        if (!outGenericRoot && outGenericRootIdRef.isValid())
+        // A qualified member is not a lexical name in the declaration's enclosing scope. The
+        // instantiated parameter type checks the namespace after its arguments have been deduced.
+        if (!qualified && !outGenericRoot && outGenericRootIdRef.isValid())
         {
             MatchContext lookUpCxt;
             lookUpCxt.codeRef = sema.node(exprRef).codeRef();

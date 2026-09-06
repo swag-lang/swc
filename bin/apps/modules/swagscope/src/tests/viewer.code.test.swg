@@ -61,13 +61,28 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
 
     var result = openTestViewer(codeViewerPlugin(), &host.root, fileName.toString(), infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
     let view = cast(*CodeViewer) result.view!
     assertViewerInfoButton(view.zoomLabel!)
     Swag.assert(result.info!.preferredSize.x == ViewerZoomSlotWidth)
+
+    view.setZoom(150)
+    let editor = view.editor
+    let oldTip = String.from(view.zoomLabel!.toolTip)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(view.zoomLabel!.toolTip == codeStrings().ui_ZoomMenu and view.zoomLabel!.toolTip != oldTip)
+    Swag.assert(view.zoomPercent == 150 and view.editor == editor)
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(view.zoomLabel!.toolTip == oldTip)
 }
 
 #[Swag.TestTag("golden")]

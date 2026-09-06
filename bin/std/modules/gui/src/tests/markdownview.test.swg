@@ -1024,6 +1024,79 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(Math.abs(view.scroll.scrollPosition().y - view.virtualHeight * 0.2) <= view.scroll.paddedClientRect().height)
 }
 
+// Each manually fired streaming timer consumes the same block budget in a headless host.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-work-budget-", ".md")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for 64 do
+        source += "One paragraph per block.\n\n"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 1000)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 1000)
+    view.applyLayout()
+    Swag.assert(view.blocks.isEmpty())
+    host.fireTimer(view.loadTimer)
+    Swag.assert(view.blocks.count == 8)
+    host.fireTimer(view.loadTimer)
+    Swag.assert(view.blocks.count == 16)
+}
+
+// Parsed and queued alerts resolve their title in the live language without reopening the file.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 1000)
+    defer host.shutdown()
+    defer discard catch applyLanguage(&host.app.resources, ReferenceLanguage)
+
+    let text = Markdown.View.createText(&host.root, "> [!WARNING]\n> Retain this body.")
+    text.resize(720, 1000)
+    let textInline = text.blocks[0].inline!
+    Swag.assert(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
+
+    let fileName = Testing.tempFilePath("markdown-language-", ".md")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for 32 do
+        source += "> [!WARNING]\n> Retain this body.\n\n"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    let file = Markdown.View.createFile(&host.root, fileName)
+    file.resize(720, 1000)
+    file.applyLayout()
+    host.fireTimer(file.loadTimer)
+    Swag.assert(file.blocks.count == 8)
+    let firstInline  = file.blocks[0].inline!
+    let englishTitle = String.from(strings().markdown_AlertWarning)
+
+    expect applyLanguage(&host.app.resources, "fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(strings().markdown_AlertWarning != englishTitle.toString())
+    Swag.assert(text.blocks[0].inline == textInline)
+    Swag.assert(file.blocks[0].inline == firstInline)
+    Swag.assert(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
+    Swag.assert(Utf8.contains(firstInline.text().toString(), strings().markdown_AlertWarning))
+
+    // These blocks were already parsed in English, but had not been materialized yet.
+    file.streamStep()
+    Swag.assert(file.blocks.count == 16)
+    for &block in file.blocks
+    {
+        let displayed = block.inline!.text()
+        Swag.assert(Utf8.contains(displayed.toString(), strings().markdown_AlertWarning))
+        Swag.assert(Utf8.contains(displayed.toString(), "Retain this body."))
+    }
+
+    expect applyLanguage(&host.app.resources, ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(Utf8.contains(firstInline.text().toString(), englishTitle.toString()))
+}
+
 // A file-open failure stays inspectable even when no observer was connected during construction.
 #test
 {

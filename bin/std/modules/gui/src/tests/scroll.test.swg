@@ -67,3 +67,36 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
     scroll.setScrollPos(100, 100)
     Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
 }
+
+// Focus reveals a nested control through both viewports, and can return to the first control.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 260)
+    defer host.shutdown()
+    let outer = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 300, 200})
+    outer.createView'Wnd()
+    outer.setScrollSize(900, 900)
+    let first = PushButton.create(outer.view, "First", {0, 0, 80, 26})
+    let inner = Wnd.create'ScrollWnd(outer.view, "", {500, 500, 200, 140})
+    inner.createView'Wnd()
+    inner.setScrollSize(800, 800)
+    let last = PushButton.create(inner.view, "Last", {600, 600, 80, 26})
+    host.pump()
+
+    first.setFocus()
+    Swag.assert(outer.scrollPosition() == Math.Point{0, 0})
+    last.setFocus()
+    Swag.assert(host.app.keyboardFocusWnd == last)
+    Swag.assert(inner.scrollPosition().x > 0 and inner.scrollPosition().y > 0)
+    Swag.assert(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
+    Swag.assert(inner.view.surfaceRect().contains(last.surfaceRect()))
+    Swag.assert(outer.view.surfaceRect().contains(last.surfaceRect()))
+
+    let position = outer.scrollPosition()
+    last.setFocus()
+    Swag.assert(outer.scrollPosition() == position)
+    first.setFocus()
+    Swag.assert(outer.scrollPosition() == Math.Point{0, 0})
+    Swag.assert(outer.view.surfaceRect().contains(first.surfaceRect()))
+}

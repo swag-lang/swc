@@ -1,9 +1,7 @@
 # PDF Backlog
 
-This backlog covers the PDF family inside `std/gui` — the `Pdf` engine namespace under
-`gui/src/controls/pdf` and the `PdfView` widget beside it — measured against the PDF engines it
-competes with: PDFium, MuPDF, Poppler and pdf.js on the reading side, PDFBox and iText on the
-document side, and QuestPDF, ReportLab and wkhtmltopdf on the writing side.
+This backlog covers the PDF family inside `std/gui`: the `Pdf` engine namespace under
+`gui/src/controls/pdf` and the `PdfView` widget beside it.
 
 PDF-specific evidence, investigations, and intended outcomes stay together here. Compiler and
 language work belongs in [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md).
@@ -32,13 +30,12 @@ written.
 
 The following capabilities are already implemented.
 
-- **It writes as well as it reads.** Poppler and pdf.js do not write at all; PDFium's writer is an
-  afterthought. A `Document` here is editable and round-trippable, and the writer emits a
-  deterministic file.
-- **The substitute font path is unusually careful.** When a program cannot be drawn, the face is
+- **It writes as well as it reads.** A `Document` is editable, and the writer emits a
+  deterministic file within the limitations recorded below. Decoding and encoding a document
+  does not preserve every feature of the source.
+- **The substitute font path preserves declared advances.** When a program cannot be drawn, the face is
   chosen from the descriptor's own traits and the run is then condensed to the advances the
-  document declared, per character code. Most readers let the substitute's own metrics drive the
-  line, which is what turns a justified paragraph into one that misses its margin.
+  document declared, per character code.
 - **The corpus is real.** 354 pages from eleven LLVM and Polly documents produced by several
   generations of writers, plus five PDFBox fixtures, all decoded lazily through `Pdf.Reader`.
 - **The widget paints vectors, not rasters.** `PdfView` keeps the decoded page and draws its
@@ -46,14 +43,14 @@ The following capabilities are already implemented.
   is a transform change: images upload once per page, typefaces resolve once per page, path
   tessellations cache inside the decoded page, and no offline rasterization, readback, or
   texture re-upload sits between the page and the screen.
-- **A document decodes each resource once.** An image and a font are decoded once per open
-  document rather than once per page that names them, which is what a slide deck repeating its
-  template on every page and a thesis embedding one family across a hundred pages both cost
-  before.
+- **A document caches decoded resources.** Fonts are cached by object. Images are cached by
+  object and resource dictionary within `ImageCacheBudget`; stencils depend on the current fill
+  color and bypass that cache. Pages still own copies, as described in the cost entries below.
 - **Opening costs the trailer chain, not the file.** `startxref` is followed through `/Prev`
   across classic tables and cross-reference streams, an object is parsed the first time
   something reaches it, and an incremental update resolves to the revision its trailer names.
-  Over the corpus that is 7.8 ms against MuPDF's 16 ms for the same sixteen files.
+  The recorded comparison in std.gui.pdf.025 measured 7.8 ms against MuPDF's 16 ms for sixteen
+  files; those historical timings need a fresh run before describing the current checkout.
 
 The gaps are of three kinds: documents that will not open at all, pages that open and then render
 as something other than what they mean, and a writer that can only express what it can itself
@@ -83,10 +80,8 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
 - Intent: `indexDocument` fails the whole document as soon as an `/Encrypt` entry or a standard
-  security handler is seen. A large share of production files are encrypted with an *empty* user
-  password, purely to declare permissions, and every competing reader opens them without ever
-  asking the user anything. Today those files cannot be opened at all, which is the single largest
-  category of documents this module rejects.
+  security handler is seen. Files encrypted with an *empty* user password are rejected along with
+  files requiring a password. The reader has no decryption path for either case.
 - Complete when: the standard security handler is implemented for revisions 2 through 6 — RC4 40
   and 128 bit, AES-128 and AES-256 — strings and streams are decrypted per object with the correct
   key derivation, a document that opens with the empty user password opens silently, and one that
@@ -105,8 +100,8 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Intent: `loadPage` fails as a unit. A single JBIG2 scan or one JPEG 2000 photograph anywhere in
   a content stream costs the caller the entire page, including the text and vectors that decoded
   perfectly. For a viewer that is the difference between a page with a gap in it and a page that
-  will not display. It also means every entry below this one is, today, a way to lose a page
-  rather than a way to lose a mark.
+  will not display. Other unsupported constructs are silently ignored or substituted instead;
+  those paths also need an explicit limitation record.
 - Complete when: a page decodes as far as it can, each construct it could not represent is
   recorded against the item that needed it with enough detail to name the feature, `Page` exposes
   those limitations to the caller, and a document-level failure is reserved for input that cannot
@@ -175,9 +170,9 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 - Intent: `Tr` is stored and then only consulted to detect the invisible modes 3 and 7. Mode 1
   paints outlined text, mode 2 fills and strokes it, and modes 4 through 7 add the run to the clip
-  path — the standard way to fill text with an image or a gradient. All of them are drawn as a
-  plain fill in the fill color, so outlined display type renders solid and image-filled text
-  renders as flat letters.
+  path — the standard way to fill text with an image or a gradient. Modes 1, 2, 4, 5 and 6 are
+  drawn as a plain fill; mode 7 paints nothing but also contributes no clip. Outlined display type
+  therefore renders solid, and subsequent content ignores the missing text clip.
 - Complete when: an item carries its render mode, stroke and fill-and-stroke modes paint with the
   stroke color and width, and the clipping modes contribute the run's outline to the clip.
 
@@ -263,9 +258,8 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 ### std.gui.pdf.019 — Text output cannot leave Windows-1252 and the fourteen standard faces
 
 - Intent: `Page.addText` accepts UTF-8 and `windows1252` then fails the whole `save` on the first
-  character outside that page. No font can be embedded. A document generator that cannot write
-  Greek, Cyrillic, Hebrew, any CJK script, or an emoji is not a document generator — it is a Latin
-  memo generator, and every writing library it competes with embeds fonts as a matter of course.
+  character outside that encoding. No font can be embedded, so the writer cannot express text
+  such as Greek, Cyrillic, Hebrew, CJK or emoji.
 - Complete when: a TrueType or OpenType program can be embedded, subset to the glyphs used, with a
   Type0 composite font, an Identity-H encoding and a `/ToUnicode` map so the output stays
   searchable and copyable; the standard faces remain the default so a Latin document still carries
@@ -337,11 +331,11 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ### std.gui.pdf.025 — Decoding a page costs five times what MuPDF charges for it
 
-- Evidence: measured against MuPDF 1.28.2 over the whole corpus, alternating the two so both see
+- Evidence: the recorded, undated comparison against MuPDF 1.28.2 used the whole corpus, alternating the two so both saw
   the same machine, in release configuration and taking the best of three. Opening the sixteen
-  files costs 7.8 ms against 16.0 ms — this side is now the faster one. The first page of each
-  document, which is the whole of what a reader waits for, costs 123 ms against 51.5 ms. Walking
-  all 360 pages costs 1 262 ms against 259 ms.
+  files cost 7.8 ms against 16.0 ms. The first page of each
+  document cost 123 ms against 51.5 ms. Walking all 360 pages cost 1 262 ms against 259 ms.
+  These are historical measurements, not validation of the current checkout.
 - Note: this is measured on `Reader.open` and `Reader.loadPage`, which is what the viewer runs:
   [[Gui.PdfView]] paints the decoded page through the application's renderer, so the offline
   `Page.render` path is not on it. A stopwatch is only usable here when the machine is quiet;
@@ -443,12 +437,13 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   round trip through the writer is judged on its rendered result.
 - Related: std.gui.pdf.021
 
-### std.gui.pdf.031 — The corpus has no malformed, hostile, or large document
+### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
 
-- Intent: every fixture is a well-formed file under three megabytes produced by a working writer.
-  Nothing exercises a truncated stream, a cyclic page tree, a lying `/Length`, an object that
-  claims a billion entries, or a hundred-megabyte scan — and the parser has no overall memory or
-  node budget to catch one, only the local depth limits it already carries.
+- Intent: the stored PDF corpus stays below three megabytes per file. Generated tests cover
+  cross-reference repair and incremental updates, and filter tests already reject a truncated
+  run-length stream. There is no document-level adversarial matrix for cyclic page trees,
+  contradictory lengths, declared-size attacks or very large scans. The parser has local depth
+  limits but no overall memory or node budget.
 - Note: two of these now have a test each — a blunted `startxref` falls through to the repair
   scan, and an incremental update resolves to the revision its trailer names — but they build
   their fixture at run time rather than carrying one, and neither is a hostile input.

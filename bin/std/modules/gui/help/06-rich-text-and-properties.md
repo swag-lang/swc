@@ -43,9 +43,23 @@ The renderer supports GFM headings, lists, tasks, fenced code, tables,
 autolinks, reference links, alerts, footnotes, metadata, and thematic rules,
 plus Typora-style highlight, subscript, superscript, table of contents, and TeX
 delimiters. Inline and display TeX are laid out by [[Pixel.MathExpression]];
-the widget does not substitute approximate Unicode glyphs or execute embedded
-HTML.
+the widget does not substitute approximate Unicode glyphs.
+
+Inline HTML uses the HTML parser and translates phrasing elements into rich text:
+links, bold and emphasis, deleted text, code, highlighting, subscript, superscript,
+and line breaks retain their meaning. Other inline elements contribute their child
+text without adding layout. An inline `img` is a textual image link, as is Markdown
+`![alt](url)` syntax.
+
+A line beginning with a layout-bearing HTML element starts an HTML block hosted by
+[[Gui.HtmlView]]. Its supported CSS and layout rules apply inside that block. Local
+images resolve against the streamed Markdown file's directory; `data:` images can
+also render. Remote images are not fetched, and scripts never execute. Unsupported
+HTML and CSS follow the HTML engine's fallback rules; this is an offline document
+viewer, with no browser scripting or network resource loader.
 
 Every surface, rule, link, selection, notice, and text color comes from the
 active GUI theme. A theme change relayouts the document and all mathematical
 expressions without rebuilding the source model.
+Changing the language refreshes alert titles in existing and progressively loaded
+blocks. The document's authored text stays unchanged.

@@ -241,6 +241,22 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(Utf8.contains(drawing.slides[0].html.toString(), "Read-only drawing page") and Utf8.contains(drawing.slides[1].html.toString(), "Drawing handoff is ready"))
 }
 
+// XML entities become literal text in table cells and labels, with no second decoding pass.
+#test
+{
+    let source   = openDocumentXml("<office:spreadsheet><table:table table:name='Sales &amp; costs'><table:table-row><table:table-cell><text:p>Name &amp; label</text:p></table:table-cell><table:table-cell><text:p>Value</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris &amp; Berlin &#x1F600;</text:p></table:table-cell><table:table-cell office:string-value='&lt;img&gt; &amp;amp;'/></table:table-row></table:table></office:spreadsheet>")
+    let document = expect parseOpenDocumentContent(source.toString(), .Spreadsheet)
+    Swag.assert(document.sheets[0].name == "Sales & costs")
+    Swag.assert(document.sheets[0].table.columns[0] == "Name & label")
+    Swag.assert(document.sheets[0].table.rows[0].cells[0] == "Paris & Berlin 😀")
+    Swag.assert(document.sheets[0].table.rows[0].cells[1] == "<img> &amp;")
+
+    let slideSource = openDocumentXml("<office:presentation><draw:page draw:name='Review &amp; plan'><text:p>Visible &lt;img&gt;</text:p></draw:page></office:presentation>")
+    let slides      = expect parseOpenDocumentContent(slideSource.toString(), .Presentation)
+    Swag.assert(slides.slides[0].name == "Review & plan")
+    Swag.assert(Utf8.contains(slides.slides[0].html.toString(), "Visible &lt;img&gt;"))
+}
+
 // Repeated ODF rows and cells cannot expand a small source document into an unbounded table model.
 #test
 {

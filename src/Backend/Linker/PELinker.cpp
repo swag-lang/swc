@@ -1289,15 +1289,21 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     for (ArchiveLoadItem& item : archiveItems)
         enqueueJob(std::make_unique<ArchiveLoadJob>(builder_->ctx(), item));
 
-    SWC_RESULT(buildNativeImage(outJob.image));
-
-    DebugTableBuild debugTable;
-    enqueueJob(std::make_unique<DebugTableJob>(builder_->ctx(), *builder_, debugTable));
-
+    const Result               imageResult = buildNativeImage(outJob.image);
+    DebugTableBuild            debugTable;
     LinkWin32ApplicationConfig win32Config;
-    SWC_RESULT(collectWin32ApplicationConfig(win32Config));
+    Result                     configResult = Result::Continue;
+    if (imageResult == Result::Continue)
+    {
+        enqueueJob(std::make_unique<DebugTableJob>(builder_->ctx(), *builder_, debugTable));
+        configResult = collectWin32ApplicationConfig(win32Config);
+    }
 
+    // The jobs borrow archiveItems and debugTable. Drain them before either a foreground
+    // failure or a worker failure can unwind their storage.
     jobMgr.waitAll(clientId);
+    SWC_RESULT(imageResult);
+    SWC_RESULT(configResult);
     for (const std::unique_ptr<LinkPrepareJobBase>& job : jobs)
         SWC_RESULT(job->result());
 

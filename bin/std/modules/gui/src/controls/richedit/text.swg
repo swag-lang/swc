@@ -266,6 +266,8 @@ impl RichEditCtrl
         if runes.isEmpty() do
             return
         Debug.assert(runes.count == nstyles.count)
+        if .lines.isEmpty() do
+            .newLine(0)
 
         if !selRect
         {
@@ -596,6 +598,8 @@ public impl RichEditCtrl
     mtd insertRune(ch: rune)
     {
         let c = ch
+        if .lines.isEmpty() do
+            .newLine(0)
 
         // A new undo action needs to be regenerate ?
         var forceUndo = false

@@ -23,8 +23,8 @@ func attach() fail
     builder.zeroTerminate()
     let arguments = builder.toString()
 
-    let proc = try Env.startProcess("vsjitdebugger.exe", arguments.toString())
-    CloseHandle(proc)
+    // Dropping the process value closes its launcher handles without waiting for attachment.
+    discard try Env.startProcess("vsjitdebugger.exe", arguments.toString())
 
     while !IsDebuggerPresent() do
         Threading.Thread.sleep(100'ms)

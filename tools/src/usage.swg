@@ -160,7 +160,7 @@ reference, and the multi-module workspace suite.
 
     case "format":
         Console.print("""
-Formats every Swag source workspace in the repository, in place.
+Formats every Swag workspace, maintenance script, benchmark, and website generator in place.
 
   swc tools/format.swgs [dm] [options...]
 

@@ -1173,6 +1173,7 @@ impl HtmlStyleSheet
     private mtd addSubSelectors(argument: string)->bool
     {
         var added: bool
+        let first        = .subParts.count
         let alternatives = htmlSplitValue(argument, ','u8)
         for alternative in alternatives
         {
@@ -1180,6 +1181,16 @@ impl HtmlStyleSheet
             let compound = .parseCompound(alternative.toString(), &scan)
             if !compound.matched do
                 continue
+            while scan < alternative.count and Latin1.isSpace(alternative[scan]) do
+                scan += 1
+            if scan != alternative.count
+            {
+                // The pool represents compounds only. Reject a complex argument instead of
+                // applying its first compound to a different set of elements.
+                .subParts.resize(first)
+                return false
+            }
+
             var part = compound.part
             .subParts.add(#move part)
             added = true

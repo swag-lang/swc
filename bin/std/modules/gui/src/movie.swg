@@ -26,7 +26,7 @@ struct Movie
         sigFrameChanged:      SigArray'func||(*Movie)     // Signal emitted after the visible frame changes.
         sigDecodeFailed:      SigArray'func||(*Movie)     // Emitted when later frame decoding fails; playback pauses and failureReason describes the failure.
 
-        // Where the movie is. The playback advances all three; seek with 'setFrame'.
+        // Where the movie is. The playback advances all three; seek with 'setFrameIndex'.
 
         readonly
         {
@@ -41,7 +41,7 @@ struct Movie
     source:              MovieSource = None     // Kind of source the movie plays.
     imgList:             ImageList              // Frames of an image-list source.
     reader:              ImageReader
-    cachedFrames:        Array'Image     // Decoded GIF frames retained when caching is enabled.
+    cachedFrames:        Array'Image     // Decoded image-set frames retained when caching is enabled.
     elapsedFrameSeconds: f32             // Time accumulated toward the next frame.
     dirtyFrame:          bool            // Whether a seek changed the current frame.
     cachedBytes:         u64

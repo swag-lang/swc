@@ -31,6 +31,13 @@ public func runTests(context: *Context, options: *Options)->s32 fail
         return 1
     }
 
+    var tooling: Arguments
+    options.appendExtra(&tooling)
+    tooling.add([Path.combine(context.root.toString(), "tools", "tests", "repository.swgs").toString()])
+    let checked = try context.runCompiler(tooling)
+    if checked != 0 do
+        return checked
+
     return try runWholeSet(context, options)
 }
 
@@ -70,6 +77,15 @@ private func buildEveryWorkspace(context: *Context, options: *Options)->s32 fail
     let apps = try runApps(context, options)
     if apps != 0 do
         return apps
+
+    // The privileged integration is excluded from ordinary sources, but must still compile.
+    // Its tag changes artifact identity, so this semantic pass cannot reuse the untagged build.
+    var integration: Arguments
+    integration.add(["sema", "--workspace", context.workspacePath("apps").toString(), "--workspace-module", "swagvault", "-bc", options.buildCfg.toString(), "--tag", "vault.integration"])
+    options.appendExtra(&integration)
+    let integrationCode = try context.runCompiler(integration)
+    if integrationCode != 0 do
+        return integrationCode
 
     let reference = try runReference(context, options)
     if reference != 0 do

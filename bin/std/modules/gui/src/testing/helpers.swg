@@ -86,6 +86,18 @@ func textBytes(text: string)->Array'u8
 // reinterpretation is spelled once here instead of at every call site.
 func bytesAre(bytes: const [..] u8, text: string)->bool => bytes == cast(const [..] u8) text
 
+// Returns an owned snapshot of the image sources successfully decoded by an HTML view.
+//
+// Each source appears once, in first-use order. Failed loads are excluded. The snapshot does
+// not load or paint anything; it lets a test check lazy resource loading without a wall clock.
+func htmlImageSources(view: const *HtmlView)->Array'String
+{
+    var result: retval
+    for entry in view.images.entries where entry.loaded do
+        result.add(entry.source)
+    return result
+}
+
 // Deterministic BGRA test image: every pixel derives from its coordinates, so a
 // save/load round-trip can be verified byte-for-byte.
 func indexedImage(w, h: s32)->Image

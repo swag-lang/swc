@@ -4370,6 +4370,33 @@ namespace SemaEscape
         return Result::Error;
     }
 
+    void propagateCompletedFreesSummaries(TaskContext& ctx)
+    {
+        const std::vector<SemaEscapeSummaryEdge> edges   = ctx.compiler().copyEscapeSummaryEdges();
+        bool                                     changed = !edges.empty();
+        while (changed)
+        {
+            changed = false;
+            for (const SemaEscapeSummaryEdge& edge : edges)
+            {
+                if (!edge.caller || !edge.callee || edge.kind != SemaEscapeSummaryEdgeKind::StoresToStores)
+                    continue;
+                if (!edge.caller->isSemaCompleted() || !edge.callee->isSemaCompleted())
+                    continue;
+                if (edge.viaStoredField || edge.viaOwnedPayload)
+                    continue;
+
+                const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
+                const uint64_t callerBit = 1ULL << edge.callerParamIndex;
+                if ((edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesParamsMask() & callerBit))
+                {
+                    edge.caller->addFreesParam(edge.callerParamIndex);
+                    changed = true;
+                }
+            }
+        }
+    }
+
     void reportDeferredChecks(TaskContext& ctx)
     {
         std::vector<SemaEscapeDeferredCheck>     checks = ctx.compiler().takeDeferredEscapeChecks();

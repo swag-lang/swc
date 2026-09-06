@@ -50,6 +50,33 @@ Track both native source lines and, more importantly, native capabilities a new 
 
 - Related: platform.portability.001
 
+## Tier A — Accessibility and text composition on the shipped desktop
+
+### platform.portability.048 — Accessibility has no portable semantic tree or Windows adapter
+
+- Evidence: the GUI module has no `WM_GETOBJECT` handler, UI Automation provider, MSAA adapter,
+  or common accessibility tree. Its custom controls therefore expose no semantic roles, names,
+  states, or actions to assistive technology. Existing keyboard navigation supplies no such model.
+- Next: define a platform-neutral accessible tree with roles, names, values, states, focus, and
+  actions, validate it through the headless host, then expose it through a Windows UI Automation
+  provider rooted at the surface. No portable widget or event may mention UIA or a native message.
+- Complete when: Narrator, NVDA, and JAWS can inspect and operate the first supported controls on
+  Windows, the semantic tree is backend-independent, and platform.portability.060 can map another OS without changing
+  widget APIs.
+
+### platform.portability.049 — Text composition has no portable contract or Windows IME adapter
+
+- Problem: no `WM_IME_STARTCOMPOSITION`, `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION`,
+  `WM_IME_SETCONTEXT` or `WM_IME_NOTIFY`. Text input is `WM_CHAR` and `WM_KEYDOWN` only.
+- Missing behavior: editors have no representation of an active composition, its clauses, or the
+  candidate-window location. Receiving committed characters through ordinary text events does
+  not prove that composition and candidate selection work correctly.
+- Next: define backend-neutral composition start/update/commit/cancel events, clause styling, and
+  candidate-window geometry, then translate the Windows IME messages into that model. The caret
+  geometry needed for placement already exists in `EditBox`.
+- Complete when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
+  tests cover the common model, and platform.portability.061 can add another OS without changing editor APIs.
+
 ## Tier A — Runtime host and memory boundary
 
 ### platform.portability.003 — Define a minimal runtime host ABI
@@ -64,10 +91,11 @@ and process termination; keep only those irreducible operations in the Windows l
 
 The present non-Windows allocator fallbacks are not equivalent: `Swag.alloc` cannot model reserved
   address space, decommitment, or a guard page, while the counters pretend commit/decommit occurred.
-  Implement `mmap`/protection/release semantics and thread-exit
-  cleanup exist.
+  Implement `mmap`/protection/release semantics and thread-exit cleanup before enabling the page
+  path on Linux. Cover `allocatorOsCommit`, `allocatorOsDecommit`, protection, and release behind
+  the runtime host boundary.
 
-- Related: platform.portability.047
+- Related: runtime.allocator.008
 
 ### platform.portability.005 — Runtime startup cannot accept an argument vector
 
@@ -77,10 +105,11 @@ Give startup a host ABI that can accept an argument vector directly. Windows may
 
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
 
-### platform.portability.006 — `Crypto.secureClear` has no no-elide primitive
+### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
 
-Make `Crypto.secureClear` a no-elide runtime/compiler primitive or a narrow host primitive. A
-  plain Swag loop is not a security guarantee if dead-store elimination may erase it.
+`crypto/security.win32.swg` already calls the foreign `RtlZeroMemory` routine; the shipped
+implementation is no longer a plain Swag loop. Give the same public operation a runtime/compiler
+primitive or narrow host implementations on other targets, preserving its no-elide guarantee.
 
 - Related: platform.portability.075
 
@@ -103,10 +132,11 @@ Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm whe
 
 ### platform.portability.009 — Process orchestration remains in the Windows backend
 
-Move the portable parts of `process.win32.swg` out of the backend: stream-redirection policy,
-  ownership and cleanup order, output/error accumulation, draining both pipes while waiting,
-  timeout loops, cached exit status, and the convenience `startProcess`/`runProcess` families.
-  The host leaf should spawn, poll/wait, terminate, and read/write/close one native endpoint.
+The process value, environment map, recorded-status accessors, and convenience
+`startProcess`/`runProcess` overloads already live in common `process.swg`. Move the remaining
+portable orchestration out of `process.win32.swg`: redirection setup policy, ownership and cleanup
+order, output/error accumulation, draining both pipes while waiting, and timeout loops. The host
+leaf should spawn, poll/wait, terminate, and read/write/close one native endpoint.
 
 - Related: platform.portability.032, platform.portability.008, platform.portability.011
 
@@ -137,8 +167,10 @@ and recursive traversal.
 
 ### platform.portability.013 — Paths have no target-independent lexical conformance suite
 
-Test root forms, case policy, trailing separators, dot segments, invalid names, and normalization
-without touching the filesystem.
+`core/src/tests/filesystem/path.test.swg` already tests lexical Windows path behavior without
+touching the filesystem. Extend that coverage to independent target-policy tables for Windows
+and Unix: root forms, case policy, trailing separators, dot segments, invalid names, and
+normalization. A host must be able to exercise both policies without running another OS.
 
 - Related: platform.portability.012
 
@@ -270,8 +302,6 @@ Implement lifecycle, periodic rescheduling, callback/context dispatch, and cance
   Windows timer-queue policy into every backend.
 
 - Related: platform.portability.036
-
-## Tier B — Application portability enforcement
 
 ## Tier C — Optional ownership, not a Linux prerequisite
 
@@ -412,48 +442,19 @@ independently of stack-symbol presentation.
 Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
 state and policy in common code.
 
-### platform.portability.047 — The page allocator has no real second-platform OS primitives
+### platform.portability.088 — Network transports have no host backends
 
-Implement equivalents of `allocatorOsCommit`, `allocatorOsDecommit`, page protection, release, and
-thread-exit cleanup before enabling the page path on another target. The compiled fallbacks are
-placeholders, not an implementation.
-
-- Related: runtime.allocator.008, platform.portability.004
+- Owner: the `net` module proposed by std.core.001.
+- Evidence: `bin/std/modules` has no `net` module or socket/resolver backend. The TCP entry
+  previously mixed its public contract with Winsock and BSD-socket implementation work.
+- Next: once the endpoint and ownership contract is chosen, implement Windows and POSIX leaves
+  for blocking TCP, UDP, and host/service resolution. Keep native handles and error translation
+  inside those leaves; add readiness only after the common concurrency contract is decided.
+- Complete when: both host backends pass the same loopback, partial-transfer, cancellation,
+  resolution-failure, and handle-lifetime tests without exposing native types to callers.
+- Related: std.core.001, std.core.002, std.core.003, std.core.004, language.parallelism.001.
 
 ## GUI contracts and operating-system integrations
-
-### platform.portability.048 — Accessibility has no portable semantic tree or Windows adapter
-
-- Problem: `WM_GETOBJECT` is not handled anywhere in the module. That single message is how
-  Windows asks an application to describe itself to assistive technology. Without it there is no
-  UI Automation provider, no MSAA, and no accessible tree of any kind.
-- Consequence: **no screen reader can see a Swag application.** Not partially — at all. Narrator,
-  NVDA and JAWS receive nothing. Keyboard-only navigation exists, but nothing announces what has
-  focus.
-- This is also a procurement and legal question, not only an ethical one. The European
-  Accessibility Act has applied since June 2025 and US Section 508 governs federal purchasing. Qt,
-  GTK, WinUI, Avalonia, Flutter and Slint all implement this, and egui added it through AccessKit
-  precisely because its absence was disqualifying.
-- Next: define a platform-neutral accessible tree with roles, names, values, states, focus, and
-  actions, validate it through the headless host, then expose it through a Windows UI Automation
-  provider rooted at the surface. No portable widget or event may mention UIA or a native message.
-- Complete when: Narrator, NVDA, and JAWS can inspect and operate the first supported controls on
-  Windows, the semantic tree is backend-independent, and platform.portability.060 can map another OS without changing
-  widget APIs.
-- This is the single most important entry in any of the five module backlogs.
-
-### platform.portability.049 — Text composition has no portable contract or Windows IME adapter
-
-- Problem: no `WM_IME_STARTCOMPOSITION`, `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION`,
-  `WM_IME_SETCONTEXT` or `WM_IME_NOTIFY`. Text input is `WM_CHAR` and `WM_KEYDOWN` only.
-- Consequence: **Chinese, Japanese and Korean text cannot be typed** into an `EditBox`, a
-  `PasswordEdit`, or the rich editor. Nor can Vietnamese or any other input relying on composition.
-  This is not degraded input; it does not work.
-- Next: define backend-neutral composition start/update/commit/cancel events, clause styling, and
-  candidate-window geometry, then translate the Windows IME messages into that model. The caret
-  geometry needed for placement already exists in `EditBox`.
-- Complete when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
-  tests cover the common model, and platform.portability.061 can add another OS without changing editor APIs.
 
 ### platform.portability.050 — No second-platform surface and presentation backend
 
@@ -489,9 +490,13 @@ composition.
 
 - Related: platform.portability.049, platform.portability.052, platform.portability.061
 
-### platform.portability.054 — No second-platform pointer routing
+### platform.portability.054 — Native input has no portable mouse, touch, and pen adapter
 
-Translate mouse, touch, and pen input into the portable pointer contract.
+Implement native adapters for the pointer contract in std.gui.011. The current Windows backend
+polls mouse state but does not translate `WM_POINTER`, `WM_TOUCH`, or `WM_GESTURE` into contacts.
+Add pointer identity, contact lifetime and capture cancellation, suppress duplicate compatibility
+mouse events, then map the same contract on the next platform. Keep gesture recognition and
+arbitration in the portable GUI layer.
 
 - Related: std.gui.011, platform.portability.052
 
@@ -836,21 +841,3 @@ failure at each stage. Keep one optional virtual-PDF integration test; correctne
 not depend on an installed driver.
 
 - Related: std.gui.030, std.gui.033, std.gui.032
-
-### platform.portability.087 — Polled mouse input cannot see occlusion or activation
-
-- Evidence: `Application.sendMouseEvents` builds hover and click events from the globally polled
-  cursor and button state, not from this application's own message stream. A press made on another
-  application's window that happens to overlap a Swag surface therefore lands on the control
-  underneath, and hover tracking lights rows under windows that cover them. The keyboard had the
-  same defect for shortcuts and is now gated on `Application.isActivated`; headless hosts no longer
-  receive the polled mouse at all, which is what had a parked desktop cursor lighting a popup row
-  inside two golden images. The remaining hole is the active-application case with an overlapping
-  foreign window, which polling cannot detect.
-- Next: derive mouse position and button transitions from the surface's own `WM_MOUSE*` messages,
-  keeping the polled path only for what messages cannot express, then decide whether the activating
-  click should reach the control it lands on.
-- Complete when: a click on an overlapping foreign window never reaches a Swag control, hover
-  follows what the compositor actually shows, and the existing capture and drag behaviors survive
-  the change.
-- Related: std.gui.011

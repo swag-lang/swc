@@ -1,6 +1,6 @@
 //! Format: Portable Network Graphics (PNG) decoder component.
 //! Supported: Standard grayscale, true-color, indexed, grayscale-alpha, and true-color-alpha images, including Adam7 and supported metadata.
-//! Not supported: APNG animation, unknown critical chunks, and images requiring more than 2 GiB of decoded storage.
+//! Not supported: Unknown critical chunks and images requiring more than 2 GiB of decoded storage.
 //! Role: This file owns decoded sample expansion and pixel-format conversion.
 //
 // @LICENCE: BSD-2-Clause

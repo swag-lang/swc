@@ -1295,6 +1295,26 @@ using Swag
 
 #test
 {
+    // Separators and White_Space overlap, but whitespace controls are not separators.
+    var separators    = expect Parser.RegExp.create(#raw "\p{Z}+")
+    var named         = expect Parser.RegExp.create(#raw "\p{Separator}+")
+    var spaces        = expect Parser.RegExp.create(#raw "\p{White_Space}+")
+    var notSeparators = expect Parser.RegExp.create(#raw "\P{Z}+")
+    let allSeparators = " \u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000"
+    Swag.assert(separators.match(allSeparators) and named.match(allSeparators))
+    Swag.assert(spaces.match(allSeparators))
+    for control in ["\t", "\n", "\v", "\f", "\r", "\u0085"]
+    {
+        Swag.assert(!separators.match(control) and !named.match(control))
+        Swag.assert(spaces.match(control) and notSeparators.match(control))
+    }
+
+    Swag.assert(!spaces.match("\u200B"))
+    Swag.assert(!separators.match("\u200B"))
+}
+
+#test
+{
     // The automaton works over UTF-8 bytes, so a class of scalar values above ASCII must
     // still match whole characters and nothing in between.
     var accented  = expect Parser.RegExp.create(#raw "[\x{00E0}-\x{00FF}]+")

@@ -28,7 +28,11 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
 
     var result = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null)
@@ -51,6 +55,15 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.assert(result.revealMatch!(result.view!, match, "immutable"))
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds!(result.view!, match, &bounds) and !bounds.isEmpty())
+
+    let oldTip = String.from(view.zoomLabel.toolTip)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(view.zoomLabel.toolTip == htmlStrings().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
+    Swag.assert(view.zoomPercent == 100 and result.searchBounds!(result.view!, match, &bounds))
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(view.zoomLabel.toolTip == oldTip)
     result.clearSearch!(result.view!)
 }
 

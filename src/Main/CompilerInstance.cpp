@@ -1302,6 +1302,12 @@ void CompilerInstance::addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
     escapeSummaryEdges_.push_back(edge);
 }
 
+std::vector<SemaEscapeSummaryEdge> CompilerInstance::copyEscapeSummaryEdges() const
+{
+    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    return escapeSummaryEdges_;
+}
+
 std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
 {
     const std::scoped_lock lock(deferredEscapeChecksMutex_);

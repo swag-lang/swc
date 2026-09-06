@@ -169,7 +169,10 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** compiler.core.008, compiler.core.011, compiler.core.013.
 
-### compiler.core.011 — The editor cannot navigate to definitions
+### compiler.core.011 — The editor has no semantic definition navigation
+
+**Evidence.** The VSCode extension registers build, rebuild, and format tasks. It registers no
+definition provider and does not consume resolved compiler symbols.
 
 **Intent.** Resolve the symbol referenced at a source position and return its canonical declaration location, including declarations in dependencies represented by persisted interfaces.
 
@@ -364,7 +367,9 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
   target becomes ready afterward, so a test that reaches one through an interface table or stored
   callback jumps into the placeholder bytes. The rip being identical across six tests and several
   runs says the slot content is deterministic, not heap garbage.
-- Next step: reproduce with the command above (two runs usually suffice), then dump the pointed-to
+- Next step: retry the apps JIT suite with the checkout-local DevMode compiler in the supported
+  `devmode` and `release` target configurations, with `--rebuild` and `--num-cores 6`; the `debug`
+  command above is historical. On recurrence, dump the pointed-to
   slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
   relocation names. Decide between re-running the constant patcher when a deferred target publishes
   its JIT address, and refusing to defer relocations that are reachable from an interface table.
@@ -430,36 +435,6 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
   smallest set that still fails is known. Then dump `setRange` and the `#test` body from that set
   and from the filtered one and compare; two compiles of the same function that differ is what to
   look for before the allocator or global-segment publication.
-
-### compiler.core.026 — A namespace-qualified generic type cannot take a generic parameter
-
-- Area: compiler
-- Found while: moving Swag Scope's viewer contract into an app-published `Viewer` namespace, which
-  put a generic support type behind a namespace for the first time.
-- Observation: `Ns.Box'T` is rejected wherever `T` is the enclosing generic parameter, while the
-  same type with a concrete or aliased argument (`Ns.Box'u32`, `Ns.Box'MyAlias`) resolves, and the
-  unqualified `Box'T` resolves. The qualified spelling reaches instantiation and then waits on `T`
-  forever, so the cycle checker reports it as an unknown symbol at the argument, not at the use.
-- Evidence: with `namespace Ns { struct(T) Box { value: T } }` in one file, each of
-  `struct(T) Holder { boxed: Ns.Box'T }`, `func(T) f(box: *Ns.Box'T)->T => box.value` called as
-  `f'u32(&box)`, and `func(T) g()->Ns.Box'T` fails with `unknown symbol 'T'` pointing at the
-  argument. Replacing `Ns.Box'T` with `Ns.Box'u32` in the same file compiles and runs. Reproduced
-  on 0.1.288.
-- Second defect behind it: deduction never reaches instantiation for the same spelling. Calling
-  `f(&box)` without an explicit argument reports `cannot deduce generic parameter 'T'` instead,
-  because `tryGetStructPatternGenericArgs` in
-  `src/Compiler/Sema/Generic/SemaGeneric.Deduce.cpp` reads the pattern's `nodeIdentRef` as a
-  quoted expression and returns empty for the `AstMemberAccessExpr` a qualifier produces. Walking
-  down to that member access's right side makes deduction succeed and uncovers the resolution
-  failure above; the two are one feature and are worth fixing together.
-- Next: find where the quoted suffix of a qualified type is resolved. `lookupScopedMember` in
-  `src/Compiler/Sema/Helpers/SemaHelpers.Symbol.cpp` binds the matched `Ns.Box` symbols onto the
-  quoted callee and substitutes the member access with the quoted expression; establish which scope
-  the suffix identifier is then matched in, and why a file-scope alias resolves there but a
-  function- or struct-local generic parameter does not.
-- Complete when: a `sema` suite test declares a generic struct in a namespace and uses
-  `Ns.Box'T` as a struct field, a function parameter, and a return type, with both explicit
-  instantiation and deduction from the argument.
 
 ### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
 

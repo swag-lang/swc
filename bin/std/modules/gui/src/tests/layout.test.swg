@@ -23,6 +23,33 @@ using Swag, Core
     Swag.assert(c0.position.height == 40)
 }
 
+// Relabelling an unsized child rearranges its container without changing the container's bounds.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 100)
+    defer host.shutdown()
+    let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 80})
+    stack.spacing = 8
+    let label = Label.create(stack, "A")
+    let next  = PushButton.create(stack, "Next")
+    host.pump()
+    let before = next.position.x
+    let bounds = stack.position
+
+    label.setText("A much longer label in the same band")
+
+    // An intervening size query must not consume the pending arrangement.
+    discard stack.measure({500, 80})
+    host.pump()
+    Swag.assert(stack.position == bounds)
+    Swag.assert(next.position.x > before)
+    Swag.assert(next.position.x >= label.position.right() + stack.spacing)
+    let after = next.position
+    host.pump()
+    Swag.assert(next.position == after)
+}
+
 // StackLayoutCtrl Left stacks children horizontally with spacing.
 #test
 {

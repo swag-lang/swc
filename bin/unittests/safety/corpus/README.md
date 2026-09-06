@@ -63,13 +63,14 @@ behavior with an assertion, so the change shows up as a test failure when the ru
 | 122, 124, 787, 806, 823 | Faults through `[*] T` and the raw intrinsics | **Not judged** — compiler.safety.006 |
 | 704 | Integer to enum | **Not judged** — compiler.safety.010 |
 | 478 | Non-exhaustive switch | **Not judged** — language.design.001 |
-| 401 | Memory leak | **Not modelled at all** — compiler.safety.017 |
-| 674 | Stack exhaustion | Guard pages probed; no diagnostic — compiler.safety.012 |
+| 401 | Memory leak | No static proof; runtime allocator leak report available — compiler.safety.017 |
+| 674 | Stack exhaustion | Fatal host-stack fault; Windows compiler execution reports it, native reporting follows its host |
 
 ## Scope
 
-Concurrency is deliberately absent. Swag's concurrency model is undecided
-(language.design.005), so a data-race corpus would measure a design that does not exist yet.
+Concurrency is deliberately absent. The native model proposed in
+[language.parallelism.001](../../../../backlog/language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency)
+still needs a verified prototype; a data-race corpus cannot yet measure an implemented guarantee.
 
 ## Provenance
 

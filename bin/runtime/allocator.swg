@@ -7,8 +7,8 @@
 //
 //   - The page path serves every request up to 64 KiB with an ordinary alignment. Blocks are carved
 //     from segment pages (see allocator.pages.swg), carry no header, and are recovered on free by
-//     masking the address down to its page. The whole path is free of locks and, on the owning
-//     thread, free of atomics.
+//     masking the address down to its page. Cached allocation and local free avoid locks and
+//     atomics; remote handoff and page acquisition synchronize separately.
 //   - The header path serves larger blocks, over-aligned blocks, and every allocation made while a
 //     diagnostic mode is on. It keeps a header, a footer, and optional tracking, which is what
 //     leak reports, electric mode, and the double-free diagnostic need.
@@ -132,8 +132,8 @@ struct Allocator
     nextId:       u32
     installMagic: u32 = 0
 
-    // Bounds the diagnostic quarantine, which holds freed blocks so a later double free or use
-    // after free is reported instead of faulting on unmapped memory.
+    // Bounds the diagnostic quarantine. It retains headers for double-free diagnostics and, when
+    // fillFree is enabled, patterns checked for later writes. Ordinary reads are not intercepted.
     maxQuarantineBytes: u64
     showMaxLeaks:       u32
     breakOnAllocId:     u32
@@ -715,8 +715,8 @@ impl Allocator
         header.next = null
     }
 
-    // Holds a freed block instead of unmapping it, so that a second free or a read through the
-    // stale pointer is reported rather than turned into an access violation.
+    // Holds a freed block instead of unmapping it. A second free is diagnosed through its header;
+    // writes can be found by checking the fill pattern, but a read alone is not observed.
     mtd quarantine(header: *AllocatorHeader)
     {
         header.prev = .lastQuarantine
@@ -1085,8 +1085,8 @@ impl Allocator
         return result
     }
 
-    // Gives idle memory back: every page with no live block is decommitted, and every segment left
-    // without a page returns to the shared pool.
+    // Gives idle memory back: empty pages of the calling heap, except its current page in each
+    // size class, and empty abandoned pages are decommitted. Segments with no page are released.
     mtd trim()
     {
         let heap = currentAllocatorThreadHeap()

@@ -54,7 +54,7 @@ report into a professional inspection workflow.
 
 ### app.scope.binary.005 — Two structured files cannot be compared semantically
 
-- Evidence: hexadecimal comparison app.scope.hexa.003 is byte-oriented. The binary viewer cannot align sections,
+- Evidence: the proposed hexadecimal comparison in app.scope.hexa.003 is byte-oriented. The binary viewer cannot align sections,
   headers, symbols, resources, chunks, or archive entries by identity and distinguish moved fields
   from changed values.
 - Next: define normalized row keys and format-specific match policies, starting with PE/ELF/Mach-O
@@ -87,18 +87,18 @@ report into a professional inspection workflow.
   without losing originals, dependencies and forwarding are navigable, and security properties
   cite the fields from which they were derived.
 
-### app.scope.binary.008 — Container inspection is one level deep
+### app.scope.binary.008 — Container previews have no shared provenance or resource budget
 
-- Evidence: the Archive viewer now opens stored and Deflate ZIP entries through the ordinary viewer
-  registry, but the temporary child file loses a visible breadcrumb and byte-range/compression
-  provenance. Nested archives, shared preview budgets, and a route back to every parent are absent;
-  RIFF, SCC, and Binary report assets still do not use the same child contract.
-- Next: replace the ZIP-only temporary preview seam with a virtual child-file contract carrying
-  parent identity, member path, source offset, compression, sizes, checksum, and extraction budget,
-  then allow one nested ZIP level through it.
-- Complete when: nested supported content opens in the appropriate viewer, breadcrumbs retain the
-  complete container path, decompression bombs and traversal names are bounded, and raw extraction
-  remains an explicit action.
+- Evidence: Archive extracts stored and Deflate ZIP members into temporary files and opens them
+  through `EmbeddedViewer`. That host uses the complete registry, including Archive, so its model
+  is not restricted to one container level. Each child shows a member title, but there is no
+  composed container path, source byte-range/compression provenance, or shared extraction budget
+  across descendants. RIFF, SCC, and Binary report assets do not use this child-file contract.
+- Next: replace the temporary-path-only seam with a virtual child-file contract carrying parent
+  identity, member path, source offset, compression, sizes, checksum, and a shared resource budget.
+- Complete when: nested supported content retains its complete container path and parent route,
+  decompression work and resident bytes are bounded across levels, traversal names cannot choose
+  output paths, and raw extraction remains an explicit action.
 - Related: app.scope.binary.010
 
 ### app.scope.binary.009 — Previews cannot be selected, enlarged, copied, or traced to their source
@@ -122,8 +122,7 @@ compression, cryptography, or codec work stays with the standard module that imp
 - Evidence: the dedicated Archive viewer lists a complete ZIP tree, verifies CRC-32, extracts
   stored and Deflate entries under a bounded preview size, and hands the selected entry to the
   normal viewer registry. `tar`, `gzip`, `xz`, `zstd`, `7z`, RAR, CAB, and MSI remain signature-only,
-  while current 7-Zip reads a much broader archive and disk-image family and distinguishes listing
-  from an explicit integrity test.
+  and archive-wide integrity testing has no separate operation.
 - Next: separate the tree/entry/integrity model from ZIP, add bounded `tar` plus single-stream
   `gzip` first, and expose Test Archive as a cancellable report that names each failed member.
 - Complete when: ZIP, TAR, and GZIP share one browsing surface and provenance contract, nested
@@ -158,6 +157,6 @@ compression, cryptography, or codec work stays with the standard module that imp
 ### app.scope.binary.014 — A program database is only identified
 
 - Intent: this repository writes PDBs. Reading one back with the same tool that inspects the image
-  it belongs to is a capability the competition does not have, and it is a debugging asset here.
+  it belongs to would help inspect this compiler's own output.
 - Complete when: the MSF superblock, the stream directory, the named streams and the GUID/age that
   must match the image's CodeView record are reported by the `Binary` viewer.

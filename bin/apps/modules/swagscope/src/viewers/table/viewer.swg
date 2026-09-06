@@ -32,9 +32,10 @@ internal struct TableRow
 
 internal struct TableDocument
 {
-    columns:   Array'String
-    rows:      Array'TableRow
-    delimiter: u8
+    columns:          Array'String
+    rows:             Array'TableRow
+    delimiter:        u8
+    generatedColumns: Array'u32
 }
 
 private func loadTableDocument(fileName: string)->TableDocument fail
@@ -183,9 +184,13 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
         fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooManyColumns)}
 
     while result.columns.count < columnCount do
-        result.columns.add(Format.toString(tableStrings().ui_Column, result.columns.count + 1))
-    for column, index in result.columns where column.isEmpty() do
+        result.columns.add(String{})
+    for column, index in result.columns where column.isEmpty()
+    {
         result.columns[index] = Format.toString(tableStrings().ui_Column, index + 1)
+        result.generatedColumns.add(cast(u32) index)
+    }
+
     return result
 }
 
@@ -280,6 +285,17 @@ internal struct TableViewer
 
 private impl IWnd for TableViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged and .loadTimer == null and .failureReason.isEmpty()
+        {
+            .refreshColumnNames()
+            .refreshDetails()
+        }
+
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .loadTimer
@@ -309,8 +325,21 @@ private impl IWnd for TableViewer
 
 private impl TableViewer
 {
+    mtd refreshColumnNames()
+    {
+        for index in .document.generatedColumns
+        {
+            .document.columns[index] = Format.toString(tableStrings().ui_Column, index + 1)
+            if index < .list.header.items.count do
+                .list.header.items[index]!.name.set(.document.columns[index].toString())
+        }
+
+        .list.header.invalidate()
+    }
+
     mtd publishDocument()
     {
+        .refreshColumnNames()
         for column, index in .document.columns
         {
             var longest = column.length
@@ -325,6 +354,11 @@ private impl TableViewer
         .applyLayout()
         .setInitialFocus(.list)
 
+        .refreshDetails()
+    }
+
+    mtd refreshDetails()
+    {
         let rows    = tableCountText(.document.rows.count, tableStrings().ui_Row, tableStrings().ui_Rows)
         let columns = tableCountText(.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
         let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
@@ -384,6 +418,7 @@ private impl TableViewer
 
     func createBase(parent: *Wnd)->*TableViewer
     {
+        registerTableStrings(parent.app())
         let result = Wnd.create'TableViewer(parent, "scope.table")
         result.backgroundStyle = .View
 

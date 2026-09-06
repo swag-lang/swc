@@ -13,7 +13,8 @@ using Corpus
 // and chains through wrappers and across modules - then marks the slot at the call site. It
 // is a must-analysis: an alias or a conditional release is a miss, never a false positive.
 //
-// The misses below are the ones that matter, because they are the shapes real code has.
+// The cases below distinguish proven direct releases from aliasing and conditional-release
+// shapes that the analysis does not prove.
 // -----------------------------------------------------------------------------
 
 // --- Faults ---
@@ -69,7 +70,7 @@ func readAfterWrappedFree()->s32
     discard readAfterWrappedFree()
 }
 
-// --- Known misses ---
+// --- Proven field, element, cast and generic-release cases ---
 
 // The shape almost every real use-after-free has: the freed object is read through a FIELD
 // rather than dereferenced whole. The address is formed by arithmetic, so what carries the

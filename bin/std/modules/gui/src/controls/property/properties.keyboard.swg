@@ -13,7 +13,7 @@ using Core, Pixel
 //    handles its own keys (caret, Left/Right value steps, typing, ...). The
 //    grid intercepts a few keys *before* the editor sees them so navigation is
 //    always possible while editing: Up/Down commit and move to the next/previous
-//    row (back to navigation), Enter and Escape commit and return to navigation,
+//    row (back to navigation), Enter commits and Escape cancels the pending text edit,
 //    Tab/Shift+Tab commit and start editing the next/previous editable row.
 //
 // The interception is done in Properties.onHookChildEvent (which the framework
@@ -183,8 +183,15 @@ internal impl Properties
             .moveSel(1)
             return true
 
-        case .Return, .Escape:
+        case .Return:
             .commitEdit()
+            return true
+
+        case .Escape:
+            if let editor = .focusedWindow()!.itf as EditBox do
+                editor.cancelEdit(.edView)
+            else do
+                .commitEdit()
             return true
 
         case .Tab:
@@ -403,7 +410,7 @@ private impl Properties
 
     // Commit the current edition and return to navigation mode. Moving the focus
     // back to edView makes the editor lose focus, which runs its commit/validate
-    // path (e.g. EditBox.sigFocusLost -> validateNative).
+    // path (e.g. EditBox.sigCommitted -> validateNative).
     mtd commitEdit()
     {
         if .edView != null do

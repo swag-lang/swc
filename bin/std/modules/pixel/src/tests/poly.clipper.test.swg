@@ -3,6 +3,20 @@
 
 using Core, Core.Math, Pixel.Clipper
 
+// A top-level contour has no owner; empty intermediate records are skipped when finding one.
+#test
+{
+    Swag.assert(Transform.parseFirstLeft(null) == null)
+    var point: OutPt
+    var outer: OutRec
+    outer.pts = &point
+    var empty: OutRec
+    empty.firstLeft = &outer
+    Swag.assert(Transform.parseFirstLeft(&empty) == &outer)
+    empty.firstLeft = null
+    Swag.assert(Transform.parseFirstLeft(&empty) == null)
+}
+
 // How one operation is set up: the two fill rules and whether self-touching contours are split.
 struct Rules
 {

@@ -42,7 +42,7 @@ struct ImageViewerContent
     image:       Image
     movie:       Movie
     drawing:     Svg.Drawing     // Vector document, for a format that has no pixels of its own.
-    details:     String
+    facts:       ImageViewerFacts
     information: MediaInfoData
 }
 
@@ -84,8 +84,10 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
     result.information.add(.Format, extension.toUpper().toString())
     if extension == ".svg"
     {
-        result.drawing = try loadViewerDrawing(fileName)
-        result.details = Format.toString(imageStrings().ui_DetailsVector, formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height))
+        result.drawing      = try loadViewerDrawing(fileName)
+        result.facts.width  = formatViewBoxExtent(result.drawing.width)
+        result.facts.height = formatViewBoxExtent(result.drawing.height)
+        result.facts.vector = true
         result.information.add(.Dimensions, Format.toString("% × %", formatViewBoxExtent(result.drawing.width), formatViewBoxExtent(result.drawing.height)).toString())
     }
     else
@@ -93,18 +95,20 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         try result.movie.load(fileName)
         try result.movie.prepareCache()
         let frame = &result.movie.frame
+        result.facts.width  = Format.toString("%", frame.width)
+        result.facts.height = Format.toString("%", frame.height)
+        result.facts.bits   = frame.bitsPerPixel
+        result.facts.frames = result.movie.frameCount
         result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height).toString())
         result.information.add(.PixelFormat, Format.toString("%", frame.pixelFormat).toString())
         result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel).toString())
         if result.movie.frameCount > 1
         {
-            result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.movie.frameCount))
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount).toString())
         }
         else
         {
-            result.details = Format.toString(imageStrings().ui_DetailsStill, frame.width, frame.height, frame.bitsPerPixel)
-            result.image   = frame[]
+            result.image = frame[]
         }
 
         result.information.addImageMetadata(frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
@@ -123,10 +127,32 @@ private func formatViewBoxExtent(value: f32)->String
     return Format.toString("%", value)
 }
 
+// Keeps decoded facts independent of the language active while the worker was running.
+internal struct ImageViewerFacts
+{
+    width, height: String
+    bits:          u32
+    frames:        s32
+    vector:        bool
+}
+
+private impl ImageViewerFacts
+{
+    mtd const text()->String
+    {
+        if .vector do
+            return Format.toString(imageStrings().ui_DetailsVector, .width, .height)
+        if .frames > 1 do
+            return Format.toString(imageStrings().ui_DetailsMovie, .width, .height, frameCountText(.frames))
+        return Format.toString(imageStrings().ui_DetailsStill, .width, .height, .bits)
+    }
+}
+
 internal struct ImageViewer
 {
     using wnd: Wnd
     details:   String
+    facts:     ImageViewerFacts
 
         late
     {
@@ -276,6 +302,27 @@ internal impl ImageViewer
 
 private impl IWnd for ImageViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged
+        {
+            .previousButton.toolTip  = imageStrings().ui_TipPrevious
+            .nextButton.toolTip      = imageStrings().ui_TipNext
+            .transformButton.toolTip = imageStrings().ui_TipTransform
+            .playButton.toolTip      = imageStrings().ui_TipPlay
+            .zoomLabel.toolTip       = imageStrings().ui_ZoomMenu
+            .refreshZoom()
+            if !.facts.width.isEmpty()
+            {
+                .details = .facts.text()
+                if .reportDetails do
+                    .reportDetails!(me, .details.toString())
+            }
+        }
+
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .loadTimer
@@ -309,7 +356,8 @@ private impl IWnd for ImageViewer
         else do
             .imageView.takeImage(&content.image)
 
-        .details = #move content.details
+        .facts   = #move content.facts
+        .details = .facts.text()
         .information.publish(&content.information)
         .refreshZoom()
         .applyLayout()

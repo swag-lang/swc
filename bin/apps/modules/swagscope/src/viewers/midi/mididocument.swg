@@ -328,9 +328,12 @@ func loadMidiDocument(fileName: string)->MidiDocument fail
         scan = body + length
     }
 
-    if result.notes.isEmpty() do
+    if result.notes.isEmpty()
+    {
         result.minKey = 48
-    result.maxKey = 72
+        result.maxKey = 72
+    }
+
     result.notes.sort(func(a, b) { return a.startTick <=> b.startTick })
     computeMidiDuration(&result)
     return result

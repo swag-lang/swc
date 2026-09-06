@@ -704,7 +704,7 @@ private func idmlHexNibble(value: u8)->u8
 
 // File links are local resources chosen by the document author. Decode only file: URLs and
 // reject malformed escapes so the viewer never turns a linked graphic into a network request.
-private func idmlFileUriPath(uri: string)->String
+internal func idmlFileUriPath(uri: string)->String
 {
     if !Utf8.startsWith(uri, "file:", .Latin1NoCase) do
         return {}
@@ -743,6 +743,11 @@ private func idmlFileUriPath(uri: string)->String
         cursor += 3
     }
 
+    // Validate the decoded spelling: escaped separators must not introduce a network path.
+    if !Path.isValidPathName(result.toString()) do
+        return {}
+    if result.count >= 2 and Path.isDirectorySeparator(result[0]) and Path.isDirectorySeparator(result[1]) do
+        return {}
     return result
 }
 

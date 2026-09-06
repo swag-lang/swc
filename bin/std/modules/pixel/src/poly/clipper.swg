@@ -3,6 +3,9 @@
 // @MODIFIED: Ported and modified for Swag.
 // @NOTICE: /bin/THIRDPARTY.md#clipper
 
+// This port exposes closed-path results. Open-path and PolyTree internals are retained for
+// comparison with the reference, but no public operation enables them.
+
 #global namespace Clipper
 
 using Core
@@ -1764,7 +1767,7 @@ impl Transform
         return true
     }
 
-    func parseFirstLeft(fl: *OutRec)->*OutRec?
+    func parseFirstLeft(fl: *OutRec?)->*OutRec?
     {
         var firstLeft: *OutRec? = fl
         while firstLeft and !firstLeft.pts do
@@ -1780,7 +1783,7 @@ impl Transform
             let outRec = nnOutRec(outRecIt)
             if !outRec.pts or outRec == outerOutRec or outRec == innerOutRec do
                 continue
-            let firstLeft = parseFirstLeft(nnOutRec(outRec.firstLeft))
+            let firstLeft = parseFirstLeft(outRec.firstLeft)
             if firstLeft != orfl and firstLeft != innerOutRec and firstLeft != outerOutRec do
                 continue
             if poly2ContainsPoly1(outRec.pts, innerOutRec.pts) do
@@ -1797,7 +1800,7 @@ impl Transform
         for outRecIt in .polyOuts
         {
             let outRec    = nnOutRec(outRecIt)
-            let firstLeft = parseFirstLeft(nnOutRec(outRec.firstLeft))
+            let firstLeft = parseFirstLeft(outRec.firstLeft)
             if outRec.pts and firstLeft == oldOutRec
             {
                 if poly2ContainsPoly1(outRec.pts, newOutRec.pts) do
@@ -1811,7 +1814,7 @@ impl Transform
         for outRecIt in .polyOuts
         {
             let outRec    = nnOutRec(outRecIt)
-            let firstLeft = parseFirstLeft(nnOutRec(outRec.firstLeft))
+            let firstLeft = parseFirstLeft(outRec.firstLeft)
             if outRec.pts and firstLeft == oldOutRec do
                 outRec.firstLeft = newOutRec
         }

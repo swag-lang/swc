@@ -113,8 +113,9 @@ impl IconSet
     // Creates an icon descriptor for glyph `index` displayed at `size` logical pixels.
     //
     // `scale` is the device density to rasterize at — usually the theme atlas scale. A
-    // request sharper than the cached lists drops them, so they rebuild at the new
-    // density; a coarser request reuses the sharper frames, which minify cleanly.
+    // request sharper than the cached lists replaces their textures in place. Previously
+    // returned icons keep their frame-list pointers until [[Gui.IconSet.free]]. A coarser
+    // request reuses the sharper frames, which minify cleanly.
     mtd icon(index: s32, size: f32, scale: f32)->Icon
     {
         var result: retval
@@ -130,7 +131,10 @@ impl IconSet
         let wanted = Math.max(Math.ceil(scale), 1.0)
         if wanted > .scale
         {
-            .free()
+            // Controls retain Icon values across monitor changes. Their borrowed list must
+            // keep its address while its renderer texture is replaced at the new density.
+            for key, value in .lists do
+                .updateList(value, key, wanted)
             .scale = wanted
         }
 
@@ -139,11 +143,18 @@ impl IconSet
         if found do
             return found.value
 
-        let cell  = key * cast(s32) .scale
-        let image = .atlas!.image(.renderer, cell)
-        let list  = Memory.new'ImageList()
-        list.set(.renderer.addImage(image[]), cell, cell)
+        let list = Memory.new'ImageList()
+        .updateList(list, key, .scale)
         .lists.add(key, list)
         return list
+    }
+
+    private mtd updateList(list: *ImageList, size: s32, scale: f32)
+    {
+        let cell    = size * cast(s32) scale
+        let image   = .atlas!.image(.renderer, cell)
+        let texture = .renderer.addImage(image[])
+        list.release(.renderer)
+        list.set(texture, cell, cell)
     }
 }

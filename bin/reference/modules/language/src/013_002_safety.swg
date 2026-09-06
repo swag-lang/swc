@@ -316,3 +316,16 @@ Example:
 Swag panics if a floating-point 'NaN' participates in an operation,
 preventing propagation of invalid values.
 */
+
+/**
+# Stack Exhaustion
+
+Swag uses the host thread's stack and does not promise a fixed recursion depth. Exhausting that
+stack is a fatal execution fault, not a 'fail' value that 'catch' can handle. The available depth
+depends on the host stack reservation and the size of the generated frames.
+
+The Windows backend probes guard pages when reserving a large frame. During execution inside
+the compiler, its fault reporter reserves stack space and reports 'EXCEPTION_STACK_OVERFLOW'.
+For a native executable, fatal-fault reporting belongs to its host environment. Enabling or
+disabling the safety guards does not turn stack exhaustion into a recoverable language error.
+*/

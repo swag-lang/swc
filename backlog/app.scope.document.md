@@ -17,7 +17,7 @@ integration around those engines.
   follows scrolling, duplicate headings remain distinct, and keyboard navigation is complete.
 - Related: std.gui.markdown.005
 
-### app.scope.document.002 — Markdown cannot switch between rendered, source, and synchronized split views
+### app.scope.document.002 — Markdown has no synchronized source and rendered split view
 
 - Evidence: `.md` and `.markdown` now offer Markdown, Basic text, Binary, and Hexadecimal, so the
   source is reachable as its own view. There is still no synchronized split view and no mapping
@@ -30,15 +30,16 @@ integration around those engines.
 
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
 
-- Evidence: links can activate and images depend on engine work, but the viewer does not list local
+- Evidence: links can activate and Markdown image syntax still depends on engine work, but the viewer does not list local
   and remote targets, broken anchors, missing images, blocked schemes, or resources outside the
-  document directory. The engine's std.gui.markdown.006 and preview security policy remain undecided.
+  document directory. Embedded HTML already has a documented offline resource policy; the viewer
+  does not expose each resource's resolution or the reason it was blocked.
 - Next: inventory every parsed target and classify resolution, availability, scheme, and trust
   without fetching remote content implicitly.
 - Complete when: a resource panel links each target to source and rendered content, broken local
   references are explained, remote access requires explicit policy, and blocked content remains
   visible as a diagnostic.
-- Related: std.gui.markdown.001, std.gui.markdown.006
+- Related: std.gui.markdown.001
 
 ### app.scope.document.004 — Markdown reading position and presentation cannot be shared or exported
 
@@ -52,14 +53,16 @@ integration around those engines.
 
 ## HTML reading
 
-### app.scope.document.005 — HTML decoding assumes UTF-8 instead of following document encoding rules
+### app.scope.document.005 — HTML encoding decisions have no inspection or override controls
 
-- Evidence: the adapter summary says `HTML · UTF-8 · streamed`; there is no BOM/header/meta charset
-  decision, encoding override, confidence display, or byte mapping for decoding failures.
-- Next: add bounded prescan and restart rules for BOM and early `meta charset`, then expose the same
-  encoding selector and diagnostics as text where valid.
-- Complete when: UTF-8, UTF-16, and supported legacy declarations decode predictably, late or
-  conflicting declarations warn, invalid bytes remain traceable, and an override re-renders safely.
+- Evidence: `HtmlView.detectDocumentEncoding` already honors a BOM, scans early charset labels,
+  and falls back to `Text.detectEncoding`; `htmlview.test.swg` covers Windows-1252, UTF-16 with BOM,
+  and undeclared legacy bytes. The viewer still exposes no detected encoding, decision source,
+  manual override, or byte mapping for decoding failures. Its former fixed UTF-8 summary was false.
+- Next: expose the detected encoding and its provenance, then add an override using the text
+  viewer's supported encoding choices and explicit restart behavior.
+- Complete when: the reader can inspect the chosen encoding, late or conflicting declarations
+  warn, invalid bytes remain traceable, and an override re-renders safely.
 - Related: app.scope.text.004
 
 ### app.scope.document.006 — HTML has no DOM outline or element-to-page inspection
@@ -71,7 +74,7 @@ integration around those engines.
 - Complete when: nodes can be filtered, collapsed, copied, and revealed; generated boxes identify
   their source node; malformed recovery is explicit; and huge repetitive DOMs remain virtualized.
 
-### app.scope.document.007 — HTML cannot switch to source or a synchronized split view
+### app.scope.document.007 — HTML source and rendered views have no shared position or split layout
 
 - Evidence: choosing Code or Basic text discards the rendered position, active link, search match,
   and DOM node. There is no formatted source, line address, or live element mapping.
@@ -94,10 +97,12 @@ integration around those engines.
 
 ### app.scope.document.009 — HTML navigation has no history, address model, or fragment overview
 
-- Evidence: link activation is forwarded to the host, but same-document fragments, relative files,
-  back/forward history, visited state, and broken targets do not form a coherent document session.
-- Next: define a local-document navigation stack that distinguishes fragments, sibling files,
-  external URLs, downloads, and blocked schemes.
+- Evidence: `HtmlView` already follows same-document fragments and supported relative local HTML
+  links, including a fragment in the destination. Other targets reach `sigLinkActivated`, which
+  Swag Scope forwards to `Env.openUrl`. The application has no document address model,
+  back/forward stack, visited state or broken-target overview around those engine operations.
+- Next: expose local navigation transitions to the host and retain document, fragment, selection
+  and scroll state in a navigation stack; distinguish external and blocked targets in its UI.
 - Complete when: back/forward restores scroll and selection, fragments and relative links resolve
   against the correct base, broken targets explain themselves, and external activation requires a
   deliberate command.
@@ -113,17 +118,13 @@ integration around those engines.
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
 
-This backlog covers application-owned PDF presentation and the document viewers built by composing
-Swag Scope's existing HTML, table, and container facilities. Parser and renderer gaps owned by the
-reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](std.gui.html.md), and [std.gui.md](std.gui.md).
-
 ## PDF presentation
 
 ### app.scope.document.011 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
 - Intent: the module's own coverage gaps now live in [std.gui.pdf.md](std.gui.pdf.md), which is the
-  roadmap for `std/pdf`. What stays here is the viewer's half: `PdfViewer` reports whatever
-  `loadPage` or `render` failed with and shows nothing, so a document with one unsupported
+  roadmap for the PDF engine inside `std/gui`. What stays here is the viewer's half: `PdfViewer` reports whatever
+  `loadPage` or painting failed with, so a document with one unsupported
   construct anywhere reads as a broken file rather than as a page with a gap in it.
 - Complete when: the viewer draws the part of a page that decoded, states the construct it could
   not represent in localized text beside it rather than as a raw module error, and keeps page
@@ -152,10 +153,11 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   preserve page plus coordinates and zoom; invalid destinations are visible rather than ignored.
 - Related: std.gui.pdf.017
 
-### app.scope.document.014 — PDF viewing is limited to one fitted page or actual size
+### app.scope.document.014 — PDF viewing has no fit-width or multi-page layout
 
-- Evidence: `PdfView` exposes one `pageIndex`, Fit Page, Actual Size, and zoom buttons. There is no
-  fit-width, continuous scroll, facing pages, cover-page rule, or presentation mode.
+- Evidence: `PdfView` exposes one `pageIndex`, Fit Page, Actual Size, and arbitrary zoom. The host
+  already provides F11 content-only fullscreen. There is no fit-width, continuous scroll, facing
+  pages, cover-page rule or PDF-specific slide presentation workflow.
 - Next: separate page layout from zoom and add Fit Width plus continuous single-page layout before
   facing-page composition.
 - Complete when: Single, Continuous, Facing, and Continuous Facing modes share navigation and
@@ -237,31 +239,15 @@ reusable engines remain in [std.gui.pdf.md](std.gui.pdf.md), [std.gui.html.md](s
   the reading column in order.
 - Related: app.scope.binary.010
 
-## Native InDesign documents
-
-### app.scope.document.023 — Native InDesign rendering needs native page composition
-
-- Evidence: Swag Scope validates the duplicated master-page header, indexes every saved XMP JPEG
-  page preview, and decodes selected pages on demand through a bounded LRU cache. The visual result
-  is no longer a metadata substitute, but a preview is optional, may be stale, and does not expose
-  the native page-layout object graph, text selection, links, or output fidelity.
-- Next: add a preview-thumbnail navigator over the on-demand cache, then identify the native page
-  composition records that can be interpreted in Swag for documents with no saved preview pixels.
-- Complete when: every supported page has a clearly sourced visual rendering, navigation preserves
-  page identity and loading state, absent or stale preview data is named plainly, and no native
-  object is executed to render the document.
-- Related: app.scope.indesign.002, app.scope.indesign.012, app.scope.indesign.018
-
 ## Developer documents
 
 ### app.scope.document.022 — Jupyter notebooks have no document reader
 
 - Evidence: `.ipynb` has no notebook renderer. The content probe offers the Text viewer for its
   raw JSON, alongside Binary and Hexadecimal. Markdown cells, code cells, execution order,
-  attachments, stored images, tables, errors, and metadata lose their document structure. GitHub
-  renders notebooks as static HTML without activating custom JavaScript, while Visual Studio Code
-  adds cell/output search and outline and hides rich outputs in untrusted workspaces. Those are the
-  relevant reader behaviors; kernel execution is not.
+  attachments, stored images, tables, errors, and metadata lose their document structure. The
+  intended reader presents stored content with cell/output search and an outline; kernel
+  execution remains outside its contract.
 - Next: parse notebook cells and render Markdown, syntax-colored source, plain text, bounded images,
   tables, and JSON output through existing viewers while defining a deny-by-default MIME and trust
   policy for HTML, SVG, JavaScript, widgets, and external resources.

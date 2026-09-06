@@ -19,7 +19,7 @@ ships; history lives in git, not here.
 
 ## Where the engine already stands
 
-About 4 400 lines across seven files, split cleanly into a parser and a renderer. The block
+The implementation separates parsing from rendering. The block
 parser is line-based and single-pass: ATX and setext headings, fenced code with a language label,
 GFM pipe tables with per-column alignment, ordered, unordered and task lists with soft-wrap
 continuation, block quotes carrying the five GitHub alerts, thematic breaks, YAML front matter,
@@ -108,20 +108,6 @@ heading's byte offset, which is the same currency `revealFileOffset` already tra
   `createText` and a streamed file
 
 ## Tier C — Conformance and finish
-
-### std.gui.markdown.006 — Inline HTML has no documented stance
-
-The implementation now does more than this roadmap used to record. Inline phrasing elements are
-parsed through `HtmlParser` and translated into Markdown rich text, while layout-bearing elements
-become embedded `HtmlView` blocks; local and `data:` images in those blocks paint under the HTML
-engine's offline policy. What remains implicit is the public contract: which elements are
-preserved semantically, which merely contribute their children, how unsupported markup falls
-back, and where inline HTML ends and an HTML block begins. Markdown image syntax in std.gui.markdown.001 is a
-separate path and must not be presented as a prerequisite for HTML images.
-
-- Intent: the implemented inline/block HTML split is a deliberate, documented contract
-- Complete when: public module documentation records the supported semantics, fallback and
-  offline-resource policy, with fixtures for representative phrasing, block and image elements
 
 ### std.gui.markdown.007 — No measured conformance stance
 

@@ -15,7 +15,8 @@ swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 - `-h` prints the tool's own usage.
 
 Common options: `-bc <config>` selects `release` or `devmode` (default `devmode`),
-`--all-cfg` repeats an aggregate tool in both, `--debug` emits native debug information,
+`--all-cfg` repeats the `build`, `tests`, and `goldens` campaigns in both configurations;
+focused tools select one configuration with `-bc`. `--debug` emits native debug information,
 `--run-arg <value>` passes
 an argument to what gets launched, and repeated `--test-file <substring>` values select a union
 of `#test` source files without removing the implementation sources they exercise. Repeated
@@ -99,7 +100,7 @@ tags form a union; combined file and tag filters form an intersection.
 
 | Tool | Purpose |
 | --- | --- |
-| `format.swgs` | Format every Swag source workspace in place |
+| `format.swgs` | Format every Swag workspace, maintenance script, benchmark, and website generator in place |
 | `web.swgs` | Regenerate the brand assets and the complete website |
 | `goldens.swgs test` | Run every `golden`-tagged test and report all `.actual` differences |
 | `goldens.swgs` | Promote reviewed `.actual` snapshots to goldens |

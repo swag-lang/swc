@@ -62,7 +62,8 @@ struct Application
         }
     }
 
-    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+    rendererOgl:            Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+    deterministicStreaming: bool                // Headless hosts limit streaming turns by work alone.
 
     public
     {
@@ -529,7 +530,7 @@ private impl Application
     // To cleanly close a surface, you should call surface.destroy()
     mtd destroySurface(surface: *Surface)
     {
-        .surfaces.remove(surface)
+        .unregisterSurface(surface)
         if surface == .mainSurface do
             .postQuitEvent()
 
@@ -826,6 +827,19 @@ private impl Application
 
 internal impl Application
 {
+    // Registers a surface with initialized renderer state; its creator owns its lifetime.
+    mtd registerSurface(surface: *Surface)
+    {
+        Debug.assert(!.surfaces.contains(surface), "surface is already registered")
+        .surfaces.add(surface)
+    }
+
+    // Unregisters a surface before its creator releases its storage.
+    mtd unregisterSurface(surface: *Surface)
+    {
+        .surfaces.remove(surface)
+    }
+
     mtd dispatchHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
         let {id, target} = .hotKeyShortcut(modifiers, key)
@@ -928,6 +942,17 @@ impl Application
 
         // Returns the duration of the current frame, in seconds.
         mtd const deltaSeconds() => .timing.deltaSeconds
+    }
+
+    // Sets the lower and upper bounds applied to measured frame durations, in seconds.
+    //
+    // Bounds apply from the next timing update. Equal bounds produce a fixed frame duration;
+    // `minimum` must be nonnegative and `maximum` must be at least `minimum`.
+    mtd setFrameDeltaRange(minimum, maximum: f32)
+    {
+        Debug.assert(minimum >= 0 and maximum >= minimum, "frame delta range must be nonnegative and ordered")
+        .timing.minimumDeltaSeconds = minimum
+        .timing.maximumDeltaSeconds = maximum
     }
 
     // Selects the renderer borrowed by every painter and surface of this application.
@@ -1042,7 +1067,7 @@ impl Application
         // create event, because callers legitimately lay out their content there.
         surface.applySurfaceFlags()
 
-        .surfaces.add(surface)
+        .registerSurface(surface)
 
         with surface
         {

@@ -62,5 +62,5 @@ func mapClaim(m: *ByteMap, idx, off, len, value: u64)
     m.keyOff[idx] = off
     m.keyLen[idx] = len
     m.val[idx]    = value
-    m.count += 1
+    m.count       += 1
 }

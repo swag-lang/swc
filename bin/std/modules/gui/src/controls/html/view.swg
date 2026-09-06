@@ -357,11 +357,11 @@ internal impl HtmlView
     {
         if !href.count or .images.basePath.isEmpty() do
             return
-        if Utf8.contains(href, "://") or Utf8.startsWith(href, "//") or Utf8.startsWith(href, "data:") do
+        let fileName = htmlLocalResourcePath(.images.basePath.toString(), href)
+        if fileName.isEmpty() do
             return
 
-        let fileName = Path.isRooted(href) ? String.from(href) : Path.combine(.images.basePath.toString(), href)
-        let content  = catch File.readAllText(fileName.toString()) as readError
+        let content = catch File.readAllText(fileName.toString()) as readError
         if readError != null do
             return
         .sheet.parse(content.toString())
@@ -875,11 +875,10 @@ internal impl HtmlView
         if !path.count do
             return false
 
-        let colon = Utf8.indexOf(path, ':'rune)
-        if colon != Swag.U64.Max and !(colon == 1 and Path.isRooted(path)) do
+        var fileName = htmlLocalResourcePath(.images.basePath.toString(), path)
+        if fileName.isEmpty() do
             return false
 
-        var fileName = Path.isRooted(path) ? String.from(path) : Path.combine(.images.basePath.toString(), path)
         Path.normalize(&fileName)
         if !File.exists(fileName.toString()) do
             return false

@@ -190,8 +190,8 @@ private func parseOpenDocumentTag(raw: string)->OpenDocumentTag
     return result
 }
 
-// Returns the raw XML attribute value. XML entities remain encoded until the HTML reader consumes
-// the generated document, preserving the document's literal text without reimplementing decoding.
+// Returns the raw XML attribute value. HTML output retains its entities; plain model values
+// decode them before reaching a table cell, page label, or other non-HTML surface.
 private func openDocumentAttribute(attributes, wanted: string)->String
 {
     var at = 0'u64
@@ -1064,7 +1064,7 @@ private impl OpenDocumentReader
             if !.slideActive
             {
                 .slideActive = true
-                .slide.name  = openDocumentAttribute(tag.attributes.toString(), "draw:name")
+                .slide.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes.toString(), "draw:name").toString())
                 .appendHtml("<article><section>")
             }
         }
@@ -1175,7 +1175,7 @@ private impl OpenDocumentReader
             if !.activeSheet
             {
                 .activeSheet = true
-                .sheet.name  = openDocumentAttribute(tag.attributes.toString(), "table:name")
+                .sheet.name  = openDocumentDecodeXmlText(openDocumentAttribute(tag.attributes.toString(), "table:name").toString())
             }
 
         case "table:table-row" where .activeSheet:
@@ -1184,7 +1184,7 @@ private impl OpenDocumentReader
 
         case "table:table-cell", "table:covered-table-cell" where .activeSheet:
             .cell.clear()
-            .cellFallback = openDocumentCellValue(tag.attributes.toString())
+            .cellFallback = openDocumentDecodeXmlText(openDocumentCellValue(tag.attributes.toString()).toString())
             .cellActive   = true
             .cellRepeat   = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
             if tag.selfClosing do
@@ -1269,7 +1269,7 @@ private impl OpenDocumentReader
         if .kind == .Spreadsheet
         {
             if .cellActive do
-                .cell += text
+                .cell += openDocumentDecodeXmlText(text)
             return
         }
 
@@ -1290,9 +1290,12 @@ private impl OpenDocumentReader
             fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_Columns)}
 
         while sheet.table.columns.count < count do
-            sheet.table.columns.add(Format.toString(openDocumentStrings().ui_Column, sheet.table.columns.count + 1))
-        for column, columnIndex in sheet.table.columns where column.isEmpty() do
+            sheet.table.columns.add(String{})
+        for column, columnIndex in sheet.table.columns where column.isEmpty()
+        {
             sheet.table.columns[columnIndex] = Format.toString(openDocumentStrings().ui_Column, columnIndex + 1)
+            sheet.table.generatedColumns.add(cast(u32) columnIndex)
+        }
     }
 
     mtd finish()->OpenDocumentContent fail

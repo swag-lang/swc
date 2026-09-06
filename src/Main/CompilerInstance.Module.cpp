@@ -897,7 +897,31 @@ namespace
         std::vector<fs::path> dependencyDirs;
         std::vector<fs::path> artifacts;
         bool                  debugInfo = false;
+        Utf8                  tagsFingerprint;
     };
+
+    Utf8 bytesToLowerHex(const std::span<const uint8_t> bytes)
+    {
+        Utf8 result;
+        result.reserve(bytes.size() * 2);
+        for (const uint8_t b : bytes)
+            result += std::format("{:02x}", b);
+        return result;
+    }
+
+    Utf8 workspaceTagsFingerprint(const std::span<const Utf8> tags)
+    {
+        // Tags can contain typed values and delimiters. Encode lengths and retain command-line
+        // order so different lists cannot share an identity or change override precedence.
+        Utf8 identity;
+        for (const Utf8& tag : tags)
+        {
+            identity += std::format("{}:", tag.size());
+            identity += tag;
+        }
+        const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()});
+        return bytesToLowerHex(digest);
+    }
 
     // Each build mode keeps its own manifest, so alternating `test` and `run` does
     // not make each one look stale to the other and force a rebuild every time.
@@ -1123,9 +1147,9 @@ namespace
 
     bool moduleSetupInputMatches(ModuleSetupCacheReader& reader, fs::path& outPath)
     {
-        outPath                    = reader.path();
-        const uint64_t writeCount  = reader.u64();
-        const uint64_t storedSize  = reader.u64();
+        outPath                   = reader.path();
+        const uint64_t writeCount = reader.u64();
+        const uint64_t storedSize = reader.u64();
         if (reader.failed)
             return false;
 
@@ -1169,8 +1193,7 @@ namespace
                               cmdLine.moduleNamespaceExplicit, cmdLine.outDirExplicit, cmdLine.workDirExplicit, cmdLine.output,
                               cmdLine.name.view(), cmdLine.moduleNamespace.view(), cmdLine.outDirStorage.view(), cmdLine.workDirStorage.view(),
                               Utf8(cmdLine.docOutputDir).view(), cmdLine.docCss.view());
-        for (const Utf8& tag : cmdLine.tags)
-            result += std::format(" tag={}", tag.view());
+        result += std::format(" tags={}", workspaceTagsFingerprint(cmdLine.tags).view());
         for (const Utf8& warning : cmdLine.warnAsErrors)
             result += std::format(" we={}", warning.view());
         for (const Utf8& warning : cmdLine.warnAsWarnings)
@@ -1289,7 +1312,7 @@ namespace
 
         std::vector<std::unique_ptr<Utf8>> ownedStrings;
         visitBuildCfgStrings(outBuildCfg, [&reader, &ownedStrings](Runtime::String& value) {
-            value = {};
+            value                         = {};
             const std::string_view stored = reader.str();
             if (stored.empty())
                 return;
@@ -1384,6 +1407,7 @@ namespace
         auto   currentSection = Section::None;
         bool   validVersion   = false;
         bool   hasDebugInfo   = false;
+        bool   hasTags        = false;
         size_t start          = 0;
         while (start <= content.size())
         {
@@ -1403,7 +1427,7 @@ namespace
                 continue;
             }
 
-            if (line == "version=3")
+            if (line == "version=4")
             {
                 validVersion = true;
                 if (end == content.size())
@@ -1416,6 +1440,16 @@ namespace
             {
                 outManifest.debugInfo = line.back() == '1';
                 hasDebugInfo          = true;
+                if (end == content.size())
+                    break;
+                start = end + 1;
+                continue;
+            }
+
+            if (line.starts_with("tags=") && line.size() == 69)
+            {
+                outManifest.tagsFingerprint = line.substr(5);
+                hasTags                     = true;
                 if (end == content.size())
                     break;
                 start = end + 1;
@@ -1459,12 +1493,12 @@ namespace
         normalizeWorkspacePathsLexically(outManifest.inputs);
         normalizeWorkspacePathsLexically(outManifest.dependencyDirs);
         normalizeWorkspacePathsLexically(outManifest.artifacts);
-        return validVersion && hasDebugInfo;
+        return validVersion && hasDebugInfo && hasTags;
     }
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
     {
-        Utf8 content = std::format("version=3\ndebug-info={}\n[inputs]\n", manifest.debugInfo ? 1 : 0);
+        Utf8 content = std::format("version=4\ndebug-info={}\ntags={}\n[inputs]\n", manifest.debugInfo ? 1 : 0, manifest.tagsFingerprint.view());
         for (const fs::path& path : manifest.inputs)
         {
             content += Utf8(path);
@@ -1517,9 +1551,9 @@ namespace
         return false;
     }
 
-    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const bool debugInfo)
+    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const bool debugInfo, const std::span<const Utf8> tags)
     {
-        if (manifest.debugInfo != debugInfo)
+        if (manifest.debugInfo != debugInfo || manifest.tagsFingerprint != workspaceTagsFingerprint(tags))
             return false;
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
@@ -1705,15 +1739,6 @@ namespace
         if (!compiler.lastArtifactLabel().empty())
             parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
         return ScopedTimedLog::joinStatItems(ctx, parts);
-    }
-
-    Utf8 bytesToLowerHex(const std::span<const uint8_t> bytes)
-    {
-        Utf8 result;
-        result.reserve(bytes.size() * 2);
-        for (const uint8_t b : bytes)
-            result += std::format("{:02x}", b);
-        return result;
     }
 
     // Where a dependency directory sits inside the root it was found through. A copy keeps that
@@ -3389,7 +3414,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
         if (!hasUnexpectedPdb && !unexpectedPdbError &&
             readWorkspaceArtifactManifest(manifest, manifestPath) &&
-            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, probeCompiler.buildCfg().backend.debugInfo))
+            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, probeCompiler.buildCfg().backend.debugInfo, moduleCmdLine.tags))
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
@@ -3480,7 +3505,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler) && (!commandFailed || moduleCompiler->nativeArtifactBuilt()))
             {
                 WorkspaceArtifactManifest manifest;
-                manifest.debugInfo = moduleCompiler->buildCfg().backend.debugInfo;
+                manifest.debugInfo       = moduleCompiler->buildCfg().backend.debugInfo;
+                manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
                 if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
@@ -3504,7 +3530,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         link->writeManifest = shouldWriteWorkspaceArtifactManifest(*moduleCompiler);
         if (link->writeManifest)
         {
-            link->manifest.debugInfo = moduleCompiler->buildCfg().backend.debugInfo;
+            link->manifest.debugInfo       = moduleCompiler->buildCfg().backend.debugInfo;
+            link->manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
             if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                 return Result::Error;

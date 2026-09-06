@@ -51,6 +51,13 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     if options.wantHelp do
         return printUsage(name)
 
+    if options.allConfigs and name != "build" and name != "tests" and name != "goldens"
+    {
+        Console.println("error: '--all-cfg' is supported only by build, tests, and goldens")
+        Console.println("Use '-bc release' and '-bc devmode' for separate focused runs.")
+        return 1
+    }
+
     if options.test.count() != 0
     {
         let moduleTool  = name == "std" or name == "examples" or name == "apps" or name == "reference"
@@ -70,7 +77,7 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     }
 
     var context  = try Context.create(root, options)
-    let relaunch = try relaunchToolIfNeeded(&context, script, tokens)
+    let relaunch = try relaunchToolIfNeeded(&context, script, tokens, options.toolRelaunched)
     if relaunch.didRun do
         return relaunch.exitCode
 

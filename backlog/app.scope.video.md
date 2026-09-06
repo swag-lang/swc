@@ -7,7 +7,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ## Professional transport
 
-### app.scope.video.001 — Video playback has no speed or pitch policy
+### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
 
 - Evidence: the transport's settings menu now offers 0.25x–2x pitch-following rates through
   `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
@@ -103,9 +103,9 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.009 — Audio synchronization and channel output cannot be inspected or corrected
 
-- Evidence: subtitle delay is adjustable, but audio delay is not. Track entries show codec,
-  channels, and rate while channel layout, downmix matrix, language/default/forced flags, loudness,
-  and A/V drift are hidden.
+- Evidence: subtitle delay is adjustable, but audio delay is not. Track entries and the information
+  panel already show encoding, channels, sample rate, names and languages. Channel layout, downmix
+  matrix, default/forced flags, loudness and A/V drift remain hidden.
 - Next: expose audio-track metadata and measured clock drift, then add reversible audio delay and
   diagnostic channel/downmix selection.
 - Complete when: delay adjusts in fine and coarse steps, current drift and selected layout are
@@ -142,8 +142,9 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.012 — Playback position and track choices are not resumed safely
 
-- Evidence: closing or replacing a video loses time, rate, volume/mute, audio/subtitle track,
-  subtitle settings, and view transform. Blindly restoring by path would apply stale time to a
+- Evidence: subtitle font, size, effect, position, color and delay already persist as global
+  settings. Closing or replacing a video loses its time, rate, volume/mute and selected tracks;
+  there is no file-specific resume state. Blindly restoring by path would apply stale time to a
   replaced file or resume near credits without consent.
 - Next: specify media state fields, stable stream matching, identity checks, completion threshold,
   and privacy controls on top of app.scope.viewers.003.
@@ -153,18 +154,15 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.013 — Video decode and presentation have no selectable performance path
 
-- Evidence: the detail line explicitly says `Swag CPU`; there is no hardware-decoder path, GPU
-  upload/presentation mode, dropped/late frame counter, decode queue telemetry, power policy, or
-  graceful switch when one path fails.
+- Evidence: the detail line explicitly says `Swag CPU`. Planar frames already reach
+  `ImageView.updateVideoFrame` for renderer-side conversion, while packed frames use
+  `exchangeImage`. There is no hardware-decoder selection, copy-cost telemetry, dropped/late
+  frame counter, decode queue panel, power policy or graceful decoder-path fallback.
 - Next: expose timing/queue diagnostics first, then define a hardware decode and zero/minimal-copy
   presentation boundary without changing codec correctness contracts.
 - Complete when: the active decoder/render path and fallback reason are visible, dropped/late frames
   and A/V drift can be monitored, hardware output is validated against CPU reference frames, device
   loss recovers, and a deterministic CPU mode remains selectable.
-
-This backlog covers playback, fallback presentation, and real-device validation owned by the
-Swag Scope video viewer. Codec and container implementation work remains in [std.video.md](std.video.md)
-or [std.audio.md](std.audio.md); this file owns how those capabilities reach the application surface.
 
 ## Playback coverage and fallback
 
@@ -198,12 +196,12 @@ or [std.audio.md](std.audio.md); this file owns how those capabilities reach the
 - Area: apps/swagscope
 - Found while: std.video.001, after the video viewer started presenting against the audio clock.
 - Observation: the viewer presents each picture at the time the sound has reached, and nothing has
-  yet confirmed that the time the sound reports is the time it is playing. On this machine the
+  yet confirmed that the time the sound reports is the time it is playing. In the originally reported environment, the
   played-sample counter of a source voice stays at zero for a whole run even with buffers queued
   and the voice started, so the position `Voice.playbackPositionSeconds` answers never moves and
   the correction the player applies to its own clock never fires. Sound is audible on the user's
-  machine, so the counter is expected to advance there; here it does not, and the difference is
-  most likely that this process gets no working audio endpoint.
+  machine, but the archived probe did not establish whether its own process had a working audio
+  endpoint. That remains a hypothesis, not a current-device measurement.
 - Evidence: a temporary probe in the video viewer logging `activeDriverKind`, `buffersQueued`, and
   the raw played-sample counter once per second. Driver 2 (XAudio2), `queued=2` from the first
   second — so the source is primed and submission works — with `samplesPlayed` flat at zero
@@ -215,21 +213,18 @@ or [std.audio.md](std.audio.md); this file owns how those capabilities reach the
 - Complete when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately
   skewed video clock, and the 0.1 s dead band is shown not to cause visible stutter.
 
-### app.scope.video.017 — The late-decoder test waits on a clock that keeps running
+### app.scope.video.017 — The late-decoder regression needs a prepared frame queue
 
 - Area: app/scope
 - Found while: the application rung of a repository health reset
-- Observation: the `#test` at `viewer.video.test.swg:209` sets `elapsed` to the tenth frame,
-  resets the presentation clock, pumps once and then asserts that the published picture is frame
-  ten. `waitForVideoFrame` pumps in one-millisecond steps with `playing` still true, so the clock
-  advances while the producer catches up: on a loaded machine the viewer can publish a later
-  picture and the assertion reads a frame it never asked for.
-- Evidence: 2026-09-04, one failure of `apps.swgs dm test` at that line while the three
-  applications were tested together. The same test file passes alone, and the test passed in the
-  DevMode campaign, in both configurations of the all-configuration campaign and in the Release
-  campaign afterwards, so the failure was not reproduced again.
-- Next: stop the clock for the wait — pause playback after the single `updatePlayback` that makes
-  the catch-up decision, then wait for the picture — and check that the test still fails against
-  the capped catch-up it was written for.
-- Complete when: the test states the frame it expects without depending on how long the wait
-  takes, and still fails when the catch-up cap is restored.
+- Observation: the regression jumps `elapsed` to frame ten before proving that the decoder has
+  queued the eleven frames the catch-up decision needs. `Stopwatch.reset` stops its clock; the
+  former explanation that reset left the clock running does not match its implementation.
+- Evidence: a failure was reported during the combined application run on 2026-09-04, with later
+  isolated and aggregate passes. The test now waits for the needed queue depth before pumping at
+  the fixed presentation time. The current correction has not run while memory admission refuses
+  new test commands.
+- Next: run the focused file in both program configurations and restore the former catch-up cap
+  temporarily to prove that this regression still detects it.
+- Complete when: the expected frame is independent of producer scheduling and the test still fails
+  when the catch-up cap is restored.

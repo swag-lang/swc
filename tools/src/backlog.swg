@@ -193,7 +193,10 @@ private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 f
     {
         lineNumber += 1
         let trimmed = Latin1.trim(line)
-        if Utf8.startsWith(cast(const [..] u8) trimmed, "- Related:") do
+        if Utf8.startsWith(cast(const [..] u8) trimmed, "- Related:") or
+           Utf8.startsWith(cast(const [..] u8) trimmed, "Related:") or
+           Utf8.startsWith(cast(const [..] u8) trimmed, "**Related:**") or
+           Utf8.startsWith(cast(const [..] u8) trimmed, "- **Related:**") do
             related = true
         elif related and line.count != 0 and (line[0] == ' ' or line[0] == '\t') do
             related = true
@@ -215,7 +218,10 @@ private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 f
             while end < line.count and (Latin1.isLower(line[end]) or Latin1.isDigit(line[end]) or line[end] == '.') do
                 end += 1
 
-            let candidate = line[start until end]
+            var candidateEnd = end
+            while candidateEnd > start and line[candidateEnd - 1] == '.' do
+                candidateEnd -= 1
+            let candidate = line[start until candidateEnd]
             if isBacklogIdentifier(candidate) and !seen.contains(candidate)
             {
                 Console.println("error: ", fileName, ":", lineNumber, ": Related identifier '", candidate, "' is not live")

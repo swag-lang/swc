@@ -220,13 +220,35 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
 
-    // A late decoder follows the presentation clock directly. The old catch-up cap decoded
-    // frame 4 here and permanently slowed the clock instead of dropping six obsolete frames.
+    // Put every remaining picture in the queue before advancing the presentation clock. A
+    // partially filled queue tests producer scheduling instead of the catch-up decision.
+    view.playing = true
+    view.clock.reset()
+    view.decodeWake.signal()
+    var attempts = 0
+    var queued   = 0'u64
+    while queued != 11 and attempts < 5000
+    {
+        {
+            Sync.scopedLock(&view.queueLock)
+            queued = view.ready.count
+        }
+
+        if queued != 11 do
+            Threading.Thread.sleep(1'ms)
+        attempts += 1
+    }
+
+    Swag.assert(queued == 11)
+
+    // A late presentation drops every obsolete picture. Capping catch-up at four frames
+    // would publish frame 4 instead of the frame the stopped clock requests.
     view.playing = true
     view.elapsed = view.frameSeconds(10)
     view.clock.reset()
     view.updatePlayback()
-    waitForVideoFrame(view)
+    view.playing = false
+    Swag.assert(!view.clock.isRunning())
     Swag.assert(view.frameIndex == 10)
 }
 

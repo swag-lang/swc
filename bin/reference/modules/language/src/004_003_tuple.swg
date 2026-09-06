@@ -85,7 +85,9 @@ Tuples can be assigned to each other if their field types match, even if field n
 # Positional Tuple Destructuring
 
 Curly-braced patterns destructure tuple fields by position. A positional pattern provides
-one binding or placeholder for every field.
+one binding or placeholder for every field. Its binding names do not select fields: even
+when those names match the source's fields, their order determines which values they receive.
+Use 'field: binding' for selection by name.
 */
 
 #test
@@ -99,6 +101,16 @@ one binding or placeholder for every field.
     let {name, value} = tuple2
     Swag.assert(name == "name")
     Swag.assert(value == true)
+}
+
+#test
+{
+    let point  = {x: 10, y: 20}
+    let {y, x} = point
+    Swag.assert(y == 10 and x == 20)
+
+    let {y: vertical, x: horizontal} = point
+    Swag.assert(vertical == 20 and horizontal == 10)
 }
 
 /**

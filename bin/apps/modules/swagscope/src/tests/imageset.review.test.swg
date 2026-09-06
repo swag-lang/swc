@@ -22,10 +22,11 @@ using Core, Pixel, Gui
     session.commands!.hide()
     session.info!.hide()
     host.root.applyLayout()
-    host.app.timing.minimumDeltaSeconds = 0.062
-    host.app.timing.maximumDeltaSeconds = 0.062
-    host.app.timing.update()
-    host.app.timing.update()
+    host.app.setFrameDeltaRange(0.062, 0.062)
+    view.imageView.setPaused(true)
+    host.app.runFrame()
+    host.app.runFrame()
+    view.imageView.setPaused(false)
     for 32 do
         discard host.render(&host.root)
     Swag.assert(movie.frameIndex == 32 and movie.failureReason.isEmpty())

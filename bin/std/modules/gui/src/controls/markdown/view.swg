@@ -357,7 +357,8 @@ private impl View
             return
         }
 
-        let inline = InlineView.create(me, .body, block.text.toString(), block.kind)
+        let displayText = blockDisplayText(block.kind, block.text.toString())
+        let inline      = InlineView.create(me, .body, displayText.toString(), block.kind)
         visual.wnd    = inline
         visual.inline = inline
         if !.documentThemeColors.isEmpty() do
@@ -467,7 +468,7 @@ private impl View
             .appendBlock(#move .pendingBlocks[.pendingIndex])
             .pendingIndex += 1
             blockCount    += 1
-            if stopwatch.elapsedMicroseconds() >= StreamFrameBudget do
+            if !.app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= StreamFrameBudget do
                 break
         }
 
@@ -1288,6 +1289,32 @@ internal impl View
 
 internal impl IWnd for View
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged
+        {
+            var changed = false
+            for &block in .blocks where block.kind >= .AlertNote and block.kind <= .AlertCaution
+            {
+                if !changed do
+                    .clearSelection()
+                let displayText = blockDisplayText(block.kind, block.searchText.toString())
+                block.inline!.clearSearchHighlight()
+                block.inline!.parse(displayText.toString())
+                block.inline!.invalidate()
+                changed = true
+            }
+
+            if changed
+            {
+                .searchBlockIndex = Swag.U64.Max
+                .layoutDocument()
+            }
+        }
+
+        evt.accepted = false
+    }
+
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         if .scroll != null do

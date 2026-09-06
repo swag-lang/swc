@@ -74,7 +74,8 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.007 — OpenType shaping features, script, and language cannot be inspected
 
-- Evidence: editable sample text uses the default GUI font path only. There is no script/language/
+- Evidence: editable sample text draws the loaded face through the ordinary Pixel font path.
+  There is no script/language/
   direction choice, GSUB/GPOS feature list, per-feature toggle, glyph-run trace, or before/after
   comparison; the engine gaps are tracked in `std.truetype.md`.
 - Next: define a viewer shaping trace and control surface that can expose supported features as the

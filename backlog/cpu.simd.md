@@ -17,10 +17,12 @@ Every capability entry also owns its declarations in `bin/runtime/api.swg`, the 
 `Core.Math.Simd` family, constant folding, diagnostics, encoder tests, native/JIT tests, and the
 language reference. An implementation that introduces or changes an intrinsic spelling also owns
 the lexer token and editor grammar update required for a surface-syntax change.
-The current production baseline consists of the public wrapper in
+The production baseline includes the public wrapper in
 `bin/std/modules/core/src/math/simd.swg`, the PCM conversion kernels in `audio/src/codec/pcm/pcm.swg`,
-and the H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h264/inter.swg` and
-`frame.swg`. H.264 RBSP unescaping now copies escape-free 16-byte blocks directly: over 512 MiB
+and H.264 interpolation and YCbCr conversion kernels in `video/src/decode/h264/inter.swg` and
+`frame.swg`. Other consumers include crypto/UTF conversion, Pixel codecs and selected CPU spans,
+and paired SDF samples. Historical measurements below are not a fresh baseline for the current
+compiler. H.264 RBSP unescaping copies escape-free 16-byte blocks directly: over 512 MiB
 in native Release it improves from 1,910,646 to 528,998 us (3.61x), and the complete 3,000-frame
 MP4/H.264 decode improves from 911,676 to 698,308 us (1.31x); the work below is still outstanding.
 
@@ -103,14 +105,13 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 - Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
   defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
-  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so every 4x4 and
-  8x8 block kernel either over-reads sixteen bytes or routes four and eight bytes through a scalar
-  splat.
+  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so 4x4 and 8x8 block kernels need padded storage for a full load or explicit scalar partial
+  loads. A masked or partial API must make those preconditions explicit.
 - Complete when: arbitrary byte counts can be processed without reading or writing outside the
   slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
 - Related: cpu.simd.003, cpu.simd.015, cpu.simd.024, cpu.simd.025.
 
-### cpu.simd.007 — Gather, scatter, compress, and expand are unavailable
+### cpu.simd.007 — Gather supports one shape; scatter, compress and expand are absent
 
 - Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
   a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
@@ -152,9 +153,11 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   sequence still runs everywhere else, and both answer the same on the differential tests.
 - Related: cpu.simd.001, cpu.simd.012, cpu.simd.019, cpu.simd.026, cpu.simd.029, cpu.simd.030.
 
-### cpu.simd.011 — Core has no vector math implementation
+### cpu.simd.011 — Vector rounding and transcendental families remain incomplete
 
-- Intent: implement vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
+- Evidence: vector sqrt, floor, ceil, trunc, abs, min/max, mul-add, sign, copysign, saturate and
+  lerp already have public wrappers in `math/simd.swg`.
+- Intent: add vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
   trigonometric family with documented accuracy tiers instead of treating absent machine
   instructions as a permanent reason to keep callers scalar.
 - Complete when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
@@ -165,8 +168,10 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
 
-- Intent: select immediate shuffles, fused multiply-add, horizontal forms, SAD, and direct lane
-  insert instead of generic sequences. Landed 2026-08-22: `Swag.vecselect` is one `vpblendvb` (the
+- Intent: complete direct narrow/dynamic lane insertion and extraction and evaluate fused
+  multiply-add with an explicit rounding contract. Immediate lane shuffles, horizontal reductions
+  and SAD already lower through dedicated operations; vector `mulAdd` currently emits a multiply
+  followed by an add, so replacing it with FMA must not silently change its rounding semantics. Landed 2026-08-22: `Swag.vecselect` is one `vpblendvb` (the
   mask's byte sign bits carry a whole-lane compare mask exactly), and a constant 32- or 64-bit
   lane read of a register-resident vector is a `movd`/`movq` — lane zero directly, another lane
   through one `pshufd` — instead of a spill and a reload, which is what `storeLow4`/`storeLow8`
@@ -195,7 +200,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ### cpu.simd.015 — UTF-8 validation still lacks a profitable packed fast path
 
-- Intent: improve `isValid` beyond its current unrolled scalar ASCII scan; a direct U8x16 bitmask
+- Intent: improve `isValid` beyond its current 8-byte scalar ASCII scan; a direct U8x16 bitmask
   path measured 20.76 to 20.42 GiB/s and was rejected.
 - Complete when: malformed boundaries and arbitrary tails match the scalar implementation and an
   ASCII-heavy benchmark improves rather than only replacing the load width.
@@ -245,7 +250,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 - Complete when: incremental, keyed, and boundary-length vectors match and compression throughput
   improves without changing digest output.
 - Evidence: pairing two G functions while packing and extracting scalar state at every half-round
-  measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. A viable
+  measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. Those historical numbers predate the current allocator and need rechecking. A viable
   kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
 
 ### cpu.simd.020 — Poly1305 remains scalar
@@ -328,11 +333,13 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ## Tier C — Pixel processing and image codecs
 
-### cpu.simd.025 — Half-size and simple gradients still dispatch one callback per pixel
+### cpu.simd.025 — Half-size and gradient paths still have unoptimized scalar work
 
-- Intent: add row/chunk kernels for half-size and simple gradients, and assess a packed
-  source-over kernel beyond its row-wise scalar implementation. Fill already copies complete rows;
-  the other original candidates now have measured chunk or row kernels.
+- Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
+  parallel row loops. The two-color legacy gradient computes one row and copies it, while the
+  four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
+- Intent: measure row/chunk replacements for the remaining half-size and gradient work and a
+  packed source-over kernel beyond its row-wise scalar implementation.
 - Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
 - Related: cpu.simd.004, cpu.simd.006, cpu.simd.010.
@@ -354,52 +361,21 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   path under feature dispatch, and retains a scalar fallback.
 - Related: cpu.simd.004, cpu.simd.007, cpu.simd.011.
 
-### cpu.simd.028 — PNG packed samples, filters, and color conversion remain scalar
+### cpu.simd.028 — PNG Sub strides and remaining sample conversion need a current profile
 
-- Intent: complete non-paletted color conversion and decoder Sub for byte strides 1/3/6.
-  Decode and encode `Up` now process 64 bytes per iteration (1.59x and 1.27x), exact RGB/RGBA
-  16-to-8 reduction processes eight samples per iteration (1.27x), and 4-bit expansion processes
-  32 samples per iteration (1.34x). The 1-bit and 2-bit paths now expand 16 samples per iteration
-  (1.27x and 1.46x). Measurements cover 512 MiB in Release. The packed rewrites also fixed the
-  scalar 2-bit and 4-bit 2/3-sample tails writing a complete group past the row. Encoder `None`
-  and `Up` scoring now reduce 16 bytes per iteration (2.70x and 1.92x). Explicit four- and
-  sixteen-pixel shuffle layouts for grayscale RGB/RGBA conversion regressed native Release by
-  54-76% and were rejected. Opaque grayscale-to-RGB now uses bounded overlapping `u32` stores
-  above 4,096 pixels: its 16 Mi-pixel kernel improves from 17,551 to 9,849 us (1.78x), and ten
-  complete 2048x2048 decodes improve from 509,191 to 408,989 us (1.25x). Transparent and alpha
-  variants now write prepacked RGBA words above 512 and 256 pixels. Their 16 Mi-pixel kernels
-  improve from 26,647 to 8,582 us (3.10x) and from 13,109 to 10,571 us (1.24x); five complete
-  2048x2048 decodes improve from 371,154 to 292,555 us (1.27x) and from 416,515 to 357,417 us
-  (1.17x), respectively. True-color `tRNS` expansion now shuffles four RGB pixels into RGBA and
-  compares their packed colors in parallel above 4,096 pixels. Its 16 Mi-pixel kernel improves
-  from 17,092 to 15,748 us (1.09x), and five complete 2048x2048 decodes improve from 314,387 to
-  296,702 us (1.06x); the 32x32 fixture remains on the scalar path. A scalar packed-`u32` rewrite
-  regressed the same kernel from 17,681 to 24,856 us (1.41x slower) and was rejected.
-  Encoder `Sub` generation processes 64 bytes per iteration (1.69x), while its score reuses the
-  packed independent-byte reducer after the first pixel (1.59x). Encoder `Average` uses exact
-  downward-rounded packed averages for row generation (2.25x) and scoring (1.63x). Encoder Paeth
-  evaluates eight S16 lanes per half-vector for row generation (3.24x) and scoring (3.55x).
-  Decoder `Sub` uses packed prefix scans for 2/4/8-byte pixels (1.33x/1.44x/1.67x); the four-shuffle
-  one-byte scan regressed 18-27% and was rejected. Three- and six-byte carry-shuffle prototypes
-  also regressed 256 MiB in native Release from 226,957 to 276,945 us (1.22x slower) and from
-  222,110 to 236,188 us (1.06x slower), so those layouts remain scalar.
-  Those rejections and the grayscale shuffle layouts all date from inside the call window, and the
-  three-byte stride they leave scalar is the commonest PNG pixel layout. PNG is also the one place
-  where the window biased the other way: the encoder Paeth figures were measured against a scalar
-  `filterPaeth` calling `Math.abs` three times per byte, against roughly a quarter of a call per
-  byte on the packed side, so 3.24x and 3.55x are inflated.
-  Decoder `Average` and `Paeth` now widen one whole pixel to a lane per byte and carry the left
-  pixel in a register, the shape libpng's SSE2 kernels use; a pixel is at most eight bytes wide at
-  any depth, so one kernel covers every stride from two upward. Timed against the scalar form in
-  the same process over 441 rows of a 2,640-byte scanline, Paeth improves from 5,999 to 3,690 us
-  (1.63x) and Average from 1,265 to 1,204 us (1.05x) — Average was already cheap enough that the
-  packed form only pays for the load and store. The rewrite also bounds both by the row: the
-  scalar prefix wrote `bytesPerPixel` bytes without checking the row length, which overran a
-  narrow Adam7 pass whose stride is shorter than one pixel.
-  Note the ceiling before spending: a decode is about two-thirds Inflate, so a 2x filter or
-  conversion kernel shows as a few percent end to end.
-- Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
-  every filter and bit depth covers odd tails, and encode/decode throughput improves.
+- Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth and
+  Sub for 2/4/8-byte pixels already exist. Gray and palette conversion also have thresholded
+  packed-word paths. `convert16` still converts samples and transparency keys individually; Sub
+  strides 1/3/6 retain scalar recurrence paths.
+- Historical experiments: packed Sub prototypes for strides 1/3/6 and gray byte shuffles lost
+  during the 2026-08-20/21 cross-module wrapper-call window. The encoder Paeth speedup from that
+  window was also biased because the scalar form called `Math.abs`. These measurements cannot
+  settle the current inlined kernels' cost.
+- Next: profile current decoding by filter and bit depth, then remeasure the remaining Sub
+  layouts and 16-bit conversion against their scalar forms in the same process. Keep Inflate's
+  share separate from image conversion so a microkernel gain has an end-to-end interpretation.
+- Complete when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
+  retain bounds protection, and every retained kernel improves representative decoding.
 - Related: cpu.simd.006, cpu.simd.007, cpu.simd.010.
 
 ### cpu.simd.029 — The JPEG forward transform and quantization remain scalar
@@ -438,77 +414,40 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   boundary modes are exhaustive, and stage benchmarks show the retained gains.
 - Related: cpu.simd.006, cpu.simd.010.
 
-### cpu.simd.031 — Packed and indexed pixel formats lack gather/shuffle kernels
+### cpu.simd.031 — Remaining palette lookups need a profitable packed strategy
 
-- Intent: complete GIF/PNG palette expansion, fixed quantization, and 24/32-bit channel packing
-  using shuffle or gather according to the active target. BMP's default BGR555 path now expands
-  16 pixels per iteration through exact 5-bit lookup tables and BGR shuffles (4.23x over 512 MiB
-  in Release); the common BGR565 bitfield layout reuses that packing with exact 6-bit integer
-  expansion and improves from 1,541,725 to 288,495 us over 256 MiB in native Release (5.34x).
-  Other contiguous 16-bit masks with one to eight bits per RGB channel use a shared exact
-  multiply/shift normalizer; BGR444 improves from 1,551,093 to 237,259 us over 256 MiB in native
-  Release (6.54x). Wider and non-contiguous channel masks retain the scalar fallback. Raw
-  non-right-origin TGA15 rows reuse the same exact 5-bit kernel (1.59x). TGA16 adds
-  alpha and packs BGRA through the new low/high interleave operations (1.97x overall; 1.12x over
-  the shuffle-only prototype). A 16-entry SSSE3 shuffle prototype for low-bit PNG palettes was
-  rejected: over 512 MiB in native Release, RGB regressed from 109,065 to 324,334 us (2.97x
-  slower) and RGBA from 143,141 to 262,360 us (1.83x slower). The indexed SIMD gather now exists,
-  but PNG RGBA expansion measured faster with a prepacked `u32` table: over 16 Mi pixels, portable
-  Release improved from 30,113 to 16,662 us (1.81x) and AVX2 from 35,784 to 17,311 us (2.07x),
-  while gather reached only 27,310 and 33,441 us. A 512-pixel dispatch threshold keeps table setup
-  out of tiny images; 10,000 complete 34x24 decodes improved from 327,233 to 218,321 us (1.50x).
-  RGB palette expansion uses bounded overlapping `u32` stores above the same threshold, leaving
-  its final pixel to exact three-byte stores. Over 16 Mi pixels it improves from 34,475 to 12,643
-  us (2.73x); ten complete 2048x2048 decodes improve from 435,350 to 428,298 us (1.02x) because
-  Inflate dominates that fixture. GIF's fixed RGB/BGR/RGBA/BGRA quantizer now
-  processes four pixels per iteration with exact packed division by 255. Over 256 MiB of 32-bit
-  output in native Release, opaque conversion improves from 3,919,498 to 830,869 us (4.72x) and
-  transparent conversion from 3,718,998 to 1,167,242 us (3.19x); over 64 MiB of 24-bit output,
-  opaque conversion improves from 3,763,685 to 281,324 us (13.38x). Shared RGB/BGR row shuffles
-  now feed uncompressed TGA and BMP encoding through contiguous appends instead of per-channel
-  buffer writes. Over 64 MiB in native Release, TGA RGB improves from 435,321 to 56,059 us
-  (7.77x) and RGBA from 434,613 to 55,755 us (7.80x); BMP RGB improves from 391,184 to 53,262 us
-  (7.34x) and RGBA from 421,889 to 54,080 us (7.80x). TGA RLE literal packets now append
-  blue-first spans directly and shuffle red-first spans into a fixed scratch block. Over 64 MiB
-  in native Release, BGR improves from 459,142 to 98,627 us (4.66x), RGB from 494,237 to
-  123,278 us (4.01x), BGRA from 355,013 to 80,932 us (4.39x), and RGBA from 460,670 to
-  103,347 us (4.46x). Four-pixel run detection is retained for 32-bit TGA RLE: over 64 MiB
-  of uniform input, BGRA improves from 61,720 to 23,549 us (2.62x) and RGBA from 56,684 to
-  26,544 us (2.14x). The 24-bit prototype was rejected after improving BGR only from 61,260
-  to 60,605 us (1.01x) and RGB from 62,595 to 57,510 us (1.09x). Right-origin TGA15/16 rows
-  reverse 16 packed pixels per iteration; over 256 MiB in native Release, TGA15 improves from
-  1,657,107 to 364,168 us (4.55x) and TGA16 from 1,750,620 to 306,748 us (5.71x). Raw TGA24/32
-  now dispatches left-origin rows to the runtime SIMD copy and right-origin rows to shared packed
-  reversal kernels. Over 128 MiB in native Release, TGA24 improves from 733,271 to 6,348 us
-  (115.51x) on left-origin rows and from 715,535 to 56,519 us (12.66x) on right-origin rows;
-  TGA32 improves from 570,873 to 7,186 us (79.44x) and from 526,046 to 55,211 us (9.53x),
-  respectively. True-color TGA RLE now splits packets at row boundaries and reuses SIMD copy,
-  reversal, and packed-pixel fill kernels. Over 64 MiB in native Release, repeated TGA24 improves
-  from 328,404 to 11,858 us (27.69x) on left-origin rows and from 344,228 to 12,501 us (27.54x)
-  on right-origin rows; raw packets improve from 303,191 to 8,428 us (35.97x) and from 307,714
-  to 33,097 us (9.30x). Repeated TGA32 improves from 229,474 to 14,081 us (16.30x) and from
-  231,657 to 15,492 us (14.95x); raw packets improve from 233,690 to 7,706 us (30.33x) and
-  from 236,496 to 33,536 us (7.05x).
-  The 16-entry SSSE3 palette prototype was also rejected inside the call window, but its margin is
-  wide and the prepacked `u32` table already beats it on the same fixtures, so it has the weakest
-  claim on a re-measure in this file.
-- Complete when: every format variant, palette size, transparency case, row padding, and tail matches
-  scalar decoding/encoding and the dispatcher avoids gather where it loses.
+- Evidence: BMP/TGA 16-bit expansion, TGA row reversal and RLE spans, RGB/BGR channel shuffles,
+  GIF fixed quantization and PNG packed-word palette tables already have bulk implementations.
+  Palette lookup still has no general gather/shuffle strategy that beats those direct tables.
+- Historical experiments: a 16-entry SSSE3 PNG table shuffle lost by 2.97x for RGB and 1.83x for
+  RGBA during the wrapper-call window. PNG's current packed-u32 lookup beat the gather prototype;
+  neither result proves that every palette size or new target should make the same choice.
+- Next: profile GIF palette expansion and remaining indexed layouts before selecting gather or
+  shuffle, preserve the existing small-image setup thresholds, and compare against the current
+  packed-word tables rather than an older per-channel loop.
+- Complete when: each remaining indexed path has a measured dispatch decision and covers palette
+  size, transparency and tails without invalid reads or changes to decoded pixels.
 - Related: cpu.simd.007.
 
-### cpu.simd.032 — The CPU renderer has no packed span pipeline
+### cpu.simd.032 — CPU span packing stops before translucent blending and complex shading
 
-- Intent: process four or more horizontal pixels per iteration for clear, alpha blend, solid and
-  gradient shading, MSDF coverage, and profitable texture paths, with specialized kernels instead
-  of one branch-heavy universal loop.
-- Complete when: command-stream goldens remain stable, clip and layer boundaries are exact, simple
-  spans improve first, and gather-dependent sampling is enabled only by measurement.
+- Evidence: `rendercpu.swg` already clears packed spans, evaluates four edge samples, and writes
+  full covered constant-color BGRA groups with channel masks. Its translucent alpha path keeps
+  scalar float rounding, and gradient, MSDF and general texture shading retain per-pixel work.
+- Intent: extend profitable horizontal spans to those remaining cases, specializing by program,
+  blending and format rather than adding branches to one universal loop.
+- Complete when: clip and layer boundaries remain exact, byte/golden parity or a deliberately
+  specified numeric tolerance protects rounding, and stage and application benchmarks justify
+  each retained path. Gather-dependent sampling needs its own measured decision.
 - Related: cpu.simd.004, cpu.simd.007, cpu.simd.011, cpu.simd.016.
 
 ## Tier C — Text, fonts, and PDF
 
 ### cpu.simd.033 — TrueType raster and MSDF kernels remain scalar
 
+- Evidence: ordinary SDF already evaluates two F64 sample positions through
+  `closestEdgeDistances` and `insideMask`; MSDF and analytic raster coverage remain separate scalar
+  implementations.
 - Intent: vectorize analytic coverage conversion and process multiple sample points in MSDF
   distance evaluation, using vector math and gathers only where edge traversal remains profitable.
 - Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster and
@@ -517,6 +456,8 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ### cpu.simd.034 — PDF packed samples and mask composition remain scalar
 
+- Evidence: default 8-bit gray expansion and CMYK conversion already use packed shuffles in
+  `decode.image.swg`; the remaining paths still use sample extraction and per-pixel composition.
 - Intent: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
   mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
 - Complete when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode

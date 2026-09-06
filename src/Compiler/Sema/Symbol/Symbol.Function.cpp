@@ -903,7 +903,7 @@ uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
 
 uint64_t SymbolFunction::freesParamsMask() const noexcept
 {
-    return freesParamsMask_ | (hasAttributes() ? attributes().freesParamsMask : 0);
+    return freesParamsMask_.load(std::memory_order_acquire) | (hasAttributes() ? attributes().freesParamsMask : 0);
 }
 
 uint64_t SymbolFunction::reallocatesParamsMask() const noexcept

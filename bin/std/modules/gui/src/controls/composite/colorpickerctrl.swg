@@ -300,7 +300,7 @@ impl ColorPickerCtrl
 
             .editR.setUnsignedIntegerRange(0, 255)
             .editR.setMaximumLength(3)
-            .editR.sigFocusLost += func|v|(ed)
+            .editR.sigCommitted += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.r = cast() Math.clamp(res.value, 0, 255)
@@ -310,7 +310,7 @@ impl ColorPickerCtrl
 
             .editG.setUnsignedIntegerRange(0, 255)
             .editG.setMaximumLength(3)
-            .editG.sigFocusLost += func|v|(ed)
+            .editG.sigCommitted += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.g = cast() Math.clamp(res.value, 0, 255)
@@ -320,7 +320,7 @@ impl ColorPickerCtrl
 
             .editB.setUnsignedIntegerRange(0, 255)
             .editB.setMaximumLength(3)
-            .editB.sigFocusLost += func|v|(ed)
+            .editB.sigCommitted += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.b = cast() Math.clamp(res.value, 0, 255)
@@ -330,7 +330,7 @@ impl ColorPickerCtrl
 
             .editA.setUnsignedIntegerRange(0, 255)
             .editA.setMaximumLength(3)
-            .editA.sigFocusLost += func|v|(ed)
+            .editA.sigCommitted += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.a = cast() Math.clamp(res.value, 0, 255)
@@ -340,7 +340,7 @@ impl ColorPickerCtrl
 
             .editHex.setHexadecimalRange(0, 0xFFFFFFFF)
             .editHex.setMaximumLength(8)
-            .editHex.sigFocusLost += func|v|(ed)
+            .editHex.sigCommitted += func|v|(ed)
             {
                 var res = catch StrConv.parseX64(ed.text())
                 if !v.flags.has(.AllowAlpha) do

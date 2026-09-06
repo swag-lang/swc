@@ -126,19 +126,18 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 - Evidence: `swc help` already shows `new script`, `new module`, and their follow-up commands, but
   its links lead to a website and GitHub's moving `master` branch. A user holding only the executable
   has no local route from a command, an error, or a generated starter to version-matched explanation.
-- Intent: make the default help a short, executable first-use route and add discoverable commands
-  for learning, project creation, checking, running, formatting, testing, and inspecting what a
-  command would do. Keep the existing workspace model; this is not a request for a package manifest
-  or registry.
+- Already implemented: `Command.New.cpp` embeds script/module starters, refuses an existing target,
+  and prints the source and follow-up command. `--dry-run` reports resolved inputs, expected
+  actions, native artifact paths and toolchain commands while suppressing execution and mutation.
+- Intent: finish the offline learning route and expand the starter catalogue around those existing
+  commands. Keep the existing workspace model; this is not a request for a package manifest or registry.
 - Required behaviour:
   - `swc` and `swc help <command>` give a short human-oriented route, examples, defaults, side
     effects, destructive behavior, and a local documentation topic for every command.
   - `swc new` offers named embedded starter templates for a script, workspace executable, tests,
     command-line arguments, files, errors, and a minimal GUI where its prerequisites are met.
-  - Creation never overwrites a file or module. Its result prints the exact next command, source
-    locations, expected output, and the local topic to continue with.
-  - A non-writing planning mode describes selected inputs, imports, generated files, native tools,
-    code that would execute, and the output directory before the action runs.
+  - Extend the existing collision-safe creation result with expected output and a local topic to
+    continue with; do not create a second planning mode beside `--dry-run`.
 - Complete when: an offline newcomer can complete a script and workspace tutorial from `swc` alone,
   deliberately inspect a build before it runs, and recover from an intentional syntax and missing-
   toolchain error without a browser or repository.
@@ -224,13 +223,15 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 - Evidence: compiling Swag can execute `#run` and JIT code; `run`, `test`, format, clean, tool
   setup, and example commands have different filesystem, process, and machine-configuration effects.
-  An AI that treats every compiler command as a harmless query can execute untrusted project code
-  or alter data before it has established scope.
+  `Command.DryRun.cpp` already reports a suppressed-execution plan, and `syntax` stops after parsing.
+  What is missing is a discoverable, versioned effect schema covering those guarantees and the
+  repository tools, rather than only human-readable plans for an already selected command.
 - Intent: give all callers an explicit effect model. Read-only discovery and parsing have a defined
   no-execution contract; planning reports what would execute or change; mutation and launch commands
   name their targets before acting. Existing safe defaults such as `new` refusing collisions become
   part of the public contract.
-- Next: inventory each command's reads, writes, process launches, compile-time execution, native
+- Next: encode the existing dry-run and syntax boundaries, then inventory each command's reads,
+  writes, process launches, compile-time execution, native
   linking, cache use, and shell/registry changes. Define safe inspection modes and the boundary at
   which semantic analysis necessarily requires user code. Connect the report to compiler.distribution.008
   rather than maintaining a second, prose-only safety table.

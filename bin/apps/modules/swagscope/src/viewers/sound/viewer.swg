@@ -721,6 +721,30 @@ internal impl SoundViewer
 
 internal impl IWnd for SoundViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged
+        {
+            .playButton.toolTip     = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
+            .stopButton.toolTip     = soundStrings().ui_TipStop
+            .backwardButton.toolTip = soundStrings().ui_TipBackward
+            .forwardButton.toolTip  = soundStrings().ui_TipForward
+            .volumeSlider.toolTip   = soundStrings().ui_TipVolume
+            .muteButton.toolTip     = soundStrings().ui_TipMute
+            .timeline.toolTip       = soundStrings().ui_TipSeek
+            if .openFinished and .openState == 1
+            {
+                if !.engineReady do
+                    .playButton.toolTip = soundStrings().ui_NoEngine
+                .details = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), soundDurationText(.duration))
+                if .reportDetails do
+                    .reportDetails!(me, .details.toString())
+            }
+        }
+
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .timer

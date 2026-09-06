@@ -49,6 +49,10 @@ namespace SemaEscape
     // Judges the deferred call-site records against the (now final) per-function borrow
     // summaries. Runs once the module has no pending sema job (Sema::waitDone).
     void reportDeferredChecks(TaskContext& ctx);
+
+    // Compile-time execution can lower a completed call graph before the module-wide
+    // summary pass. Publish the transitive release facts available for that graph first.
+    void propagateCompletedFreesSummaries(TaskContext& ctx);
 }
 
 SWC_END_NAMESPACE();

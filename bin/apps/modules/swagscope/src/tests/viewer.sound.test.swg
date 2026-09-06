@@ -155,7 +155,12 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
@@ -190,6 +195,19 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 
     view.togglePlayback()
     Swag.assert(view.playing and view.voice != null)
+
+    let voice  = view.voice
+    let oldTip = String.from(view.playButton.toolTip)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(view.playButton.toolTip == soundStrings().ui_TipPause and view.playButton.toolTip != oldTip)
+    Swag.assert(view.stopButton.toolTip == soundStrings().ui_TipStop)
+    Swag.assert(view.volumeSlider.toolTip == soundStrings().ui_TipVolume)
+    Swag.assert(view.playing and view.voice == voice)
+    Swag.assert(view.details == Format.toString(soundStrings().ui_Details, view.sound.sampleRateHz(), channelCountText(view.sound.numChannels()), view.sound.sampleStorageBits(), soundDurationText(view.duration)))
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(view.playButton.toolTip == oldTip and view.playing and view.voice == voice)
     view.seekSeconds(view.duration * 0.5)
     Swag.assert(view.voice!.playbackSampleFrame() == 2)
     view.setVolume(0.4)

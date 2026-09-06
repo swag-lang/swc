@@ -13,10 +13,11 @@ using Swag, Core
         let image = expect reader.read(index)
         Swag.assert(Memory.compare(image.pixels.buffer, pixels.buffer! + cast(u64) index * 64, 64) == 0)
     }
+
     var poster = expect ImageReader.load(getTestDataPath("imageset-poster.apng"))
     Swag.assert(poster.info.frames.count == 2)
     let animated = expect poster.read(0)
-    let still = expect Image.load(getTestDataPath("imageset-poster.apng"))
+    let still    = expect Image.load(getTestDataPath("imageset-poster.apng"))
     Swag.assert(still.pixelColor(0, 0).r == 255 and animated.pixelColor(0, 0).a == 0)
 }
 
@@ -27,7 +28,7 @@ using Swag, Core
     source.fill(Argb.White)
     var metadata: ImageMetadata
     metadata.signature = 1
-    metadata.tag = "Exif"
+    metadata.tag       = "Exif"
     const ExifBytes: [26] u8 = ['I', 'I', 42, 0, 8, 0, 0, 0, 1, 0, 18, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
     metadata.value.add(ExifBytes)
     source.metadata.add(metadata)
@@ -46,17 +47,18 @@ using Swag, Core
     for enabled in [false, true]
     {
         var reader = expect ImageReader.decode("metadata.webp", webp.toSlice(), {decodeMetadata: enabled})
-        let frame = expect reader.read(2)
+        let frame  = expect reader.read(2)
         Swag.assert(frame.metadata.count == (enabled ? 1'u64 : 0'u64))
-        if enabled do Swag.assert(frame.metadata[0].isTag("Exif") and frame.metadata[0].value.count == 26)
+        if enabled do
+            Swag.assert(frame.metadata[0].isTag("Exif") and frame.metadata[0].value.count == 26)
     }
 }
 
 // Cyclic page chains and oversized indexed containers fail during indexing.
 #test
 {
-    var tiff = expect File.readAllBytes(getTestDataPath("imageset-pages-raw.tiff"))
-    let first = (tiff.buffer! + 4)[as u32]
+    var tiff    = expect File.readAllBytes(getTestDataPath("imageset-pages-raw.tiff"))
+    let first   = (tiff.buffer! + 4)[as u32]
     let entries = (tiff.buffer! + first)[as u16]
     (tiff.buffer! + first + 2 + cast(u64) entries * 12)[as u32] = first
     var reader = catch ImageReader.decode("cycle.tiff", tiff.toSlice()) as cycleError

@@ -44,7 +44,7 @@ internal impl Properties
             {
                 .dockStyle = .Left
                 .setFloatingPointRange()
-                .sigFocusLost += func|prop = me, item, fieldOffset|(ed)
+                .sigCommitted += func|prop = me, item, fieldOffset|(ed)
                 {
                     // Write this component into every edited instance, leaving the others.
                     prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text()))

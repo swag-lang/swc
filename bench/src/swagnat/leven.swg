@@ -26,9 +26,9 @@ late var g_QLen:   [*] u64
         g_WordLen[i] = l
         for k in l
         {
-            g_Bytes[wp] = cast(u8)(97 + (n % 26))
-            wp += 1
-            n = n / 26 + 7 * k
+            g_Bytes[wp] = cast(u8) (97 + (n % 26))
+            wp          += 1
+            n           = n / 26 + 7 * k
         }
     }
 
@@ -40,8 +40,8 @@ late var g_QLen:   [*] u64
     for q in QUERIES
     {
         var tmp: [32] u8
-        let src          = rnd() % DICT
-        var nw           = g_WordLen[src]
+        let src = rnd() % DICT
+        var nw  = g_WordLen[src]
         for i in nw do
             tmp[i] = g_Bytes[g_WordOff[src] + i]
 
@@ -49,7 +49,7 @@ late var g_QLen:   [*] u64
         {
             let p  = rnd() % nw
             let op = rnd() % 3
-            let c  = cast(u8)(97 + (rnd() % 26))
+            let c  = cast(u8) (97 + (rnd() % 26))
             if op == 0
             {
                 tmp[p] = c
@@ -62,8 +62,9 @@ late var g_QLen:   [*] u64
                     while i + 1 < nw
                     {
                         tmp[i] = tmp[i + 1]
-                        i += 1
+                        i      += 1
                     }
+
                     nw -= 1
                 }
             }
@@ -73,10 +74,11 @@ late var g_QLen:   [*] u64
                 while i > p
                 {
                     tmp[i] = tmp[i - 1]
-                    i -= 1
+                    i      -= 1
                 }
+
                 tmp[p] = c
-                nw += 1
+                nw     += 1
             }
         }
 
@@ -85,7 +87,7 @@ late var g_QLen:   [*] u64
         for i in nw
         {
             g_QBytes[qp] = tmp[i]
-            qp += 1
+            qp           += 1
         }
     }
 
@@ -121,14 +123,14 @@ late var g_QLen:   [*] u64
             for x in la
             {
                 row1[0] = x + 1
-                let ca  = g_QBytes[ao + x]
+                let ca = g_QBytes[ao + x]
                 for y in lb
                 {
                     var cost = 1'u64
                     if ca == g_Bytes[bo + y] do
                         cost = 0
-                    var v   = row0[y] + cost
-                    var v2  = row0[y + 1] + 1
+                    var v  = row0[y] + cost
+                    var v2 = row0[y + 1] + 1
                     if v2 < v do
                         v = v2
                     v2 = row1[y] + 1
@@ -136,6 +138,7 @@ late var g_QLen:   [*] u64
                         v = v2
                     row1[y + 1] = v
                 }
+
                 for j in lb + 1 do
                     row0[j] = row1[j]
             }

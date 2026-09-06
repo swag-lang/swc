@@ -247,6 +247,61 @@ impl IPropertyNotify for PropHeadlessRoData
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
 }
 
+struct PropHeadlessCancelData
+{
+    value: s32 = 42
+    text:  String
+
+    #[Properties.SliderMinMax(0, 100)]
+    bounded: s32 = 10
+}
+
+// Cancelling pending text preserves the bound values and creates no change notification or undo.
+#test
+{
+    for kind in [PropertiesKind.Grid, PropertiesKind.List, PropertiesKind.Condensed, PropertiesKind.Panel]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(420, 420)
+        defer host.shutdown()
+        var data: PropHeadlessCancelData
+        data.text = "before"
+        let prop = Properties.create(&host.root, {0, 0, 400, 400}, kind)
+        prop.addStruct(data)
+        Swag.assert(prop.items.count == 4)
+
+        var changes: u32
+        prop.sigValueChanged += func|changes = &changes|(grid, item)
+        {
+            discard grid
+            discard item
+            changes[] += 1
+        }
+
+        for index in 1 until prop.items.count
+        {
+            let item = prop.items[index]!
+            let edit = item.sliderBox != null ? item.sliderBox.edit : item.editBox
+            edit.setFocus()
+            edit.selectAll()
+            host.sendRune(Input.Key.A, '9')
+            Swag.assert(edit.text() == "9")
+            host.keyPress(Input.Key.Escape)
+            Swag.assert(prop.edView.hasFocus())
+            Debug.assert(data.value == 42 and data.text == "before" and data.bounded == 10,
+                         Format.toString("kind %, item %: value %, text %, bounded %", kind, index, data.value, data.text, data.bounded).toString())
+            Swag.assert(changes == 0 and !prop.canUndo())
+        }
+
+        let edit = prop.items[1]!.editBox
+        edit.setFocus()
+        edit.selectAll()
+        host.sendRune(Input.Key.A, '9')
+        host.keyPress(Input.Key.Return)
+        Swag.assert(data.value == 9 and changes == 1 and prop.canUndo())
+    }
+}
+
 // While editing, Up/Down auto-commit and move the selection back to navigation
 // mode on the adjacent row.
 #test
@@ -900,7 +955,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
     let box0 = boxes[0]!
     box0.setText("5")
-    box0.sigFocusLost.call(box0)
+    box0.sigCommitted.call(box0)
     Swag.assert(t0.pos.x == 5 and t1.pos.x == 5)
     Swag.assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
     Swag.assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
@@ -1260,7 +1315,7 @@ impl IPropertyEditor for PropAngleEditor
         {
             // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
             // writer parses the leading number out of the free text.
-            .sigFocusLost += func|list, item, angle|(ed)
+            .sigCommitted += func|list, item, angle|(ed)
             {
                 angle.deg = cast(s32) (expect StrConv.toNum's64(ed.text()))
                 list.commitItemChange(item)

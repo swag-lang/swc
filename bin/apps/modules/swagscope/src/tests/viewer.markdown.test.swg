@@ -22,7 +22,12 @@ private func markdownWhiteyFixturePath()->String
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
     var first      = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString(), commandParent: &host.root)
     let firstWidth = cast(*ComboBox) first.commands!.children[0]
     let firstTheme = cast(*ComboBox) first.commands!.children[1]
@@ -38,6 +43,20 @@ private func markdownWhiteyFixturePath()->String
     let secondWidth = cast(*ComboBox) second.commands!.children[0]
     let secondTheme = cast(*ComboBox) second.commands!.children[1]
     Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)
+
+    let oldWidth = String.from(firstWidth.items[0]!.name.raw)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(firstWidth.items[0]!.name.raw == markdownStrings().ui_Narrow and firstWidth.items[0]!.name.raw != oldWidth)
+    Swag.assert(secondWidth.items[0]!.name.raw == firstWidth.items[0]!.name.raw)
+    Swag.assert(firstTheme.items[0]!.name.raw == markdownStrings().ui_ThemeApp)
+    Swag.assert(firstWidth.toolTip == markdownStrings().ui_TipWidth and firstTheme.toolTip == markdownStrings().ui_TipTheme)
+    Swag.assert(firstZoom.toolTip == markdownStrings().ui_ZoomMenu)
+    Swag.assert(firstWidth.selectedIndex == 0 and firstTheme.selectedIndex == 5)
+    Swag.assert(g_MarkdownViewerSettings.widthIndex == 0 and g_MarkdownViewerSettings.themeIndex == 5)
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(firstWidth.items[0]!.name.raw == oldWidth)
 }
 
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.

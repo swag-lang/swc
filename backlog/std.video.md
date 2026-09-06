@@ -2,14 +2,15 @@
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
-Seven picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, ISO-BMFF with H.264 or
-H.265, and Matroska with H.264, H.265, or MPEG-4 Part 2. File-backed ISO-BMFF and Matroska also expose streamed
-AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3, FLAC and Layer III. Encoded payloads stay on disk;
+It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
+and MPEG-4 Part 2 in Matroska. File-backed ISO-BMFF and Matroska also expose streamed
+AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis,
+and Opus. Encoded payloads stay on disk;
 readers retain compact per-sample indexes plus one picture, the reference frames prediction needs,
 and a bounded audio queue.
 
-What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
-than in design: what is missing is decoders.
+The remaining work covers codec and container breadth, decoding cost, and the lifecycle of
+bounded sound windows.
 
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
@@ -456,9 +457,21 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   the same machine.
 - Related: std.video.001
 
+### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
+
+- Evidence: `decode/mp4/mp4.swg` accepts only the MPEG-4 audio object type `0x40` in an
+  `mp4a` descriptor. The `0x69` and `0x6B` Layer III variants are rejected, although std/audio
+  already decodes Layer III packets and the Matroska reader exposes them.
+- Next: retain the object type while reading the audio descriptor and construct the existing
+  Layer III packet stream for supported variants. Add a redistributable multiplexed fixture.
+- Complete when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
+  through `Video.Reader`, with reference PCM comparisons and explicit rejection of unsupported
+  MPEG audio layers.
+- Related: std.audio.002
+
 ### std.video.006 — Interlaced H.264 is the last picture feature a real library asks for
 
-- Measured 2025-08-25 over 592 films of one personal library, twelve pictures each against FFmpeg:
+- A recorded survey of 592 films of one personal library, twelve pictures each against FFmpeg:
   590 decode, and one of the two that do not is refused with `video decoder does not support
   interlaced H.264 streams`. It is a 1968 film telecined to fields.
 - What it needs is field coding: `field_pic_flag`, a picture built from two fields with their own
@@ -474,5 +487,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   H.264 relative with its own slice format, its own bitstream syntax, and no relationship to
   anything this module reads.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
-  codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
+  codec of that size is a poor trade. Transcoding that file to a supported codec is an
+  alternative; changing only its container does not make the RV40 pictures decodable.
 - Related: app.scope.video.015 in [app.scope.video.md](app.scope.video.md)

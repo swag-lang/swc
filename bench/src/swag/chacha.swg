@@ -1,4 +1,4 @@
-const SIZE = 4194304'u64 // 32-bit words, sixteen mebibytes of key stream
+const SIZE = 4194304'u64     // 32-bit words, sixteen mebibytes of key stream
 const M32  = 0xFFFFFFFF'u64
 
 // The rounds add modulo 2^32. Going through 64 bits keeps the addition inside
@@ -74,7 +74,7 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
         for i in 16'u64 do
             data[offset + i] ^= add32(state[i], initial[i])
 
-        offset += 16
+        offset  += 16
         counter += 1
     }
 

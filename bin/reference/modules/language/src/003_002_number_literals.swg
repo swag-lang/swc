@@ -40,6 +40,12 @@ readability. Separators do not affect the numeric value.
 
 In Swag, hexadecimal or binary literals default to type 'u32' if the value fits
 within 32 bits. If the literal exceeds 32 bits, it is automatically inferred as 'u64'.
+Decimal literals prefer a signed integer type when no surrounding type is imposed.
+
+A bare literal can still adapt to the type required by its context. Once a 'const' or
+'let' declaration infers its type, using that name uses the inferred type: an unsigned
+hexadecimal constant can therefore change the common type of a later arithmetic or bitwise
+expression, even when a decimal constant with the same value would not.
 */
 #test
 {
@@ -54,6 +60,19 @@ within 32 bits. If the literal exceeds 32 bits, it is automatically inferred as 
 
     const d = 0b00000001_00000001_00000001_00000001_00000001     // Exceeds 32 bits → 'u64'
     #assert(#typeof(d) == u64)
+}
+
+#test
+{
+    const hexMask     = 0xF0
+    const decimalMask = 240
+    var value: s32 = 0x7F
+
+    #assert(#typeof(hexMask) == u32)
+    #assert(#typeof(decimalMask) == s32)
+    #assert(#typeof(value & hexMask) == u32)
+    #assert(#typeof(value & decimalMask) == s32)
+    #assert(#typeof(value & 0xF0) == s32)
 }
 
 /**

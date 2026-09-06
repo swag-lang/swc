@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// In-memory fake clipboard, enabled by the headless test host (see Testing.HeadlessHost).
+// In-memory fake clipboard, enabled when the process enters the sandbox.
 // The OS clipboard is a machine-global shared resource: another process can hold or
 // rewrite it at any time, which makes tests flaky and clobbers the user's own clipboard.
 // When enabled, every Clipboard function reads and writes this process-local store

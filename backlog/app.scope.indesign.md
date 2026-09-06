@@ -17,8 +17,8 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.001 — InDesign opening has no published latency and memory contract
 
-- Evidence: the linked real IDML fixture has focused assertions that opening and selecting its QR
-  page each complete below one second, but the viewer does not record cold/warm latency, first
+- Evidence: the linked real IDML fixture checks which page images are materialized when opening
+  and selecting its QR page. It does not record cold/warm latency, first
   presentable page, peak retained bytes, page-turn latency, or behaviour on long publications.
 - Next: define a reproducible performance corpus and measure native preview extraction, IDML index,
   first-page scene, cached page turn, search index, and peak memory separately. Publish a per-tier
@@ -39,7 +39,7 @@ whether a JPEG preview decoded.
 - Complete when: every supported native page either has a reconstructed scene or clearly identified
   saved preview with freshness information; absent previews remain navigable and diagnosable; no
   native action, script, or plugin is executed.
-- Related: app.scope.document.023, app.scope.indesign.018
+- Related: app.scope.indesign.012, app.scope.indesign.018
 
 ### app.scope.indesign.003 — Page work is indexed eagerly instead of published progressively
 
@@ -155,7 +155,7 @@ whether a JPEG preview decoded.
 
 - Evidence: each local HTML page supports pointer selection, Ctrl+A, Ctrl+C, selection paint and
   plain-text visual copy without document-supplied markup. Search switches to the rendered page,
-  but no selection spans frames/pages, no story/frame locator exists, and visual versus logical copy
+  but selection does not span pages, no story/frame locator exists, and visual versus logical copy
   order is not distinguished.
 - Next: retain story run and frame coordinates through layout and expose a read-only selection model
   shared by pointer, keyboard, search and Copy.
@@ -191,8 +191,9 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.014 — Reader modes and state stop at one page, fit modes, and transient zoom
 
-- Evidence: the viewer offers page choice, fit page, fit width, explicit zoom and page-local search.
-  It has no continuous/facing/spread layout, presentation mode, page rotation, history, restore of
+- Evidence: the viewer offers page choice, fit page, fit width, explicit zoom and document search
+  that reveals a match on its page. The host provides F11 content-only fullscreen. There is no
+  continuous/facing/spread layout, document-specific presentation, page rotation, history, restore of
   page/zoom, or per-page annotations of decoding status.
 - Next: separate reading layout, zoom and page identity, then add continuous pages before
   facing/spread and presentation modes.
@@ -229,9 +230,11 @@ whether a JPEG preview decoded.
 
 ### app.scope.indesign.017 — Malformed, encrypted, very large, and version-diverse packages lack a full defensive matrix
 
-- Evidence: archive entry and frame counts, embedded data, linked image bytes and pixels are bounded,
-  but the reader has no package-wide work/time budget, cancellation checkpoints, ZIP method matrix,
-  encryption policy, central-directory consistency report, or per-version compatibility declaration.
+- Evidence: archive entry and frame counts, embedded data, linked image bytes and pixels are bounded.
+  The shared ZIP reader already rejects encrypted entries and methods other than stored/Deflate.
+  The IDML reader has no package-wide work/time budget, cancellation checkpoints, compatibility
+  matrix for those archive failures, central-directory consistency report or per-version support
+  declaration.
 - Next: build adversarial IDML/INDD fixtures and a failure taxonomy covering archive structure,
   compression ratio, XML depth/size, integer transforms, recursive resources, damaged previews and
   unsupported version records.
@@ -243,10 +246,11 @@ whether a JPEG preview decoded.
 ### app.scope.indesign.018 — The compatibility corpus does not prove viewer-grade output fidelity
 
 - Evidence: tests include synthetic native records, CC-licensed native/IDML documents, an MIT
-  editorial IDML package with real linked art, visible goldens, and a one-second interaction budget.
-  They do not yet cover multiple InDesign versions, facing publications, long stories, transparency,
-  tables, multilingual typography, missing assets, malformed archives, cold/warm performance, DPI,
-  theme, accessibility, or visual comparison against a declared reference export.
+  editorial IDML package with real linked art, visible goldens, and checks for page-specific image
+  work. Focused fixtures exercise text columns, CJK fallback, missing links and invalid native
+  records, but do not form a matrix of InDesign versions, facing publications, long stories,
+  transparency, tables, multilingual typography, malformed archives, cold/warm performance, DPI,
+  theme, accessibility or comparison against a declared reference export.
 - Next: publish the versioned public corpus, licences, expected support tier and performance hardware;
   add golden/reference comparison rules and a strict matrix for safety, latency and interaction.
 - Complete when: each supported construct has an openly licensed real fixture plus a malformed

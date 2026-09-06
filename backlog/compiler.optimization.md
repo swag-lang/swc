@@ -63,8 +63,9 @@ the shared backlog conventions.
 - Area: compiler/backend
 - Found while: closing the generated-code gap `bench/` measures (campaign 20260806-202546,
   geometric mean 1.41-1.54x the better of clang-cl and MSVC over two baseline campaigns)
-- Observation: mem2reg roots its address tracking at the frame base only, so `mov %x, %ar` and
-  `lea %x, [%ar + off]` — a copy of a known frame address, and a second-level offset from one —
+- Observation: mem2reg records direct copies and constant-offset addresses of its detected frame
+  base. It does not derive arbitrary second-level addresses transitively, so `mov %x, %ar` and
+  `lea %x, [%ar + off]` from an already derived address — a copy of a known frame address, and a second-level offset from one —
   both read as escapes and poison the whole variable. Instrumenting the escape analysis, those two
   shapes are the top cause in the timed function of five of the seven bench tasks (csvagg main
   56 and 29 times, chacha main 222, wordfreq 24, leven 16). Deriving them transitively instead —
@@ -96,14 +97,17 @@ the shared backlog conventions.
 - Observation: loop-invariant reloads and a single read/write carried slot are promoted, but the
   pass refuses a group of mutually dependent carried slots and a carried slot whose register is
   reused between its load and store. Those are the shapes left in the hottest benchmark loops.
-- Evidence: sha256's `a`..`h` are eight
+- Historical evidence, before the current split allocator: sha256's `a`..`h` were eight
   slots at once and each one's register IS reused between its load and store, so the
   carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
   program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
   any frame slot.
-- Next step: promote sha256's eight carried slots as one group, or rank their live ranges over the
-  loop hull rather than the whole function. For Leven, record the allocator spill boundary so a
-  program pointer can be proved unable to alias those slots.
+- Next: dump the current sha256 and Leven loops before selecting a change. `promoteCarriedSlots`
+  still requires one load/store pair, an unredefined register and one converged exit; if these
+  restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
+  distinguish allocator spill storage from addressable program objects before refining aliasing.
+- Complete when: current loop dumps either retire this lead or identify a measured promotion or
+  residency improvement with aliasing and multi-slot regression coverage.
 
 ## Decompression
 
@@ -250,8 +254,7 @@ the shared backlog conventions.
   its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
   10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
   is 44 percent of that picture.
-- **The same shape is what the H.265 decoder is now bound by, and it is worth more than any
-  one of its stages (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
+- **The same shape was measured in H.265 before the split allocator (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
   already vectorized and already at their instruction budget on paper:
   - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
     loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
@@ -273,7 +276,7 @@ the shared backlog conventions.
   - clang 21 `-O2 -march=native`: 34.1 ms — **its own auto-vectorizer costs it 1.9x here**,
     which is worth knowing before reading any clang figure as the answer sheet
   - this compiler, release: **40.6 ms** (82 ns a segment)
-- So this backend is **2.2x behind clang's best on identical scalar code**, and that is the
+- In that historical comparison the backend was **2.2x behind clang's best on identical scalar code**, the
   largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
   forms of cpu.simd.002, and larger than anything left in the decoder's own algorithms. The frame
   traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
@@ -299,7 +302,7 @@ the shared backlog conventions.
   on both large kernels and identify a specific next change or retire this lead.
 - Related: compiler.optimization.006, compiler.optimization.024.
 
-### compiler.optimization.012 — A lane broadcast now leaves the loop with the replication that feeds it
+### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
 
 - Area: compiler/backend
 - Found while: std.video.001, reading the chroma interpolation loop of the H.264 decoder after the
@@ -325,18 +328,13 @@ the shared backlog conventions.
 
 ## The pipeline measured against LLVM's
 
-A comparative study of this backend against the LLVM 18-20 pass pipeline (2026-08-26) located
-the 1.7-2.2x scalar-loop gap against clang-cl `/O2` in three compounding contracts rather than
-any single pass: LLVM keeps registers as the truth inside loops and places memory traffic by a
-frequency-weighted model, its loop passes and allocator cooperate where ours fight, and its
-inliner merges helper layers before any loop analysis runs. The entries below are that study's
-recommendations in value order, each a policy change or an extension of an existing pass. Judged
-not worth porting, so later entries do not relitigate them: a full greedy allocator with region
-splitting, MemorySSA/GVN-PRE/jump threading/loop unswitching (all need phi nodes the Micro IR
-cannot express), SCEV with LoopStrengthReduce, a post-RA scheduler and software pipelining,
-cmov-to-branch back-conversion, and profile-gated passes.
+The following proposals address register residency, loop-entry shape, spill traffic, aliasing and
+inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
+builds now use interval splitting, so those measurements identify workloads to recheck rather than
+current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
+the executable Micro instruction stream has no explicit phi instruction.
 
-### compiler.optimization.015 — Loop-carried slot promotion covers multi-access, multi-exit loops
+### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
 
 - Intent: `promoteCarriedSlots` promotes a carried frame slot accessed N times across several
   branch arms with M exits - one seed load before the header, register-only accesses inside, one
@@ -350,7 +348,7 @@ cmov-to-branch back-conversion, and profile-gated passes.
   std.video.005's validates the rewrite, and HEVC serial decode does not regress.
 - Related: std.video.005, compiler.optimization.011.
 
-### compiler.optimization.016 — Virtual-register webs get unique names
+### compiler.optimization.016 — Independent virtual-register webs need a new normalization measurement
 
 - Intent: a normalization pass gives every def-use web of a virtual register its own fresh
   register - the SSA property LLVM's passes get from their IR, reconstructed by renaming, with no
@@ -359,8 +357,9 @@ cmov-to-branch back-conversion, and profile-gated passes.
   register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
   chain's register carries five definitions, one outside the loop), and any pass that reasons
   per-register - the web hoisting now in LICM first among them - must refuse the whole register.
-- Next: re-run the parked prototype. The interval allocator (compiler.optimization.024) is now the default, so
-  its splitting supplies the re-coalescing the renaming needs.
+- Next: recover or reconstruct the normalization prototype and compare it with the current split
+  allocator. Splitting may change the earlier interference tradeoff; it does not prove that
+  renaming will now pay.
 - Complete when: after the pass, every virtual register's definitions form one connected def-use
   web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
   the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
@@ -374,11 +373,12 @@ cmov-to-branch back-conversion, and profile-gated passes.
   The shared names the lowering leaves behind are accidental coalescing the hull allocator
   depends on - splitting them multiplies concurrent hulls, and the allocator pays in spills more
   than the loop passes earn. That result predates the split allocator now shipped here. Re-measure before treating
-  the old hull interference as a current blocker. Prototype parked in the session
-  scratchpad (`webrename-parked/`: `Pass.WebRename.{h,cpp}` plus the registration diff).
+  the old hull interference as a current blocker. The old session named `webrename-parked/`,
+  but no `Pass.WebRename` prototype is present in this checkout; the recorded algorithm is the
+  recoverable starting point.
 - Related: compiler.optimization.015, compiler.optimization.017; unlocks the full yield of the web hoisting shipped in LICM.
 
-### compiler.optimization.017 — Jump-entered loops get a dedicated preheader
+### compiler.optimization.017 — Jump-entered loops have no general preheader normalization
 
 - Intent: a small structural pass gives every natural-loop header entered by a jump a fresh
   preheader label - non-back-edge jumps retargeted to it, fall-in preserved - so LICM, RA loop
@@ -397,24 +397,23 @@ cmov-to-branch back-conversion, and profile-gated passes.
   count shows refused loops.
 - Related: compiler.optimization.015, compiler.optimization.016.
 
-### compiler.optimization.018 — Spill-area stores no path reloads are deleted
+### compiler.optimization.018 — Dead spill stores have no byte-liveness elimination pass
 
 - Intent: a post-RA pass runs a backward byte-liveness fixed point over
   `[spillAreaLo, spillAreaHi)` on the instruction CFG and deletes every spill store no path
   reloads before overwrite - the write-back protocol audited from the consumption side, since the
   allocator manufactures stores wholesale and nothing checks whether any path reads them.
-- Next: retry the parked prototype as-is on the full video release run, now that the
-  lane-count assertion it tripped on is fixed.
+- Next: recover or reconstruct the byte-liveness prototype, check its assumptions against the
+  current split allocator, and run the focused spill cases before the full video Release run.
 - Complete when: the pass lands with the three known landmines closed - exact read widths (a
   16-byte over-approximation pins the neighbouring 8-byte slot), push/pop and stack-pointer
   arithmetic not treated as area barriers (or the epilogue keeps everything alive), and any
   function with a stack-pointer adjustment between its first and last spill access skipped
   (call-argument setup shifts the offset coordinate system) - and the full video release run stays
-  green. A parked prototype with all three fixes exists (session scratchpad,
-  `dse-parked`).
-- Related: compiler.optimization.010. The machine-dependent lane-count assertion that failed the prototype's validation run (h264.test.swg, fixed 2026-08-27) is gone, so the parked prototype can be retried as-is.
+  green. An older session recorded a `dse-parked` prototype; it is not present in this checkout.
+- Related: compiler.optimization.010. The historical lane-count failure was fixed on 2026-08-27; current allocator changes still require fresh validation.
 
-### compiler.optimization.020 — One alias oracle serves every pre-RA memory optimization
+### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 
 - Intent: the three existing private frame analyses - LICM's `analyzeFramePrivacy`,
   `PostRALoopHoist`'s `FrameReachability` root model, SLP's parameter-root classification -
@@ -443,10 +442,12 @@ cmov-to-branch back-conversion, and profile-gated passes.
   concrete local because the callee may write to its parameter; when the inlined body never
   assigns that parameter, the local is pure traffic and the caller's storage could be named
   directly.
-- Next: in `SemaInline`, detect that a by-value aggregate parameter is never assigned in the
-  cloned body and bind it to the argument expression instead of a materialized copy.
-- Complete when: a read-only by-value aggregate parameter costs no copy after inlining, a written
-  one still copies, and the value-returning shape of a block transform is as cheap as the in-place
+- Next: in `SemaInline`, measure the homes still required by indexed/foreach aggregate uses.
+  Elide a copy only when the caller's storage remains unchanged through all reads, including
+  indirect calls and alias writes, and when copy/drop hooks and argument evaluation retain their
+  semantics. Absence of a direct assignment to the parameter is not sufficient.
+- Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
+  after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
@@ -504,7 +505,6 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: the constant fold is sound for shared- and static-library images, the gate in
   `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
   the `render.parity.stroke.cpu-ogl` golden stays green.
-- Related: compiler.optimization.003.
 
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 

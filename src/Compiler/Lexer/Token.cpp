@@ -91,7 +91,7 @@ TokenId Token::intrinsicFromName(const std::string_view name)
         std::unordered_map<std::string_view, TokenId> table;
         for (uint32_t i = 0; i < static_cast<uint32_t>(TokenId::Count); ++i)
         {
-            const auto             id       = static_cast<TokenId>(i);
+            const auto             id        = static_cast<TokenId>(i);
             const std::string_view intrinsic = intrinsicName(id);
             if (!intrinsic.empty())
                 table.emplace(intrinsic, id);

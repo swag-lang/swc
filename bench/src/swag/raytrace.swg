@@ -133,16 +133,16 @@ func trace(ox, oy, oz, dx, dy, dz: f64, depth: s32)
             let il = 1.0'f64 / Swag.sqrt(dx * dx + dy * dy + dz * dz)
             trace(0.0'f64, 0.0'f64, 0.0'f64, dx * il, dy * il, dz * il, 0)
 
-            var ir = cast(s64)(g_OutR * 255.0'f64)
-            var ig = cast(s64)(g_OutG * 255.0'f64)
-            var ib = cast(s64)(g_OutB * 255.0'f64)
+            var ir = cast(s64) (g_OutR * 255.0'f64)
+            var ig = cast(s64) (g_OutG * 255.0'f64)
+            var ib = cast(s64) (g_OutB * 255.0'f64)
             if ir > 255 do
                 ir = 255
             if ig > 255 do
                 ig = 255
             if ib > 255 do
                 ib = 255
-            check += cast(u64)(ir + 2 * ig + 3 * ib)
+            check += cast(u64) (ir + 2 * ig + 3 * ib)
         }
     }
 

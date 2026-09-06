@@ -12,8 +12,9 @@ public func runFormat(context: *Context, options: *Options)->s32 fail
     for workspace in ["examples", "apps", "reference", "runtime", "std", "unittests"] do
         arguments.add(["-d", Path.combine(context.binDir.toString(), workspace).toString()])
 
-    // The tools are Swag sources of this repository too, and are held to the same shape.
-    arguments.add(["-d", Path.combine(context.root.toString(), "tools", "src").toString()])
+    // Maintenance scripts, benchmarks, and website generators are repository sources too.
+    for directory in ["tools", "bench/src", "web/tools"] do
+        arguments.add(["-d", Path.combine(context.root.toString(), directory).toString()])
 
     options.appendExtra(&arguments)
     return try context.runCompiler(arguments)
@@ -353,7 +354,7 @@ public func runVaultIntegration(context: *Context, options: *Options)->s32 fail
     integration.command  = String.from("build")
     integration.module   = String.from("swagvault")
     integration.buildCfg = String.from("release")
-    integration.extra.add(["--tag", "vault.integration", "--rebuild"])
+    integration.extra.add(["--tag", "vault.integration"])
 
     let tagged = try runApps(context, &integration)
     if tagged != 0 do
@@ -383,7 +384,6 @@ public func runVaultIntegration(context: *Context, options: *Options)->s32 fail
     restore.command  = String.from("build")
     restore.module   = String.from("swagvault")
     restore.buildCfg = String.from("release")
-    restore.extra.add(["--rebuild"])
 
     let restored = try runApps(context, &restore)
     if restored != 0 and result == 0 do

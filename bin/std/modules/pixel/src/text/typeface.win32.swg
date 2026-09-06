@@ -21,10 +21,8 @@ impl TypeFace
     // collection answers `GDI_ERROR` for that table, and the plain call is the right
     // one for it.
     //
-    // The returned length is tested against `GDI_ERROR` here rather than left to the
-    // checked wrapper, because Windows sets no last error for a table a font does not
-    // have and a zero last error is reported as success — see `std.win32.001`. Untested, the
-    // absent table reads as a length of four gigabytes.
+    // A missing collection table is an ordinary fallback to the standalone font. The checked
+    // wrapper reports the failed query even when Windows supplies no extended error code.
     func readHfontData(hfont: HFONT)->Array'u8 fail
     {
         var result: retval

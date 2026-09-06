@@ -27,14 +27,17 @@ private const DefaultFontFsBoldItalic = #include(DefaultFontFsBoldItalicName)
 private const DefaultFontFsItalic     = #include(DefaultFontFsItalicName)
 private const DefaultIcons            = #include(DefaultIconsName)
 
-// Parsed default theme art, shared by every Theme instance. Parsing the embedded sources is
+// Parsed theme art. The embedded sources are shared by every default Theme instance; a theme
+// with resource overrides owns a separate cache. Parsing the embedded sources is
 // pure CPU work whose result never changes, so it is done once per process (same policy as
 // the TypeFace/Font caches). Every piece of theme art is a vector document, and rasterizing one
 // depends on the requested size and scale alone, so the results are cached beside the drawings:
 // widget atlases here by scale, icon sheets inside the [[Gui.IconAtlas]] by cell size. A process
 // that builds many themes — a test executable creates one per headless host — then pays for the
 // rasterization of each sheet once rather than once per theme.
-private struct DefaultThemeImages
+// Dependency-visible backing type required by the concrete Theme layout.
+#[Swag.Opaque, Swag.NoDoc]
+struct ThemeImages
 {
     lock:           Sync.Mutex
     decoded:        bool
@@ -60,7 +63,7 @@ private const ResFontFsItalicName     = "theme/robotomono-italic.ttf"
 // applications still have the embedded theme face on minimal installations.
 private const CjkFontCandidates: [5] string = ["YuGothR.ttc", "msgothic.ttc", "meiryo.ttc", "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf"]
 
-private var g_DefaultThemeImages: DefaultThemeImages
+private var g_DefaultThemeImages: ThemeImages
 
 // Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
 // with a null result instead of a non-defaultable pointer.
@@ -90,9 +93,9 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 
 // Creates the typeface behind one theme font resource, honoring a disk override.
 //
-// The process-wide typeface cache is keyed by name, so an overridden font registers
-// under a disk-flavored key and never collides with the embedded face of the same
-// name. An override that cannot be read or parsed falls back to the embedded face.
+// The process-wide typeface cache is keyed by name. Include the override's digest so
+// distinct bundles and edits to the same file cannot reuse an older face. An override
+// that cannot be read or parsed falls back to the embedded face.
 private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->*TypeFace? fail
 {
     if res.isOverridden(name)
@@ -102,6 +105,8 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
         {
             var overrideName: String = name
             overrideName += "#override"
+            for word in Hash.Sha256.compute(bytes.toSlice()) do
+                overrideName += Format.toString("#%", word)
             let face = catch defaultTypeFace(overrideName.toString(), bytes.toSlice()) as faceErr
             if faceErr == null and face != null do
                 return face
@@ -123,7 +128,7 @@ private func systemCjkTypeFace()->*TypeFace? fail
     return null
 }
 
-private func defaultThemeImages()->*DefaultThemeImages
+private func defaultThemeImages()->*ThemeImages
 {
     let cache = &g_DefaultThemeImages
     Sync.scopedLock(&cache.lock)
@@ -144,13 +149,10 @@ private func defaultThemeImages()->*DefaultThemeImages
 // The atlas is rasterized through `renderer`, which is the single most expensive step of
 // a GUI startup: on a GPU backend the supersampled buffer is filled and downsampled by
 // the hardware that will later sample it, instead of one core walking sixteen million
-// pixels. Rasterizations are cached by scale, not by renderer: the backends agree on the
-// pixels, so every theme of a process asks for the same few whole scales and each is
-// built once — themes re-created at an already-seen scale (headless test hosts, notably)
-// reuse them.
-private func defaultWidgetsImage(renderer: IRenderer, scale: f32)->*Image
+// pixels. Each parsed document caches rasterizations by scale, independently of the renderer.
+// Embedded art shares that cache across themes; disk overrides keep a cache owned by their theme.
+private func themeWidgetsImage(cache: *ThemeImages, renderer: IRenderer, scale: f32)->*Image
 {
-    let cache = defaultThemeImages()
     Sync.scopedLock(&cache.lock)
 
     let key   = cast(s32) scale
@@ -168,6 +170,24 @@ private func defaultWidgetsImage(renderer: IRenderer, scale: f32)->*Image
         ss /= 2
 
     return &cache.widgetsRasters.add(key, cache.widgets.rasterize(renderer, w, h, ss)).value
+}
+
+// A theme with disk art owns its parsed documents. Another bundle, or a later theme created
+// after a file changes, must not inherit a raster made from different bytes.
+private func themeDrawing(resources: const *Resources.Bundle, name: string, embedded: const [..] u8)->Svg.Drawing
+{
+    if resources.isOverridden(name)
+    {
+        let bytes = catch resources.load(name) as loadErr
+        if loadErr == null and bytes.count > 0
+        {
+            let drawing = catch Svg.Drawing.parse(Swag.makeString(bytes.buffer!, bytes.count)) as parseErr
+            if parseErr == null do
+                return drawing
+        }
+    }
+
+    return expect Svg.Drawing.parse(Swag.makeString(embedded.buffer, embedded.count))
 }
 
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
@@ -224,6 +244,9 @@ struct Theme
     // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
     // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
     late fonts: *Pixel.FontCache
+
+    images:      *ThemeImages?
+    ownedImages: *ThemeImages?
 }
 
 impl Theme
@@ -370,6 +393,13 @@ impl Theme
     private mtd freeDefault()
     {
         .res.icons.free()
+        .res.icons.atlas = null
+        if .ownedImages
+        {
+            Memory.delete(.ownedImages!)
+            .ownedImages = null
+            .images      = null
+        }
     }
 
     // Establishes the shared theme resources against `renderer`, sharp at `dpiScale`.
@@ -377,18 +407,28 @@ impl Theme
     // The caller passes the density of the surface the theme is about to draw on, because
     // rasterizing the widgets atlas is the single most expensive step of a GUI startup and
     // [[Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
-    // throw that work away on every scaled display. The fonts resolve through `resources`,
-    // so a disk folder can override the embedded ones.
+    // throw that work away on every scaled display. Fonts and vector art resolve through
+    // `resources`; an unreadable or malformed disk override falls back to its embedded source.
     private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
     {
         .initialized = true
         .fonts       = renderer.fontCache()
         .setDark()
 
+        .images = defaultThemeImages()
+        if resources.isOverridden(ResImageName) or resources.isOverridden(ResIconsName)
+        {
+            let images = Memory.new'ThemeImages()
+            .ownedImages         = images
+            .images              = images
+            images.widgets       = themeDrawing(resources, ResImageName, DefaultImage)
+            images.icons.drawing = themeDrawing(resources, ResIconsName, DefaultIcons)
+            images.decoded       = true
+        }
+
         .ensureAtlasScale(renderer, dpiScale)
 
-        let images = defaultThemeImages()
-        .res.icons.setup(renderer, &images.icons)
+        .res.icons.setup(renderer, &.images!.icons)
 
         .setupDefaultFonts(resources)
     }
@@ -411,7 +451,7 @@ impl Theme
         if .res.atlasScale > 0 do
             renderer.removeTexture(&.res.imgWidgets)
 
-        let image = defaultWidgetsImage(renderer, wanted)
+        let image = themeWidgetsImage(.images orelse defaultThemeImages(), renderer, wanted)
         .res.imgWidgets = renderer.addImage(image[])
         .res.atlasScale = wanted
     }

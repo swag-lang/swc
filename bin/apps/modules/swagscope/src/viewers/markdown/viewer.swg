@@ -239,6 +239,36 @@ func createMarkdownViewer(host: Viewer.Host)
 
     let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
 
+    view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(wnd, evt)
+    {
+        discard wnd
+        switch evt
+        {
+        case NotifyEvent as notification where notification.kind == .LanguageChanged:
+            let widthIndex = widthCombo.selectedIndex
+            let themeIndex = themeCombo.selectedIndex
+            widthCombo.clear()
+            widthCombo.addItem(markdownStrings().ui_Narrow)
+            widthCombo.addItem(markdownStrings().ui_Medium)
+            widthCombo.addItem(markdownStrings().ui_Wide)
+            widthCombo.addItem(markdownStrings().ui_Fluid)
+            widthCombo.setSelectedIndex(widthIndex, notify: false)
+            widthCombo.toolTip = markdownStrings().ui_TipWidth
+            themeCombo.clear()
+            themeCombo.addItem(markdownStrings().ui_ThemeApp)
+            themeCombo.addItem("GitHub")
+            themeCombo.addItem("Newsprint")
+            themeCombo.addItem("Night")
+            themeCombo.addItem("Pixyll")
+            themeCombo.addItem("Whitey")
+            themeCombo.setSelectedIndex(themeIndex, notify: false)
+            themeCombo.toolTip = markdownStrings().ui_TipTheme
+            zoomButton.toolTip = markdownStrings().ui_ZoomMenu
+        }
+
+        return false
+    }
+
     let services = host.services()
     if services.reportFailure
     {

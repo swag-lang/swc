@@ -2,7 +2,8 @@
 
 The current viewer already navigates sibling images, pans, zooms, fits, shows actual pixels,
 rotates in either direction, mirrors either axis, resets its temporary transform, and presents
-animated GIF frames on a timeline. This backlog owns professional inspection around the codecs;
+GIF, APNG, and WebP animations on a timeline. The same selector browses TIFF pages, ICO variants,
+PSD layers, texture subresources, and OpenEXR parts. This backlog owns professional inspection around the codecs;
 missing codec and pixel-format work remains in [std.pixel.image.md](std.pixel.image.md), while
 render primitives remain in [std.pixel.md](std.pixel.md).
 
@@ -30,8 +31,8 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.003 — Color management and HDR state are invisible to the reader
 
-- Evidence: std.pixel.001/std.pixel.image.019 record that the pixel stack has no colour/ICC handling, and the image
-  viewer does not report embedded profile, transfer function, primaries, bit depth per channel,
+- Evidence: std.pixel.001/std.pixel.image.019 record that the pixel stack has no colour/ICC handling. The image
+  panel reports pixel format and total bit depth, but not interpreted profile, transfer function, primaries,
   conversion, monitor target, or out-of-gamut/clipping status.
 - Next: define the viewer information and soft-proof controls now, then connect them to the pixel
   color pipeline as it lands.
@@ -42,8 +43,8 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.004 — Source orientation is not distinguished from the temporary view transform
 
-- Evidence: the viewer has a complete non-destructive dihedral view transform, but decoded images
-  do not expose EXIF orientation and future selection, pixel-probe, and export features have no
+- Evidence: the viewer has a complete non-destructive dihedral view transform and its information
+  panel reports EXIF orientation, but there is no normalized orientation value. Coordinate consumers have no
   shared source-to-display coordinate contract.
 - Next: expose normalized source orientation through app.scope.image.011, then define one coordinate mapping for
   image dimensions, pan, selection, probes, animation frames, and the products in app.scope.image.009.
@@ -77,22 +78,23 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.007 — Animated images have no frame-step, speed, loop, or disposal inspection
 
-- Evidence: GIF playback has play/pause, a frame slider, and frame count. There are no previous/
+- Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. There are no previous/
   next-frame commands, exact frame delay, playback speed, loop override, disposal/blend metadata,
   composited-versus-raw frame view, or dropped-frame indicator.
 - Next: expose animation frame metadata and complete the transport around the existing cached movie.
 - Complete when: frame stepping is exact, delay and timestamp are visible, 0.25x–4x and loop policy
   are selectable, raw and composited frames can be compared, and invalid timing/disposal warns.
 
-### app.scope.image.008 — Multi-image and multi-page formats have no collection model
+### app.scope.image.008 — The image-set selector has no item descriptions or thumbnails
 
-- Evidence: animation frames are special-cased, while ICO alternatives appear in Binary and future
-  TIFF/HEIF/PSD layers or pages have no common selector, labels, thumbnails, or hierarchy.
-- Next: define an image-item collection that distinguishes animation frames, pages, resolutions,
-  layers, mip levels, and embedded previews without pretending they share playback semantics.
-- Complete when: every decoded item is enumerable and selectable, thumbnails load lazily, item
-  identity survives view changes, and format-specific relationships and dimensions are visible.
-- Related: std.pixel.image.041, std.pixel.image.042
+- Evidence: `ImageViewer` now browses every indexed format through `Movie` and a shared slider;
+  `viewer.imageset.test.swg` covers all nine multi-image codec paths, including unequal dimensions.
+  The slider and counter do not show the selected item's kind, name, dimensions, mip/layer/face
+  coordinates, or thumbnail, although `ImageFrameInfo` already supplies the indexed properties.
+- Next: present those properties and lazy thumbnails in a collection selector over the existing
+  reader, keeping animation playback distinct from independent-image selection.
+- Complete when: item identity survives view changes and the selector shows each item's description,
+  dimensions, thumbnail, and format-specific relationships without decoding the whole collection.
 
 ### app.scope.image.009 — The displayed image cannot be copied or exported with an explicit transformation policy
 
@@ -107,15 +109,16 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.010 — Huge and damaged images cannot degrade progressively
 
-- Evidence: still images decode as one complete bitmap and animations cache all decoded frames.
-  Extremely large dimensions, many frames, slow network storage, truncated scans, and crafted
-  allocation claims can delay opening or exhaust memory before a useful partial view appears.
-- Next: publish codec dimension/frame budgets and add tiled/progressive decode hooks beginning with
-  one large raster format.
+- Evidence: `Movie.maxCacheBytes` now bounds cached frames to 64 MiB by default and `DecodeOptions`
+  bounds input, frame count, and per-image storage. The background loader still publishes its first
+  image only after a complete decode and cache preparation; no partial image or region reaches the
+  viewer while slow storage or decoding is in progress.
+- Next: connect progressive or region decoding to background publication, beginning with one large
+  raster format and retaining the existing cache ceilings.
 - Complete when: metadata and a bounded preview appear before full decode where possible, visible
   tiles have priority, animation cache has an explicit budget, cancellation is prompt, and partial
   damage is marked without discarding valid regions.
-- Related: app.scope.viewers.004
+- Related: app.scope.viewers.004, std.pixel.image.038, std.pixel.image.039
 
 This backlog covers image-viewer behavior owned by Swag Scope. Decoder, SVG, and pixel-format work
 remains in [std.pixel.image.md](std.pixel.image.md), while the general color contract remains in
@@ -136,8 +139,8 @@ application.
 
 ### app.scope.image.012 — Camera RAW files show nothing
 
-- Intent: full RAW development is out of scope, but every RAW file embeds a JPEG preview, and
-  showing it is most of the value at a fraction of the cost.
+- Intent: extract an embedded JPEG preview when a supported camera RAW container carries one.
+  Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
 - Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
   displayed, with the metadata panel from app.scope.image.011 beside it.
 - Related: app.scope.image.011

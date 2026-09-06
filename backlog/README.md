@@ -50,6 +50,7 @@ command uses `compiler.command.doc`. A deliberately cross-cutting domain can rem
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |
 | [language.design.md](language.design.md) | The Swag language and its syntax |
+| [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness |

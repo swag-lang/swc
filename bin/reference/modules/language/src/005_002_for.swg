@@ -12,7 +12,7 @@ range iteration, and advanced filtering using the `where` clause.
 # Basic Usage
 
 The `for` expression specifies the number of iterations and is evaluated **once** before the loop starts.
-This expression must yield a **positive integer**.
+An integer iteration count must be **non-negative**. A zero count runs no iterations.
 */
 #test
 {
@@ -55,6 +55,42 @@ nearest one.
     }
 
     Swag.assert(pairs == 63)
+}
+
+/**
+# The Index Type
+
+A counted loop uses the count expression's integer type. An unsized integer constant is
+concretized with an unsigned preference, so 'for index in 3' gives 'u32'. A runtime 's32'
+count keeps 's32'. A range loop uses the common integer type of its bounds, so
+'for index in 0 to 2' gives 's32'. An explicit suffix or annotation controls those types.
+
+An element loop's separate index binding normally has type 'u64'. An enum-indexed array
+instead supplies its enum index type, and an 'opVisit' implementation defines the bindings
+of its custom iterator.
+*/
+#test
+{
+    for index in 3
+    {
+        #assert(#typeof(index) == u32)
+    }
+
+    var count: s32 = 3
+    for index in count
+    {
+        #assert(#typeof(index) == s32)
+    }
+
+    for index in 3'u64
+    {
+        #assert(#typeof(index) == u64)
+    }
+
+    for index in 0 to 2
+    {
+        #assert(#typeof(index) == s32)
+    }
 }
 
 /**

@@ -12,29 +12,32 @@ ships; history lives in Git, not here.
 ## Where the image stack already stands
 
 Thirteen decoders and twelve encoders cover BMP, DDS, EXR, GIF, ICO, JPEG including progressive
-decode, KTX2, PNG, flattened PSD import, QOI, TGA, TIFF, and WebP with lossless and VP8 decode.
+decode, KTX2, PNG, PSD import, QOI, TGA, TIFF, and WebP with lossless and VP8 decode.
+`ImageReader` indexes GIF, APNG, animated WebP, TIFF pages, ICO variants, PSD layers, DDS/KTX2
+subresources, and multipart OpenEXR, with independent reads and composed animation canvases.
 Grayscale, RGB, and RGBA storage spans 8-bit, normalized 16-bit, half-float, and full-float samples
 with explicit straight or premultiplied alpha. Fifteen eager filters and twelve in-place transforms
 include content-aware smart crop, typed precision conversion, alpha conversion, and Haar feature
 statistics. The static SVG path covers shapes, reuse, viewports, clipping, markers, patterns, text,
 raster images, CSS Color 3 paints, affine transforms, centered gradients, and a small filter chain.
 
-The remaining gaps are color metadata, bounded and source-neutral input, multi-image containers,
+The remaining gaps are color metadata, cumulative resource budgets and source-neutral input,
 complete texture delivery, and format breadth and fidelity.
 
 ## Tier A — Safe and source-neutral image input
 
-### std.pixel.image.036 — Decoding has no shared resource limits
+### std.pixel.image.036 — Decoding has no cumulative resource budget
 
-- Evidence: `DecodeOptions` can suppress pixels or metadata but cannot cap dimensions, decoded
-  bytes, frame count, metadata bytes, work, or compression ratio. Most codecs accept any positive
-  dimensions that fit `s32`, so a small untrusted file can request an allocation far beyond the
-  caller's budget. The help text already promises decode limits that the type does not contain.
-- Next: define format-neutral hard limits in `DecodeOptions`, apply them before allocation in every
-  built-in decoder, and define whether a decoder may impose a stricter format limit.
-- Complete when: one options value bounds geometry, decoded storage, metadata, and multi-frame work
-  consistently across every built-in codec, with adversarial tests proving rejection before large
-  allocation.
+- Evidence: `DecodeOptions` now bounds encoded bytes, frame count, pixels per image/canvas, and
+  bytes per pixel buffer. `image.imagereader.test.swg` protects these limits, including cyclic TIFF
+  indexes and oversized DDS arrays. Those ceilings do not account for the aggregate live storage
+  of encoded bytes, indexes, metadata, animation canvases, saved disposal frames, and decoder
+  scratch buffers; no shared budget follows that storage through a decode.
+- Next: define a cumulative allocation budget carried by the reader and its decoder, retaining the
+  existing per-image limits and accounting for temporary as well as retained storage.
+- Complete when: every built-in decoder reserves against that budget before allocating, releases
+  its charge with the storage, and adversarial multi-image and metadata fixtures prove that several
+  individually legal buffers cannot exceed the caller's total limit.
 
 ### std.pixel.image.037 — Codec selection trusts the filename extension
 
@@ -63,16 +66,16 @@ complete texture delivery, and format breadth and fidelity.
 
 ### std.pixel.image.039 — Decode cannot request a subset or native scale
 
-- Evidence: `DecodeOptions` only selects pixels and metadata. A thumbnail caller must decode the
-  full image and resize it, and a large tiled or multi-resolution source cannot expose one region
-  without materializing the base image. Skia codecs expose subset and supported-scale contracts;
-  OpenEXR and KTX2 have addressable tiles or levels.
+- Evidence: `DecodeOptions` selects pixels, metadata, and resource ceilings, but no source rectangle
+  or requested scale. `ImageReader` can select an existing DDS/KTX2 level without decoding the
+  base image; it cannot ask a decoder to produce an arbitrary thumbnail or crop. A caller must
+  decode the selected image and transform it afterwards.
 - Next: define requested output size, source rectangle, and orientation behavior as decoder
   capabilities with a documented fallback path.
 - Complete when: a caller can request a bounded thumbnail or region, determine whether the codec
   honored it natively, and receive the same pixels as the defined full-decode fallback within the
   stated resampling tolerance.
-- Related: std.pixel.image.038, std.pixel.image.041, std.pixel.019
+- Related: std.pixel.image.038, std.pixel.019
 
 ### std.pixel.image.044 — Orientation and common metadata have no typed contract
 
@@ -85,8 +88,6 @@ complete texture delivery, and format breadth and fidelity.
 - Complete when: JPEG, PNG, WebP, and TIFF fixtures expose the same normalized property vocabulary,
   unknown metadata still round-trips where supported, and orientation is applied exactly once.
 - Related: std.pixel.001, std.pixel.image.019, std.pixel.image.037
-
----
 
 ---
 
@@ -132,21 +133,6 @@ complete texture delivery, and format breadth and fidelity.
 
 ---
 
-## Tier B — Multi-image and bounded processing
-
-### std.pixel.image.040 — Multi-frame decoding is GIF-specific
-
-- Evidence: `Gif.Decoder` exposes sequential `nextFrame`, `frameCount`, and `rewind`, but
-  `IImageDecoder` can return only one `Image`. APNG and animated WebP are explicitly rejected, GIF
-  encoding writes one frame, and TIFF/ICO/EXR secondary images have no common model.
-- Next: define a format-neutral decoder/image-set contract for canvas, frame rectangle, duration,
-  disposal, blend, loop count, random versus sequential access, and still-image fallback; migrate
-  GIF before adding another animated codec.
-- Complete when: the generic API can drive GIF and at least APNG or animated WebP without
-  format-specific casts, preserves timing/disposal semantics, enforces std.pixel.image.036 limits, and
-  still-image callers receive the documented representative frame.
-- Related: std.pixel.image.026, std.pixel.image.027, std.pixel.image.036, std.pixel.image.038
-
 ## Tier B — Image and texture codecs
 
 ### std.pixel.image.026 — No AVIF codec
@@ -159,7 +145,7 @@ complete texture delivery, and format breadth and fidelity.
 - Complete when: 8/10/12-bit still fixtures with and without alpha decode and round-trip within
   codec tolerance, malformed containers obey shared limits, and unsupported sequence/HDR features
   are reported rather than silently flattened.
-- Related: std.pixel.001, std.pixel.003, std.pixel.image.036, std.pixel.image.040
+- Related: std.pixel.001, std.pixel.003, std.pixel.image.036
 
 ### std.pixel.image.027 — No JPEG XL codec
 
@@ -171,19 +157,19 @@ complete texture delivery, and format breadth and fidelity.
 - Complete when: lossy and lossless still fixtures across supported precision and alpha decode and
   encode, color metadata reaches std.pixel.001, and unsupported animation/layer features fail
   explicitly.
-- Related: std.pixel.001, std.pixel.image.036, std.pixel.image.040
+- Related: std.pixel.001, std.pixel.image.036
 
-### std.pixel.image.041 — DDS and KTX2 are flattened to one base-level image
+### std.pixel.image.041 — Texture subresources cannot expose their encoded block payload
 
-- Evidence: both decoders now exist, but each returns the base level's first layer and face as one
-  `Image`. The public model cannot retain mip levels, array layers, cubemap faces, volume slices,
-  per-level metadata, or the container's original block payload.
-- Next: define a texture-source value distinct from `Image`, with indexed levels/layers/faces,
-  dimensions, format/color metadata, borrowed versus owned payloads, and explicit selection APIs;
-  migrate KTX2 before extending DDS.
-- Complete when: a mipmapped cubemap array can be inspected and one subresource decoded without
-  flattening the rest, while ordinary `Image.load` retains its documented base-image fallback.
-- Related: std.pixel.image.039, std.pixel.image.042, platform.portability.066
+- Evidence: `ImageReader` now indexes DDS/KTX2 mip levels, array layers, cubemap faces, and volume
+  slices; array, cube, volume, and zlib-KTX2 fixtures cover independent reads. Its public read still
+  returns decoded pixels. The original compressed block format and payload cannot be obtained for
+  one indexed subresource without reparsing the container outside the reader.
+- Next: expose a texture subresource's encoded format, dimensions, color metadata, and block bytes
+  with an explicit lifetime contract, reusing the existing index.
+- Complete when: a caller can retain or borrow a selected subresource's original block payload
+  without an RGBA expansion, while `ImageReader.read` and `Image.load` keep their pixel contracts.
+- Related: std.pixel.image.042, platform.portability.066
 
 ### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
 
@@ -206,7 +192,7 @@ complete texture delivery, and format breadth and fidelity.
   implement or adopt a VP8 still encoder independently of animation.
 - Complete when: opaque and alpha photographic fixtures encode at bounded quality settings,
   metadata behavior is explicit, and decoded distortion/size regressions are measured.
-- Related: std.pixel.001, std.pixel.image.040
+- Related: std.pixel.001
 
 ### std.pixel.image.048 — JPEG encoding cannot produce progressive output
 
@@ -220,7 +206,7 @@ complete texture delivery, and format breadth and fidelity.
 
 ### std.pixel.image.049 — OpenEXR PIZ compression is not decoded
 
-- Evidence: decode accepts single-part RGB/RGBA/Y scanlines with none, ZIPS, or ZIP compression;
+- Evidence: decode accepts single- and multipart RGB/RGBA/Y scanlines with none, ZIPS, or ZIP compression;
   encode is uncompressed. OpenEXR identifies PIZ as its wavelet/Huffman lossless option, and files
   using it are rejected before the otherwise supported half/float channels can be reconstructed.
 - Next: implement PIZ decode for the existing scanline RGB(A)/Y contract and validate it against
@@ -235,12 +221,12 @@ complete texture delivery, and format breadth and fidelity.
 - Evidence: OpenEXR tiles provide random rectangular access and can carry mipmap or ripmap levels,
   but Pixel accepts scanline images only. This blocks native region/scale decode even when the file
   already contains the needed subdivision and resolution.
-- Next: expose tiled single-part RGB(A)/Y input through the region and subresource contracts from
-  std.pixel.image.039 and std.pixel.image.041, including one-level, mipmap, and ripmap indexing.
+- Next: extend `ImageReader`'s index to tiled RGB(A)/Y input and the region contract from
+  std.pixel.image.039, including one-level, mipmap, and ripmap indexing.
 - Complete when: callers can inspect levels and decode a selected tile or bounded region without
   materializing the base image, with reference fixtures for incomplete edge tiles and both level
   rounding modes.
-- Related: std.pixel.image.039, std.pixel.image.041, std.pixel.019, std.pixel.image.049
+- Related: std.pixel.image.039, std.pixel.019, std.pixel.image.049
 
 ---
 
@@ -255,8 +241,8 @@ shaping, variable fonts, and color-glyph formats are tracked in
 [std.truetype.md](std.truetype.md).
 
 **Deep EXR samples, editable PSD layers, and a general document-layer model.** These are not one
-flat `Image`. Add a specialized image-set or document contract only when a named application needs
-to preserve and edit them; do not silently flatten them and call the format complete.
+flat `Image`. The read-only `ImageReader` index does not supply editable layer or deep-sample
+semantics; add those only when a named application needs them.
 
 **Video decoding.** WebP VP8 exists because WebP needs it, and YUV420 exists to hand decoded planes
 to a renderer. A timed media pipeline belongs in `std/video`.

@@ -76,8 +76,10 @@ layout engine or a complete package model.
 ### app.scope.opendocument.006 — Text semantics retain sections, fields, references, and editorial content
 
 - Evidence: headings, paragraphs, lists, tables, simple spans, HTTP(S) links, and bounded local
-  bookmark fragments survive, but sections, reference marks, indexes, fields, variables, footnotes,
-  endnotes, annotations, tracked changes, bibliography, and table-of-contents structure disappear.
+  bookmark fragments survive. Note citations and bodies already become superscripts and blockquotes,
+  with a stored-footnote fixture. Sections, reference marks, indexes, fields, variables, annotations,
+  tracked changes, bibliography and table-of-contents identity are absent; notes have no separate
+  semantic identity or navigation.
 - Next: define a safe semantic document tree for each textual ODF structure, including visible
   field values and change state without evaluating expressions or updating fields.
 - Complete when: navigation, search, copy, and accessibility distinguish body text from notes,
@@ -87,8 +89,9 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.007 — International typography and writing directions remain readable
 
-- Evidence: the reader does not model language runs, script-specific fonts, bidirectional flow,
-  writing modes, ruby, phonetic guides, tabs, hyphenation, or text rotation.
+- Evidence: ordinary tab characters are retained, but tab-stop layout is not. The reader does not
+  model language runs, script-specific fonts, bidirectional flow, writing modes, ruby, phonetic
+  guides, hyphenation or text rotation.
 - Next: carry language, direction, writing mode, and typographic fallback facts into the reader
   model, then map the renderable subset into the shared text surface.
 - Complete when: mixed-direction and multilingual documents preserve logical reading order,
@@ -203,9 +206,10 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.017 — Document navigation, outline, thumbnails, and search share one model
 
-- Evidence: sheets, slides, and drawing pages have a compact selector and cross-surface search;
-  text documents have no generated outline, long presentations have no thumbnails, and search
-  results do not carry semantic destination, page, or object context.
+- Evidence: sheets, slides, and drawing pages have a compact selector and cross-surface search.
+  Matches already retain the sheet/row/column or slide index needed to reveal them. Text documents
+  have no generated outline, long presentations have no thumbnails, and results have no semantic
+  heading/object model shared with such a navigator.
 - Next: derive one document navigator from headings, bookmarks, sheets, ranges, slides, pages,
   notes, and supported objects; use it for outline, thumbnails, search context, and direct jumps.
 - Complete when: every supported semantic destination can be reached by keyboard, pointer, search,
@@ -238,9 +242,10 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.020 — Decoder limits, failures, and cancellation are observable under hostile input
 
-- Evidence: XML, table, image, and ZIP entry limits exist, but the full package has no uniform
-  resource budget, cancellation, progress model, fuzz corpus, or viewer-visible explanation of
-  which safe limit stopped a document.
+- Evidence: XML, table, image, and ZIP entry limits exist, and row/column/cell failures already
+  report localized reasons through the viewer. The full package has no uniform resource budget,
+  cancellation, progress model or fuzz corpus; silently omitted resources and clamped repetitions
+  have no corresponding structured limit report.
 - Next: establish cumulative budgets for archive members, XML nodes, style graph size, images,
   pages, objects, decoded pixels, and render time; add cancellation checkpoints and a corpus of
   corrupt, adversarial, and oversized ODF packages.
@@ -251,9 +256,10 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.021 — Interoperability and visual fidelity are measured against real ODF producers
 
-- Evidence: unit fixtures and immutable CC0 ODT, ODS, and ODP samples cover basic external input,
-  but there is no versioned producer matrix, semantic comparison, visual baseline, or regression
-  corpus for ODG, complex styles, spreadsheets, and presentations.
+- Evidence: unit fixtures and immutable CC0 ODT, ODS, and ODP samples cover basic external input.
+  Three fixed goldens cover document, spreadsheet and presentation surfaces; synthetic cases also
+  cover ODG, styles, images, metadata and navigation. There is no versioned producer matrix or
+  independent reference-export comparison for complex layouts and the full family set.
 - Next: curate license-clean documents from multiple ODF producers and versions, record their
   provenance and expected semantic facts, and add targeted render goldens with manual review.
 - Complete when: every supported feature has an externally produced fixture, expected omissions are

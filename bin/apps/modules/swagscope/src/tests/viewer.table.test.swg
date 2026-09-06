@@ -95,6 +95,39 @@ using Core, Pixel, Gui
     Swag.assert(displayed.count <= TableCellPreviewBytes)
 }
 
+// Generated headings follow the language; authored labels and selected rows remain intact.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
+    registerTableStrings(&host.app)
+    let document = expect parseTableDocument(";Column 2\nfirst;second;third\n", ';')
+    let view     = TableViewer.createDocument(&host.root, document)
+    var details: String
+    view.userData      = &details
+    view.reportDetails = func(wnd, value) { (cast(*String) wnd.userData!)[] = value }
+    view.list.selectLine(0)
+    let list       = view.list
+    let oldHeading = String.from(view.list.header.items[0]!.name.raw)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(view.list.header.items[0]!.name.raw == Format.toString(tableStrings().ui_Column, 1))
+    Swag.assert(view.list.header.items[0]!.name.raw != oldHeading)
+    Swag.assert(view.list.header.items[1]!.name.raw == "Column 2")
+    Swag.assert(view.list.header.items[2]!.name.raw == Format.toString(tableStrings().ui_Column, 3))
+    Swag.assert(Utf8.contains(details.toString(), tableStrings().ui_Row))
+    Swag.assert(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(view.list.header.items[0]!.name.raw == oldHeading and view.list.isLineSelected(0))
+}
+
 #[Swag.TestTag("golden")]
 #test
 {

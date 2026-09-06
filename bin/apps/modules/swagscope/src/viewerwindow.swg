@@ -3254,14 +3254,6 @@ impl ViewerWindow
         {
             .refreshFileLists()
             .filePanelHost.show()
-
-            // A splitter's first pane takes the whole client height it is added into, which is
-            // nothing at all before the window has been laid out once, and a preserved pane then
-            // holds that nothing for the rest of the session. The history section takes the height
-            // it was given here instead, once the panel is on screen with a size to divide.
-            .applyLayout()
-            if .filePanel.isPaneVisible(0) and .filePanel.items[0]!.size != .recentPaneSize do
-                .filePanel.setPaneSize(0, .recentPaneSize)
         }
         else do
             .filePanelHost.hide()

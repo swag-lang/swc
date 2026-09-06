@@ -23,6 +23,33 @@ func midiTestFixture()->String
     Swag.assert(Math.abs(document.durationSeconds - 2.25) < 0.001)
 }
 
+// The empty-score fallback must not replace the highest pitch of an actual score.
+#test
+{
+    for key in [0'u8, 36, 100, 127]
+    {
+        var bytes: Array'u8
+        bytes.add(cast(const [..] u8) "MThd")
+        bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+        bytes.add(cast(const [..] u8) "MTrk")
+        bytes.add([0'u8, 0, 0, 13, 0, 0x90, key, 100, 0x83, 0x60, 0x80, key, 0, 0, 0xFF, 0x2F, 0])
+        let fileName = Gui.Testing.tempFilePath("scope-midi-pitch-", ".mid")
+        defer discard catch File.delete(fileName)
+        expect File.writeAllBytes(fileName, bytes.toSlice())
+        var document = expect loadMidiDocument(fileName)
+        Swag.assert(document.notes.count == 1 and document.minKey == key and document.maxKey == key)
+
+        var host: Testing.HeadlessHost
+        host.setup(640, 360)
+        defer host.shutdown()
+        let roll = MidiRollView.create(&host.root, #move document)
+        roll.refreshLayout()
+        Swag.assert(roll.lowKey <= key and roll.highKey >= key and roll.highKey >= roll.lowKey)
+        let image = host.render(&host.root)
+        Swag.assert(image.isValid())
+    }
+}
+
 #[Swag.TestTag("golden")]
 #test
 {

@@ -71,6 +71,41 @@ using Swag, Core
     }
 }
 
+// Editing keys stay in a multiline editor, while an unbound Escape reaches the modal action.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 260)
+    defer host.shutdown()
+
+    let dlg = Dialog.create(&host.surface, 320, 230, title: "Edit")
+    let ed  = RichEditCtrl.create(dlg.view(), {16, 16, 280, 120})
+    dlg.addButton("Ok", Dialog.BtnOk, true)
+    dlg.addButton("Cancel", Dialog.BtnCancel)
+    dlg.applyLayout()
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, ed, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        checked[] = true
+        ed.setFocus()
+
+        host.keyPress(Input.Key.Return)
+        host.sendRune(Input.Key.Return, '\n')
+        Swag.assert(ed.text() == "\n")
+        host.keyPress(Input.Key.Tab)
+        Swag.assert(ed.text().count > 1)
+        Swag.assert(ed.focusTarget().hasFocus())
+        host.keyPress(Input.Key.Escape)
+    }
+
+    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    Swag.assert(checked)
+}
+
 // setText/text round-trips; addText appends; clear empties.
 #test
 {

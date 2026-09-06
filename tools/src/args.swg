@@ -15,18 +15,19 @@ any tool.
 */
 public struct Options
 {
-    devMode:      bool             // Whether 'dm' selected the DevMode compiler.
-    command:      String           // The command, when the tool accepts more than one.
-    module:       String           // The module, suite, or script that was named.
-    buildCfg:     String           // The configuration to build and run in.
-    allConfigs:   bool             // Whether to repeat an aggregate tool in both configurations.
-    wantHelp:     bool             // Whether the tool was asked to print its usage.
-    targetArch:   String           // The architecture every output path is keyed on.
-    runAsync:     bool             // Whether an application run returns after starting the process.
-    workspace:    Arguments        // Flags only a run or a smoke understands.
-    test:         Arguments        // Flags only a test command understands.
-    extra:        Arguments        // Everything else, forwarded to the compiler.
-    runArguments: Array'String     // The '--run-arg' values, without the flag.
+    devMode:        bool             // Whether 'dm' selected the DevMode compiler.
+    command:        String           // The command, when the tool accepts more than one.
+    module:         String           // The module, suite, or script that was named.
+    buildCfg:       String           // The configuration to build and run in.
+    allConfigs:     bool             // Whether to repeat an aggregate tool in both configurations.
+    wantHelp:       bool             // Whether the tool was asked to print its usage.
+    targetArch:     String           // The architecture every output path is keyed on.
+    runAsync:       bool             // Whether an application run returns after starting the process.
+    toolRelaunched: bool             // Internal marker preventing a second compiler relaunch.
+    workspace:      Arguments        // Flags only a run or a smoke understands.
+    test:           Arguments        // Flags only a test command understands.
+    extra:          Arguments        // Everything else, forwarded to the compiler.
+    runArguments:   Array'String     // The '--run-arg' values, without the flag.
 }
 
 public impl Options
@@ -109,7 +110,8 @@ private struct Grammar
     #[CommandLine.ArgParams("bc")]
     buildCfg: String     // The configuration to build and run in.
 
-    allCfg: bool     // Repeat an aggregate tool in both configurations.
+    allCfg:         bool     // Repeat an aggregate tool in both configurations.
+    toolRelaunched: bool     // Internal marker consumed here, never forwarded to the compiler.
 
     #[CommandLine.ArgParams("m")]
     workspaceModule: String     // The module, when named through an option rather than the positional.
@@ -188,9 +190,10 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
         result.buildCfg = grammar.buildCfg
     if parsed.isSet.workspaceModule do
         result.module = grammar.workspaceModule
-    result.allConfigs   = grammar.allCfg
-    result.runAsync     = grammar.runAsync
-    result.runArguments = grammar.runArg
+    result.allConfigs     = grammar.allCfg
+    result.toolRelaunched = grammar.toolRelaunched
+    result.runAsync       = grammar.runAsync
+    result.runArguments   = grammar.runArg
 
     if parsed.isSet.targetArch
     {

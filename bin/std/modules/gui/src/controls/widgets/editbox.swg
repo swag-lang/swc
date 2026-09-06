@@ -70,6 +70,7 @@ struct EditBox
     public
     {
         sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
+        sigCommitted:   SigArray'func||(*EditBox)     // Emitted on focus loss unless the edit is cancelled.
         sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
         sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
         sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
@@ -131,6 +132,7 @@ impl IWnd for EditBox
             .invalidate()
 
         case .Lost:
+            .sigCommitted.call(me)
             .sigFocusLost.call(me)
             let srf = .surface!
             srf.app.removeTimer(.timerCaret!)
@@ -559,11 +561,7 @@ private impl EditBox
                 return false
             }
 
-            // Cancelling an edit is what puts back what was there before it, so the signal
-            // reports a box that already reads the way the reader asked for.
-            .restoreOriginalText()
-            .sigCancelled.call(me)
-            .topView().setFocus()
+            .cancelEdit(.topView())
             return true
 
         case .Left:
@@ -1244,6 +1242,20 @@ impl EditBox
     mtd restoreOriginalText()
     {
         .setText(.originalText)
+    }
+
+    // Restores the text captured on focus gain and requests focus for `target`.
+    //
+    // Emits [[Gui.EditBox.sigCancelled]] after restoring the text. If focus moves,
+    // [[Gui.EditBox.sigFocusLost]] still runs, but [[Gui.EditBox.sigCommitted]] does not.
+    // Bind value-writing callbacks to `sigCommitted` so cancelling leaves the model unchanged.
+    mtd cancelEdit(target: *Wnd)
+    {
+        .sigCommitted.disable()
+        defer .sigCommitted.enable()
+        .restoreOriginalText()
+        .sigCancelled.call(me)
+        target.setFocus()
     }
 
     // Selects unrestricted built-in text input; a custom validator still applies.

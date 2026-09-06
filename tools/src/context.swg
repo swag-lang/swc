@@ -89,17 +89,26 @@ public impl Context
         return try process.waitForExit()
     }
 
-    // Runs `program` and returns what it wrote to standard output.
+    // Runs `program` and returns what it wrote to standard output after a successful exit.
     //
     // Reserved for a program whose output is data the tool reads. A program whose output is a
     // report for the person watching goes through [[Tool.Context.runProgram]] instead, so it
     // keeps its colors and its progressive display.
+    // A failed process prints both captured streams and raises its exit status as a SystemError.
     mtd captureProgram(program: string, arguments: Arguments)->String fail
     {
         let commandLine = joinArguments(arguments.toSlice())
 
-        var info    = Env.StartInfo{fileName: program, arguments: commandLine.toString(), environment: &.childEnv, standardOutput: .Pipe, standardError: .Discard}
+        var info    = Env.StartInfo{fileName: program, arguments: commandLine.toString(), environment: &.childEnv, standardOutput: .Pipe, standardError: .Pipe}
         var process = try Env.runProcess(info)
+        if process.exitCode() != 0
+        {
+            Console.print(process.standardOutput())
+            Console.print(process.standardError())
+            let message = Format.toString("process '%' exited with code %", program, process.exitCode())
+            fail Swag.SystemError{Errors.mkString(message.toString()), errorID: cast(u32) process.exitCode()}
+        }
+
         return String.from(process.standardOutput())
     }
 
@@ -169,7 +178,7 @@ struct RelaunchResult
 // A script resolves its imports before its entry point runs. Rebuilding on the selected compiler
 // is therefore required even though the first host has already loaded Core: it makes that same
 // compiler generate the dependency APIs which the tool's child commands will consume.
-func relaunchToolIfNeeded(context: *Context, script: string, tokens: const [..] string)->RelaunchResult fail
+func relaunchToolIfNeeded(context: *Context, script: string, tokens: const [..] string, alreadyRelaunched: bool)->RelaunchResult fail
 {
     var running  = try Env.Process.currentExecutablePath()
     var selected = String.from(context.compiler.toString())
@@ -180,9 +189,16 @@ func relaunchToolIfNeeded(context: *Context, script: string, tokens: const [..] 
     if Utf8.compare(cast(const [..] u8) running.toString(), cast(const [..] u8) selected.toString(), .Latin1NoCase) == 0 do
         return result
 
+    if alreadyRelaunched
+    {
+        let message = Format.toString("the relaunched tool is running under '%', but selected '%'", running.toString(), selected.toString())
+        fail Swag.SystemError{Errors.mkString(message.toString())}
+    }
+
     var arguments: Arguments
     arguments.add(["--rebuild", script])
     arguments.add(tokens)
+    arguments.add(["--tool-relaunched"])
 
     result.didRun   = true
     result.exitCode = try context.runProgram(selected.toString(), withCoreBound(arguments))

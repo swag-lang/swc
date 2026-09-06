@@ -17,28 +17,24 @@ new module rather than growth inside `core`.
 
 ## Where the module already stands
 
-Some areas are competitive or ahead.
-
-- **Text**, at sixteen thousand lines, is the largest area and it earns it: strings, a builder,
+- **Text** includes strings, a builder,
   formatting, parsing, a regular-expression engine, Unicode and Latin-1 tables, UTF-8 and UTF-16,
-  correctly-rounded `atod`/`dtoa`, decimals, tokenizing. This is a peer of what Go and .NET ship.
+  correctly-rounded `atod`/`dtoa`, decimals, and tokenizing.
 - **Math** has vectors, matrices, 2D geometry and transforms, curves, 128-bit integers, bit
-  manipulation and angles. Go, Rust and .NET ship none of this; the comparison here is a game
-  engine, not a standard library.
-- **Reflection** over structs, enums, attributes and arrays is a genuine advantage. C++ has
-  nothing, Rust needs derive macros, Go's is runtime-only and awkward. The reflection-driven
-  `TagBin` serializer is what that advantage buys.
-- **Random** ships seven generators including noise, which is more than most.
+  manipulation and angles.
+- **Reflection** over structs, enums, attributes and arrays supports the `TagBin` serializer and
+  reflected property editors.
+- **Random** includes reproducible generators and procedural noise.
 - Collections, filesystem, time, threading and the job system all cover their basics.
 
-The gaps are not about polish. Two of them are structural.
+The remaining work includes networking, cryptography, compression, text, and concurrency.
 
 ---
 
 ## Tier A — Network stack
 
-These two entries are the difference between a standard library and a complete one. They are
-independent: neither blocks the other, and neither should be allowed to block everything else.
+Start with the blocking transport contract; datagrams and higher-level protocols have separate
+acceptance conditions below.
 
 ### std.core.001 — No blocking TCP sockets
 
@@ -47,9 +43,9 @@ independent: neither blocks the other, and neither should be allowed to block ev
   management, telemetry, and every application whose value involves a network. It is the single
   largest capability gap in the language, larger than anything in the compiler.
 - Put the blocking TCP and address foundation in a `net` module importing `core`; do not put a
-  network stack in the module every program links. Implement Winsock and BSD-socket leaves behind
-  the same contract.
-- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008, std.core.002
+  network stack in the module every program links. Platform leaves are owned by
+  platform.portability.088.
+- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008, std.core.002, platform.portability.088
 
 ### std.core.002 — No UDP sockets
 
@@ -67,10 +63,10 @@ ordering, cancellation, and failure semantics.
 
 ### std.core.004 — No non-blocking socket readiness API
 
-Add non-blocking sockets and readiness notification after the concurrency decision in language.design.005. Keep
+Add non-blocking sockets and readiness notification after the concurrency decision in language.parallelism.001. Keep
 the readiness mechanism separate from the blocking socket foundation.
 
-- Related: std.core.001, language.design.005, std.core.028
+- Related: std.core.001, language.parallelism.001, std.core.028
 
 ### std.core.005 — No TLS transport
 
@@ -99,21 +95,6 @@ Add WebSocket handshake and frame processing above HTTP without making it part o
 completion criteria.
 
 - Related: std.core.006, std.core.007
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ---
 
@@ -263,13 +244,13 @@ unsafe legacy modes excluded from the default surface.
   search without them costs.
 - Related: std.core.020
 
-### std.core.020 — Unicode properties are limited to the general categories
+### std.core.020 — Unicode scripts and most derived properties are missing
 
 - Intent: `\p{...}` should name the scripts and the common derived properties, not only the
   handful of general categories the Unicode tables in `core` happen to carry.
 - Where it stands: `\p{L}`, `\p{Ll}`, `\p{Lu}`, `\p{Lt}`, `\p{N}`, `\p{Nd}`, `\p{S}`,
   `\p{Sm}` and `\p{Z}` work, negated by `\P`. `\p{Greek}`, `\p{Han}`, `\p{Alphabetic}` and
-  the rest fail to compile. The engine itself needs nothing new: a property is a set of scalar
+  the rest fail to compile; `White_Space` is already supported. The engine itself needs nothing new: a property is a set of scalar
   intervals, and the compiler already turns any such set into a UTF-8 automaton.
 - Next: the interval tables. `Unicode` ships general-category tables ported from Go;
   scripts would be another table of the same shape, generated the same way, and the property
@@ -309,42 +290,62 @@ stuck at the boundary.
 
 ## Tier C — Concurrency and asynchronous I/O
 
+All new concurrency types and their generic implementations belong to `bin/runtime`, as specified
+by language.parallelism.001. These entries own Core integration, algorithms, and consumer migration
+against that native surface; they do not introduce Core-owned task or synchronization types.
+
 ### std.core.025 — No future or task abstraction
 
-`Jobs` gives parallel visiting and loops, but no value-bearing or failing asynchronous task that a
-caller can await, combine, cancel, or observe.
-
-This is as much a language question as a library one — Go answered it with goroutines and channels,
-Rust with `async` and a futures machinery that reaches into the type system, .NET with `Task`. It
-should be decided deliberately and early, because std.core.001 will force the question the moment
-non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
-concurrency models.
-
-The language-design half is [language.design.005](language.design.md#languagedesign005--the-concurrency-model-is-undecided).
-Record decisions there, not here.
-
-- Related: language.design.005, std.core.026, std.core.027, std.core.028
+- Evidence: `Jobs` provides borrowed callbacks and parallel loops without typed results, owned
+  captures, structured cancellation, or error propagation.
+- Next: implement standard task combinators and migrate the Jobs family against the native
+  task/runtime contract proposed in
+  [language.parallelism.001](language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency),
+  after its semantic gates and prototype settle the contract. Review bounded map, first completion,
+  first success, all-results, supervision, progress, and shutdown as one operation family. Keep
+  primitive task ownership and scheduling below Core; do not create a competing library scheduler.
+  Any new reusable concurrency type needed by these operations is defined in `bin/runtime`.
+- Complete when: those operations preserve result/error ownership and join losing work, and the
+  caller inventory has migrated from the legacy Jobs API. Temporary callback adapters remain
+  explicitly unchecked and are removed with their last consumers.
+- Related: language.parallelism.001, std.core.026, std.core.027, std.core.028
 
 ### std.core.026 — No channel abstraction
 
-Add typed communication channels only after language.design.005 decides whether they are a language-level
-coordination primitive or an ordinary library type.
-
-- Related: language.design.005, std.core.025
+- Evidence: no typed channel currently defines transfer, capacity, close, cancellation, and
+  selection together.
+- Next: integrate the runtime's bounded, rendezvous, and one-shot communication proposed in
+  language.parallelism.001. Endpoint, selection, and rejected-message types remain in runtime.
+  Settle endpoint clone/drop behavior, draining after close, ownership of rejected moved messages,
+  and exactly one committed selection operation before choosing Core convenience functions.
+- Complete when: focused channel and selection tests cover backpressure, closure, cancellation,
+  simultaneous readiness, and withdrawal without lost messages or duplicate consumption.
+- Related: language.parallelism.001, std.core.025
 
 ### std.core.027 — No condition variable
 
-Add condition variables with a predicate-loop usage contract and clear interaction with mutex
-ownership and cancellation.
-
-- Related: std.core.025
+- Evidence: the synchronization family has no condition-variable predicate/wait contract.
+- Next: integrate runtime condition and guard types with their explicit release/wait/reacquire
+  contract under language.parallelism.001, including cancellation and lost/spurious wakeups. Review
+  the existing mutex/event callers so a notification, permit count, and condition are not treated
+  as interchangeable mechanisms. Keep native backend work in platform.portability.035.
+- Complete when: guarded state remains valid across every wait outcome and focused tests prove
+  notification registration, predicate rechecking, cancellation, and reacquisition behavior.
+- Related: language.parallelism.001, std.core.025, platform.portability.035
 
 ### std.core.028 — No asynchronous I/O contract
 
-Define asynchronous I/O completion, cancellation, buffer lifetime, and scheduler integration
-without coupling it to the first non-blocking socket backend.
-
-- Related: language.design.005, std.core.025, std.core.004
+- Evidence: there is no shared asynchronous I/O contract for completion, cancellation, borrowed
+  buffers, or scheduler integration.
+- Next: implement awaitable I/O against language.parallelism.001's completion and task-lifetime rules,
+  using runtime-owned operation, completion, and cancellation types. Keep the common operation
+  contract independent of its first socket or file backend. Model
+  immediate completion, failed registration, cancellation racing completion, partial transfer,
+  late callbacks, and shutdown. A stop request or expired deadline is not native completion.
+- Complete when: a fake backend and one real backend demonstrate exactly one terminal completion
+  and retain buffers, request records, and callbacks until the backend is finished with them;
+  owning I/O consumers use the common runtime without private task or cancellation machinery.
+- Related: language.parallelism.001, std.core.025, std.core.004
 
 ### std.core.029 — A buffered byte source over a file or memory is written once per module
 

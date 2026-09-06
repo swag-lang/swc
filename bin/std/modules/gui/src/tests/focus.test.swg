@@ -541,6 +541,36 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.assert(checked)
 }
 
+// A callback cannot take the keyboard away from a modal box through its disabled caller.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let caller = EditBox.create(&host.root, "caller", {20, 20, 180, 26})
+    caller.setFocus()
+    let dlg    = Dialog.create(&host.surface, 260, 150, title: "Confirm")
+    let cancel = dlg.addButton("Cancel", Dialog.BtnCancel, true)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, caller, cancel, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        checked[] = true
+
+        Swag.assert(host.surface.isDisabled and cancel.hasFocus())
+        caller.setFocus()
+        Swag.assert(cancel.hasFocus() and !caller.hasFocus())
+        host.keyPress(Input.Key.Escape)
+    }
+
+    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    Swag.assert(checked and caller.hasFocus())
+}
+
 // A box with something to fill in opens on that instead, and its default still answers Enter.
 #test
 {

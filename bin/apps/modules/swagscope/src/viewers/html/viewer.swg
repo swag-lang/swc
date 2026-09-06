@@ -41,6 +41,16 @@ internal struct HtmlViewer
     zoomPercent: u32 = 100
 }
 
+private impl IWnd for HtmlViewer
+{
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .zoomLabel.toolTip = htmlStrings().ui_ZoomMenu
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+}
+
 private impl HtmlViewer
 {
     mtd setZoom(percent: u32)

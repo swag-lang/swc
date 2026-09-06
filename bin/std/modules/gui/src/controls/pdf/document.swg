@@ -91,7 +91,7 @@ impl Document
     //
     // The writer emits a deterministic classic cross-reference table and Flate
     // compressed content and image streams. It fails when text cannot be represented
-    // by the writer's Windows-1252 Helvetica encoding.
+    // by the writer's Windows-1252 encoding with the standard PDF faces.
     mtd const encode()->Array'u8 fail
     {
         var result = #move try encodeDocument(me)

@@ -24,7 +24,12 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(640, 450, dpiScale: 1.5)
-    defer host.shutdown()
+    defer
+    {
+        discard catch host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -64,6 +69,18 @@ private func createPdfFixture()->String
     expect pdf.showPage(1)
     Swag.assert(pdf.pageIndex == 1)
     Swag.assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
+
+    let oldTip  = String.from(view.pageLabel.toolTip)
+    let oldZoom = pdf.effectiveZoom()
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.assert(view.pageLabel.toolTip == pdfStrings().ui_GoToPage and view.pageLabel.toolTip != oldTip)
+    Swag.assert(view.previousButton.toolTip == pdfStrings().ui_Previous and view.nextButton.toolTip == pdfStrings().ui_Next)
+    Swag.assert(view.zoomLabel.toolTip == pdfStrings().ui_ZoomMenu)
+    Swag.assert(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.isFitted)
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
+    Swag.assert(view.pageLabel.toolTip == oldTip)
     Swag.assert(view.goToTypedPage("1") and pdf.pageIndex == 0)
     Swag.assert(!view.goToTypedPage("0") and !view.goToTypedPage("3") and !view.goToTypedPage("page"))
     Testing.assertContentFits(view)

@@ -49,7 +49,7 @@ internal impl Properties
             .dockStyle = .Center
             .margin.x  = MarginBtn
             .setHexadecimalRange(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
-            .sigFocusLost += func|prop = me, color, item, opaque, keepAlpha|(ed)
+            .sigCommitted += func|prop = me, color, item, opaque, keepAlpha|(ed)
             {
                 var result = cast(u32) (catch StrConv.parseX64(ed.text()).value & 0xFFFFFFFF)
                 if opaque do

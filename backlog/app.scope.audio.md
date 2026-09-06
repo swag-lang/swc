@@ -28,7 +28,7 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ### app.scope.audio.003 — The waveform cannot zoom, pan, or navigate precisely
 
-- Evidence: one 4,096-sample envelope always represents the entire file. Dense transients and long
+- Evidence: one 4,096-column envelope represents the entire file. Dense transients and long
   recordings cannot be examined below that aggregate, and the timeline has no navigator, sample
   address, or high-resolution redraw.
 - Next: build multiresolution min/max/RMS waveform tiles with a bounded cache and visible-range

@@ -4,7 +4,7 @@ const INF = 0x0FFFFFFFFFFFFFFF'u64
 
 late var g_HeapD: [*] u64
 late var g_HeapN: [*] u64
-var g_HeapSize: u64
+var g_HeapSize:   u64
 
 var g_PopD: u64
 var g_PopN: u64

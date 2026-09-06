@@ -3,8 +3,8 @@
 This backlog covers the HTML engine in `bin/std/modules/gui/src/controls/html` — the
 parser, the CSS cascade, the layout engine, the painter, and the `HtmlView` widget on top of
 them. It is measured against the embedded engines it competes with — litehtml, Sciter and
-Ultralight — with a browser as the reference for what a page means, while staying what none of
-them are: an offline, script-free, network-free document viewer.
+Ultralight — with a browser as the reference for what a page means. This engine is an offline,
+script-free, network-free document viewer.
 
 Evidence, investigations, and intended outcomes for the HTML engine stay together here. The engine
 lives beside its widget inside `gui`, as [std.gui.pdf.md](std.gui.pdf.md#where-this-family-lives-and-why) records
@@ -16,8 +16,7 @@ ships; history lives in git, not here.
 
 ## Where the engine already stands
 
-About 15 300 lines across fourteen files, and the shape is a real engine, not a tag-to-widget
-translator. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
+The engine separates the document tree, style resolution, layout, and painting. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
 the tree the whole file would, partial renderings appear at growing intervals, a 48 MB cap ends
 the load with a visible notice, and every node keeps its source byte offset — which is what lets
 Swag Scope reveal a raw-file search hit on the exact line that draws it. It carries the elements a
@@ -26,12 +25,11 @@ and resolves the standard's complete list of 2 231 named character references, t
 spellings without a semicolon included. The tree builder carries the recoveries browsers
 standardized: misnested formatting reopens across the misnesting, content a table cannot hold is
 fostered in front of it, and an interrupted paragraph closes through its open inline children.
-The cascade is the real
-one: specificity, `!important`, source order, media queries including `prefers-color-scheme`
+The cascade accounts for specificity, `!important`, source order, media queries including `prefers-color-scheme`
 answered from the host theme, custom properties with proper scope and `var()` fallbacks,
 `calc()`/`min()`/`max()`/`clamp()`, `color-mix()`, `::before`/`::after` generated boxes, and
 rules bucketed by subject so a thousand-rule sheet costs a handful of comparisons per element.
-Layout covers block flow with margin collapsing, a full inline formatting context with
+Layout covers block flow with margin collapsing, an inline formatting context with
 justification, vertical alignment and word breaking (`overflow-wrap`, `word-break`, CJK
 characters as break opportunities, `<wbr>`, soft hyphens drawn only at a taken break), left and
 right floats with line boxes shortening around them and `clear`, row and column flex, a
@@ -40,7 +38,7 @@ scrolled `overflow` regions with themed scrollbars. Painting prunes by subtree b
 answers hover on links without restyling — a documented stance: a state pseudo-class that would
 need a per-frame restyle matches never, and the viewer lights the link while painting instead.
 
-It is also measured against those engines rather than described. Parsing the 8.15 MB rustdoc page
+A recorded comparison parsed the 8.15 MB rustdoc page
 of `src/tests/datas` into its 429 782 nodes, on the same machine and pinned to the performance
 cores: this engine **130 ms (63 MB/s)**, html5ever with its reference DOM 278 ms (28 MB/s), the
 same tokenizer with no tree at all 134 ms (58 MB/s), the `tl` crate — a zero-copy, deliberately
@@ -229,14 +227,15 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Tier C — CSS and HTML surface that is silently dropped
 
-### std.gui.html.014 — Presentational HTML is ignored
+### std.gui.html.014 — Legacy presentational HTML support is incomplete
 
-- Intent: the attributes legacy documents style themselves with — `width`, `height` (read only
-  on replaced elements), `align`, `valign`, `bgcolor`, `border`, `cellpadding`, `cellspacing`,
+- Implemented: `HtmlStyleResolver` applies `align` and image `width`/`height` before author CSS.
+- Intent: the remaining attributes legacy documents style themselves with — cell dimensions,
+  `valign`, `bgcolor`, `border`, `cellpadding`, `cellspacing`,
   `hspace`, `vspace`, `nowrap`, and `<font color size face>` — are stored and never consulted,
   and the legacy elements `<center>`, `<font>`, `<big>`, `<strike>`, `<tt>` are unknown tags
   that default to unstyled inline. Saved mail, old manuals and tool-generated HTML from the
-  attribute era lose their entire presentation.
+  attribute era lose the presentation carried by those unsupported features.
 - Complete when: the presentational attributes map to the computed style with the precedence of
   a zero-specificity author rule, the legacy elements carry their traditional default styles,
   and a fixture from the attribute era renders with its table borders, cell padding and centered

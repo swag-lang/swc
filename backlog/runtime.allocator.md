@@ -65,9 +65,9 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ### runtime.allocator.003 — Return idle memory without being asked
 
-- `trim()` decommits every page with no live block and returns the segments left without one, but
-  nothing calls it on its own. A program that allocates in bursts keeps the high-water mark of
-  committed pages until it exits or trims by hand.
+- `trim()` decommits empty pages of the calling heap except the current page of each size class,
+  collects empty abandoned pages, and releases segments left without a page. Nothing calls it on
+  its own. A program that allocates in bursts retains committed pages until it exits or trims by hand.
 - Decide the policy: a bounded amount of idle committed memory per heap, a purge delay after which
   an untouched page is decommitted, or an explicit contract that trimming is the caller's job.
   Whichever it is, write it down — "give memory back eventually" with no rule is how an allocator
@@ -79,9 +79,9 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ### runtime.allocator.004 — Make remote frees batched rather than one atomic each
 
-- A block freed by a thread that does not own its page costs one compare-exchange, and the owner
-  drains the list only when the page runs dry. That is already far better than the previous design,
-  but a producer/consumer pair still pays one atomic per block in each direction.
+- A block freed by a thread that does not own its page increments `remoteCount` atomically and
+  pushes through the page's `remoteLock`. The owner detaches the list under that lock and walks it
+  afterward. A producer/consumer pair still pays synchronization for each returned block.
 - Measure whether a per-page batch handoff pays for itself against the current single push, using
   the producer/consumer workload from runtime.allocator.001. Bound the drain so one allocation cannot inherit an
   arbitrarily long pause.
@@ -123,7 +123,7 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Inject reserve and commit failures at every transition and verify that page masks, segment lists,
   and the abandoned list stay consistent and that the allocation returns null rather than a
   half-built page.
-- Related: runtime.allocator.009, platform.portability.047
+- Related: runtime.allocator.009, platform.portability.004
 
 ### runtime.allocator.009 — Allocator stress is not run under Windows heap instrumentation
 

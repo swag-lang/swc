@@ -401,6 +401,7 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
+        root.flushLayout()
         .createRT()
 
         if !.isDirty do

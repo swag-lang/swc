@@ -439,6 +439,31 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
     return 0
 }
 
+// A source gate and a typed tag both change the executable. Reusing it with another tag set
+// must rebuild, and returning to the original set must restore the original behavior.
+private func verifyWorkspaceTagCache(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    for state in ["disabled", "0", "42", "42", "disabled"]
+    {
+        var command = workspaceModuleCommand("run", workspace, "tag_cache", buildCfg)
+        options.appendExtra(&command)
+        if state != "disabled" do
+            command.add(["--tag", "cache.enabled"])
+        if state == "42" do
+            command.add(["--tag", "cache.value: u32 = 42"])
+        let output = try context.captureCompiler(command)
+        Console.print(output.toString())
+        let expected = Format.toString("cache-tag=%", state)
+        if !Utf8.contains(output.toString(), expected.toString())
+        {
+            Console.println("Workspace artifact reused a different tag set; expected ", expected.toString())
+            return 1
+        }
+    }
+
+    return 0
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
@@ -507,6 +532,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let setupCacheCode = try verifyModuleSetupCacheInvalidation(context, options, workspace.toString(), buildCfg)
     if setupCacheCode != 0 do
         return setupCacheCode
+
+    let tagCacheCode = try verifyWorkspaceTagCache(context, options, workspace.toString(), buildCfg)
+    if tagCacheCode != 0 do
+        return tagCacheCode
 
     // Documentation consumes local native artifacts for compile-time execution, but does not
     // produce those artifacts itself. Starting it from a clean workspace proves that its publish
@@ -676,9 +705,6 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let scripted = try context.captureCompiler(script)
     if !scripted.contains("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN")
     {
-        // A capture drops what the compiler wrote to its error stream, which is exactly what a
-        // failure needs to say, so the run is repeated in the open before the suite reports.
-        discard try context.runCompiler(script)
         Console.println("Script importing 'core' without a 'using' did not reach its entry point.")
         return 1
     }

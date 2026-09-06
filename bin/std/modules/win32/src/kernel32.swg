@@ -1217,8 +1217,13 @@ internal namespace Win32Priv
     func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD fail
     {
         let low = Win32Priv.SetFilePointer(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod)
-        if low == INVALID_SET_FILE_POINTER do
-            failWinError(GetLastError())
+        if low == INVALID_SET_FILE_POINTER
+        {
+            let errorCode = GetLastError()
+            if errorCode != ERROR_SUCCESS do
+                failWinError(errorCode)
+        }
+
         return low
     }
 
@@ -1231,8 +1236,13 @@ internal namespace Win32Priv
     func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD fail
     {
         let low = Win32Priv.GetFileSize(hFile, lpFileSizeHigh)
-        if low == INVALID_FILE_SIZE do
-            failWinError(GetLastError())
+        if low == INVALID_FILE_SIZE
+        {
+            let errorCode = GetLastError()
+            if errorCode != ERROR_SUCCESS do
+                failWinError(errorCode)
+        }
+
         return low
     }
 

@@ -1,0 +1,126 @@
+{
+  "full_campaigns": [
+    {
+      "revision": "89c7c0e7a",
+      "compiler": "DevMode",
+      "command": "bin/swc.dm.exe --num-cores 6 tools/tests.swgs dm --all-cfg --num-cores 6",
+      "exit_code": 5,
+      "passed_before_stop": [
+        "compiler suites and workspace tests in both program configurations",
+        "standard modules: 2132 tests in both program configurations",
+        "applications: 459 tests in both program configurations",
+        "reference: 458 tests in both program configurations",
+        "release example script smokes"
+      ],
+      "stop": "release examples GUI5, 0xC0000005",
+      "not_reached": "remaining example modules and later smoke stages after the first failure"
+    },
+    {
+      "revision": "89c7c0e7a",
+      "compiler": "Release",
+      "command": "bin/swc.exe --num-cores 6 tools/tests.swgs --all-cfg --num-cores 6",
+      "exit_code": 5,
+      "passed_before_stop": [
+        "compiler suites and workspace tests in both program configurations",
+        "standard modules: 2132 tests in both program configurations",
+        "applications: 459 tests in both program configurations",
+        "reference: 458 tests in both program configurations",
+        "release example script smokes"
+      ],
+      "stop": "release examples GUI5, 0xC0000005",
+      "not_reached": "remaining example modules and later smoke stages after the first failure"
+    },
+    {
+      "revision": "717ec4db6",
+      "compiler": "DevMode",
+      "command": "bin/swc.dm.exe --num-cores 6 tools/tests.swgs dm --all-cfg --num-cores 6",
+      "exit_code": 5,
+      "passed_before_stop": [
+        "compiler suites and workspace tests in both program configurations",
+        "standard modules: 2132 tests in both program configurations",
+        "applications: 459 tests in both program configurations",
+        "reference: 458 tests in both program configurations",
+        "release example script smokes"
+      ],
+      "stop": "release examples GUI5, 0xC0000005",
+      "not_reached": "remaining example modules and later smoke stages after the first failure"
+    },
+    {
+      "revision": "717ec4db6",
+      "compiler": "Release",
+      "command": "bin/swc.exe --num-cores 6 tools/tests.swgs --all-cfg --num-cores 6",
+      "exit_code": 5,
+      "passed_before_stop": [
+        "compiler suites and workspace tests in both program configurations",
+        "standard modules: 2132 tests in both program configurations",
+        "applications: 459 tests in both program configurations",
+        "reference: 458 tests in both program configurations",
+        "release example script smokes"
+      ],
+      "stop": "release examples GUI5, 0xC0000005",
+      "not_reached": "remaining example modules and later smoke stages after the first failure"
+    }
+  ],
+  "baseline_failure": "See gui5-reproducer.md; the full campaigns are not green.",
+  "integration": {
+    "source_revision": "d51170c261d4995535c89c0cfea6e808aa75e156",
+    "compiler_build": 384,
+    "builds": {
+      "Release": 0,
+      "DevMode": 0
+    },
+    "checks": [
+      {
+        "compiler": "DevMode",
+        "suite": "cpp",
+        "passed": 636,
+        "exit_code": 0
+      },
+      {
+        "compiler": "DevMode",
+        "suite": "sanity",
+        "program_configuration": "devmode",
+        "passed": 39,
+        "exit_code": 0
+      },
+      {
+        "compiler": "DevMode",
+        "suite": "native",
+        "file_filter": "float_zero_literals.swg",
+        "program_configuration": "devmode",
+        "passed": 1,
+        "exit_code": 0
+      },
+      {
+        "compiler": "DevMode",
+        "suite": "native",
+        "file_filter": "float_zero_literals.swg",
+        "program_configuration": "release",
+        "passed": 1,
+        "exit_code": 0
+      },
+      {
+        "compiler": "Release",
+        "suite": "native",
+        "file_filter": "float_zero_literals.swg",
+        "program_configuration": "devmode",
+        "passed": 1,
+        "exit_code": 0
+      },
+      {
+        "compiler": "Release",
+        "suite": "native",
+        "file_filter": "float_zero_literals.swg",
+        "program_configuration": "release",
+        "passed": 1,
+        "exit_code": 0
+      }
+    ]
+  },
+  "compiler_binaries": {
+    "swc.memory-baseline.exe": "0d23fa866d6e05838c0bbaa30dc86def9f359f5f8c931aebb2121445a24516a2",
+    "swc.memory-sparse.exe": "d4f1713b0bfbc01f89fda7d5cbb48a50152b8ca2a21ad4ab1110f70f6192c167",
+    "swc.exe": "c2fed098154146c38a5b404b49124b29b47d2aabb1825bb9fd89add673c4d3ad",
+    "swc.dm.exe": "2a971f95ae05c4fcbf25cb98bdd9d45f7270c21c0c88375c7942511fea485934"
+  }
+}

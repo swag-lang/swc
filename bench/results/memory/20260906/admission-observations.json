@@ -1,0 +1,20 @@
+{
+  "note": "Rejected admission observations only. The stricter job was paused during our other admitted work. Accepted samples retain their own admission text. Final sampler stopped for end-of-session cleanup; incomplete comparisons are not accepted.",
+  "attempts": [
+    {
+      "log": "sparse-measurements.log",
+      "rejected_admissions": 0,
+      "observed_rejected_cpu_percent_range": []
+    },
+    {
+      "log": "final-quiet-measurements.log",
+      "rejected_admissions": 0,
+      "observed_rejected_cpu_percent_range": []
+    },
+    {
+      "log": "exploratory-measurements.log",
+      "rejected_admissions": 0,
+      "observed_rejected_cpu_percent_range": []
+    }
+  ]
+}

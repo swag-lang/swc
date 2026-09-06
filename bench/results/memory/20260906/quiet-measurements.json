@@ -1,0 +1,21 @@
+{
+  "baseline_revision": "89c7c0e7a",
+  "candidate_revision": "717ec4db6",
+  "compiler_builds": [
+    381,
+    383
+  ],
+  "host": {
+    "cpu": "Intel Core Ultra 9 185H",
+    "worker_limit": 6,
+    "physical_bytes": 33687597056,
+    "os": "Microsoft Windows 11 Famille",
+    "timestamp": "2026-09-06T15:11:37.6005597+02:00"
+  },
+  "maximum_admission_cpu_percent": 15,
+  "status": "Quiet-admission attempt; incomplete unless every workload has repeated complete pairs. Foreign work may still start during a sample.",
+  "metric": "GetProcessMemoryInfo PeakWorkingSetSize sampled every 2 ms while the process is alive. Wall and CPU measured by bench/winproc.py.",
+  "order": "A/B then B/A on successive repetitions; fresh CPU and memory admission for every command; unpinned builds; six compiler workers.",
+  "summary": [],
+  "samples": []
+}

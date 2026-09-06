@@ -1,0 +1,900 @@
+{
+  "baseline_revision": "89c7c0e7a",
+  "candidate_revision": "717ec4db6",
+  "compiler_builds": [
+    381,
+    383
+  ],
+  "host": {
+    "cpu": "Intel Core Ultra 9 185H",
+    "worker_limit": 6,
+    "physical_bytes": 33687597056,
+    "os": "Microsoft Windows 11 Famille",
+    "timestamp": "2026-09-06T15:11:37.6005597+02:00"
+  },
+  "maximum_admission_cpu_percent": 65,
+  "status": "Exploratory shared-load observations; not accepted as proof of unchanged compile time.",
+  "metric": "GetProcessMemoryInfo PeakWorkingSetSize sampled every 2 ms while the process is alive. Wall and CPU measured by bench/winproc.py.",
+  "order": "A/B then B/A on successive repetitions; fresh CPU and memory admission for every command; unpinned builds; six compiler workers.",
+  "summary": [
+    {
+      "workload": "core_devmode",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 5934.6168,
+        "cpu_ms": 25500.0,
+        "peak_working_set": 509575168
+      },
+      "B": {
+        "wall_ms": 5932.8077,
+        "cpu_ms": 24156.25,
+        "peak_working_set": 453697536
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.9996951614466498
+        ],
+        "cpu_ms": [
+          0.9473039215686274
+        ],
+        "peak_working_set": [
+          0.8903446723683365
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.9996951614466498,
+        "cpu_ms": 0.9473039215686274,
+        "peak_working_set": 0.8903446723683365
+      }
+    },
+    {
+      "workload": "core_release",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 7647.2725,
+        "cpu_ms": 24421.875,
+        "peak_working_set": 350695424
+      },
+      "B": {
+        "wall_ms": 6904.4449,
+        "cpu_ms": 26078.125,
+        "peak_working_set": 346271744
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.9028637203656599
+        ],
+        "cpu_ms": [
+          1.0678182981445938
+        ],
+        "peak_working_set": [
+          0.9873859774115559
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.9028637203656599,
+        "cpu_ms": 1.0678182981445938,
+        "peak_working_set": 0.9873859774115559
+      }
+    },
+    {
+      "workload": "hello",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 387.228,
+        "cpu_ms": 1156.25,
+        "peak_working_set": 59133952
+      },
+      "B": {
+        "wall_ms": 296.019,
+        "cpu_ms": 875.0,
+        "peak_working_set": 55562240
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.7644565992128668
+        ],
+        "cpu_ms": [
+          0.7567567567567568
+        ],
+        "peak_working_set": [
+          0.9395996398143659
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.7644565992128668,
+        "cpu_ms": 0.7567567567567568,
+        "peak_working_set": 0.9395996398143659
+      }
+    },
+    {
+      "workload": "wordfreq",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 2127.0969,
+        "cpu_ms": 6562.5,
+        "peak_working_set": 56442880
+      },
+      "B": {
+        "wall_ms": 405.3747,
+        "cpu_ms": 1531.25,
+        "peak_working_set": 57622528
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.1905765082916533
+        ],
+        "cpu_ms": [
+          0.23333333333333334
+        ],
+        "peak_working_set": [
+          1.020899854862119
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.1905765082916533,
+        "cpu_ms": 0.23333333333333334,
+        "peak_working_set": 1.020899854862119
+      }
+    },
+    {
+      "workload": "csvagg",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 386.2712,
+        "cpu_ms": 1375.0,
+        "peak_working_set": 63426560
+      },
+      "B": {
+        "wall_ms": 393.9391,
+        "cpu_ms": 1453.125,
+        "peak_working_set": 59326464
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          1.0198510787239639
+        ],
+        "cpu_ms": [
+          1.0568181818181819
+        ],
+        "peak_working_set": [
+          0.935356796900226
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 1.0198510787239639,
+        "cpu_ms": 1.0568181818181819,
+        "peak_working_set": 0.935356796900226
+      }
+    },
+    {
+      "workload": "sha256",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 350.2351,
+        "cpu_ms": 1281.25,
+        "peak_working_set": 61767680
+      },
+      "B": {
+        "wall_ms": 257.1993,
+        "cpu_ms": 812.5,
+        "peak_working_set": 57167872
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.7343618615038869
+        ],
+        "cpu_ms": [
+          0.6341463414634146
+        ],
+        "peak_working_set": [
+          0.9255305039787799
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.7343618615038869,
+        "cpu_ms": 0.6341463414634146,
+        "peak_working_set": 0.9255305039787799
+      }
+    },
+    {
+      "workload": "dijkstra",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 221.7495,
+        "cpu_ms": 812.5,
+        "peak_working_set": 65036288
+      },
+      "B": {
+        "wall_ms": 139.0624,
+        "cpu_ms": 500.0,
+        "peak_working_set": 57675776
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.6271148300221646
+        ],
+        "cpu_ms": [
+          0.6153846153846154
+        ],
+        "peak_working_set": [
+          0.886824537095352
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.6271148300221646,
+        "cpu_ms": 0.6153846153846154,
+        "peak_working_set": 0.886824537095352
+      }
+    },
+    {
+      "workload": "raytrace",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 212.98,
+        "cpu_ms": 718.75,
+        "peak_working_set": 59228160
+      },
+      "B": {
+        "wall_ms": 173.755,
+        "cpu_ms": 625.0,
+        "peak_working_set": 59363328
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          0.8158277772560804
+        ],
+        "cpu_ms": [
+          0.8695652173913043
+        ],
+        "peak_working_set": [
+          1.0022821576763485
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 0.8158277772560804,
+        "cpu_ms": 0.8695652173913043,
+        "peak_working_set": 1.0022821576763485
+      }
+    },
+    {
+      "workload": "leven",
+      "pairs": 1,
+      "A": {
+        "wall_ms": 173.0282,
+        "cpu_ms": 640.625,
+        "peak_working_set": 62550016
+      },
+      "B": {
+        "wall_ms": 2561.279,
+        "cpu_ms": 6140.625,
+        "peak_working_set": 59838464
+      },
+      "paired_ratios": {
+        "wall_ms": [
+          14.802668004406218
+        ],
+        "cpu_ms": [
+          9.585365853658537
+        ],
+        "peak_working_set": [
+          0.9566498592102678
+        ]
+      },
+      "median_paired_ratios": {
+        "wall_ms": 14.802668004406218,
+        "cpu_ms": 9.585365853658537,
+        "peak_working_set": 0.9566498592102678
+      }
+    }
+  ],
+  "samples": [
+    {
+      "exit": 0,
+      "wall_ms": 5934.6168,
+      "cpu_ms": 25500.0,
+      "peak_job_bytes": 559206400,
+      "peak_working_set": 509575168,
+      "peak_proc_bytes": 557928448,
+      "label": "A",
+      "workload": "core_devmode",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 37\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,4\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\std",
+        "-m",
+        "core",
+        "-bc",
+        "devmode"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 5932.8077,
+      "cpu_ms": 24156.25,
+      "peak_job_bytes": 499675136,
+      "peak_working_set": 453697536,
+      "peak_proc_bytes": 498413568,
+      "label": "B",
+      "workload": "core_devmode",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 18\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 11,9\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\std",
+        "-m",
+        "core",
+        "-bc",
+        "devmode"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 7647.2725,
+      "cpu_ms": 24421.875,
+      "peak_job_bytes": 404135936,
+      "peak_working_set": 350695424,
+      "peak_proc_bytes": 402857984,
+      "label": "A",
+      "workload": "core_release",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 12,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 12,1\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\std",
+        "-m",
+        "core",
+        "-bc",
+        "release"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 6904.4449,
+      "cpu_ms": 26078.125,
+      "peak_job_bytes": 396455936,
+      "peak_working_set": 346271744,
+      "peak_proc_bytes": 395177984,
+      "label": "B",
+      "workload": "core_release",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 51\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,5\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-w",
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\std",
+        "-m",
+        "core",
+        "-bc",
+        "release"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 387.228,
+      "cpu_ms": 1156.25,
+      "peak_job_bytes": 62603264,
+      "peak_working_set": 59133952,
+      "peak_proc_bytes": 61329408,
+      "label": "A",
+      "workload": "hello",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 48\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bench\\src\\hello\\hello.swg",
+        "-n",
+        "hello",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\hello",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\hello"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 296.019,
+      "cpu_ms": 875.0,
+      "peak_job_bytes": 59494400,
+      "peak_working_set": 55562240,
+      "peak_proc_bytes": 58220544,
+      "label": "B",
+      "workload": "hello",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 61\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,3\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,2\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bench\\src\\hello\\hello.swg",
+        "-n",
+        "hello",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\hello",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\hello"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2127.0969,
+      "cpu_ms": 6562.5,
+      "peak_job_bytes": 59068416,
+      "peak_working_set": 56442880,
+      "peak_proc_bytes": 57798656,
+      "label": "A",
+      "workload": "wordfreq",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 27\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 10,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,6\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "wordfreq",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\wordfreq",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\wordfreq",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\bytemap.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\wordfreq.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 405.3747,
+      "cpu_ms": 1531.25,
+      "peak_job_bytes": 61984768,
+      "peak_working_set": 57622528,
+      "peak_proc_bytes": 60710912,
+      "label": "B",
+      "workload": "wordfreq",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 58\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 10\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,8\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "wordfreq",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\wordfreq",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\wordfreq",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\bytemap.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\wordfreq.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 386.2712,
+      "cpu_ms": 1375.0,
+      "peak_job_bytes": 66473984,
+      "peak_working_set": 63426560,
+      "peak_proc_bytes": 65204224,
+      "label": "A",
+      "workload": "csvagg",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 61\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,7\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "csvagg",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\csvagg",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\csvagg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\bytemap.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\csvagg.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 393.9391,
+      "cpu_ms": 1453.125,
+      "peak_job_bytes": 63864832,
+      "peak_working_set": 59326464,
+      "peak_proc_bytes": 62595072,
+      "label": "B",
+      "workload": "csvagg",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 61\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,4\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "csvagg",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\csvagg",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\csvagg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\bytemap.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\csvagg.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 350.2351,
+      "cpu_ms": 1281.25,
+      "peak_job_bytes": 65003520,
+      "peak_working_set": 61767680,
+      "peak_proc_bytes": 63750144,
+      "label": "A",
+      "workload": "sha256",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 59\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,5\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,2\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "sha256",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\sha256",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\sha256",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\sha256.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 257.1993,
+      "cpu_ms": 812.5,
+      "peak_job_bytes": 61276160,
+      "peak_working_set": 57167872,
+      "peak_proc_bytes": 59998208,
+      "label": "B",
+      "workload": "sha256",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 63\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,4\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,1\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "sha256",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\sha256",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\sha256",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\sha256.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 221.7495,
+      "cpu_ms": 812.5,
+      "peak_job_bytes": 67821568,
+      "peak_working_set": 65036288,
+      "peak_proc_bytes": 66551808,
+      "label": "A",
+      "workload": "dijkstra",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 44\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,8\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,6\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "dijkstra",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\dijkstra",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\dijkstra",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\dijkstra.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 139.0624,
+      "cpu_ms": 500.0,
+      "peak_job_bytes": 61681664,
+      "peak_working_set": 57675776,
+      "peak_proc_bytes": 60411904,
+      "label": "B",
+      "workload": "dijkstra",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 13\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,5\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "dijkstra",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\dijkstra",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\dijkstra",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\dijkstra.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 212.98,
+      "cpu_ms": 718.75,
+      "peak_job_bytes": 62427136,
+      "peak_working_set": 59228160,
+      "peak_proc_bytes": 61169664,
+      "label": "A",
+      "workload": "raytrace",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 18\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,9\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,7\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "raytrace",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\raytrace",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\raytrace",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\raytrace.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 173.755,
+      "cpu_ms": 625.0,
+      "peak_job_bytes": 64151552,
+      "peak_working_set": 59363328,
+      "peak_proc_bytes": 62877696,
+      "label": "B",
+      "workload": "raytrace",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 15\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,4\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "raytrace",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\raytrace",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\raytrace",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\raytrace.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 173.0282,
+      "cpu_ms": 640.625,
+      "peak_job_bytes": 66236416,
+      "peak_working_set": 62550016,
+      "peak_proc_bytes": 64962560,
+      "label": "A",
+      "workload": "leven",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 28\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,7\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,4\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "leven",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\leven",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\leven",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\leven.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 2561.279,
+      "cpu_ms": 6140.625,
+      "peak_job_bytes": 62881792,
+      "peak_working_set": 59838464,
+      "peak_proc_bytes": 61607936,
+      "label": "B",
+      "workload": "leven",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 52\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,6\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,4\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-sparse.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "leven",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\leven",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\leven",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\leven.swg"
+      ]
+    },
+    {
+      "exit": 0,
+      "wall_ms": 241.2196,
+      "cpu_ms": 890.625,
+      "peak_job_bytes": 72036352,
+      "peak_working_set": 68362240,
+      "peak_proc_bytes": 70778880,
+      "label": "A",
+      "workload": "chacha",
+      "iteration": 1,
+      "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "admission": "Status                    : ready\nAverageCpuPercent         : 48\nMaximumCpuPercent         : 65\nAvailablePhysicalGiB      : 9,1\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 8,1\nRequiredCommitHeadroomGiB : 8",
+      "command": [
+        "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+        "build",
+        "--num-cores",
+        "6",
+        "--rebuild",
+        "--silent",
+        "-bc",
+        "release",
+        "-n",
+        "chacha",
+        "-od",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\chacha",
+        "-wd",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\.tmp\\memory-campaign\\output\\chacha",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\common.swg",
+        "-f",
+        "C:\\Perso\\swag-lang\\swc-memory-20260906\\bench\\src\\swagnat\\chacha.swg"
+      ]
+    }
+  ]
+}

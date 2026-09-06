@@ -1,0 +1,871 @@
+{
+  "workload": "Release compiler, core devmode rebuild, six workers",
+  "profiler": "External Frida 17.17 native callbacks on operator new, nothrow new, allocThrow and mi_free; Windows native unwind; 32768-byte weighted sampling",
+  "limitations": [
+    "Instrumented working set and wall time are not performance results.",
+    "Observed live requested bytes are not resident bytes. Do not subtract them from OS working set.",
+    "Direct proximity/virtual pages, allocator-retained freed pages and inlined allocation entry points are not completely attributed by these hooks.",
+    "The AST/types/symbols/constants/Micro split remains incomplete; arena blocks have mixed ownership."
+  ],
+  "profiles": [
+    {
+      "revision": "89c7c0e7a",
+      "os_working_set_at_snapshot": 565047296,
+      "seconds": 30.29700000002049,
+      "samples": 3877,
+      "sample_interval_bytes": 32768,
+      "stack_node_value_kinds": {
+        "0": 5931008,
+        "1": 1769472,
+        "3": 262144
+      },
+      "estimated_live_requested_bytes_by_owner": {
+        "sanitizer": 60515977,
+        "arena_mixed_ownership": 52927232,
+        "other_sampled_cpp_heap": 64928911
+      },
+      "largest_allocation_groups": [
+        {
+          "allocation_bytes": 32807,
+          "estimated_live_bytes": 14599115,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x324",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1b38",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 7270944,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 6419392,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: void __cdecl swc::Symbol::setAttributes(class swc::TaskContext & __ptr64,struct swc::AttributeList const & __ptr64) __ptr64+0x16f",
+            "enum swc::Result __cdecl swc::semaPreNode<60>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x1e5",
+            "private: enum swc::Result __cdecl swc::Sema::preNode(struct swc::AstNode & __ptr64) __ptr64+0x48",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 4847296,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,class swc::SymbolImpl & __ptr64,class swc::SymbolInterface const * __ptr64,struct swc::AttributeList const & __ptr64,bool)+0x6ca",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses(class swc::Sema & __ptr64,class swc::SymbolImpl & __ptr64,class swc::SymbolImpl const & __ptr64,struct swc::AttributeList const & __ptr64)+0xb9",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl(class swc::Sema & __ptr64,class swc::SymbolImpl const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaClone::ParamBinding const ,-1>)+0x1e5",
+            "enum swc::Result __cdecl swc::SemaGeneric::Internal::instantiateGenericStructImpls(class swc::Sema & __ptr64,class swc::SymbolStruct const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>)+0x427",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::createGenericInstance(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::GenericInstanceOrigin const & __ptr64,class swc::StrongRef<struct swc::AstNode>)+0x15b3",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<class swc::StrongRef<struct swc::AstNode> const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::CastFailure * __ptr64)+0x91b",
+            "enum swc::Result __cdecl swc::semaPostNode<12>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x41b",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::Sema::setVisitors(void) __ptr64'::`7'::<lambda_8>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xd2"
+          ]
+        },
+        {
+          "allocation_bytes": 56,
+          "estimated_live_bytes": 4685824,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x361",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x324",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1b38",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65575,
+          "estimated_live_bytes": 3934500,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x324",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1b38",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 3930240,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: void __cdecl swc::Symbol::setAttributes(class swc::TaskContext & __ptr64,struct swc::AttributeList const & __ptr64) __ptr64+0x16f",
+            "enum swc::Result __cdecl swc::semaPreNode<55>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x1e0",
+            "private: enum swc::Result __cdecl swc::Sema::preNode(struct swc::AstNode & __ptr64) __ptr64+0x48",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65575,
+          "estimated_live_bytes": 3672200,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1bb6",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 3602720,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: struct swc::SemaInlinePayload * __ptr64 __cdecl swc::CompilerInstance::allocate<struct swc::SemaInlinePayload>(void) __ptr64+0x4d",
+            "enum swc::Result __cdecl swc::SemaInline::tryInlineCall(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,class swc::SymbolFunction const & __ptr64,class std::span<class swc::StrongRef<struct swc::AstNode>,-1>,class swc::StrongRef<struct swc::AstNode>,class std::span<class swc::StrongRef<struct swc::AstNode>,-1>)+0x156f",
+            "enum swc::Result __cdecl swc::semaPostNode<80>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x108f",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::Sema::setVisitors(void) __ptr64'::`7'::<lambda_8>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xd2",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0xbf",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 56,
+          "estimated_live_bytes": 3276800,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x361",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1bb6",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 16423,
+          "estimated_live_bytes": 2949120,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x324",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1b38",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 2947680,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: struct swc::CodeGenNodePayload & __ptr64 __cdecl swc::CodeGen::ensureNodePayload<struct swc::CodeGenNodePayload>(class swc::StrongRef<struct swc::AstNode>) __ptr64+0xde",
+            "public: struct swc::CodeGenNodePayload & __ptr64 __cdecl swc::CodeGen::setPayload(class swc::StrongRef<struct swc::AstNode>,class swc::StrongRef<class swc::TypeInfo>) __ptr64+0x18f",
+            "enum swc::Result __cdecl swc::codeGenPostNode<11>(class swc::CodeGen & __ptr64,struct swc::AstNode & __ptr64)+0xcda",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::CodeGen::setVisitors(void) __ptr64'::`2'::<lambda_5>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xef",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0xbf",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x1176",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 128,
+          "estimated_live_bytes": 2424832,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x8b",
+            "public: __cdecl swc::SanitizerState::SanitizerState(struct swc::SanitizerState const & __ptr64) __ptr64+0x61b",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x9fc",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 2376831,
+          "estimated_live_bytes": 2376831,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x986",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 32807,
+          "estimated_live_bytes": 2296490,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x43",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1bb6",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x134b",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 128,
+          "estimated_live_bytes": 2195456,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x8b",
+            "public: __cdecl swc::SanitizerState::SanitizerState(struct swc::SanitizerState const & __ptr64) __ptr64+0x690",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x9fc",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 128,
+          "estimated_live_bytes": 2162688,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x8b",
+            "public: __cdecl swc::SanitizerState::SanitizerState(struct swc::SanitizerState const & __ptr64) __ptr64+0x383",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x9fc",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 128,
+          "estimated_live_bytes": 1802240,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x8b",
+            "public: __cdecl swc::SanitizerState::SanitizerState(struct swc::SanitizerState const & __ptr64) __ptr64+0xf3",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x9fc",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 1624,
+          "estimated_live_bytes": 1703936,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "private: void __cdecl swc::Sema::pushFrame(class swc::SemaFrame const & __ptr64) __ptr64+0x12b",
+            "public: __cdecl swc::Sema::Sema(class swc::TaskContext & __ptr64,class swc::NodePayload & __ptr64,bool) __ptr64+0x389",
+            "private: void __cdecl swc::CodeGenJob::initSemaAndCodeGen(void) __ptr64+0x8c",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x104",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 1703104,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,class swc::SymbolImpl & __ptr64,class swc::SymbolInterface const * __ptr64,struct swc::AttributeList const & __ptr64,bool)+0x6ca",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses(class swc::Sema & __ptr64,class swc::SymbolImpl & __ptr64,class swc::SymbolImpl const & __ptr64,struct swc::AttributeList const & __ptr64)+0xb9",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl(class swc::Sema & __ptr64,class swc::SymbolImpl const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaClone::ParamBinding const ,-1>)+0x1e5",
+            "enum swc::Result __cdecl swc::SemaGeneric::Internal::instantiateGenericStructImpls(class swc::Sema & __ptr64,class swc::SymbolStruct const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>)+0x427",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::createGenericInstance(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::GenericInstanceOrigin const & __ptr64,class swc::StrongRef<struct swc::AstNode>)+0x15b3",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<class swc::StrongRef<struct swc::AstNode> const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::CastFailure * __ptr64)+0x91b",
+            "enum swc::Result __cdecl swc::semaPostNode<13>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x3b2",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::Sema::setVisitors(void) __ptr64'::`7'::<lambda_8>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xd2"
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "717ec4db6",
+      "os_working_set_at_snapshot": 486146048,
+      "seconds": 18.09299999999348,
+      "samples": 3468,
+      "sample_interval_bytes": 32768,
+      "stack_node_value_kinds": {
+        "3": 196608,
+        "1": 2588672
+      },
+      "estimated_live_requested_bytes_by_owner": {
+        "sanitizer": 37586437,
+        "arena_mixed_ownership": 53189248,
+        "other_sampled_cpp_heap": 68980234
+      },
+      "largest_allocation_groups": [
+        {
+          "allocation_bytes": 32807,
+          "estimated_live_bytes": 14763150,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x4e",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x2e9",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1c26",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x1345",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 7467456,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 6943424,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: void __cdecl swc::Symbol::setAttributes(class swc::TaskContext & __ptr64,struct swc::AttributeList const & __ptr64) __ptr64+0x16f",
+            "enum swc::Result __cdecl swc::semaPreNode<60>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x1e5",
+            "private: enum swc::Result __cdecl swc::Sema::preNode(struct swc::AstNode & __ptr64) __ptr64+0x48",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 5043808,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,class swc::SymbolImpl & __ptr64,class swc::SymbolInterface const * __ptr64,struct swc::AttributeList const & __ptr64,bool)+0x6ca",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses(class swc::Sema & __ptr64,class swc::SymbolImpl & __ptr64,class swc::SymbolImpl const & __ptr64,struct swc::AttributeList const & __ptr64)+0xb9",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl(class swc::Sema & __ptr64,class swc::SymbolImpl const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaClone::ParamBinding const ,-1>)+0x1e5",
+            "enum swc::Result __cdecl swc::SemaGeneric::Internal::instantiateGenericStructImpls(class swc::Sema & __ptr64,class swc::SymbolStruct const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>)+0x427",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::createGenericInstance(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::GenericInstanceOrigin const & __ptr64,class swc::StrongRef<struct swc::AstNode>)+0x15b3",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<class swc::StrongRef<struct swc::AstNode> const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::CastFailure * __ptr64)+0x91b",
+            "enum swc::Result __cdecl swc::semaPostNode<12>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x41b",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::Sema::setVisitors(void) __ptr64'::`7'::<lambda_8>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xd2"
+          ]
+        },
+        {
+          "allocation_bytes": 16423,
+          "estimated_live_bytes": 3899392,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x4e",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x2e9",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1c26",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x1345",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65575,
+          "estimated_live_bytes": 3278750,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x4e",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x2e9",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1c26",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x1345",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 2947680,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: void __cdecl swc::Symbol::setAttributes(class swc::TaskContext & __ptr64,struct swc::AttributeList const & __ptr64) __ptr64+0x16f",
+            "enum swc::Result __cdecl swc::semaPreNode<55>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x1e0",
+            "private: enum swc::Result __cdecl swc::Sema::preNode(struct swc::AstNode & __ptr64) __ptr64+0x48",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 32807,
+          "estimated_live_bytes": 2788595,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x4e",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1ca5",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x1345",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65575,
+          "estimated_live_bytes": 2754150,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x70",
+            "protected: void __cdecl std::_Hash<class std::_Umap_traits<unsigned int,unsigned __int64,class std::_Uhash_compare<unsigned int,struct std::hash<unsigned int>,struct std::equal_to<unsigned int> >,class std::allocator<struct std::pair<unsigned int const ,unsigned __int64> >,0> >::_Forced_rehash(unsigned __int64) __ptr64+0x6a",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x281",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x4e",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1ca5",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x1345",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 2751168,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: struct swc::SemaInlinePayload * __ptr64 __cdecl swc::CompilerInstance::allocate<struct swc::SemaInlinePayload>(void) __ptr64+0x4d",
+            "enum swc::Result __cdecl swc::SemaInline::tryInlineCall(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,class swc::SymbolFunction const & __ptr64,class std::span<class swc::StrongRef<struct swc::AstNode>,-1>,class swc::StrongRef<struct swc::AstNode>,class std::span<class swc::StrongRef<struct swc::AstNode>,-1>)+0x156f",
+            "enum swc::Result __cdecl swc::semaPostNode<80>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x108f",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::Sema::setVisitors(void) __ptr64'::`7'::<lambda_8>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xd2",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0xbf",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 2227136,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: struct swc::CodeGenNodePayload & __ptr64 __cdecl swc::CodeGen::ensureNodePayload<struct swc::CodeGenNodePayload>(class swc::StrongRef<struct swc::AstNode>) __ptr64+0xde",
+            "public: struct swc::CodeGenNodePayload & __ptr64 __cdecl swc::CodeGen::setPayload(class swc::StrongRef<struct swc::AstNode>,class swc::StrongRef<class swc::TypeInfo>) __ptr64+0x18f",
+            "enum swc::Result __cdecl swc::codeGenPostNode<11>(class swc::CodeGen & __ptr64,struct swc::AstNode & __ptr64)+0xcda",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::CodeGen::setVisitors(void) __ptr64'::`2'::<lambda_5>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xef",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0xbf",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x1176",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 2096128,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplBlockPass(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,class swc::SymbolImpl & __ptr64,class swc::SymbolInterface const * __ptr64,struct swc::AttributeList const & __ptr64,bool)+0x6ca",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::runGenericImplClonePasses(class swc::Sema & __ptr64,class swc::SymbolImpl & __ptr64,class swc::SymbolImpl const & __ptr64,struct swc::AttributeList const & __ptr64)+0xb9",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericStructImpl(class swc::Sema & __ptr64,class swc::SymbolImpl const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaClone::ParamBinding const ,-1>)+0x1e5",
+            "enum swc::Result __cdecl swc::SemaGeneric::Internal::instantiateGenericStructImpls(class swc::Sema & __ptr64,class swc::SymbolStruct const & __ptr64,class swc::SymbolStruct & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>)+0x427",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::createGenericInstance(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<struct swc::SemaGeneric::GenericParamDesc const ,-1>,class std::span<struct swc::SemaGeneric::GenericResolvedArg const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::GenericInstanceOrigin const & __ptr64,class swc::StrongRef<struct swc::AstNode>)+0x15b3",
+            "enum swc::Result __cdecl swc::SemaGeneric::`anonymous namespace'::instantiateGenericExplicit(class swc::Sema & __ptr64,class swc::Symbol & __ptr64,class std::span<class swc::StrongRef<struct swc::AstNode> const ,-1>,class swc::Symbol * __ptr64 & __ptr64,struct swc::CastFailure * __ptr64)+0x91b",
+            "enum swc::Result __cdecl swc::semaPostNode<13>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0x3b2",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::Sema::setVisitors(void) __ptr64'::`7'::<lambda_8>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xd2"
+          ]
+        },
+        {
+          "allocation_bytes": 1624,
+          "estimated_live_bytes": 2031616,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "private: void __cdecl swc::Sema::pushFrame(class swc::SemaFrame const & __ptr64) __ptr64+0x12b",
+            "public: __cdecl swc::Sema::Sema(class swc::TaskContext & __ptr64,class swc::NodePayload & __ptr64,bool) __ptr64+0x389",
+            "private: void __cdecl swc::CodeGenJob::initSemaAndCodeGen(void) __ptr64+0x8c",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x104",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 56,
+          "estimated_live_bytes": 1835008,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: struct swc::SanitizerState & __ptr64 __cdecl swc::SanitizerState::operator=(struct swc::SanitizerState const & __ptr64) __ptr64+0x361",
+            "private: void __cdecl swc::Sanitizer::propagate(struct swc::SanitizerState const & __ptr64,unsigned int,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x4e",
+            "private: void __cdecl swc::Sanitizer::propagateConditionalBranch(struct swc::SanitizerState const & __ptr64,struct swc::MicroInstrOperand const * __ptr64,class swc::SmallVector<unsigned int,2> const & __ptr64,class std::vector<unsigned int,class std::allocator<unsigned int> > & __ptr64) __ptr64+0x2e9",
+            "private: void __cdecl swc::Sanitizer::walkChain(unsigned int,struct swc::SanitizerState,class std::span<class swc::SanitizerCheck * __ptr64 const,-1>,class std::vector<unsigned int,class std::allocator<unsigned int> > * __ptr64,unsigned __int64 & __ptr64) __ptr64+0x1c26",
+            "public: virtual enum swc::Result __cdecl swc::MicroSanityPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0x1345",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x1a6",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 1517703,
+          "estimated_live_bytes": 1517703,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: struct std::pair<class swc::StrongRef<struct swc::MicroOperandRefTag>,struct swc::MicroInstrOperand * __ptr64> __cdecl swc::MicroOperandStorage::emplaceUninitArray(unsigned int) __ptr64+0x101",
+            "private: struct std::pair<class swc::StrongRef<struct swc::MicroInstrRefTag>,struct swc::MicroInstr & __ptr64> __cdecl swc::MicroBuilder::addInstructionWithRef(enum swc::MicroInstrOpcode,unsigned char) __ptr64+0xb2",
+            "void __cdecl swc::CodeGenMemoryHelpers::storePayloadToAddress(class swc::CodeGen & __ptr64,struct swc::MicroReg,struct swc::CodeGenNodePayload const & __ptr64,unsigned int)+0x118",
+            "enum swc::Result __cdecl swc::`anonymous namespace'::materializeSingleVarFromInit(class swc::CodeGen & __ptr64,class swc::SymbolVariable const & __ptr64,class swc::StrongRef<struct swc::AstNode>)+0x2fa",
+            "enum swc::Result __cdecl swc::codeGenPostNode<60>(class swc::CodeGen & __ptr64,struct swc::AstNode & __ptr64)+0x2ec",
+            "private: virtual enum swc::Result __cdecl std::_Func_impl_no_alloc<class `private: void __cdecl swc::CodeGen::setVisitors(void) __ptr64'::`2'::<lambda_5>,enum swc::Result,struct swc::AstNode & __ptr64>::_Do_call(struct swc::AstNode & __ptr64) __ptr64+0xef",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0xbf",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x1176",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 1506592,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: static class swc::SymbolVariable * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolVariable>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x5f",
+            "class swc::SymbolVariable & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolVariable>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstSingleVarDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x36",
+            "enum swc::Result __cdecl swc::semaPreNode<60>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0xb5",
+            "private: enum swc::Result __cdecl swc::Sema::preNode(struct swc::AstNode & __ptr64) __ptr64+0x48",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 1506592,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: void __cdecl swc::Symbol::setAttributes(class swc::TaskContext & __ptr64,struct swc::AttributeList const & __ptr64) __ptr64+0x16f",
+            "enum swc::Result __cdecl swc::SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(class swc::Sema & __ptr64,class swc::SymbolVariable & __ptr64,class swc::StrongRef<class swc::TypeInfo>)+0x53",
+            "enum swc::Result __cdecl swc::`anonymous namespace'::ensureMemberRuntimeStorage(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,struct swc::AstMemberAccessExpr const & __ptr64)+0x1fb",
+            "enum swc::Result __cdecl swc::`anonymous namespace'::memberStruct(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,struct swc::AstMemberAccessExpr & __ptr64,struct swc::SemaNodeView const & __ptr64,class swc::StrongRef<struct swc::Identifier> const & __ptr64,class swc::StrongRef<struct swc::Token>,bool,class swc::TypeInfo const & __ptr64)+0x867",
+            "enum swc::Result __cdecl swc::SemaHelpers::resolveMemberAccess(class swc::Sema & __ptr64,class swc::StrongRef<struct swc::AstNode>,struct swc::AstMemberAccessExpr & __ptr64,bool)+0x1fa3",
+            "private: enum swc::Result __cdecl swc::Sema::preNodeChild(struct swc::AstNode & __ptr64,class swc::StrongRef<struct swc::AstNode> & __ptr64) __ptr64+0x91",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x1e8",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7"
+          ]
+        },
+        {
+          "allocation_bytes": 65504,
+          "estimated_live_bytes": 1375584,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void * __ptr64 __cdecl swc::Arena::allocate(unsigned __int64,unsigned __int64) __ptr64+0x73",
+            "public: void __cdecl swc::Symbol::setAttributes(class swc::TaskContext & __ptr64,struct swc::AttributeList const & __ptr64) __ptr64+0x16f",
+            "enum swc::Result __cdecl swc::semaPreNode<61>(class swc::Sema & __ptr64,struct swc::AstNode & __ptr64)+0xfc",
+            "private: enum swc::Result __cdecl swc::Sema::preNode(struct swc::AstNode & __ptr64) __ptr64+0x48",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 1322031,
+          "estimated_live_bytes": 1322031,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "private: void __cdecl std::vector<struct swc::MicroSsaState::InstrInfo,class std::allocator<struct swc::MicroSsaState::InstrInfo> >::_Resize_reallocate<struct std::_Value_init_tag>(unsigned __int64,struct std::_Value_init_tag const & __ptr64) __ptr64+0xbd",
+            "private: void __cdecl swc::MicroSsaState::resetForBuild(class swc::MicroBuilder & __ptr64,class swc::MicroStorage & __ptr64,class swc::MicroOperandStorage & __ptr64,class swc::Encoder const * __ptr64) __ptr64+0x156",
+            "public: void __cdecl swc::MicroSsaState::build(class swc::MicroBuilder & __ptr64,class swc::MicroStorage & __ptr64,class swc::MicroOperandStorage & __ptr64,class swc::Encoder const * __ptr64) __ptr64+0x5e",
+            "public: virtual enum swc::Result __cdecl swc::MicroConstantFoldingPass::run(struct swc::MicroPassContext & __ptr64) __ptr64+0xab",
+            "enum swc::Result __cdecl swc::`anonymous namespace'::runLoopPasses(struct swc::MicroPassContext & __ptr64,class std::span<class swc::MicroPass * __ptr64 const,-1>,struct swc::A0xdc547dc9::LoopPassSettings const & __ptr64,struct swc::A0xdc547dc9::VerifyStateCache & __ptr64)+0x126",
+            "public: enum swc::Result __cdecl swc::MicroPassManager::run(struct swc::MicroPassContext & __ptr64)const __ptr64+0x2cd",
+            "public: enum swc::Result __cdecl swc::MachineCode::emit(class swc::TaskContext & __ptr64,class swc::MicroBuilder & __ptr64,struct swc::MicroReg,unsigned short,class swc::SymbolFunction const * __ptr64) __ptr64+0x11ba",
+            "public: enum swc::Result __cdecl swc::SymbolFunction::emit(class swc::TaskContext & __ptr64) __ptr64+0x194",
+            "public: virtual enum swc::JobResult __cdecl swc::CodeGenJob::exec(void) __ptr64+0x11eb",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        },
+        {
+          "allocation_bytes": 128,
+          "estimated_live_bytes": 1048576,
+          "stack": [
+            "void * __ptr64 __cdecl operator new(unsigned __int64)+0x0",
+            "public: void __cdecl std::_Hash_vec<class std::allocator<class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > > > >::_Assign_grow(unsigned __int64,class std::_List_unchecked_iterator<class std::_List_val<struct std::_List_simple_types<struct std::pair<void const * __ptr64 const,class swc::StrongRef<class swc::TypeInfo> > > > >) __ptr64+0x8b",
+            "public: __cdecl std::unordered_map<unsigned __int64,unsigned int,struct std::hash<unsigned __int64>,struct std::equal_to<unsigned __int64>,class std::allocator<struct std::pair<unsigned __int64 const ,unsigned int> > >::unordered_map<unsigned __int64,unsigned int,struct std::hash<unsigned __int64>,struct std::equal_to<unsigned __int64>,class std::allocator<struct std::pair<unsigned __int64 const ,unsigned int> > >(void) __ptr64+0xcd",
+            "public: __cdecl swc::SymbolMap::SymbolMap(struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,enum swc::SymbolKind,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE> const & __ptr64) __ptr64+0xc5",
+            "public: static class swc::SymbolFunction * __ptr64 __cdecl swc::Symbol::make<class swc::SymbolFunction>(class swc::TaskContext & __ptr64,struct swc::AstNode const * __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>,struct swc::AtomicEnumFlags<enum swc::SymbolFlagsE>)+0x89",
+            "class swc::SymbolFunction & __ptr64 __cdecl swc::SemaHelpers::registerSymbol<class swc::SymbolFunction>(class swc::Sema & __ptr64,struct swc::AstNode const & __ptr64,class swc::StrongRef<struct swc::Token>,class swc::StrongRef<struct swc::Identifier>)+0xed",
+            "public: enum swc::Result __cdecl swc::AstFunctionDecl::semaPreDecl(class swc::Sema & __ptr64)const __ptr64+0x2de",
+            "public: enum swc::AstVisitResult __cdecl swc::AstVisit::step(class swc::TaskContext const & __ptr64) __ptr64+0x374",
+            "private: enum swc::Result __cdecl swc::Sema::runCurrentVisit(void) __ptr64+0xc1",
+            "public: enum swc::Result __cdecl swc::Sema::execResult(void) __ptr64+0x2fe",
+            "public: virtual enum swc::JobResult __cdecl swc::SemaJob::exec(void) __ptr64+0x1c",
+            "private: static enum swc::JobResult __cdecl swc::JobManager::executeJob(class swc::Job & __ptr64)+0x3a",
+            "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class `private: void __cdecl swc::JobManager::growWorkersForLoadLocked(void) __ptr64'::`8'::<lambda_1> >,0>(void * __ptr64)+0x273",
+            "0x7ffbc3a3cd30",
+            "0x7ffbc423ccb7",
+            "0x7ffbc632caec"
+          ]
+        }
+      ]
+    }
+  ]
+}

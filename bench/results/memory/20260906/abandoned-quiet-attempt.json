@@ -1,0 +1,29 @@
+[
+  {
+    "exit": 0,
+    "wall_ms": 4971.5293,
+    "cpu_ms": 18921.875,
+    "peak_job_bytes": 594075648,
+    "peak_working_set": 543035392,
+    "peak_proc_bytes": 592793600,
+    "label": "A",
+    "workload": "core_devmode",
+    "iteration": 1,
+    "binary": "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+    "admission": "Status                    : ready\nAverageCpuPercent         : 14\nMaximumCpuPercent         : 15\nAvailablePhysicalGiB      : 10,2\nRequiredPhysicalGiB       : 8\nCommitHeadroomGiB         : 9,3\nRequiredCommitHeadroomGiB : 8",
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\swc.memory-baseline.exe",
+      "build",
+      "--num-cores",
+      "6",
+      "--rebuild",
+      "--silent",
+      "-w",
+      "C:\\Perso\\swag-lang\\swc-memory-release-20260906\\bin\\std",
+      "-m",
+      "core",
+      "-bc",
+      "devmode"
+    ]
+  }
+]

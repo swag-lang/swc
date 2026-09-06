@@ -6,6 +6,41 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
+
+- Recorded: 2026-08-22 21:23
+- Updated: 2026-09-06 18:42 — rechecked the complete native suite with both compilers; the historical failure did not recur
+- Area: compiler
+- Found while: validating the `x86-64-v3` baseline change with
+  `swc tools/unittests.swgs dm native -bc release`, on the first run after a `SWC_BUILD_NUM` bump
+  had invalidated every cache.
+- Observation: `bin/unittests/native/casts/autocast_pointer_receiver.swg:35` reported
+  `assertion does not hold: AutoCastStorage.lo == 16` from the JIT `#test` at line 31, which writes
+  a file-scope struct through a pointer receiver. Nothing faulted: the global simply did not hold
+  what the call had written. This widens the class compiler.core.021 and compiler.core.022 describe -- both of those
+  manifest as a hardware exception, so a run that survives is trusted; here a run survived and the
+  data was wrong, which no `#test` outside this one would have noticed.
+- Evidence: the failure reproduced twice in a row -- once in the full suite, once with
+  `--file-filter autocast_pointer_receiver` -- then never again. The same filtered command passed
+  5/5, the full suite passed, and a full cold-cache `--rebuild` of the same suite passed 2_919/2_919.
+  Stashing the change and running the same filtered test on the pre-change `bin/swc.exe` also
+  passed, so the two failures sit on the changed tree and the eight successes sit on the same
+  changed tree; the discriminator is not the diff. Both failures were on caches invalidated by the
+  version bump, which is the one condition the eight green runs did not share.
+- Historical follow-up (2026-08-24): the same assertion then fired on every complete
+  `swc tools/unittests.swgs native -bc release` run while the filtered command passed. Both
+  warm-cache runs and an untouched Release compiler showed that pattern, making the rest of the
+  compiled suite the strongest observed discriminator at that time.
+- Current verification (2026-09-06, compiler 0.0.390): the complete 3_018-test native suite
+  passes its JIT tests and generated executable with the DevMode compiler in both target
+  configurations, and with the Release compiler in `release`. The formerly deterministic
+  full-suite failure did not recur; these green runs do not identify its historical cause.
+- Next step: preserve the compiler identity, cache state and full input set if the failure
+  recurs. Reduce that failing state by halving the rest of the `native` directory while keeping
+  `casts/autocast_pointer_receiver.swg`, until the smallest set that still fails is known. Then
+  compare dumps of `setRange` and the `#test` body from that set and from the filtered one before
+  changing allocator behavior or global-segment publication.
+
 ### compiler.core.005 — Compiler memory has no attributed, enforced budget
 
 - Recorded: 2026-08-06 20:18
@@ -439,40 +474,6 @@ definition provider and does not consume resolved compiler symbols.
 - Next step: re-evaluate on the next occurrence. Persist the failing module when one happens and
   capture both `setSemaPayload` calls for the slice node before changing payload ownership; a
   reduction that does not fail on demand cannot be turned into a `bin/unittests/sema` case.
-
-### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
-
-- Recorded: 2026-08-22 21:23
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: compiler
-- Found while: validating the `x86-64-v3` baseline change with
-  `swc tools/unittests.swgs dm native -bc release`, on the first run after a `SWC_BUILD_NUM` bump
-  had invalidated every cache.
-- Observation: `bin/unittests/native/casts/autocast_pointer_receiver.swg:35` reported
-  `assertion does not hold: AutoCastStorage.lo == 16` from the JIT `#test` at line 31, which writes
-  a file-scope struct through a pointer receiver. Nothing faulted: the global simply did not hold
-  what the call had written. This widens the class compiler.core.021 and compiler.core.022 describe -- both of those
-  manifest as a hardware exception, so a run that survives is trusted; here a run survived and the
-  data was wrong, which no `#test` outside this one would have noticed.
-- Evidence: the failure reproduced twice in a row -- once in the full suite, once with
-  `--file-filter autocast_pointer_receiver` -- then never again. The same filtered command passed
-  5/5, the full suite passed, and a full cold-cache `--rebuild` of the same suite passed 2_919/2_919.
-  Stashing the change and running the same filtered test on the pre-change `bin/swc.exe` also
-  passed, so the two failures sit on the changed tree and the eight successes sit on the same
-  changed tree; the discriminator is not the diff. Both failures were on caches invalidated by the
-  version bump, which is the one condition the eight green runs did not share.
-- It is deterministic, and the discriminator is the suite, not the cache (2026-08-24). The same
-  assertion fires on every run of `swc tools/unittests.swgs native -bc release` and never on
-  `--file-filter autocast_pointer_receiver`, with a warm cache, with the release compiler built
-  from an untouched `master`, and equally with one carrying unrelated backend changes. So the
-  trigger is compiling the whole `native` suite as one module: the failing `#test` is the same,
-  and what changes around it is the rest of the sources. That also means the failure halts the
-  release run of that suite for everyone, and every file after `casts/` goes untested there.
-- Next step: bisect the suite by removing files rather than by repeating the run — take the
-  `native` directory, keep `casts/autocast_pointer_receiver.swg`, and halve the rest until the
-  smallest set that still fails is known. Then dump `setRange` and the `#test` body from that set
-  and from the filtered one and compare; two compiles of the same function that differ is what to
-  look for before the allocator or global-segment publication.
 
 ### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
 

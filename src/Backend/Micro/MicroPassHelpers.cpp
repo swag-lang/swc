@@ -11,6 +11,38 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// Logical complement of a branch condition at the CPU-flag level. The pairs
+// are exact complements over (CF, ZF, SF, OF, PF), so flipping is valid for
+// both integer and floating-point (unordered) comparisons. `Sign` has no
+// representable complement in the enum, so it (and anything unexpected)
+// reports failure and blocks the rewrite.
+bool MicroPassHelpers::invertCondition(MicroCond& outInverted, MicroCond cond)
+{
+    switch (cond)
+    {
+        case MicroCond::Equal: outInverted = MicroCond::NotEqual; return true;
+        case MicroCond::NotEqual: outInverted = MicroCond::Equal; return true;
+        case MicroCond::Zero: outInverted = MicroCond::NotZero; return true;
+        case MicroCond::NotZero: outInverted = MicroCond::Zero; return true;
+        case MicroCond::Less: outInverted = MicroCond::GreaterOrEqual; return true;
+        case MicroCond::GreaterOrEqual: outInverted = MicroCond::Less; return true;
+        case MicroCond::Greater: outInverted = MicroCond::LessOrEqual; return true;
+        case MicroCond::LessOrEqual: outInverted = MicroCond::Greater; return true;
+        case MicroCond::Below: outInverted = MicroCond::AboveOrEqual; return true;
+        case MicroCond::AboveOrEqual: outInverted = MicroCond::Below; return true;
+        case MicroCond::Above: outInverted = MicroCond::BelowOrEqual; return true;
+        case MicroCond::BelowOrEqual: outInverted = MicroCond::Above; return true;
+        case MicroCond::NotAbove: outInverted = MicroCond::Above; return true;
+        case MicroCond::Overflow: outInverted = MicroCond::NotOverflow; return true;
+        case MicroCond::NotOverflow: outInverted = MicroCond::Overflow; return true;
+        case MicroCond::Parity: outInverted = MicroCond::NotParity; return true;
+        case MicroCond::NotParity: outInverted = MicroCond::Parity; return true;
+        case MicroCond::EvenParity: outInverted = MicroCond::NotEvenParity; return true;
+        case MicroCond::NotEvenParity: outInverted = MicroCond::EvenParity; return true;
+        default: return false;
+    }
+}
+
 bool MicroPassHelpers::violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
 {
     if (!context.encoder || !ops)

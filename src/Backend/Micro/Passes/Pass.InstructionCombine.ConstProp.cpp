@@ -106,6 +106,66 @@ namespace InstructionCombine
         }
     }
 
+    // A select between zero and one is the condition itself. Reuse the adjacent,
+    // single-use source materialization for setcc, then widen its byte explicitly:
+    // the use/def model must not mistake setcc for a full-register definition.
+    bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+        const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+        const MicroReg           dst  = ops[0].reg;
+        const MicroReg           src  = ops[1].reg;
+        const MicroOpBits        bits = ops[3].opBits;
+        if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src ||
+            (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef sourceRef = ctx.previousRef(ref);
+        const MicroInstr*   source    = ctx.instruction(sourceRef);
+        if (!source || source->op != MicroInstrOpcode::LoadRegImm)
+            return false;
+        const MicroInstrOperand* sourceOps = source->ops(*ctx.operands);
+        if (sourceOps[0].reg != src || sourceOps[1].opBits != bits ||
+            sourceOps[2].hasWideImmediateValue() || sourceOps[2].valueU64 > 1)
+            return false;
+        const uint64_t sourceValue = sourceOps[2].valueU64;
+
+        const auto destinationDef = ctx.ssa->reachingDef(dst, ref);
+        if (!destinationDef.valid())
+            return false;
+        const auto* destinationValue = ctx.ssa->valueInfo(destinationDef.valueId);
+        if (!destinationValue || destinationValue->isPhi())
+            return false;
+        const MicroInstr* initial = ctx.instruction(destinationValue->instRef);
+        if (!initial || initial->op != MicroInstrOpcode::LoadRegImm)
+            return false;
+        const MicroInstrOperand* initialOps = initial->ops(*ctx.operands);
+        if (initialOps[1].opBits != bits || initialOps[2].hasWideImmediateValue() || initialOps[2].valueU64 != 1 - sourceValue)
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, src, sourceRef))
+            return false;
+
+        MicroCond condition = ops[2].cpuCond;
+        if (condition == MicroCond::Unconditional ||
+            (sourceValue == 0 && !MicroPassHelpers::invertCondition(condition, condition)))
+            return false;
+        if (!ctx.claimAll({sourceRef, ref}))
+            return false;
+
+        MicroInstrOperand setOps[2];
+        setOps[0].reg     = src;
+        setOps[1].cpuCond = condition;
+        ctx.emitRewrite(sourceRef, MicroInstrOpcode::SetCondReg, setOps);
+        MicroInstrOperand extendOps[4];
+        extendOps[0].reg    = dst;
+        extendOps[1].reg    = src;
+        extendOps[2].opBits = bits;
+        extendOps[3].opBits = MicroOpBits::B8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+        return true;
+    }
+
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst)
     {
         if (ctx.isClaimed(storeRef) || !ctx.ssa)

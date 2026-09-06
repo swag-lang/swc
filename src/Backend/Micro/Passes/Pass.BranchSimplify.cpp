@@ -503,38 +503,6 @@ namespace
         return changed;
     }
 
-    // Logical complement of a branch condition at the CPU-flag level. The pairs
-    // are exact complements over (CF, ZF, SF, OF, PF), so flipping is valid for
-    // both integer and floating-point (unordered) comparisons. `Sign` has no
-    // representable complement in the enum, so it (and anything unexpected)
-    // reports failure and blocks the rewrite.
-    bool invertBranchCondition(MicroCond cond, MicroCond& outInverted)
-    {
-        switch (cond)
-        {
-            case MicroCond::Equal: outInverted = MicroCond::NotEqual; return true;
-            case MicroCond::NotEqual: outInverted = MicroCond::Equal; return true;
-            case MicroCond::Zero: outInverted = MicroCond::NotZero; return true;
-            case MicroCond::NotZero: outInverted = MicroCond::Zero; return true;
-            case MicroCond::Less: outInverted = MicroCond::GreaterOrEqual; return true;
-            case MicroCond::GreaterOrEqual: outInverted = MicroCond::Less; return true;
-            case MicroCond::Greater: outInverted = MicroCond::LessOrEqual; return true;
-            case MicroCond::LessOrEqual: outInverted = MicroCond::Greater; return true;
-            case MicroCond::Below: outInverted = MicroCond::AboveOrEqual; return true;
-            case MicroCond::AboveOrEqual: outInverted = MicroCond::Below; return true;
-            case MicroCond::Above: outInverted = MicroCond::BelowOrEqual; return true;
-            case MicroCond::BelowOrEqual: outInverted = MicroCond::Above; return true;
-            case MicroCond::NotAbove: outInverted = MicroCond::Above; return true;
-            case MicroCond::Overflow: outInverted = MicroCond::NotOverflow; return true;
-            case MicroCond::NotOverflow: outInverted = MicroCond::Overflow; return true;
-            case MicroCond::Parity: outInverted = MicroCond::NotParity; return true;
-            case MicroCond::NotParity: outInverted = MicroCond::Parity; return true;
-            case MicroCond::EvenParity: outInverted = MicroCond::NotEvenParity; return true;
-            case MicroCond::NotEvenParity: outInverted = MicroCond::EvenParity; return true;
-            default: return false;
-        }
-    }
-
     // Fuse a materialized-boolean branch back onto the comparison flags that
     // produced it:
     //
@@ -674,7 +642,7 @@ namespace
 
             const MicroCond setCond = setOps[1].cpuCond;
             MicroCond       newCond = setCond;
-            if (branchOnBoolZero && !invertBranchCondition(setCond, newCond))
+            if (branchOnBoolZero && !MicroPassHelpers::invertCondition(newCond, setCond))
                 continue;
 
             jumpOps[0].cpuCond = newCond;
@@ -780,7 +748,7 @@ namespace
             bool            boolOne = false;
             if (setCond == jumpOps[0].cpuCond)
                 boolOne = true;
-            else if (!invertBranchCondition(setCond, invCond) || invCond != jumpOps[0].cpuCond)
+            else if (!MicroPassHelpers::invertCondition(invCond, setCond) || invCond != jumpOps[0].cpuCond)
                 continue;
 
             // The join must be exactly `cmp boolReg, 0` + a conditional jump.
@@ -1003,7 +971,7 @@ namespace
                 continue;
 
             MicroCond inverted = MicroCond::Unconditional;
-            if (!invertBranchCondition(condOps[0].cpuCond, inverted))
+            if (!MicroPassHelpers::invertCondition(inverted, condOps[0].cpuCond))
                 continue;
 
             ++it;
@@ -1016,7 +984,7 @@ namespace
     }
 
     // Conditions the cmov encoder can express. Every condition
-    // invertBranchCondition can produce is encodable; this only fences off
+    // MicroPassHelpers::invertCondition can produce is encodable; this only fences off
     // the unconditional marker defensively.
     bool conditionSupportsConditionalMove(const MicroCond cond)
     {
@@ -1107,7 +1075,7 @@ namespace
                 continue;
 
             MicroCond inverted = MicroCond::Unconditional;
-            if (!invertBranchCondition(jumpOps[0].cpuCond, inverted) || !conditionSupportsConditionalMove(inverted))
+            if (!MicroPassHelpers::invertCondition(inverted, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(inverted))
                 continue;
 
             conversions.push_back({.jumpRef = it.current, .bodyRef = bodyRef, .labelRef = labelRef, .cond = inverted, .fromImm = fromImm});
@@ -1775,7 +1743,7 @@ namespace
         uint32_t labelId = 0;
         if (!tryGetJumpTargetLabelId(labelId, jumpInst, jumpOps))
             return false;
-        if (!invertBranchCondition(jumpOps[0].cpuCond, out.moveCond) || !conditionSupportsConditionalMove(out.moveCond))
+        if (!MicroPassHelpers::invertCondition(out.moveCond, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(out.moveCond))
             return false;
 
         out.jumpRef = jumpRef;

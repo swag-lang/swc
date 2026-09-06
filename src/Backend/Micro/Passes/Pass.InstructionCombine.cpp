@@ -76,6 +76,7 @@ namespace
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldRelocatedAddressIntoAccess);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryDropRedundantZeroExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);

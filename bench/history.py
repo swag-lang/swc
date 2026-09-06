@@ -424,6 +424,7 @@ def condense(results, refs=None, baseline=None):
             "wall_ms": acc["wall_ms"],
             "adjusted_ms": acc["wall_ms"] / build_factor,
             "peak_mb": (acc.get("peak_bytes") or 0) / 1048576.0 or None,
+            "peak_working_set_mb": (acc.get("peak_working_set_bytes") or 0) / 1048576.0 or None,
             "samples": len(acc.get("samples") or []) or None,
             "index": None,
             "since": None,

@@ -37,7 +37,7 @@ the shared backlog conventions.
 
 ## Register allocation and frame-slot promotion
 
-### compiler.optimization.028 — Scalar float literals still reload in the raytrace pixel loop
+### compiler.optimization.028 — Nonzero float literals still reload in the raytrace pixel loop
 
 - Area: compiler/backend
 - Found while: comparing the unchanged `bench/src/swagnat/raytrace.swg` with both C++ ports on
@@ -45,17 +45,18 @@ the shared backlog conventions.
 - Evidence: the release pixel loop falls from 76 instructions / 21 memory operations to 65 / 18
   when the vertical conversion and arithmetic move to the scanline. Clang-cl emits 46 / 6 and
   MSVC 53 / 6, including its cold sqrt path. The remaining Swag memory operations comprise twelve
-  literal loads, three global loads and three argument stores. In particular, the three positive
-  zero arguments reload a constant while both C++ compilers clear their XMM registers.
+  literal loads, three global loads and three argument stores. On 2026-09-06, lowering positive
+  zero to an XMM clear removes three literal loads: the pixel loop is now 65 / 15, with nine
+  nonzero literal loads, three global loads and three argument stores. The other six benchmark
+  tasks retain their instruction and memory-operation counts, including each loop body.
 - Observation: before LICM these constants are floating `LoadRegImm` instructions. They become
   RIP-relative loads during legalization, after LICM's profitability filter has treated their
   single-use materializations as cheap. The conversion-web improvement adds two saved XMM
   registers outside both loops; further hoisting must account for that register pressure.
-- Next: lower exact positive-zero scalar literals to XMM clears, preserving negative zero and
-  relocations; then evaluate hoisting nonzero scalar literals using their eventual load cost.
+- Next: evaluate hoisting nonzero scalar literals using their eventual load cost.
   Compare each loop in all seven tasks before keeping either change. Do not reopen relocated
   address materialization hoisting, whose sha256 spill regression is documented in LICM.
-- Complete when: zero arguments no longer read memory and the remaining literal loads have a
+- Complete when: the remaining literal loads have a
   measured register-pressure decision, with native and script correctness coverage.
 
 ### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own

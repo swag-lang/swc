@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
+#include "Support/Core/DataSegment.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -296,6 +297,75 @@ SWC_TEST_BEGIN(Legalize_RewritesB8SignedMultiplyRegMemToRax)
     if (!hasBinaryRegRegDst(builder, rax, MicroOp::MultiplySigned, MicroOpBits::B8))
         return Result::Error;
     if (!hasLoadRegReg(builder, r14, rax))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Legalize_ClearsPositiveFloatZero)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const MicroReg dst : {MicroReg::floatReg(2), MicroReg::virtualFloatReg(1)})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(dst, ApInt(0, 64), bits);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runLegalizePass(builder, encoder));
+
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 1 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0 ||
+                !builder.codeRelocations().empty())
+                return Result::Error;
+
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::ClearReg)
+                    continue;
+                const MicroInstrOperand* ops = inst.ops(builder.operands());
+                if (ops[0].reg != dst || ops[1].opBits != bits)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Legalize_KeepsNonzeroFloatBitsAndAddresses)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t negativeZero = bits == MicroOpBits::B32 ? 0x80000000ULL : 0x8000000000000000ULL;
+        for (const uint64_t value : {negativeZero, uint64_t{1}})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(MicroReg::floatReg(2), ApInt(value, 64), bits);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runLegalizePass(builder, encoder));
+
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+                return Result::Error;
+        }
+    }
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegPtrImm(MicroReg::floatReg(2), 0);
+    builder.emitLoadRegDataSegmentReloc(MicroReg::floatReg(3), DataSegmentKind::GlobalZero, 0);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrImm) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 1)
         return Result::Error;
     return Result::Continue;
 }

@@ -642,3 +642,18 @@ as [app.capture.md](app.capture.md).
   addresses it: both leave the outcome a function of machine load.
 - Complete when: the scrollbar-reversal test's resident window is decided by the number of ticks
   fired and not by their duration, shown by the full `gui` suite passing under deliberate CPU load.
+
+### std.gui.053 — The gui5 color-widget smoke crashes in devmode
+
+- Evidence: on 2026-09-06, `bin/swc.dm.exe --num-cores 6 tools/examples.swgs dm smoke gui5
+  --rebuild --num-cores 6` ends with `0xC0000005` after launching the example. It reproduces
+  with the unmodified compiler built from `89c7c0e7a`, after rebuilding all eight dependencies
+  of `gui`, as well as with the positive-floating-zero optimization. The complete `gui` suite
+  passes 700 tests, including the color-picker and palette-picker tests. The initial Windows
+  application-error event identifies `gui5.exe` at RVA `0x23946`; neighboring workspace build
+  output had already advanced to `gui6`, so the last printed module is not the failing process.
+- Next: isolate the page and frame in `bin/examples/modules/gui5`, identify the failing function,
+  and reduce the lifetime or rendering path into the owning GUI test. If the cause is generated
+  code, also reduce it into a standalone compiler-suite test.
+- Complete when: the isolated smoke passes in devmode and release, and a regression test fails
+  without the root-cause fix.

@@ -123,6 +123,7 @@ def keep_workload(acc, r):
     acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
     acc["cpu_ms"] = r["cpu_ms"] if acc.get("cpu_ms") is None else min(acc["cpu_ms"], r["cpu_ms"])
     acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
+    acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0), r["peak_working_set_bytes"])
     acc.setdefault("samples", []).append(round(r["wall_ms"], 1))
 
 
@@ -167,6 +168,7 @@ def schedule(reps):
 def keep_build(acc, r, recipe):
     acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
     acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
+    acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0), r["peak_working_set_bytes"])
     acc["exe_bytes"] = os.path.getsize(recipe["exe"])
 
 

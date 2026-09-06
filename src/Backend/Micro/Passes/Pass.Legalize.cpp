@@ -380,6 +380,18 @@ namespace
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
 
+        // Positive zero needs no constant load or GP staging. Test its bits so
+        // negative zero keeps its sign, and leave address relocations intact.
+        if (inst.op == MicroInstrOpcode::LoadRegImm && ops[2].immediateValue().isZero())
+        {
+            std::array<MicroInstrOperand, 2> clearOps;
+            clearOps[0].reg    = dstReg;
+            clearOps[1].opBits = opBits;
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::ClearReg, clearOps);
+            removeInstruction(context, instRef);
+            return;
+        }
+
         // A literal float constant is better read out of the constant segment
         // than rebuilt in a register. The instruction-pointer-relative load below
         // is one instruction; the general-purpose staging further down is two,
@@ -432,10 +444,20 @@ namespace
         addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, scratchReg);
 
         std::array<MicroInstrOperand, 3> loadImmOps;
-        loadImmOps[0].reg    = scratchReg;
-        loadImmOps[1].opBits = opBits;
-        loadImmOps[2]        = ops[2];
-        context.instructions->insertDerivedBefore(*context.operands, instRef, inst.op, loadImmOps);
+        loadImmOps[0].reg              = scratchReg;
+        loadImmOps[1].opBits           = opBits;
+        loadImmOps[2]                  = ops[2];
+        const MicroInstrRef loadImmRef = context.instructions->insertDerivedBefore(*context.operands, instRef, inst.op, loadImmOps);
+
+        // The replacement GP load now owns the address materialization.
+        if (context.builder)
+        {
+            for (MicroRelocation& relocation : context.builder->codeRelocations())
+            {
+                if (relocation.instructionRef == instRef)
+                    relocation.instructionRef = loadImmRef;
+            }
+        }
 
         std::array<MicroInstrOperand, 3> moveOps;
         moveOps[0].reg    = dstReg;

@@ -550,7 +550,7 @@ namespace
             return Result::Continue;
         }
 
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, sizeOf);
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstAddressReg, srcPayload, sizeOf);
         return Result::Continue;
     }
 

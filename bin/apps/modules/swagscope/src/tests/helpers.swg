@@ -64,8 +64,10 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
     var steps = 0'u32
     while !window.pendingFile.isEmpty() and steps < 4_096
     {
-        if window.choiceLoad.started and !window.choiceLoad.isDone() do
-            Threading.Thread.sleep(1'ms)
+        // Classification can also be waiting for the previous viewer to retire.
+        // Complete worker jobs before advancing that transition; the new viewer
+        // starts its own work only after pendingFile has been cleared.
+        Jobs.waitAll()
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         steps += 1

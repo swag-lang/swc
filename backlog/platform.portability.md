@@ -247,6 +247,12 @@ Give single-instance/application messaging a portable contract. The Windows back
   `FindWindow`/`SendMessage`; another backend may use a local socket or bus. The public identifier,
   payload, delivery, timeout, and failure semantics must be the same.
 
+Swag Scope is a concrete consumer: an association launch currently creates another process.
+Forward its requested file to a running instance through this contract, preserving launch failure
+reporting and the receiving application's ownership of queued document opens.
+
+- Related: app.scope.001
+
 ## Tier B — Portable image and surface policy
 
 ### platform.portability.023 — System-icon retrieval and caching are coupled in native GUI code

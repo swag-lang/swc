@@ -199,50 +199,28 @@ unsafe legacy modes excluded from the default surface.
 
 ## Tier B — Regular expression throughput
 
-### std.core.019 — The last gaps between the regular-expression engine and the Rust crate
+### std.core.019 — Unambiguous regular-expression captures replay the search
 
-- Intent: keep `Parser.RegExp` at the speed of the fastest engine available, which is what the
-  rewrite of 2026-08-29 set out to reach.
-- Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
-  counting every match of the same pattern in memory, best of ten interleaved rounds. A plain
-  literal 1.1x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.4x slower,
-  `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 1.4x *faster*, a date with capture groups
-  1.5x slower, `[a-z]+ing` 2x, and `\w+` 1.6x. Nothing is more than 2x, and what is behind is
-  what matches often.
-- Next: what is left, in decreasing value:
-  - **A search still costs more to start than to run**, against roughly thirty nanoseconds for
-    the crate. Looking for every occurrence runs the engines from one loop rather than through
-    the façade once per match, tries the pattern at the offset itself where no scan can skip
-    ahead — a match found that way needs nothing read backwards — and collects its results in
-    batches. That took `\w+` from 3.2x to 2x and `[a-z]+ing` from 2.4x to 1.9x. What is left
-    is the prologue of an automaton call and the tuple it returns, both of which only the
-    backend can remove.
-  - **An anchored search is answered by the backtracking engine**, which walks one path
-    instead of advancing every branch together: a whole-line match with capture groups went
-    from 2.2 microseconds to 0.32. The simulation still answers the pattern that exhausts the
-    budget it is given, and it is the one that cannot explode.
-  - **Captures replay the search.** The backtracking engine reads the groups back over the span
-    the automata found — iteratively, without recursion, and reading the program through
-    pointers, which took it from three hundred and sixty nanoseconds to ninety on a ten-byte
-    date — but it still walks the pattern a second time. A pattern whose groups are unambiguous — most patterns
-    that parse a line — can have them read by a single pass with no branch set at all, which is
-    the crate's `onepass` engine and why its capture benchmark costs what its plain one costs.
-  - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate
-    reads thirty-two. That is a language matter, not a library one: see the `#simd` entries in
-    [cpu.simd.md](cpu.simd.md).
-- Compiling a pattern costs about eight microseconds for a small one, down from twenty-seven:
-  a byte set now counts what it is worth as bytes are added to it rather than by walking all
-  two hundred and fifty-six values per question, and the automata build their tables on the
-  first search rather than when the pattern is compiled — a pattern used only for a
-  whole-subject match never builds them at all. What is left is mostly the number of separate
-  allocations a compiled pattern makes.
-- What is not worth trying again: the automaton step itself. One step is a byte read, a class
-  read and a transition read, each depending on the one before it, and the loop measured four
-  nanoseconds a byte both inside the engine and in a six-instruction function written for the
-  experiment. That is the latency of three dependent loads on this machine.
-- Complete when: no benchmark in that set is more than 1.5x the crate, and captures cost what a
-  search without them costs.
-- Related: std.core.020
+- Evidence: `src/text/regexp` finds the matching span with its automata, then uses the iterative
+  backtracking engine to recover groups. The 2026-08-29 date-pattern measurement reduced that
+  replay from 360 ns to 90 ns, but capture extraction still walks the pattern a second time.
+  Anchored backtracking and lazy automaton construction are already implemented.
+- Next: identify patterns whose capture transitions are unambiguous and prototype capture
+  extraction during one forward pass. Keep the bounded fallback for patterns outside that subset.
+- Complete when: the capture corpus returns identical groups and spans, ambiguous patterns retain
+  the existing fallback, and interleaved measurements show the cost of the second walk removed.
+- Related: std.core.020, std.core.030
+
+### std.core.030 — Compiling a regular expression makes many separate allocations
+
+- Evidence: the 2026-08-29 small-pattern measurement fell from about 27 to 8 microseconds after
+  byte-set accounting and lazy automaton construction. The remaining allocation count was left
+  as a lead; it has not been isolated from parsing and program construction in a current profile.
+- Next: count allocations and bytes per compiled pattern, then test whether co-locating the
+  immutable program data improves compilation without retaining unused automata or excess memory.
+- Complete when: that attribution is reproducible and the allocation design is either improved
+  with equal matching behavior or retained for a measured reason.
+- Related: std.core.019
 
 ### std.core.020 — Unicode scripts and most derived properties are missing
 

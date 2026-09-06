@@ -44,27 +44,6 @@ being compiled by it.
   for exactly the header a defect needs. `std/video` already writes Matroska nowhere, so this is
   test tooling rather than a module feature.
 
-### repo.tooling.004 — A tool relaunched under the selected compiler can relaunch itself forever
-
-- Area: tooling
-- Found while: building the standard library under the interval allocator gate for compiler.optimization.024's A/B.
-- Observation: `relaunchToolIfNeeded` (`tools/src/context.swg`) re-runs the script under the
-  selected compiler with `--rebuild` whenever the running executable differs from the selected
-  one, and nothing marks the relaunched process as such. When that decision misfires in the
-  relaunched process, every generation rebuilds the tool's dependencies and spawns the next. It
-  misfired once: a fresh worktree, `SWC_INTERVAL_RA=*`, a user-supplied `--rebuild`, and a
-  checkpoint of the interval allocator compiling the tool's own `core` gate-on — 55 nested
-  `swc.dm.exe` processes in nine minutes, stopped by hand.
-- Evidence: 2026-08-27, branch `t563-r1` at `d0621af96`; the log repeats `swag run • tools`,
-  `module core`, `workspace std [core]`, `tuned 644 functions`. The same command with the
-  compiler that followed, and every variant with only one of the conditions, runs once; the
-  comparison that disagreed under the gate was not isolated.
-- Next: make the relaunch non-recursive — the relaunched process carries a marker (an
-  environment variable or a reserved argument) and refuses to relaunch again, reporting both
-  paths instead — then look for what disagreed under the gate.
-- Complete when: a relaunched tool is marked as such and never relaunches again, proven by the
-  four-condition reproducer above running once.
-
 ### repo.tooling.005 — An incremental Release build can mix two versions of the diagnostic table
 
 - Area: tooling
@@ -90,30 +69,6 @@ being compiled by it.
 - Complete when: an incremental Release build after ids are added to an `.inc` catalog either
   recompiles what depends on them, or cannot produce a binary whose reported id and printed text
   disagree.
-
-### repo.tooling.006 — A tag-gated source is compiled by nothing, because a tag is not part of the cache key
-
-- Area: tooling, compiler/incrementality
-- Found while: the Release rung of a repository health reset, reaching `vault.swgs` for the first
-  time since the missing-return rule landed
-- Observation: `bin/apps/modules/swagvault/src/tests/integration.win32.swg` opens with
-  `#global if WINDOWS and #hastag("vault.integration")`, so every ordinary build removes it. It had
-  stopped compiling a week earlier — `findFreeMountPoint` ends on `failWith`, which is a call, not
-  a `fail` — and nothing said so until someone needed the tag. It is the only source in `bin/` that
-  a tag switches on as a whole; the other thirteen `#hastag` sites gate expressions inside files
-  that are always compiled.
-- Why the obvious check does not work: `swc sema -w bin/apps -m swagvault --tag vault.integration`
-  answers `up-to-date` right after the untagged build, because the tag set is not part of the
-  artifact cache key. `vault.swgs` already works around this by passing `--rebuild` with the tag
-  (`tools/src/maintenance.swg`), and that rebuilds the workspace's std dependency copies too:
-  measured at 24.5 s on a warm tree, against 1.3 s for the semantic pass itself and 1 min 34 s for
-  the whole of `build.swgs`. Paying a quarter of the build campaign to compile one file is why this
-  is an entry rather than a check.
-- Next: put the registered tag set in the artifact cache key, so a tagged compilation of an
-  untagged artifact is a miss rather than a hit. `vault.swgs` can then drop its `--rebuild`, and a
-  tagged semantic pass becomes cheap enough for `build.swgs` to run one per tag-gated module.
-- Complete when: `swc sema` with a tag recompiles a module the untagged build just made, and
-  `build.swgs` fails when a `#hastag`-gated source stops compiling.
 
 ### repo.tooling.007 — Separate formatter input preparation from formatter cost
 

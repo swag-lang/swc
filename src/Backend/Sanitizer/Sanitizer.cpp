@@ -109,7 +109,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // are recomputed on the fly — storing a state per instruction (and copying it on
     // every worklist iteration) made big loopy functions take minutes.
     headStateIndex_.assign(n, K_NO_STATE);
-    headStateIndex_[0]  = 0;
+    headStateIndex_[0] = 0;
     uint32_t numStates = 1;
     for (uint32_t i = 1; i < n; i++)
     {
@@ -356,9 +356,9 @@ void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vecto
     bool changed;
     if (!reached_[index])
     {
-        reached_[index]     = 1;
+        reached_[index]      = 1;
         inState_[stateIndex] = edge;
-        changed             = true;
+        changed              = true;
     }
     else
     {

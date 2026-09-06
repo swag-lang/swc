@@ -26,6 +26,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->u32 fail
 
     var errors: u32
     var lineNumber = 0'u64
+    var entryCount = 0'u64
 
     for line in Tokenize.splitLines(content.toString())
     {
@@ -50,6 +51,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->u32 fail
         }
 
         let key = String.from(line[4 until parsed.end])
+        entryCount += 1
         if seen.contains(key)
         {
             Console.println("error: ", fileName, ":", lineNumber, ": duplicate backlog identifier ", key)
@@ -57,6 +59,12 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->u32 fail
         }
         else do
             seen.add(key)
+    }
+
+    if entryCount == 0 and errors == 0
+    {
+        Console.println("error: ", fileName, ": backlog domain has no entries")
+        errors += 1
     }
 
     return errors

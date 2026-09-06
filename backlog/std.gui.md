@@ -36,15 +36,6 @@ making clipboard completion depend on drag interaction.
 
 - Related: platform.portability.068
 
-### std.gui.002 — Vector resource overrides bypass the parsed cache
-
-The resource and language systems ship, but a disk override of `theme/widgets.svg` or
-`theme/icons.svg` registers in the bundle while rasterization still uses the process-wide parsed
-cache. Make vector overrides invalidate and replace that cache like fonts, theme sheets, and
-language files already do.
-
-- Related: std.gui.003, std.gui.004
-
 ## Tier B — Localization
 
 ### std.gui.003 — Construction-time text does not automatically retranslate
@@ -53,7 +44,7 @@ Define an automatic binding or required notification contract for text that was 
 construction. Command-driven surfaces and explicitly rebuilt grids already refresh; static text
 must not depend on each application remembering a manual handler.
 
-- Related: std.gui.002, std.gui.004
+- Related: std.gui.004
 
 ### std.gui.004 — French is the only shipped GUI translation
 
@@ -61,7 +52,7 @@ Add each additional shipped language as an independently reviewable resource con
 coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
 date/name data and plural selection instead of maintaining GUI-local culture tables.
 
-- Related: std.gui.002, std.gui.003
+- Related: std.gui.003
 
 ---
 
@@ -317,84 +308,7 @@ as [app.capture.md](app.capture.md).
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### std.gui.036 — Arming the headless modal driver for an absent button fails silently
-
-- Area: std/gui
-- Found while: the two `Swag Capture` dialog tests that did not pass — both armed a button their
-  dialog does not offer (`BtnYes` for `AboutDlg`, `BtnOk` for File Details), while each of those
-  boxes carries exactly one `Close` button under `BtnCancel`. Fixed in the tests.
-- Observation: `clickModalButtonWhenShown(id)` accepts any `WndId`. When no modal surface ever
-  exposes that id, the driver spins to `autoMaxFrames`, cancels the dialog, and leaves
-  `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
-  reads exactly like "the dialog never opened" even though it opened and was answered.
-- Evidence: `swc tools/apps.swgs dm test swagcapture` before the fix reported 2 of 126 not passing on
-  `Swag.assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
-  modal surface and a missing button ([headless.swg:242](../bin/std/modules/gui/src/testing/headless.swg#L242)),
-  and only the frame ceiling distinguishes them, after the fact.
-- Next step: separate the two outcomes in the driver. Remember, per stage, whether any modal
-  surface was ever seen while it was armed; on the timeout path report which of the two happened —
-  a modal that never appeared, or a modal that appeared without the requested button (naming the
-  ids it did offer). A `Debug.assert` on the second case turns a silent 60-frame spin into a
-  message that names the mistake.
-
 ## Keyboard interaction and focus
-
-### std.gui.037 — Escape in the property grid commits the edit it is supposed to cancel
-
-- Area: std/gui
-- Found while: putting the dialog keyboard model on its feet. `EditBox` now reverts to the text it
-  was given when it took the focus if — and only if — it carries
-  `EditBoxFlags.ReleaseFocusOnEnterOrEscape`, which is the flag that says the box is an edit of its
-  own. The property grid never lets its editors see either key, so its own answer to Escape is the
-  one that counts, and that answer is wrong.
-- Observation: `Properties.editKeyEvent` maps `Return` and `Escape` to the same
-  `commitEdit()` ([properties.keyboard.swg:186](../bin/std/modules/gui/src/controls/property/properties.keyboard.swg#L186)),
-  which moves the focus back to the grid view; the editor's `sigFocusLost` then writes the typed
-  value through. So typing over a value and pressing Escape stores what was typed. Every grid the
-  reader has ever used undoes it instead, and the undo stack makes the write a second surprise.
-- Evidence: `commitEdit()` is the only exit from edition mode; the two cases share one `case` arm.
-  `EditBox.restoreOriginalText` already exists and does exactly what cancelling needs, and
-  `EditBox.originalText` is captured on `FocusEvent.Gained`, so the value to put back is on hand.
-- Next step: split the arm. `Return` keeps `commitEdit()`; `Escape` restores the editor to the
-  value the row held before edition, then returns to navigation without notifying — for an
-  `EditBox` that is `restoreOriginalText()`, and a `ComboBox`/`Slider` row needs the equivalent
-  captured on the same focus event. Pin it with a headless test that types into a grid row, presses
-  Escape, and asserts both the stored value and the empty undo stack.
-
-### std.gui.038 — A control can hold the keyboard on a surface that refuses input
-
-- Area: std/gui
-- Found while: making the file box answer Escape and give the keyboard back on the way out.
-- Observation: `Wnd.setFocus` checks that the window itself is enabled and never that its surface
-  is ([wnd.swg:1651](../bin/std/modules/gui/src/wnd/wnd.swg#L1651)). While a box is up, every other
-  surface is disabled by `Application.doModalLoop`, yet anything still running on one of them — a
-  timer, a frame handler, a signal from a background job — can call `setFocus` and take
-  `keyboardFocusWnd` with it. Delivery is filtered afterwards by `Application.skipDisabled`, so the
-  keys are simply dropped: the box under the reader's hands goes deaf with nothing to say why.
-- Evidence: a surface now records its own focus (`Surface.noteFocus`), so a steal also writes a
-  control of the wrong surface into that record, and the box hands the keyboard to it when it
-  closes — the failure this file's neighbours were just fixed for, reachable by another route.
-- Next step: refuse the focus in `setFocus` when the target surface is disabled, then confirm no
-  legitimate caller places the focus before the surface it belongs to is enabled — the construction
-  paths and the `Surface.enable` ordering at the end of `doModalLoop` are what to check first. Pin
-  it with a headless test whose frame handler focuses a control of the caller surface while a
-  dialog runs, and which asserts the box still answers Escape.
-
-### std.gui.039 — A rich edit inside a dialog makes the box unanswerable from the keyboard
-
-- Area: std/gui
-- Found while: fixing the same defect in `ListView`, which is what a file box opens the keyboard on.
-- Observation: `RichEditView.onKeyEvent` marks every pressed key handled
-  ([view.swg:132](../bin/std/modules/gui/src/controls/richedit/view.swg#L132)) and declines
-  Escape and Enter only when the editor carries `RichEditFlags.AutoLoseFocus`. An editor without
-  that flag therefore eats Escape, Tab, and Shift+Tab, so a box built around one can be neither
-  dismissed nor traversed without the pointer.
-- Evidence: `Application.sendKeyboardEvents` reaches `routeUnhandledKey` — and through it the
-  shortcut chain and `Surface.navigateKey` — only for a key nobody accepted, which is exactly the
-  route `ListView` was blocking until this task.
-- Next step: decide which keys a rich edit really claims. Tab is deliberate and documented;
-  Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
-  way `EditBox.keyPressed` already does ([editbox.swg:493](../bin/std/modules/gui/src/controls/widgets/editbox.swg#L493)).
 
 ## Layout invalidation and alignment
 
@@ -419,33 +333,6 @@ as [app.capture.md](app.capture.md).
   given. The second keeps the drawn size and is the smaller change, but it needs the inset to come
   from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
   already describes itself.
-
-### std.gui.041 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
-
-- Area: std/gui
-- Found while: making a `FormLayoutCtrl` answer for its own height, so a card's help paragraph stops
-  being cut off in a longer translation
-- Observation: `invalidateLayout` sets `Wnd.layoutDirty`, `measure` clears it, and **nothing else in
-  the repository reads it**. So there is no deferred layout pass: a window whose content changed
-  without its rectangle changing is never re-arranged. `resize` returns early when the size is
-  unchanged, which is the common case for a re-labelled control — the band keeps its width and the
-  caption inside it needs more room.
-- Evidence: `grep -rn layoutDirty bin --include=*.swg` returns three sites, all writes
-  ([wnd.swg:302](../bin/std/modules/gui/src/wnd/wnd.swg#L302),
-  [wnd.swg:914](../bin/std/modules/gui/src/wnd/wnd.swg#L914),
-  [wnd.swg:980](../bin/std/modules/gui/src/wnd/wnd.swg#L980)). Measured directly: with
-  `FormLayoutCtrl` arranging only from `onResizeEvent`, Swag Vault's French "Parcourir" button stayed at
-  its English 104 while its own measure asked for 115, and `Testing.assertContentFits` caught it.
-  `VaultCard.endForm` now calls `form.computeLayout()` by hand for exactly this reason, and every
-  other container that arranges children carries the same latent hole — `invalidateLayout` reads
-  like a request and is a no-op.
-- Next step: decide whether the toolkit wants a layout pass at all. Either drain the dirty windows
-  once per frame — `Application.runFrame` already walks the surfaces, and the flag exists — which
-  makes `invalidateLayout` mean what it says and lets the hand-written `computeLayout` calls go; or
-  delete `layoutDirty` and `invalidateLayout` and make every mutator arrange immediately, which is
-  honest but pays the cost on each of the twenty-odd setters that call it today. Do not add a third
-  state. Pin whichever way it goes with a headless test that re-labels a control inside a docked
-  band and asserts the band re-measured without anything being resized.
 
 ## Text presentation and semantics
 
@@ -475,24 +362,6 @@ as [app.capture.md](app.capture.md).
   the offset of its face; that is the whole cost, and it is why the change stopped at the two
   widgets that draw a frame. Pin the decision with a headless test that puts one field of each
   family side by side and asserts their capitals share a center.
-
-### std.gui.043 — A message taller than the box's cap is still clipped
-
-- Area: std/gui
-- Found while: fixing the two-sentence error box that clipped its own message
-- Observation: `MessageDlg.adaptSizeToMessage` clamps its content height at `MaxMessageHeight`,
-  512 logical units or roughly thirty lines. Past that the box stops growing while the label goes
-  on centering its text, and the message is cut at both ends — the same failure the fit was just
-  corrected for, at a different length. The charter says a box is as tall as what it holds; above
-  the cap it is not.
-- Evidence: the `Math.min(MaxMessageHeight, ...)` in
-  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg). Reproduce by handing forty
-  lines to `MessageDlg.ok`.
-- Next step: decide what a box does when its message outgrows the screen, rather than a constant
-  standing in for that decision. Bound the surface by the owner monitor's work area — the platform
-  layer already resolves it for `Surface.constrainPositionToScreen` — and give the message a scroll
-  when the bound bites. Then extend the length sweep in `dialogs.layout.test.swg` past the cap: it
-  is written to walk lengths already and would have caught this one had it gone far enough.
 
 ### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
 
@@ -532,113 +401,33 @@ as [app.capture.md](app.capture.md).
   affected window's style cache and invalidation. Remove this lead if the corrected reproduction
   is stable.
 
-### std.gui.046 — A denser monitor frees the frames every stored icon points at
+### std.gui.049 — One dirty rectangle couples distant changes on a surface
 
-- Area: bin/std
-- Found while: giving Swag Scope's viewer selector one glyph per viewer (2026-08-21), which stores
-  an `Icon` per combo entry the way every toolbar already stores one per button.
-- Observation: `Gui.Icon` borrows `imageList`, and `Gui.IconSet.list` drops every list it owns
-  (`free`, which `Memory.delete`s each `ImageList`) as soon as it is asked for a scale sharper
-  than the one it built. `Surface.setDpiScaleRaw` raises `Theme.res.atlasScale` when a window
-  moves to a denser monitor, so the first `Theme.icon` call after that move frees the lists that
-  every previously handed-out `Icon` still points at — including the one inside every
-  `IconButton`, `MenuCtrl` item, `ListCtrl` row and `ComboBox` entry created before the move.
-- Evidence: code reading of `paint/iconset.swg` (`list`, `free`), `paint/icon.swg` (`imageList`
-  is a borrowed pointer painted through without a validity check), `paint/theme.swg`
-  (`ensureAtlasScale`) and `surface.swg` (`setDpiScaleRaw`). Nothing re-fetches a stored icon on
-  `NotifyKind.ThemeChanged`, and no notification is sent for the scale change at all.
-- Next step: reproduce by moving a surface holding icon-bearing controls from a 100% to a 150%
-  monitor and painting in `devmode`, with `allocatorFillMemory` enabled by the reproducer's module
-  setup so the freed list is caught rather than read back; then
-  either keep retired lists alive until the frame ends, or make `Icon` name its set and size and
-  resolve the list at paint time.
+- Evidence: `Surface.paintWnd` unions invalidations into one clip rectangle and paints the
+  hierarchy and chrome through it. A video picture and a distant timeline can therefore expand
+  a small update to most of the window. In the 2026-08-25 1650x915 logical-window measurement,
+  hierarchy recording cost 0.5 ms of CPU and chrome recording 0.7 ms; adapter work was the larger
+  cost. These are historical measurements, not a current frame budget.
+- Next: compare a bounded list of dirty rectangles with dirty-subtree clips on separated animated
+  widgets. Include overlapping effects, antialiasing and shadow extents so smaller clips cannot
+  leave stale pixels or repaint overlaps incorrectly.
+- Complete when: distant local changes stay local under a bounded invalidation policy, or the
+  single rectangle is retained for a measured reason, with paint/golden tests for the decision.
+- Related: std.gui.054
 
-### std.gui.047 — A splitter's first pane silently ignores the size it is added with
+### std.gui.054 — Presenting a small update still copies the whole surface render target
 
-- Area: bin/std
-- Found while: the Swag Scope history panel opened one row tall (2026-08-21), although it declares
-  `addPane(recentPane, ViewerRecentHeight)` with 188.
-- Observation: `SplitterCtrl.addPane` takes `paneSize` and uses it only from the second pane on.
-  For the first one it writes `item.size = paddedClientRect().height` instead — which is the right
-  answer for a splitter that already has a size, and zero for one built before its window has been
-  laid out once. The next `addPane` then transfers out of a pane holding nothing, the first layout
-  clamps it to `minimumSize`, and `preserveSize` freezes it there for the rest of the session. The
-  argument is never read, so nothing reports that the declared height was dropped.
-- Evidence: Swag Scope built its panel that way and got 88 (its `minimumSize`) where it asked for
-  188, both in the running application and in `panel`'s golden. The application now
-  re-applies the height in `setFilePanelVisible` after an explicit `applyLayout`, which is the
-  workaround this entry exists to remove.
-- Next step: either honor `paneSize` for the first pane when the splitter has no size yet and let
-  the first real layout distribute from it, or keep the size the caller asked for on the item and
-  apply it on the first resize that has room. Cover it with a splitter test that adds two panes
-  before the control is ever laid out and then resizes.
+- Evidence: `Surface.paintWnd` calls `drawTexture(dstRect, dstRect, ...)` for the whole surface.
+  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
+  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. The former synchronous
+  adapter wait is already gone from `RenderOgl.endImpl`.
+- Rejected approach: bounding that copy alone relied on preserved back-buffer contents. The
+  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy was
+  requested, so the unexercised partial-copy machinery was removed.
+- Next: measure whether surfaces that do not require compositing can render directly to the back
+  buffer. Keep the render target where effects need it; any different native presentation backend
+  must follow the target matrix in platform.portability.066.
+- Complete when: the whole-surface copy is avoided where valid, with equivalent pixels and
+  measured adapter cost, or retained for a measured compositing requirement.
+- Related: std.gui.049, platform.portability.066
 
-### std.gui.049 — One dirty rectangle for the whole surface makes two small changes cost the window
-
-- Area: bin/std
-- Found while: chasing the small, regular stalls the Swag Scope video viewer showed on the
-  3840x2160 25 fps recording (2026-08-24), and measured again on a 3840x2076 Main10 film
-  (2026-08-25).
-- Observation: `Surface.paintWnd` takes the union of everything invalidated since the last present
-  as a single clip rectangle, and paints the hierarchy and the border, silhouette and shadow passes
-  through it. Two widgets that changed at opposite ends of the window therefore cost as much as
-  repainting the window. A video player is the case that makes it visible: the picture fills the
-  content area and the timeline sits in the command bar, so any tick that touches both unions to
-  the whole client rectangle, and there is one such tick per presented picture at best.
-- Evidence: measured per pass with a synchronizing probe between them (2026-08-25,
-  release, Swag Scope on a 1650x915 logical window at 150%, so a 1.5 megapixel clip and a
-  3.4 megapixel one in device pixels; Intel Arc integrated adapter). Recording the hierarchy costs
-  0.5 ms of processor time and the three chrome passes 0.7; **executing the frame costs the adapter
-  13 to 21 ms**, of which the render-target pass is two thirds and the copy of that target to the
-  back buffer one third. The same window with the picture hidden costs the same, so this is the
-  cost of the passes and not of the video. It is also strongly load-dependent: with the decoder
-  running on eight threads the same frame took 70 to 215 ms, which is the adapter and the decoder
-  sharing one power and memory budget.
-- What is no longer part of it: the presentation used to block the caller until the adapter had
-  finished, so the whole of that figure was paid on the application thread once per picture. That
-  wait is gone (`RenderOgl.endImpl`), and the same run now presents every picture of a 23.976-fps
-  4K stream with 12 ms between two turns of the loop. What remains is adapter time, which limits
-  how much else the window can do per second rather than stalling one thread.
-- What the copy costs, measured directly (2026-09-01, release, Swag Capture on a maximized
-  3894x2142 window showing a 3894x2142 picture, the repaint driven by a moving 300 pixel box so
-  only 0.2 of the 8.34 megapixels is dirty): recording takes 0.3 ms and submitting the
-  render-target pass 0.1, while the present takes **3.1 ms of a 3.4 ms frame**. The copy is
-  `drawTexture(dstRect, dstRect, ...)` in `Surface.paintWnd`, which covers the whole surface
-  whatever the dirty rectangle was, so moving one widget copies the window.
-- Bounding that copy to the dirty region was tried and does not hold on its own: after
-  `SwapBuffers` the back buffer's content is undefined unless the granted pixel format names a
-  swap method, and the buffer only needs the last frame under `PFD_SWAP_COPY` or the last two
-  under `PFD_SWAP_EXCHANGE`. On the Intel Arc integrated adapter the granted format names
-  **neither**, including when `PFD_SWAP_COPY` is requested explicitly, so nothing may be assumed
-  and the bound stays inert. The machinery was removed rather than shipped unexercised.
-- Next step: get the copy out of the frame instead of bounding it. Either render the hierarchy
-  straight to the back buffer and keep the render target only for the surfaces that need
-  compositing, or find the per-drawable buffer age this platform will actually answer
-  (`DXGI` flip models expose it; WGL does not) before trusting a partial copy. Independently,
-  decide whether the clip should stay one rectangle: a short list of dirty rectangles, or painting
-  each dirty subtree under its own clip, would remove the coupling between two widgets that happen
-  to be far apart, which is the common shape for any animated widget beside a static one.
-
-### std.gui.050 — A wall-clock budget makes the markdown stream's resident window load-dependent
-
-- Area: gui
-- Found while: running the standard-library suite repeatedly to tell a stale golden apart from a
-  real failure.
-- Observation: `Markdown.View`'s streaming turn stops on elapsed time, not on work done —
-  `stopwatch.elapsedMicroseconds() >= StreamFrameBudget` (3 ms) in
-  `bin/std/modules/gui/src/controls/markdown/view.swg`. How much source one timer tick consumes is
-  therefore a fact about how busy the machine is. That is right for a window, which owes the reader
-  a frame; it makes a headless test that drives `fireTimers()` in a loop non-deterministic, because
-  where `residentStart` lands after a seek depends on how many bytes each of those ticks happened
-  to swallow.
-- Evidence: `markdownview.test.swg` (the scrollbar-reversal test, `#test` at line 973) failed at
-  `Swag.assert(view.residentStart < staleOffset / 2)` in one run of the full `gui` suite, and
-  passed in the four others; the same file run alone passed three times out of three. The suite
-  timings across those runs were 52 s, 1 min 12 s and 1 min 56 s for identical work, which is the
-  load spread the budget is reading.
-- Next: give the headless host a streaming turn that is bounded by work rather than by the clock —
-  a byte or block budget `Testing.HeadlessHost` installs — so `fireTimers()` converges to the same
-  resident window on any machine. Neither weakening the assertion nor raising the iteration cap
-  addresses it: both leave the outcome a function of machine load.
-- Complete when: the scrollbar-reversal test's resident window is decided by the number of ticks
-  fired and not by their duration, shown by the full `gui` suite passing under deliberate CPU load.

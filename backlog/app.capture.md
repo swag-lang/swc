@@ -212,39 +212,43 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
 
 ## Editor interactivity
 
-### app.capture.021 — Loading a capture blocks the interface for the duration of one inflate
+### app.capture.021 — Loading a capture blocks the interface during decode
 
-- Area: apps/swagcapture, std/core (Compress)
-- Found while: investigating the lag felt when clicking a capture in the recent strip. Automatic
-  saves now run on a worker, but selection still waits for `Capture.load` on the interface thread.
-- Observation: `RecentView.select` calls `Capture.load` synchronously on the interface thread, and
-  the whole cost of that load is inflating the background chunk. Nothing is shown in the meantime,
-  although the capture's own preview is already decoded and on screen in the strip that was just
-  clicked.
-- Evidence: measured 2026-08-15, release config, on `8_9_2025_15_43_58.scc` (13.5 MB on disk,
-  a photograph, 2341x1903 BGRA8). Whole load 431 ms, of which the background chunk is 388 ms
-  (12.8 MB read 12 ms, inflate ~350 ms, decoded CRC-32 ~25 ms); the TagBin decode of the image is
-  9 ms, the model chunk 0.2 ms, the header 0.6 ms, the preview PNG 5 ms. The library holds 746
-  captures, 4.01 GB on disk for 5.77 GB of decoded pixels, 7 MB of pixels per capture on average
-  and 47 MB at worst — so the average click pays ~170 ms and the worst ~1.2 s.
-- Since then (lever 4 below): the `Compress.Inflate` block loop was rewritten and the same load
-  measures ~210 ms, the background chunk 200 ms. Halved, still blocking, still the whole load.
-- Recorded compression tradeoff for this photographed content: this payload goes 17.0 -> 12.8 MB (1.33x) at BestSpeed, and only 12.5 MB (1.36x) at
-  Default or BestCompression; the whole library averages 1.44x. Re-encoding the same pixels as
-  PNG gives 11.0 MB but decodes in 377-409 ms, because PNG is the same inflate plus unfiltering.
-  So the current format spends ~350 ms of load to save ~30% of disk.
-- Next step: three levers remain, in decreasing value and increasing cost.
-  (1) Do not block the click: keep the preview on screen and swap in the full capture when the
-  decode lands, which removes the *felt* lag whatever the codec does. (2) Keep the last few
-  decoded captures alive in `RecentView`, since clicking back and forth through the history is
-  exactly the gesture that reloads what was just discarded. (3) Make the chunk codec a decision
-  instead of a constant: `Scc` already dispatches on a codec id, so a fast byte-oriented codec
-  (LZ4-class, decoding at GB/s for a ratio near 1.2) or plain stored bytes for payloads that do
-  not compress would cut the load to the read itself. Existing files keep loading through the
-  deflate path, so this is additive.
-  A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
-  what is left of it is a backend matter, in
-  [compiler.optimization.006](compiler.optimization.md#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).
+- Evidence: `RecentView.select` in `src/recentwnd.swg` flushes a pending save of the selected
+  file, then calls `Capture.load` synchronously. The recent strip already has its preview.
+  On the photographed 2341x1903 BGRA8 capture measured on 2026-08-15, the original load cost
+  431 ms; the subsequent inflate rewrite reduced it to about 210 ms. Both are historical
+  measurements of the same synchronous path, not current timing guarantees.
+- Next: make selection an owned asynchronous load that leaves the preview visible, respects
+  outstanding saves, and publishes only the result of the latest selection. Define cancellation,
+  failure presentation and window-close cleanup before moving the decode off the interface thread.
+- Complete when: delayed loads cannot freeze input or replace a newer selection, failed loads
+  leave a useful preview and diagnostic, and shutdown joins outstanding work.
+- Related: app.capture.024, app.capture.025, language.parallelism.001
+
+### app.capture.024 — Revisiting a recent capture decodes its full image again
+
+- Evidence: `RecentView` retains previews and zoom state in `src/recentwnd.swg`; selecting an
+  inactive item calls `Capture.load` again. The historical library sample averaged 7 MB of decoded
+  pixels per capture and reached 47 MB, so retaining every decoded capture is not a bounded policy.
+- Next: define a decoded-capture cache bounded by bytes, with ownership of the active editable
+  capture, save completion and on-disk replacement included in its invalidation contract.
+- Complete when: revisiting an unchanged cached capture avoids decode, a modified/replaced file
+  cannot reuse stale content, and the cache obeys its byte bound after selection and eviction.
+- Related: app.capture.021
+
+### app.capture.025 — Capture image chunks have no measured alternative to deflate
+
+- Evidence: capture persistence uses `Core.Scc` chunk codecs. The photographed payload measured
+  on 2026-08-15 compressed from 17.0 to 12.8 MB at BestSpeed and to 12.5 MB at the slower settings;
+  PNG decoded in 377–409 ms. Those measurements motivate a codec decision, not a format migration
+  without a representative corpus.
+- Next: compare stored and faster lossless chunk encodings on the same capture corpus, recording
+  decode CPU, peak memory and file size. Keep existing files readable through their codec id.
+- Complete when: a documented selection rule has measured benefits on representative captures,
+  and any new encoding round-trips with compatibility tests for existing deflate files.
+- Related: app.capture.021, compiler.optimization.006
+
 ### app.capture.023 — A property painter reading a stale selection is only caught in devmode
 
 - The bug is fixed; what remains is that the headless panel does not reproduce it, so nothing

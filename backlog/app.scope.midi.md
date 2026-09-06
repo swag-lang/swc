@@ -113,7 +113,7 @@ remain available in the Binary viewer.
   tempo map, and has a separate SMPTE duration branch. It accepts format values 0 through 2,
   but its tests cover only a format-0 PPQN score. SMPTE division, format 2 independent sequences,
   multiple End-of-Track cases, running status boundaries, RIFF RMID, karaoke conventions, huge delta
-  times, and conflicting tempo tracks is not presented as a tested contract.
+  times, and conflicting tempo tracks are not presented as a tested contract.
 - Next: document current semantics and add focused fixtures for every SMF format/division plus
   malformed chunk/event recovery before expanding formats.
 - Complete when: format 0/1/2 and PPQN/SMPTE behavior are declared and tested, caps report resource

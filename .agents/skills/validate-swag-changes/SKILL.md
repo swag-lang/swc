@@ -151,7 +151,9 @@ swc tools/apps.swgs dm test swagscope --test-file viewer.video.test.swg
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
 It removes non-matching source inputs, so it is unsafe for a module test that needs implementation
-files outside the test file.
+files outside the test file. Repeated filters intersect: every substring must occur in the input
+path. Prefer a filename substring; a path substring must use the host's directory separators.
+Check the reported input and test counts so an empty selection cannot serve as validation.
 
 Prefer a named application test file over all GUI tests:
 

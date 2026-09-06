@@ -71,8 +71,8 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `build.swgs` | Build every workspace |
 | `vault.swgs` | The privileged Swag Vault/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
-`tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, fully scoped
-domain file names, Markdown links, the README inventory, and the third-party notice contract -
+`tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, nonempty
+domains, fully scoped domain file names, Markdown links, the README inventory, and the third-party notice contract -
 every scoped `THIRDPARTY.md` is indexed and every `@NOTICE:` resolves - before it selects or
 starts a test campaign.
 
@@ -92,7 +92,9 @@ A program without `#test` is smoked: testing it would report zero tests and prov
 `--test-file` filters only the `#test` functions that execute; the whole owning module still
 compiles. Repeat it to select several files. `--file-filter` is different: it filters compiler
 input files and is suitable for standalone compiler suites, not module tests that need the rest
-of their implementation.
+of their implementation. Repeated file filters intersect: every substring must occur in the input
+path. Filename substrings avoid platform separator differences; a path substring must use the
+host's directory separators. Check the reported counts to confirm that the intended inputs ran.
 `--test-tag` also filters only execution and leaves the reusable test artifact unchanged. Repeated
 tags form a union; combined file and tag filters form an intersection.
 

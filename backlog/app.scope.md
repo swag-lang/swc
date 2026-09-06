@@ -21,10 +21,23 @@ ordered by expected product value, not implementation effort.
 
 ## Document lifecycle
 
-### app.scope.001 — One document per window and per process
+### app.scope.001 — One document per window
 
-- Intent: every association launch starts another process with one document. There is no tab, no
-  second document in the same window, and no side-by-side comparison of two files.
-- Complete when: a running instance is reused, documents open as tabs, and two documents can be
-  shown side by side.
-- Related: std.gui.029, app.scope.hexa.003 in [app.scope.hexa.md](app.scope.hexa.md)
+- Evidence: `src/main.swg` creates one `ViewerWindow`, which owns one active file and viewer.
+  Opening another file replaces that document; there is no document-tab host.
+- Next: adopt the GUI document-host contract with independent document ownership, close behavior,
+  focus and saved reading state. Keep process reuse behind platform.portability.022's messaging
+  contract, and side-by-side presentation separate.
+- Complete when: several documents can remain open as tabs in one window, and switching or closing
+  a tab preserves the other documents' state and outstanding-work ownership.
+- Related: std.gui.029, platform.portability.022, app.scope.003
+
+### app.scope.003 — Two documents cannot be shown side by side
+
+- Evidence: `ViewerWindow` has one active viewer surface. The application has no pair of independently
+  focused document panes; hexadecimal difference analysis remains a separate viewer capability.
+- Next: add a split presentation for two open documents with explicit focus and command routing,
+  preserving each viewer's reading state when moving between tabs and split panes.
+- Complete when: two documents remain visible and independently usable, and closing or replacing
+  either pane leaves the other's state and input intact.
+- Related: app.scope.001, app.scope.hexa.003

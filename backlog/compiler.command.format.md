@@ -20,8 +20,7 @@ an explicit opt-out (`--style preserve`) and a `style` key that rebases a config
 file's directory upward with parent inheritance
 ([FormatOptionsLoader.cpp](../src/Format/FormatOptionsLoader.cpp)); `--dump-config`;
 `swc-format off`/`on` regions; thirteen passes over a token-and-AST model; and C++ tests over 241
-cases, the best-tested subsystem in the compiler. On option count it is already in clang-format's
-league.
+cases (source inventory checked on 2026-09-06).
 
 The wrapping contract is settled and written down at the top of
 [Pass.Wrap.cpp](../src/Format/Pass.Wrap.cpp): layout is decided locally, one construct and one

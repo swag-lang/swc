@@ -362,9 +362,9 @@ Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed
    packaging, or shipped output changed.
 4. Run `swc tools/apps.swgs dm smoke <application>` when startup, the main loop, or packaged
    runtime behavior changed.
-5. Run any affected dedicated integration script. Keep tests that need UAC, drivers, hardware, or
-   visible interaction in an explicit `tools/test-<name>-integration.swgs`; do not surprise the
-   ordinary aggregate suite with a privilege prompt.
+5. Run any affected dedicated integration tool, such as `swc tools/vault.swgs dm` for Swag
+   Vault and WinFsp. Keep tests that need UAC, drivers, hardware, or visible interaction behind
+   these explicit tools; the ordinary aggregate suite must not prompt for privileges.
 6. Inspect packaged output for the executable, runtime dependencies, icon, licenses, and absence
    of installer or test debris when packaging changed.
 

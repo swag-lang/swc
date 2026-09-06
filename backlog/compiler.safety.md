@@ -41,28 +41,6 @@ is the current scorecard.
 
 ## Ownership of the heap
 
-### compiler.safety.016 — Compile-time execution is judged against summaries that are still growing
-
-- Area: compiler/sema, `SemaEscape`
-- Found while: building the CWE corpus, whose first wrapper cases would not fire.
-- Evidence: a release reached through one wrapper is reported when the body is code generated
-  the ordinary way, and silent when the same body is forced through `#run`. The difference is
-  timing, not analysis: the per-function summaries are chained by a mask fixpoint at the end of
-  `Sema::waitDone`, and a `#run` compiles its callee DURING sema, before the wrapper has been
-  given the transitive FREES bit its callee seeds. The base bit is set when the summary is
-  first recorded, which is why a direct call to the freeing function is judged either way.
-- Consequence: narrower than it first looked - ordinary programs get the check - but
-  compile-time execution is exactly where a missed use-after-free hurts most, because the fault
-  lands in the compiler's own heap and surfaces later inside an unrelated allocation.
-- Next: decide what a `#run` is entitled to. Either accept the weaker judgement and say so in
-  the reference next to `#run`, or make the JIT path run the fixpoint over the edges recorded so
-  far before compiling a body - the masks only grow, so an early pass is sound and merely
-  incomplete.
-- Complete when: the two wrapper cases in the corpus are reported through `#run` as well as
-  through ordinary code generation, or the reference states which checks a `#run` body does not
-  get and the corpus notes say so.
-- Related: compiler.safety.004 is what covers the shapes no must-analysis can prove.
-
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
 - Area: compiler/sema, language
@@ -249,32 +227,6 @@ is the current scorecard.
 
 
 ## Borrow invalidation
-
-### compiler.safety.013 — View invalidation is judged, or not, depending on what else the module contains
-
-- Area: compiler/sema, `SemaEscape`
-- Evidence: the entry used to say that a container reaching a body as a pointer parameter is
-  never judged. That is wrong, and the trace says why: `noteBorrowInvalidation` RECORDS the
-  parameter case exactly as it records a receiver rooted at `me`, and the report comes out. Two
-  runs of the same shape:
-  - `func f(bag: *Bag)` taking a view then calling `bag.add` — reported;
-  - the identical body against `Core.Array` — reported;
-  - the same file with one more function added before it, whose read sits in a call argument —
-    NEITHER function reported any more.
-  So the rule reaches the parameter shape, and whether the report survives depends on what else
-  the module contains.
-- Consequence: an analysis that is right but intermittent is worse than one with a known hole,
-  because a green build proves nothing. It also makes every measurement of this rule's coverage
-  unreliable, including the corpus's.
-- Next: find what the extra function changes. The deferred checks are judged at the end of
-  `Sema::waitDone` against summaries the fixpoint has just finished growing, so the first
-  suspects are the same as compiler.safety.016: a record whose `reallocates` bit is read before
-  the edge that would set it, and a `firstReadAfter` whose search window depends on the order
-  bodies were resolved in. Reproduce with two functions in one file before touching anything.
-- Complete when: the pair above reports in both orders and with either read position, and a
-  case with several judged functions in one file is pinned in `bin/unittests/sanity`.
-- Related: compiler.safety.016 is the same family — a judgement that depends on when it runs
-  rather than on what it can prove.
 
 ## The statement
 

@@ -65,7 +65,6 @@ command uses `compiler.command.doc`. A deliberately cross-cutting domain can rem
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` |
 | [std.truetype.md](std.truetype.md) | `std/truetype` |
 | [std.video.md](std.video.md) | `std/video` |
-| [std.win32.md](std.win32.md) | Windows native modules and their checked API boundary |
 
 Put an entry in the domain where it will be investigated or fixed, not where it happened to be
 noticed. Create a new domain file only when a real cluster forms; a category holding one isolated

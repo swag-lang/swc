@@ -133,23 +133,21 @@ Markdown as over code.
 - Complete when: repeated find advances match-by-match across and within blocks, and the match
   count is exposed to the host
 
-### std.gui.markdown.009 — A rendered document ignores a live language switch
+### std.gui.markdown.010 — No opt-in smart punctuation
 
-The engine's strings live in `Gui.Strings` with French translations, but an alert title is baked
-into its block's text at parse time, so a document already on screen keeps the previous language
-until it is reloaded — the same class of failure the menu bar once had, one widget over.
+- Evidence: the inline renderer preserves straight quotes, `--` and `...` as authored text.
+- Next: add a default-off style option for contextual quotes, dashes and ellipses, with an
+  explicit rule for existing punctuation and escaped input.
+- Complete when: enabling the option transforms prose while preserving code spans, math,
+  escaped punctuation and source-offset mapping used by search and selection.
+- Related: std.gui.markdown.011
 
-- Intent: a language switch restyles a rendered document's alert titles
-- Complete when: switching the language re-renders parsed alert blocks in place, in `createText`
-  and streamed documents alike
+### std.gui.markdown.011 — Emoji shortcodes remain source text
 
-### std.gui.markdown.010 — No typographic finish
+- Evidence: the inline renderer has no shortcode lookup; `:smile:` is rendered literally.
+- Next: define a versioned shortcode table and a default-off style option, preserving unknown
+  names and keeping code, math and escaped input outside the transform.
+- Complete when: known shortcodes render their emoji with correct search/selection offsets,
+  unknown names remain readable, and disabled mode preserves the authored text.
+- Related: std.gui.markdown.010
 
-Straight quotes stay straight, `--` never becomes an en dash, `...` never becomes an ellipsis,
-and `:smile:` renders as its source. Typora treats smart punctuation as an opt-in and readers
-expect emoji shortcodes anywhere GitHub-flavored text appears. Both are inline-renderer
-transforms behind a `Style` flag, default off.
-
-- Intent: opt-in smart punctuation and emoji shortcodes
-- Complete when: the flag converts quotes, dashes and ellipses without touching code spans or
-  math, and known shortcodes render their emoji

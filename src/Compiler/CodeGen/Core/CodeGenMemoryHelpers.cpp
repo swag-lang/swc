@@ -621,6 +621,31 @@ void CodeGenMemoryHelpers::emitConvertFloatToInt(CodeGen& codeGen, MicroReg dstR
         convertBits = MicroOpBits::B64;
     }
 
+    if (dstNumBits == 64 && dstType.isIntLikeUnsigned())
+    {
+        // The hardware conversion is signed. In the upper half of u64, subtracting
+        // 2^63 is exact and brings every valid source into its range; restoring the
+        // high bit after truncation then produces the unsigned result.
+        const MicroReg      boundaryReg = codeGen.nextVirtualFloatRegister();
+        const MicroReg      adjustedReg = codeGen.nextVirtualFloatRegister();
+        const MicroLabelRef lowerLabel  = builder.createLabel();
+        const MicroLabelRef doneLabel   = builder.createLabel();
+        builder.emitLoadRegImm(boundaryReg, ApInt(std::bit_cast<uint64_t>(0x1p63), 64), MicroOpBits::B64);
+        builder.emitCmpRegReg(srcReg, boundaryReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, lowerLabel);
+        builder.emitLoadRegReg(adjustedReg, srcReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(adjustedReg, boundaryReg, MicroOp::FloatSubtract, MicroOpBits::B64);
+        builder.emitClearReg(dstReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(dstReg, adjustedReg, MicroOp::ConvertFloatToInt, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(dstReg, ApInt(uint64_t{1} << 63, 64), MicroOp::Xor, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(lowerLabel);
+        builder.emitClearReg(dstReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToInt, MicroOpBits::B64);
+        builder.placeLabel(doneLabel);
+        return;
+    }
+
     builder.emitClearReg(dstReg, dstBits);
     builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToInt, convertBits);
 }

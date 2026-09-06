@@ -454,7 +454,7 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsCheapOrDistinctLiterals)
 {
     struct Case
     {
-        bool floating;
+        bool        floating;
         MicroOpBits firstBits;
         MicroOpBits secondBits;
         uint64_t    firstRaw;

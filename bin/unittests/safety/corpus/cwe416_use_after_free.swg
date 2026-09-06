@@ -47,10 +47,9 @@ func writeAfterFree()
 }
 
 // The release goes through one more wrapper, which inherits the summary through the fixpoint
-// that chains them. Note the absence of '#run' here: the summaries are final only once the
-// module is drained, so a body forced through the compile-time JIT before that is judged
-// against summaries that are still growing (compiler.safety.016). Reaching the body the
-// ordinary way is what exercises the rule.
+// that chains them. This case exercises ordinary code generation. The compile-time path is
+// covered by sanity/jit_use_after_free_summary.swg, which retains the allocation while #run
+// executes so a missing diagnostic cannot corrupt the compiler's heap.
 #[Swag.Sanity(.Lifecycle, true)]
 func releaseWrapper(pointer: *s32)
 {

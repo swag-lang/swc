@@ -21,7 +21,7 @@ struct SampleEntry
 //
 // A writer that knows every frame of a track begins with the same bytes may store them once and
 // strip them, so what lies in the file is not the whole frame. A decoder is handed the frame.
-func readStoredFrame(source: *Source, entry: SampleEntry, prefix: const [..] u8, payload: *Array'u8) fail
+func readStoredFrame(source: *ByteSource, entry: SampleEntry, prefix: const [..] u8, payload: *Array'u8) fail
 {
     let count      = prefix.count
     let totalCount = entry.size + count

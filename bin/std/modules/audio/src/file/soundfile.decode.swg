@@ -47,7 +47,7 @@ impl SoundFile
             }
 
             try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
-            var stream        = File.open(.path.toString(), File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
+            var source        = ByteSource.openFile(.path.toString())
             var packetBytes:  Array'u8
             var decodedBytes: Array'u8
             var discardFrames = .leadingTrim
@@ -56,9 +56,8 @@ impl SoundFile
             {
                 if packetBytes.count != packet.byteSize do
                     packetBytes.resize(packet.byteSize)
-                stream.seek(.Begin, packet.sourceOffset)
-                if stream.read(packetBytes.toSlice()) != packet.byteSize do
-                    fail InvalidFormatError{"compressed sound packet is truncated"}
+                source.seek(packet.sourceOffset)
+                source.readExact(packetBytes.toSlice())
 
                 let decodedSize = cast(u64) packet.sampleFrameCount * .channelCount * #sizeof(s16)
                 if decodedBytes.count != decodedSize do

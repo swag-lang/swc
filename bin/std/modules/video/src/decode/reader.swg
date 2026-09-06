@@ -18,7 +18,7 @@ internal struct DecoderDesc
 //
 // A decoder instance is created per [[Video.Reader]] and keeps whatever state its format
 // needs between frames. It never holds the stream: everything it reads comes from the
-// [[Video.Source]] it is handed, so a decoder written this way costs the same memory on a
+// [[Core.ByteSource]] it is handed, so a decoder written this way costs the same memory on a
 // ten-frame stream and on a ten-hour one.
 //
 // The two positioning operations are separate on purpose. `seekFrame` is where a format
@@ -39,19 +39,19 @@ interface IDecoder
     //
     // Fails when the stream is not in this decoder's format, is malformed, or uses features
     // the decoder does not support.
-    mtd open(source: *Source)->StreamInfo fail
+    mtd open(source: *ByteSource)->StreamInfo fail
 
     // Positions the decoder so the next decoded frame is `index`.
     //
     // Repositioning to the frame the decoder is already on does nothing, which is what makes
     // ordered playback free of seeks.
-    mtd seekFrame(source: *Source, index: u64) fail
+    mtd seekFrame(source: *ByteSource, index: u64) fail
 
     // Decodes the frame the decoder is positioned on into `target`, then advances to the next.
     //
     // `target` is reused when it already has the stream geometry and pixel format, and is
     // recreated otherwise, so a caller decoding a whole stream allocates one frame in total.
-    mtd decodeFrame(source: *Source, target: *Image) fail
+    mtd decodeFrame(source: *ByteSource, target: *Image) fail
 
     // Returns the first frame at or after `index` that decodes without any earlier frame.
     //
@@ -108,7 +108,7 @@ interface IPlanarDecoder
     // Decodes the frame the decoder is positioned on into `target`, then advances to the next.
     //
     // Answers the same picture [[Video.IDecoder.decodeFrame]] would, in the codec's own layout.
-    mtd decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
+    mtd decodeFramePlanes(source: *ByteSource, target: *PlanarFrame) fail
 }
 
 // Optional decoder capability exposing exact presentation timestamps.
@@ -134,7 +134,7 @@ struct Reader
 {
     internal
     {
-        source:          Source                          // Bytes of the encoded stream.
+        source:          ByteSource                      // Bytes of the encoded stream.
         info:            StreamInfo                      // What the decoder reported when opening.
         format:          StreamFormat                    // Format claimed by the selected decoder.
         decoder:         IDecoder?                       // Decoder instance owned by this reader.
@@ -212,7 +212,7 @@ impl Reader
     func open(fileName: string)->Reader fail
     {
         var result: retval
-        result.source = Source.openFile(fileName)
+        result.source = ByteSource.openFile(fileName)
         result.start(fileName)
         return result
     }
@@ -224,7 +224,7 @@ impl Reader
     func openMemory(fileName: string, bytes: const [..] u8)->Reader fail
     {
         var result: retval
-        result.source = Source.openMemory(bytes)
+        result.source = ByteSource.openMemory(bytes)
         result.start(fileName)
         return result
     }
@@ -289,7 +289,7 @@ impl Reader
     mtd const streamFormat()->StreamFormat => .format
 
     // Returns the file the reader streams, or an empty string for a memory stream.
-    mtd const sourcePath()->string => .source.sourcePath()
+    mtd const sourcePath()->string => .source.path()
 
     // Returns the frame width, in pixels.
     mtd const width()->s32 => .info.width

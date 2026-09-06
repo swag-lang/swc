@@ -40,15 +40,8 @@ private struct IndexEntry
     size:   u32     // Length of the frame payload, in bytes.
 }
 
-// Appends one value of the container's binary layout.
-private func(T) writeValue(sink: *Sink, value: T) fail
-{
-    var stored = value
-    sink.write(Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
-}
-
 // Rewrites one value of a header the sink already accepted.
-private func(T) patchValue(sink: *Sink, offset: u64, value: T) fail
+private func(T) patchValue(sink: *ByteSink, offset: u64, value: T) fail
 {
     var stored = value
     sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
@@ -82,7 +75,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
 
-    mtd impl begin(sink: *Sink, info: StreamInfo, options: any?) fail
+    mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
         if info.width > MaxFrameSide or info.height > MaxFrameSide do
             fail UnsupportedFormatError{"AVI frame dimensions exceed what the container can describe"}
@@ -94,40 +87,40 @@ impl IEncoder for Encoder
             .options = options.buffer![as EncodeOptions]
         }
 
-        writeValue(sink, RiffId)
-        writeValue(sink, 0'u32)
-        writeValue(sink, AviId)
+        sink.writeNative(RiffId)
+        sink.writeNative(0'u32)
+        sink.writeNative(AviId)
 
-        writeValue(sink, ListId)
-        writeValue(sink, cast(u32) HeaderListSize)
-        writeValue(sink, HeaderListId)
+        sink.writeNative(ListId)
+        sink.writeNative(cast(u32) HeaderListSize)
+        sink.writeNative(HeaderListId)
 
-        writeValue(sink, MainHeaderId)
-        writeValue(sink, cast(u32) #sizeof(MainHeader))
+        sink.writeNative(MainHeaderId)
+        sink.writeNative(cast(u32) #sizeof(MainHeader))
         .mainHeader = sink.position()
-        writeValue(sink, .createMainHeader())
+        sink.writeNative(.createMainHeader())
 
-        writeValue(sink, ListId)
-        writeValue(sink, cast(u32) StreamListSize)
-        writeValue(sink, StreamListId)
+        sink.writeNative(ListId)
+        sink.writeNative(cast(u32) StreamListSize)
+        sink.writeNative(StreamListId)
 
-        writeValue(sink, StreamHeaderId)
-        writeValue(sink, cast(u32) #sizeof(StreamHeader))
+        sink.writeNative(StreamHeaderId)
+        sink.writeNative(cast(u32) #sizeof(StreamHeader))
         .streamHeader = sink.position()
-        writeValue(sink, .createStreamHeader())
+        sink.writeNative(.createStreamHeader())
 
-        writeValue(sink, StreamFormatId)
-        writeValue(sink, cast(u32) #sizeof(Bmp.Header))
-        writeValue(sink, .createFormatHeader())
+        sink.writeNative(StreamFormatId)
+        sink.writeNative(cast(u32) #sizeof(Bmp.Header))
+        sink.writeNative(.createFormatHeader())
 
-        writeValue(sink, ListId)
+        sink.writeNative(ListId)
         .frameListSize = sink.position()
-        writeValue(sink, 0'u32)
+        sink.writeNative(0'u32)
         .frameList = sink.position()
-        writeValue(sink, FrameListId)
+        sink.writeNative(FrameListId)
     }
 
-    mtd impl addFrame(sink: *Sink, image: Image) fail
+    mtd impl addFrame(sink: *ByteSink, image: Image) fail
     {
         var frameOptions: Jpg.EncodeOptions
         frameOptions.quality = .options.quality
@@ -140,27 +133,27 @@ impl IEncoder for Encoder
         .reserve(sink, size)
 
         .index.add({cast(u32) (sink.position() - .frameList), cast(u32) size})
-        writeValue(sink, FrameChunkId)
-        writeValue(sink, cast(u32) size)
+        sink.writeNative(FrameChunkId)
+        sink.writeNative(cast(u32) size)
         sink.write(payload)
 
         // RIFF pads an odd payload so the next chunk starts on an even offset.
         if size & 1 do
-            writeValue(sink, 0'u8)
+            sink.writeNative(0'u8)
         .largestFrame = Math.max(.largestFrame, size)
     }
 
-    mtd impl end(sink: *Sink) fail
+    mtd impl end(sink: *ByteSink) fail
     {
         let frameEnd = sink.position()
-        writeValue(sink, IndexId)
-        writeValue(sink, cast(u32) (.index.count * IndexEntrySize))
+        sink.writeNative(IndexId)
+        sink.writeNative(cast(u32) (.index.count * IndexEntrySize))
         for entry in .index
         {
-            writeValue(sink, FrameChunkId)
-            writeValue(sink, IndexKeyFrame)
-            writeValue(sink, entry.offset)
-            writeValue(sink, entry.size)
+            sink.writeNative(FrameChunkId)
+            sink.writeNative(IndexKeyFrame)
+            sink.writeNative(entry.offset)
+            sink.writeNative(entry.size)
         }
 
         .patchTotals(sink, frameEnd)
@@ -176,7 +169,7 @@ private impl Encoder
     //
     // Every size in the container is a 32-bit field, so a stream that would run past four
     // gigabytes is refused while it is still correct rather than written with a size that wraps.
-    mtd const reserve(sink: *Sink, size: u64) fail
+    mtd const reserve(sink: *ByteSink, size: u64) fail
     {
         let projected = sink.position() + ChunkHeaderSize + size + 1 + ChunkHeaderSize + (.index.count + 1) * IndexEntrySize
         if projected > MaxStreamSize do
@@ -224,7 +217,7 @@ private impl Encoder
     }
 
     // Rewrites the header fields only the finished stream knows.
-    mtd const patchTotals(sink: *Sink, frameEnd: u64) fail
+    mtd const patchTotals(sink: *ByteSink, frameEnd: u64) fail
     {
         let frames = cast(u32) .index.count
 

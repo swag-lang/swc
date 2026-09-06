@@ -8,8 +8,8 @@
 
 using Core, Core.Errors
 
-// How much of a file the frame walk holds at once.
-private const ScanWindow = 64 * 1024'u64
+// Bytes the walk peeks at each frame: the sync frame fields both formats state their shape in.
+private const HeaderBytes = 8'u64
 
 // Opens a native AC-3 or E-AC-3 elementary stream as a streamed packet sound.
 //
@@ -17,24 +17,20 @@ private const ScanWindow = 64 * 1024'u64
 // one a file is comes from the caller's extension rather than from a guess.
 internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->SoundFile fail
 {
-    var stream = File.openRead(path)
-    let size   = try stream.size()
+    var source = try ByteSource.openFile(path)
+    let size   = source.size()
 
-    var window:  Array'u8
     var packets: Array'SoundPacket
     var at       = 0'u64
     var frames   = 0'u64
     var rate     = 0'u32
     var channels = 0'u32
 
-    while at + 8 <= size
+    while at + HeaderBytes <= size
     {
-        let want = Math.min(ScanWindow, size - at)
-        window.resize(want)
-        if !try stream.readExactAt(at, window.toSlice()) do
-            break
-
-        let info = encoding == .Eac3 ? try eac3FrameInfo(window.toSlice()) : try ac3FrameInfo(window.toSlice())
+        try source.seek(at)
+        let probe = try source.peek(HeaderBytes)
+        let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
         if !info.frameBytes or at + info.frameBytes > size do
             break
 
@@ -59,7 +55,7 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
     if !packets.count do
         fail InvalidFormatError{"file carries no Dolby sync frame"}
 
-    stream.close()
+    source.close()
     var config: Array'u8
     return try SoundFile.openPacketStream(path, encoding, rate, channels, frames, packets.toSlice(), config.toSlice())
 }

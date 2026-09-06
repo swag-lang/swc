@@ -144,14 +144,15 @@ public struct InlineView
 
     // Where this view sits in the reading order of every text view the document owns, which is
     // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
-    orderIndex:   u64
-    textLength:   u64     // Total bytes of the view's text, the upper bound of every offset into it.
-    layoutWidth:  f32
-    layoutHeight: f32
-    hotAtom:      *InlineAtom?
+    orderIndex:      u64
+    textLength:      u64     // Total bytes of the view's text, the upper bound of every offset into it.
+    layoutWidth:     f32
+    layoutHeight:    f32
+    hotAtom:         *InlineAtom?
+    standaloneImage: bool
     horizontalAlignment = StringHorzAlignment.Left
     searchStart         = Swag.U64.Max
-    searchEnd:    u64
+    searchEnd:       u64
 }
 
 impl InlineView
@@ -550,13 +551,20 @@ impl InlineView
         // Every atom takes its place in the view's text now, once, so a search, a hit test, a
         // selection and a copy all address the same coordinate without walking the atoms again.
         .textLength = 0
+        var imageCount = 0'u32
+        var hasText: bool
         for &atom in .atoms
         {
             atom.textStart = .textLength
             .textLength    += atomTextLength(atom)
+            if atom.isImage do
+                imageCount += 1
+            elif !atom.isSpace and !atom.isBreak do
+                hasText = true
         }
 
-        .layoutWidth = 0
+        .standaloneImage = .kind == .Paragraph and imageCount == 1 and !hasText
+        .layoutWidth     = 0
     }
 
     mtd padding()->Math.Vector4
@@ -698,9 +706,10 @@ impl InlineView
         for index in first until last where .atoms[index].visible do
             lineRight = Math.max(lineRight, .atoms[index].position.right())
         var shift: f32
-        if .horizontalAlignment == .Center do
+        let alignment = .standaloneImage ? .owner.documentStyle.imageAlignment : .horizontalAlignment
+        if alignment == .Center do
             shift = Math.max(right - lineRight, 0) * 0.5
-        elif .horizontalAlignment == .Right do
+        elif alignment == .Right do
             shift = Math.max(right - lineRight, 0)
 
         let stretch = .measureJustification(first, last, right, line, wrapped)

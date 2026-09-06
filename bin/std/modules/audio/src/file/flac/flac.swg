@@ -7,12 +7,14 @@
 
 using Core, Core.Errors
 
-// How much of the file the frame scan holds while looking for the end of one frame.
+// Bytes the longest frame header spans, clause 9.1: what the scan for the end of a frame peeks
+// at first.
 //
 // A frame carries at most 65,535 sample frames, so the largest one a legal stream can hold is a
-// little over two megabytes; the window grows to whatever a particular file turns out to need and
-// starts far below that, because a real encoder produces frames of a few kilobytes.
-private const ScanWindow = 64 * 1024'u64
+// little over two megabytes; the peek grows to whatever a particular file turns out to need and
+// starts at one header, because the read window of the source already looks ahead further than
+// the few kilobytes a real encoder produces.
+private const FrameHeaderBytes = 16'u64
 
 // The polynomial a FLAC frame header protects itself with, clause 9.1.
 private func headerCrc8(bytes: const [..] u8)->u8
@@ -90,13 +92,16 @@ private struct Prologue
 }
 
 // Reads the marker and the metadata blocks that precede the audio.
-private func readPrologue(stream: *File.FileStream, size: u64)->Prologue fail
+private func readPrologue(source: *ByteSource)->Prologue fail
 {
     var result: retval
 
-    var marker: [4] u8
-    let read = try stream.readExactAt(0, marker)
-    if !read or marker[0] != 'f' or marker[1] != 'L' or marker[2] != 'a' or marker[3] != 'C' do
+    let size = source.size()
+    if size < 4 do
+        fail InvalidFormatError{"file does not start with the FLAC stream marker"}
+    try source.seek(0)
+    let marker = try source.peek(4)
+    if marker[0] != 'f' or marker[1] != 'L' or marker[2] != 'a' or marker[3] != 'C' do
         fail InvalidFormatError{"file does not start with the FLAC stream marker"}
 
     var offset   = 4'u64
@@ -106,9 +111,8 @@ private func readPrologue(stream: *File.FileStream, size: u64)->Prologue fail
         if offset > size or size - offset < 4 do
             fail InvalidFormatError{"FLAC metadata block header is truncated"}
 
-        var header: [4] u8
-        if !try stream.readExactAt(offset, header) do
-            fail InvalidFormatError{"FLAC metadata block header is truncated"}
+        try source.seek(offset)
+        let header = try source.peek(4)
 
         let isLast = (header[0] & 0x80) != 0
         let kind   = header[0] & 0x7F
@@ -133,8 +137,8 @@ private func readPrologue(stream: *File.FileStream, size: u64)->Prologue fail
         fail InvalidFormatError{"FLAC file has no stream information block"}
 
     result.config.resize(offset)
-    if !try stream.readExactAt(0, result.config.toSlice()) do
-        fail InvalidFormatError{"FLAC metadata prologue is truncated"}
+    try source.seek(0)
+    try source.readExact(result.config.toSlice())
     result.firstFrame = offset
 
     // The codec answers what the block means, so the file reader and a container reader agree.
@@ -146,64 +150,54 @@ private func readPrologue(stream: *File.FileStream, size: u64)->Prologue fail
     return result
 }
 
+// Returns where the frame starting at `start` ends: at the next frame header, or at the end of
+// the file.
+//
+// The peek starts at one header and doubles until the next header is inside what it returned,
+// so a frame of any legal size is found without the file being read past it.
+private func findFrameEnd(source: *ByteSource, start: u64)->u64 fail
+{
+    let size = source.size()
+    var want = Math.min(FrameHeaderBytes, size - start)
+    for
+    {
+        try source.seek(start)
+        let bytes = try source.peek(want)
+        if !frameHeaderSize(bytes, 0) do
+            fail InvalidFormatError{"FLAC file does not start a frame where one is expected"}
+
+        var scan = 1'u64
+        while scan < bytes.count and !frameHeaderSize(bytes, scan) do
+            scan += 1
+        if scan < bytes.count do
+            return start + scan
+        if start + bytes.count >= size do
+            return size
+
+        want = Math.min(bytes.count * 2, size - start)
+    }
+}
+
 // Walks the audio frames of a file and records where each one starts and how long it plays.
 //
-// Only one frame is held in memory at a time, so indexing a long album costs its index and not
-// its audio.
-private func readFrameIndex(stream: *File.FileStream, size, firstFrame: u64, packets: *Array'SoundPacket)->u64 fail
+// Only the read window of the source is held at a time, so indexing a long album costs its
+// index and not its audio.
+private func readFrameIndex(source: *ByteSource, firstFrame: u64, packets: *Array'SoundPacket)->u64 fail
 {
-    var window: Array'u8
-    var start    = firstFrame
-    var loaded   = 0'u64     // Bytes of `window` that hold file content.
-    var capacity = ScanWindow
-    var total    = 0'u64
+    let size  = source.size()
+    var start = firstFrame
+    var total = 0'u64
 
     while start < size
     {
-        // Load a window at the frame start, growing it until the next frame header is inside it
-        // or the file ends.
-        var next = 0'u64
-        for
-        {
-            let want = Math.min(capacity, size - start)
-            if want != loaded
-            {
-                window.resize(want)
-                if !try stream.readExactAt(start, window.toSlice()) do
-                    fail InvalidFormatError{"FLAC audio frame is truncated"}
-                loaded = want
-            }
-
-            let bytes = window.toSlice()
-            if !frameHeaderSize(bytes, 0) do
-                fail InvalidFormatError{"FLAC file does not start a frame where one is expected"}
-
-            var scan = 1'u64
-            while scan < loaded and !frameHeaderSize(bytes, scan) do
-                scan += 1
-            if scan < loaded
-            {
-                next = start + scan
-                break
-            }
-
-            if start + loaded >= size
-            {
-                next = size
-                break
-            }
-
-            capacity *= 2
-            loaded   = 0
-        }
-
-        let count = try packetFrameCount(window.toSlice()[0 until Math.min(loaded, next - start)])
+        let next  = try findFrameEnd(source, start)
+        let frame = try source.peek(next - start)
+        let count = try packetFrameCount(frame[0 until next - start])
         if next - start > Swag.U32.Max do
             fail InvalidFormatError{"FLAC audio frame is larger than a packet may be"}
         packets.add({start, cast(u32) (next - start), count})
-        total  += count
-        start  = next
-        loaded = 0
+        total += count
+        start = next
     }
 
     return total
@@ -216,12 +210,11 @@ private func readFrameIndex(stream: *File.FileStream, size, firstFrame: u64, pac
 // FLAC track it carries.
 internal func openFile(path: string)->SoundFile fail
 {
-    var stream   = File.openRead(path)
-    let size     = try stream.size()
-    let prologue = try readPrologue(&stream, size)
+    var source   = try ByteSource.openFile(path)
+    let prologue = try readPrologue(&source)
 
     var packets: Array'SoundPacket
-    let frames = try readFrameIndex(&stream, size, prologue.firstFrame, &packets)
+    let frames = try readFrameIndex(&source, prologue.firstFrame, &packets)
     if !packets.count do
         fail InvalidFormatError{"FLAC file carries no audio frame"}
 
@@ -230,6 +223,6 @@ internal func openFile(path: string)->SoundFile fail
     if prologue.totalFrames and prologue.totalFrames <= frames do
         declared = prologue.totalFrames
 
-    stream.close()
+    source.close()
     return try SoundFile.openPacketStream(path, .Flac, prologue.sampleRate, prologue.channels, declared, packets.toSlice(), prologue.config.toSlice())
 }

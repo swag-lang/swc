@@ -229,7 +229,7 @@ impl IDecoder for Decoder
 {
     mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
 
-    mtd impl open(source: *Source)->StreamInfo fail
+    mtd impl open(source: *ByteSource)->StreamInfo fail
     {
         .header      = parseHeader(source.readLine(MaxLineBytes).toString())
         .payloadSize = framePayloadSize(.header.info.width, .header.info.height, .header.chromaMode)
@@ -261,7 +261,7 @@ impl IDecoder for Decoder
 
     mtd impl syncFrameAt(index: u64)->u64 => index
 
-    mtd impl seekFrame(source: *Source, index: u64) fail
+    mtd impl seekFrame(source: *ByteSource, index: u64) fail
     {
         if index == .nextIndex and .nextIndex != NoFrameIndex do
             return
@@ -293,7 +293,7 @@ impl IDecoder for Decoder
         .nextIndex = index
     }
 
-    mtd impl decodeFrame(source: *Source, target: *Image) fail
+    mtd impl decodeFrame(source: *ByteSource, target: *Image) fail
     {
         let current = .nextIndex
         .nextIndex = NoFrameIndex
@@ -316,7 +316,7 @@ private impl Decoder
     //
     // A marker may carry per-frame parameters after `FRAME`. They change nothing in the payload
     // that follows, but they do change where it starts, which is why the size is returned.
-    mtd readMarker(source: *Source)->u64 fail
+    mtd readMarker(source: *ByteSource)->u64 fail
     {
         var marker: [ShortMarkerSize] u8
         source.readExact(marker)
@@ -343,7 +343,7 @@ private impl Decoder
     //
     // The position of `source` is left wherever the probe stopped; the caller seeks back to the
     // first frame either way.
-    mtd probeLastFrame(source: *Source, frameCount: u64)->bool
+    mtd probeLastFrame(source: *ByteSource, frameCount: u64)->bool
     {
         if !frameCount do
             return false
@@ -353,7 +353,7 @@ private impl Decoder
     }
 
     // Fails unless a complete frame of the constant size starts at `offset`.
-    mtd checkFrameAt(source: *Source, offset: u64) fail
+    mtd checkFrameAt(source: *ByteSource, offset: u64) fail
     {
         source.seek(offset)
         if .readMarker(source) != .markerSize do

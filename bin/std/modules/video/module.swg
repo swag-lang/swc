@@ -29,8 +29,8 @@ for index in reader.frameCount() do
 ```
 
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]],
-selected by filename extension; both read and write through [[Video.Source]] and
-[[Video.Sink]], which are what make a codec independent of files and memory alike.
+selected by filename extension; both read and write through [[Core.ByteSource]] and
+[[Core.ByteSink]], which are what make a codec independent of files and memory alike.
 Four codecs ship in the box:
 
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4

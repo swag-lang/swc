@@ -100,14 +100,14 @@ src/encode/mp4/mp4.swg   Mp4.Encoder
 Decoding and encoding one format are two independent implementations that share only its binary
 layout, and that layout is declared on the decoding side, where reading it comes first.
 
-A codec reads through [[Video.Source]] and writes through [[Video.Sink]], which are what keep it
+A codec reads through [[Core.ByteSource]] and writes through [[Core.ByteSink]], which are what keep it
 independent of files and memory alike, and it implements random access itself: a fixed frame size
 computes an offset, an indexed container reads the index, and a format with inter-coded frames
 seeks to a keyframe and decodes forward.
 
 A container whose header carries a total it only learns at the end — the size of the file, the
 number of frames, the offset of an index — reserves that field when it writes the header and
-rewrites it with [[Video.Sink.patch]] once the last frame lands. That is what keeps a writer at
+rewrites it with [[Core.ByteSink.patch]] once the last frame lands. That is what keeps a writer at
 the memory cost of one frame instead of the cost of the result, and it is how the AVI encoder
 works.
 

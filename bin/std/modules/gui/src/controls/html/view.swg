@@ -1358,7 +1358,6 @@ internal impl HtmlView
         }
 
         result.applyLayout()
-        result.setInitialFocus(result)
         return result
     }
 
@@ -1443,6 +1442,7 @@ internal impl HtmlView
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
+        result.setInitialFocus(result)
         result.document.reserveForSource(source.count)
         result.parser.feed(source)
         result.parser.finish()
@@ -1453,6 +1453,7 @@ internal impl HtmlView
     }
 
     // Creates a complete HTML fragment that contributes its natural height to a parent document.
+    // Embedded fragments leave keyboard focus with their host during progressive loading.
     func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
@@ -1480,6 +1481,7 @@ internal impl HtmlView
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
+        result.setInitialFocus(result)
         result.loadFile(fileName)
         return result
     }

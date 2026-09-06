@@ -1,7 +1,7 @@
 # Video Backlog
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
-`Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
+`Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
 and MPEG-4 Part 2 in Matroska. File-backed ISO-BMFF and Matroska also expose streamed
 AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis,

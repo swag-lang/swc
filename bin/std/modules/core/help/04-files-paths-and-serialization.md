@@ -2,7 +2,7 @@
 
 [[Core.Path]] manipulates path text without accessing the filesystem.
 [[Core.File]] and [[Core.Directory]] perform filesystem operations.
-[[Core.File.FileStream]], [[Core.ByteStream]], and
+[[Core.File.FileStream]], [[Core.ByteStream]], [[Core.ByteSource]], [[Core.ByteSink]], and
 [[Core.File.TextReader]] support incremental I/O.
 
 ```swag
@@ -19,6 +19,42 @@ if File.exists(configPath)
 Use whole-file helpers for small resources and configuration. Prefer streams for
 large files, bounded memory use, or processing that can start before the complete
 file is available.
+
+## Decoding a file of any size
+
+[[Core.ByteSource]] and [[Core.ByteSink]] are what a codec reads and writes through. Each has a
+file backing and a memory backing behind the same operations, so a decoder written once reads a
+ten-hour recording and a byte slice alike, and a file source holds one read window whatever the
+length of the file. A read larger than the window goes straight to its destination;
+[[Core.ByteSource.peek]] lends the bytes ahead of the read position without copying them, which
+is how a walker over frame headers scans a file at the cost of its index.
+
+```swag
+using Core
+
+var source = try ByteSource.openFile("recording.mp3")
+while !source.isAtEnd()
+{
+    let header = try source.peek(4)
+    let length = frameLength(header)
+    try source.skip(length)
+}
+```
+
+A container writer reserves the totals of its header and fills them in once the last frame has
+landed: [[Core.ByteSink.patch]] rewrites bytes the sink already accepted, so writing a long
+stream costs the memory of one frame rather than the memory of the result.
+
+```swag
+using Core
+
+var sink = try ByteSink.createFile("clip.avi")
+let sizeField = sink.position()
+try sink.writeLittleEndian(0'u32)
+// ... frames ...
+try sink.patch(sizeField, sizeBytes)
+try sink.close()
+```
 
 ## Memory-mapped files
 

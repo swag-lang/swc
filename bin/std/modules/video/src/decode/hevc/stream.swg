@@ -371,7 +371,7 @@ impl HevcStream
     }
 
     // Decodes the picture with the current display rank and hands over its planes unconverted.
-    mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
+    mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
         let frame = try .nextDisplayFrame(source)
         frame.writePlanar(target)
@@ -379,7 +379,7 @@ impl HevcStream
     }
 
     // Decodes the picture with the current display rank and converts it to packed colour.
-    mtd decodeNext(source: *Source, target: *Image) fail
+    mtd decodeNext(source: *ByteSource, target: *Image) fail
     {
         var planes: PlanarFrame
         try .decodeNextPlanes(source, &planes)
@@ -387,7 +387,7 @@ impl HevcStream
     }
 
     // Decodes until the picture of the current display rank is available.
-    private mtd nextDisplayFrame(source: *Source)->*Frame fail
+    private mtd nextDisplayFrame(source: *ByteSource)->*Frame fail
     {
         for
         {
@@ -520,7 +520,7 @@ impl HevcStream
         return HevcNoLane
     }
 
-    private mtd startFrame(source: *Source)->bool fail
+    private mtd startFrame(source: *ByteSource)->bool fail
     {
         let lane = .reserveLane()
         if lane == HevcNoLane do
@@ -587,7 +587,7 @@ impl HevcStream
         return true
     }
 
-    private mtd fillFrameThreads(source: *Source) fail
+    private mtd fillFrameThreads(source: *ByteSource) fail
     {
         .ensureFrameThreads()
         while .threadedCount < .laneCount and !.reachedEnd
@@ -597,7 +597,7 @@ impl HevcStream
         }
     }
 
-    private mtd decodeStoredSample(source: *Source)->DecodedHevcSample fail
+    private mtd decodeStoredSample(source: *ByteSource)->DecodedHevcSample fail
     {
         try .fillFrameThreads(source)
         if .threadedCount == 0 do

@@ -29,49 +29,33 @@ private struct EncodedFrame
 }
 
 // Appends one byte.
-private func writeU8(sink: *Sink, value: u8) fail
-{
-    var stored = value
-    sink.write(Swag.makeSlice(&stored, 1))
-}
+private func writeU8(sink: *ByteSink, value: u8) fail => sink.writeByte(value)
 
 // Appends a big-endian 16-bit integer.
-private func writeU16(sink: *Sink, value: u16) fail
-{
-    var bytes: [2] u8 = [cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)]
-    sink.write(bytes)
-}
+private func writeU16(sink: *ByteSink, value: u16) fail => sink.writeBigEndian(value)
 
 // Appends a big-endian 32-bit integer.
-private func writeU32(sink: *Sink, value: u32) fail
-{
-    var bytes: [4] u8 = [cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)]
-    sink.write(bytes)
-}
+private func writeU32(sink: *ByteSink, value: u32) fail => sink.writeBigEndian(value)
 
 // Appends a big-endian 64-bit integer.
-private func writeU64(sink: *Sink, value: u64) fail
-{
-    writeU32(sink, cast(u32) (value >> 32))
-    writeU32(sink, cast(u32) (value & 0xFFFF_FFFF))
-}
+private func writeU64(sink: *ByteSink, value: u64) fail => sink.writeBigEndian(value)
 
 // Rewrites a big-endian 32-bit integer.
-private func patchU32(sink: *Sink, offset: u64, value: u32) fail
+private func patchU32(sink: *ByteSink, offset: u64, value: u32) fail
 {
-    var bytes: [4] u8 = [cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)]
-    sink.patch(offset, bytes)
+    let stored = Math.nativeToBigEndian(value)
+    sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(u32)))
 }
 
 // Rewrites a big-endian 64-bit integer.
-private func patchU64(sink: *Sink, offset: u64, value: u64) fail
+private func patchU64(sink: *ByteSink, offset: u64, value: u64) fail
 {
-    var bytes: [8] u8 = [cast(u8) ((value >> 56) & 0xFF), cast(u8) ((value >> 48) & 0xFF), cast(u8) ((value >> 40) & 0xFF), cast(u8) ((value >> 32) & 0xFF), cast(u8) ((value >> 24) & 0xFF), cast(u8) ((value >> 16) & 0xFF), cast(u8) ((value >> 8) & 0xFF), cast(u8) (value & 0xFF)]
-    sink.patch(offset, bytes)
+    let stored = Math.nativeToBigEndian(value)
+    sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(u64)))
 }
 
 // Starts a compact box and returns its stream offset.
-private func beginBox(sink: *Sink, kind: u32)->u64 fail
+private func beginBox(sink: *ByteSink, kind: u32)->u64 fail
 {
     let start = sink.position()
     writeU32(sink, 0)
@@ -80,7 +64,7 @@ private func beginBox(sink: *Sink, kind: u32)->u64 fail
 }
 
 // Finishes a compact box by patching its size.
-private func endBox(sink: *Sink, start: u64) fail
+private func endBox(sink: *ByteSink, start: u64) fail
 {
     let size = sink.position() - start
     if size > Swag.U32.Max do
@@ -89,7 +73,7 @@ private func endBox(sink: *Sink, start: u64) fail
 }
 
 // Writes the version and 24-bit flags of a full box.
-private func writeFullBox(sink: *Sink, version: u8, flags: u32) fail
+private func writeFullBox(sink: *ByteSink, version: u8, flags: u32) fail
 {
     writeU8(sink, version)
     writeU8(sink, cast(u8) ((flags >> 16) & 0xFF))
@@ -98,7 +82,7 @@ private func writeFullBox(sink: *Sink, version: u8, flags: u32) fail
 }
 
 // Writes the identity transform used by movie and track headers.
-private func writeIdentityMatrix(sink: *Sink) fail
+private func writeIdentityMatrix(sink: *ByteSink) fail
 {
     const Matrix: [9] u32 = [0x0001_0000, 0, 0, 0, 0x0001_0000, 0, 0, 0, 0x4000_0000]
     for value in Matrix do
@@ -126,7 +110,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
 
-    mtd impl begin(sink: *Sink, info: StreamInfo, options: any?) fail
+    mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
         if info.width > MaxFrameSide or info.height > MaxFrameSide do
             fail UnsupportedFormatError{"MP4 frame dimensions exceed what the visual sample entry can describe"}
@@ -146,7 +130,7 @@ impl IEncoder for Encoder
         writeU64(sink, 0)
     }
 
-    mtd impl addFrame(sink: *Sink, image: Image) fail
+    mtd impl addFrame(sink: *ByteSink, image: Image) fail
     {
         if .frames.count >= Swag.U32.Max do
             fail UnsupportedFormatError{"MP4 stream exceeds the frame count its sample tables can describe"}
@@ -163,7 +147,7 @@ impl IEncoder for Encoder
         sink.write(payload)
     }
 
-    mtd impl end(sink: *Sink) fail
+    mtd impl end(sink: *ByteSink) fail
     {
         if !.frames.count do
             fail BadParameterError{"MP4 stream needs at least one frame"}
@@ -182,7 +166,7 @@ private impl Encoder
         return .frames.count * delta
     }
 
-    mtd const writeFileType(sink: *Sink) fail
+    mtd const writeFileType(sink: *ByteSink) fail
     {
         let box = beginBox(sink, FileTypeId)
         writeU32(sink, IsomBrandId)
@@ -193,7 +177,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeMovie(sink: *Sink) fail
+    mtd const writeMovie(sink: *ByteSink) fail
     {
         let box = beginBox(sink, MovieId)
         .writeMovieHeader(sink)
@@ -201,7 +185,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeMovieHeader(sink: *Sink) fail
+    mtd const writeMovieHeader(sink: *ByteSink) fail
     {
         let box = beginBox(sink, MovieHeaderId)
         writeFullBox(sink, 1, 0)
@@ -221,7 +205,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeTrack(sink: *Sink) fail
+    mtd const writeTrack(sink: *ByteSink) fail
     {
         let box = beginBox(sink, TrackId)
         .writeTrackHeader(sink)
@@ -229,7 +213,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeTrackHeader(sink: *Sink) fail
+    mtd const writeTrackHeader(sink: *ByteSink) fail
     {
         let box = beginBox(sink, TrackHeaderId)
         writeFullBox(sink, 1, 7)
@@ -250,7 +234,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeMedia(sink: *Sink) fail
+    mtd const writeMedia(sink: *ByteSink) fail
     {
         let box = beginBox(sink, MediaId)
         .writeMediaHeader(sink)
@@ -259,7 +243,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeMediaHeader(sink: *Sink) fail
+    mtd const writeMediaHeader(sink: *ByteSink) fail
     {
         let box = beginBox(sink, MediaHeaderId)
         writeFullBox(sink, 1, 0)
@@ -272,7 +256,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeHandler(sink: *Sink) fail
+    mtd const writeHandler(sink: *ByteSink) fail
     {
         let box = beginBox(sink, HandlerId)
         writeFullBox(sink, 0, 0)
@@ -285,7 +269,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeMediaInfo(sink: *Sink) fail
+    mtd const writeMediaInfo(sink: *ByteSink) fail
     {
         let box = beginBox(sink, MediaInfoId)
         .writeVideoMediaHeader(sink)
@@ -294,7 +278,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeVideoMediaHeader(sink: *Sink) fail
+    mtd const writeVideoMediaHeader(sink: *ByteSink) fail
     {
         let box = beginBox(sink, VideoMediaHeaderId)
         writeFullBox(sink, 0, 1)
@@ -305,7 +289,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeDataInfo(sink: *Sink) fail
+    mtd const writeDataInfo(sink: *ByteSink) fail
     {
         let dinf = beginBox(sink, DataInfoId)
         let dref = beginBox(sink, DataReferenceId)
@@ -318,7 +302,7 @@ private impl Encoder
         endBox(sink, dinf)
     }
 
-    mtd const writeSampleTable(sink: *Sink) fail
+    mtd const writeSampleTable(sink: *ByteSink) fail
     {
         let box = beginBox(sink, SampleTableId)
         .writeSampleDescription(sink)
@@ -329,7 +313,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeSampleDescription(sink: *Sink) fail
+    mtd const writeSampleDescription(sink: *ByteSink) fail
     {
         let stsd = beginBox(sink, SampleDescriptionId)
         writeFullBox(sink, 0, 0)
@@ -364,7 +348,7 @@ private impl Encoder
     }
 
     // Identifies the generic `mp4v` sample entry as ISO/IEC 10918-1 JPEG.
-    mtd const writeElementaryStreamDescriptor(sink: *Sink) fail
+    mtd const writeElementaryStreamDescriptor(sink: *ByteSink) fail
     {
         let box = beginBox(sink, ElementaryStreamId)
         writeFullBox(sink, 0, 0)
@@ -390,7 +374,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeTimeToSample(sink: *Sink) fail
+    mtd const writeTimeToSample(sink: *ByteSink) fail
     {
         let box = beginBox(sink, TimeToSampleId)
         writeFullBox(sink, 0, 0)
@@ -400,7 +384,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeSampleToChunk(sink: *Sink) fail
+    mtd const writeSampleToChunk(sink: *ByteSink) fail
     {
         let box = beginBox(sink, SampleToChunkId)
         writeFullBox(sink, 0, 0)
@@ -411,7 +395,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeSampleSizes(sink: *Sink) fail
+    mtd const writeSampleSizes(sink: *ByteSink) fail
     {
         let box = beginBox(sink, SampleSizeId)
         writeFullBox(sink, 0, 0)
@@ -422,7 +406,7 @@ private impl Encoder
         endBox(sink, box)
     }
 
-    mtd const writeChunkOffsets(sink: *Sink) fail
+    mtd const writeChunkOffsets(sink: *ByteSink) fail
     {
         let box = beginBox(sink, ChunkOffset64Id)
         writeFullBox(sink, 0, 0)

@@ -121,7 +121,7 @@ impl PictureStream
     }
 
     // Decodes the picture with the current display rank and converts it to packed colour.
-    mtd decodeNext(source: *Source, target: *Image) fail
+    mtd decodeNext(source: *ByteSource, target: *Image) fail
     {
         switch .kind
         {
@@ -132,7 +132,7 @@ impl PictureStream
     }
 
     // Decodes the picture with the current display rank and hands over its planes unconverted.
-    mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
+    mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
         switch .kind
         {

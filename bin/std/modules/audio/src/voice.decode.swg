@@ -181,8 +181,8 @@ impl Voice
             if .packetBuffer.count != packet.byteSize do
                 .packetBuffer.resize(packet.byteSize)
             if !.stream.isOpen() do
-                .stream = File.open(file.path, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
-            .stream.seek(.Begin, packet.sourceOffset)
+                .stream = ByteSource.openFile(file.path)
+            .stream.seek(packet.sourceOffset)
             if .stream.read(.packetBuffer.toSlice()) != packet.byteSize do
                 fail InvalidFormatError{"compressed sound packet is truncated"}
 
@@ -291,12 +291,16 @@ impl Voice
 
         // Open file for streaming
         if !.stream.isOpen() do
-            .stream = File.open(file.path, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
+            .stream = ByteSource.openFile(file.path)
 
-        // Read from file
-        .stream.seek(.Begin, file.dataOffset + .streamCurSeek)
+        // Read from file. A payload the header declares past what the file holds ends where the
+        // file does.
+        let position = file.dataOffset + .streamCurSeek
+        if position >= .stream.size() do
+            return 0
+        .stream.seek(position)
         wantedLength = Math.min(wantedLength, file.dataSize - .streamCurSeek)
-        return .stream.read(destBuffer, wantedLength)
+        return .stream.read(Swag.makeSlice(cast([*] u8) destBuffer, wantedLength))
     }
 
     // Reads a logical byte range from PCM chunks that are scattered through a container.
@@ -322,7 +326,7 @@ impl Voice
         var packetIndex = low
 
         if !.stream.isOpen() do
-            .stream = File.open(file.path, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
+            .stream = ByteSource.openFile(file.path)
 
         while written < length and packetIndex < file.packets.count
         {
@@ -337,8 +341,8 @@ impl Voice
 
             let packetSkip = logicalOffset - packetStart
             let readSize   = Math.min(cast(u64) packet.byteSize - packetSkip, length - written)
-            .stream.seek(.Begin, packet.sourceOffset + packetSkip)
-            if .stream.read(cast([*] u8) destBuffer + written, readSize) != readSize do
+            .stream.seek(packet.sourceOffset + packetSkip)
+            if .stream.read(Swag.makeSlice(cast([*] u8) destBuffer + written, readSize)) != readSize do
                 fail InvalidFormatError{"PCM source chunk is truncated"}
             written       += readSize
             logicalOffset += readSize
@@ -349,7 +353,7 @@ impl Voice
         return written
     }
 
-    mtd rewindData() fail
+    mtd rewindData()
     {
         .streamCurSeek     = 0
         .streamPacketIdx   = 0
@@ -357,11 +361,6 @@ impl Voice
         .destroyCodec()
         if .packetCodec do
             .packetCodec!.reset()
-        if .stream.isOpen()
-        {
-            let file = .file!
-            .stream.seek(.Begin, file.dataOffset)
-        }
     }
 
     mtd closeData()
@@ -369,7 +368,6 @@ impl Voice
         .streamCurSeek     = 0
         .streamPacketIdx   = 0
         .seekDiscardFrames = 0
-        if .stream.isOpen() do
-            .stream.close()
+        .stream.close()
     }
 }

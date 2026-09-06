@@ -92,6 +92,7 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.heading6FontSize   = 19
         result.lineHeight         = 1.53
         result.headingAlignment   = .Center
+        result.imageAlignment     = .Center
         result.paragraphAlignment = .Justify
     }
 

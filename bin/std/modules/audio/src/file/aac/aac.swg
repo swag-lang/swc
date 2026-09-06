@@ -8,8 +8,9 @@
 
 using Core, Core.Errors
 
-// How much of a file the frame walk holds at once.
-private const ScanWindow = 64 * 1024'u64
+// Bytes the longest ADTS header spans: seven, or nine with the frame checksum. The walk peeks
+// at that many at each frame.
+private const HeaderBytes = 9'u64
 
 // The sampling frequencies an ADTS header names by index, clause 1.6.2.4.
 private const AdtsRates: [13] u32 = [
@@ -86,10 +87,9 @@ private func audioSpecificConfig(header: const *AdtsHeader)->Array'u8
 // codec expects and what a container would have stripped for it.
 internal func openFile(path: string)->SoundFile fail
 {
-    var stream = File.openRead(path)
-    let size   = try stream.size()
+    var source = try ByteSource.openFile(path)
+    let size   = source.size()
 
-    var window:  Array'u8
     var packets: Array'SoundPacket
     var config:  Array'u8
     var at       = 0'u64
@@ -99,12 +99,9 @@ internal func openFile(path: string)->SoundFile fail
 
     while at + 7 <= size
     {
-        let want = Math.min(ScanWindow, size - at)
-        window.resize(want)
-        if !try stream.readExactAt(at, window.toSlice()) do
-            break
-
-        let header = try readAdtsHeader(window.toSlice())
+        try source.seek(at)
+        let probe  = try source.peek(Math.min(HeaderBytes, size - at))
+        let header = try readAdtsHeader(probe)
         if at + header.frameBytes > size do
             break
 
@@ -135,6 +132,6 @@ internal func openFile(path: string)->SoundFile fail
     if !packets.count do
         fail InvalidFormatError{"file carries no ADTS frame"}
 
-    stream.close()
+    source.close()
     return try SoundFile.openPacketStream(path, .AacLc, rate, channels, frames, packets.toSlice(), config.toSlice())
 }

@@ -59,7 +59,7 @@ public struct Voice
         playFlags:         VoicePlayFlags                   // Flags 'play' was given.
         state:             VoiceState                       // Where the voice is in its lifecycle.
         idxInList:         u32                              // Slot of the voice in the driver's list.
-        stream:            File.FileStream                  // Reader over the encoded source.
+        stream:            ByteSource                       // Reader over the encoded source.
         streamCurSeek:     u64                              // Read position in the encoded source.
         streamBuffer:      Array'u8                         // Encoded bytes waiting to be decoded.
         packetBuffer:      Array'u8 = {}                    // One compressed access unit read from its source.

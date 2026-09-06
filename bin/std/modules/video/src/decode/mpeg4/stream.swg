@@ -149,7 +149,7 @@ impl Mpeg4Stream
     mtd releasePending() {}
 
     // Reads samples until enough pictures are held to know which of them comes first.
-    mtd fill(source: *Source) fail
+    mtd fill(source: *ByteSource) fail
     {
         while .queued < 2 and .nextDecode < .frames.count
         {
@@ -191,7 +191,7 @@ impl Mpeg4Stream
     }
 
     // Decodes forward until the picture of the current rank is reconstructed.
-    mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
+    mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
         if .nextRank >= .sampleAtRank.count do
             fail InvalidFormatError{"MPEG-4 stream has no picture at the requested position"}
@@ -227,7 +227,7 @@ impl Mpeg4Stream
     }
 
     // Decodes the picture of the current rank and converts it to packed colour.
-    mtd decodeNext(source: *Source, target: *Image) fail
+    mtd decodeNext(source: *ByteSource, target: *Image) fail
     {
         var planes: PlanarFrame
         try .decodeNextPlanes(source, &planes)

@@ -2127,9 +2127,9 @@ impl IDecoder for Decoder
 {
     mtd impl format()->StreamFormat => {"Matroska multimedia container", ".mkv"}
 
-    mtd impl open(source: *Source)->StreamInfo fail
+    mtd impl open(source: *ByteSource)->StreamInfo fail
     {
-        let path = source.sourcePath()
+        let path = source.path()
         if path.count
         {
             var mapped = File.MappedFile.open(path)
@@ -2151,11 +2151,14 @@ impl IDecoder for Decoder
             return .info
         }
 
-        if !source.memory do
+        // A memory source lends its whole stream at once, which is what the layout parses.
+        if !source.size() do
             fail InvalidFormatError{"Matroska memory source has no bytes"}
+        try source.seek(0)
+        let bytes = try source.peek(source.size())
         var layout: Layout
-        discard try layout.parse(source.memory!)
-        try buildSubtitleTracks(source.memory!, &layout, &.memorySubtitleTracks)
+        discard try layout.parse(bytes)
+        try buildSubtitleTracks(bytes, &layout, &.memorySubtitleTracks)
         .openMemory(&layout)
         return .info
     }
@@ -2227,7 +2230,7 @@ impl IDecoder for Decoder
         }
     }
 
-    mtd impl seekFrame(source: *Source, index: u64) fail
+    mtd impl seekFrame(source: *ByteSource, index: u64) fail
     {
         discard source
         if .fileIndex and Atomic.get(&.fileIndex!.soundStatus) == SoundIndexRunning
@@ -2246,7 +2249,7 @@ impl IDecoder for Decoder
         .video.seekTo(index - .windowBaseRank)
     }
 
-    mtd impl decodeFrame(source: *Source, target: *Image) fail
+    mtd impl decodeFrame(source: *ByteSource, target: *Image) fail
     {
         defer .resumeSoundIndex()
 
@@ -2254,7 +2257,7 @@ impl IDecoder for Decoder
         // video packet separated by another track into a small seek on the original file handle.
         if .fileIndex
         {
-            var media = Source.openMemory(.fileIndex!.region.bytes())
+            var media = ByteSource.openMemory(.fileIndex!.region.bytes())
             try .video.decodeNext(&media, target)
             return
         }
@@ -2267,12 +2270,12 @@ impl IPlanarDecoder for Decoder
 {
     mtd impl hasPlanarFrames()->bool => true
 
-    mtd impl decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
+    mtd impl decodeFramePlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
         defer .resumeSoundIndex()
         if .fileIndex
         {
-            var media = Source.openMemory(.fileIndex!.region.bytes())
+            var media = ByteSource.openMemory(.fileIndex!.region.bytes())
             try .video.decodeNextPlanes(&media, target)
             return
         }

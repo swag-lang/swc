@@ -18,13 +18,13 @@ internal struct EncoderDesc
 //
 // An encoder instance is created per [[Video.Writer]] and keeps whatever state its format
 // needs between frames, including the scratch storage of one frame. It never accumulates the
-// encoded stream: everything it produces goes to the [[Video.Sink]] it is handed, so writing
+// encoded stream: everything it produces goes to the [[Core.ByteSink]] it is handed, so writing
 // a long video costs the memory of one frame.
 //
 // `begin`, `addFrame` and `end` are called in that order, exactly once for the first and the
 // last. A format whose header needs a value known only at the end — a frame count, a total size,
 // an index — writes it in `end`, either as a trailer, or by reserving the field in the header and
-// rewriting it with [[Video.Sink.patch]] once the last frame is written.
+// rewriting it with [[Core.ByteSink.patch]] once the last frame is written.
 interface IEncoder
 {
     // Describes the format this encoder writes.
@@ -41,16 +41,16 @@ interface IEncoder
     //
     // `options` is `null` for defaults, or points to the encoder-specific options structure —
     // [[Avi.EncodeOptions]] for AVI. A format with nothing to configure ignores it.
-    mtd begin(sink: *Sink, info: StreamInfo, options: any?) fail
+    mtd begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
 
     // Encodes one frame and appends it to the stream.
     //
     // The writer has already checked that the image is valid and has the geometry the stream was
     // opened with. Fail for what only the format knows, such as a pixel format it cannot encode.
-    mtd addFrame(sink: *Sink, image: Image) fail
+    mtd addFrame(sink: *ByteSink, image: Image) fail
 
     // Finishes the stream, writing whatever trailer the format needs.
-    mtd end(sink: *Sink) fail
+    mtd end(sink: *ByteSink) fail
 }
 
 // Encodes frames into a video stream without holding the stream in memory.
@@ -64,7 +64,7 @@ struct Writer
 {
     internal
     {
-        sink:        Sink                            // Bytes of the encoded stream.
+        sink:        ByteSink                        // Bytes of the encoded stream.
         info:        StreamInfo                      // Geometry and rate the stream was opened with.
         format:      StreamFormat                    // Format claimed by the selected encoder.
         encoder:     IEncoder?                       // Encoder instance owned by this writer.
@@ -149,7 +149,7 @@ impl Writer
     {
         var result: retval
         result.validate(fileName, width, height, frameRate)
-        result.sink = Sink.createFile(fileName)
+        result.sink = ByteSink.createFile(fileName)
         result.start(fileName, options)
         return result
     }
@@ -163,7 +163,7 @@ impl Writer
     {
         var result: retval
         result.validate(fileName, width, height, frameRate)
-        result.sink = Sink.createMemory(buffer)
+        result.sink = ByteSink.createMemory(buffer)
         result.start(fileName, options)
         return result
     }
@@ -246,7 +246,7 @@ impl Writer
     mtd const streamFormat()->StreamFormat => .format
 
     // Returns the file the writer streams, or an empty string for a memory stream.
-    mtd const sourcePath()->string => .sink.sourcePath()
+    mtd const sourcePath()->string => .sink.path()
 
     // Releases the encoder instance. The sink closes itself with the writer.
     private mtd release()

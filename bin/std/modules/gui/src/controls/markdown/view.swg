@@ -37,6 +37,7 @@ struct Style
         heading6FontSize: u32                 = 16        // Level-six heading draw size, in logical pixels.
         lineHeight:       f32                 = 1.6       // Minimum body line height, relative to the active font.
         headingAlignment: StringHorzAlignment = .Left     // Horizontal alignment of headings.
+        imageAlignment:   StringHorzAlignment = .Left     // Horizontal alignment of paragraphs containing one image and no other text.
 
         // Horizontal alignment of body paragraphs.
         //

@@ -7,28 +7,31 @@ using Core, Pixel, Gui, Gui.Testing
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    host.setup(960, 680)
-    defer host.shutdown()
-    host.theme.setSwagDark()
-    host.notify(.ThemeChanged)
+    for themeIndex in [1'u32, 5]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(960, 680)
+        defer host.shutdown()
+        host.theme.setSwagDark()
+        host.notify(.ThemeChanged)
 
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
-    var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
-    Swag.assert(result.view != null and result.failureReason.isEmpty())
-    let view = cast(*Markdown.View) result.view!
-    applyMarkdownViewerStyle(view, 1, 1)
-    view.resize(960, 680)
-    view.applyLayout()
-    for 64 where view.hasUnloadedSource() do
-        host.fireTimers()
-    Swag.assert(!view.hasUnloadedSource())
-    Swag.assert(view.findText("Before after."))
-    Swag.assert(!view.findText("Opening spread") and !view.findText("</div>"))
-    view.clearSearchHighlight()
-    Testing.assertContentFits(view)
-    var image = host.render(view)
-    Pixel.Testing.assertImageGolden(&image, "viewer.markdown.images")
+        let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+        var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
+        Swag.assert(result.view != null and result.failureReason.isEmpty())
+        let view = cast(*Markdown.View) result.view!
+        applyMarkdownViewerStyle(view, themeIndex, 1)
+        view.resize(960, 680)
+        view.applyLayout()
+        for 64 where view.hasUnloadedSource() do
+            host.fireTimers()
+        Swag.assert(!view.hasUnloadedSource())
+        Swag.assert(view.findText("Before after."))
+        Swag.assert(!view.findText("Opening spread") and !view.findText("</div>"))
+        view.clearSearchHighlight()
+        Testing.assertContentFits(view)
+        var image = host.render(view)
+        Pixel.Testing.assertImageGolden(&image, themeIndex == 5 ? "viewer.markdown.images.whitey" : "viewer.markdown.images")
+    }
 }
 
 private func markdownFixturePath()->String

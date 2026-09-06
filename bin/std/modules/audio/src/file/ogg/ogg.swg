@@ -20,9 +20,6 @@ const ContinuedPacket = 0x01'u8
 const FirstPage       = 0x02'u8
 const LastPage        = 0x04'u8
 
-// How much of the file the page walk holds at once.
-private const ScanWindow = 256 * 1024'u64
-
 // The generator every page checksum is computed with, clause 6 of RFC 3533.
 private const ChecksumPolynomial = 0x04C11DB7'u32
 
@@ -105,35 +102,6 @@ internal func buildChecksumTable()->[256] u32
     return result
 }
 
-// Reads file windows on demand while the pages are walked.
-private struct Source
-{
-    stream:      *File.FileStream?
-    size:        u64
-    window:      Array'u8
-    windowStart: u64
-}
-
-private impl Source
-{
-    // Loads `count` bytes at `offset` into the window and returns their index inside it.
-    mtd load(offset, count: u64)->u64 fail
-    {
-        if offset > .size or count > .size - offset do
-            fail InvalidFormatError{"Ogg page runs past the end of the file"}
-        if offset < .windowStart or offset + count > .windowStart + .window.count
-        {
-            let want = Math.min(Math.max(count, ScanWindow), .size - offset)
-            .window.resize(want)
-            if !try .stream!.readExactAt(offset, .window.toSlice()) do
-                fail InvalidFormatError{"Ogg page is truncated"}
-            .windowStart = offset
-        }
-
-        return offset - .windowStart
-    }
-}
-
 // Which codec a stream carries, found from its first packet.
 private enum StreamKind
 {
@@ -194,9 +162,12 @@ private func identify(body: const [..] u8)->StreamInfo fail
 }
 
 // Walks the pages of a file, verifies them, and records the sound stream they carry.
+//
+// A page is at most [[MaxPageSize]] bytes, which one read window of the source holds, so the
+// walk peeks at pages in place and never copies one.
 private struct Walker
 {
-    source:  Source
+    source:  ByteSource
     table:   [256] u32
     offset:  u64     // Where the page being examined starts.
     packets: Array'SoundPacket
@@ -207,25 +178,27 @@ private impl Walker
     // Reads and verifies the page at `.offset`, or returns false at the end of the file.
     mtd next(header: *PageHeader)->bool fail
     {
-        if .offset >= .source.size do
+        if .offset >= .source.size() do
             return false
-        let at = try .source.load(.offset, Math.min(MaxPageSize, .source.size - .offset))
-        header[] = try readPageHeader(.source.window.toSlice(), at)
+        try .source.seek(.offset)
+        let head = try .source.peek(Math.min(MaxPageSize, .source.remaining()))
+        header[] = try readPageHeader(head, 0)
         let total = header.totalBytes()
-        if .offset + total > .source.size do
+        if total > .source.remaining() do
             fail InvalidFormatError{"Ogg page runs past the end of the file"}
-        let pageAt = try .source.load(.offset, total)
-        let page   = .source.window.toSlice()[pageAt until pageAt + total]
+        let page = (try .source.peek(total))[0 until total]
         if pageChecksum(page, .table) != readU32(page, 22) do
             fail InvalidFormatError{"Ogg page checksum does not match its content"}
         return true
     }
 
-    // Returns the window index of the body of the page at `.offset`, whose header was just read.
-    mtd bodyIndex(header: const *PageHeader)->u64 fail
+    // Returns the body of the page at `.offset`, whose header was just read.
+    //
+    // The slice borrows the source's window and is valid until the walk moves on.
+    mtd body(header: const *PageHeader)->const [..] u8 fail
     {
-        let at = try .source.load(.offset, header.totalBytes())
-        return at + header.headerBytes
+        try .source.seek(.offset + header.headerBytes)
+        return (try .source.peek(header.bodyBytes))[0 until header.bodyBytes]
     }
 }
 
@@ -237,8 +210,7 @@ private func findStream(walker: *Walker)->StreamInfo fail
     {
         if !(header.flags & FirstPage) do
             break
-        let at   = try walker.bodyIndex(&header)
-        let info = try identify(walker.source.window.toSlice()[at until at + header.bodyBytes])
+        let info = try identify(try walker.body(&header))
         if info.kind != .Unknown
         {
             var result = info
@@ -321,14 +293,14 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
         if info.kind == .Opus
         {
-            let bodyAt = try walker.bodyIndex(&header)
-            var at     = bodyAt
+            let body = try walker.body(&header)
+            var at   = 0'u64
             for index in header.segments
             {
                 let size = cast(u64) header.lacing[index]
                 if !run.open
                 {
-                    let frames = Opus.packetFrames(walker.source.window.toSlice()[at until at + size])
+                    let frames = Opus.packetFrames(body[at until at + size])
                     if !frames do
                         fail InvalidFormatError{"Opus packet has an invalid table of contents"}
                     run.frames += frames
@@ -416,11 +388,9 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 // configuration and the runs as its packets.
 func openFile(path: string)->SoundFile fail
 {
-    var stream = File.openRead(path)
     var walker: Walker
-    walker.source.stream = &stream
-    walker.source.size   = try stream.size()
-    walker.table         = buildChecksumTable()
+    walker.source = try ByteSource.openFile(path)
+    walker.table  = buildChecksumTable()
 
     let info  = try findStream(&walker)
     let start = try skipHeaders(&walker, &info)
@@ -430,9 +400,9 @@ func openFile(path: string)->SoundFile fail
 
     var config: Array'u8
     config.resize(start)
-    if !try stream.readExactAt(0, config.toSlice()) do
-        fail InvalidFormatError{"Ogg header pages are truncated"}
-    stream.close()
+    try walker.source.seek(0)
+    try walker.source.readExact(config.toSlice())
+    walker.source.close()
 
     let encoding = info.kind == .Vorbis ? SoundFileEncoding.Vorbis : SoundFileEncoding.Opus
     return try SoundFile.openPacketStream(path, encoding, info.sampleRate, info.channels, total, walker.packets.toSlice(), config.toSlice(), {leadingTrimFrames: info.preSkip, speakerMask: info.speakerMask})

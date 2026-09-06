@@ -37,7 +37,7 @@ using Core, Core.Errors, Pixel
 // and the picture it lands on is the one that display rank names.
 #test
 {
-    var source             = expect Source.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
+    var source             = expect ByteSource.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
@@ -59,7 +59,7 @@ using Core, Core.Errors, Pixel
 // a random seek back through the group of pictures; references and already queued frames survive.
 #test
 {
-    var source             = expect Source.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
+    var source             = expect ByteSource.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)

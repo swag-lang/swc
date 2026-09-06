@@ -519,7 +519,7 @@ impl AvcStream
     }
 
     // Prepares and starts one complete frame thread.
-    private mtd startFrame(source: *Source)->bool fail
+    private mtd startFrame(source: *ByteSource)->bool fail
     {
         let lane = .reserveLane()
         if lane == AvcNoLane do
@@ -568,7 +568,7 @@ impl AvcStream
     }
 
     // Keeps every automatic frame context busy.
-    private mtd fillFrameThreads(source: *Source) fail
+    private mtd fillFrameThreads(source: *ByteSource) fail
     {
         .ensureFrameThreads()
         while .threadedCount < .laneCount and !.reachedEnd
@@ -579,7 +579,7 @@ impl AvcStream
     }
 
     // Joins the oldest frame thread and immediately reuses its context for future setup.
-    mtd decodeStoredSample(source: *Source)->DecodedAvcSample fail
+    mtd decodeStoredSample(source: *ByteSource)->DecodedAvcSample fail
     {
         .fillFrameThreads(source)
         if .threadedCount == 0 do
@@ -606,7 +606,7 @@ impl AvcStream
     // Decodes until the frame with the current display rank exists, and returns it.
     //
     // The caller owns the result for the length of one call and must release it.
-    private mtd nextDisplayFrame(source: *Source)->*H264.Frame fail
+    private mtd nextDisplayFrame(source: *ByteSource)->*H264.Frame fail
     {
         let wanted = .nextRank
         while true
@@ -637,7 +637,7 @@ impl AvcStream
     }
 
     // Decodes the frame with the current display rank and converts it to RGB.
-    mtd decodeNext(source: *Source, target: *Image) fail
+    mtd decodeNext(source: *ByteSource, target: *Image) fail
     {
         let frame = try .nextDisplayFrame(source)
         frame.toRgb(target, .width, .height, .cropLeft, .cropTop)
@@ -645,7 +645,7 @@ impl AvcStream
     }
 
     // Decodes the frame with the current display rank and hands over its planes unconverted.
-    mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
+    mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
         let frame = try .nextDisplayFrame(source)
         frame.copyPlanes(target, .width, .height, .cropLeft, .cropTop)

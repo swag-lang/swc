@@ -15,18 +15,18 @@ using Core, Core.Errors
 // line up on the same file.
 const DecoderDelay = 529'u64
 
-// How much of a file the frame walk holds at once.
-const ScanWindow = 64 * 1024'u64
+// Bytes a frame header spans, which is what the walk peeks at each frame.
+private const HeaderBytes = 4'u64
 
 // Returns where the audio starts, past any ID3v2 prologue.
-private func skipMetadata(stream: *File.FileStream, size: u64)->u64 fail
+private func skipMetadata(source: *ByteSource)->u64 fail
 {
+    let size = source.size()
     if size < 10 do
         return 0
 
-    var header: [10] u8
-    if !try stream.readExactAt(0, header) do
-        return 0
+    try source.seek(0)
+    let header = try source.peek(10)
     if header[0] != 'I' or header[1] != 'D' or header[2] != '3' do
         return 0
 
@@ -77,23 +77,20 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 
 // Walks the frames of a file and records where each one starts and how long it plays.
 //
-// Only one window of the file is held at a time, so indexing a long recording costs its index and
-// not its audio.
-private func readFrameIndex(stream: *File.FileStream, size, start: u64, packets: *Array'SoundPacket, info: *EncoderInfo, first: *FrameHeader)->u64 fail
+// Only the read window of the source is held at a time, so indexing a long recording costs its
+// index and not its audio.
+private func readFrameIndex(source: *ByteSource, start: u64, packets: *Array'SoundPacket, info: *EncoderInfo, first: *FrameHeader)->u64 fail
 {
-    var window: Array'u8
+    let size  = source.size()
     var at    = start
     var total = 0'u64
     var seen  = false
 
-    while at + 4 <= size
+    while at + HeaderBytes <= size
     {
-        let want = Math.min(ScanWindow, size - at)
-        window.resize(want)
-        if !try stream.readExactAt(at, window.toSlice()) do
-            break
-
-        let header = catch readHeader(window.toSlice()) as err
+        try source.seek(at)
+        let probe  = try source.peek(HeaderBytes)
+        let header = catch readHeader(probe) as err
         if err != null
         {
             // Tags and padding sit between frames often enough that one bad byte is not the end
@@ -109,7 +106,8 @@ private func readFrameIndex(stream: *File.FileStream, size, start: u64, packets:
         {
             seen    = true
             first[] = header
-            info[]  = readEncoderInfo(window.toSlice()[0 until Math.min(header.frameBytes, want)], &header)
+            let frame = try source.peek(header.frameBytes)
+            info[] = readEncoderInfo(frame[0 until header.frameBytes], &header)
             if info.isHeaderFrame
             {
                 // The tag frame decodes to silence and belongs to no sample.
@@ -141,14 +139,13 @@ private func readFrameIndex(stream: *File.FileStream, size, start: u64, packets:
 // voice then reads through, exactly as a container reader does for a Layer III track it carries.
 internal func openFile(path: string)->SoundFile fail
 {
-    var stream = File.openRead(path)
-    let size   = try stream.size()
-    let start  = try skipMetadata(&stream, size)
+    var source = try ByteSource.openFile(path)
+    let start  = try skipMetadata(&source)
 
     var packets: Array'SoundPacket
     var info:    EncoderInfo
     var first:   FrameHeader
-    let frames = try readFrameIndex(&stream, size, start, &packets, &info, &first)
+    let frames = try readFrameIndex(&source, start, &packets, &info, &first)
     if !packets.count do
         fail InvalidFormatError{"MP3 file carries no audio frame"}
 
@@ -160,7 +157,7 @@ internal func openFile(path: string)->SoundFile fail
         trim = 0
 
     let options = PacketStreamOptions{leadingTrimFrames: trim}
-    stream.close()
+    source.close()
     var config: Array'u8
     return try SoundFile.openPacketStream(path, .Mp3, first.sampleRate, first.channels, frames, packets.toSlice(), config.toSlice(), options)
 }

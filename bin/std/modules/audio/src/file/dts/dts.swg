@@ -8,14 +8,15 @@
 
 using Core, Core.Errors
 
-private const ScanWindow = 64 * 1024'u64
+// Bytes the core frame header spans in its widest packing, fourteen bits per word, which is
+// what the walk peeks at each frame.
+private const HeaderBytes = 18'u64
 
 internal func openElementaryStream(path: string)->SoundFile fail
 {
-    var stream = File.openRead(path)
-    let size   = try stream.size()
+    var source = try ByteSource.openFile(path)
+    let size   = source.size()
 
-    var window:  Array'u8
     var packets: Array'SoundPacket
     var at       = 0'u64
     var frames   = 0'u64
@@ -25,12 +26,9 @@ internal func openElementaryStream(path: string)->SoundFile fail
 
     while at + 16 <= size
     {
-        let want = Math.min(ScanWindow, size - at)
-        window.resize(want)
-        if !try stream.readExactAt(at, window.toSlice()) do
-            break
-
-        let info = try frameInfo(window.toSlice())
+        try source.seek(at)
+        let probe = try source.peek(Math.min(HeaderBytes, size - at))
+        let info  = try frameInfo(probe)
         if !info.frameBytes or at + info.frameBytes > size do
             break
 
@@ -57,7 +55,7 @@ internal func openElementaryStream(path: string)->SoundFile fail
     if at != size do
         fail InvalidFormatError{"DTS elementary stream ends between core frames"}
 
-    stream.close()
+    source.close()
     var config: Array'u8
     return try SoundFile.openPacketStream(path, .Dts, rate, channels, frames, packets.toSlice(), config.toSlice(), {speakerMask: speakers})
 }

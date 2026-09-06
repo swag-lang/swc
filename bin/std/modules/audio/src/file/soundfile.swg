@@ -201,8 +201,8 @@ impl SoundFile
     //
     // `offset` is relative to the first payload byte. The range is clamped at the payload end,
     // and an offset at or beyond that end returns an empty array. A prefetched sound copies from
-    // memory; a streamed sound reopens its source and can therefore be sampled independently of
-    // any voice reading the same file.
+    // memory; a streamed sound opens its own [[Core.ByteSource]] on the file and can therefore
+    // be sampled independently of any voice reading the same file.
     mtd const readPayload(offset, count: u64)->Array'u8 fail
     {
         var result: retval
@@ -213,7 +213,7 @@ impl SoundFile
         result.resize(wanted)
         if .packets.count
         {
-            var stream        = File.openRead(.path.toString())
+            var source        = ByteSource.openFile(.path.toString())
             var logicalStart  = 0'u64
             var logicalOffset = offset
             var written       = 0'u64
@@ -225,9 +225,8 @@ impl SoundFile
                     let packetSkip = logicalOffset > logicalStart ? logicalOffset - logicalStart : 0
                     let available  = cast(u64) packet.byteSize - packetSkip
                     let readSize   = Math.min(available, wanted - written)
-                    stream.seek(.Begin, packet.sourceOffset + packetSkip)
-                    if stream.read(result.buffer! + written, readSize) != readSize do
-                        fail InvalidFormatError{"sound packet or chunk is truncated"}
+                    source.seek(packet.sourceOffset + packetSkip)
+                    source.readExact(result.toSlice()[written until written + readSize])
                     written       += readSize
                     logicalOffset += readSize
                 }
@@ -247,9 +246,9 @@ impl SoundFile
             return result
         }
 
-        var stream = File.openRead(.path.toString())
-        stream.seek(.Begin, .dataOffset + offset)
-        let read = stream.read(result.toSlice())
+        var source = ByteSource.openFile(.path.toString())
+        source.seek(.dataOffset + offset)
+        let read = source.read(result.toSlice())
         result.resize(read)
         return result
     }

@@ -40,7 +40,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
 
-    mtd impl begin(sink: *Sink, info: StreamInfo, options: any?) fail
+    mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
         // The format has one plane layout here and one color range, so it has nothing to
         // configure and ignores what it is handed.
@@ -50,7 +50,7 @@ impl IEncoder for Encoder
         sink.writeText(Format.toString("% W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n", StreamSignature, info.width, info.height, info.frameRate.numerator(), info.frameRate.denominator()).toString())
     }
 
-    mtd impl addFrame(sink: *Sink, image: Image) fail
+    mtd impl addFrame(sink: *ByteSink, image: Image) fail
     {
         // The frame is read pixel by pixel as interleaved 8-bit colour: any other layout would
         // be read at the wrong stride and with the wrong channel meaning.
@@ -86,7 +86,7 @@ impl IEncoder for Encoder
         sink.write(.payload.toSlice())
     }
 
-    mtd impl end(sink: *Sink) fail
+    mtd impl end(sink: *ByteSink) fail
     {
         // The format has no trailer: a stream is complete as soon as its last frame is written.
         discard sink

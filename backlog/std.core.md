@@ -380,27 +380,6 @@ Add streaming TAR reading and writing, with the supported metadata and extension
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
 
-### std.core.029 — A buffered byte source over a file or memory is written once per module
-
-- Recorded: 2026-08-17 17:47
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Problem: `Core.ByteStream` is a cursor over borrowed bytes and cannot read a file, and
-  `File.FileStream` is an unbuffered handle, so every module that decodes a format larger than
-  memory writes the missing half itself. `std/video` now owns `Video.Source` and `Video.Sink`,
-  a buffered seekable reader and writer over a file or a memory buffer, and `Audio.SoundFile`
-  solves the same problem differently by reopening its path on each payload read. `Pixel` avoids
-  the question by decoding whole buffers, which is why an image codec there cannot stream.
-- Consequence: three answers to one question, and the cheapest one wins by default: a decoder
-  written against a slice is a decoder that cannot read a large file, which is exactly how a
-  format ends up loading a whole document to show its first page.
-- Promote the contract into Core — a buffered, seekable byte source and sink with file and memory
-  backings — and move `std/video` and `std/audio` onto it. Read `Video.Source` first: it is the
-  shape a codec actually needs, including a read that bypasses the window when it is larger
-  than the window itself. Read `Video.Sink.patch` beside it: a container writer reserves the
-  totals of its header and rewrites them once the last frame lands, and that operation is what
-  keeps a writer at the cost of one frame instead of the cost of the file.
-- Related: std.core.028
-
 ---
 
 ## Out of scope

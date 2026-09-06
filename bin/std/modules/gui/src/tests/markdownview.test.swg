@@ -55,6 +55,20 @@ using Swag, Core
     view.resize(1000, 700)
     view.applyLayout()
     Swag.assert(atom.position.width == 464 and atom.position.height == 464)
+
+    var centered = view.documentStyle
+    centered.imageAlignment = .Center
+    view.setDocumentStyle(centered)
+    let inline       = view.blocks[0].inline!
+    let centeredAtom = &inline.atoms[0]
+    Swag.assert(Math.abs(centeredAtom.position.x - (inline.position.width - 464) * 0.5) < 1)
+    Swag.assert(centeredAtom.position.width == 464 and centeredAtom.position.height == 464)
+    view.destroy()
+
+    let mixed = Markdown.View.createText(&host.root, Format.toString("![Figure](<%>) Caption.", fileName).toString(), centered)
+    mixed.resize(1000, 700)
+    mixed.applyLayout()
+    Swag.assert(mixed.blocks[0].inline!.atoms[0].position.x == 0)
 }
 
 // Local, embedded, reference and inline-HTML images share layout, search, and cache ownership.
@@ -1031,6 +1045,55 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     host.keyPress(Input.Key.Home)
     Swag.assert(view.residentStart == 0)
     Swag.assert(view.scroll.scrollPosition().y == 0)
+}
+
+// HTML fragments loaded by successive Page Down keys must not steal focus and reveal themselves
+// at the top of the document before Markdown has placed them in its layout.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_markdown_html_navigation_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    var source: String
+    for 16
+    {
+        for 16 do
+            source += "A paragraph keeps later HTML fragments on disk until navigation requests them.\n\n"
+        source += "<div>\n\n<p>A streamed HTML fragment.</p>\n\n</div>\n\n"
+    }
+
+    Swag.assert(source.length > 8 * 1024)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 360)
+    view.applyLayout()
+    view.setFocus()
+    for 64 where view.isLoading() do
+        host.fireTimers()
+    Swag.assert(view.hasUnloadedSource())
+    let initialBytes = view.bytesRead
+
+    for 200
+    {
+        let before = view.scroll.scrollPosition().y
+        host.keyPress(Input.Key.PageDown)
+        for 64 where view.isLoading() do
+            host.fireTimers()
+        Swag.assert(view.hasFocus())
+        let after = view.scroll.scrollPosition().y
+        Swag.assert(after >= before)
+        if after == before and !view.hasUnloadedSource() do
+            break
+    }
+
+    Swag.assert(!view.hasUnloadedSource() and view.bytesRead > initialBytes)
+    var htmlCount = 0'u32
+    for block in view.blocks where block.html != null do
+        htmlCount += 1
+    Swag.assert(htmlCount == 16)
 }
 
 // A resident window opened near EOF retains blocks before its target and requests the preceding

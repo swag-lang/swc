@@ -30,10 +30,65 @@ Measured against the previous design on the same machine, alternating both binar
 
 The remaining work below is what turns that into a measured allocator contract.
 
-## Tier A - Prove and close the main gaps
+### runtime.allocator.003 — Return idle memory without being asked
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- `trim()` decommits empty pages of the calling heap except the current page of each size class,
+  collects empty abandoned pages, and releases segments left without a page. Nothing calls it on
+  its own. A program that allocates in bursts retains committed pages until it exits or trims by hand.
+- Decide the policy: a bounded amount of idle committed memory per heap, a purge delay after which
+  an untouched page is decommitted, or an explicit contract that trimming is the caller's job.
+  Whichever it is, write it down — "give memory back eventually" with no rule is how an allocator
+  ends up with an unbounded case that only shows on someone else's machine.
+- An abandoned page whose class nobody allocates again is only collected by `trim()`. Bound that
+  too, or state that a thread exiting mid-workload can retain its pages until the next trim.
+
+### runtime.allocator.004 — Make remote frees batched rather than one atomic each
+
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- A block freed by a thread that does not own its page increments `remoteCount` atomically and
+  pushes through the page's `remoteLock`. The owner detaches the list under that lock and walks it
+  afterward. A producer/consumer pair still pays synchronization for each returned block.
+- Measure whether a per-page batch handoff pays for itself against the current single push, using
+  the producer/consumer workload from runtime.allocator.001. Bound the drain so one allocation cannot inherit an
+  arbitrarily long pause.
+
+### runtime.allocator.008 — Add allocator OS-failure injection
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
+  obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
+  through the FLS destructor, and a 32-thread abandon/remote-free/trim stress. What it does not
+  cover is failure injection.
+- Inject reserve and commit failures at every transition and verify that page masks, segment lists,
+  and the abandoned list stay consistent and that the allocation returns null rather than a
+  half-built page.
+- Related: runtime.allocator.009, platform.portability.004
+
+### runtime.allocator.002 — Close the remaining distance to mimalloc on the hot path
+
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-09-04 18:30 — git: Rationalize nullable and deferred initialization syntax
+- An allocate/free pair on a cached block costs about 77 ns. mimalloc is in the 10-20 ns range,
+  so the structural work is done and what is left is the constant factor.
+- What the path still pays, in the order worth attacking: one `FlsGetValue` per operation to find
+  the thread heap (measured at 4 ns per call, against 2 ns for `TlsGetValue` and 1 ns for a plain
+  global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
+  the block-address validation on free; the diagnostic-mode test at every entry point.
+- Real thread-local storage would remove most of the first item. `tls` now lowers to a
+  per-thread copy, so the mechanism is there; what it cannot hold is a value with a drop, which
+  the compiler now refuses at the declaration: the per-thread block is released by the
+  thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
+  keeps in thread-local storage has to be a plain value.
+- Measure with runtime.allocator.001 before and after, not with a probe written for the occasion.
 
 ### runtime.allocator.001 — Add a reproducible allocator benchmark suite
 
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - The numbers above come from a throwaway probe. Nothing in the repository measures the allocator,
   so a regression in it is invisible until something else gets slower.
 - Compare the runtime allocator directly with the repository's vendored mimalloc build, using the
@@ -48,46 +103,10 @@ The remaining work below is what turns that into a measured allocator contract.
 - Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
   representative workload more than 25% slower, and no unbounded retained-memory case.
 
-### runtime.allocator.002 — Close the remaining distance to mimalloc on the hot path
-
-- An allocate/free pair on a cached block costs about 77 ns. mimalloc is in the 10-20 ns range,
-  so the structural work is done and what is left is the constant factor.
-- What the path still pays, in the order worth attacking: one `FlsGetValue` per operation to find
-  the thread heap (measured at 4 ns per call, against 2 ns for `TlsGetValue` and 1 ns for a plain
-  global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
-  the block-address validation on free; the diagnostic-mode test at every entry point.
-- Real thread-local storage would remove most of the first item. `tls` now lowers to a
-  per-thread copy, so the mechanism is there; what it cannot hold is a value with a drop, which
-  the compiler now refuses at the declaration: the per-thread block is released by the
-  thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
-  keeps in thread-local storage has to be a plain value.
-- Measure with runtime.allocator.001 before and after, not with a probe written for the occasion.
-
-### runtime.allocator.003 — Return idle memory without being asked
-
-- `trim()` decommits empty pages of the calling heap except the current page of each size class,
-  collects empty abandoned pages, and releases segments left without a page. Nothing calls it on
-  its own. A program that allocates in bursts retains committed pages until it exits or trims by hand.
-- Decide the policy: a bounded amount of idle committed memory per heap, a purge delay after which
-  an untouched page is decommitted, or an explicit contract that trimming is the caller's job.
-  Whichever it is, write it down — "give memory back eventually" with no rule is how an allocator
-  ends up with an unbounded case that only shows on someone else's machine.
-- An abandoned page whose class nobody allocates again is only collected by `trim()`. Bound that
-  too, or state that a thread exiting mid-workload can retain its pages until the next trim.
-
-## Tier B - Concurrent paths and allocation classes
-
-### runtime.allocator.004 — Make remote frees batched rather than one atomic each
-
-- A block freed by a thread that does not own its page increments `remoteCount` atomically and
-  pushes through the page's `remoteLock`. The owner detaches the list under that lock and walks it
-  afterward. A producer/consumer pair still pays synchronization for each returned block.
-- Measure whether a per-page batch handoff pays for itself against the current single push, using
-  the producer/consumer workload from runtime.allocator.001. Bound the drain so one allocation cannot inherit an
-  arbitrarily long pause.
-
 ### runtime.allocator.005 — Add a medium-allocation tier above 64 KiB
 
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Requests above 64 KiB take the header path: one `VirtualAlloc` reservation each, released on
   free. That is correct and wastes almost nothing, but a buffer that doubles across the boundary
   pays a kernel round trip per growth.
@@ -99,6 +118,9 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ### runtime.allocator.006 — Huge allocations have no separately measured policy
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
 medium tier is separated. Benchmark large growth and release independently of size-class caching.
 
@@ -106,35 +128,28 @@ medium tier is separated. Benchmark large growth and release independently of si
 
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 
+- Recorded: 2026-08-05 10:27
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Classes split each power of two into four above 128 bytes, which bounds the step at a fifth of
   the class it lands in. Eight-way splitting would halve that at the cost of doubling the class
   count and the per-heap page queues.
 - Decide it from measured fragmentation on real traces, and consider cache-line placement and false
   sharing in the page table as part of the same measurement.
 
-## Tier C - Failure, platform, and security hardening
-
-### runtime.allocator.008 — Add allocator OS-failure injection
-
-- `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
-  obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
-  through the FLS destructor, and a 32-thread abandon/remote-free/trim stress. What it does not
-  cover is failure injection.
-- Inject reserve and commit failures at every transition and verify that page masks, segment lists,
-  and the abandoned list stay consistent and that the allocation returns null rather than a
-  half-built page.
-- Related: runtime.allocator.009, platform.portability.004
-
 ### runtime.allocator.009 — Allocator stress is not run under Windows heap instrumentation
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Run the allocator stress suite under Windows Application Verifier and page heap, and make the
 invocation reproducible without folding it into failure injection.
 
 - Related: runtime.allocator.001, runtime.allocator.008
 
-
 ### runtime.allocator.010 — Decide what the security properties are, and write them down
 
+- Recorded: 2026-08-06 06:22
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Shipped: free-list links are obfuscated with a per-page key and validated on pop; a free rejects
   any address that does not start a block of its page; an immediate double free of the most recently
   freed block is caught; electric mode places every block flush against a reserved guard page and

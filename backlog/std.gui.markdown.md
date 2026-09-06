@@ -14,7 +14,7 @@ records for the document family; application-level zoom stays in
 [platform.portability.md](platform.portability.md).
 [README.md](README.md) has the whole layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
 ## Where the engine already stands
@@ -36,9 +36,34 @@ the Swag Scope viewer ships five complete reading themes on top of it — finds 
 and signals link activation to its host. Tests cover the block grammar, emphasis nesting, inline
 mathematics, wrap, forward and reverse streaming, and both failure paths.
 
-## Tier A — Parity a reader notices in the first minute
+## Entries
+
+### std.gui.markdown.010 — No opt-in smart punctuation
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
+- Evidence: the inline renderer preserves straight quotes, `--` and `...` as authored text.
+- Next: add a default-off style option for contextual quotes, dashes and ellipses, with an
+  explicit rule for existing punctuation and escaped input.
+- Complete when: enabling the option transforms prose while preserving code spans, math,
+  escaped punctuation and source-offset mapping used by search and selection.
+- Related: std.gui.markdown.011
+
+### std.gui.markdown.011 — Emoji shortcodes remain source text
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
+- Evidence: the inline renderer has no shortcode lookup; `:smile:` is rendered literally.
+- Next: define a versioned shortcode table and a default-off style option, preserving unknown
+  names and keeping code, math and escaped input outside the transform.
+- Complete when: known shortcodes render their emoji with correct search/selection offsets,
+  unknown names remain readable, and disabled mode preserves the authored text.
+- Related: std.gui.markdown.010
 
 ### std.gui.markdown.001 — An image renders as a link, not as an image
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 `![alt](url)` renders the clickable text `[Image: alt]`. Every README leads with a logo or a
 screenshot, so this is the first difference a reader sees against any competitor. Local images —
@@ -53,6 +78,9 @@ bitmap arrives, without disturbing the byte-to-height estimate.
   and `createFile`, and a remote URL still renders as today's link
 
 ### std.gui.markdown.002 — Block structure is flat: containers do not nest
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 The parser recognizes every leaf block but no container can hold one. A list inside a quote, a
 fence inside a quote, or a `> >` nested quote all degrade — the second `>` renders as literal
@@ -70,6 +98,9 @@ keeping the streamed, per-block visual pipeline as it is.
 
 ### std.gui.markdown.003 — A code block has no syntax coloring
 
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 The fence's language is shown as an uppercase label but never used: no syntax coloring, while the
 repository already colors Swag both in `DocMarkdown` and through the RichEdit lexer interface
 (`controls/richedit/lexerswag.swg`). Long lines also soft-wrap with nothing marking the wrap.
@@ -79,9 +110,10 @@ Coloring is the visible half of parity with every competitor.
 - Complete when: a `swag` fence colors, an unknown language stays plain, and wrapped lines are
   visually distinguishable from new lines
 
-## Tier B — The text and the links must be right
-
 ### std.gui.markdown.004 — Reference and footnote definitions do not cross a streaming boundary
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 `parseBlocks` collects definitions only from the chunk it is parsing, and the convention every
 real document follows — all `[name]: target` lines gathered at the end of the file — is exactly
@@ -97,6 +129,9 @@ directions.
 
 ### std.gui.markdown.005 — The document cannot navigate itself
 
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 `[TOC]` renders an inert text block: no entry is a link. Heading anchors do not exist, so a
 `#fragment` link leaves through `sigLinkActivated` and dies in `Env.openUrl`. A footnote
 reference paints as a superscript but does not jump to its footnote. A reader of a long streamed
@@ -107,9 +142,10 @@ heading's byte offset, which is the same currency `revealFileOffset` already tra
 - Complete when: clicking a TOC entry or an in-document anchor reaches its heading in both
   `createText` and a streamed file
 
-## Tier C — Conformance and finish
-
 ### std.gui.markdown.007 — No measured conformance stance
+
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Nobody can say which part of CommonMark the parser speaks. Run the CommonMark and GFM example
 corpora through `parseBlocks`/`renderInline`, record each case as passing or deviating by choice,
@@ -122,6 +158,9 @@ durable artifact; the fixes are the first harvest.
 
 ### std.gui.markdown.008 — Find cannot walk its matches
 
+- Recorded: 2026-08-18 20:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 `findText` clears the current highlight and advances to the next block, selecting occurrence zero
 there. It therefore cannot reach a second match in the same block, move backwards, or report a
 match count. The renderer already has private occurrence-counting and exact-occurrence selection
@@ -132,22 +171,3 @@ Markdown as over code.
 - Intent: find walks matches one by one and says how many there are
 - Complete when: repeated find advances match-by-match across and within blocks, and the match
   count is exposed to the host
-
-### std.gui.markdown.010 — No opt-in smart punctuation
-
-- Evidence: the inline renderer preserves straight quotes, `--` and `...` as authored text.
-- Next: add a default-off style option for contextual quotes, dashes and ellipses, with an
-  explicit rule for existing punctuation and escaped input.
-- Complete when: enabling the option transforms prose while preserving code spans, math,
-  escaped punctuation and source-offset mapping used by search and selection.
-- Related: std.gui.markdown.011
-
-### std.gui.markdown.011 — Emoji shortcodes remain source text
-
-- Evidence: the inline renderer has no shortcode lookup; `:smile:` is rendered literally.
-- Next: define a versioned shortcode table and a default-off style option, preserving unknown
-  names and keeping code, math and escaped input outside the transform.
-- Complete when: known shortcodes render their emoji with correct search/selection offsets,
-  unknown names remain readable, and disabled mode preserves the authored text.
-- Related: std.gui.markdown.010
-

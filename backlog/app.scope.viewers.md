@@ -35,46 +35,28 @@ proves it.
 | --- | ---: | --- | --- |
 | Archive | 6 / 1 | ZIP tree, stored/Deflate verification, entry preview through the normal viewer registry | nested provenance and format breadth; [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
 | Binary | 23 / 2 | bounded hierarchical format reports, previews, navigation, filtering | reusable declarative schemas and findings; [app.scope.binary.md](app.scope.binary.md) |
-| Code | 7 / 1 | bounded streamed source with lexical coloring and search | outline, folding, breadcrumbs, minimap, structure cues, references; [app.scope.text.md](app.scope.text.md#source-code) |
+| Code | 7 / 1 | bounded streamed source with lexical coloring and search | outline, folding, breadcrumbs, minimap, structure cues, references; [app.scope.text.md](app.scope.text.md) |
 | Font | 4 / 1 | specimen plus paged glyph map | faces, glyph addressing, metrics, OpenType features, validation; [app.scope.font.md](app.scope.font.md) |
 | Hexadecimal | 25 / 4 | bounded typed grid, search inspector, analysis, offsets | templates, diff, structure links, accessibility; [app.scope.hexa.md](app.scope.hexa.md) |
-| HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md#html-reading) |
+| HTML | 3 / 1 | safe offline rendered document, zoom, visible-text search | DOM/source/box inspection, resource ledger, local history; [app.scope.document.md](app.scope.document.md) |
 | Image | 5 / 1 | pan, zoom, fit, rotation, mirroring, animated and independent image sets | color/metadata plus histogram, pixel probe, comparison; [app.scope.image.md](app.scope.image.md) |
 | InDesign | 11 / 3 | bounded native preview and IDML page reader | page composition, text selection, object inventory, and output fidelity; [InDesign roadmap](app.scope.indesign.md) |
-| Markdown | 7 / 2 | rendered themes, reading measures, progressive layout, search | outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md#markdown-reading) |
+| Markdown | 7 / 2 | rendered themes, reading measures, progressive layout, search | outline, synchronized source, resource security diagnostics; [app.scope.document.md](app.scope.document.md) |
 | MIDI | 4 / 1 | parsed tracks, notes, tempo/meter/key and piano roll | playback, mixer/event lanes, scalable timeline; [app.scope.midi.md](app.scope.midi.md) |
 | OpenDocument | 12 / 3 | safe ODT/ODS/ODP/ODG text, sheets, slides, and pages | complete ODF semantics, layout, accessibility, and conformance; [OpenDocument roadmap](app.scope.opendocument.md) |
-| PDF | 5 / 2 | page rendering, search, page jump, fit and zoom | thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md#pdf-presentation) |
+| PDF | 5 / 2 | page rendering, search, page jump, fit and zoom | thumbnails, bookmarks, continuous/facing layouts, components; [app.scope.document.md](app.scope.document.md) |
 | Sound | 9 / 1 | streamed playback, seek, volume/mute and bounded waveform | ranges, loop/scrub, spectrogram, meters and analysis; [app.scope.audio.md](app.scope.audio.md) |
-| Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md#timed-text) |
-| Table | 6 / 1 | parsed CSV/TSV grid and cell search | dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md#tabular-text) |
-| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md#shared-text-reading) |
+| Subtitle | 3 / 1 | timed searchable transcript with validated cue/time jumps | current-cue timeline, waveform/media check, source/styled modes; [app.scope.text.md](app.scope.text.md) |
+| Table | 6 / 1 | parsed CSV/TSV grid and cell search | dialect control, typed columns, sort/filter, fixed-width input, bounded rows; [app.scope.text.md](app.scope.text.md) |
+| Text | 2 / 1 | bounded decoded stream, encoding override, wrap, zoom, statistics and search | address/gutter, result panes, bookmarks, Unicode and pathological lines; [app.scope.text.md](app.scope.text.md) |
 | Video | 19 / 2 | progressive A/V playback, seek, tracks and subtitles | chapters, bookmarks, direct frame/time addressing, inspection; [app.scope.video.md](app.scope.video.md) |
 
-## Shared reading behavior
-
-### app.scope.viewers.001 — Select-all in a streamed document silently means the resident window
-
-- Evidence: the basic text and `Code` viewers use `RichEditCtrl`; Ctrl+A selects only their
-  resident 256 KiB window. The Markdown viewer likewise selects only materialized blocks. The
-  `Hexadecimal` viewer is the positive example because its bounded copy command names its 1 MiB
-  limit before copying.
-- Next: define one shared streamed-selection contract and apply it to basic text, Code, and
-  Markdown without making a multi-gigabyte copy resident.
-- Complete when: select-all reaches the whole file or the copy command says exactly which bounded
-  part will leave, before the user pastes it.
-
-### app.scope.viewers.002 — A document cannot be printed
-
-- Intent: a viewer that renders a document should be able to put it on paper through the same
-  pagination contract as the rest of the GUI rather than through application-local paths.
-- Next: define the application adapter once the GUI pagination and preview contract is ready.
-- Complete when: text, code, Markdown, HTML, image, and hexadecimal dump views print through that
-  contract, with actual-size or fit-to-page choices where they have meaning.
-- Related: std.gui.030, platform.portability.086, std.gui.034
+## Entries
 
 ### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: Markdown theme and reading width and Video subtitle presentation already persist as
   global preferences in `ViewerWindow.serialize`. Per-file zoom, fit mode, wrapping, encoding,
   selected track, playback position/volume, page and scroll position have no identity-keyed restore
@@ -85,31 +67,10 @@ proves it.
   applies state to a replacement file, and one command resets either the current viewer or all
   viewer preferences.
 
-### app.scope.viewers.004 — Long viewer operations have no common progress and cancellation contract
-
-- Evidence: viewers independently use workers and the host loading overlay, but parsing, indexing,
-  waveform building, rendering, and search cannot consistently report units completed, yield a
-  partial result, or distinguish cancellation from failure.
-- Next: extend `Viewer.LifecycleApi` with cancellable phases, determinate or indeterminate progress,
-  partial-publication rules, and a shared terminal status.
-- Complete when: opening and analysis operations remain interruptible, replacement files retire old
-  work promptly, the overlay names the current phase, and cancellation never becomes an error.
-- Related: app.scope.hexa.006, std.gui.pdf.029
-
-### app.scope.viewers.005 — External file replacement and growth have no viewer-wide reload policy
-
-- Evidence: each viewer snapshots different combinations of path, size, decoded content, and open
-  streams. A file changed by a build, download, logger, or editor can leave rendered content,
-  offsets, matches, and metadata disagreeing without a shared notification.
-- Next: add a host-owned file identity/version watcher and a viewer callback that can reload,
-  follow append-only growth, or keep a labelled snapshot.
-- Complete when: atomic replacement, append, truncation, deletion, and permission loss are
-  distinguished; stale search results are retired; reload can preserve a valid logical position;
-  and each viewer states whether live following is supported.
-- Related: app.scope.hexa.008, app.scope.text.023
-
 ### app.scope.viewers.006 — File facts have no common host-wide inspection contract
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: Image and Video already publish grouped metadata through the shared `MediaInfoPanel`,
   with translated property labels, row selection and a copy command. The host also shows size and
   a viewer-supplied summary. Canonical path, timestamps, file identity, hashes, detection evidence
@@ -121,60 +82,10 @@ proves it.
   property to the content it describes.
 - Related: app.scope.hexa.017, app.scope.image.011
 
-### app.scope.viewers.007 — Custom-painted viewers cannot expose a professional accessibility model
-
-- Evidence: image, waveform, piano-roll, font-map, video-overlay, and hexadecimal surfaces paint
-  meaning without semantic children. The toolkit itself still has no accessibility bridge, so
-  keyboard focus alone cannot describe values, ranges, selection, or playback state.
-- Next: specify the semantic tree and keyboard contract for every custom viewer while platform.portability.048 builds
-  the toolkit bridge, beginning with roles, names, values, bounds, and change notifications.
-- Complete when: each viewer has an accessibility fixture, all actions are keyboard reachable,
-  focus order is stable, animation and playback state are announced without flooding, and the
-  shipped platform bridge exposes the same model.
-- Related: platform.portability.048, app.scope.hexa.014
-
-### app.scope.viewers.008 — Viewer commands have no common discoverability or remapping surface
-
-- Evidence: viewer commands now occupy one centered lower band, while dynamic zoom/page/range
-  values use consistent clickable controls in the information band. Some operations remain split
-  between compact menus, context menus, and hard-coded key handlers; there is no command palette,
-  shortcut reference, conflict check, or consistent disabled-state explanation.
-- Next: register viewer actions as named commands with default gestures, applicability, and a
-  discoverable description before adding a palette and shortcut sheet.
-- Complete when: every non-pointer-only action can be found and invoked by name, shortcuts can be
-  inspected and remapped, conflicts are reported, and toolbar/menu/key execution share one state.
-- Related: app.scope.hexa.016, std.gui.010
-
-### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
-
-- Evidence: all seventeen viewers now have focused tests and a viewer-specific golden, but fixture
-  depth still ranges from two owning Text tests plus host integration cases to the large Binary,
-  Hexadecimal, and Video suites. The audit still found no declared matrix for real-world variants,
-  malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
-  selection-to-first-content latency under rapid adjacent-file browsing.
-- Next: publish one matrix per registered viewer with representative public fixtures, required
-  malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
-  content budgets for cold open, warm open, and replacement before the previous viewer settles.
-- Complete when: the application smoke validates every registered viewer in light and dark themes,
-  the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
-  format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
-
-### app.scope.viewers.010 — Eight viewers keep stale chrome after a live language change
-
-- Evidence: the audit found stale labels in Code, HTML, Image, Markdown, PDF, Sound, Subtitle and
-  Table. Their notification handlers and owning tests now refresh translated chrome while retaining
-  document state; generated table headings retain their origin, and image summaries use the current
-  language when the worker publishes. The shared metadata panel updates rows without replacing the
-  selection. These changes have not yet passed the focused application tests because machine memory
-  admission has refused new runs.
-- Next: run the owning viewer suites in both program configurations, confirm the regression checks
-  fail against the former handlers, and remove this entry after the live language contract passes.
-- Complete when: switching among every shipped language updates all visible and tooltip text in
-  every viewer without reconstructing it, changing its logical state, or leaving mixed-language
-  chrome, and the seventeen focused suites protect the behavior.
-
 ### app.scope.viewers.011 — Attacker-controlled decoders share the application process
 
+- Recorded: 2026-09-01 21:04
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: every registered viewer is a direct function callback compiled into `swagscope.exe`.
   A malformed image, font, document, archive, or media stream therefore reaches its decoder in the
   process that owns the window, history, clipboard access, and ordinary user token. Read-only and
@@ -191,6 +102,8 @@ proves it.
 
 ### app.scope.viewers.012 — The viewer API cannot load an external viewer
 
+- Recorded: 2026-09-01 21:04
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `Viewer.Plugin` already carries an API version, stable key, selectors, icon, localized
   name, smoke fixture, and creation callback, but `createViewerPluginRegistry` names every plugin in
   source and the README explicitly records no runtime index, dynamic library, exported entry point,
@@ -207,6 +120,8 @@ proves it.
 
 ### app.scope.viewers.013 — Five decoder families cannot claim files independently of their extension
 
+- Recorded: 2026-09-05 06:02
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `choices` reads the head of a file once and lets a descriptor claim it from its own
   bytes, and `html`, `code`, `pdf`, `font`, `midi`, `archive`, and `text` do. `image`, `video`,
   `sound`, `opendocument`, and `indesign` cannot: `Pixel.Image.decode`, `Video.Reader.open`, and
@@ -222,6 +137,103 @@ proves it.
   InDesign document are each offered their own viewer through a copy renamed to an extension
   nothing claims, and every viewer a probe offers can open the file it claimed.
 - Related: app.scope.image.001, app.scope.viewers.012
+
+### app.scope.viewers.002 — A document cannot be printed
+
+- Recorded: 2026-08-17 11:01
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Intent: a viewer that renders a document should be able to put it on paper through the same
+  pagination contract as the rest of the GUI rather than through application-local paths.
+- Next: define the application adapter once the GUI pagination and preview contract is ready.
+- Complete when: text, code, Markdown, HTML, image, and hexadecimal dump views print through that
+  contract, with actual-size or fit-to-page choices where they have meaning.
+- Related: std.gui.030, platform.portability.086, std.gui.034
+
+### app.scope.viewers.004 — Long viewer operations have no common progress and cancellation contract
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Evidence: viewers independently use workers and the host loading overlay, but parsing, indexing,
+  waveform building, rendering, and search cannot consistently report units completed, yield a
+  partial result, or distinguish cancellation from failure.
+- Next: extend `Viewer.LifecycleApi` with cancellable phases, determinate or indeterminate progress,
+  partial-publication rules, and a shared terminal status.
+- Complete when: opening and analysis operations remain interruptible, replacement files retire old
+  work promptly, the overlay names the current phase, and cancellation never becomes an error.
+- Related: app.scope.hexa.006, std.gui.pdf.029
+
+### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-04 23:07 — git: Recount the rest of what the backlog quotes
+- Evidence: all seventeen viewers now have focused tests and a viewer-specific golden, but fixture
+  depth still ranges from two owning Text tests plus host integration cases to the large Binary,
+  Hexadecimal, and Video suites. The audit still found no declared matrix for real-world variants,
+  malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
+  selection-to-first-content latency under rapid adjacent-file browsing.
+- Next: publish one matrix per registered viewer with representative public fixtures, required
+  malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
+  content budgets for cold open, warm open, and replacement before the previous viewer settles.
+- Complete when: the application smoke validates every registered viewer in light and dark themes,
+  the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
+  format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
+
+### app.scope.viewers.001 — Select-all in a streamed document silently means the resident window
+
+- Recorded: 2026-08-17 11:01
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: the basic text and `Code` viewers use `RichEditCtrl`; Ctrl+A selects only their
+  resident 256 KiB window. The Markdown viewer likewise selects only materialized blocks. The
+  `Hexadecimal` viewer is the positive example because its bounded copy command names its 1 MiB
+  limit before copying.
+- Next: define one shared streamed-selection contract and apply it to basic text, Code, and
+  Markdown without making a multi-gigabyte copy resident.
+- Complete when: select-all reaches the whole file or the copy command says exactly which bounded
+  part will leave, before the user pastes it.
+
+### app.scope.viewers.005 — External file replacement and growth have no viewer-wide reload policy
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: each viewer snapshots different combinations of path, size, decoded content, and open
+  streams. A file changed by a build, download, logger, or editor can leave rendered content,
+  offsets, matches, and metadata disagreeing without a shared notification.
+- Next: add a host-owned file identity/version watcher and a viewer callback that can reload,
+  follow append-only growth, or keep a labelled snapshot.
+- Complete when: atomic replacement, append, truncation, deletion, and permission loss are
+  distinguished; stale search results are retired; reload can preserve a valid logical position;
+  and each viewer states whether live following is supported.
+- Related: app.scope.hexa.008, app.scope.text.023
+
+### app.scope.viewers.007 — Custom-painted viewers cannot expose a professional accessibility model
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: image, waveform, piano-roll, font-map, video-overlay, and hexadecimal surfaces paint
+  meaning without semantic children. The toolkit itself still has no accessibility bridge, so
+  keyboard focus alone cannot describe values, ranges, selection, or playback state.
+- Next: specify the semantic tree and keyboard contract for every custom viewer while platform.portability.048 builds
+  the toolkit bridge, beginning with roles, names, values, bounds, and change notifications.
+- Complete when: each viewer has an accessibility fixture, all actions are keyboard reachable,
+  focus order is stable, animation and playback state are announced without flooding, and the
+  shipped platform bridge exposes the same model.
+- Related: platform.portability.048, app.scope.hexa.014
+
+### app.scope.viewers.008 — Viewer commands have no common discoverability or remapping surface
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: viewer commands now occupy one centered lower band, while dynamic zoom/page/range
+  values use consistent clickable controls in the information band. Some operations remain split
+  between compact menus, context menus, and hard-coded key handlers; there is no command palette,
+  shortcut reference, conflict check, or consistent disabled-state explanation.
+- Next: register viewer actions as named commands with default gestures, applicability, and a
+  discoverable description before adding a palette and shortcut sheet.
+- Complete when: every non-pointer-only action can be found and invoked by name, shortcuts can be
+  inspected and remapped, conflicts are reported, and toolbar/menu/key execution share one state.
+- Related: app.scope.hexa.016, std.gui.010
+
+---
 
 ## Format coverage
 
@@ -279,7 +291,7 @@ proves it.
 | Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full with supported container audio and generic chroma sampling | professional transport/inspection | [app.scope.video.001](app.scope.video.md) |
 | Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | professional transport/analysis | [app.scope.audio.001](app.scope.audio.md) |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; others identified | ISO-BMFF and EBML trees | [app.scope.binary.011](app.scope.binary.md) |
-| Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [app.scope.video.001](app.scope.video.md), [app.scope.video.014](app.scope.video.md) |
+| Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [app.scope.video.001](app.scope.video.md), [std.video.010](std.video.md), [std.video.011](std.video.md) |
 | MIDI | `.mid` `.midi` | piano roll and structure | playback, event lanes, scalable timeline | [app.scope.midi.001](app.scope.midi.md) |
 
 #### Binaries, containers, and developer artifacts
@@ -303,6 +315,8 @@ proves it.
 | Crash dumps | `.dmp` | none | — | — |
 | Disk images | `.iso` `.vhd` | none | — | — |
 | Unknown | any | size and entropy; signature only when recognized | — | — |
+
+---
 
 ## Out of scope
 

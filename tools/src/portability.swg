@@ -52,6 +52,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/core/src/time/datetime.win32.swg",
     "bin/std/modules/core/src/time/time.win32.swg",
     "bin/std/modules/core/src/time/timer.win32.swg",
+    "bin/std/modules/core/src/tests/text/string.growth.win32.test.swg",
     "bin/std/modules/core/src/tests/thread/job.test.swg",
     "bin/std/modules/core/src/tests/thread/thread.test.swg",
     "bin/std/modules/gui/src/application.win32.swg",

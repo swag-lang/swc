@@ -7,15 +7,38 @@ The compiler that implements it is [compiler.core.md](compiler.core.md).
 Compiler defects stay in [compiler.core.md](compiler.core.md). This file keeps deliberate language design,
 surprising but specified rules, their comparative evidence, and their next decisions together.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
----
+### language.design.027 — Loop index types follow different count, range, and collection rules
 
-## Data modeling and exhaustive control flow
+- Recorded: 2026-08-10 07:53
+- Updated: 2026-09-06 17:53 — the reference now carries executable assertions for the count/range distinction
+- Evidence: `SemaHelpers::resolveCountOfResult` concretizes unsized integer counts with an
+  unsigned preference but preserves a runtime integer's type. `AstForStmt` uses that count type
+  or the range expression's type. `foreachElementTypes` ordinarily supplies `u64`, but an
+  enum-indexed array supplies its enum index type. Custom `opVisit` code defines its own bindings.
+  Sources: [Sema.Loop.cpp](../src/Compiler/Sema/Ast/Sema.Loop.cpp),
+  [SemaHelpers.Symbol.cpp](../src/Compiler/Sema/Helpers/SemaHelpers.Symbol.cpp).
+- Evidence: the old three-loop probe (`values`, `3`, `0 to 2`) gives `u64`, `u32`, `s32`, but
+  these are examples rather than three fixed per-form types. Existing
+  [for.swg](../bin/unittests/sema/flow/for.swg) checks a runtime `s32` count, and
+  [for_elements.swg](../bin/unittests/sema/flow/for_elements.swg) checks enum-indexed arrays.
+  The reference explains the count/range distinction and includes executable assertions for it.
+- Elsewhere: Go array/slice indices are `int`, while integer-range values take the integer
+  expression's type when it has one ([Go range clauses](https://go.dev/ref/spec#For_range)).
+  Thus Go also distinguishes collection and integer iteration; the old uniformity claim was false.
+- Next: measure whether the existing count/range rules cause real migration or arithmetic
+  problems before proposing a common type. Include typed counts, large constants, enum-indexed
+  arrays, and custom iterators rather than extrapolating from three small literals.
+- Complete when: a measured policy decision retains or changes these rules and compiler and
+  reference tests cover each selected boundary.
+- Related: language.design.008.
 
 ### language.design.001 — Enum switches are silently non-exhaustive
 
+- Recorded: 2026-08-08 06:23
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: a `switch` over a three-value enum that handles two of them compiles with no error, no warning,
   and no `default`; the third value simply falls through to nothing. Exhaustiveness exists but is
   opt-in through `switch #complete`
@@ -34,6 +57,8 @@ ships; history lives in git, not here.
 
 ### language.design.002 — There is no tagged union
 
+- Recorded: 2026-08-08 06:23
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written has no active-member check
   ([004_006_union.swg](../bin/reference/modules/language/src/004_006_union.swg)). `any` covers the dynamic
@@ -122,30 +147,10 @@ ships; history lives in git, not here.
   interop and bit views, which is where the marker belongs. The error-handling design already shipped
   (`fail`/`try`/`catch`) chose a different axis and is not re-litigated here.
 
-## Generic contracts and execution semantics
-
-Native concurrency and parallel execution are covered in
-[language.parallelism.md](language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency).
-
-Surprises in the language itself: rules that are consistent on their own page and stop being
-consistent once two pages meet, spellings that carry more than one meaning, and defaults that
-read one way and behave another. These are observations against the reference
-([bin/reference/modules/language/src](../bin/reference/modules/language/src)), not compiler
-defects — the compiler does what the reference says. What is in question is whether the reference
-should say it.
-
-Compiler defects are in [compiler.core.md](compiler.core.md).
-
-Each comparative investigation carries an `Elsewhere` line: what the neighbouring languages do about the same
-question. A wart no one else has and a convention half the industry shares are different problems,
-and the line exists so the difference is on the page before anyone argues from taste. It is not an
-argument that Swag should follow the majority — several entries below record a rule Swag shares
-with exactly one language and keeps deliberately.
-
-## Binding, defaults, and local control flow
-
 ### language.design.006 — Positional destructuring binds by position even when every name matches a field
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: a reading pass over the whole language reference
 - Observation: `let {a, b} = tuple` is positional, and the reference says so
@@ -176,6 +181,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.007 — One default in a grouped declaration silently defaults every name in the group
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `x, y: s32 = 0` declares two parameters and gives *both* the default `0`. The
@@ -200,10 +207,10 @@ with exactly one language and keeps deliberately.
 - Complete when: grouped defaults have a measured compatibility cost and one documented rule, with
   reference and compiler tests covering named calls that omit each member of the group.
 
-## Value and conversion semantics
-
 ### language.design.008 — Mixing a signed and an unsigned operand of the same width converts the signed one
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: when two integer operands have the same width and differ in signedness, "the
@@ -228,10 +235,9 @@ with exactly one language and keeps deliberately.
 - Complete when: mixed-signedness arithmetic has a recorded policy and its diagnostics, operator
   reference, compile-time behavior, checked-runtime behavior, and release behavior agree.
 
-## Failure handling
-
 ### language.design.009 — The policy for implicit error propagation remains undecided
 
+- Recorded: 2026-09-06 07:51
 - Evidence: a `fail` function may call a fallible function without a written `try`;
   `implicitTryCount` in
   [013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)
@@ -245,6 +251,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.030 — Inside `#test`, `try` means `expect`
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: the error-management reference explicitly defines `try` inside `#test` as `expect`.
   Success returns the same value; failure terminates the test instead of propagating to a caller.
   Moving the expression into a fallible helper therefore changes its failure path.
@@ -258,6 +266,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.010 — `catch` without a capture substitutes the type default and says nothing
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `catch f()` handles the error, drops it, and yields the default value for the result
@@ -279,10 +289,10 @@ with exactly one language and keeps deliberately.
 - Complete when: intentional error discard is either explicit or deliberately retained as implicit,
   and the reference and compiler tests distinguish discard, fallback, capture, and propagation.
 
-## Overloaded syntax and declaration rules
-
 ### language.design.011 — The apostrophe carries three unrelated roles
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `'` opens a character literal, introduces a literal suffix, and introduces a generic
@@ -308,6 +318,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.013 — A `switch` accepts several `default` clauses
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: a `default` can carry a `where`, and once it can, a switch can hold several of them
@@ -332,6 +344,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.014 — The slice upper bound is inclusive
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `str[1 to 3]` is three elements, `str[1 until 3]` is two
@@ -357,6 +371,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.015 — `#[Swag.EnumFlags]` changes implicitly assigned member values
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: adding the attribute changes `A` from 0 to 1, `B` from 1 to 2, `C` from 2 to 4
@@ -376,10 +392,10 @@ with exactly one language and keeps deliberately.
 - Complete when: applying `Swag.EnumFlags` cannot accidentally renumber a persisted or public enum,
   or that behavior requires an explicit opt-in protected by compiler and reference tests.
 
-## Strings, mixins, and macros
-
 ### language.design.017 — Mixins resolve their body in the caller's scope
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: a mixin body names variables that do not exist where it is written and are expected
@@ -407,6 +423,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.018 — A macro can redefine `break` and `continue` inside the block the caller wrote
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `#inject(what, break = break to Outer, continue = break)` rewrites the meaning of
@@ -427,10 +445,10 @@ with exactly one language and keeps deliberately.
 - Complete when: every block whose control-flow keywords can be remapped discloses that contract at
   its call site, and macro, compiler, and reference tests make the selected targets observable.
 
-## Cross-feature semantic consistency
-
 ### language.design.019 — `if let` combines binding with an implicit truthiness test
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: the declaration in an `if` is converted to a boolean — non-zero, non-null — and the
@@ -456,6 +474,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.020 — There are two metaprogramming systems and they do not meet
 
+- Recorded: 2026-08-07 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `#ast` generates code by returning a *string* of Swag source, built with `+` or a
@@ -479,10 +499,10 @@ with exactly one language and keeps deliberately.
 - Complete when: `#ast` usage is classified by generated declaration shape and recurring shapes
   have either a typed generation path or a recorded reason to remain source strings.
 
-## Literal typing
-
 ### language.design.021 — The base a number is written in decides its signedness
 
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: a second reading pass over the reference, checking what the type of a literal depends
   on
@@ -533,22 +553,10 @@ with exactly one language and keeps deliberately.
 - Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
   is what turns the difference into arithmetic.
 
-### language.design.022 — The cost of value-dependent float inference is unmeasured
-
-- Evidence: `ApFloat::minBits` and scalar concretization select `f32` when the parsed value fits
-  without further rounding, otherwise `f64`. The number-literals reference now states that rule
-  and tests `1.5`, `0.1`, `16777216.0`, `16777217.0` and an explicitly rounded `f32`.
-- Next: classify inferred floating-point locals under `bin/` by their resulting width and by
-  whether the width is deliberate. Use that census to decide whether value-dependent inference
-  needs additional discovery or a different default; keep explicit suffixes and annotations as
-  the stable way to state the desired width.
-- Complete when: the census supports a recorded inference-policy decision and the reference and
-  compiler tests agree with it. The documentation correction itself is complete.
-
-## Conversions the call site does not show
-
 ### language.design.023 — A blank `cast()` performs whatever conversion the target turns out to need
 
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `cast()` with no type "allows the compiler to infer the target type"
@@ -583,6 +591,8 @@ with exactly one language and keeps deliberately.
 
 ### language.design.024 — Implicit copies into `#move` parameters have no dedicated warning
 
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `#move` in a parameter position is documented as part of the signature — "they select
@@ -613,10 +623,11 @@ with exactly one language and keeps deliberately.
   distinguishes intentional copy calls from transfers. Existing copy policy and tests, including
   [move_copy_to_move.swg](../bin/unittests/native/operators/move_copy_to_move.swg), already cover
   plain and moved arguments; non-copyable values are rejected by `Cast::castToReference`.
-## Declining and leaking
 
 ### language.design.025 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
 
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `as err` "binds a fresh local ... visible in the enclosing scope, after the catch, so
@@ -644,10 +655,10 @@ with exactly one language and keeps deliberately.
   migrated where necessary, and protected by reference and compiler tests.
 - Related: [language.design.010](#languagedesign010--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
 
-## Types and bindings that do not own what they name
-
 ### language.design.026 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
 
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: the two spellings produce unrelated types that do not convert to each other, and the
@@ -670,34 +681,10 @@ with exactly one language and keeps deliberately.
 - Complete when: both multidimensional-array forms are measured in implementation and public APIs,
   and their compatibility or intentionally distinct use-site contract is documented and enforced.
 
-### language.design.027 — Loop index types follow different count, range, and collection rules
-
-- Evidence: `SemaHelpers::resolveCountOfResult` concretizes unsized integer counts with an
-  unsigned preference but preserves a runtime integer's type. `AstForStmt` uses that count type
-  or the range expression's type. `foreachElementTypes` ordinarily supplies `u64`, but an
-  enum-indexed array supplies its enum index type. Custom `opVisit` code defines its own bindings.
-  Sources: [Sema.Loop.cpp](../src/Compiler/Sema/Ast/Sema.Loop.cpp),
-  [SemaHelpers.Symbol.cpp](../src/Compiler/Sema/Helpers/SemaHelpers.Symbol.cpp).
-- Evidence: the old three-loop probe (`values`, `3`, `0 to 2`) gives `u64`, `u32`, `s32`, but
-  these are examples rather than three fixed per-form types. Existing
-  [for.swg](../bin/unittests/sema/flow/for.swg) checks a runtime `s32` count, and
-  [for_elements.swg](../bin/unittests/sema/flow/for_elements.swg) checks enum-indexed arrays.
-  The reference now explains the count/range distinction and includes executable examples;
-  those new reference assertions still need compilation in this campaign.
-- Elsewhere: Go array/slice indices are `int`, while integer-range values take the integer
-  expression's type when it has one ([Go range clauses](https://go.dev/ref/spec#For_range)).
-  Thus Go also distinguishes collection and integer iteration; the old uniformity claim was false.
-- Next: measure whether the existing count/range rules cause real migration or arithmetic
-  problems before proposing a common type. Include typed counts, large constants, enum-indexed
-  arrays, and custom iterators rather than extrapolating from three small literals.
-- Complete when: a measured policy decision retains or changes these rules and compiler and
-  reference tests cover each selected boundary.
-- Related: language.design.008.
-
-## Where a move can land
-
 ### language.design.028 — A moved value cannot initialize an aggregate literal field or a conditional branch
 
+- Recorded: 2026-08-17 09:09
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: fixing a case where those two expressions asserted in code generation instead of
   being diagnosed
@@ -722,10 +709,11 @@ with exactly one language and keeps deliberately.
 - Complete when: the language deliberately accepts or retains rejection of move expressions in these
   value positions. An accepting design must specify per-field lifecycle, source reset, evaluation
   order, partial initialization and branch-dependent ownership, with focused code-generation tests.
-## What a payload pointer promises
 
 ### language.design.029 — '.buffer' answers a non-null pointer for a payload that can be absent
 
+- Recorded: 2026-08-23 09:26
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: widening the never-null condition rule. The `bin/` sweep it forced stopped
   on `if (ptrAny[]).buffer` in `convertAny`, which reads as "does this value carry a payload" and
@@ -753,3 +741,39 @@ with exactly one language and keeps deliberately.
   be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `?`.
 - Complete when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
   contract is documented, and the resulting migration plus compiler and module tests agree.
+
+### language.design.022 — The cost of value-dependent float inference is unmeasured
+
+- Recorded: 2026-08-10 07:44
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Evidence: `ApFloat::minBits` and scalar concretization select `f32` when the parsed value fits
+  without further rounding, otherwise `f64`. The number-literals reference now states that rule
+  and tests `1.5`, `0.1`, `16777216.0`, `16777217.0` and an explicitly rounded `f32`.
+- Next: classify inferred floating-point locals under `bin/` by their resulting width and by
+  whether the width is deliberate. Use that census to decide whether value-dependent inference
+  needs additional discovery or a different default; keep explicit suffixes and annotations as
+  the stable way to state the desired width.
+- Complete when: the census supports a recorded inference-policy decision and the reference and
+  compiler tests agree with it. The documentation correction itself is complete.
+
+---
+
+## Generic contracts and execution semantics
+
+Native concurrency and parallel execution are covered in
+[language.parallelism.md](language.parallelism.md#languageparallelism001--specify-and-prototype-native-structured-concurrency).
+
+Surprises in the language itself: rules that are consistent on their own page and stop being
+consistent once two pages meet, spellings that carry more than one meaning, and defaults that
+read one way and behave another. These are observations against the reference
+([bin/reference/modules/language/src](../bin/reference/modules/language/src)), not compiler
+defects — the compiler does what the reference says. What is in question is whether the reference
+should say it.
+
+Compiler defects are in [compiler.core.md](compiler.core.md).
+
+Each comparative investigation carries an `Elsewhere` line: what the neighbouring languages do about the same
+question. A wart no one else has and a convention half the industry shares are different problems,
+and the line exists so the difference is on the page before anyone argues from taste. It is not an
+argument that Swag should follow the majority — several entries below record a rule Swag shares
+with exactly one language and keeps deliberately.

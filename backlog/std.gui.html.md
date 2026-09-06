@@ -11,7 +11,7 @@ lives beside its widget inside `gui`, as [std.gui.pdf.md](std.gui.pdf.md#where-t
 for the document family; the view selects and copies, as the Markdown one now does too.
 [README.md](README.md) has the whole layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
 ## Where the engine already stands
@@ -64,12 +64,29 @@ flex-grid fixtures, a preserved-whitespace code block, and the generated Pixel A
 whole. The gaps are of two kinds: pages that lay out or paint as something other than what they
 mean, and CSS surface that is read and silently dropped.
 
----
+## Entries
 
-## Tier B — Pages that lay out other than they mean
+### std.gui.html.014 — Legacy presentational HTML support is incomplete
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Implemented: `HtmlStyleResolver` applies `align` and image `width`/`height` before author CSS.
+- Intent: the remaining attributes legacy documents style themselves with — cell dimensions,
+  `valign`, `bgcolor`, `border`, `cellpadding`, `cellspacing`,
+  `hspace`, `vspace`, `nowrap`, and `<font color size face>` — are stored and never consulted,
+  and the legacy elements `<center>`, `<font>`, `<big>`, `<strike>`, `<tt>` are unknown tags
+  that default to unstyled inline. Saved mail, old manuals and tool-generated HTML from the
+  attribute era lose the presentation carried by those unsupported features.
+- Complete when: the presentational attributes map to the computed style with the precedence of
+  a zero-specificity author rule, the legacy elements carry their traditional default styles,
+  and a fixture from the attribute era renders with its table borders, cell padding and centered
+  blocks.
+- Related: std.gui.html.003
 
 ### std.gui.html.001 — Content wider than its container cannot be reached
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: nothing in the engine scrolls horizontally. The widget's `ScrollWnd` is created with
   `DisableHorizontal` and the canvas is always laid out at viewport width; an `overflow` region
   keeps a `scrollTop` and no `scrollLeft`, so `overflow-x: auto` — the standard idiom on every
@@ -82,6 +99,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.002 — `colspan` and `rowspan` are ignored
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `layoutTable` assigns each cell to the column of its index, so a header spanning three
   columns compresses into one and every row below it shifts. Spans are the first thing a real
   table uses. This was second in line in the old combined entry.
@@ -92,6 +111,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.003 — A table has no column model
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: columns are sized from cell content alone. A `width` on a cell or a `<col>`, a
   percentage column, `table-layout: fixed`, `border-spacing`, `border-collapse` and
   `caption-side` are all unread (`border-collapse` is not even a property the parser resolves).
@@ -104,6 +125,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.004 — A grid places items in source order only
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `layoutGrid` fills declared columns left to right, row by row. `grid-column` and
   `grid-row` are parsed as bare integers and then never read by layout; spans, negative lines,
   named lines and areas, `grid-template-rows`, `auto-fill`/`auto-fit` and implicit tracks are
@@ -116,6 +139,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.005 — Flex containers ignore half of their alignment surface
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: four parsed properties never reach flex layout. `order` is stored and never sorted on.
   `align-content` never distributes the cross axis of a wrapped container. `align-items:
   baseline` falls through to start alignment because `layoutFlexLine` only handles center, end
@@ -128,6 +153,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.006 — A positioned box is positioned against the wrong ancestor
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: three related divergences. `layoutAbsolute` positions an absolute box against its
   direct parent box, not against its nearest positioned ancestor, so the standard pattern —
   `position: relative` on a card, `position: absolute` on a badge two levels down — anchors to
@@ -144,6 +171,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.007 — Right-to-left text is drawn left-to-right
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: there is no notion of direction anywhere: `dir` is an attribute like any other,
   `direction` and `unicode-bidi` are not property names, `text-align: start` is a synonym for
   left, and an Arabic or Hebrew text node is measured and drawn in logical order, which for RTL
@@ -156,6 +185,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.008 — Percentage heights resolve against nothing in normal flow
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `layoutBlockChildren` builds each child's containing block with a width and
   `hasHeight: false`, so `height: 100%` resolves only for the root and for absolutely
   positioned boxes. The classic full-height chain — `html, body, .app { height: 100% }` — and
@@ -164,12 +195,10 @@ mean, and CSS surface that is read and silently dropped.
   against it, the definiteness propagates down a chain of definite heights, and an indefinite
   parent still falls back to content height as it does today.
 
----
-
-## Tier B — Pages that paint other than they mean
-
 ### std.gui.html.009 — SVG never draws, in a toolkit that rasterizes SVG for its own theme
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: two halves. Inline `<svg>` is on the `isSkippedTag` list, so a page's diagrams and
   icons vanish silently. And `<img src="figure.svg">` fails because `Pixel.Image.load` has no
   SVG codec — while the same `pixel` module parses and rasterizes SVG for the theme atlas every
@@ -182,6 +211,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.010 — A gradient is read as no background at all
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `background` keeps only a color; `background-image`, `linear-gradient` and
   `radial-gradient` are deliberately dropped so the box keeps what is behind it. For a hero
   band or a striped code header that is the difference between the page's structure and a flat
@@ -196,6 +227,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.011 — Shadows are not drawn
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `box-shadow` is not a property the parser resolves, and `text-shadow` is not either.
   Cards cast no elevation and outlined hero text loses its legibility layer. The engine's own
   generated documentation avoids both, which is why the gap has stayed invisible.
@@ -205,6 +238,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.012 — Dashed, dotted and double borders paint solid
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `HtmlBorderStyle` distinguishes the styles and `paintDecorations` never reads them —
   every side is filled as a solid rectangle or trapezoid, so `border: 1px dashed` draws exactly
   like `solid`. Corner radii are also collapsed: the largest of the four corners is applied to
@@ -215,6 +250,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.013 — `transform` does not exist
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: no transform property is parsed and the painter applies none, so a rotated badge, a
   scaled thumbnail or a translated decoration renders untransformed in place. Unlike the entries
   above this rarely destroys a document's meaning — which is why it sits last in the tier — but
@@ -223,27 +260,10 @@ mean, and CSS surface that is read and silently dropped.
   testing as one affine matrix, `transform-origin` is honoured, and layout remains untransformed
   as the specification says.
 
----
-
-## Tier C — CSS and HTML surface that is silently dropped
-
-### std.gui.html.014 — Legacy presentational HTML support is incomplete
-
-- Implemented: `HtmlStyleResolver` applies `align` and image `width`/`height` before author CSS.
-- Intent: the remaining attributes legacy documents style themselves with — cell dimensions,
-  `valign`, `bgcolor`, `border`, `cellpadding`, `cellspacing`,
-  `hspace`, `vspace`, `nowrap`, and `<font color size face>` — are stored and never consulted,
-  and the legacy elements `<center>`, `<font>`, `<big>`, `<strike>`, `<tt>` are unknown tags
-  that default to unstyled inline. Saved mail, old manuals and tool-generated HTML from the
-  attribute era lose the presentation carried by those unsupported features.
-- Complete when: the presentational attributes map to the computed style with the precedence of
-  a zero-specificity author rule, the legacy elements carry their traditional default styles,
-  and a fixture from the attribute era renders with its table borders, cell padding and centered
-  blocks.
-- Related: std.gui.html.003
-
 ### std.gui.html.015 — Selector matching diverges where documents notice
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: two bounded divergences remain. A complex selector inside `:is()`/`:not()` is
   truncated to its first compound — `:is(nav a)` matches `nav` — which over- and under-styles
   silently. And `@layer` blocks are unwrapped into plain source order, so a sheet that uses
@@ -253,6 +273,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.016 — The global keywords do nothing
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `inherit`, `initial`, `unset` and `revert` are explicitly rejected by
   `htmlParseLength` and fall through every keyword switch, so `background: inherit` and
   `all: unset`-style resets keep whatever was there. For inherited properties the accidental
@@ -261,12 +283,10 @@ mean, and CSS surface that is read and silently dropped.
   restores the property's default, `unset` picks between them by inheritance, and `revert` is
   at least `unset` with the divergence recorded.
 
----
-
-## Tier C — What a reader cannot do
-
 ### std.gui.html.017 — What the document says about itself never reaches the reader
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `<title>` is parsed as raw text and exposed to nothing, so a host tab or window shows
   a file name where the document names itself. A `title` attribute — the tooltip half the web
   puts on abbreviations, truncated cells and icon links — never shows, although the hover
@@ -278,6 +298,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.018 — A search cannot cross a text-node boundary
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: `findText` runs `Utf8.indexOf` inside one text node at a time, so a phrase
   interrupted by any inline markup — `find <b>this</b> phrase` — can never be found, and the
   highlight cannot span nodes either. The document already assembles `textContent` per subtree,
@@ -288,12 +310,10 @@ mean, and CSS surface that is read and silently dropped.
 - Note: the Markdown view solved the same problem with a position model of its own — a text view
   plus a byte offset into its text — which is the shape this entry needs here.
 
----
-
-## Tier D — Robustness
-
 ### std.gui.html.019 — A hostile document has no budget guard beyond depth and size
 
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: the byte cap (48 MB) and the element depth cap (256, flattening with a visible
   notice) are the only limits. There is still no fixture for truncation at a hostile point, an
   attribute of pathological length, or a rule that expands `var()` toward its substitution cap
@@ -303,6 +323,8 @@ mean, and CSS surface that is read and silently dropped.
 
 ### std.gui.html.020 — What is left between this parser and a zero-copy one
 
+- Recorded: 2026-08-29 21:49
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: the page above parses in 130 ms where `tl` takes 64 ms. Where the remaining difference
   sits, measured by ablation on the 8.15 MB page: the tokenizer's own scan is about 40% of the
   time, storing text about 30%, storing attributes about 24%, and building the 430 k nodes

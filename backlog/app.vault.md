@@ -10,7 +10,7 @@ in [compiler.optimization.md](compiler.optimization.md); compiler and language w
 [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md). [README.md](README.md) has the whole
 layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
 Locked key memory is a standard-library primitive that happens to have been discovered here; it
@@ -18,26 +18,10 @@ must not be reimplemented locally. The roadmap keeps the product adoption and it
 security result together, while a standalone standard-library optimization belongs to the owning
 module's roadmap.
 
----
-
-## Tier A — Block I/O throughput
-
-### app.vault.001 — No block cache
-
-- Owner: Swag Vault
-- Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
-  between calls. Repeated reads still pay authentication and decryption, and an unaligned write
-  still costs a read, a decrypt, an encrypt and a write.
-- Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount.
-- Related: a bounded cache is also the natural place to put an explicit memory budget, which any
-  later working-set investigation will need.
-
----
-
-## Tier B — Automatic and forced unmounting
-
 ### app.vault.002 — Unmounting has no explicit busy-versus-force contract
 
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - Current `WinFspMount.stop` stops the dispatcher, removes the mount point, and destroys the
   filesystem without a busy-result or force parameter. Define an ordinary unmount result for
@@ -47,10 +31,10 @@ module's roadmap.
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.
 
-## Tier B — Credentials
-
 ### app.vault.003 — Additional password slots are not in the interface
 
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
   hold four passwords and the interface only ever writes the one a reader opened it with.
@@ -61,10 +45,10 @@ module's roadmap.
   would change the physical header/data offsets and requires a format decision; it is not needed
   to expose the four existing slots.
 
-## Tier B — Container maintenance
-
 ### app.vault.004 — Header backup and restore
 
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - Problem: key slots and both alternating headers live in the same file. Damage to the only
   usable password slot or to both header copies can make otherwise intact data inaccessible.
@@ -74,24 +58,10 @@ module's roadmap.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
   that were current when the backup was taken.
 
-## Tier B — Filesystem concurrency
-
-### app.vault.005 — Filesystem mutations still use one volume-wide lock
-
-- Owner: Swag Vault
-- Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
-  bounded parallel crypto batches. Mutating callbacks still take one volume-wide exclusive lock,
-  so writes to independent files cannot overlap.
-- Fix: replace the exclusive side with per-node locks plus a metadata lock.
-- Sequencing: only alongside a concurrent stress test. Getting this wrong is a correctness failure,
-  not a performance regression.
-
----
-
-## Tier C — Format design and resilience
-
 ### app.vault.006 — Hidden volume
 
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - The current format has fixed key-slot, header, journal, and data regions. `Crypto.recordLocator`
   derives authentication markers from keys and record coordinates; it does not choose a hidden
@@ -102,29 +72,10 @@ module's roadmap.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### app.vault.007 — No normative container-format specification
-
-- Owner: Swag Vault
-- Write a normative format document independent of the implementation, covering layout, key
-  derivation, record framing, validation order, versioning, and failure indistinguishability.
-- Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
-
-### app.vault.008 — No published Swag Vault format test vectors
-
-- Owner: Swag Vault
-- Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
-  containers so independent implementations can be compared.
-- Related: app.vault.007, app.vault.012
-
-### app.vault.009 — Attacker-controlled container decoders are not fuzzed
-
-- Owner: Swag Vault
-- Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
-  reproducible corpora and sanitizer coverage.
-- Related: app.vault.007, app.vault.012
-
 ### app.vault.010 — Crash tests do not interrupt writes and checkpoints
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - `volume.test.swg` already corrupts a journal record and verifies that replay stops before later
   records; it also checks alternating-header recovery and misplaced journal sequences. These are
@@ -132,10 +83,10 @@ module's roadmap.
   during checkpoint persistence to exercise the ordering of actual writes.
 - Related: app.vault.007
 
-## Tier C — Scale and independent assurance
-
 ### app.vault.011 — Large metadata has no end-to-end scale benchmark
 
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - `nodeindex.test.swg` already exercises 100,000 in-memory nodes, and `volume.test.swg` crosses
   metadata paging with 300 nodes using smaller test headers. Add a bounded end-to-end correctness
@@ -143,8 +94,61 @@ module's roadmap.
   checkpointing, deletion, and memory usage.
 - Related: app.vault.001, app.vault.007
 
+### app.vault.001 — No block cache
+
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Owner: Swag Vault
+- Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
+  between calls. Repeated reads still pay authentication and decryption, and an unaligned write
+  still costs a read, a decrypt, an encrypt and a write.
+- Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount.
+- Related: a bounded cache is also the natural place to put an explicit memory budget, which any
+  later working-set investigation will need.
+
+### app.vault.005 — Filesystem mutations still use one volume-wide lock
+
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Owner: Swag Vault
+- Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
+  bounded parallel crypto batches. Mutating callbacks still take one volume-wide exclusive lock,
+  so writes to independent files cannot overlap.
+- Fix: replace the exclusive side with per-node locks plus a metadata lock.
+- Sequencing: only alongside a concurrent stress test. Getting this wrong is a correctness failure,
+  not a performance regression.
+
+### app.vault.007 — No normative container-format specification
+
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Owner: Swag Vault
+- Write a normative format document independent of the implementation, covering layout, key
+  derivation, record framing, validation order, versioning, and failure indistinguishability.
+- Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
+
+### app.vault.008 — No published Swag Vault format test vectors
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Owner: Swag Vault
+- Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
+  containers so independent implementations can be compared.
+- Related: app.vault.007, app.vault.012
+
+### app.vault.009 — Attacker-controlled container decoders are not fuzzed
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Owner: Swag Vault
+- Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
+  reproducible corpora and sanitizer coverage.
+- Related: app.vault.007, app.vault.012
+
 ### app.vault.012 — External audit
 
+- Recorded: 2026-08-06 08:32
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: project
 - After app.vault.007. Until it happens, the format and the implementation have had no independent
   cryptographic review, and Swag Vault is not a proven replacement for VeraCrypt on critical data — no

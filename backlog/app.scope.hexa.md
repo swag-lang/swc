@@ -16,10 +16,26 @@ accepts hexadecimal byte/nibble wildcards, exact UTF-8, and the active scalar, m
 occurrences, and the information band inspects common scalar readings at the exact caret. The entries below
 are what separate that capable grid from a professional binary-analysis viewer.
 
-## Tier A — Core forensic reading
+### app.scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: the streamed-file search path used by Hexadecimal appends every occurrence to
+  `ViewerWindow.searchMatches` and finalizes its presentation only at EOF. Other viewer-owned
+  match collectors already publish intermediate results. This file-scanning path exposes no byte
+  progress or cancellation action. A file filled with a
+  frequent byte sequence can make result memory proportional to file size even though display is
+  bounded.
+- Next: extend the search contract with incremental batches, cancellation, progress, and a paged or
+  capped result index while preserving F3/Shift+F3 wrapping.
+- Complete when: the first match is navigable while scanning continues, progress names processed
+  bytes, cancellation is immediate, result storage stays bounded on a repetitive multi-gigabyte
+  file, and forward/backward/all plus file/selection/range scopes behave consistently.
 
 ### app.scope.hexa.001 — The live data inspector lacks domain readings and copy
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the information band now follows `HexGridView.sigCaretChanged` and simultaneously
   spells the exact caret bytes as signed, unsigned, hexadecimal, binary, octal, `f32`/`f64`, and
   printable readings at 8/16/32/64-bit widths in the active byte order, plus boolean at byte width.
@@ -34,6 +50,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.002 — Structured fields and hexadecimal bytes do not identify each other
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the `Binary` and `Hexadecimal` viewers open the same file as independent cached views.
   A binary report row can reveal a host search offset, but selecting a row does not select its bytes,
   and a hexadecimal caret cannot locate the structure that owns it.
@@ -46,6 +64,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.003 — The hexadecimal viewer cannot compare files or regions
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: Swag Scope has no byte-difference model, synchronized paired grids, result list, or
   difference navigation. Application work app.scope.001 is the prerequisite for hosting two documents,
   not the comparison itself.
@@ -58,6 +78,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.004 — Hexadecimal navigation has no landmarks or history
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: navigation is limited to scrolling, Home/End, host search, and a Go To dialog accepting
   hexadecimal, decimal, percentage, `caret`, `filesize`, and caret-relative positions. There are no
   named ranges, return stack, or list of visited offsets.
@@ -69,6 +91,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.005 — The text lane is ASCII-only
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: `isHexPrintable` accepts only bytes `0x20..0x7E`; every other byte becomes a dot. The
   lane cannot decode UTF-8, UTF-16/32, Windows/OEM pages, or EBCDIC, and selection has no way to
   associate a multi-byte character with its source bytes.
@@ -78,22 +102,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
   invalid sequences and control characters are visible; selection, copy, and search use the same
   encoding; and multi-byte characters highlight all contributing bytes.
 
-### app.scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
-
-- Evidence: the streamed-file search path used by Hexadecimal appends every occurrence to
-  `ViewerWindow.searchMatches` and finalizes its presentation only at EOF. Other viewer-owned
-  match collectors already publish intermediate results. This file-scanning path exposes no byte
-  progress or cancellation action. A file filled with a
-  frequent byte sequence can make result memory proportional to file size even though display is
-  bounded.
-- Next: extend the search contract with incremental batches, cancellation, progress, and a paged or
-  capped result index while preserving F3/Shift+F3 wrapping.
-- Complete when: the first match is navigable while scanning continues, progress names processed
-  bytes, cancellation is immediate, result storage stays bounded on a repetitive multi-gigabyte
-  file, and forward/backward/all plus file/selection/range scopes behave consistently.
-
 ### app.scope.hexa.007 — Scrolling can perform synchronous file I/O during paint
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: `HexGridView.onPaint` calls `HexDocument.ensure`; crossing a resident-window boundary
   can seek and read 256 KiB on the GUI thread. Local SSD tests hide the stall, while slow disks,
   removable media, and network shares can block input and painting.
@@ -105,6 +117,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.008 — External file changes can make offsets and search results stale
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: `HexDocument` records size at open, display and search use separate streams, and a
   later short read permanently fails the document. Growth, truncation, replacement, and writes by
   another process are not detected as file-version changes.
@@ -115,10 +129,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
   user can distinguish retryable change from a genuine read failure.
 - Related: app.scope.viewers.005
 
-## Tier B — Navigation, presentation, and interchange
-
 ### app.scope.hexa.009 — Navigation address expressions remain partial
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the information band now reports the caret in hexadecimal and decimal, selection
   bounds and length, the active value, and whole-file percentage. Go To accepts bare and `0x`
   hexadecimal, `0d` decimal, percentages, named `caret` and `filesize`, and signed caret-relative
@@ -132,6 +146,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.010 — Row layout and reading presentation are only partly configurable
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: row width is auto or one of 8/16/32/64, byte grouping is fixed at eight in raw-byte
   mode, and grouping and scalar interpretation are coupled. Endian is now an explicit Little/Big
   choice, and Ctrl+wheel or Ctrl+plus/minus zooms the fixed-width font with Ctrl+0 reset.
@@ -143,6 +159,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.011 — Copy is capped text, not bounded binary interchange
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: copy materializes at most the first 1 MiB and emits spaced hex, printable ASCII with
   dots, or the visible dump. There is no raw-byte clipboard form, streamed save-selection path,
   source literal, encoded export, or direct copy of offset, length, and inspected value.
@@ -154,6 +172,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.012 — A proportional scrollbar gives no whole-file overview
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the fixed-span scrollbar keeps every row reachable but shows no distribution of search
   matches, selections, bookmarks, differences, structures, or high-entropy regions. Search now
   marks every occurrence that lies in the visible grid, but there is no whole-file minimap.
@@ -166,6 +186,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.013 — Hexadecimal state is not restored
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: application serialization persists window, search, recent-file, and viewer-choice
   state, but not hexadecimal width, representation, endian, row layout, encoding, font size,
   caret, selection, scroll position, panels, or bookmarks.
@@ -178,6 +200,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.014 — The custom-painted grid exposes no accessibility semantics
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: bytes, characters, caret, selection, and column headers are painted directly by one
   `Wnd`; no accessible grid, cell, value, or selection model is published.
 - Next: determine the smallest `std/gui` accessibility contract a virtual binary grid needs and
@@ -189,6 +213,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.015 — Selection is limited to one contiguous range
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: byte selection is now independent from scalar presentation, and a captured drag
   autoscrolls on a timer and ends safely on release or focus loss. The grid still stores only one
   anchor and one caret, with no rectangular or multiple-range model.
@@ -201,6 +227,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.016 — Important hexadecimal commands need first-class actions and shortcuts
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the visible command group exposes width, representation, and endian; Go To, row width,
   copy-as-text, copy-as-dump, and select-all are now reachable through a visible compact commands
   button as well as the context menu. Pattern search is discoverable through the shared search
@@ -213,10 +241,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
   minimum-size surface.
 - Related: app.scope.viewers.008
 
-## Tier C — Binary analysis
-
 ### app.scope.hexa.017 — The viewer cannot calculate checksums or hashes
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: neither the whole file nor a selected range can be verified from the hexadecimal
   surface, although checksum comparison is a routine integrity and reverse-engineering operation.
 - Next: add a cancellable streamed digest job over an explicit byte range and present one result at
@@ -227,6 +255,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.018 — Byte-distribution analysis lacks block-level findings
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the analysis action now streams either the current selection or the whole file through
   a cancellable 256 KiB job. Its panel publishes a 256-value byte map with exact hover counts,
   entropy, zero and printable ratios, and a bounded table of inferred ASCII and UTF-16 LE/BE
@@ -241,6 +271,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.019 — There is no safe declarative binary schema for unknown formats
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: the `Binary` viewer contains curated compiled readers, but a reader cannot describe a
   private or experimental structure without changing and rebuilding Swag Scope. General-purpose
   competitors map declarative structures onto bytes and color their ranges.
@@ -254,6 +286,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.020 — Executable bytes cannot be disassembled
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: PE, ELF, and Mach-O structure readers identify executable regions, but the hexadecimal
   viewer cannot interpret a selected code range or use image metadata to choose architecture,
   address base, and section bounds.
@@ -266,6 +300,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.021 — Selected binary data has no domain visualizers
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: a raw selection cannot be previewed as pixels, palette entries, PCM samples, or a
   numeric series even though Swag Scope already ships reusable image, audio, and plot-capable
   primitives.
@@ -275,10 +311,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
   selected range without copying the file, invalid dimensions fail locally, and every visualizer
   keeps its source range navigable.
 
-## Quality debt
-
 ### app.scope.hexa.022 — Existing hexadecimal guarantees lack boundary and interaction tests
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Evidence: current tests cover ordinary and synthetic multi-gigabyte streaming geometry, 16-digit
   offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
   byte/nibble/scalar patterns across search-chunk boundaries, invalid search input, visible search
@@ -293,6 +329,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
   remain bounded on disk, and future feature entries add their own acceptance coverage instead of
   accumulating here.
 - Related: app.scope.viewers.009
+
+---
 
 ## Deliberate boundary
 

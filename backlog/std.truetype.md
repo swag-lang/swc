@@ -7,7 +7,7 @@ Evidence, investigations, and intended outcomes owned by `bin/std/modules/truety
 here. Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
 ## Where the module already stands
@@ -26,18 +26,18 @@ A collection is also searchable without being loaded: `Face.familyNameAt` reads 
 table and `name` table and nothing else, so finding one face of `msgothic.ttc` costs a name lookup
 rather than nine megabytes per candidate. That is what `pixel` selects a system face with.
 
-Two things stand out as genuinely ahead of the field. MSDF generation lives in the module rather
-than in a separate project, which is what GPU text actually wants — FreeType ships SDF but not
-MSDF, and msdfgen is a distinct dependency everywhere else. And the rasterizer is fast; the
-current implementation replaced one that was roughly sixteen times slower.
+MSDF generation and grayscale rasterization both live in the module. Their current implementations
+are covered by the distance-field and rendering tests; performance comparisons require a dated,
+reproducible workload rather than a general ranking against other font libraries.
 
 The gaps are about coverage: which fonts load at all, and whether text is positioned correctly.
 
----
-
-## Tier A — Font containers and outlines
+## Entries
 
 ### std.truetype.001 — WOFF containers are rejected
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Add WOFF decompression over the existing face parser using `Core`'s zlib support.
 
@@ -45,16 +45,17 @@ Add WOFF decompression over the existing face parser using `Core`'s zlib support
 
 ### std.truetype.002 — WOFF2 containers are rejected
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Add WOFF2 reconstruction and Brotli decompression as a separate format implementation.
 
 - Related: std.truetype.001
 
----
-
-## Tier B — Glyph substitution
-
 ### std.truetype.003 — No GSUB single-substitution processing
 
+- Recorded: 2026-08-07 18:19
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - `GPOS` is read for pair adjustment only and there is no `GSUB` processing. Implement
   single-substitution lookups first, with unsupported lookup kinds reported or documented.
 - What the kerning work already provides: `src/gpos.swg` has coverage tables in both formats, class
@@ -65,11 +66,17 @@ Add WOFF2 reconstruction and Brotli decompression as a separate format implement
 
 ### std.truetype.004 — No GSUB multiple-substitution processing
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Implement multiple-substitution lookups independently of the single-substitution path.
 
 - Related: std.truetype.003
 
 ### std.truetype.005 — No GSUB alternate-substitution processing
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Implement alternate selection with an explicit feature/user-choice contract.
 
@@ -77,11 +84,17 @@ Implement alternate selection with an explicit feature/user-choice contract.
 
 ### std.truetype.006 — No GSUB ligature-substitution processing
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Implement ligature substitution for declared features such as `liga`, including cluster mapping.
 
 - Related: std.truetype.003
 
 ### std.truetype.007 — No GSUB contextual-substitution processing
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Implement contextual and chaining-context application over the other supported substitution
 lookups.
@@ -90,14 +103,18 @@ lookups.
 
 ### std.truetype.008 — Shaping has no decided module boundary
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Decide whether shaping stays in `truetype` or becomes a separate module above face parsing. Record
 the ownership and dependency rule before the shaping API expands.
 
 - Related: std.truetype.003, std.truetype.009, std.truetype.012
 
-## Tier B — Mark positioning
-
 ### std.truetype.009 — Combining marks ignore GPOS attachment
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Implement mark-to-base positioning so combining accents use the base glyph's anchors.
 
@@ -105,19 +122,26 @@ Implement mark-to-base positioning so combining accents use the base glyph's anc
 
 ### std.truetype.010 — No GPOS mark-to-ligature attachment
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Position marks against the selected component anchors of a ligature glyph.
 
 - Related: std.truetype.009, std.truetype.006
 
 ### std.truetype.011 — No GPOS mark-to-mark attachment
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Position one combining mark relative to another independently of base and ligature attachment.
 
 - Related: std.truetype.009
 
-## Tier B — Script shaping
-
 ### std.truetype.012 — Arabic text is not shaped
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Implement Arabic joining forms, direction-aware cluster processing, and required feature
 application end to end.
@@ -126,6 +150,9 @@ application end to end.
 
 ### std.truetype.013 — Indic text is not shaped
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Implement one explicitly named Indic shaping model, reordering, conjunct formation, and required
 features as its own script-support deliverable.
 
@@ -133,16 +160,17 @@ features as its own script-support deliverable.
 
 ### std.truetype.014 — Thai marks are not shaped
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Implement Thai mark ordering and positioning independently of Arabic and Indic support.
 
 - Related: std.truetype.009
 
----
-
-## Tier C — Variable and color fonts
-
 ### std.truetype.015 — Variable fonts
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - No `fvar`, `gvar`, `avar` or `HVAR`. A variable font loads only at its default instance, so a
   single file that should provide a whole weight and width range provides one static face.
 - Variable fonts are now the normal shipping form for large families, so this is a coverage gap
@@ -151,6 +179,8 @@ Implement Thai mark ordering and positioning independently of Arabic and Indic s
 
 ### std.truetype.016 — No COLR/CPAL layered color glyphs
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - `COLR` version 0 is the cheapest useful subset: layered glyph references with a palette, which
   the existing outline pipeline can already draw.
 - The `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves the emoji and
@@ -159,11 +189,17 @@ Implement Thai mark ordering and positioning independently of Arabic and Indic s
 
 ### std.truetype.017 — No `sbix` color bitmap strikes
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Decode and select `sbix` strikes independently of layered COLR glyphs.
 
 - Related: std.truetype.016, std.truetype.018
 
 ### std.truetype.018 — No CBDT/CBLC color bitmap strikes
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Decode and select CBDT/CBLC strikes independently of Apple's `sbix` container.
 
@@ -171,21 +207,26 @@ Decode and select CBDT/CBLC strikes independently of Apple's `sbix` container.
 
 ### std.truetype.019 — No SVG glyph table
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+
 Parse and render the OpenType SVG table through Pixel's SVG support, with explicit recursion and
 resource limits.
 
 - Related: std.truetype.016, std.pixel.image.008
 
-## Tier C — Writing direction and hinting
-
 ### std.truetype.020 — Vertical writing
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - No `vhea` or `vmtx`. Vertical CJK layout has no metrics to work from.
 - Small and well-bounded: the two tables mirror `hhea` and `hmtx`, which `parseFace` and
   `buildGlyphMetrics` already read, run-length compression included.
 
 ### std.truetype.021 — TrueType bytecode hinting
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - `Face.hintVertical` is a vertical hinting heuristic, not the TrueType interpreter — `fpgm`,
   `prep` and `cvt ` are not executed.
 - Deliberately last. At the display densities this renderer targets, and with the DPI awareness

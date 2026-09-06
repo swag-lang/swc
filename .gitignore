@@ -9,3 +9,4 @@ bin/*.pdb
 riderModule.iml
 /_ReSharper.Caches/
 *.user
+__pycache__/

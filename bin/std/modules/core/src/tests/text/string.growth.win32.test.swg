@@ -7,7 +7,7 @@ func allocateStringGuard(address: *void?, size: u64, allocationType, protection:
 #[Swag.Foreign("kernel32", "VirtualFree")]
 func releaseStringGuard(address: *void?, size: u64, freeType: u32)->s32
 
-// Growing an inline string must read only its old contents. The following page
+// Growing an inline string must read only its old contents. The following native page
 // remains reserved, so copying the new length out of the inline buffer faults.
 #test
 {

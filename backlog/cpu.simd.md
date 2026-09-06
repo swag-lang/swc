@@ -46,63 +46,10 @@ instead. It applies to the accepted kernels as much as to the discarded ones: ev
 inside that window has to be re-baselined before it is trusted, and the entries below name their
 own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
-## Tier A — Target selection, widths, and calling boundaries
-
-### cpu.simd.001 — Standard modules cannot dispatch SIMD by host capability
-
-- Intent: add one authoritative CPU-feature query and function-multiversioning mechanism so a
-  distributed standard module can select scalar/SSE2, AVX2, and later AVX-512 implementations
-  without executing an unsupported instruction or duplicating ad-hoc dispatch in every module.
-- Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
-  builds, and one runtime or codec kernel ships scalar, 128-bit, and 256-bit variants through it.
-- Related: cpu.simd.002, cpu.simd.003.
-
-### cpu.simd.002 — 256-bit vectors are not expressible
-
-- Intent: extend the type constructor to 32-byte geometry (`#simd [32] u8`, `#simd [8] f32`) gated
-  on AVX2, with YMM registers, 32-byte spills/constants/alignment, operators, intrinsics, arguments,
-  returns, type information, cross-module exports, and matching `Math.Simd` aliases.
-- Complete when: every supported 32-byte shape compiles and runs, crosses a module boundary, and
-  128-bit code generation remains byte-identical when the wider path is not selected.
-- Related: cpu.simd.001, cpu.simd.012.
-
-### cpu.simd.003 — 512-bit vectors and AVX-512 masks have no representation
-
-- Intent: add 64-byte `#simd` shapes, ZMM register allocation, and explicit predicate-mask values
-  for AVX-512 targets without making AVX-512 a baseline requirement.
-- Complete when: arithmetic, comparison, masked load/store, calls, spills, constants, reflection,
-  and cross-module use work behind feature gating, with AVX2 and SSE2 fallbacks still selected on
-  machines that lack the feature.
-- Related: cpu.simd.001, cpu.simd.002, cpu.simd.006, cpu.simd.007.
-
-
-## Tier A — Missing packed operations
-
-### cpu.simd.004 — Packed numeric lane conversion is incomplete
-
-- Intent: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
-  the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
-  distinct from bit reinterpretation and saturating pack.
-- Cost of the gap: the JPEG encoder converts colour with packed 16.16 arithmetic but its forward
-  transform reads floats, and with no `s32` to `f32` lane conversion the samples have to land in a
-  `s16` staging array that the transform then converts one lane at a time.
-- Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
-  runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
-  them.
-- Related: cpu.simd.027, cpu.simd.029, cpu.simd.032.
-
-### cpu.simd.005 — Packed integer division and modulo have no portable lowering
-
-- Intent: define integer lane division/remainder semantics and implement constant-divisor strength
-  reduction plus a profitable target-independent sequence or explicit fallback, instead of treating
-  the absence of one machine instruction as a permanent operator restriction.
-- Complete when: signed/unsigned lanes, zero divisors, `Min / -1`, constant and variable divisors,
-  constant folding, and runtime execution have one documented contract and the cost model declines
-  transformations that would lose to scalar code.
-- Related: cpu.simd.017, cpu.simd.025, cpu.simd.027.
-
 ### cpu.simd.006 — Vector tails require scalar cleanup
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
   defined non-faulting behavior, and efficient SSE2/AVX2 fallback lowering.
   `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so 4x4 and 8x8 block kernels need padded storage for a full load or explicit scalar partial
@@ -113,6 +60,8 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ### cpu.simd.007 — Gather supports one shape; scatter, compress and expand are absent
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: add indexed lane loads/stores and mask-based compaction/expansion, with target gating and
   a cost model that is allowed to choose scalar lane operations when hardware gather is slower.
   The JPEG-driven `s32x4` gather is now available with an AVX2 `vpgatherdd` lowering and a portable
@@ -127,34 +76,10 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   compress/expand are encoded, and the fallback never performs an invalid masked access.
 - Related: cpu.simd.003, cpu.simd.028, cpu.simd.031, cpu.simd.034.
 
-### cpu.simd.008 — Packed memory access has no alignment or cache policy
-
-- Intent: add aligned load/store assertions or hints, broadcast loads, non-temporal stores, and
-  prefetch controls with semantics that remain safe when a target ignores the hint.
-- Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
-  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
-  remains the default portable operation.
-- Related: cpu.simd.001, cpu.simd.025, cpu.simd.032.
-
-### cpu.simd.009 — Polynomial and cryptographic instructions have no typed surface
-
-- Intent: expose carry-less multiplication and, separately gated, AES round/key instructions as
-  typed packed operations rather than opaque inline machine code.
-- Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
-  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
-- Related: cpu.simd.022.
-
-### cpu.simd.010 — Dot products have no VNNI form
-
-- Intent: select the VNNI dot-product instructions where the host has them. Unsigned and signed
-  byte SAD (`psadbw`), the 16-bit pairwise product (`pmaddwd`) and the unsigned/signed byte
-  product (`pmaddubsw`) are the baseline forms and are already selected.
-- Complete when: a VNNI accumulation is chosen on a host that reports the feature, the baseline
-  sequence still runs everywhere else, and both answer the same on the differential tests.
-- Related: cpu.simd.001, cpu.simd.012, cpu.simd.019, cpu.simd.026, cpu.simd.029, cpu.simd.030.
-
 ### cpu.simd.011 — Vector rounding and transcendental families remain incomplete
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: vector sqrt, floor, ceil, trunc, abs, min/max, mul-add, sign, copysign, saturate and
   lerp already have public wrappers in `math/simd.swg`.
 - Intent: add vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
@@ -164,10 +89,10 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   tested, and benchmarks justify the chosen polynomial/table implementations.
 - Related: cpu.simd.027, cpu.simd.033, cpu.simd.034.
 
-## Tier B — Backend quality and automatic vectorization
-
 ### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
 
+- Recorded: 2026-08-19 19:26
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: complete direct narrow/dynamic lane insertion and extraction and evaluate fused
   multiply-add with an explicit rounding contract. Immediate lane shuffles, horizontal reductions
   and SAD already lower through dedicated operations; vector `mulAdd` currently emits a multiply
@@ -180,71 +105,20 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   kernel and end-to-end benchmarks show no regression on the fallback target.
 - Related: cpu.simd.010.
 
-### cpu.simd.013 — Unrolling does not expose constant-index SIMD packs
-
-- Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
-  combining needed for SLP to recognize adjacent loads and stores.
-- Complete when: the ChaCha key-stream XOR and a neutral array kernel become packed after unrolling,
-  with no code-size-only unroll when vectorization does not follow.
-- Related: compiler.optimization.002.
-
-### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
-
-- Intent: teach the loop vectorizer to recognize associative reductions, version alias/alignment
-  checks, and generate masked or peeled tails using the explicit SIMD operation set.
-- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
-  configured feature ceiling with scalar-equivalent results and profitable cost decisions.
-- Related: cpu.simd.006, cpu.simd.015.
-
-## Tier B — Runtime and Core bulk primitives
-
 ### cpu.simd.015 — UTF-8 validation still lacks a profitable packed fast path
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: improve `isValid` beyond its current 8-byte scalar ASCII scan; a direct U8x16 bitmask
   path measured 20.76 to 20.42 GiB/s and was rejected.
 - Complete when: malformed boundaries and arbitrary tails match the scalar implementation and an
   ASCII-heavy benchmark improves rather than only replacing the load width.
 - Related: cpu.simd.006, cpu.simd.014.
 
-### cpu.simd.016 — Vector4 and Pixel.Color do not use their native packed shape
-
-- Intent: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
-  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics;
-  do not wrap the current scalar operators directly, which measured 321 to 637 ms in a Release
-  array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
-- Complete when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
-  and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
-- Related: cpu.simd.004, cpu.simd.011, cpu.simd.032.
-
-### cpu.simd.017 — NumericArray cannot specialize legal packed geometries
-
-- Intent: specialize generic equality, arithmetic, fill, copy, and mul-add when the instantiated
-  element/count/operator combination has supported packed semantics.
-- Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
-  generated-code tests prove no hidden conversion or temporary array.
-- Related: cpu.simd.002, cpu.simd.004.
-
-## Tier B — Cryptography and checksums
-
-### cpu.simd.018 — The Argon2 permutation remains scalar
-
-- Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
-  retaining Argon2id's exact memory-index and synchronization semantics.
-- Evidence (2026-08-20): on eight Argon2id derivations at 4 MiB, three passes, and four lanes, the
-  scalar Release kernel measured 104,661 us. Explicit `U64x2` block XOR measured 107,969 us (3.2%
-  slower) and was reverted. A trial `u32 x u32 -> u64` low-half product lowered directly to
-  `pmuludq` made paired BlaMka exact, but the best eight-vector row/column layout measured 180,000
-  us (72% slower); a sixteen-vector layout measured 190,313 us. The intrinsic, API, and kernel were
-  all reverted because the lane regrouping and state materialization erased the paired arithmetic
-  gain. Revisit only with a lowering that keeps the eight-word state in registers across both G
-  halves and performs the two-source 64-bit lane regroup without scalar extraction, or with a
-  wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
-- Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
-  the packed kernel gain from independent-lane parallelism.
-- Related: std.core.009 in [std.core.md](std.core.md).
-
 ### cpu.simd.019 — Blake2b compression remains scalar
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: run paired G functions and message/state permutations in packed 64-bit lanes, using native
   rotates or defined shift/or lowering.
 - Complete when: incremental, keyed, and boundary-length vectors match and compression throughput
@@ -253,32 +127,98 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. Those historical numbers predate the current allocator and need rechecking. A viable
   kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
 
-### cpu.simd.020 — Poly1305 remains scalar
+### cpu.simd.025 — Half-size and gradient paths still have unoptimized scalar work
 
-- Intent: implement a packed limb strategy or several-message kernel, selected only where it beats
-  the current scalar carry chain.
-- Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
-  exact, and authenticated-encryption throughput improves end to end.
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
+  parallel row loops. The two-color legacy gradient computes one row and copies it, while the
+  four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
+- Intent: measure row/chunk replacements for the remaining half-size and gradient work and a
+  packed source-over kernel beyond its row-wise scalar implementation.
+- Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
+  match existing behavior and each retained kernel beats callback dispatch.
+- Related: cpu.simd.004, cpu.simd.006, cpu.simd.010.
 
-### cpu.simd.021 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
+### cpu.simd.028 — PNG Sub strides and remaining sample conversion need a current profile
 
-- Intent: add batch APIs or internal batching that process independent message blocks across lanes,
-  instead of attempting to vectorize one recurrence-dependent stream.
-- Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
-  back for a single stream, and improve aggregate hashing throughput.
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth and
+  Sub for 2/4/8-byte pixels already exist. Gray and palette conversion also have thresholded
+  packed-word paths. `convert16` still converts samples and transparency keys individually; Sub
+  strides 1/3/6 retain scalar recurrence paths.
+- Historical experiments: packed Sub prototypes for strides 1/3/6 and gray byte shuffles lost
+  during the 2026-08-20/21 cross-module wrapper-call window. The encoder Paeth speedup from that
+  window was also biased because the scalar form called `Math.abs`. These measurements cannot
+  settle the current inlined kernels' cost.
+- Next: profile current decoding by filter and bit depth, then remeasure the remaining Sub
+  layouts and 16-bit conversion against their scalar forms in the same process. Keep Inflate's
+  share separate from image conversion so a microkernel gain has an end-to-end interpretation.
+- Complete when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
+  retain bounds protection, and every retained kernel improves representative decoding.
+- Related: cpu.simd.006, cpu.simd.007, cpu.simd.010.
 
-### cpu.simd.022 — CRC32 cannot use polynomial folding
+### cpu.simd.031 — Remaining palette lookups need a profitable packed strategy
 
-- Intent: add a carry-less-multiply folding implementation with feature dispatch and retain the
-  table implementation as the portable fallback.
-- Complete when: incremental CRC values match for every alignment and tail and large-buffer
-  throughput improves on supported machines without illegal-instruction risk.
-- Related: cpu.simd.001, cpu.simd.009.
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: BMP/TGA 16-bit expansion, TGA row reversal and RLE spans, RGB/BGR channel shuffles,
+  GIF fixed quantization and PNG packed-word palette tables already have bulk implementations.
+  Palette lookup still has no general gather/shuffle strategy that beats those direct tables.
+- Historical experiments: a 16-entry SSSE3 PNG table shuffle lost by 2.97x for RGB and 1.83x for
+  RGBA during the wrapper-call window. PNG's current packed-u32 lookup beat the gather prototype;
+  neither result proves that every palette size or new target should make the same choice.
+- Next: profile GIF palette expansion and remaining indexed layouts before selecting gather or
+  shuffle, preserve the existing small-image setup thresholds, and compare against the current
+  packed-word tables rather than an older per-channel loop.
+- Complete when: each remaining indexed path has a measured dispatch decision and covers palette
+  size, transparency and tails without invalid reads or changes to decoded pixels.
+- Related: cpu.simd.007.
 
-## Tier B — Audio and video codecs
+### cpu.simd.032 — CPU span packing stops before translucent blending and complex shading
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: `rendercpu.swg` already clears packed spans, evaluates four edge samples, and writes
+  full covered constant-color BGRA groups with channel masks. Its translucent alpha path keeps
+  scalar float rounding, and gradient, MSDF and general texture shading retain per-pixel work.
+- Intent: extend profitable horizontal spans to those remaining cases, specializing by program,
+  blending and format rather than adding branches to one universal loop.
+- Complete when: clip and layer boundaries remain exact, byte/golden parity or a deliberately
+  specified numeric tolerance protects rounding, and stage and application benchmarks justify
+  each retained path. Gather-dependent sampling needs its own measured decision.
+- Related: cpu.simd.004, cpu.simd.007, cpu.simd.011, cpu.simd.016.
+
+### cpu.simd.033 — TrueType raster and MSDF kernels remain scalar
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: ordinary SDF already evaluates two F64 sample positions through
+  `closestEdgeDistances` and `insideMask`; MSDF and analytic raster coverage remain separate scalar
+  implementations.
+- Intent: vectorize analytic coverage conversion and process multiple sample points in MSDF
+  distance evaluation, using vector math and gathers only where edge traversal remains profitable.
+- Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster and
+  MSDF are benchmarked separately across small and large glyphs.
+- Related: cpu.simd.007, cpu.simd.011.
+
+### cpu.simd.034 — PDF packed samples and mask composition remain scalar
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Evidence: default 8-bit gray expansion and CMYK conversion already use packed shuffles in
+  `decode.image.swg`; the remaining paths still use sample extraction and per-pixel composition.
+- Intent: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
+  mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
+- Complete when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
+  arrays, and indexed spaces, with separate conversion benchmarks.
+- Related: cpu.simd.004, cpu.simd.007, cpu.simd.011.
 
 ### cpu.simd.023 — H.264 strong chroma deblocking remains scalar vertically
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 - Intent: find a profitable vertical strong-chroma layout and confirm the retained strong luma
   and horizontal chroma kernels in a complete decode profile. The weak paths are done: horizontal
   since 2026-08-20 (16 luma or 8 chroma samples per call, 2.66x and
@@ -301,10 +241,193 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   (1.07x slower) and was rejected, so strong vertical chroma retains its scalar two-line segments.
 - Complete when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
-- Related: cpu.simd.010, app.scope.video.014 in [app.scope.video.md](app.scope.video.md).
+- Related: cpu.simd.010, std.video.010, std.video.011 in [std.video.md](std.video.md).
+
+### cpu.simd.001 — Standard modules cannot dispatch SIMD by host capability
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: add one authoritative CPU-feature query and function-multiversioning mechanism so a
+  distributed standard module can select scalar/SSE2, AVX2, and later AVX-512 implementations
+  without executing an unsupported instruction or duplicating ad-hoc dispatch in every module.
+- Complete when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
+  builds, and one runtime or codec kernel ships scalar, 128-bit, and 256-bit variants through it.
+- Related: cpu.simd.002, cpu.simd.003.
+
+### cpu.simd.002 — 256-bit vectors are not expressible
+
+- Recorded: 2026-08-19 19:26
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: extend the type constructor to 32-byte geometry (`#simd [32] u8`, `#simd [8] f32`) gated
+  on AVX2, with YMM registers, 32-byte spills/constants/alignment, operators, intrinsics, arguments,
+  returns, type information, cross-module exports, and matching `Math.Simd` aliases.
+- Complete when: every supported 32-byte shape compiles and runs, crosses a module boundary, and
+  128-bit code generation remains byte-identical when the wider path is not selected.
+- Related: cpu.simd.001, cpu.simd.012.
+
+### cpu.simd.003 — 512-bit vectors and AVX-512 masks have no representation
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: add 64-byte `#simd` shapes, ZMM register allocation, and explicit predicate-mask values
+  for AVX-512 targets without making AVX-512 a baseline requirement.
+- Complete when: arithmetic, comparison, masked load/store, calls, spills, constants, reflection,
+  and cross-module use work behind feature gating, with AVX2 and SSE2 fallbacks still selected on
+  machines that lack the feature.
+- Related: cpu.simd.001, cpu.simd.002, cpu.simd.006, cpu.simd.007.
+
+### cpu.simd.004 — Packed numeric lane conversion is incomplete
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
+  the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
+  distinct from bit reinterpretation and saturating pack.
+- Cost of the gap: the JPEG encoder converts colour with packed 16.16 arithmetic but its forward
+  transform reads floats, and with no `s32` to `f32` lane conversion the samples have to land in a
+  `s16` staging array that the transform then converts one lane at a time.
+- Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
+  runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
+  them.
+- Related: cpu.simd.027, cpu.simd.029, cpu.simd.032.
+
+### cpu.simd.005 — Packed integer division and modulo have no portable lowering
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: define integer lane division/remainder semantics and implement constant-divisor strength
+  reduction plus a profitable target-independent sequence or explicit fallback, instead of treating
+  the absence of one machine instruction as a permanent operator restriction.
+- Complete when: signed/unsigned lanes, zero divisors, `Min / -1`, constant and variable divisors,
+  constant folding, and runtime execution have one documented contract and the cost model declines
+  transformations that would lose to scalar code.
+- Related: cpu.simd.017, cpu.simd.025, cpu.simd.027.
+
+### cpu.simd.008 — Packed memory access has no alignment or cache policy
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: add aligned load/store assertions or hints, broadcast loads, non-temporal stores, and
+  prefetch controls with semantics that remain safe when a target ignores the hint.
+- Complete when: alignment violations are diagnosed or guarded as declared, large copy/fill and
+  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
+  remains the default portable operation.
+- Related: cpu.simd.001, cpu.simd.025, cpu.simd.032.
+
+### cpu.simd.009 — Polynomial and cryptographic instructions have no typed surface
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: expose carry-less multiplication and, separately gated, AES round/key instructions as
+  typed packed operations rather than opaque inline machine code.
+- Complete when: feature gating prevents illegal instructions, known-answer tests cover operands
+  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
+- Related: cpu.simd.022.
+
+### cpu.simd.010 — Dot products have no VNNI form
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: select the VNNI dot-product instructions where the host has them. Unsigned and signed
+  byte SAD (`psadbw`), the 16-bit pairwise product (`pmaddwd`) and the unsigned/signed byte
+  product (`pmaddubsw`) are the baseline forms and are already selected.
+- Complete when: a VNNI accumulation is chosen on a host that reports the feature, the baseline
+  sequence still runs everywhere else, and both answer the same on the differential tests.
+- Related: cpu.simd.001, cpu.simd.012, cpu.simd.019, cpu.simd.026, cpu.simd.029, cpu.simd.030.
+
+### cpu.simd.013 — Unrolling does not expose constant-index SIMD packs
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: fold induction-derived addresses to constant offsets after unrolling and rerun the
+  combining needed for SLP to recognize adjacent loads and stores.
+- Complete when: the ChaCha key-stream XOR and a neutral array kernel become packed after unrolling,
+  with no code-size-only unroll when vectorization does not follow.
+- Related: compiler.optimization.002.
+
+### cpu.simd.014 — Loop vectorization cannot form reductions or masked tails
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: teach the loop vectorizer to recognize associative reductions, version alias/alignment
+  checks, and generate masked or peeled tails using the explicit SIMD operation set.
+- Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
+  configured feature ceiling with scalar-equivalent results and profitable cost decisions.
+- Related: cpu.simd.006, cpu.simd.015.
+
+### cpu.simd.016 — Vector4 and Pixel.Color do not use their native packed shape
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
+  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics;
+  do not wrap the current scalar operators directly, which measured 321 to 637 ms in a Release
+  array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
+- Complete when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
+  and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
+- Related: cpu.simd.004, cpu.simd.011, cpu.simd.032.
+
+### cpu.simd.017 — NumericArray cannot specialize legal packed geometries
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: specialize generic equality, arithmetic, fill, copy, and mul-add when the instantiated
+  element/count/operator combination has supported packed semantics.
+- Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
+  generated-code tests prove no hidden conversion or temporary array.
+- Related: cpu.simd.002, cpu.simd.004.
+
+### cpu.simd.018 — The Argon2 permutation remains scalar
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: vectorize block XOR, BlaMka compression, row/column permutation, and final reduction while
+  retaining Argon2id's exact memory-index and synchronization semantics.
+- Evidence (2026-08-20): on eight Argon2id derivations at 4 MiB, three passes, and four lanes, the
+  scalar Release kernel measured 104,661 us. Explicit `U64x2` block XOR measured 107,969 us (3.2%
+  slower) and was reverted. A trial `u32 x u32 -> u64` low-half product lowered directly to
+  `pmuludq` made paired BlaMka exact, but the best eight-vector row/column layout measured 180,000
+  us (72% slower); a sixteen-vector layout measured 190,313 us. The intrinsic, API, and kernel were
+  all reverted because the lane regrouping and state materialization erased the paired arithmetic
+  gain. Revisit only with a lowering that keeps the eight-word state in registers across both G
+  halves and performs the two-source 64-bit lane regroup without scalar extraction, or with a
+  wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
+- Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
+  the packed kernel gain from independent-lane parallelism.
+- Related: std.core.009 in [std.core.md](std.core.md).
+
+### cpu.simd.020 — Poly1305 remains scalar
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: implement a packed limb strategy or several-message kernel, selected only where it beats
+  the current scalar carry chain.
+- Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
+  exact, and authenticated-encryption throughput improves end to end.
+
+### cpu.simd.021 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: add batch APIs or internal batching that process independent message blocks across lanes,
+  instead of attempting to vectorize one recurrence-dependent stream.
+- Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
+  back for a single stream, and improve aggregate hashing throughput.
+
+### cpu.simd.022 — CRC32 cannot use polynomial folding
+
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Intent: add a carry-less-multiply folding implementation with feature dispatch and retain the
+  table implementation as the portable fallback.
+- Complete when: incremental CRC values match for every alignment and tail and large-buffer
+  throughput improves on supported machines without illegal-instruction risk.
+- Related: cpu.simd.001, cpu.simd.009.
 
 ### cpu.simd.024 — H.264 dequantization and irregular directional intra prediction remain scalar
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: profile dequantization and the remaining gather- or shuffle-heavy directional modes.
   Residual addition is already part of the packed inverse transforms. The 16x16 vertical,
   horizontal, and DC stores now run 2.12x to 3.20x faster, and the filtered 8x8 vertical
@@ -331,21 +454,10 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   reconstruction profile.
 - Related: cpu.simd.006.
 
-## Tier C — Pixel processing and image codecs
-
-### cpu.simd.025 — Half-size and gradient paths still have unoptimized scalar work
-
-- Evidence: the legacy RGB/BGR half-size path calls `visitPixels`; other formats already use
-  parallel row loops. The two-color legacy gradient computes one row and copies it, while the
-  four-corner and logical-pixel paths still process pixels individually. Fill already copies rows.
-- Intent: measure row/chunk replacements for the remaining half-size and gradient work and a
-  packed source-over kernel beyond its row-wise scalar implementation.
-- Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
-  match existing behavior and each retained kernel beats callback dispatch.
-- Related: cpu.simd.004, cpu.simd.006, cpu.simd.010.
-
 ### cpu.simd.026 — Convolution, resize, smart-crop, and Haar kernels remain scalar
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: vectorize interior convolution, horizontal/vertical resampling, integral-image box output,
   Sobel/normalization maps, and contiguous Haar passes while keeping borders and unfavorable gathers
   scalar.
@@ -355,31 +467,18 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ### cpu.simd.027 — LUT and transcendental image filters have no packed path
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: use gathered tables or vector math to accelerate gamma, contrast, fade, colorize, HSL, and
   noise kernels without weakening their output contract merely to fit today's instruction set.
 - Complete when: each filter declares exact or bounded-error parity, uses the profitable gather/math
   path under feature dispatch, and retains a scalar fallback.
 - Related: cpu.simd.004, cpu.simd.007, cpu.simd.011.
 
-### cpu.simd.028 — PNG Sub strides and remaining sample conversion need a current profile
-
-- Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth and
-  Sub for 2/4/8-byte pixels already exist. Gray and palette conversion also have thresholded
-  packed-word paths. `convert16` still converts samples and transparency keys individually; Sub
-  strides 1/3/6 retain scalar recurrence paths.
-- Historical experiments: packed Sub prototypes for strides 1/3/6 and gray byte shuffles lost
-  during the 2026-08-20/21 cross-module wrapper-call window. The encoder Paeth speedup from that
-  window was also biased because the scalar form called `Math.abs`. These measurements cannot
-  settle the current inlined kernels' cost.
-- Next: profile current decoding by filter and bit depth, then remeasure the remaining Sub
-  layouts and 16-bit conversion against their scalar forms in the same process. Keep Inflate's
-  share separate from image conversion so a microkernel gain has an end-to-end interpretation.
-- Complete when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
-  retain bounds protection, and every retained kernel improves representative decoding.
-- Related: cpu.simd.006, cpu.simd.007, cpu.simd.010.
-
 ### cpu.simd.029 — The JPEG forward transform and quantization remain scalar
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - State: the decoder is packed. Colour conversion of every layout, the direct-RGB interleave and
   the inverse transform all run on vectors, and the encoder converts colour packed as well. All of
   it is byte-exact with the scalar form it replaced, checked by hashing decoded pixels and encoded
@@ -408,58 +507,10 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
 
 ### cpu.simd.030 — WebP reconstruction and transforms remain mostly scalar
 
+- Recorded: 2026-08-20 08:56
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
   and lossless subtract-green/cross-color/predictor transforms.
 - Complete when: lossy and lossless fixture pixels remain identical where specified, predictor and
   boundary modes are exhaustive, and stage benchmarks show the retained gains.
 - Related: cpu.simd.006, cpu.simd.010.
-
-### cpu.simd.031 — Remaining palette lookups need a profitable packed strategy
-
-- Evidence: BMP/TGA 16-bit expansion, TGA row reversal and RLE spans, RGB/BGR channel shuffles,
-  GIF fixed quantization and PNG packed-word palette tables already have bulk implementations.
-  Palette lookup still has no general gather/shuffle strategy that beats those direct tables.
-- Historical experiments: a 16-entry SSSE3 PNG table shuffle lost by 2.97x for RGB and 1.83x for
-  RGBA during the wrapper-call window. PNG's current packed-u32 lookup beat the gather prototype;
-  neither result proves that every palette size or new target should make the same choice.
-- Next: profile GIF palette expansion and remaining indexed layouts before selecting gather or
-  shuffle, preserve the existing small-image setup thresholds, and compare against the current
-  packed-word tables rather than an older per-channel loop.
-- Complete when: each remaining indexed path has a measured dispatch decision and covers palette
-  size, transparency and tails without invalid reads or changes to decoded pixels.
-- Related: cpu.simd.007.
-
-### cpu.simd.032 — CPU span packing stops before translucent blending and complex shading
-
-- Evidence: `rendercpu.swg` already clears packed spans, evaluates four edge samples, and writes
-  full covered constant-color BGRA groups with channel masks. Its translucent alpha path keeps
-  scalar float rounding, and gradient, MSDF and general texture shading retain per-pixel work.
-- Intent: extend profitable horizontal spans to those remaining cases, specializing by program,
-  blending and format rather than adding branches to one universal loop.
-- Complete when: clip and layer boundaries remain exact, byte/golden parity or a deliberately
-  specified numeric tolerance protects rounding, and stage and application benchmarks justify
-  each retained path. Gather-dependent sampling needs its own measured decision.
-- Related: cpu.simd.004, cpu.simd.007, cpu.simd.011, cpu.simd.016.
-
-## Tier C — Text, fonts, and PDF
-
-### cpu.simd.033 — TrueType raster and MSDF kernels remain scalar
-
-- Evidence: ordinary SDF already evaluates two F64 sample positions through
-  `closestEdgeDistances` and `insideMask`; MSDF and analytic raster coverage remain separate scalar
-  implementations.
-- Intent: vectorize analytic coverage conversion and process multiple sample points in MSDF
-  distance evaluation, using vector math and gathers only where edge traversal remains profitable.
-- Complete when: glyph goldens stay within a declared coverage/distance tolerance and raster and
-  MSDF are benchmarked separately across small and large glyphs.
-- Related: cpu.simd.007, cpu.simd.011.
-
-### cpu.simd.034 — PDF packed samples and mask composition remain scalar
-
-- Evidence: default 8-bit gray expansion and CMYK conversion already use packed shuffles in
-  `decode.image.swg`; the remaining paths still use sample extraction and per-pixel composition.
-- Intent: vectorize non-default decode arrays, packed and 16-bit samples, color-key comparison,
-  mask scaling, and alpha composition; use gather for indexed spaces only when profitable.
-- Complete when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
-  arrays, and indexed spaces, with separate conversion benchmarks.
-- Related: cpu.simd.004, cpu.simd.007, cpu.simd.011.

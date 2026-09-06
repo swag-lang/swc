@@ -2,69 +2,36 @@
 
 This backlog covers the compiler front end, back end, workspace build engine, and editor-facing compiler services. Documentation, formatting, and language-design work have their own domain files. Only unfinished work belongs here; completed investigations and implementations remain discoverable through Git history.
 
-Items are ordered by decreasing expected value inside each tier. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
+Items are ordered from the most recently updated down. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
-## Tier A — Persisted compiler state
+### compiler.core.005 — Compiler memory has no attributed, enforced budget
 
-### compiler.core.001 — Dependencies cross the module boundary as regenerated source
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-06 16:06 — git: Integrate master fixes before merging sanitizer memory changes
 
-**Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
+**Evidence (2026-09-05, Release `swc.exe`, `--num-cores 6`, peak working set).** Before: core devmode rebuild 731 MB, core release rebuild 638 MB, hello 73 MB, bench tasks 74-83 MB. After finished jobs release their Sema and CodeGen state, 64 KiB arena blocks, and the api-export index dropped after export: 517 MB, 360 MB, 60 MB, 58-66 MB, with wall time at 0.86x, 0.95x, 1.0x, 0.97x (order-alternated A/B). Attribution by mimalloc statistics and a throwaway sampling probe on the DevMode core rebuild: the largest block still resident at peak is the static sanitizer's flow state (`SanitizerState` copies, ~150 MiB of ~100-byte map nodes, 17M allocations per core rebuild), then paged AST/payload/type stores (~110 MiB), per-thread arenas (~95 MiB, dominated by 2 KB `SymbolFunction` and 1.3 KB `SemaInlinePayload`), the CodeGen objects of sleeping codegen jobs (~23 MiB), and link-time archive buffers (~23 MiB). The compile-time runtime allocator is not a factor.
 
-**Complete when.**
+**Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
 
-- Workspace imports no longer add generated API `.swg` files to the lexer and parser.
-- `--export-api-dir` still emits a human-readable `.swg` representation for inspection and tooling.
-- Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
-- Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
+**Current investigation (2026-09-06).** The isolated candidate `717ec4db6` stores flow state only at chain heads and omits Unknown stack values and default register facts. The changes are merged into `master` at the owner's request; repeated low-load A/B time and working-set validation remains pending, and loaded observations are not proof of unchanged compile time. External native-stack heap sampling on the core devmode rebuild observes 57.7 MiB of live requested sanitizer memory before and 35.8 MiB after, with mixed semantic/symbol arenas at 50.5/50.7 MiB. Unknown values account for about 74.5% of sampled baseline stack-map node bytes and none in the candidate snapshot. These are sampled live allocation estimates, not a complete resident-set split: proximity pages and retained freed allocator pages remain partly unattributed. Finished CodeGen jobs already release Sema/CodeGen state, and emitted functions already release their Micro builder. The four full baseline/candidate compiler campaigns stopped at the same pre-existing GUI5 failure, later fixed separately in `7f00d9f26`; their later smoke stages remain unrun. The [campaign report](../bench/results/memory/20260906/README.md) keeps raw samples, profiling coverage limits, validation and the reduced failure.
 
-**Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011.
-
-### compiler.core.002 — Front-end invalidation is module-wide
-
-**Intent.** Persist lexical, parsed, and semantic state per source file. Cache keys must include the source content, relevant build configuration, and fingerprints of imported public symbols actually observed by the file.
+**Next.** Finish repeated order-alternated measurements for every campaign workload on a quiet host to validate the performance of the merged changes. Then extend external accounting to proximity allocations and allocator-retained pages so the remaining AST, types, symbols, constants and Micro footprint is attributable before choosing the next lifetime change. Revisit dense sanitizer storage only if that trace still makes it the leading retained block: the earlier sorted flat-array attempt raised CPU time by 60%, so any replacement must avoid sorted-insert shifts. Shrinking `SymbolFunction` and releasing file text/tokens remain leads, not measured wins.
 
 **Complete when.**
 
-- Editing a private body reanalyzes only the changed file and its semantic dependents.
-- Changing a public signature invalidates every consumer that observed it.
-- Adding, removing, or renaming a file, changing relevant configuration, and changing compiler versions invalidate the correct state.
-- The compiler.core.004 `core_touch` workload lands far below `core_rebuild`, which today it does not: one saved file rebuilds every file of the module.
-- Clean and incremental workspace builds are covered by equivalent-result tests.
+- A full core DevMode build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
+- Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
+- Thresholds, host normalization, and variance policy are stored with the campaign.
+- External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
 
-**Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
-
-### compiler.core.003 — Code-generation invalidation is module-wide
-
-**Intent.** Cache code generation at function granularity. A reusable artifact must be keyed by the function's semantic fingerprint plus the reachable ABI and inlinable-body dependencies that can affect its generated code.
-
-**Complete when.**
-
-- A body-only edit regenerates the changed function and any function whose generated code depends on it, while unrelated functions are reused.
-- Reuse works for JIT and native builds, including debug and unwind metadata.
-- A deterministic test compares clean and warm native images, manifests, and observable behavior.
-- Cache entries reject compiler, target, configuration, ABI, and relevant optimization changes.
-
-**Related:** compiler.core.001, compiler.core.002, compiler.core.004.
-
-### compiler.core.030 — Every executable lowers the runtime's functions again
-
-**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
-
-**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup — and give the prelude its build configuration as a compiler-materialized constant instead of a JIT run.
-
-**Complete when.**
-
-- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
-- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
-- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
-
-## Tier B — Measurement and budgets
+**Related:** compiler.core.004, compiler.core.007.
 
 ### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-06 15:21 — git: Refresh module compilation profiles and measurement caveats
 
 **Evidence.** Since 2026-09-05 the campaign measures the edit-build loop beside the seven tasks: `core_rebuild`, `core_noop`, `core_touch`, `hello_build`, `doc_std` and `format_tree` (`bench/toolchains.py`, `make_compiler_workloads`), each recorded with wall time, every sample and peak memory, corrected by the campaign's compilation context and indexed against the first clean campaign that measured it (`history.py`, `index_loop`). `bench/compile.py` answers the round-by-round A/B between two compilers. On 2026-09-05, Release 0.1.366, six worker cores, medians of five on a quiet machine: `core_rebuild` 3 485 ms, `core_noop` 334 ms, `core_touch` 3 214 ms, `format_tree` 5.6 s at one busy core, `doc_std` 142 s and 3.3 GiB peak, the standard-library publish pass included. No recorded campaign carries these workloads yet: the four records of protocol 2 predate them.
 
@@ -86,100 +53,10 @@ compiler-worker counts.
 
 **Related:** compiler.core.002, compiler.core.005, compiler.core.007.
 
-### compiler.core.005 — Compiler memory has no attributed, enforced budget
-
-**Evidence (2026-09-05, Release `swc.exe`, `--num-cores 6`, peak working set).** Before: core devmode rebuild 731 MB, core release rebuild 638 MB, hello 73 MB, bench tasks 74-83 MB. After finished jobs release their Sema and CodeGen state, 64 KiB arena blocks, and the api-export index dropped after export: 517 MB, 360 MB, 60 MB, 58-66 MB, with wall time at 0.86x, 0.95x, 1.0x, 0.97x (order-alternated A/B). Attribution by mimalloc statistics and a throwaway sampling probe on the DevMode core rebuild: the largest block still resident at peak is the static sanitizer's flow state (`SanitizerState` copies, ~150 MiB of ~100-byte map nodes, 17M allocations per core rebuild), then paged AST/payload/type stores (~110 MiB), per-thread arenas (~95 MiB, dominated by 2 KB `SymbolFunction` and 1.3 KB `SemaInlinePayload`), the CodeGen objects of sleeping codegen jobs (~23 MiB), and link-time archive buffers (~23 MiB). The compile-time runtime allocator is not a factor.
-
-**Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
-
-**Current investigation (2026-09-06).** The isolated candidate `717ec4db6` stores flow state only at chain heads and omits Unknown stack values and default register facts. The changes are merged into `master` at the owner's request; repeated low-load A/B time and working-set validation remains pending, and loaded observations are not proof of unchanged compile time. External native-stack heap sampling on the core devmode rebuild observes 57.7 MiB of live requested sanitizer memory before and 35.8 MiB after, with mixed semantic/symbol arenas at 50.5/50.7 MiB. Unknown values account for about 74.5% of sampled baseline stack-map node bytes and none in the candidate snapshot. These are sampled live allocation estimates, not a complete resident-set split: proximity pages and retained freed allocator pages remain partly unattributed. Finished CodeGen jobs already release Sema/CodeGen state, and emitted functions already release their Micro builder. The four full baseline/candidate compiler campaigns stopped at the same pre-existing GUI5 failure, later fixed separately in `7f00d9f26`; their later smoke stages remain unrun. The [campaign report](../bench/results/memory/20260906/README.md) keeps raw samples, profiling coverage limits, validation and the reduced failure.
-
-**Next.** Finish repeated order-alternated measurements for every campaign workload on a quiet host to validate the performance of the merged changes. Then extend external accounting to proximity allocations and allocator-retained pages so the remaining AST, types, symbols, constants and Micro footprint is attributable before choosing the next lifetime change. Revisit dense sanitizer storage only if that trace still makes it the leading retained block: the earlier sorted flat-array attempt raised CPU time by 60%, so any replacement must avoid sorted-insert shifts. Shrinking `SymbolFunction` and releasing file text/tokens remain leads, not measured wins.
-
-**Complete when.**
-
-- A full core DevMode build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
-- Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
-- Thresholds, host normalization, and variance policy are stored with the campaign.
-- External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
-
-**Related:** compiler.core.004, compiler.core.007.
-
-## Tier B — Reused and parallel compiler work
-
-### compiler.core.006 — Every process rebuilds the prelude state
-
-**Evidence.** On 2026-09-05 (Release 0.1.369, six worker cores, quiet machine): `swc help` 34 ms, `swc syntax` on an empty file 35 ms, `swc sema` on the same 165 ms. The prelude is 14 files and 32 948 tokens; its semantic pass, including the JIT run compiler.core.030 describes, is what separates the last two numbers, and every module setup used to pay it once more until the setup cache of 0.1.367 kept the result.
-
-**Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
-
-**Complete when.**
-
-- A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
-- Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
-- Fresh and reused prelude paths produce identical diagnostics and artifacts.
-- The compiler.core.004 campaign demonstrates the reduced fixed startup floor.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.016.
-
-### compiler.core.007 — Workspace front ends and code generation run serially
-
-**Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
-
-**Intent.** Schedule ready modules concurrently on the dependency DAG through a shared worker pool with explicit memory and CPU limits.
-
-**Complete when.**
-
-- Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
-- Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
-- Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
-- The concurrency cap accounts for the memory measurements and budget from compiler.core.005.
-- Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
-
-**Related:** compiler.core.004, compiler.core.005.
-
-## Tier C — Language-server capabilities
-
-### compiler.core.008 — There is no persistent language-server process
-
-**Intent.** Add a compiler-hosted LSP transport and session layer: initialization and shutdown, workspace discovery, document open/change/close notifications, versioned snapshots, request cancellation, and orderly teardown. Requests must call compiler-library services instead of launching a compiler process per operation.
-
-**Complete when.**
-
-- A standard LSP client can open a workspace, edit unsaved buffers, cancel obsolete requests, and shut down cleanly.
-- Responses are computed from the requested document version and stale work cannot publish newer state.
-- The session reuses persisted compiler state from compiler.core.001 and compiler.core.002 when available.
-- Protocol integration tests run independently of the VSCode extension.
-
-**Related:** compiler.core.001, compiler.core.002, compiler.core.010, compiler.core.011, compiler.core.013, compiler.core.014, compiler.core.009, compiler.core.012.
-
-### compiler.core.009 — Open documents have no incremental diagnostics
-
-**Intent.** Publish parser and semantic diagnostics for the accepted version of every open document, including affected dependents, without requiring a workspace build.
-
-**Complete when.**
-
-- Opening a file with an error publishes diagnostics, correcting it clears them, and closing it restores the on-disk view.
-- A stale analysis job never overwrites diagnostics for a newer document version.
-- Diagnostic identifiers, severity, primary and related locations, source snippets, and normalized paths survive the protocol conversion.
-- A multi-file protocol test covers an edit that introduces and then repairs a dependent-file error.
-
-**Related:** compiler.core.002, compiler.core.008.
-
-### compiler.core.010 — The editor has no semantic completion service
-
-**Intent.** Provide completion candidates from the semantic snapshot at a source position, including local scope, members, visible imports, generic parameters, and applicable language constructs.
-
-**Complete when.**
-
-- Completion operates on unsaved, syntactically incomplete buffers and honors shadowing and visibility.
-- Items include stable kind, insertion text, signature/detail, and documentation fields where available.
-- Results are deterministic and cancellable, and a stale request cannot populate a newer buffer.
-- Protocol tests cover local, member, import, generic, incomplete-expression, and inaccessible-symbol cases.
-
-**Related:** compiler.core.008, compiler.core.011, compiler.core.013.
-
 ### compiler.core.011 — The editor has no semantic definition navigation
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-09-06 07:51 — git: prompt 6
 
 **Evidence.** The VSCode extension registers build, rebuild, and format tasks. It registers no
 definition provider and does not consume resolved compiler symbols.
@@ -195,7 +72,191 @@ definition provider and does not consume resolved compiler symbols.
 
 **Related:** compiler.core.001, compiler.core.008, compiler.core.012.
 
+### compiler.core.022 — A JIT '#test' can call through a function slot that was never patched
+
+- Recorded: 2026-08-12 18:01
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Area: compiler
+- Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
+  strongest reproduction so far of the intermittent Swag Vault JIT failures the pass set out to track.
+- Observation: in `swc.dm test -w bin/apps -bc debug --rebuild`, six Swag Vault `#test` functions
+  in `mainwindow.test.swg` (109, 133, 163, 363, 384, 494) die on the same hardware exception:
+  execution lands at `rip=0x0000000080019060` (memory state FREE, "jit offset: unresolved"), which
+  is a jump through a function-pointer slot holding a value no live code owns. The failure hits
+  roughly two runs out of three at the first iteration, always with that same rip, and an A/B
+  build bisected it as independent of the concurrent matcher fix added the same day. Swag Capture's
+  151 tests pass in the same runs; the release and fast-debug legs of the same workspace pass far
+  more often.
+- Evidence: the run reports `state: Run JIT`, `__test_14` at `mainwindow.test.swg:109:1`,
+  `0xC0000005` at `0x0000000080019060`, `memory: state=FREE`. The constant-side patcher leaves a
+  slot untouched when its relocation carries `allowUnresolvedFunction` and the target is not ready
+  (`shouldLeaveOptionalFunctionRelocationUnresolved`, [JIT.cpp](../src/Backend/JIT/JIT.cpp)), and
+  the `LazyGenericBodyRunning` case explicitly defers; nothing re-patches such a slot when the
+  target becomes ready afterward, so a test that reaches one through an interface table or stored
+  callback jumps into the placeholder bytes. The rip being identical across six tests and several
+  runs says the slot content is deterministic, not heap garbage.
+- Next step: retry the apps JIT suite with the checkout-local DevMode compiler in the supported
+  `devmode` and `release` target configurations, with `--rebuild` and `--num-cores 6`; the `debug`
+  command above is historical. On recurrence, dump the pointed-to
+  slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
+  relocation names. Decide between re-running the constant patcher when a deferred target publishes
+  its JIT address, and refusing to defer relocations that are reachable from an interface table.
+
+### compiler.core.030 — Every executable lowers the runtime's functions again
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-05 22:30 — git: Merge master into compile-speed
+
+**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
+
+**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup — and give the prelude its build configuration as a compiler-materialized constant instead of a JIT run.
+
+**Complete when.**
+
+- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
+- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
+- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
+
+### compiler.core.006 — Every process rebuilds the prelude state
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-05 22:13 — git: Take the fixed costs a profile named out of every short command
+
+**Evidence.** On 2026-09-05 (Release 0.1.369, six worker cores, quiet machine): `swc help` 34 ms, `swc syntax` on an empty file 35 ms, `swc sema` on the same 165 ms. The prelude is 14 files and 32 948 tokens; its semantic pass, including the JIT run compiler.core.030 describes, is what separates the last two numbers, and every module setup used to pay it once more until the setup cache of 0.1.367 kept the result.
+
+**Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
+
+**Complete when.**
+
+- A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
+- Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
+- Fresh and reused prelude paths produce identical diagnostics and artifacts.
+- The compiler.core.004 campaign demonstrates the reduced fixed startup floor.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.016.
+
+### compiler.core.002 — Front-end invalidation is module-wide
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-05 22:11 — git: Measure the edit-build loop in the benchmark campaign
+
+**Intent.** Persist lexical, parsed, and semantic state per source file. Cache keys must include the source content, relevant build configuration, and fingerprints of imported public symbols actually observed by the file.
+
+**Complete when.**
+
+- Editing a private body reanalyzes only the changed file and its semantic dependents.
+- Changing a public signature invalidates every consumer that observed it.
+- Adding, removing, or renaming a file, changing relevant configuration, and changing compiler versions invalidate the correct state.
+- The compiler.core.004 `core_touch` workload lands far below `core_rebuild`, which today it does not: one saved file rebuilds every file of the module.
+- Clean and incremental workspace builds are covered by equivalent-result tests.
+
+**Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
+
+### compiler.core.001 — Dependencies cross the module boundary as regenerated source
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
+**Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
+
+**Complete when.**
+
+- Workspace imports no longer add generated API `.swg` files to the lexer and parser.
+- `--export-api-dir` still emits a human-readable `.swg` representation for inspection and tooling.
+- Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
+- Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
+
+**Related:** compiler.core.002, compiler.core.006, compiler.core.008, compiler.core.011.
+
+### compiler.core.003 — Code-generation invalidation is module-wide
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
+**Intent.** Cache code generation at function granularity. A reusable artifact must be keyed by the function's semantic fingerprint plus the reachable ABI and inlinable-body dependencies that can affect its generated code.
+
+**Complete when.**
+
+- A body-only edit regenerates the changed function and any function whose generated code depends on it, while unrelated functions are reused.
+- Reuse works for JIT and native builds, including debug and unwind metadata.
+- A deterministic test compares clean and warm native images, manifests, and observable behavior.
+- Cache entries reject compiler, target, configuration, ABI, and relevant optimization changes.
+
+**Related:** compiler.core.001, compiler.core.002, compiler.core.004.
+
+### compiler.core.007 — Workspace front ends and code generation run serially
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
+**Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
+
+**Intent.** Schedule ready modules concurrently on the dependency DAG through a shared worker pool with explicit memory and CPU limits.
+
+**Complete when.**
+
+- Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
+- Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
+- Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
+- The concurrency cap accounts for the memory measurements and budget from compiler.core.005.
+- Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
+
+**Related:** compiler.core.004, compiler.core.005.
+
+### compiler.core.008 — There is no persistent language-server process
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
+**Intent.** Add a compiler-hosted LSP transport and session layer: initialization and shutdown, workspace discovery, document open/change/close notifications, versioned snapshots, request cancellation, and orderly teardown. Requests must call compiler-library services instead of launching a compiler process per operation.
+
+**Complete when.**
+
+- A standard LSP client can open a workspace, edit unsaved buffers, cancel obsolete requests, and shut down cleanly.
+- Responses are computed from the requested document version and stale work cannot publish newer state.
+- The session reuses persisted compiler state from compiler.core.001 and compiler.core.002 when available.
+- Protocol integration tests run independently of the VSCode extension.
+
+**Related:** compiler.core.001, compiler.core.002, compiler.core.010, compiler.core.011, compiler.core.013, compiler.core.014, compiler.core.009, compiler.core.012.
+
+### compiler.core.009 — Open documents have no incremental diagnostics
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
+**Intent.** Publish parser and semantic diagnostics for the accepted version of every open document, including affected dependents, without requiring a workspace build.
+
+**Complete when.**
+
+- Opening a file with an error publishes diagnostics, correcting it clears them, and closing it restores the on-disk view.
+- A stale analysis job never overwrites diagnostics for a newer document version.
+- Diagnostic identifiers, severity, primary and related locations, source snippets, and normalized paths survive the protocol conversion.
+- A multi-file protocol test covers an edit that introduces and then repairs a dependent-file error.
+
+**Related:** compiler.core.002, compiler.core.008.
+
+### compiler.core.010 — The editor has no semantic completion service
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
+**Intent.** Provide completion candidates from the semantic snapshot at a source position, including local scope, members, visible imports, generic parameters, and applicable language constructs.
+
+**Complete when.**
+
+- Completion operates on unsaved, syntactically incomplete buffers and honors shadowing and visibility.
+- Items include stable kind, insertion text, signature/detail, and documentation fields where available.
+- Results are deterministic and cancellable, and a stale request cannot populate a newer buffer.
+- Protocol tests cover local, member, import, generic, incomplete-expression, and inaccessible-symbol cases.
+
+**Related:** compiler.core.008, compiler.core.011, compiler.core.013.
+
 ### compiler.core.012 — The editor cannot find semantic references
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 **Intent.** Enumerate references to the resolved declaration at a source position across the workspace, distinguishing declarations from uses and excluding textually identical but semantically different symbols.
 
@@ -210,6 +271,9 @@ definition provider and does not consume resolved compiler symbols.
 
 ### compiler.core.013 — The editor has no semantic hover service
 
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 **Intent.** Render concise semantic information for the resolved entity at a source position: declaration signature, inferred type or constant value, ownership and relevant attributes, and public documentation.
 
 **Complete when.**
@@ -223,6 +287,9 @@ definition provider and does not consume resolved compiler symbols.
 
 ### compiler.core.014 — The editor cannot rename a symbol semantically
 
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 **Intent.** Validate a requested identifier at a resolved declaration, reuse the semantic reference set, and produce a versioned workspace edit without changing unrelated text.
 
 **Complete when.**
@@ -234,9 +301,10 @@ definition provider and does not consume resolved compiler symbols.
 
 **Related:** compiler.core.008, compiler.core.012.
 
-## Tier C — Command-line and script workflows
-
 ### compiler.core.016 — Tool scripts recompile on every invocation
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 **Intent.** Persist compiled script artifacts using a dependency-complete key over loaded source files, imported public interfaces, compiler version, target, and relevant build configuration.
 
@@ -249,28 +317,10 @@ definition provider and does not consume resolved compiler symbols.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
 
-## Deliberately out of scope
-
-- **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.
-- **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
-- **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
-
----
-
-The entries below were open investigations when the unified backlog was introduced. Update their
-next action in place as the evidence matures. They retain their former order until re-triaged, so
-position in this imported block carries no priority claim.
-
-Frontend, semantic analysis, and code generation defects: something observed in `swc` itself, with
-a reproduction and a next investigation step. Optimization passes and generated-code performance
-are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses
-are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands have their own files,
-[compiler.command.doc.md](compiler.command.doc.md) and [compiler.command.format.md](compiler.command.format.md).
-
-## Published symbols, imports, and name resolution
-
 ### compiler.core.019 — An ambiguous `.member` still reads "not published yet" as "not there"
 
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Area: compiler
 - Found while: fixing the same race for the unambiguous case, which was making `Swag Capture` fail to
   compile with 18 to 26 errors per attempt, a different set every run
@@ -298,6 +348,8 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 
+- Recorded: 2026-08-10 12:35
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Area: compiler
 - Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
   semantic-completion assertion had passed on immediate focused rerun.
@@ -327,10 +379,10 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
   culprit directly; if one does recur, persist the failing module and stress parallel type
   generation as originally planned.
 
-## JIT-hosted runs
-
 ### compiler.core.021 — A dangling reference into a destroyed compiler instance has no deterministic detector
 
+- Recorded: 2026-08-12 18:01
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Area: compiler
 - Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
   --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
@@ -356,36 +408,10 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
   class reproduce on the first run. Then add a `bin/unittests/workspace` case that rebuilds a
   dependency and asserts `Env.executablePath()` is a valid, existing path from the tested module.
 
-### compiler.core.022 — A JIT '#test' can call through a function slot that was never patched
-
-- Area: compiler
-- Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
-  strongest reproduction so far of the intermittent Swag Vault JIT failures the pass set out to track.
-- Observation: in `swc.dm test -w bin/apps -bc debug --rebuild`, six Swag Vault `#test` functions
-  in `mainwindow.test.swg` (109, 133, 163, 363, 384, 494) die on the same hardware exception:
-  execution lands at `rip=0x0000000080019060` (memory state FREE, "jit offset: unresolved"), which
-  is a jump through a function-pointer slot holding a value no live code owns. The failure hits
-  roughly two runs out of three at the first iteration, always with that same rip, and an A/B
-  build bisected it as independent of the concurrent matcher fix added the same day. Swag Capture's
-  151 tests pass in the same runs; the release and fast-debug legs of the same workspace pass far
-  more often.
-- Evidence: the run reports `state: Run JIT`, `__test_14` at `mainwindow.test.swg:109:1`,
-  `0xC0000005` at `0x0000000080019060`, `memory: state=FREE`. The constant-side patcher leaves a
-  slot untouched when its relocation carries `allowUnresolvedFunction` and the target is not ready
-  (`shouldLeaveOptionalFunctionRelocationUnresolved`, [JIT.cpp](../src/Backend/JIT/JIT.cpp)), and
-  the `LazyGenericBodyRunning` case explicitly defers; nothing re-patches such a slot when the
-  target becomes ready afterward, so a test that reaches one through an interface table or stored
-  callback jumps into the placeholder bytes. The rip being identical across six tests and several
-  runs says the slot content is deterministic, not heap garbage.
-- Next step: retry the apps JIT suite with the checkout-local DevMode compiler in the supported
-  `devmode` and `release` target configurations, with `--rebuild` and `--num-cores 6`; the `debug`
-  command above is historical. On recurrence, dump the pointed-to
-  slot: identify which constant allocation contains `0x80019060` at patch time and which symbol its
-  relocation names. Decide between re-running the constant patcher when a deferred target publishes
-  its JIT address, and refusing to defer relocations that are reachable from an interface table.
-
 ### compiler.core.023 — DevMode assigns a semantic payload to the same slice node twice
 
+- Recorded: 2026-08-19 10:05
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Area: compiler
 - Found while: building the shared `bin/apps` workspace after integrating Swag Scope's viewers.
 - Observation: at 0.1.166, two consecutive runs of a freshly built `swc.dm.exe` asserted
@@ -416,6 +442,8 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 
 ### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
 
+- Recorded: 2026-08-22 21:23
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Area: compiler
 - Found while: validating the `x86-64-v3` baseline change with
   `swc tools/unittests.swgs dm native -bc release`, on the first run after a `SWC_BUILD_NUM` bump
@@ -448,6 +476,8 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 
 ### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
 
+- Recorded: 2026-08-30 12:06
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Area: compiler
 - Found while: making an executable link its dependencies' code in by default, so it ships as one
   file (`bin/unittests/workspace/modules/standalone_exe`).
@@ -470,3 +500,22 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 - Complete when: either a loaded shared library provably shares the host's allocator and context in
   a workspace test that links its dependencies in, or the backlog records why it cannot and the
   compiler diagnoses the combination it can see.
+
+---
+
+## Deliberately out of scope
+
+- **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.
+- **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
+- **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
+
+
+The entries below were open investigations when the unified backlog was introduced. Update their
+next action in place as the evidence matures. They retain their former order until re-triaged, so
+position in this imported block carries no priority claim.
+
+Frontend, semantic analysis, and code generation defects: something observed in `swc` itself, with
+a reproduction and a next investigation step. Optimization passes and generated-code performance
+are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses
+are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands have their own files,
+[compiler.command.doc.md](compiler.command.doc.md) and [compiler.command.format.md](compiler.command.format.md).

@@ -5,10 +5,10 @@ supported codecs, audio-clock synchronization, track selection, sidecar and embe
 seeking, full-screen hosting, mute, and volume. This backlog owns professional playback and
 inspection around `std/video`; codec implementation work remains in [std.video.md](std.video.md).
 
-## Professional transport
-
 ### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: the transport's settings menu now offers 0.25x–2x pitch-following rates through
   `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
   based, and the host summary declares a non-1x rate. 2x is the XAudio2 default frequency-ratio
@@ -21,88 +21,10 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   A/V sync and subtitle timing hold at supported rates, frame scheduling declares drops, and reset
   returns exactly to 1x.
 
-### app.scope.video.002 — Video has no previous/next frame or exact time/frame address
-
-- Evidence: Left/Right seek by ten seconds and the timeline seeks approximately. A reader cannot
-  step one decoded frame while paused, enter a timestamp, seek to a presentation frame/index, or
-  inspect keyframe versus decoded-frame boundaries.
-- Next: add paused frame stepping and a timecode address box backed by presentation timestamps,
-  then expose keyframe/preroll information where the container provides it.
-- Complete when: previous/next frame reaches the exact display order, numeric time and frame jumps
-  validate their interpretation, variable-frame-rate content never invents a constant mapping, and
-  the current PTS/DTS/keyframe state is inspectable.
-
-### app.scope.video.003 — Video cannot mark or loop an A/B range
-
-- Evidence: the settings menu can now loop the whole file, but the timeline carries only a
-  playhead. There is no set A/B, range selection, range loop, play-once selection, or duration
-  readout for a scene under inspection.
-- Next: reuse the source-time range contract from app.scope.audio.002 on the video clock and seek pipeline.
-- Complete when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
-  preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range
-  restores normal end behavior.
-- Related: app.scope.audio.002
-
-### app.scope.video.004 — Chapters, editions, markers, and seek history are absent
-
-- Evidence: container chapters and Matroska editions are not surfaced, and repeated seeks have no
-  back/forward history or temporary bookmarks.
-- Next: normalize container chapters/editions and sidecar chapter files into a landmark track,
-  followed by session bookmarks and navigation history.
-- Complete when: chapter list, previous/next, edition selection, temporary named markers, and
-  back/forward preserve exact times; invalid/overlapping chapters warn; and bookmarks export without
-  modifying the video.
-
-### app.scope.video.005 — Timeline seeking has no thumbnails or buffered/decode-cost feedback
-
-- Evidence: dragging shows a time position only. There is no hover/scrub thumbnail, keyframe marks,
-  buffered range, pending-seek state, decode distance, or distinction between exact and approximate
-  seek.
-- Next: build cancellable thumbnail tiles at keyframe-spaced landmarks with a strict memory and CPU
-  budget, then annotate pending and ready ranges.
-- Complete when: hover and keyboard scrubbing preview nearby frames, obsolete requests cancel,
-  exact versus approximate results are labelled, sparse indexes remain usable, and playback has
-  priority over thumbnail work.
-
-## Presentation and tracks
-
-### app.scope.video.006 — Aspect ratio, crop, rotation, mirroring, and zoom cannot be corrected
-
-- Evidence: frames fit the available view using decoded geometry. The reader cannot inspect or
-  override sample/display aspect ratio, rotation metadata, clean aperture, crop, zoom, pan, mirror,
-  or stretch policy.
-- Next: separate coded size, clean aperture, display transform, and temporary view transform, then
-  expose Fit, Fill, Actual Pixels, and declared-aspect modes.
-- Complete when: source and effective geometry are visible, rotation/mirror/aspect overrides are
-  reversible, pan/zoom is bounded, subtitle placement follows display geometry, and screenshots
-  use the chosen explicit transform.
-
-### app.scope.video.007 — Color, HDR, range, chroma, and deinterlace decisions are invisible
-
-- Evidence: the summary names codec and CPU decoder but not matrix, primaries, transfer, full versus
-  limited range, chroma location, bit depth, HDR metadata, tone mapping, or interlace handling.
-  std.video.006 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
-- Next: surface stream color/interlace metadata and conversion path, then add safe temporary
-  override and comparison controls as the video/pixel pipelines support them.
-- Complete when: source and output color facts are inspectable, unspecified values state defaults,
-  HDR/tone-map and deinterlace modes are explicit, overrides reset cleanly, and a test chart verifies
-  range and matrix handling.
-- Related: std.pixel.001, std.pixel.image.019, std.pixel.003, std.video.006
-
-### app.scope.video.008 — Subtitle files can only be auto-discovered, not deliberately loaded and managed
-
-- Evidence: same-stem sidecars are discovered and a menu selects embedded or found tracks. There is
-  no Open Subtitle File, reload after edit, encoding override, multiple simultaneous tracks,
-  preferred-language policy, safe-area guide, or list of parse warnings.
-- Next: add explicit local sidecar attachment and a subtitle-track manager reusing the standalone
-  viewer's diagnostics.
-- Complete when: arbitrary supported sidecars can be attached/reloaded/detached, encoding and FPS
-  policy are visible, primary and secondary tracks can coexist, parse warnings link to cues, and
-  language preference persists without hiding other tracks.
-- Related: app.scope.text.012, app.scope.text.013
-
 ### app.scope.video.009 — Audio synchronization and channel output cannot be inspected or corrected
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: subtitle delay is adjustable, but audio delay is not. Track entries and the information
   panel already show encoding, channels, sample rate, names and languages. Channel layout, downmix
   matrix, default/forced flags, loudness and A/V drift remain hidden.
@@ -113,35 +35,10 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   to container timing.
 - Related: app.scope.video.016, app.scope.audio.005
 
-### app.scope.video.010 — Track and stream metadata have no complete media-information panel
-
-- Evidence: the information panel presents picture/display size, FPS, frame count, duration,
-  and the available audio/subtitle track names, languages, and encoding properties.
-  Container brands, duration provenance, bitrate, time base, frame-rate mode, codec profile/level,
-  pixel format, track IDs, language/flags, tags, attachments, chapters, and decoder warnings are not
-  presented together.
-- Next: extend the existing panel with a complete container/stream metadata tree without coupling
-  it to transport widgets.
-- Complete when: container plus every stream has exact technical metadata and original tags,
-  derived values identify their source, attachments open safely, warnings link to track/time where
-  possible, and the report can be copied/exported.
-- Related: app.scope.viewers.006
-
-## Capture, performance, and continuity
-
-### app.scope.video.011 — A frame cannot be copied, saved, or compared
-
-- Evidence: there is no snapshot, Copy Frame, Save Frame, contact sheet, or compare-two-frames
-  command, despite decoded frames already existing in memory.
-- Next: add current-frame copy/save with explicit coded/display transform and color policy, then a
-  bounded contact sheet for a selected range.
-- Complete when: output names source timestamp/frame, decoded pixel format, transform, color
-  conversion, and subtitle inclusion; contact-sheet sampling is configurable and cancellable; and
-  two frames can open in the image comparison surface.
-- Related: app.scope.image.006, app.scope.image.009
-
 ### app.scope.video.012 — Playback position and track choices are not resumed safely
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: subtitle font, size, effect, position, color and delay already persist as global
   settings. Closing or replacing a video loses its time, rate, volume/mute and selected tracks;
   there is no file-specific resume state. Blindly restoring by path would apply stale time to a
@@ -154,6 +51,8 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.013 — Video decode and presentation have no selectable performance path
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: the detail line explicitly says `Swag CPU`. Planar frames already reach
   `ImageView.updateVideoFrame` for renderer-side conversion, while packed frames use
   `exchangeImage`. There is no hardware-decoder selection, copy-cost telemetry, dropped/late
@@ -164,35 +63,10 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   and A/V drift can be monitored, hardware output is validated against CPU reference frames, device
   loss recovers, and a deterministic CPU mode remains selectable.
 
-## Playback coverage and fallback
-
-### app.scope.video.014 — WebM and VP9/AV1 Matroska video cannot be played
-
-- Intent: Matroska now plays H.264, H.265, or MPEG-4 Part 2 with selectable AAC-LC, AC-3, E-AC-3,
-  DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus tracks through a compact EBML block index. WebM,
-  and Matroska streams carrying VP9 or AV1, remain unread.
-  The container already retains timestamps, synchronization points, lacing, and payload offsets;
-  what remains is picture and sound codec support rather than another container design.
-- Complete when: the `Video` viewer shows the picture with transport, a seekable timeline and the
-  frame position for VP9 or AV1 in WebM and Matroska, and the registry moves those extensions off
-  the binary line for playback while app.scope.binary.011 keeps the structure reader available as a second
-  viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
-- Related: app.scope.binary.011
-
-### app.scope.video.015 — An unsupported picture codec hides sound tracks the application can play
-
-- Intent: a container currently fails as a video document when its picture codec is unavailable,
-  even if one of its sound tracks has a registered decoder. The measured library exposes this with
-  its single RV40 film; future partial codec coverage must not turn supported audio into no output.
-- Complete when: Swag Scope offers a sound-only view for every decodable track when no picture
-  track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
-  unchanged when both sides are supported.
-- Related: std.video.007 in [std.video.md](std.video.md)
-
-## Real-device validation
-
 ### app.scope.video.016 — Audio-to-video synchronisation has never been observed against a real output device
 
+- Recorded: 2026-08-23 16:42
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: apps/swagscope
 - Found while: std.video.001, after the video viewer started presenting against the audio clock.
 - Observation: the viewer presents each picture at the time the sound has reached, and nothing has
@@ -213,18 +87,135 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Complete when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately
   skewed video clock, and the 0.1 s dead band is shown not to cause visible stutter.
 
-### app.scope.video.017 — The late-decoder regression needs a prepared frame queue
+### app.scope.video.010 — Track and stream metadata have no complete media-information panel
 
-- Area: app/scope
-- Found while: the application rung of a repository health reset
-- Observation: the regression jumps `elapsed` to frame ten before proving that the decoder has
-  queued the eleven frames the catch-up decision needs. `Stopwatch.reset` stops its clock; the
-  former explanation that reset left the clock running does not match its implementation.
-- Evidence: a failure was reported during the combined application run on 2026-09-04, with later
-  isolated and aggregate passes. The test now waits for the needed queue depth before pumping at
-  the fixed presentation time. The current correction has not run while memory admission refuses
-  new test commands.
-- Next: run the focused file in both program configurations and restore the former catch-up cap
-  temporarily to prove that this regression still detects it.
-- Complete when: the expected frame is independent of producer scheduling and the test still fails
-  when the catch-up cap is restored.
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-05 19:54 — git: toto
+- Evidence: the information panel presents picture/display size, FPS, frame count, duration,
+  and the available audio/subtitle track names, languages, and encoding properties.
+  Container brands, duration provenance, bitrate, time base, frame-rate mode, codec profile/level,
+  pixel format, track IDs, language/flags, tags, attachments, chapters, and decoder warnings are not
+  presented together.
+- Next: extend the existing panel with a complete container/stream metadata tree without coupling
+  it to transport widgets.
+- Complete when: container plus every stream has exact technical metadata and original tags,
+  derived values identify their source, attachments open safely, warnings link to track/time where
+  possible, and the report can be copied/exported.
+- Related: app.scope.viewers.006
+
+### app.scope.video.003 — Video cannot mark or loop an A/B range
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-02 21:55 — git: feat(video): add playback rate settings and loop functionality
+- Evidence: the settings menu can now loop the whole file, but the timeline carries only a
+  playhead. There is no set A/B, range selection, range loop, play-once selection, or duration
+  readout for a scene under inspection.
+- Next: reuse the source-time range contract from app.scope.audio.002 on the video clock and seek pipeline.
+- Complete when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
+  preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range
+  restores normal end behavior.
+- Related: app.scope.audio.002
+
+### app.scope.video.002 — Video has no previous/next frame or exact time/frame address
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: Left/Right seek by ten seconds and the timeline seeks approximately. A reader cannot
+  step one decoded frame while paused, enter a timestamp, seek to a presentation frame/index, or
+  inspect keyframe versus decoded-frame boundaries.
+- Next: add paused frame stepping and a timecode address box backed by presentation timestamps,
+  then expose keyframe/preroll information where the container provides it.
+- Complete when: previous/next frame reaches the exact display order, numeric time and frame jumps
+  validate their interpretation, variable-frame-rate content never invents a constant mapping, and
+  the current PTS/DTS/keyframe state is inspectable.
+
+### app.scope.video.004 — Chapters, editions, markers, and seek history are absent
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: container chapters and Matroska editions are not surfaced, and repeated seeks have no
+  back/forward history or temporary bookmarks.
+- Next: normalize container chapters/editions and sidecar chapter files into a landmark track,
+  followed by session bookmarks and navigation history.
+- Complete when: chapter list, previous/next, edition selection, temporary named markers, and
+  back/forward preserve exact times; invalid/overlapping chapters warn; and bookmarks export without
+  modifying the video.
+
+### app.scope.video.005 — Timeline seeking has no thumbnails or buffered/decode-cost feedback
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: dragging shows a time position only. There is no hover/scrub thumbnail, keyframe marks,
+  buffered range, pending-seek state, decode distance, or distinction between exact and approximate
+  seek.
+- Next: build cancellable thumbnail tiles at keyframe-spaced landmarks with a strict memory and CPU
+  budget, then annotate pending and ready ranges.
+- Complete when: hover and keyboard scrubbing preview nearby frames, obsolete requests cancel,
+  exact versus approximate results are labelled, sparse indexes remain usable, and playback has
+  priority over thumbnail work.
+
+### app.scope.video.006 — Aspect ratio, crop, rotation, mirroring, and zoom cannot be corrected
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: frames fit the available view using decoded geometry. The reader cannot inspect or
+  override sample/display aspect ratio, rotation metadata, clean aperture, crop, zoom, pan, mirror,
+  or stretch policy.
+- Next: separate coded size, clean aperture, display transform, and temporary view transform, then
+  expose Fit, Fill, Actual Pixels, and declared-aspect modes.
+- Complete when: source and effective geometry are visible, rotation/mirror/aspect overrides are
+  reversible, pan/zoom is bounded, subtitle placement follows display geometry, and screenshots
+  use the chosen explicit transform.
+
+### app.scope.video.007 — Color, HDR, range, chroma, and deinterlace decisions are invisible
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: the summary names codec and CPU decoder but not matrix, primaries, transfer, full versus
+  limited range, chroma location, bit depth, HDR metadata, tone mapping, or interlace handling.
+  std.video.006 covers missing interlaced H.264 decode, not the viewer controls and diagnostics.
+- Next: surface stream color/interlace metadata and conversion path, then add safe temporary
+  override and comparison controls as the video/pixel pipelines support them.
+- Complete when: source and output color facts are inspectable, unspecified values state defaults,
+  HDR/tone-map and deinterlace modes are explicit, overrides reset cleanly, and a test chart verifies
+  range and matrix handling.
+- Related: std.pixel.001, std.pixel.image.019, std.pixel.003, std.video.006
+
+### app.scope.video.008 — Subtitle files can only be auto-discovered, not deliberately loaded and managed
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: same-stem sidecars are discovered and a menu selects embedded or found tracks. There is
+  no Open Subtitle File, reload after edit, encoding override, multiple simultaneous tracks,
+  preferred-language policy, safe-area guide, or list of parse warnings.
+- Next: add explicit local sidecar attachment and a subtitle-track manager reusing the standalone
+  viewer's diagnostics.
+- Complete when: arbitrary supported sidecars can be attached/reloaded/detached, encoding and FPS
+  policy are visible, primary and secondary tracks can coexist, parse warnings link to cues, and
+  language preference persists without hiding other tracks.
+- Related: app.scope.text.012, app.scope.text.013
+
+### app.scope.video.011 — A frame cannot be copied, saved, or compared
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: there is no snapshot, Copy Frame, Save Frame, contact sheet, or compare-two-frames
+  command, despite decoded frames already existing in memory.
+- Next: add current-frame copy/save with explicit coded/display transform and color policy, then a
+  bounded contact sheet for a selected range.
+- Complete when: output names source timestamp/frame, decoded pixel format, transform, color
+  conversion, and subtitle inclusion; contact-sheet sampling is configurable and cancellable; and
+  two frames can open in the image comparison surface.
+- Related: app.scope.image.006, app.scope.image.009
+
+### app.scope.video.015 — An unsupported picture codec hides sound tracks the application can play
+
+- Recorded: 2026-08-26 20:48
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: a container currently fails as a video document when its picture codec is unavailable,
+  even if one of its sound tracks has a registered decoder. The measured library exposes this with
+  its single RV40 film; future partial codec coverage must not turn supported audio into no output.
+- Complete when: Swag Scope offers a sound-only view for every decodable track when no picture
+  track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
+  unchanged when both sides are supported.
+- Related: std.video.007 in [std.video.md](std.video.md)

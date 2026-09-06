@@ -6,7 +6,7 @@ texture-sampling, vector-output, and geometry work lives in [std.pixel.md](std.p
 Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in Git, not here.
 
 ## Where the image stack already stands
@@ -24,10 +24,12 @@ raster images, CSS Color 3 paints, affine transforms, centered gradients, and a 
 The remaining gaps are color metadata, cumulative resource budgets and source-neutral input,
 complete texture delivery, and format breadth and fidelity.
 
-## Tier A — Safe and source-neutral image input
+## Entries
 
 ### std.pixel.image.036 — Decoding has no cumulative resource budget
 
+- Recorded: 2026-09-01 08:37
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `DecodeOptions` now bounds encoded bytes, frame count, pixels per image/canvas, and
   bytes per pixel buffer. `image.imagereader.test.swg` protects these limits, including cyclic TIFF
   indexes and oversized DDS arrays. Those ceilings do not account for the aggregate live storage
@@ -39,33 +41,10 @@ complete texture delivery, and format breadth and fidelity.
   its charge with the storage, and adversarial multi-image and metadata fixtures prove that several
   individually legal buffers cannot exceed the caller's total limit.
 
-### std.pixel.image.037 — Codec selection trusts the filename extension
-
-- Evidence: `ImageFormat.matches`, `Image.load`, and `Image.decode` choose a decoder from a suffix;
-  a valid buffer without a name cannot be decoded, and a renamed file is sent to the wrong codec.
-  Skia and libvips select buffer/source loaders by inspecting their signatures.
-- Next: add a bounded probe contract to `IImageDecoder`, keep an explicit format hint as an
-  optimization or disambiguator, and make the filename overload forward to content detection.
-- Complete when: file, memory, and data-URI input decode correctly without a trustworthy extension,
-  malformed and ambiguous signatures fail deterministically, and codec registration order does not
-  silently change the selected format.
-- Related: std.pixel.image.038
-
-### std.pixel.image.038 — Codecs require one complete contiguous input buffer
-
-- Evidence: `IImageDecoder.decode` takes `const [..] u8`; `Image.load` first reads the whole file;
-  the incremental logic inside individual codecs is not exposed through the format-neutral API.
-  Skia distinguishes incremental and scanline decode, while libvips loaders accept abstract
-  sources and sequential access.
-- Next: define a seekable/sequential image source contract and decoder lifecycle without making
-  every codec pretend it can seek or resume.
-- Complete when: a caller can probe and decode from file, memory, or a bounded sequential source;
-  incremental-capable codecs report incomplete input without losing state; codecs that require
-  random access state that requirement explicitly.
-- Related: std.pixel.image.037, std.pixel.image.039, std.pixel.019
-
 ### std.pixel.image.039 — Decode cannot request a subset or native scale
 
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `DecodeOptions` selects pixels, metadata, and resource ceilings, but no source rectangle
   or requested scale. `ImageReader` can select an existing DDS/KTX2 level without decoding the
   base image; it cannot ask a decoder to produce an arbitrary thumbnail or crop. A caller must
@@ -77,66 +56,10 @@ complete texture delivery, and format breadth and fidelity.
   stated resampling tolerance.
 - Related: std.pixel.image.038, std.pixel.019
 
-### std.pixel.image.044 — Orientation and common metadata have no typed contract
-
-- Evidence: `ImageMetadata` preserves opaque byte records and `Exif.decode` provides readable TIFF,
-  photo, and GPS fields, but callers cannot ask for normalized
-  EXIF orientation, pixel density, capture time, textual fields, ICC identity, or a thumbnail.
-  Loading a camera image therefore does not say whether its pixel rows are already display-ready.
-- Next: separate normalized cross-format properties from preserved opaque records, beginning with
-  encoded orientation and density, and decide whether load applies orientation or only reports it.
-- Complete when: JPEG, PNG, WebP, and TIFF fixtures expose the same normalized property vocabulary,
-  unknown metadata still round-trips where supported, and orientation is applied exactly once.
-- Related: std.pixel.001, std.pixel.image.019, std.pixel.image.037
-
----
-
-## Tier A — SVG input fidelity
-
-### std.pixel.image.008 — Radial gradients lose their focus and elliptical space
-
-- Evidence: the parser reads `fx`, `fy`, and `fr`, but `Brush` carries only one center and scalar
-  radii. Object-bounding-box gradients over non-square bounds are consequently sampled as circles.
-- Next: give the brush a focus point and gradient-space transform, then implement the two-point
-  conical equation in both samplers.
-- Complete when: focal and focal-radius fixtures match browser rendering, a wide
-  object-bounding-box radial is elliptical, and CPU/OpenGL parity covers inside, edge, and
-  out-of-circle focal points.
-- Related: std.pixel.image.010, std.pixel.001
-
-### std.pixel.image.010 — SVG masks are not parsed
-
-- Evidence: clipping supplies binary geometry coverage, but SVG masks require a rendered alpha or
-  luminance image. `Layer` and `DstIn` provide most of the composition path, yet no resolve turns
-  mask luminance into the alpha consumed by `DstIn`.
-- Next: land `mask-type="alpha"` over layer alpha first, then add luminance-to-alpha resolve and
-  parse `mask`, `maskUnits`, and `maskContentUnits`.
-- Complete when: alpha and luminance masks honor their coordinate systems, black hides, white
-  reveals, gradients fade continuously, unresolved references leave content unmasked, and both
-  renderers agree.
-- Related: std.pixel.image.008, std.pixel.018
-
----
-
-## Tier A — Image color metadata
-
-### std.pixel.image.019 — Embedded ICC profiles are preserved but not interpreted
-
-- Evidence: PNG `iCCP` and JPEG application records can survive as opaque metadata, but Pixel
-  cannot validate a profile, derive a color space from it, or convert pixels through it.
-- Next: choose the supported matrix/TRC and LUT profile classes, define invalid-profile behavior,
-  and integrate conversion with the std.pixel.001 color-space object.
-- Complete when: embedded sRGB, Display P3, grayscale, and one LUT-profile fixture convert to a
-  declared destination with reference tolerances, while unsupported profiles are reported without
-  discarding their bytes.
-- Related: std.pixel.001, std.pixel.002, std.pixel.image.044
-
----
-
-## Tier B — Image and texture codecs
-
 ### std.pixel.image.026 — No AVIF codec
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: AVIF 1.2 covers SDR, HDR/WCG, alpha, image sequences, progressive layers, auxiliary
   depth, and tone-map derived images. Treating it as an 8-bit still codec would immediately create
   debt across color and animation.
@@ -149,6 +72,8 @@ complete texture delivery, and format breadth and fidelity.
 
 ### std.pixel.image.027 — No JPEG XL codec
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: JPEG XL combines lossy and lossless coding with alpha, animation, layers, thumbnails,
   progressive decode, metadata, and lossless JPEG reconstruction. Its contract is independent of
   AVIF even when both use the same color and animation abstractions.
@@ -161,6 +86,8 @@ complete texture delivery, and format breadth and fidelity.
 
 ### std.pixel.image.041 — Texture subresources cannot expose their encoded block payload
 
+- Recorded: 2026-09-01 08:37
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `ImageReader` now indexes DDS/KTX2 mip levels, array layers, cubemap faces, and volume
   slices; array, cube, volume, and zlib-KTX2 fixtures cover independent reads. Its public read still
   returns decoded pixels. The original compressed block format and payload cannot be obtained for
@@ -171,20 +98,10 @@ complete texture delivery, and format breadth and fidelity.
   without an RGBA expansion, while `ImageReader.read` and `Image.load` keep their pixel contracts.
 - Related: std.pixel.image.042, platform.portability.066
 
-### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
-
-- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, Zstandard, ETC, ASTC, BC6H, and BC7
-  are unsupported; `IRenderer.addImage` accepts only decoded `Image` or YUV420. KTX2 is designed for
-  per-level streaming and Basis Universal transcoding to a GPU-native block format.
-- Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then
-  choose native block families and a Basis Universal transcoder from the target matrix.
-- Complete when: a KTX2 Basis or supported native-block fixture uploads without an RGBA expansion,
-  chooses a supported target deterministically, preserves mip levels, and has an explicit CPU
-  fallback.
-- Related: std.pixel.image.041, std.pixel.004, platform.portability.066
-
 ### std.pixel.image.047 — WebP encoding is lossless-only
 
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: WebP decode covers VP8 and VP8L, but the encoder writes only VP8L. A caller cannot make
   the ordinary quality/size tradeoff for photographic WebP output despite the module already
   understanding the lossy bitstream on input.
@@ -194,18 +111,10 @@ complete texture delivery, and format breadth and fidelity.
   metadata behavior is explicit, and decoded distortion/size regressions are measured.
 - Related: std.pixel.001
 
-### std.pixel.image.048 — JPEG encoding cannot produce progressive output
-
-- Evidence: JPEG decode handles baseline and progressive scans, but encoding is baseline-only.
-  Progressive delivery remains a common web/export requirement and exercises a different scan and
-  Huffman contract rather than a flag on the current writer.
-- Next: define a scan script and coefficient lifetime for progressive Huffman encoding, reusing the
-  existing DCT and metadata writer.
-- Complete when: grayscale and RGB fixtures encode with multiple valid scans, decode identically to
-  their baseline equivalents within JPEG tolerance, and malformed scan plans are rejected.
-
 ### std.pixel.image.049 — OpenEXR PIZ compression is not decoded
 
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: decode accepts single- and multipart RGB/RGBA/Y scanlines with none, ZIPS, or ZIP compression;
   encode is uncompressed. OpenEXR identifies PIZ as its wavelet/Huffman lossless option, and files
   using it are rejected before the otherwise supported half/float channels can be reconstructed.
@@ -218,6 +127,8 @@ complete texture delivery, and format breadth and fidelity.
 
 ### std.pixel.image.050 — Tiled and multi-resolution OpenEXR images are rejected
 
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: OpenEXR tiles provide random rectangular access and can carry mipmap or ripmap levels,
   but Pixel accepts scanline images only. This blocks native region/scale decode even when the file
   already contains the needed subdivision and resolution.
@@ -227,6 +138,115 @@ complete texture delivery, and format breadth and fidelity.
   materializing the base image, with reference fixtures for incomplete edge tiles and both level
   rounding modes.
 - Related: std.pixel.image.039, std.pixel.019, std.pixel.image.049
+
+### std.pixel.image.044 — Orientation and common metadata have no typed contract
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-05 19:54 — git: toto
+- Evidence: `ImageMetadata` preserves opaque byte records and `Exif.decode` provides readable TIFF,
+  photo, and GPS fields, but callers cannot ask for normalized
+  EXIF orientation, pixel density, capture time, textual fields, ICC identity, or a thumbnail.
+  Loading a camera image therefore does not say whether its pixel rows are already display-ready.
+- Next: separate normalized cross-format properties from preserved opaque records, beginning with
+  encoded orientation and density, and decide whether load applies orientation or only reports it.
+- Complete when: JPEG, PNG, WebP, and TIFF fixtures expose the same normalized property vocabulary,
+  unknown metadata still round-trips where supported, and orientation is applied exactly once.
+- Related: std.pixel.001, std.pixel.image.019, std.pixel.image.037
+
+### std.pixel.image.037 — Codec selection trusts the filename extension
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: `ImageFormat.matches`, `Image.load`, and `Image.decode` choose a decoder from a suffix;
+  a valid buffer without a name cannot be decoded, and a renamed file is sent to the wrong codec.
+  Skia and libvips select buffer/source loaders by inspecting their signatures.
+- Next: add a bounded probe contract to `IImageDecoder`, keep an explicit format hint as an
+  optimization or disambiguator, and make the filename overload forward to content detection.
+- Complete when: file, memory, and data-URI input decode correctly without a trustworthy extension,
+  malformed and ambiguous signatures fail deterministically, and codec registration order does not
+  silently change the selected format.
+- Related: std.pixel.image.038
+
+### std.pixel.image.038 — Codecs require one complete contiguous input buffer
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: `IImageDecoder.decode` takes `const [..] u8`; `Image.load` first reads the whole file;
+  the incremental logic inside individual codecs is not exposed through the format-neutral API.
+  Skia distinguishes incremental and scanline decode, while libvips loaders accept abstract
+  sources and sequential access.
+- Next: define a seekable/sequential image source contract and decoder lifecycle without making
+  every codec pretend it can seek or resume.
+- Complete when: a caller can probe and decode from file, memory, or a bounded sequential source;
+  incremental-capable codecs report incomplete input without losing state; codecs that require
+  random access state that requirement explicitly.
+- Related: std.pixel.image.037, std.pixel.image.039, std.pixel.019
+
+### std.pixel.image.008 — Radial gradients lose their focus and elliptical space
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: the parser reads `fx`, `fy`, and `fr`, but `Brush` carries only one center and scalar
+  radii. Object-bounding-box gradients over non-square bounds are consequently sampled as circles.
+- Next: give the brush a focus point and gradient-space transform, then implement the two-point
+  conical equation in both samplers.
+- Complete when: focal and focal-radius fixtures match browser rendering, a wide
+  object-bounding-box radial is elliptical, and CPU/OpenGL parity covers inside, edge, and
+  out-of-circle focal points.
+- Related: std.pixel.image.010, std.pixel.001
+
+### std.pixel.image.010 — SVG masks are not parsed
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: clipping supplies binary geometry coverage, but SVG masks require a rendered alpha or
+  luminance image. `Layer` and `DstIn` provide most of the composition path, yet no resolve turns
+  mask luminance into the alpha consumed by `DstIn`.
+- Next: land `mask-type="alpha"` over layer alpha first, then add luminance-to-alpha resolve and
+  parse `mask`, `maskUnits`, and `maskContentUnits`.
+- Complete when: alpha and luminance masks honor their coordinate systems, black hides, white
+  reveals, gradients fade continuously, unresolved references leave content unmasked, and both
+  renderers agree.
+- Related: std.pixel.image.008, std.pixel.018
+
+### std.pixel.image.019 — Embedded ICC profiles are preserved but not interpreted
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: PNG `iCCP` and JPEG application records can survive as opaque metadata, but Pixel
+  cannot validate a profile, derive a color space from it, or convert pixels through it.
+- Next: choose the supported matrix/TRC and LUT profile classes, define invalid-profile behavior,
+  and integrate conversion with the std.pixel.001 color-space object.
+- Complete when: embedded sRGB, Display P3, grayscale, and one LUT-profile fixture convert to a
+  declared destination with reference tolerances, while unsupported profiles are reported without
+  discarding their bytes.
+- Related: std.pixel.001, std.pixel.002, std.pixel.image.044
+
+### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, Zstandard, ETC, ASTC, BC6H, and BC7
+  are unsupported; `IRenderer.addImage` accepts only decoded `Image` or YUV420. KTX2 is designed for
+  per-level streaming and Basis Universal transcoding to a GPU-native block format.
+- Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then
+  choose native block families and a Basis Universal transcoder from the target matrix.
+- Complete when: a KTX2 Basis or supported native-block fixture uploads without an RGBA expansion,
+  chooses a supported target deterministically, preserves mip levels, and has an explicit CPU
+  fallback.
+- Related: std.pixel.image.041, std.pixel.004, platform.portability.066
+
+### std.pixel.image.048 — JPEG encoding cannot produce progressive output
+
+- Recorded: 2026-09-01 08:20
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: JPEG decode handles baseline and progressive scans, but encoding is baseline-only.
+  Progressive delivery remains a common web/export requirement and exercises a different scan and
+  Huffman contract rather than a flag on the current writer.
+- Next: define a scan script and coefficient lifetime for progressive Huffman encoding, reusing the
+  existing DCT and metadata writer.
+- Complete when: grayscale and RGB fixtures encode with multiple valid scans, decode identically to
+  their baseline equivalents within JPEG tolerance, and malformed scan plans are rejected.
 
 ---
 

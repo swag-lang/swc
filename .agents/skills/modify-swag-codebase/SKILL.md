@@ -106,6 +106,8 @@ local workaround merely because the original request exposed it indirectly.
 - Search the whole backlog before adding an entry. Enrich an existing item instead of creating a
   duplicate.
 - Give the new entry the next file-scoped identifier for its domain. See the rule below.
+- Stamp the new entry with the current date and time, stamp every later change with when and
+  what changed, and keep the README inventory sorted by those stamps. See the rule below.
 
 The backlog is not a promise that every observed lead will be implemented, and not a substitute for
 fixing a root cause that is already safe and in scope.
@@ -136,11 +138,32 @@ identifier does not.
   and Markdown fragment in the same change.
 - When the domain itself is renamed, preserve its numeric suffixes, change every identifier prefix
   with the file, and update every live reference and Markdown fragment in the same change.
-- Position expresses expected value where entries are comparable. Put an untriaged lead at the end
-  of the closest relevant section until its priority is understood, then move it without changing
-  its identifier.
+- Position expresses recency. A domain file is one list from the most recently updated entry
+  down: a new entry goes to the top, an entry that takes an `Updated` stamp moves to the top, and
+  no `##` heading groups entries. Moving an entry never changes its identifier.
 - When investigation becomes implementation, update `Next` and `Complete when` in place. Never
   mint a second entry merely to represent the same work at a later maturity.
+
+## Stamp Every Entry
+
+Every entry opens with when it was found and says when it last changed, so the user sees at a
+glance what moved last. [backlog/README.md](../../../backlog/README.md) states the format.
+
+- Put a new entry at the top of its file and write `- Recorded: YYYY-MM-DD HH:MM` as the first
+  line under its heading. Read the date and time from the clock at that moment —
+  `Get-Date -Format "yyyy-MM-dd HH:mm"` in PowerShell, `date +"%Y-%m-%d %H:%M"` in Bash — never
+  from memory, a commit, or the evidence being recorded.
+- When changing what an existing entry claims, plans, or requires, set
+  `- Updated: YYYY-MM-DD HH:MM — what changed` directly under `Recorded`, replacing any previous
+  `Updated` line, and move the entry to the top of its file. Name the change in one clause.
+  Fixing a typo, a link, or the formatting is not an update.
+- Keep the README inventory sorted from the most recently updated domain down. After editing a
+  domain file, set its row's `Updated` cell to the latest stamp the file now holds and move the
+  row to its place; a change to `repo.prompts.md` stamps that row by hand.
+- `tools/tests.swgs` refuses to start a campaign while a stamp is missing or malformed, a file's
+  entries are out of order, or the inventory is out of order.
+  `bin\swc.exe --num-cores 6 tools\tests\repository.swgs .` runs that check alone; run it after
+  every backlog edit.
 
 ## Keep One Backlog Per Domain
 

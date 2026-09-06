@@ -7,7 +7,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 language work belongs in [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md).
 [README.md](README.md) has the whole layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
 ## Where the module already stands
@@ -73,12 +73,12 @@ One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode
 longer be satisfied by calling into it from `pixel`. When that entry is taken up, either the
 writer moves below both consumers or `pixel` grows its own, and that choice belongs to std.pixel.005.
 
----
-
-## Tier A — Documents that do not open
+## Entries
 
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: `indexDocument` fails the whole document as soon as an `/Encrypt` entry or a standard
   security handler is seen. Files encrypted with an *empty* user password are rejected along with
   files requiring a password. The reader has no decryption path for either case.
@@ -91,12 +91,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Note: the object index is now read from the file's own trailer chain, so a decrypted string or
   stream is decrypted per object as it is parsed rather than in a pass over everything.
 
----
-
-## Tier B — Pages that do not render what they mean
-
 ### std.gui.pdf.002 — One unsupported construct loses the whole page
 
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: `loadPage` fails as a unit. A single JBIG2 scan or one JPEG 2000 photograph anywhere in
   a content stream costs the caller the entire page, including the text and vectors that decoded
   perfectly. For a viewer that is the difference between a page with a gap in it and a page that
@@ -110,64 +108,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   English and must read as such.
 - Related: std.gui.pdf.011, std.gui.pdf.012, std.gui.pdf.014, std.gui.pdf.015
 
-### std.gui.pdf.003 — Annotation appearance streams are never drawn
-
-- Intent: `/Annots` is not read. Links, form widgets, stamps, highlights, sticky notes, redaction
-  marks and signature appearances all live in annotation appearance streams, and none of them
-  reach the page. A commented or filled document renders as the blank form underneath it, with no
-  indication that anything is missing.
-- Complete when: the normal appearance stream of each annotation is drawn in annotation order
-  after the page content, with its `/Rect` to `/BBox` mapping and `/Matrix` applied, hidden and
-  no-view flags honoured, and annotations without an appearance stream skipped rather than
-  synthesized.
-- Note: draw appearances only. Never execute an `/AA`, an `/A` action, or embedded JavaScript.
-- Related: std.gui.pdf.017
-
-### std.gui.pdf.005 — Axial and radial shadings are not painted
-
-- Intent: the `sh` operator falls through the content switch and paints nothing, and a shading
-  pattern used as a fill paints nothing. Type 2 and type 3 shadings with sampled, exponential and
-  stitching functions cover the overwhelming majority of gradients in real documents.
-- Complete when: `sh` paints an axial or radial shading through the current clip, a shading
-  pattern selected by `scn` fills a path with the same code, the `/Function` types needed by those
-  two are evaluated, and the remaining shading types are reported per item.
-- Related: std.gui.pdf.006
-
-### std.gui.pdf.006 — Tiling patterns are not painted
-
-- Intent: a type 1 pattern is a content stream tiled over a region — hatching in engineering
-  drawings, texture fills in presentations. None of it is drawn.
-- Complete when: a tiling pattern's cell is decoded once through the existing content parser,
-  tiled over the filled region under the pattern matrix, and both paint types are handled, with
-  the uncolored form taking its color from the `scn` operands.
-- Related: std.gui.pdf.005
-
-### std.gui.pdf.007 — A soft-masked text run takes one coverage for the whole run
-
-- Intent: a graphics-state `/SMask` now reaches every mark, but a text run cannot take a coverage
-  that varies across it: a run is drawn from the glyph atlas, which is the one texture the painter
-  samples for it, so the mask is folded in as its mean over the run's box. That is exact for the
-  uniform mask a faded layer uses and an approximation for a gradient crossing a line of text.
-- Evidence: `maskItem` in `decode.swg` branches on the item kind — a path takes the coverage as an
-  anchored texture brush, an image takes it in its own alpha channel, and only text averages it.
-- Next: decide where the exact form belongs. Either the painter grows a second texture unit a text
-  run can be modulated by, or a masked run is rasterized into an image item, which costs the run
-  its resolution independence in the viewer.
-- Complete when: a gradient crossing a line of text darkens the letters it crosses rather than the
-  whole run equally, or the entry is rewritten around a decision that says it may not.
-
-### std.gui.pdf.008 — Optional content is always drawn
-
-- Intent: `BDC`, `BMC` and `EMC` fall through the content switch and `/OC` on an XObject is not
-  read, so every optional content group is painted whatever its default configuration says. A
-  drawing exported with construction layers off shows them on, and a multi-language artwork shows
-  every language at once.
-- Complete when: the catalog's `/OCProperties` default configuration decides which groups are
-  visible, marked-content sections and XObjects belonging to a hidden group are skipped, and the
-  group list is exposed so a caller can override the configuration.
-
 ### std.gui.pdf.010 — Text render modes other than fill and invisible are drawn filled
 
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: `Tr` is stored and then only consulted to detect the invisible modes 3 and 7. Mode 1
   paints outlined text, mode 2 fills and strokes it, and modes 4 through 7 add the run to the clip
   path — the standard way to fill text with an image or a gradient. Modes 1, 2, 4, 5 and 6 are
@@ -176,87 +120,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: an item carries its render mode, stroke and fill-and-stroke modes paint with the
   stroke color and width, and the clipping modes contribute the run's outline to the clip.
 
----
-
-## Tier B — Fonts a page cannot draw
-
-### std.gui.pdf.011 — Type3 fonts are not decoded
-
-- Intent: a Type3 font defines each glyph as a content stream under a `/FontMatrix`. Nothing here
-  recognizes the subtype, so the run is handed to the substitute path, and its `/Widths` — which
-  are in glyph space, not thousandths — are read as though they were normal metrics, so the text
-  is both the wrong shape and the wrong size. Documents produced by older TeX toolchains and by
-  drawing programs that embed bitmap fonts hit this.
-- Complete when: a Type3 glyph is drawn by running its `CharProc` through the existing content
-  parser under the font matrix and the text matrix, and its widths are interpreted in glyph space.
-
----
-
-## Tier B — Images a page cannot decode
-
-### std.gui.pdf.012 — The `/Decode` array is not applied to a DCT image
-
-- Intent: four-component frames decode now, but a DCT image is the one sample representation whose
-  `/Decode` array is ignored, because the frame reaches this module already converted to screen
-  colours. A file that states its inks are stored complemented through that array rather than
-  through the Adobe marker therefore renders inverted, and a partial range on a gray or colour
-  photograph is dropped silently.
-- Evidence: `decodeImage` hands `DCTDecode` straight to `Image.decode(".jpg", …)` and returns its
-  colour result; every sampled representation beside it goes through `readSamplePlane`, which does
-  read `/Decode`. The four-component path in `pixel` applies the Adobe complement itself, which is
-  what a standalone CMYK JPEG needs and what a `/Decode` array would then apply twice.
-- Next: decide where ink values are allowed to exist — either a four-component frame comes back from
-  `pixel` as inks and this module converts them, or the decoder takes the decode ranges as an
-  option — then apply the array on the DCT path for every component count.
-- Complete when: a DCT image honours `/Decode` exactly as a sampled image does, and a fixture
-  carries a CMYK photograph inverted through that array.
-- Related: std.gui.pdf.002
-
-### std.gui.pdf.014 — JBIG2 images are refused
-
-- Intent: `JBIG2Decode` is the modern successor to CCITT for scanned text, and is what recent
-  scanner firmware and PDF optimizers emit.
-- Complete when: the generic region and text region decoding procedures are implemented, including
-  the embedded stream form with a shared `/JBIG2Globals` segment.
-- Related: std.gui.pdf.002, std.gui.pdf.015
-
-### std.gui.pdf.015 — JPEG 2000 images are refused
-
-- Intent: `JPXDecode` appears in print production and in some scanner output. It is the largest
-  single decoder on this list and the rarest of the three, which is why it sits last.
-- Complete when: the codestream form used by PDF decodes, or the codec is removed from the
-  recognized set and reported as a first-class limitation instead of being half-recognized.
-- Related: std.gui.pdf.002
-
----
-
-## Tier C — What a reader cannot say about a document
-
-### std.gui.pdf.017 — Outline, destinations, and link targets are not read
-
-- Intent: the catalog's `/Outlines`, its `/Names` destination tree and the `/Dest` or `/A` of a
-  link annotation are never read, so a document has no navigable structure: no bookmarks pane, and
-  a link that is drawn (once std.gui.pdf.003 lands) still cannot be followed.
-- Complete when: the outline is exposed as a tree of titles and targets, a named or explicit
-  destination resolves to a page index and a page-space position, and a link annotation reports
-  its target — an internal destination, a URI, or neither.
-- Related: std.gui.pdf.003
-
-### std.gui.pdf.018 — Page labels, dates, and XMP metadata are not read
-
-- Intent: `Metadata` carries the six Info strings. `/CreationDate` and `/ModDate` are not read, the
-  `/Metadata` XMP stream is not read, and `/PageLabels` is not read — so a document numbered
-  `i, ii, iii, 1, 2` reports pages 1 through 5 and no viewer built on this can show the number the
-  page itself carries.
-- Complete when: the two dates are parsed from the PDF date form, the XMP packet is exposed as
-  bytes with its common Dublin Core fields surfaced, and a page reports its label.
-
----
-
-## Tier C — The writer
-
 ### std.gui.pdf.019 — Text output cannot leave Windows-1252 and the fourteen standard faces
 
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: `Page.addText` accepts UTF-8 and `windows1252` then fails the whole `save` on the first
   character outside that encoding. No font can be embedded, so the writer cannot express text
   such as Greek, Cyrillic, Hebrew, CJK or emoji.
@@ -267,70 +134,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   name it.
 - Related: std.gui.pdf.020, std.gui.pdf.021
 
-### std.gui.pdf.020 — Pages cannot be merged, split, or reordered without being redrawn
-
-- Intent: `Document` can add and remove whole `Page` values, but a page loaded from a reader has
-  been decoded into items and can only be written back through the writer — which re-encodes its
-  text with a standard face, rasterizes nothing it cannot express, and loses everything in std.gui.pdf.021.
-  Merging two documents and splitting one are the two most common things anyone does to a PDF, and
-  neither can be done here without degrading the pages. There is also no insert-at-index and no
-  reorder.
-- Complete when: a page can be copied from one document to another at the object level — its
-  content streams, resources and font programs carried across unchanged and renumbered — a page
-  can be inserted at a position and moved, and a merge of two files that this module can open
-  produces pages byte-identical in content to their sources.
-- Related: std.gui.pdf.019, std.gui.pdf.024
-
-### std.gui.pdf.021 — A decoded page loses its fill rule, its clips, and its intra-run positions
-
-- Intent: the round trip is lossier than it looks. `appendPath` emits `f`, `B` and `S` and never
-  their star forms, so a path decoded with the even-odd rule is written back with the winding rule
-  and a ring drawn as two contours fills solid. An item's clip is decoded and then never written,
-  so trimmed content reappears. And a text item is written as one `Tj` with the standard face's own
-  metrics even though `textAdvances` holds the exact advance the document gave every code, so
-  letters inside a run drift wherever the substitute's metrics differ.
-- Complete when: the even-odd rule survives a decode-encode cycle, a clipped item is written back
-  inside `q W n … Q`, a text run is written as a `TJ` array carrying the retained per-code
-  advances, and a round-trip test compares rendered pages rather than only re-reading the model.
-- Related: std.gui.pdf.019, std.gui.pdf.030
-
-### std.gui.pdf.022 — An image is always rewritten as a Flate raster
-
-- Intent: `encodeImagePixels` reduces every image to eight-bit gray or RGB and Flate-compresses
-  it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
-  bilevel scan leaves as eight bits per pixel, and a palette image loses its palette. The same
-  image used on twenty pages is written twenty times.
-- Complete when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
-  bilevel or small-palette image is written at its natural depth or through an indexed space, and
-  an image written more than once shares one object.
-
-### std.gui.pdf.023 — Links, outline, and page labels cannot be written
-
-- Intent: the writer emits a catalog, a page tree, an info dictionary, content, fonts and images.
-  There is no way to write a link, a bookmark, a page label, or a document date, so a generated
-  report cannot have a clickable table of contents — which is most of what a generated report is
-  for.
-- Complete when: a page can carry link annotations to a URI or to another page, a document can
-  carry an outline tree and page labels, and `/CreationDate` and `/ModDate` are written.
-- Related: std.gui.pdf.017, std.gui.pdf.018
-
-### std.gui.pdf.024 — The writer emits only a classic cross-reference table
-
-- Intent: every object is written uncompressed with a classic `xref` table, so a document with
-  many small objects is larger than it needs to be, and there is no way to save a change to an
-  existing file except by rewriting it whole — which, per std.gui.pdf.020, degrades every page it did not
-  originate.
-- Complete when: objects can be written into object streams behind a cross-reference stream, and a
-  document opened from a file can be saved as an incremental update that appends rather than
-  rewrites.
-- Related: std.gui.pdf.020
-
----
-
-## Tier D — Cost
-
 ### std.gui.pdf.025 — Decoding a page costs five times what MuPDF charges for it
 
+- Recorded: 2026-08-29 21:50
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: the recorded, undated comparison against MuPDF 1.28.2 used the whole corpus, alternating the two so both saw
   the same machine, in release configuration and taking the best of three. Opening the sixteen
   files cost 7.8 ms against 16.0 ms. The first page of each
@@ -349,8 +156,42 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: the corpus decodes within twice MuPDF, measured the same way.
 - Related: std.gui.pdf.026
 
+### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Intent: the stored PDF corpus stays below three megabytes per file. Generated tests cover
+  cross-reference repair and incremental updates, and filter tests already reject a truncated
+  run-length stream. There is no document-level adversarial matrix for cyclic page trees,
+  contradictory lengths, declared-size attacks or very large scans. The parser has local depth
+  limits but no overall memory or node budget.
+- Note: two of these now have a test each — a blunted `startxref` falls through to the repair
+  scan, and an incremental update resolves to the revision its trailer names — but they build
+  their fixture at run time rather than carrying one, and neither is a hostile input.
+- Complete when: a malformed corpus covers truncation, cycles, contradictory lengths and
+  declared-size attacks with the expected error for each, a large fixture shows that opening
+  costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
+  budget.
+
+### std.gui.pdf.030 — Corpus rendering has no fixed page goldens
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Evidence: `pdf.corpus.test.swg` renders pages and asserts `image.isValid()`. The two golden-tagged
+  cases in `pdf.prepare.test.swg` compare prepared and unprepared renders of the same corpus page,
+  so they prove preparation parity but also pass if both paths acquire the same rendering defect.
+  The PDF corpus has no fixed page expectations spanning its document families.
+- Intent: protect the decoded output against an independently reviewed stored image, including a
+  regression that paints a valid page entirely black.
+- Complete when: a representative page from each corpus family has a golden, the fixtures that
+  exercise text, images, strokes and forms compare rendered output rather than model fields, and a
+  round trip through the writer is judged on its rendered result.
+- Related: std.gui.pdf.021
+
 ### std.gui.pdf.034 — Turning a page decodes it on the GUI thread
 
+- Recorded: 2026-09-03 13:14
+- Updated: 2026-09-04 09:47 — git: Close the recording-cost entry and name what a stroke still costs
 - Intent: `PdfView.showPage` decodes the page it is asked for, images included, before it
   returns, and only then does the frame paint it. A reader turning pages waits for that decode
   every time, and a search revealing a hit on another page pays it too: the document's text is
@@ -374,86 +215,10 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   page holds, and returning to a page just left costs no decode.
 - Related: std.gui.pdf.025, std.gui.pdf.035
 
-### std.gui.pdf.026 — An image is copied once per page item that shows it
-
-- Evidence: a decoded image is kept per document, so the second page showing a slide template
-  does not decode it again — but it does copy it. `Item.image` is an owned `Image`, because
-  `Reader.loadPage` states that a page owns what it retains and stays valid after its reader is
-  released. A 2316x1154 template is eight megabytes per page that shows it, and the corpus pays
-  that on a hundred of its cache hits.
-- Next: measure the split between the copies and the decodes by counting cache hits and misses
-  before designing anything; the fix needs either a shared buffer in `Core`, which does not
-  exist, or a narrower ownership contract for `Page`, which is a decision rather than a change.
-- Complete when: showing the same image on a hundred pages costs one copy of it, or the entry is
-  rewritten around the ownership decision that says it may not.
-- Related: std.gui.pdf.028, std.gui.pdf.025
-
-### std.gui.pdf.027 — Typefaces built for a document are never released
-
-- Intent: the program is now hashed once, when the font is read, and the key travels on the
-  `FontResource`. What remains is the other half: the typefaces registered in the process-wide
-  `TypeFace` table are never released, so the table grows for the process lifetime as documents
-  are opened and closed. `Pixel.TypeFace` publishes `create` and `load` and no way to give one
-  back, so this needs an unregister on that side before it can be honoured here.
-- Complete when: `Pixel` can release a typeface it created, and the typefaces a document created
-  are released with it.
-- Related: std.gui.pdf.028
-
-### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
-
-- Intent: the *work* of decoding a font is now paid once per document, but each page still takes
-  its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
-  still carries forty megabytes of duplicated font data. Sharing the bytes instead of copying them
-  runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
-  after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
-  decision to narrow that contract.
-- Complete when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
-  a decoded font program is shared between the pages that reference the same font object, and a
-  `Document` load of the corpus costs one copy per distinct program.
-
-### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
-
-- Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
-  with a pathological number of paths can take arbitrarily long. The interactive viewer no
-  longer runs offline renders, so this now concerns the headless callers — a batch export, a
-  thumbnailer, a test — which still have no way to abandon a render.
-- Complete when: a render accepts a cancellation signal and an optional work budget, and reports
-  an interrupted render distinctly from a failed one.
-
----
-
-## Tier E — Proof
-
-### std.gui.pdf.030 — Corpus rendering has no fixed page goldens
-
-- Evidence: `pdf.corpus.test.swg` renders pages and asserts `image.isValid()`. The two golden-tagged
-  cases in `pdf.prepare.test.swg` compare prepared and unprepared renders of the same corpus page,
-  so they prove preparation parity but also pass if both paths acquire the same rendering defect.
-  The PDF corpus has no fixed page expectations spanning its document families.
-- Intent: protect the decoded output against an independently reviewed stored image, including a
-  regression that paints a valid page entirely black.
-- Complete when: a representative page from each corpus family has a golden, the fixtures that
-  exercise text, images, strokes and forms compare rendered output rather than model fields, and a
-  round trip through the writer is judged on its rendered result.
-- Related: std.gui.pdf.021
-
-### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
-
-- Intent: the stored PDF corpus stays below three megabytes per file. Generated tests cover
-  cross-reference repair and incremental updates, and filter tests already reject a truncated
-  run-length stream. There is no document-level adversarial matrix for cyclic page trees,
-  contradictory lengths, declared-size attacks or very large scans. The parser has local depth
-  limits but no overall memory or node budget.
-- Note: two of these now have a test each — a blunted `startxref` falls through to the repair
-  scan, and an incremental update resolves to the revision its trailer names — but they build
-  their fixture at run time rather than carrying one, and neither is a hostile input.
-- Complete when: a malformed corpus covers truncation, cycles, contradictory lengths and
-  declared-size attacks with the expected error for each, a large fixture shows that opening
-  costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
-  budget.
-
 ### std.gui.pdf.035 — Stroking a page costs four times filling the same geometry
 
+- Recorded: 2026-08-30 17:42
+- Updated: 2026-09-04 09:47 — git: Close the recording-cost entry and name what a stroke still costs
 - Intent: a fill keeps its tessellation inside the contour it filled, so a page drawn again only
   appends vertices. A stroke keeps nothing: every frame rebuilds a quad per segment and, between
   each pair of them, a join — two triangles and an antialiasing band along each of its outer
@@ -481,6 +246,269 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: stroking a page costs the same order as filling the same contours, and a page of
   a few thousand stroked marks records in single-digit milliseconds on a warm cache.
 - Related: std.gui.pdf.030
+
+### std.gui.pdf.017 — Outline, destinations, and link targets are not read
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-03 13:14 — git: Search a PDF's text on a worker instead of decoding every page on the GUI thread
+- Intent: the catalog's `/Outlines`, its `/Names` destination tree and the `/Dest` or `/A` of a
+  link annotation are never read, so a document has no navigable structure: no bookmarks pane, and
+  a link that is drawn (once std.gui.pdf.003 lands) still cannot be followed.
+- Complete when: the outline is exposed as a tree of titles and targets, a named or explicit
+  destination resolves to a page index and a page-space position, and a link annotation reports
+  its target — an internal destination, a URI, or neither.
+- Related: std.gui.pdf.003
+
+### std.gui.pdf.007 — A soft-masked text run takes one coverage for the whole run
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-03 06:44 — git: Implement soft mask support in PDF rendering
+- Intent: a graphics-state `/SMask` now reaches every mark, but a text run cannot take a coverage
+  that varies across it: a run is drawn from the glyph atlas, which is the one texture the painter
+  samples for it, so the mask is folded in as its mean over the run's box. That is exact for the
+  uniform mask a faded layer uses and an approximation for a gradient crossing a line of text.
+- Evidence: `maskItem` in `decode.swg` branches on the item kind — a path takes the coverage as an
+  anchored texture brush, an image takes it in its own alpha channel, and only text averages it.
+- Next: decide where the exact form belongs. Either the painter grows a second texture unit a text
+  run can be modulated by, or a masked run is rasterized into an image item, which costs the run
+  its resolution independence in the viewer.
+- Complete when: a gradient crossing a line of text darkens the letters it crosses rather than the
+  whole run equally, or the entry is rewritten around a decision that says it may not.
+
+### std.gui.pdf.003 — Annotation appearance streams are never drawn
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `/Annots` is not read. Links, form widgets, stamps, highlights, sticky notes, redaction
+  marks and signature appearances all live in annotation appearance streams, and none of them
+  reach the page. A commented or filled document renders as the blank form underneath it, with no
+  indication that anything is missing.
+- Complete when: the normal appearance stream of each annotation is drawn in annotation order
+  after the page content, with its `/Rect` to `/BBox` mapping and `/Matrix` applied, hidden and
+  no-view flags honoured, and annotations without an appearance stream skipped rather than
+  synthesized.
+- Note: draw appearances only. Never execute an `/AA`, an `/A` action, or embedded JavaScript.
+- Related: std.gui.pdf.017
+
+### std.gui.pdf.005 — Axial and radial shadings are not painted
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: the `sh` operator falls through the content switch and paints nothing, and a shading
+  pattern used as a fill paints nothing. Type 2 and type 3 shadings with sampled, exponential and
+  stitching functions cover the overwhelming majority of gradients in real documents.
+- Complete when: `sh` paints an axial or radial shading through the current clip, a shading
+  pattern selected by `scn` fills a path with the same code, the `/Function` types needed by those
+  two are evaluated, and the remaining shading types are reported per item.
+- Related: std.gui.pdf.006
+
+### std.gui.pdf.006 — Tiling patterns are not painted
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: a type 1 pattern is a content stream tiled over a region — hatching in engineering
+  drawings, texture fills in presentations. None of it is drawn.
+- Complete when: a tiling pattern's cell is decoded once through the existing content parser,
+  tiled over the filled region under the pattern matrix, and both paint types are handled, with
+  the uncolored form taking its color from the `scn` operands.
+- Related: std.gui.pdf.005
+
+### std.gui.pdf.008 — Optional content is always drawn
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `BDC`, `BMC` and `EMC` fall through the content switch and `/OC` on an XObject is not
+  read, so every optional content group is painted whatever its default configuration says. A
+  drawing exported with construction layers off shows them on, and a multi-language artwork shows
+  every language at once.
+- Complete when: the catalog's `/OCProperties` default configuration decides which groups are
+  visible, marked-content sections and XObjects belonging to a hidden group are skipped, and the
+  group list is exposed so a caller can override the configuration.
+
+### std.gui.pdf.011 — Type3 fonts are not decoded
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: a Type3 font defines each glyph as a content stream under a `/FontMatrix`. Nothing here
+  recognizes the subtype, so the run is handed to the substitute path, and its `/Widths` — which
+  are in glyph space, not thousandths — are read as though they were normal metrics, so the text
+  is both the wrong shape and the wrong size. Documents produced by older TeX toolchains and by
+  drawing programs that embed bitmap fonts hit this.
+- Complete when: a Type3 glyph is drawn by running its `CharProc` through the existing content
+  parser under the font matrix and the text matrix, and its widths are interpreted in glyph space.
+
+### std.gui.pdf.012 — The `/Decode` array is not applied to a DCT image
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: four-component frames decode now, but a DCT image is the one sample representation whose
+  `/Decode` array is ignored, because the frame reaches this module already converted to screen
+  colours. A file that states its inks are stored complemented through that array rather than
+  through the Adobe marker therefore renders inverted, and a partial range on a gray or colour
+  photograph is dropped silently.
+- Evidence: `decodeImage` hands `DCTDecode` straight to `Image.decode(".jpg", …)` and returns its
+  colour result; every sampled representation beside it goes through `readSamplePlane`, which does
+  read `/Decode`. The four-component path in `pixel` applies the Adobe complement itself, which is
+  what a standalone CMYK JPEG needs and what a `/Decode` array would then apply twice.
+- Next: decide where ink values are allowed to exist — either a four-component frame comes back from
+  `pixel` as inks and this module converts them, or the decoder takes the decode ranges as an
+  option — then apply the array on the DCT path for every component count.
+- Complete when: a DCT image honours `/Decode` exactly as a sampled image does, and a fixture
+  carries a CMYK photograph inverted through that array.
+- Related: std.gui.pdf.002
+
+### std.gui.pdf.014 — JBIG2 images are refused
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `JBIG2Decode` is the modern successor to CCITT for scanned text, and is what recent
+  scanner firmware and PDF optimizers emit.
+- Complete when: the generic region and text region decoding procedures are implemented, including
+  the embedded stream form with a shared `/JBIG2Globals` segment.
+- Related: std.gui.pdf.002, std.gui.pdf.015
+
+### std.gui.pdf.015 — JPEG 2000 images are refused
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `JPXDecode` appears in print production and in some scanner output. It is the largest
+  single decoder on this list and the rarest of the three, which is why it sits last.
+- Complete when: the codestream form used by PDF decodes, or the codec is removed from the
+  recognized set and reported as a first-class limitation instead of being half-recognized.
+- Related: std.gui.pdf.002
+
+### std.gui.pdf.018 — Page labels, dates, and XMP metadata are not read
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `Metadata` carries the six Info strings. `/CreationDate` and `/ModDate` are not read, the
+  `/Metadata` XMP stream is not read, and `/PageLabels` is not read — so a document numbered
+  `i, ii, iii, 1, 2` reports pages 1 through 5 and no viewer built on this can show the number the
+  page itself carries.
+- Complete when: the two dates are parsed from the PDF date form, the XMP packet is exposed as
+  bytes with its common Dublin Core fields surfaced, and a page reports its label.
+
+### std.gui.pdf.020 — Pages cannot be merged, split, or reordered without being redrawn
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `Document` can add and remove whole `Page` values, but a page loaded from a reader has
+  been decoded into items and can only be written back through the writer — which re-encodes its
+  text with a standard face, rasterizes nothing it cannot express, and loses everything in std.gui.pdf.021.
+  Merging two documents and splitting one are the two most common things anyone does to a PDF, and
+  neither can be done here without degrading the pages. There is also no insert-at-index and no
+  reorder.
+- Complete when: a page can be copied from one document to another at the object level — its
+  content streams, resources and font programs carried across unchanged and renumbered — a page
+  can be inserted at a position and moved, and a merge of two files that this module can open
+  produces pages byte-identical in content to their sources.
+- Related: std.gui.pdf.019, std.gui.pdf.024
+
+### std.gui.pdf.021 — A decoded page loses its fill rule, its clips, and its intra-run positions
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: the round trip is lossier than it looks. `appendPath` emits `f`, `B` and `S` and never
+  their star forms, so a path decoded with the even-odd rule is written back with the winding rule
+  and a ring drawn as two contours fills solid. An item's clip is decoded and then never written,
+  so trimmed content reappears. And a text item is written as one `Tj` with the standard face's own
+  metrics even though `textAdvances` holds the exact advance the document gave every code, so
+  letters inside a run drift wherever the substitute's metrics differ.
+- Complete when: the even-odd rule survives a decode-encode cycle, a clipped item is written back
+  inside `q W n … Q`, a text run is written as a `TJ` array carrying the retained per-code
+  advances, and a round-trip test compares rendered pages rather than only re-reading the model.
+- Related: std.gui.pdf.019, std.gui.pdf.030
+
+### std.gui.pdf.022 — An image is always rewritten as a Flate raster
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `encodeImagePixels` reduces every image to eight-bit gray or RGB and Flate-compresses
+  it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
+  bilevel scan leaves as eight bits per pixel, and a palette image loses its palette. The same
+  image used on twenty pages is written twenty times.
+- Complete when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
+  bilevel or small-palette image is written at its natural depth or through an indexed space, and
+  an image written more than once shares one object.
+
+### std.gui.pdf.023 — Links, outline, and page labels cannot be written
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: the writer emits a catalog, a page tree, an info dictionary, content, fonts and images.
+  There is no way to write a link, a bookmark, a page label, or a document date, so a generated
+  report cannot have a clickable table of contents — which is most of what a generated report is
+  for.
+- Complete when: a page can carry link annotations to a URI or to another page, a document can
+  carry an outline tree and page labels, and `/CreationDate` and `/ModDate` are written.
+- Related: std.gui.pdf.017, std.gui.pdf.018
+
+### std.gui.pdf.024 — The writer emits only a classic cross-reference table
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: every object is written uncompressed with a classic `xref` table, so a document with
+  many small objects is larger than it needs to be, and there is no way to save a change to an
+  existing file except by rewriting it whole — which, per std.gui.pdf.020, degrades every page it did not
+  originate.
+- Complete when: objects can be written into object streams behind a cross-reference stream, and a
+  document opened from a file can be saved as an incremental update that appends rather than
+  rewrites.
+- Related: std.gui.pdf.020
+
+### std.gui.pdf.026 — An image is copied once per page item that shows it
+
+- Recorded: 2026-08-29 21:50
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: a decoded image is kept per document, so the second page showing a slide template
+  does not decode it again — but it does copy it. `Item.image` is an owned `Image`, because
+  `Reader.loadPage` states that a page owns what it retains and stays valid after its reader is
+  released. A 2316x1154 template is eight megabytes per page that shows it, and the corpus pays
+  that on a hundred of its cache hits.
+- Next: measure the split between the copies and the decodes by counting cache hits and misses
+  before designing anything; the fix needs either a shared buffer in `Core`, which does not
+  exist, or a narrower ownership contract for `Page`, which is a decision rather than a change.
+- Complete when: showing the same image on a hundred pages costs one copy of it, or the entry is
+  rewritten around the ownership decision that says it may not.
+- Related: std.gui.pdf.028, std.gui.pdf.025
+
+### std.gui.pdf.027 — Typefaces built for a document are never released
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: the program is now hashed once, when the font is read, and the key travels on the
+  `FontResource`. What remains is the other half: the typefaces registered in the process-wide
+  `TypeFace` table are never released, so the table grows for the process lifetime as documents
+  are opened and closed. `Pixel.TypeFace` publishes `create` and `load` and no way to give one
+  back, so this needs an unregister on that side before it can be honoured here.
+- Complete when: `Pixel` can release a typeface it created, and the typefaces a document created
+  are released with it.
+- Related: std.gui.pdf.028
+
+### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: the *work* of decoding a font is now paid once per document, but each page still takes
+  its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
+  still carries forty megabytes of duplicated font data. Sharing the bytes instead of copying them
+  runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
+  after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
+  decision to narrow that contract.
+- Complete when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
+  a decoded font program is shared between the pages that reference the same font object, and a
+  `Document` load of the corpus costs one copy per distinct program.
+
+### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
+  with a pathological number of paths can take arbitrarily long. The interactive viewer no
+  longer runs offline renders, so this now concerns the headless callers — a batch export, a
+  thumbnailer, a test — which still have no way to abandon a render.
+- Complete when: a render accepts a cancellation signal and an optional work budget, and reports
+  an interrupted render distinctly from a failed one.
 
 ---
 

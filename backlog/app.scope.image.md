@@ -7,30 +7,10 @@ PSD layers, texture subresources, and OpenEXR parts. This backlog owns professio
 missing codec and pixel-format work remains in [std.pixel.image.md](std.pixel.image.md), while
 render primitives remain in [std.pixel.md](std.pixel.md).
 
-## Inspection and presentation
-
-### app.scope.image.001 — The image has no pixel probe or measurement tools
-
-- Evidence: zoom and pan never expose image coordinates, RGBA/channel values, premultiplied versus
-  straight color, palette index, physical resolution, or distance/angle between points.
-- Next: add a pointer/caret pixel inspector over decoded image coordinates, followed by a
-  non-destructive line/rectangle measurement overlay.
-- Complete when: coordinates and exact stored/converted channel values are copyable, alpha and
-  out-of-bounds states are explicit, keyboard movement reaches individual pixels at high zoom, and
-  distance/size can be reported in pixels and physical units when resolution metadata exists.
-
-### app.scope.image.002 — Image analysis has no histogram, channel, clipping, or transparency views
-
-- Evidence: the viewer renders the composite only. It cannot isolate R/G/B/A or luminance, show
-  per-channel histograms, mark clipped shadows/highlights, visualize alpha, or inspect indexed
-  palettes.
-- Next: compute cancellable bounded histograms and add temporary channel/transparency overlays.
-- Complete when: histogram scope states whole image or selection, high-bit-depth data is binned
-  without forced 8-bit loss, channels and alpha can be inspected independently, clipping thresholds
-  are configurable, and palette entries link to image pixels.
-
 ### app.scope.image.003 — Color management and HDR state are invisible to the reader
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: std.pixel.001/std.pixel.image.019 record that the pixel stack has no colour/ICC handling. The image
   panel reports pixel format and total bit depth, but not interpreted profile, transfer function, primaries,
   conversion, monitor target, or out-of-gamut/clipping status.
@@ -43,6 +23,8 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.004 — Source orientation is not distinguished from the temporary view transform
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: the viewer has a complete non-destructive dihedral view transform and its information
   panel reports EXIF orientation, but there is no normalized orientation value. Coordinate consumers have no
   shared source-to-display coordinate contract.
@@ -53,31 +35,10 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   rendered export declares the applied orientation.
 - Related: app.scope.image.011
 
-### app.scope.image.005 — Zoom lacks navigator, numeric entry, interpolation choice, and comparison scale
-
-- Evidence: the information band now exposes a clickable percentage with common presets, actual
-  size, and fit. There is no arbitrary numeric entry, fit-width/height, overview navigator,
-  pixel-grid threshold, nearest-versus-smooth sampling control, or lockable scale across sibling
-  images.
-- Next: add arbitrary numeric entry, a small optional navigator, and sampling mode to the existing
-  zoom control.
-- Complete when: numeric zoom, Fit All/Width/Height, pixel grid, and sampling policy are explicit;
-  the navigator shows and moves the viewport; and next/previous can preserve zoom and image-center
-  coordinates when requested.
-
-### app.scope.image.006 — Images cannot be compared side by side, overlaid, or by difference
-
-- Evidence: sibling navigation replaces the current image. There is no synchronized pair, flicker,
-  opacity wipe, difference/heat map, alignment, or per-pixel delta readout.
-- Next: build a two-image comparison surface on app.scope.001 with synchronized transform and an explicit
-  alignment anchor.
-- Complete when: side-by-side, overlay, flicker, absolute difference, and heat-map modes work;
-  pan/zoom can synchronize; size/color-space mismatches are stated; and the pixel probe reports
-  both values plus delta.
-- Related: app.scope.001
-
 ### app.scope.image.007 — Animated images have no frame-step, speed, loop, or disposal inspection
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. There are no previous/
   next-frame commands, exact frame delay, playback speed, loop override, disposal/blend metadata,
   composited-versus-raw frame view, or dropped-frame indicator.
@@ -87,6 +48,8 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.008 — The image-set selector has no item descriptions or thumbnails
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `ImageViewer` now browses every indexed format through `Movie` and a shared slider;
   `viewer.imageset.test.swg` covers all nine multi-image codec paths, including unequal dimensions.
   The slider and counter do not show the selected item's kind, name, dimensions, mip/layer/face
@@ -96,19 +59,10 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 - Complete when: item identity survives view changes and the selector shows each item's description,
   dimensions, thumbnail, and format-specific relationships without decoding the whole collection.
 
-### app.scope.image.009 — The displayed image cannot be copied or exported with an explicit transformation policy
-
-- Evidence: there is no Copy Image, Copy Pixel Value, Copy View, Save Decoded As, or Save Frame
-  command. A reader cannot tell whether orientation, color conversion, alpha, animation compositing,
-  or zoom would affect output.
-- Next: define raw, decoded-source, and rendered-view interchange products and expose only the forms
-  the codec/pixel stack can produce faithfully.
-- Complete when: clipboard and export name dimensions, pixel format, orientation, color space,
-  alpha, and frame/page; raw extraction never transcodes; rendered output declares conversions;
-  and large exports are cancellable.
-
 ### app.scope.image.010 — Huge and damaged images cannot degrade progressively
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `Movie.maxCacheBytes` now bounds cached frames to 64 MiB by default and `DecodeOptions`
   bounds input, frame count, and per-image storage. The background loader still publishes its first
   image only after a complete decode and cache preparation; no partial image or region reaches the
@@ -125,10 +79,20 @@ remains in [std.pixel.image.md](std.pixel.image.md), while the general color con
 [std.pixel.md](std.pixel.md); this file owns the metadata and format composition presented by the
 application.
 
-## Metadata and camera files
+### app.scope.image.012 — Camera RAW files show nothing
+
+- Recorded: 2026-08-17 11:01
+- Updated: 2026-09-06 07:51 — git: prompt 6
+- Intent: extract an embedded JPEG preview when a supported camera RAW container carries one.
+  Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
+- Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
+  displayed, with the metadata panel from app.scope.image.011 beside it.
+- Related: app.scope.image.011
 
 ### app.scope.image.011 — Orientation, ICC identity, and XMP remain incomplete
 
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-05 19:54 — git: toto
 - Evidence: the information panel shows preserved PNG text and interpreted JPEG EXIF fields.
   Encoded orientation is reported but not applied; ICC records have only a byte count and XMP
   properties are not interpreted.
@@ -137,10 +101,66 @@ application.
   and presents supported XMP properties.
 - Related: std.pixel.001, std.pixel.image.019
 
-### app.scope.image.012 — Camera RAW files show nothing
+### app.scope.image.001 — The image has no pixel probe or measurement tools
 
-- Intent: extract an embedded JPEG preview when a supported camera RAW container carries one.
-  Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
-- Complete when: the embedded preview of the common TIFF-based RAW containers is extracted and
-  displayed, with the metadata panel from app.scope.image.011 beside it.
-- Related: app.scope.image.011
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: zoom and pan never expose image coordinates, RGBA/channel values, premultiplied versus
+  straight color, palette index, physical resolution, or distance/angle between points.
+- Next: add a pointer/caret pixel inspector over decoded image coordinates, followed by a
+  non-destructive line/rectangle measurement overlay.
+- Complete when: coordinates and exact stored/converted channel values are copyable, alpha and
+  out-of-bounds states are explicit, keyboard movement reaches individual pixels at high zoom, and
+  distance/size can be reported in pixels and physical units when resolution metadata exists.
+
+### app.scope.image.002 — Image analysis has no histogram, channel, clipping, or transparency views
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: the viewer renders the composite only. It cannot isolate R/G/B/A or luminance, show
+  per-channel histograms, mark clipped shadows/highlights, visualize alpha, or inspect indexed
+  palettes.
+- Next: compute cancellable bounded histograms and add temporary channel/transparency overlays.
+- Complete when: histogram scope states whole image or selection, high-bit-depth data is binned
+  without forced 8-bit loss, channels and alpha can be inspected independently, clipping thresholds
+  are configurable, and palette entries link to image pixels.
+
+### app.scope.image.005 — Zoom lacks navigator, numeric entry, interpolation choice, and comparison scale
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: the information band now exposes a clickable percentage with common presets, actual
+  size, and fit. There is no arbitrary numeric entry, fit-width/height, overview navigator,
+  pixel-grid threshold, nearest-versus-smooth sampling control, or lockable scale across sibling
+  images.
+- Next: add arbitrary numeric entry, a small optional navigator, and sampling mode to the existing
+  zoom control.
+- Complete when: numeric zoom, Fit All/Width/Height, pixel grid, and sampling policy are explicit;
+  the navigator shows and moves the viewport; and next/previous can preserve zoom and image-center
+  coordinates when requested.
+
+### app.scope.image.006 — Images cannot be compared side by side, overlaid, or by difference
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: sibling navigation replaces the current image. There is no synchronized pair, flicker,
+  opacity wipe, difference/heat map, alignment, or per-pixel delta readout.
+- Next: build a two-image comparison surface on app.scope.001 with synchronized transform and an explicit
+  alignment anchor.
+- Complete when: side-by-side, overlay, flicker, absolute difference, and heat-map modes work;
+  pan/zoom can synchronize; size/color-space mismatches are stated; and the pixel probe reports
+  both values plus delta.
+- Related: app.scope.001
+
+### app.scope.image.009 — The displayed image cannot be copied or exported with an explicit transformation policy
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
+- Evidence: there is no Copy Image, Copy Pixel Value, Copy View, Save Decoded As, or Save Frame
+  command. A reader cannot tell whether orientation, color conversion, alpha, animation compositing,
+  or zoom would affect output.
+- Next: define raw, decoded-source, and rendered-view interchange products and expose only the forms
+  the codec/pixel stack can produce faithfully.
+- Complete when: clipboard and export name dimensions, pixel format, orientation, color space,
+  alpha, and frame/page; raw extraction never transcodes; rendered output declares conversions;
+  and large exports are cancellable.

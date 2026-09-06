@@ -38,10 +38,11 @@ reference; the backlog keeps only unfinished decisions and implementation work.
 | Data race | Conflicting unsynchronized accesses to the same memory, with at least one write. |
 | Logical race | An incorrect result caused by operation ordering, even when all memory accesses are synchronized. |
 
-## Language contract and executable prototype
+## Entries
 
 ### language.parallelism.001 — Specify and prototype native structured concurrency
 
+- Recorded: 2026-09-06 07:51
 - Evidence: [Core.Jobs](../bin/std/modules/core/src/thread/job.swg) schedules borrowed callbacks
   and opaque caller-owned contexts; `parallelFor` and `parallelVisit` partition work through
   macros. [Core.Threading.Thread](../bin/std/modules/core/src/thread/thread.swg) exposes native

@@ -3,9 +3,13 @@
 
 using Core
 
+const SampleStamp  = "2026-09-06 12:00"
+const SampleReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n"
+
 // Run the public audit in a child so expected rejection diagnostics stay captured.
-func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiagnostic = "") fail
+func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiagnostic = "", readme = SampleReadme) fail
 {
+    discard File.writeAllBytes(Path.combine(root, "backlog", "README.md").toString(), cast(const [..] u8) readme)
     discard File.writeAllBytes(Path.combine(root, "backlog", "repo.sample.md").toString(), cast(const [..] u8) content)
 
     var arguments: Tool.Arguments
@@ -18,9 +22,15 @@ func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiag
         Swag.assert(Utf8.contains(process.standardOutput(), expectedDiagnostic))
 }
 
+// One well-formed entry whose stamps match `SampleReadme`, followed by `body`.
+func sampleEntry(body: string)->String
+{
+    return Format.toString("### repo.sample.001 — Sample\n\n- Recorded: %\n%\n", SampleStamp, body)
+}
+
 func checkRelated(root: string, related: string, expectedExit: s32) fail
 {
-    let content    = Format.toString("### repo.sample.001 — Sample\n\n%\n", related)
+    let content    = sampleEntry(related)
     let diagnostic = expectedExit != 0 ? "Related identifier 'repo.sample.002' is not live" : ""
     try checkBacklog(root, content.toString(), expectedExit, diagnostic)
 }
@@ -62,7 +72,6 @@ func checkRelated(root: string, related: string, expectedExit: s32) fail
     expect Directory.create(root.toString())
     defer discard catch Directory.delete(root.toString(), recurse: true)
     expect Directory.create(Path.combine(root.toString(), "backlog").toString())
-    discard expect File.writeAllBytes(Path.combine(root.toString(), "backlog", "README.md").toString(), "[Sample](repo.sample.md)\n")
 
     expect checkRelated(root.toString(), "- Related: repo.sample.001.", 0)
     expect checkRelated(root.toString(), "**Related:** repo.sample.001.", 0)
@@ -72,6 +81,37 @@ func checkRelated(root: string, related: string, expectedExit: s32) fail
     expect checkRelated(root.toString(), "- Related: repo.sample.001,\n  repo.sample.002.", 1)
     expect checkBacklog(root.toString(), "", 1, "backlog domain has no entries")
     expect checkBacklog(root.toString(), "# Retired domain\n\nAll work is complete.\n", 1, "backlog domain has no entries")
+
+    // Every entry opens with its Recorded stamp. An Updated stamp sits directly under it, says
+    // what changed, and never precedes it.
+    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample\n\n- Evidence: none.\n", 1, "does not open with '- Recorded: YYYY-MM-DD HH:MM'")
+    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample\n\n- Recorded: 2026-09-06\n", 1, "malformed Recorded stamp")
+    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample\n\n- Recorded: 2026-13-06 12:00\n", 1, "malformed Recorded stamp")
+    expect checkBacklog(root.toString(), sampleEntry("- Updated: 2026-09-06 12:30").toString(), 1, "must say what changed")
+    expect checkBacklog(root.toString(), sampleEntry("- Updated: 2026-09-06 11:00 — earlier").toString(), 1, "earlier than the entry's Recorded stamp")
+    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.\n- Updated: 2026-09-06 12:30 — late").toString(), 1, "must directly follow the entry's Recorded stamp")
+
+    // The inventory row carries the file's latest stamp, and rows go from the newest file down.
+    let refreshed       = sampleEntry("- Updated: 2026-09-06 12:30 — refreshed the evidence")
+    let refreshedReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:30 |\n"
+    expect checkBacklog(root.toString(), refreshed.toString(), 1, "says 2026-09-06 12:00 but the latest stamp in that file is 2026-09-06 12:30")
+    expect checkBacklog(root.toString(), refreshed.toString(), 0, "", refreshedReadme)
+    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 1, "inventory has no row for repo.sample.md", "[Sample](repo.sample.md)\n")
+    let other = Path.combine(root.toString(), "backlog", "repo.other.md")
+    discard expect File.writeAllBytes(other.toString(), "### repo.other.001 — Other\n\n- Recorded: 2026-09-06 13:00\n")
+    let unsortedReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n| [repo.other.md](repo.other.md) | Other | 2026-09-06 13:00 |\n"
+    let sortedReadme   = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.other.md](repo.other.md) | Other | 2026-09-06 13:00 |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n"
+    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 1, "is out of order", unsortedReadme)
+    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 0, "", sortedReadme)
+    expect File.delete(other.toString())
+
+    // Inside a file, entries go from the most recently updated down, as one list without '##' groups.
+    let older = "### repo.sample.002 — Older\n\n- Recorded: 2026-09-06 11:00\n"
+    let newer = sampleEntry("- Evidence: none.")
+    expect checkBacklog(root.toString(), Format.toString("%\n%", older, newer).toString(), 1, "more recent than the one above it")
+    expect checkBacklog(root.toString(), Format.toString("%\n%", newer, older).toString(), 0)
+    expect checkBacklog(root.toString(), Format.toString("%\n## Group\n\n%", newer, older).toString(), 1, "grouped under a '##' heading")
+    expect checkBacklog(root.toString(), Format.toString("%\n## Out of scope\n\nNothing else.\n", newer).toString(), 0)
 
     // A focused tool must reject a configuration sweep it cannot run, rather than silently
     // proving just the default configuration.

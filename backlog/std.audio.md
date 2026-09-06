@@ -7,7 +7,7 @@ Cross-cutting compiler and language work belongs in [compiler.core.md](compiler.
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole layout.
 
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
+Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
 ## Where the module already stands
@@ -28,25 +28,14 @@ The remaining gaps are compressed-format variants, spatialization, effects,
 and capture. Operating-system backend work lives in
 [platform.portability.md](platform.portability.md).
 
----
+## Entries
 
-## Tier A — Compressed audio formats
-
-### std.audio.001 — DTS Core advanced coding tools remain unsupported
-
-- Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
-  ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
-  high-frequency bands. It still explicitly rejects Huffman-coded side information or audio,
-  joint intensity, and extension substreams. Prediction and VQ omission are validated against
-  DTS-HD Core packets from a real-world Matroska stream; the reproducible `dcaenc` fixture
-  exercises none of the remaining tools.
-- Next: obtain a permissively redistributable stream that exercises the common Core tool set, or
-  a reproducible encoder for one, then implement and validate each tool against that corpus.
-- Complete when: representative Core streams using those tools decode with validated channel order
-  and bounded reference error, while unsupported extension substreams remain explicit.
+The native backend has channel-routing facilities, but the module has no portable pan contract.
 
 ### std.audio.002 — MP3 synthesis has not been measured or factored
 
+- Recorded: 2026-08-26 20:48
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: Layer III decodes at every sampling frequency of the three versions, within the
   reference-error limits in `mp3.test.swg`. Its transform and filter-bank cost has not been measured.
 - What is slow by construction, and was written that way on purpose: the inverse transform is the
@@ -61,10 +50,10 @@ and capture. Operating-system backend work lives in
   MPEG-1/2/2.5, channel-mode, block-type, and reservoir regression corpus.
 - Related: std.video.008
 
-## Tier A — Playback control
-
 ### std.audio.003 — Gain changes have no sample-based ramp
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
   applies a target gain without a ramp owned by this module. An abrupt change on a nonzero sample
   can produce a discontinuity; this is a risk, not evidence that every gain change audibly clicks.
@@ -75,15 +64,33 @@ and capture. Operating-system backend work lives in
 - Next: define the ramp's interaction with batches, pause, seek, and bus routing, then verify its
   samples with the no-sound backend before judging playback on a device.
 
-## Tier A — Output-device lifecycle
+### std.audio.001 — DTS Core advanced coding tools remain unsupported
+
+- Recorded: 2026-08-27 07:58
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+- Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
+  ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
+  high-frequency bands. It still explicitly rejects Huffman-coded side information or audio,
+  joint intensity, and extension substreams. Prediction and VQ omission are validated against
+  DTS-HD Core packets from a real-world Matroska stream; the reproducible `dcaenc` fixture
+  exercises none of the remaining tools.
+- Next: obtain a permissively redistributable stream that exercises the common Core tool set, or
+  a reproducible encoder for one, then implement and validate each tool against that corpus.
+- Complete when: representative Core streams using those tools decode with validated channel order
+  and bounded reference error, while unsupported extension substreams remain explicit.
 
 ### std.audio.004 — No output-device enumeration
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Enumerate output devices with stable session identifiers and enough capabilities for a caller to
   present a choice.
 - Related: std.audio.005, std.audio.006
 
 ### std.audio.005 — The engine cannot select an output device
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Allow `createEngine` or a dedicated switch operation to target one identifier returned by std.audio.004,
 with a defined fallback when that device is unavailable.
@@ -92,29 +99,28 @@ with a defined fallback when that device is unavailable.
 
 ### std.audio.006 — Output-device loss is not reported or recovered
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 Handle the backend's critical-error signal, report the loss, and rebuild or fail over according to
 an explicit policy when headphones, USB audio, or the default device changes.
 
 - Related: std.audio.004, std.audio.005
 
----
-
-## Tier B — Spatialization and channel control
-
-The native backend has channel-routing facilities, but the module has no portable pan contract.
-
-
 ### std.audio.007 — No stereo pan control
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add backend-neutral stereo panning to `Voice` without requiring the listener and distance model of
 platform.portability.063.
 
 - Related: platform.portability.063
 
-## Tier B — Voice effects
-
-
 ### std.audio.008 — No reverb effect
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Expose a reverb effect independently of the basic voice filters and of a general effects graph.
 
@@ -122,16 +128,17 @@ Expose a reverb effect independently of the basic voice filters and of a general
 
 ### std.audio.009 — No echo effect
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 Expose an echo/delay effect independently of reverb and the general effects graph.
 
 - Related: platform.portability.064, std.audio.014
 
----
-
-## Tier C — Startup and capture workflows
-
 ### std.audio.010 — Engine creation cost on the startup path
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - `DriverNative.createNative` does COM initialization, `XAudio2Create`, mastering-voice creation,
   channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
   to 950 millisecond range, which dominates the startup of the example scripts that call it —
@@ -143,6 +150,8 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 ### std.audio.011 — No audio capture input
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `Swag Capture` ever records video with sound —
@@ -151,6 +160,9 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 ### std.audio.012 — No full-duplex audio session
 
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 Allow synchronized input and output in one engine session for voice communication and live
 processing.
 
@@ -158,15 +170,17 @@ processing.
 
 ### std.audio.013 — No system-output loopback capture
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
+
 Expose desktop/output loopback as a distinct capture source when the backend supports it.
 
 - Related: std.audio.011, app.capture.013
 
-## Tier C — Backend and graph architecture
-
-
 ### std.audio.014 — Effects graph
 
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Buses route and scale gain. They do not process. FMOD, Wwise, SoLoud and miniaudio all expose a
   DSP or node graph where an effect can be inserted on a bus.
 - Sequence this after platform.portability.064: a per-voice filter answers most of the need, and an effects graph is

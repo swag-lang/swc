@@ -747,20 +747,25 @@ Build an inventory before the first fix:
      outcomes even when their entry contains useful history; history belongs in Git. Cut a partly
      completed entry down to one independently finishable result, split unrelated remaining
      results under fresh identifiers, move work to the domain that owns it, refresh evidence,
-     acceptance conditions, and next actions, merge duplicates, and re-evaluate semantic priority.
+     acceptance conditions, and next actions, merge duplicates, and stamp each refreshed entry so
+     it rises to the top of its file.
      When investigation establishes implementation work, update the same entry in place and retain
      its identifier. A move to another domain is the exception: allocate that file's next suffix and
      update every live reference and Markdown fragment. Audit files with no recent commit too, and
      delete empty category files rather than treating their existence as coverage.
   4. Check backlog invariants mechanically: every domain file follows `<family>.<what>.md`; every
      entry identifier is that file name without `.md` plus a three-digit suffix; live identifiers
-     are unique; and a new suffix is one above the greatest suffix ever allocated in that file.
+     are unique; a new suffix is one above the greatest suffix ever allocated in that file; every
+     entry opens with its `Recorded` stamp and any `Updated` stamp under it is no earlier and says
+     what changed; and the README inventory carries each file's latest stamp, newest first.
      Compare with Git history when needed to prove that a deleted suffix was not reused. Check valid
      Markdown anchors and file links, no dangling live cross-reference, and no domain file missing
      from the README inventory. The README is an index and naming contract, not a counter registry.
      A `Related:` line names live entries only; a retired identifier may remain solely as explicit
-     historical provenance. Position expresses expected value and must be judged semantically, not
-     sorted by identifier.
+     historical provenance. Sort each file by `Updated`, or by `Recorded` when there is no
+     `Updated` stamp, from newest to oldest. Neither identifiers nor judged value decide position,
+     and no `##` heading groups the entries. Read new stamps from the clock when writing them;
+     preserve existing `Recorded` stamps when updating an entry.
   5. Check the portability exception explicitly: every operating-system backend, product port,
      target integration, and Windows-bound contract that must become portable lives in
      `backlog/platform.portability.md`, with none of that work scattered through owner-domain files.

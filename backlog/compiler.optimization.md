@@ -6,37 +6,48 @@ Frontend and lowering defects are [compiler.core.md](compiler.core.md).
 Entries are grouped by the optimization capability they advance. [README.md](README.md) defines
 the shared backlog conventions.
 
-## Loop vectorization
+Several entries address register residency, loop-entry shape, spill traffic, aliasing and
+inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
+builds now use interval splitting, so those measurements identify workloads to recheck rather than
+current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
+the executable Micro instruction stream has no explicit phi instruction.
 
-### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
-- Area: compiler/backend
-- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
-- Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
-  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. Raising it to 16 unrolled the
-  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
-  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
-  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
-  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
-  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
-  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
-  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
-  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
-  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
-  legalization rewrote every memory-destination form back into registers because it read a
-  virtual register as "not an integer". The folds now leave a frame slot or a global alone
-  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
-  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
-- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
-  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
-  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
-  instructions against 28.
-- Next: re-measure chacha with `K_MAX_TRIPS = 16` on a quiet machine, and only then ask whether
-  the SLP pass sees the sixteen `[frame + K]` loads it now has.
-- Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-06 15:21 — git: Refresh module compilation profiles and measurement caveats
+- Area: compiler/backend, compilation time
+- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
+  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
+- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
+  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
+  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
+  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
+  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
+  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
+  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
+  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
+  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
+- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
+  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
+  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
+  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
+  110 and 99. These are inclusive stack counts, with each sample counted once per function;
+  they are attribution evidence, not independent percentages to add or unprofiled timings.
+  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
+  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
+- Next: count rebuilds and mutating passes per function on std/core to size the win, then keep the
+  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
+  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
+  `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the
+  generated code is proven unchanged.
+- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
+  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
+- Related: compiler.core.004, compiler.core.030.
 
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
+- Recorded: 2026-09-06 14:53
 - Area: compiler/backend
 - Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
 - Evidence: with `/O2 /EHsc /std:c++20`, clang-cl's compression loop has 74 instructions and
@@ -58,10 +69,56 @@ the shared backlog conventions.
   with loop-exit, carried-value, relocation, and counter-use regression coverage, or a measured
   experiment identifies the missing proof or register-pressure cost.
 
-## Register allocation and frame-slot promotion
+### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
+
+- Recorded: 2026-08-07 08:30
+- Updated: 2026-09-06 14:45 — git: Narrow the remaining SHA-256 frame-residency lead
+- Area: compiler/backend
+- Found while: the same campaign, asking why the identical loop compiles differently in two places
+- Observation: loop-invariant reloads and a single read/write carried slot are promoted, but the
+  pass refuses a group of mutually dependent carried slots and a carried slot whose register is
+  reused between its load and store. Those are the shapes left in the hottest benchmark loops.
+- Historical evidence, before the current split allocator: sha256's `a`..`h` were eight
+  slots at once and each one's register IS reused between its load and store, so the
+  carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
+  program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
+  any frame slot.
+- Current evidence (2026-09-06, release, `6ac854243`): Leven's inner DP loop has 22 instructions
+  and five memory operations, all through program arrays, with no allocator spill. Its enclosing
+  loops still access the frame; do not infer an inner-loop promotion opportunity from their
+  inclusive spans. The separate adjacent-element reuse opportunity is compiler.optimization.030.
+- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
+  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
+  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
+  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
+  diagnosis no longer describes this loop.
+- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
+  then inspect Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
+  still requires one load/store pair, an unredefined register and one converged exit; if these
+  restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
+  distinguish allocator spill storage from addressable program objects before refining aliasing.
+- Complete when: current loop dumps either retire this lead or identify a measured promotion or
+  residency improvement with aliasing and multi-slot regression coverage.
+
+### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
+
+- Recorded: 2026-09-06 14:23
+- Area: compiler/backend
+- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
+- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
+  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
+  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
+  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
+- Next: establish the two rows' disjointness, then evaluate forwarding those adjacent elements
+  across one loop backedge. Prove the entry values, affine stride, intervening writes, and exits;
+  keep this separate from frame-slot promotion and compare every benchmark loop for new spills.
+- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
+  current experiment identifies the specific missing proof or register-pressure cost.
 
 ### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own
 
+- Recorded: 2026-08-07 08:30
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: compiler/backend
 - Found while: closing the generated-code gap `bench/` measures (campaign 20260806-202546,
   geometric mean 1.41-1.54x the better of clang-cl and MSVC over two baseline campaigns)
@@ -92,178 +149,10 @@ the shared backlog conventions.
   measurements so far both say it emits more.
 - Related: [compiler.optimization.005](#compileroptimization005--complex-loop-carried-frame-slots-still-lose-registers)
 
-### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
-
-- Area: compiler/backend
-- Found while: the same campaign, asking why the identical loop compiles differently in two places
-- Observation: loop-invariant reloads and a single read/write carried slot are promoted, but the
-  pass refuses a group of mutually dependent carried slots and a carried slot whose register is
-  reused between its load and store. Those are the shapes left in the hottest benchmark loops.
-- Historical evidence, before the current split allocator: sha256's `a`..`h` were eight
-  slots at once and each one's register IS reused between its load and store, so the
-  carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
-  program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
-  any frame slot.
-- Current evidence (2026-09-06, release, `6ac854243`): Leven's inner DP loop has 22 instructions
-  and five memory operations, all through program arrays, with no allocator spill. Its enclosing
-  loops still access the frame; do not infer an inner-loop promotion opportunity from their
-  inclusive spans. The separate adjacent-element reuse opportunity is compiler.optimization.030.
-- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
-  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
-  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
-  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
-  diagnosis no longer describes this loop.
-- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
-  then inspect Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
-  still requires one load/store pair, an unredefined register and one converged exit; if these
-  restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
-  distinguish allocator spill storage from addressable program objects before refining aliasing.
-- Complete when: current loop dumps either retire this lead or identify a measured promotion or
-  residency improvement with aliasing and multi-slot regression coverage.
-
-### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
-
-- Area: compiler/backend
-- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
-- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
-  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
-  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
-  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
-- Next: establish the two rows' disjointness, then evaluate forwarding those adjacent elements
-  across one loop backedge. Prove the entry values, affine stride, intervening writes, and exits;
-  keep this separate from frame-slot promotion and compare every benchmark loop for new spills.
-- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
-  current experiment identifies the specific missing proof or register-pressure cost.
-
-## Decompression
-
-### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
-
-- Area: compiler/backend
-- Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
-  the block loop keeps its cursors in locals and refills branchlessly, and it went from 62 MB/s
-  to 119 MB/s. What this entry keeps is the part no source shape could reach: the same algorithm
-  written line by line in C and compiled by clang-cl `/O2` runs at 191 MB/s, so 1.6x is left and
-  all of it is in the emitted code.
-- Observation: `#[Swag.PrintMicro("post-emit")]` on the block loop against clang's assembly for
-  that C transcription. **Every loop-carried local is a stack slot.** The bit buffer, the bit
-  count, the source cursor, the output cursor and the decoded symbol are each loaded and stored
-  on every symbol; a table entry read once in the source is stored to a stack temporary and
-  re-loaded twice. In the literal fast path — ten live scalars, fifteen usable registers — that
-  is 31 stack loads and 8 stack stores against clang's zero. The prologue also materializes ~25
-  field addresses and spills each one. mem2reg is not the culprit and was checked:
-  `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
-  should and the allocator puts the values back.
-- Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
-  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
-  symbol — a stored photograph, so the loop runs about once per output byte). Best of several
-  alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
-  121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619
-  instructions against clang's 411. **Machine load moves every one of these numbers by up to 3x,
-  so only same-run comparisons mean anything** — an earlier pass of this measurement read
-  122 ms for clang and 176 ms for Swag, and the ratio was the only part that survived.
-- Four things ruled out by measurement, so they are not retried:
-  - **zlib's two-level decode table.** Written in C beside the current design, same payload:
-    93.8 ms against 88.8 ms — *slower*. Only 6.7% of length codes and no distance code at all
-    miss the nine-bit fast table on this data.
-  - **Lifting the cold paths out of the loop.** The Huffman fallback and the slow refill moved
-    into `#[Swag.NoInline]` functions taking the bit cursor by value and handing it back: 3%.
-    So the allocator is not evicting the loop-carried scalars because cold blocks compete with
-    them; it evicts them anyway.
-  - **Eliding the shift width guard.** Implemented in `CodeGenSafety::emitShiftIntLike` (skip
-    the materialized count, width compare and conditional move when the count is a constant or
-    a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
-    moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
-    The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
-    removing twelve independent instructions changes nothing. Reverted. Worth revisiting only
-    *after* the register half lands, when the loop may become instruction-bound.
-  - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
-  - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
-    this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the
-    PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
-    `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
-    already run on vectors. The whole path is too small to pay for the two shuffle tables.
-- Current boundary: `Pass.RegisterAllocation.Interval.cpp` now supplies live-range splitting for
-  optimizing builds, with the older scan retained for `-O0` and failed preconditions. The historical
-  spill counts above predate that allocator and cannot establish the current gap.
-- Next: repeat the same Inflate/clang comparison and count frame accesses with the current Release
-  compiler. If a gap remains, attribute it to the split allocator or its fallback before selecting
-  a change; do not implement a second interval allocator.
-- Complete when: the current emitted loop and alternating timing decide whether an allocator gap
-  remains, with any surviving cause reduced to one actionable change.
-- Related: compiler.optimization.005, compiler.optimization.024.
-
-### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
-
-- Area: compiler
-- Found while: std.video.001, profiling the H.264 decoder on a 1080p30 Main stream in release.
-- Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
-  compare and a conditional move: the ternary diamond converts when both arms are short, pure
-  and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
-  through the single-arm conversion beside it. The select written as a statement — the
-  `if v < lo do return lo` / `if v > hi do return hi` chain — now converts too (2026-09-03,
-  `convertEarlyReturnsToSelects`): each statement is a triangle whose body leaves the function,
-  so the innermost pair folds into one return fed by a conditional move, and the fixed point
-  folds the chain from the bottom, under the diamond's rules (pure, short, one value leaving
-  each path, the compare re-issued when a path wrote the flags). What still compiles to a branch
-  is an `if`/`else` whose arms do more than produce one value.
-- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on the three-way early-return clamp:
-  15 instructions with two `jump_cond` and three `ret` before, 12 with two `cmov` and one `ret`
-  after; the nested ternary is 10. The decoder's conversion stage went from 1495 ms to about
-  470 ms over 59 frames when its clamps were rewritten branch-free by hand (3.2x, byte-identical
-  output; the sign-bit forms in `decode/h264/transform.swg`).
-- Next: re-measure the decoder's deblock and conversion loops with the clamps written as
-  statements against the hand-written sign-bit forms, and retire those if the select matches
-  them.
-- Complete when: the decoder's conversion stage measures the same with statement clamps as with
-  the sign-bit forms, and the sign-bit forms are gone.
-
-### compiler.optimization.010 — A short branching function spills with the whole register file free
-
-- Area: compiler/backend
-- Found while: std.video.001, closing the distance between the H.264 entropy parse and FFmpeg's, starting
-  from the emitted code of one bin as that entry says to.
-- Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
-  from one two-way branch, and its whole live set is about eight scalars. It is called roughly
-  568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
-  `#[Swag.PrintMicro("post-emit")]` in release showed the function opening with seven callee-saved
-  pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
-  and the result — to that frame before the branch and reloading them on both sides. Sixteen
-  integer registers exist and the function needs about half of them.
-- This is [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
-  the earlier whole-hull allocator without
-  the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
-  happens. That makes it a much smaller reproducer than the inflate block loop for the same
-  allocator policy, which is why it is worth keeping separately.
-- Evidence: the same dump also measured what source shape can and cannot reach. Holding `range`
-  and `low` in locals for the length of the bin, and sharing renormalization between the two
-  outcomes, took the function from 217 to 143 instructions — a third fewer — and about one percent off the
-  serial decode of one picture, which is inside the noise floor of this machine — the arithmetic registers were being reloaded after every step because
-  the context write in between stores into the same structure. What did not move is the frame:
-  it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
-  still there. Two smaller costs sit in the same function and belong to the same dump:
-  each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
-  next to the spills and was already elided once for
-  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
-- Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
-  unconditionally and a conditional move supplies the operand-width answer for zero, so the
-  sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
-  And the function no longer carries a frame register: it names none, its stack shape is one
-  subtract at entry and one add before the return, so the unwind codes describe it in full
-  without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
-  instructions against 143.
-- Current boundary: the default optimizing allocator now splits live ranges. The instruction and
-  frame counts above describe the earlier scan, so they need a new dump before directing a fix.
-- Next: dump `CabacReader.decision` in Release and attribute any remaining branch-crossing spills
-  to the selected allocator. Keep it as the small companion to the Inflate workload. The target is
-  now x86-64-v3; adopting `lzcnt`/`tzcnt` no longer needs the AVX-to-AVX2 target-policy change
-  previously stated here, but still needs encoder and zero-operand tests.
-- Complete when: the current dump decides whether the branch-spill gap remains and any remaining
-  allocation defect has a reduced test.
-- Related: compiler.optimization.006, compiler.optimization.024.
-
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 
+- Recorded: 2026-08-24 13:31
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: compiler/backend
 - Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
   of the motion-compensation path fell by a quarter.
@@ -330,6 +219,8 @@ the shared backlog conventions.
 
 ### compiler.optimization.012 — The shipped broadcast hoist still needs a current mcChroma dump
 
+- Recorded: 2026-08-24 14:55
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: compiler/backend
 - Found while: std.video.001, reading the chroma interpolation loop of the H.264 decoder after the
   vector temporaries stopped round-tripping through the frame.
@@ -352,16 +243,10 @@ the shared backlog conventions.
   loop.
 - Complete when: the chroma interpolation loop shows no `movd` or `pshufd` in its body.
 
-## The pipeline measured against LLVM's
-
-The following proposals address register residency, loop-entry shape, spill traffic, aliasing and
-inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
-builds now use interval splitting, so those measurements identify workloads to recheck rather than
-current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
-the executable Micro instruction stream has no explicit phi instruction.
-
 ### compiler.optimization.015 — Carried-slot promotion still rejects multiple accesses or distinct exits
 
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: `promoteCarriedSlots` promotes a carried frame slot accessed N times across several
   branch arms with M exits - one seed load before the header, register-only accesses inside, one
   write-back store per exit edge - instead of only the exactly-one-load, exactly-one-store,
@@ -376,6 +261,8 @@ the executable Micro instruction stream has no explicit phi instruction.
 
 ### compiler.optimization.016 — Independent virtual-register webs need a new normalization measurement
 
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: a normalization pass gives every def-use web of a virtual register its own fresh
   register - the SSA property LLVM's passes get from their IR, reconstructed by renaming, with no
   phi nodes needed because a web that spans a join keeps its one name. The lowering reuses
@@ -406,6 +293,8 @@ the executable Micro instruction stream has no explicit phi instruction.
 
 ### compiler.optimization.017 — Jump-entered loops have no general preheader normalization
 
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: a small structural pass gives every natural-loop header entered by a jump a fresh
   preheader label - non-back-edge jumps retargeted to it, fall-in preserved - so LICM, RA loop
   residency, `VecLoopPromote`, `PostRALoopHoist` and carried-slot promotion stop declining
@@ -425,6 +314,8 @@ the executable Micro instruction stream has no explicit phi instruction.
 
 ### compiler.optimization.018 — Dead spill stores have no byte-liveness elimination pass
 
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: a post-RA pass runs a backward byte-liveness fixed point over
   `[spillAreaLo, spillAreaHi)` on the instruction CFG and deletes every spill store no path
   reloads before overwrite - the write-back protocol audited from the consumption side, since the
@@ -441,6 +332,8 @@ the executable Micro instruction stream has no explicit phi instruction.
 
 ### compiler.optimization.020 — Memory optimizations maintain separate frame alias analyses
 
+- Recorded: 2026-08-27 07:57
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: the three existing private frame analyses - LICM's `analyzeFramePrivacy`,
   `PostRALoopHoist`'s `FrameReachability` root model, SLP's parameter-root classification -
   become one shared `MicroPassHelpers` analysis (sp-space / parameter-space / unknown),
@@ -457,6 +350,8 @@ the executable Micro instruction stream has no explicit phi instruction.
 
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
+- Recorded: 2026-08-28 15:42
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: compiler/sema
 - Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
 - Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
@@ -475,28 +370,11 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
   after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
-
-- Area: compiler/backend
-- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
-  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
-  the earlier scan, which also remains the fallback whenever a precondition fails or the
-  walk bails, and the C++ conformity cases run both.
-- Evidence: the walk describes every concrete claim by the position it occupies, except
-  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
-  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
-  instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
-  left one free.
-- Next: give those forms their real fixed intervals - the implicit register from its input
-  slot, the operands free elsewhere - then check on a whole-library build whether the borrow
-  still fires at all.
-- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
-  longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.010, compiler.optimization.016.
 
 ### compiler.optimization.026 — Folding a constant address into a RIP-relative load miscompiles library images
 
+- Recorded: 2026-09-02 14:39
+- Updated: 2026-09-05 22:13 — git: Take the fixed costs a profile named out of every short command
 - Area: compiler/backend
 - Found while: a repository health reset, chasing the `render.parity.stroke.cpu-ogl` golden that
   compares the CPU and OpenGL painter backends. The OpenGL image came back entirely zero (all
@@ -532,33 +410,184 @@ the executable Micro instruction stream has no explicit phi instruction.
   `Pass.InstructionCombine.ConstProp.cpp` is removed, a suite test guards the reduced repro, and
   the `render.parity.stroke.cpu-ogl` golden stays green.
 
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+### compiler.optimization.006 — A hot loop's loop-carried locals all live in stack slots
 
-- Area: compiler/backend, compilation time
-- Found while: the compile-speed campaign, profiling `bench/compile.py core_rebuild` (std/core in
-  `devmode`, six worker cores, Release 0.1.367 with a PDB, a user-mode sampling profiler).
-- Observation: `runLoopPasses` is the largest single item of a full rebuild — 13.9 % of all
-  thread samples, about 40 % of the CPU actually spent (a third of the samples are workers
-  parked on the job queue) — and it is the largest item of a hello world build too (22 %) and of
-  `swc sema` on an empty file (14 %, the JIT lowering of the prelude's `#run`). Inside it the
-  SSA state is the cost: `MicroSsaState::build`, `ensureFor`, `renameBlock`, `reachingDef` and
-  `createPhi` add up to about 8.5 % of samples, more than any transform. `runPass` invalidates the
-  whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
-  point rebuilds it from scratch for the next pass that asks, however local the mutation was.
-  `devmode` is `O1`, "everything that does not cost compilation time", and this does.
-- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
-  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
-  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
-  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
-  110 and 99. These are inclusive stack counts, with each sample counted once per function;
-  they are attribution evidence, not independent percentages to add or unprofiled timings.
-  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
-  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
-- Next: count rebuilds and mutating passes per function on std/core to size the win, then keep the
-  SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
-  operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with
-  `bench/compile.py --against` on `core_rebuild` and `hello_build`, and with `bench.swgs` so the
-  generated code is proven unchanged.
-- Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
-  rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
-- Related: compiler.core.004, compiler.core.030.
+- Recorded: 2026-08-15 08:48
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Area: compiler/backend
+- Found while: making `Compress.Inflate` fast. The library side of that is done and shipped —
+  the block loop keeps its cursors in locals and refills branchlessly, and it went from 62 MB/s
+  to 119 MB/s. What this entry keeps is the part no source shape could reach: the same algorithm
+  written line by line in C and compiled by clang-cl `/O2` runs at 191 MB/s, so 1.6x is left and
+  all of it is in the emitted code.
+- Observation: `#[Swag.PrintMicro("post-emit")]` on the block loop against clang's assembly for
+  that C transcription. **Every loop-carried local is a stack slot.** The bit buffer, the bit
+  count, the source cursor, the output cursor and the decoded symbol are each loaded and stored
+  on every symbol; a table entry read once in the source is stored to a stack temporary and
+  re-loaded twice. In the literal fast path — ten live scalars, fifteen usable registers — that
+  is 31 stack loads and 8 stack stores against clang's zero. The prologue also materializes ~25
+  field addresses and spills each one. mem2reg is not the culprit and was checked:
+  `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
+  should and the allocator puts the values back.
+- Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
+  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
+  symbol — a stored photograph, so the loop runs about once per output byte). Best of several
+  alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
+  121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619
+  instructions against clang's 411. **Machine load moves every one of these numbers by up to 3x,
+  so only same-run comparisons mean anything** — an earlier pass of this measurement read
+  122 ms for clang and 176 ms for Swag, and the ratio was the only part that survived.
+- Four things ruled out by measurement, so they are not retried:
+  - **zlib's two-level decode table.** Written in C beside the current design, same payload:
+    93.8 ms against 88.8 ms — *slower*. Only 6.7% of length codes and no distance code at all
+    miss the nine-bit fast table on this data.
+  - **Lifting the cold paths out of the loop.** The Huffman fallback and the slow refill moved
+    into `#[Swag.NoInline]` functions taking the bit cursor by value and handing it back: 3%.
+    So the allocator is not evicting the loop-carried scalars because cold blocks compete with
+    them; it evicts them anyway.
+  - **Eliding the shift width guard.** Implemented in `CodeGenSafety::emitShiftIntLike` (skip
+    the materialized count, width compare and conditional move when the count is a constant or
+    a mask by one, looking through casts and parentheses), verified to fire — 14 conditional
+    moves down to 8 in the block loop — and measured at **zero**, twice, on a quiet machine.
+    The loop is latency-bound on the serial bit-cursor chain and its stack round-trips, so
+    removing twelve independent instructions changes nothing. Reverted. Worth revisiting only
+    *after* the register half lands, when the loop may become instruction-bound.
+  - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
+  - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
+    this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the
+    PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
+    `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
+    already run on vectors. The whole path is too small to pay for the two shuffle tables.
+- Current boundary: `Pass.RegisterAllocation.Interval.cpp` now supplies live-range splitting for
+  optimizing builds, with the older scan retained for `-O0` and failed preconditions. The historical
+  spill counts above predate that allocator and cannot establish the current gap.
+- Next: repeat the same Inflate/clang comparison and count frame accesses with the current Release
+  compiler. If a gap remains, attribute it to the split allocator or its fallback before selecting
+  a change; do not implement a second interval allocator.
+- Complete when: the current emitted loop and alternating timing decide whether an allocator gap
+  remains, with any surviving cause reduced to one actionable change.
+- Related: compiler.optimization.005, compiler.optimization.024.
+
+### compiler.optimization.010 — A short branching function spills with the whole register file free
+
+- Recorded: 2026-08-23 22:36
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Area: compiler/backend
+- Found while: std.video.001, closing the distance between the H.264 entropy parse and FFmpeg's, starting
+  from the emitted code of one bin as that entry says to.
+- Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
+  from one two-way branch, and its whole live set is about eight scalars. It is called roughly
+  568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
+  `#[Swag.PrintMicro("post-emit")]` in release showed the function opening with seven callee-saved
+  pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
+  and the result — to that frame before the branch and reloading them on both sides. Sixteen
+  integer registers exist and the function needs about half of them.
+- This is [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
+  the earlier whole-hull allocator without
+  the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
+  happens. That makes it a much smaller reproducer than the inflate block loop for the same
+  allocator policy, which is why it is worth keeping separately.
+- Evidence: the same dump also measured what source shape can and cannot reach. Holding `range`
+  and `low` in locals for the length of the bin, and sharing renormalization between the two
+  outcomes, took the function from 217 to 143 instructions — a third fewer — and about one percent off the
+  serial decode of one picture, which is inside the noise floor of this machine — the arithmetic registers were being reloaded after every step because
+  the context write in between stores into the same structure. What did not move is the frame:
+  it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
+  still there. Two smaller costs sit in the same function and belong to the same dump:
+  each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
+  next to the spills and was already elided once for
+  [compiler.optimization.006](#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
+- Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
+  unconditionally and a conditional move supplies the operand-width answer for zero, so the
+  sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
+  And the function no longer carries a frame register: it names none, its stack shape is one
+  subtract at entry and one add before the return, so the unwind codes describe it in full
+  without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
+  instructions against 143.
+- Current boundary: the default optimizing allocator now splits live ranges. The instruction and
+  frame counts above describe the earlier scan, so they need a new dump before directing a fix.
+- Next: dump `CabacReader.decision` in Release and attribute any remaining branch-crossing spills
+  to the selected allocator. Keep it as the small companion to the Inflate workload. The target is
+  now x86-64-v3; adopting `lzcnt`/`tzcnt` no longer needs the AVX-to-AVX2 target-policy change
+  previously stated here, but still needs encoder and zero-operand tests.
+- Complete when: the current dump decides whether the branch-spill gap remains and any remaining
+  allocation defect has a reduced test.
+- Related: compiler.optimization.006, compiler.optimization.024.
+
+### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
+
+- Recorded: 2026-08-29 15:41
+- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
+- Area: compiler/backend
+- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
+  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
+  the earlier scan, which also remains the fallback whenever a precondition fails or the
+  walk bails, and the C++ conformity cases run both.
+- Evidence: the walk describes every concrete claim by the position it occupies, except
+  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
+  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
+  instruction, so no operand of theirs can share it, and the second legalization sweep can
+  then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
+  left one free.
+- Next: give those forms their real fixed intervals - the implicit register from its input
+  slot, the operands free elsewhere - then check on a whole-library build whether the borrow
+  still fires at all.
+- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+  longer fires on a whole-library build, and the suites stay green.
+- Related: compiler.optimization.010, compiler.optimization.016.
+
+### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-03 11:39 — git: Convert early-return chains into conditional moves
+- Area: compiler/backend
+- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
+- Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
+  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. Raising it to 16 unrolled the
+  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
+  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
+  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
+  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
+  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
+  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
+  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
+  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
+  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
+  legalization rewrote every memory-destination form back into registers because it read a
+  virtual register as "not an integer". The folds now leave a frame slot or a global alone
+  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
+  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
+- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
+  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
+  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
+  instructions against 28.
+- Next: re-measure chacha with `K_MAX_TRIPS = 16` on a quiet machine, and only then ask whether
+  the SLP pass sees the sixteen `[frame + K]` loads it now has.
+- Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
+
+### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
+
+- Recorded: 2026-08-19 14:16
+- Updated: 2026-09-03 11:39 — git: Convert early-return chains into conditional moves
+- Area: compiler
+- Found while: std.video.001, profiling the H.264 decoder on a 1080p30 Main stream in release.
+- Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
+  compare and a conditional move: the ternary diamond converts when both arms are short, pure
+  and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
+  through the single-arm conversion beside it. The select written as a statement — the
+  `if v < lo do return lo` / `if v > hi do return hi` chain — now converts too (2026-09-03,
+  `convertEarlyReturnsToSelects`): each statement is a triangle whose body leaves the function,
+  so the innermost pair folds into one return fed by a conditional move, and the fixed point
+  folds the chain from the bottom, under the diamond's rules (pure, short, one value leaving
+  each path, the compare re-issued when a path wrote the flags). What still compiles to a branch
+  is an `if`/`else` whose arms do more than produce one value.
+- Evidence: `#[Swag.PrintMicro("pre-emit")]` in release on the three-way early-return clamp:
+  15 instructions with two `jump_cond` and three `ret` before, 12 with two `cmov` and one `ret`
+  after; the nested ternary is 10. The decoder's conversion stage went from 1495 ms to about
+  470 ms over 59 frames when its clamps were rewritten branch-free by hand (3.2x, byte-identical
+  output; the sign-bit forms in `decode/h264/transform.swg`).
+- Next: re-measure the decoder's deblock and conversion loops with the clamps written as
+  statements against the hand-written sign-bit forms, and retire those if the select matches
+  them.
+- Complete when: the decoder's conversion stage measures the same with statement clamps as with
+  the sign-bit forms, and the sign-bit forms are gone.

@@ -17,12 +17,12 @@ owned by a viewer lives in the corresponding domain:
 - [app.scope.midi.md](app.scope.midi.md) — MIDI viewer
 
 Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
-ordered by expected product value, not implementation effort.
-
-## Document lifecycle
+ordered from the most recently updated down.
 
 ### app.scope.001 — One document per window
 
+- Recorded: 2026-08-27 07:08
+- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
 - Evidence: `src/main.swg` creates one `ViewerWindow`, which owns one active file and viewer.
   Opening another file replaces that document; there is no document-tab host.
 - Next: adopt the GUI document-host contract with independent document ownership, close behavior,
@@ -34,6 +34,7 @@ ordered by expected product value, not implementation effort.
 
 ### app.scope.003 — Two documents cannot be shown side by side
 
+- Recorded: 2026-09-06 17:42
 - Evidence: `ViewerWindow` has one active viewer surface. The application has no pair of independently
   focused document panes; hexadecimal difference analysis remains a separate viewer capability.
 - Next: add a split presentation for two open documents with explicit focus and command routing,

@@ -29,7 +29,7 @@ handling are all enforced without a single annotation, and a value that owns a r
 no copy without being annotated either. What is left on the heap side is the shape nothing marks
 as an owner at all, a use-after-free must-analysis with aliasing and conditional-release limits, and the
 operations that forge a pointer out of nothing being spelled like ordinary code. The entries below
-are ordered by how much of that gap each one closes.
+are ordered from the most recently updated down.
 
 Every entry below is backed by a compilable case in
 [bin/unittests/safety/corpus](../bin/unittests/safety/corpus): one file per CWE, a fault half
@@ -39,10 +39,10 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-## Ownership of the heap
-
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
+- Recorded: 2026-09-04 19:35
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: compiler/sema, language
 - Evidence: the four allocation-loss shapes in `cwe401_memory_leak.swg` compile without a static
   diagnostic: no release, release on one path, overwritten pointer, and an owner without `opDrop`.
@@ -60,6 +60,8 @@ is the current scorecard.
 
 ### compiler.safety.004 — Diagnostic allocation does not intercept a stale heap read
 
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: runtime/allocator, `bin/runtime`
 - Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
   allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
@@ -74,26 +76,10 @@ is the current scorecard.
   mode, with its limits and measured cost documented; Release defaults remain unchanged.
 - Related: runtime.allocator.010.
 
-### compiler.safety.005 — A pointer into a value survives the move of that value
-
-- Area: compiler/sema, `SemaEscape`
-- Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and it
-  then addresses the abandoned source. `a.head = &a.buf[0]; var b = #move a; b.head![] = 7` writes
-  into the dead `a`, and `b.buf[0]` is unchanged. Silent in every configuration.
-- Consequence: narrow but real, and it is the one place where Swag's byte-copy move has no
-  counterpart to the rule that protects it elsewhere. The analysis already tracks a borrow of a
-  local across a move (`let p = &a.x; var b = #move a; p[]` is caught); what it does not track is a
-  borrow stored *inside* the value being moved.
-- Next: decide whether this deserves a rule at all before building one. The honest first step is a
-  sweep: does any type in `bin/` hold a pointer into itself? If none does, record the answer and
-  reduce this entry to the documentation of a known limit.
-- Complete when: self-referential storage is either rejected at the move, or documented as
-  unsupported with the sweep result recorded.
-
-## The unsafe surface
-
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
@@ -131,28 +117,10 @@ is the current scorecard.
   survives at the interop and bit-punning boundary, which is where the marker belongs and where it
   joins compiler.safety.007. Also compiler.safety.014.
 
-### compiler.safety.007 — A foreign function is opaque to every safety analysis
-
-- Area: compiler/sema, `SemaEscape`
-- Evidence: `#[Swag.BorrowSummary]` can be written by hand on a `#[Foreign]` declaration, and the
-  reference says so — but nothing requires it, nothing checks it against the callee, and a foreign
-  function with no summary is treated as borrowing, storing and freeing nothing. A C function that
-  keeps the pointer it was handed is indistinguishable from one that does not.
-- Consequence: every `win32` and system binding is a hole in the borrow rules that no diagnostic
-  marks. This is inherent — the compiler cannot see the callee — which is exactly why it belongs on
-  the unsafe surface rather than inside the analysis.
-- Next: decide the default. Either a foreign call is one of the operations that requires the marker
-  from compiler.safety.006, or a foreign declaration without a written summary is assumed to store
-  everything it receives and the bindings are annotated. Measure the second option against
-  `bin/std/modules/win32` before choosing.
-- Complete when: the foreign boundary has one documented default, and the reference says what
-  crossing it suspends.
-- Related: compiler.safety.006.
-
-## What `release` stops checking
-
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: compiler/backend, optimization
 - Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` reads out of
   bounds silently; the same program panics in `devmode`. The static half still covers what it can
@@ -180,6 +148,8 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Evidence: `cast(Color) 99` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
@@ -201,6 +171,8 @@ is the current scorecard.
 
 ### compiler.safety.011 — `!` and `Swag.Late` stop asserting in release
 
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language, runtime guards
 - Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
   assertions under two different flags, both off in `release` by default. Each panics with a
@@ -224,14 +196,10 @@ is the current scorecard.
   application workload is recorded.
 - Related: compiler.safety.008 is what makes that configuration affordable.
 
-
-
-## Borrow invalidation
-
-## The statement
-
 ### compiler.safety.014 — Nothing states what the safe subset guarantees
 
+- Recorded: 2026-09-04 17:05
+- Updated: 2026-09-05 10:30 — git: Take the copy away from a type that owns what it releases
 - Area: documentation, language
 - Evidence: [013_002_safety.swg](../bin/reference/modules/language/src/013_002_safety.swg),
   [013_003_sanity.swg](../bin/reference/modules/language/src/013_003_sanity.swg) and
@@ -252,3 +220,39 @@ is the current scorecard.
   excludes it, in which build configurations, and by which mechanism — and every claim on it is
   backed by a test in `bin/unittests`.
 - Related: compiler.safety.006, compiler.safety.008.
+
+### compiler.safety.005 — A pointer into a value survives the move of that value
+
+- Recorded: 2026-09-04 17:05
+- Area: compiler/sema, `SemaEscape`
+- Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and it
+  then addresses the abandoned source. `a.head = &a.buf[0]; var b = #move a; b.head![] = 7` writes
+  into the dead `a`, and `b.buf[0]` is unchanged. Silent in every configuration.
+- Consequence: narrow but real, and it is the one place where Swag's byte-copy move has no
+  counterpart to the rule that protects it elsewhere. The analysis already tracks a borrow of a
+  local across a move (`let p = &a.x; var b = #move a; p[]` is caught); what it does not track is a
+  borrow stored *inside* the value being moved.
+- Next: decide whether this deserves a rule at all before building one. The honest first step is a
+  sweep: does any type in `bin/` hold a pointer into itself? If none does, record the answer and
+  reduce this entry to the documentation of a known limit.
+- Complete when: self-referential storage is either rejected at the move, or documented as
+  unsupported with the sweep result recorded.
+
+### compiler.safety.007 — A foreign function is opaque to every safety analysis
+
+- Recorded: 2026-09-04 17:05
+- Area: compiler/sema, `SemaEscape`
+- Evidence: `#[Swag.BorrowSummary]` can be written by hand on a `#[Foreign]` declaration, and the
+  reference says so — but nothing requires it, nothing checks it against the callee, and a foreign
+  function with no summary is treated as borrowing, storing and freeing nothing. A C function that
+  keeps the pointer it was handed is indistinguishable from one that does not.
+- Consequence: every `win32` and system binding is a hole in the borrow rules that no diagnostic
+  marks. This is inherent — the compiler cannot see the callee — which is exactly why it belongs on
+  the unsafe surface rather than inside the analysis.
+- Next: decide the default. Either a foreign call is one of the operations that requires the marker
+  from compiler.safety.006, or a foreign declaration without a written summary is assumed to store
+  everything it receives and the bindings are annotated. Measure the second option against
+  `bin/std/modules/win32` before choosing.
+- Complete when: the foreign boundary has one documented default, and the reference says what
+  crossing it suspends.
+- Related: compiler.safety.006.

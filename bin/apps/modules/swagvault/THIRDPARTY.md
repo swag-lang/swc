@@ -11,9 +11,10 @@ WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos
 - SHA-256: `2ECB5C89405488A95BBD8A01875E02C48534FD37BBDFD84488F7590464D65944`
 
 The package is signed by NAVIMATICS LLC. Its x64 driver is signed by Microsoft Windows Hardware
-Compatibility Publisher. Swag Vault extracts it to the user's temporary directory, registers it
-under a Swag Vault-specific side-by-side identity while a volume is mounted, then unregisters it
-and removes the temporary files during a normal unmount.
+Compatibility Publisher. Repository packaging places the extracted, unmodified x64 DLL and driver
+beside Swag Vault. At mount time, the application copies those files to the user's temporary
+directory and registers a Swag Vault-specific side-by-side identity. The helper unregisters it and
+removes the temporary files after the last mount releases the portable runtime.
 
 ## WinFsp licence text
 

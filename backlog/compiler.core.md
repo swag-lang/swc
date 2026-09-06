@@ -468,3 +468,28 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 - Complete when: either a loaded shared library provably shares the host's allocator and context in
   a workspace test that links its dependencies in, or the backlog records why it cannot and the
   compiler diagnoses the combination it can see.
+
+### compiler.core.031 — Converting a large finite float to u64 loses the unsigned range
+
+- Area: compiler/code generation
+- Found while: comparing csvagg's float-to-integer conversions with clang-cl and MSVC during the
+  generated-code performance campaign, 2026-09-06.
+- Evidence: the unchanged DevMode compiler built from `89c7c0e7a` (0.1.381) fails a standalone JIT
+  test in the `release` program configuration. A `#[Swag.NoInline]` function taking an `f64` and
+  returning `cast(u64) value` does not return `0x8000_0000_0000_0800'u64` for
+  `9223372036854777856.0'f64` (exactly 2^63 + 2048). The assertion fails before native execution.
+  A second run with `--no-test-jit` fails the same assertion in the generated executable, confirming
+  the native path independently. The value is finite, exactly representable, and within the
+  destination's unsigned range.
+  Reproduce with a standalone `#test` calling that function and comparing those values, using
+  `bin/swc.dm.exe test --artifact-kind executable -f <probe.swg> --build-cfg release --rebuild
+  --num-cores 6`, with output and work directories under a temporary root.
+- Mechanism to verify: `CodeGenMemoryHelpers.cpp::emitConvertFloatToInt` emits the signed
+  `ConvertFloatToInt` operation without a separate path for the upper half of `u64`. Both C++
+  compilers account for that range in their csvagg lowering. This failure predates the backend
+  campaign's removal of redundant integer-destination initialization.
+- Next: add a reduced regression to `bin/unittests/native/casts/float.swg`, exercise JIT and native
+  execution separately, and implement the unsigned conversion while preserving overflow guards.
+  Include values around 2^63 and 2^64, both float widths, and the existing invalid-input behavior.
+- Complete when: valid upper-range conversions produce the expected bits in both program
+  configurations under JIT and native execution, with range-boundary regression coverage.

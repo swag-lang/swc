@@ -1009,6 +1009,76 @@ SWC_TEST_BEGIN(InstCombine_FloatResultCopy_DefinesAccumulatorDirectly)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstructionCombine_FoldsBooleanSelect)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint64_t sourceValue : {uint64_t{0}, uint64_t{1}})
+        {
+            constexpr MicroReg dst = MicroReg::virtualIntReg(1);
+            constexpr MicroReg src = MicroReg::virtualIntReg(2);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegImm(dst, ApInt(1 - sourceValue, 64), bits);
+            builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(3), bits);
+            builder.emitLoadRegImm(src, ApInt(sourceValue, 64), bits);
+            builder.emitLoadCondRegReg(dst, src, MicroCond::Equal, bits);
+            builder.emitLoadMemReg(MicroReg::intReg(2), 0, dst, bits);
+            builder.emitRet();
+            SWC_RESULT(runInstCombinePass(builder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 1 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+                return Result::Error;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const MicroInstrOperand* ops = inst.ops(builder.operands());
+                if (inst.op == MicroInstrOpcode::SetCondReg &&
+                    (ops[0].reg != src || ops[1].cpuCond != (sourceValue ? MicroCond::Equal : MicroCond::NotEqual)))
+                    return Result::Error;
+                if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg &&
+                    (ops[0].reg != dst || ops[1].reg != src || ops[2].opBits != bits || ops[3].opBits != MicroOpBits::B8))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
+{
+    enum class Case
+    {
+        SharedSource,
+        InterveningFlags,
+        NarrowInitial,
+        DifferentValues,
+        NoComplement
+    };
+    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::DifferentValues, Case::NoComplement})
+    {
+        constexpr MicroReg dst = MicroReg::virtualIntReg(1);
+        constexpr MicroReg src = MicroReg::virtualIntReg(2);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegImm(dst, ApInt(test == Case::DifferentValues ? 2 : 1, 64), test == Case::NarrowInitial ? MicroOpBits::B8 : MicroOpBits::B64);
+        builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegImm(src, ApInt(0, 64), MicroOpBits::B64);
+        if (test == Case::InterveningFlags)
+            builder.emitCmpRegReg(MicroReg::intReg(3), MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(dst, src, test == Case::NoComplement ? MicroCond::Sign : MicroCond::Equal, MicroOpBits::B64);
+        if (test == Case::SharedSource)
+            builder.emitLoadMemReg(MicroReg::intReg(2), 8, src, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(2), 0, dst, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

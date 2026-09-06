@@ -6,6 +6,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Unittest/Unittest.h"
@@ -1116,6 +1117,73 @@ SWC_TEST_BEGIN(RegAlloc_RematerializesImmediateReloads)
         if (hasSpillFrameOps(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroInstr_FloatToIntReplacesItsDestination)
+{
+    for (const bool physical : {false, true})
+    {
+        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            for (const MicroOp op : {MicroOp::ConvertFloatToInt, MicroOp::ConvertIntToFloat, MicroOp::ConvertFloatToFloat})
+            {
+                const MicroReg intReg     = physical ? MicroReg::intReg(1) : MicroReg::virtualIntReg(1);
+                const MicroReg floatReg   = physical ? MicroReg::floatReg(1) : MicroReg::virtualFloatReg(1);
+                const MicroReg otherFloat = physical ? MicroReg::floatReg(2) : MicroReg::virtualFloatReg(2);
+                const bool     replaces   = op == MicroOp::ConvertFloatToInt;
+                const MicroReg dst        = replaces ? intReg : floatReg;
+                const MicroReg src        = op == MicroOp::ConvertIntToFloat ? intReg : otherFloat;
+                MicroBuilder   builder(ctx);
+                builder.emitOpBinaryRegReg(dst, src, op, bits);
+                const MicroInstr&      inst   = *builder.instructions().view().begin();
+                const MicroInstrUseDef useDef = inst.collectUseDef(builder.operands(), nullptr);
+                if (useDef.defs.size() != 1 || useDef.defs[0] != dst || useDef.uses.size() != (replaces ? 1 : 2))
+                    return Result::Error;
+                if (std::ranges::find(useDef.uses, src) == useDef.uses.end())
+                    return Result::Error;
+                if ((std::ranges::find(useDef.uses, dst) != useDef.uses.end()) == replaces)
+                    return Result::Error;
+                SmallVector<MicroInstrRegOperandRef> refs;
+                inst.collectRegOperands(builder.operands(), refs, nullptr);
+                if (refs.size() != 2 || *refs[0].reg != dst || !refs[0].def || refs[0].use == replaces ||
+                    *refs[1].reg != src || !refs[1].use || refs[1].def)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroInstr_FloatToIntKeepsOnlyLiveFlagInitialization)
+{
+    for (const bool liveFlags : {false, true})
+    {
+        constexpr MicroReg dst  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg flag = MicroReg::virtualIntReg(2);
+        MicroBuilder       builder(ctx);
+        builder.emitClearReg(dst, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(dst, MicroReg::floatReg(0), MicroOp::ConvertFloatToInt, MicroOpBits::B64);
+        if (liveFlags)
+        {
+            builder.emitSetCondReg(flag, MicroCond::Zero);
+            builder.emitLoadMemReg(MicroReg::intReg(2), 8, flag, MicroOpBits::B8);
+        }
+        else
+            builder.emitCmpRegImm(dst, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(2), 0, dst, MicroOpBits::B64);
+        builder.emitRet();
+        MicroDeadCodeEliminationPass pass;
+        MicroPassManager             passes;
+        passes.addStartPass(pass);
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        SWC_RESULT(builder.runPasses(passes, nullptr, passContext));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != (liveFlags ? 1 : 0))
+            return Result::Error;
+    }
+    return Result::Continue;
 }
 SWC_TEST_END()
 

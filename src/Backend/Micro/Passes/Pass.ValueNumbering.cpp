@@ -142,6 +142,15 @@ namespace
     {
         switch (op)
         {
+            case MicroInstrOpcode::LoadRegImm:
+                // Scalar float literals become constant loads in legalization.
+                // Share their exact bits before LICM extends their lifetimes.
+                outShape.rawSlots      = {1};
+                outShape.movBitsSlot   = 1;
+                outShape.hasImmediate  = true;
+                outShape.immediateSlot = 2;
+                return true;
+
             case MicroInstrOpcode::OpBinaryRegImm:
                 // ops: [0] dst (read-modify-write), [1] opBits, [2] microOp, [3] imm
                 outShape.useSlots      = {};
@@ -425,6 +434,14 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         const MicroReg dstReg = ops[0].reg;
         if (!isNumberableReg(dstReg))
+            continue;
+
+        // Integer immediates and positive float zero are cheap to recreate.
+        // Sharing them would add live registers without removing a load.
+        if (inst->op == MicroInstrOpcode::LoadRegImm &&
+            (!dstReg.isVirtualFloat() ||
+             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+             ops[2].immediateValue().isZero()))
             continue;
 
         // A >64-bit immediate would need extra key words; too rare to matter.

@@ -414,6 +414,75 @@ SWC_TEST_BEGIN(ValueNumbering_KeepsFrameLoadsForMemToReg)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ValueNumbering_SharesScalarFloatLiteralBits)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t sign = bits == MicroOpBits::B32 ? 0x80000000ULL : 0x8000000000000000ULL;
+        const uint64_t nan  = bits == MicroOpBits::B32 ? 0x7FC00123ULL : 0x7FF8000000000123ULL;
+        for (const uint64_t raw : {uint64_t{1}, sign, nan})
+        {
+            constexpr MicroReg first  = MicroReg::virtualFloatReg(1);
+            constexpr MicroReg second = MicroReg::virtualFloatReg(2);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegImm(first, ApInt(raw, 64), bits);
+            builder.emitLoadMemReg(MicroReg::intReg(2), 0, first, bits);
+            builder.emitLoadRegImm(second, ApInt(raw, 64), bits);
+            builder.emitLoadMemReg(MicroReg::intReg(2), 8, second, bits);
+            builder.emitRet();
+            SWC_RESULT(runValueNumberingPass(builder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
+                return Result::Error;
+            bool found = false;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::LoadRegReg)
+                    continue;
+                const MicroInstrOperand* ops = inst.ops(builder.operands());
+                if (ops[0].reg == second && ops[1].reg == first && ops[2].opBits == bits)
+                    found = true;
+            }
+            if (!found)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ValueNumbering_KeepsCheapOrDistinctLiterals)
+{
+    struct Case
+    {
+        bool floating;
+        MicroOpBits firstBits;
+        MicroOpBits secondBits;
+        uint64_t    firstRaw;
+        uint64_t    secondRaw;
+    };
+    constexpr Case CASES[] = {
+        {false, MicroOpBits::B64, MicroOpBits::B64, 1, 1},
+        {true, MicroOpBits::B64, MicroOpBits::B64, 0, 0},
+        {true, MicroOpBits::B64, MicroOpBits::B64, 0, 0x8000000000000000ULL},
+        {true, MicroOpBits::B32, MicroOpBits::B64, 1, 1},
+        {true, MicroOpBits::B64, MicroOpBits::B64, 0x7FF8000000000001ULL, 0x7FF8000000000002ULL},
+    };
+    for (const Case& test : CASES)
+    {
+        const MicroReg first  = test.floating ? MicroReg::virtualFloatReg(1) : MicroReg::virtualIntReg(1);
+        const MicroReg second = test.floating ? MicroReg::virtualFloatReg(2) : MicroReg::virtualIntReg(2);
+        MicroBuilder   builder(ctx);
+        builder.emitLoadRegImm(first, ApInt(test.firstRaw, 64), test.firstBits);
+        builder.emitLoadRegImm(second, ApInt(test.secondRaw, 64), test.secondBits);
+        builder.emitRet();
+        SWC_RESULT(runValueNumberingPass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

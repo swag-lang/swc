@@ -36,6 +36,9 @@ namespace MicroPassHelpers
 
     MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry);
 
+    // Exact flag-level complement. Sign has no complement in MicroCond.
+    bool invertCondition(MicroCond& outCondition, MicroCond condition);
+
     // The operand holding the condition code, for the opcodes that read the CPU flags through one.
     // Inline: the combine passes ask this of every instruction they scan.
     inline bool conditionOperandIndex(MicroInstrOpcode op, uint8_t& outIdx)

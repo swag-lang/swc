@@ -1,9 +1,8 @@
 # Compiler memory campaign - 2026-09-06
 
-The sanitizer storage candidate is saved on `codex/memory-20260906`. It is **not accepted as a
-performance win**: repeated measurements with sufficiently low background load did not complete
-within this campaign's time window. The compiler changes remain on the isolated branch pending
-that acceptance. Functional checks passed through the same pre-existing GUI5 smoke failure as
+The sanitizer storage changes are merged into `master` at the owner's request. A
+**performance win is not established**: repeated measurements with sufficiently low background
+load did not complete within the campaign's time window. Functional checks passed through the same pre-existing GUI5 smoke failure as
 the baseline; neither full campaign is green. The four memory/time targets are not established.
 
 ## Revisions and changes
@@ -15,7 +14,8 @@ the baseline; neither full campaign is green. The four memory/time targets are n
 - Omit default register facts and unknown stack values; absence already means Unknown. Keep
   register provenance and known values, and remove zero facts when they become unknown.
 - The branch also integrates the positive-floating-zero legalization already on master,
-  using compiler build 384. Performance comparisons use the frozen 381/383 binaries to isolate
+  using compiler build 384 during the campaign. The subsequent merge with master build 386
+  uses build 387. Performance comparisons use the frozen 381/383 binaries to isolate
   the sanitizer changes. Binary SHA-256 values are in [validation.json](validation.json).
 
 Both measured binaries were built in Release with the normal optimizations, plus PDB and map
@@ -139,13 +139,14 @@ floating-zero native regression with both compiler executables in both program c
 
 The GUI5 failure was reduced with the unchanged baseline compiler to an inlined conditional
 returning a four-byte structure: generated code dereferences `0xFFFFFFFF` as an address.
-[Standalone reduction](gui5-reproducer.md); the next fix remains in
-[std.gui.053](../../../../backlog/std.gui.md).
+[Standalone reduction](gui5-reproducer.md). The defect was subsequently fixed in `7f00d9f26`,
+with a [native regression](../../../../bin/unittests/native/inline/return_conditional_small_struct.swg),
+which is preserved by this merge.
 
-## Acceptance still required
+## Performance validation still required
 
 Repeat every A/B workload on a quiet host and establish the paired wall/CPU spread before
-merging the compiler changes. Preserve the hard constraint: a memory reduction that costs
+claiming a performance win. Preserve the hard constraint: a memory reduction that costs
 compile time is rejected. Then extend external accounting to proximity allocations and retained
 allocator pages before selecting the next memory reduction. The sanitizer sample alone does
 not explain the remaining core working set or establish the 250 MiB target.

@@ -109,8 +109,8 @@ impl String
         }
 
         let newCapacity = value.count + 1
-        .length = newCapacity - 1
         .grow(newCapacity)
+        .length = newCapacity - 1
         let buffer = .buffer!
         Memory.copy(buffer, value.buffer, .length)
         buffer[.length] = 0

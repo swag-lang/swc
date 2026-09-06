@@ -218,6 +218,55 @@ SWC_TEST_BEGIN(LICM_KeepsIntegerClearWhenFlagsAreLiveAtEitherSite)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_HoistsScalarLiteralLoadsButKeepsZeroLocal)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool zero : {false, true})
+        {
+            constexpr MicroReg  base    = MicroReg::virtualIntReg(1);
+            constexpr MicroReg  count   = MicroReg::virtualIntReg(2);
+            constexpr MicroReg  value   = MicroReg::virtualFloatReg(1);
+            constexpr MicroReg  literal = MicroReg::virtualFloatReg(2);
+            const uint64_t      half    = bits == MicroOpBits::B32 ? 0x3F000000ULL : 0x3FE0000000000000ULL;
+            MicroBuilder        builder(ctx);
+            const MicroLabelRef loop = builder.createLabel();
+            builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+            builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+            builder.placeLabel(loop);
+            builder.emitLoadRegMem(value, base, 0, bits);
+            builder.emitLoadRegImm(literal, ApInt(zero ? 0 : half, 64), bits);
+            builder.emitOpBinaryRegReg(value, literal, MicroOp::FloatMultiply, bits);
+            builder.emitLoadMemReg(base, 0, value, bits);
+            builder.emitOpBinaryRegImm(base, ApInt(getNumBits(bits) / 8, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+            builder.emitRet();
+            SWC_RESULT(runLicmPass(builder));
+
+            const uint32_t header   = firstPositionOf(builder, MicroInstrOpcode::Label);
+            uint32_t       position = 0;
+            bool           found    = false;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const MicroInstrOperand* ops = inst.ops(builder.operands());
+                if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg == literal)
+                {
+                    found = true;
+                    if ((position < header) == zero)
+                        return Result::Error;
+                }
+                ++position;
+            }
+            if (!found)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

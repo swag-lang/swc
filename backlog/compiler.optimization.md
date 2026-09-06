@@ -35,29 +35,30 @@ the shared backlog conventions.
   the SLP pass sees the sixteen `[frame + K]` loads it now has.
 - Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
 
-## Register allocation and frame-slot promotion
-
-### compiler.optimization.028 — Nonzero float literals still reload in the raytrace pixel loop
+### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
 - Area: compiler/backend
-- Found while: comparing the unchanged `bench/src/swagnat/raytrace.swg` with both C++ ports on
-  `9574fdd43`, with the scalar-copy and conversion-web improvements applied (2026-09-05).
-- Evidence: the release pixel loop falls from 76 instructions / 21 memory operations to 65 / 18
-  when the vertical conversion and arithmetic move to the scanline. Clang-cl emits 46 / 6 and
-  MSVC 53 / 6, including its cold sqrt path. The remaining Swag memory operations comprise twelve
-  literal loads, three global loads and three argument stores. On 2026-09-06, lowering positive
-  zero to an XMM clear removes three literal loads: the pixel loop is now 65 / 15, with nine
-  nonzero literal loads, three global loads and three argument stores. The other six benchmark
-  tasks retain their instruction and memory-operation counts, including each loop body.
-- Observation: before LICM these constants are floating `LoadRegImm` instructions. They become
-  RIP-relative loads during legalization, after LICM's profitability filter has treated their
-  single-use materializations as cheap. The conversion-web improvement adds two saved XMM
-  registers outside both loops; further hoisting must account for that register pressure.
-- Next: evaluate hoisting nonzero scalar literals using their eventual load cost.
-  Compare each loop in all seven tasks before keeping either change. Do not reopen relocated
-  address materialization hoisting, whose sha256 spill regression is documented in LICM.
-- Complete when: the remaining literal loads have a
-  measured register-pressure decision, with native and script correctness coverage.
+- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
+- Evidence: with `/O2 /EHsc /std:c++20`, clang-cl's compression loop has 74 instructions and
+  five explicit memory operations per round, exactly the counts of Swag release at `d4cc0a0cd`.
+  MSVC advances its round counter by four: its loop has 224 instructions and eight memory
+  operations for four rounds, or 56 / two per round. The eight accesses read `KTAB` and the
+  message schedule; the compression state stays in registers. Swag's 74 / five includes three
+  frame accesses described in compiler.optimization.005. Counts exclude labels and address-only
+  `lea` instructions from memory operations and include loop control.
+- Observation: `Pass.LoopUnroll.cpp` only fully unrolls exact counted loops of at most eight
+  trips, so it cannot choose MSVC's four-round grouping for this 64-round loop. Both C++ outputs
+  still express this source's 64-bit masked rotate idiom with shifts and ORs; do not assume that
+  replacing it with a 32-bit rotate is the explanation of their output.
+- Next: evaluate a bounded partial-unroll factor of two or four, preserving the original loop
+  counter and carrying each copy's values correctly. Start with divisible exact trip counts;
+  measure body growth and register pressure, then compare every hot loop across the seven tasks.
+  Keep this separate from merely raising the full-unroll limit in compiler.optimization.002.
+- Complete when: partial unrolling lowers instructions and frame traffic per compression round
+  with loop-exit, carried-value, relocation, and counter-use regression coverage, or a measured
+  experiment identifies the missing proof or register-pressure cost.
+
+## Register allocation and frame-slot promotion
 
 ### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own
 
@@ -103,12 +104,36 @@ the shared backlog conventions.
   carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
   program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
   any frame slot.
-- Next: dump the current sha256 and Leven loops before selecting a change. `promoteCarriedSlots`
+- Current evidence (2026-09-06, release, `6ac854243`): Leven's inner DP loop has 22 instructions
+  and five memory operations, all through program arrays, with no allocator spill. Its enclosing
+  loops still access the frame; do not infer an inner-loop promotion opportunity from their
+  inclusive spans. The separate adjacent-element reuse opportunity is compiler.optimization.030.
+- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
+  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
+  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
+  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
+  diagnosis no longer describes this loop.
+- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
+  then inspect Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
   still requires one load/store pair, an unredefined register and one converged exit; if these
   restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
   distinguish allocator spill storage from addressable program objects before refining aliasing.
 - Complete when: current loop dumps either retire this lead or identify a measured promotion or
   residency improvement with aliasing and multi-slot regression coverage.
+
+### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
+
+- Area: compiler/backend
+- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
+- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
+  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
+  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
+  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
+- Next: establish the two rows' disjointness, then evaluate forwarding those adjacent elements
+  across one loop backedge. Prove the entry values, affine stride, intervening writes, and exits;
+  keep this separate from frame-slot promotion and compare every benchmark loop for new spills.
+- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
+  current experiment identifies the specific missing proof or register-pressure cost.
 
 ## Decompression
 

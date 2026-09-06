@@ -61,17 +61,18 @@ namespace
         }
     }
 
-    // A hoisted value that pays for its register even with a single reader:
-    // rebuilding a vector from invariant inputs costs a lane broadcast or a
-    // packed operation per iteration, where an integer copy or an address
-    // computation costs one instruction the allocator may fold away.
-    bool isVectorMaterialization(const MicroInstr& inst, const MicroInstrOperand* ops)
+    // A materialization that pays for its register even with a single reader:
+    // nonzero scalar float literals become constant loads during legalization,
+    // while vectors need lane moves, shuffles or packed operations to rebuild.
+    bool isCostlyMaterialization(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (!ops || !ops[0].reg.isVirtualFloat())
             return false;
 
         switch (inst.op)
         {
+            case MicroInstrOpcode::LoadRegImm:
+                return (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64) && !ops[2].immediateValue().isZero();
             case MicroInstrOpcode::LoadRegReg:
                 return ops[1].reg.isAnyInt();
             case MicroInstrOpcode::VecShuffleRegRegImm:
@@ -771,7 +772,7 @@ namespace
                             continue;
                         const auto uc           = inLoopUse.find(ud->defs[0]);
                         const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
-                        if (opcodeReadsMemory(inst->op) || multiplyUsed || isVectorMaterialization(*inst, inst->ops(operands)))
+                        if (opcodeReadsMemory(inst->op) || multiplyUsed || isCostlyMaterialization(*inst, inst->ops(operands)))
                         {
                             if (keep.insert(i).second)
                                 worklist.push_back(i);

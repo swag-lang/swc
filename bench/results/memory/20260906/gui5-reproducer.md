@@ -45,5 +45,6 @@ func read(first: bool)->u32
 
 Observed: the generated test reads address `4294967295` in `InlineSelectionProbe.read` and
 fails with hardware exception `3221225477`. The false branch is not reached after that failure.
-The representation mismatch and the remaining regression work are tracked in
-[std.gui.053](../../../../backlog/std.gui.md).
+The defect was subsequently fixed in `7f00d9f26`. Its
+[native regression](../../../../bin/unittests/native/inline/return_conditional_small_struct.swg)
+is preserved by the merge.

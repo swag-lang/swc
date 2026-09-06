@@ -92,9 +92,9 @@ compiler-worker counts.
 
 **Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
 
-**Current investigation (2026-09-06).** The isolated candidate `717ec4db6` stores flow state only at chain heads and omits Unknown stack values and default register facts. It remains on `codex/memory-20260906` pending repeated low-load A/B time and working-set acceptance; loaded observations are not proof of unchanged compile time. External native-stack heap sampling on the core devmode rebuild observes 57.7 MiB of live requested sanitizer memory before and 35.8 MiB after, with mixed semantic/symbol arenas at 50.5/50.7 MiB. Unknown values account for about 74.5% of sampled baseline stack-map node bytes and none in the candidate snapshot. These are sampled live allocation estimates, not a complete resident-set split: proximity pages and retained freed allocator pages remain partly unattributed. Finished CodeGen jobs already release Sema/CodeGen state, and emitted functions already release their Micro builder. The four full baseline/candidate compiler campaigns pass through the same pre-existing GUI5 failure; later smoke stages are not green. The [campaign report](../bench/results/memory/20260906/README.md) keeps raw samples, profiling coverage limits, validation and the reduced failure.
+**Current investigation (2026-09-06).** The isolated candidate `717ec4db6` stores flow state only at chain heads and omits Unknown stack values and default register facts. The changes are merged into `master` at the owner's request; repeated low-load A/B time and working-set validation remains pending, and loaded observations are not proof of unchanged compile time. External native-stack heap sampling on the core devmode rebuild observes 57.7 MiB of live requested sanitizer memory before and 35.8 MiB after, with mixed semantic/symbol arenas at 50.5/50.7 MiB. Unknown values account for about 74.5% of sampled baseline stack-map node bytes and none in the candidate snapshot. These are sampled live allocation estimates, not a complete resident-set split: proximity pages and retained freed allocator pages remain partly unattributed. Finished CodeGen jobs already release Sema/CodeGen state, and emitted functions already release their Micro builder. The four full baseline/candidate compiler campaigns stopped at the same pre-existing GUI5 failure, later fixed separately in `7f00d9f26`; their later smoke stages remain unrun. The [campaign report](../bench/results/memory/20260906/README.md) keeps raw samples, profiling coverage limits, validation and the reduced failure.
 
-**Next.** Finish repeated order-alternated measurements for every campaign workload on a quiet host before accepting the candidate. Then extend external accounting to proximity allocations and allocator-retained pages so the remaining AST, types, symbols, constants and Micro footprint is attributable before choosing the next lifetime change. Revisit dense sanitizer storage only if that trace still makes it the leading retained block: the earlier sorted flat-array attempt raised CPU time by 60%, so any replacement must avoid sorted-insert shifts. Shrinking `SymbolFunction` and releasing file text/tokens remain leads, not measured wins.
+**Next.** Finish repeated order-alternated measurements for every campaign workload on a quiet host to validate the performance of the merged changes. Then extend external accounting to proximity allocations and allocator-retained pages so the remaining AST, types, symbols, constants and Micro footprint is attributable before choosing the next lifetime change. Revisit dense sanitizer storage only if that trace still makes it the leading retained block: the earlier sorted flat-array attempt raised CPU time by 60%, so any replacement must avoid sorted-insert shifts. Shrinking `SymbolFunction` and releasing file text/tokens remain leads, not measured wins.
 
 **Complete when.**
 
@@ -470,3 +470,28 @@ are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands ha
 - Complete when: either a loaded shared library provably shares the host's allocator and context in
   a workspace test that links its dependencies in, or the backlog records why it cannot and the
   compiler diagnoses the combination it can see.
+
+### compiler.core.031 — Converting a large finite float to u64 loses the unsigned range
+
+- Area: compiler/code generation
+- Found while: comparing csvagg's float-to-integer conversions with clang-cl and MSVC during the
+  generated-code performance campaign, 2026-09-06.
+- Evidence: the unchanged DevMode compiler built from `89c7c0e7a` (0.1.381) fails a standalone JIT
+  test in the `release` program configuration. A `#[Swag.NoInline]` function taking an `f64` and
+  returning `cast(u64) value` does not return `0x8000_0000_0000_0800'u64` for
+  `9223372036854777856.0'f64` (exactly 2^63 + 2048). The assertion fails before native execution.
+  A second run with `--no-test-jit` fails the same assertion in the generated executable, confirming
+  the native path independently. The value is finite, exactly representable, and within the
+  destination's unsigned range.
+  Reproduce with a standalone `#test` calling that function and comparing those values, using
+  `bin/swc.dm.exe test --artifact-kind executable -f <probe.swg> --build-cfg release --rebuild
+  --num-cores 6`, with output and work directories under a temporary root.
+- Mechanism to verify: `CodeGenMemoryHelpers.cpp::emitConvertFloatToInt` emits the signed
+  `ConvertFloatToInt` operation without a separate path for the upper half of `u64`. Both C++
+  compilers account for that range in their csvagg lowering. This failure predates the backend
+  campaign's removal of redundant integer-destination initialization.
+- Next: add a reduced regression to `bin/unittests/native/casts/float.swg`, exercise JIT and native
+  execution separately, and implement the unsigned conversion while preserving overflow guards.
+  Include values around 2^63 and 2^64, both float widths, and the existing invalid-input behavior.
+- Complete when: valid upper-range conversions produce the expected bits in both program
+  configurations under JIT and native execution, with range-boundary regression coverage.

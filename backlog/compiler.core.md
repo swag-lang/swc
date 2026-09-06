@@ -70,6 +70,14 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Intent.** Record enough clean campaigns to know the resolution of each workload, then make the campaign report a regression instead of only plotting it.
 
+**Measurement caveat (2026-09-06).** The original benchmark memory field is process-tree peak
+committed memory. The instrument now records the timed process's peak working set separately;
+older samples have no resident-memory value and must not be used to set that threshold. Memory
+is not normalized by timing context. Formatter source mirrors now preserve `.swc-format` and
+the maintenance tool's complete input selection; the remaining input-opening bias is tracked
+in repo.tooling.007. Establish the baseline band using these corrected inputs and explicit
+compiler-worker counts.
+
 **Complete when.**
 
 - At least five clean baseline campaigns establish the resolution band of every edit-build workload, as the null indices already do for the tasks.

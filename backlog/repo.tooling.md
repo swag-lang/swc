@@ -114,3 +114,23 @@ being compiled by it.
   tagged semantic pass becomes cheap enough for `build.swgs` to run one per tag-gated module.
 - Complete when: `swc sema` with a tag recompiles a module the untagged build just made, and
   `build.swgs` fails when a `#hastag`-gated source stops compiling.
+
+### repo.tooling.007 — Separate formatter input preparation from formatter cost
+
+- Evidence: on 2026-09-06, the format benchmark's private source copy omitted `.swc-format`
+  files and three maintenance input groups. It rewrote 580 files where the real `bin/` dry run
+  rewrote none. The mirror now preserves configuration and follows `tools/format.swgs`.
+  Fresh copies still spend most sampled worker time opening files: 351 of 401 `FormatJob`
+  samples include `SourceFile::loadContent`, mostly `NtCreateFile`. Original sources instead
+  spend 166 of 220 samples in `Formatter::prepare`; only 19 include indentation.
+- Rejected experiment: sharing the indentation pass's two line-column computations and reusing
+  their vector was predicted to save 2–5% of whole-format CPU. Eleven order-alternated pairs
+  on all maintenance roots, Release build 381 versus the candidate, six workers, gave median
+  paired candidate/baseline ratios of 1.009 wall, 1.012 CPU and 0.990 peak committed memory.
+  Median wall times were 1,255 and 1,306 ms. All 3,458 mirrored files, including configuration,
+  had identical output hashes. The optimization was removed because it showed no speed gain.
+  Shared-host activity varied during the measurement; these are not clean campaign records.
+- Next: measure fresh-copy and original-source formatting separately, attribute the opening
+  delay externally, and profile the formatter's dominant passes before choosing another change.
+- Complete when: the campaign distinguishes input-opening cost from formatting CPU and a retained
+  optimization has an order-alternated speed gain with identical output and measured memory.

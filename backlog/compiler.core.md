@@ -31,7 +31,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   `swc tools/unittests.swgs native -bc release` run while the filtered command passed. Both
   warm-cache runs and an untouched Release compiler showed that pattern, making the rest of the
   compiled suite the strongest observed discriminator at that time.
-- Current verification (2026-09-06, compiler 0.0.390): the complete 3_018-test native suite
+- Current verification (2026-09-06, compiler 0.1.390): the complete 3_018-test native suite
   passes its JIT tests and generated executable with the DevMode compiler in both target
   configurations, and with the Release compiler in `release`. The formerly deterministic
   full-suite failure did not recur; these green runs do not identify its historical cause.

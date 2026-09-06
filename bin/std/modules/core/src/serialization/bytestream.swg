@@ -72,7 +72,7 @@ public impl ByteStream
 
         let wb = writeBuffer!
         if seek + #sizeof(T) > wb.count do
-            wb.reserve(seek + #sizeof(T))
+            wb.grow(seek + #sizeof(T))
         let buffer = wb.buffer!
         var ptr    = cast(*T) (buffer + seek)
         ptr[]    = val
@@ -91,7 +91,7 @@ public impl ByteStream
 
         let wb = .writeBuffer!
         if .seek + count > wb.count do
-            wb.reserve(.seek + count)
+            wb.grow(.seek + count)
         let buffer = wb.buffer!
         let ptr    = buffer + .seek
         Memory.copy(ptr, slice.buffer, count)

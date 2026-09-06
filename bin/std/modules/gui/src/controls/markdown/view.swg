@@ -179,19 +179,39 @@ private func htmlStyle(documentStyle: Style)->HtmlStyle
 
 private func streamBoundary(source: string)->u64
 {
-    var result      = 0'u64
-    var lineStart   = 0'u64
-    var fenceMarker = 0'u8
-    var fenceLength = 0'u32
+    var result       = 0'u64
+    var lineStart    = 0'u64
+    var fenceMarker  = 0'u8
+    var fenceLength  = 0'u32
     var displayMath: bool
     var bracketMath: bool
+    var html:        bool
+    var htmlDocument = HtmlDocument.create()
+    var htmlParser:  HtmlParser
 
     for value, index in source where value == '\n'
     {
         let line    = source[lineStart until index]
         let trimmed = Latin1.trim(line)
         let fence   = parseFence(line)
-        if fence.found and !fenceMarker
+        if !html and !fenceMarker and !displayMath and !bracketMath and isHtmlBlockStart(line)
+        {
+            htmlDocument = HtmlDocument.create()
+            htmlParser.start(&htmlDocument, .Fragment)
+            html = true
+        }
+
+        if html
+        {
+            if !trimmed.count and htmlParser.stack.count == 1 and !htmlParser.hasPendingSource() do
+                html = false
+            else
+            {
+                htmlParser.feed(line)
+                htmlParser.feed("\n")
+            }
+        }
+        elif fence.found and !fenceMarker
         {
             fenceMarker = fence.marker
             fenceLength = fence.length
@@ -211,7 +231,7 @@ private func streamBoundary(source: string)->u64
         elif !fenceMarker and Utf8.startsWith(trimmed, "\\]") do
             bracketMath = false
 
-        if !fenceMarker and !displayMath and !bracketMath and !trimmed.count do
+        if !html and !fenceMarker and !displayMath and !bracketMath and !trimmed.count do
             result = index + 1
         lineStart = index + 1
     }

@@ -5,6 +5,20 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-06 19:13 — Local and embedded Markdown images now render through the offline image cache
+- Evidence: links activate and Markdown renders local raster and SVG images and embedded raster
+  images, but the viewer does not list local and remote targets, broken anchors, missing images,
+  blocked schemes, or resources outside the document directory. Embedded HTML shares the offline
+  resource policy; the viewer does not expose each resource's resolution or the reason it was blocked.
+- Next: inventory every parsed target and classify resolution, availability, scheme, and trust
+  without fetching remote content implicitly.
+- Complete when: a resource panel links each target to source and rendered content, broken local
+  references are explained, remote access requires explicit policy, and blocked content remains
+  visible as a diagnostic.
+
 ### app.scope.document.002 — Markdown has no synchronized source and rendered split view
 
 - Recorded: 2026-08-29 08:36
@@ -17,21 +31,6 @@ integration around those engines.
 - Complete when: Rendered, Source, and Split modes preserve the nearest block, scroll can
   synchronize in either direction, search results map across modes, and large files stay streamed.
 - Related: std.gui.markdown.005
-
-### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: links can activate and Markdown image syntax still depends on engine work, but the viewer does not list local
-  and remote targets, broken anchors, missing images, blocked schemes, or resources outside the
-  document directory. Embedded HTML already has a documented offline resource policy; the viewer
-  does not expose each resource's resolution or the reason it was blocked.
-- Next: inventory every parsed target and classify resolution, availability, scheme, and trust
-  without fetching remote content implicitly.
-- Complete when: a resource panel links each target to source and rendered content, broken local
-  references are explained, remote access requires explicit policy, and blocked content remains
-  visible as a diagnostic.
-- Related: std.gui.markdown.001
 
 ### app.scope.document.005 — HTML encoding decisions have no inspection or override controls
 

@@ -34,6 +34,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-06 19:13 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-06 18:42 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-06 18:27 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-06 18:16 |
@@ -50,7 +51,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-06 15:21 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-06 07:51 |
-| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-06 07:51 |
 | [app.scope.font.md](app.scope.font.md) | The Swag Scope font viewer | 2026-09-06 07:51 |
 | [app.scope.hexa.md](app.scope.hexa.md) | The Swag Scope hexadecimal viewer | 2026-09-06 07:51 |
 | [app.scope.image.md](app.scope.image.md) | The Swag Scope image viewer | 2026-09-06 07:51 |

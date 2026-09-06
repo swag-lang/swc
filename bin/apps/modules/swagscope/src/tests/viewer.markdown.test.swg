@@ -3,6 +3,34 @@
 
 using Core, Pixel, Gui, Gui.Testing
 
+// A manuscript can interleave HTML spreads and Markdown figures, with local SVG resources.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
+    Swag.assert(result.view != null and result.failureReason.isEmpty())
+    let view = cast(*Markdown.View) result.view!
+    applyMarkdownViewerStyle(view, 1, 1)
+    view.resize(960, 680)
+    view.applyLayout()
+    for 64 where view.hasUnloadedSource() do
+        host.fireTimers()
+    Swag.assert(!view.hasUnloadedSource())
+    Swag.assert(view.findText("Before after."))
+    Swag.assert(!view.findText("Opening spread") and !view.findText("</div>"))
+    view.clearSearchHighlight()
+    Testing.assertContentFits(view)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "viewer.markdown.images")
+}
+
 private func markdownFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")

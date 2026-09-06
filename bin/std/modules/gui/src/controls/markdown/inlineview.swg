@@ -27,20 +27,23 @@ private enum InlineFlags
 
 private struct InlineAtom
 {
-    text:       String
-    target:     String
-    expression: MathExpression
-    position:   Math.Rectangle
-    textStart:  u64     // Byte offset of this atom in the view's text, which is what a search and a selection address.
-    ascent:     f32
-    descent:    f32
-    colorIndex: u32
-    flags:      InlineFlags
-    isMath:     bool
-    isSpace:    bool
-    isBreak:    bool
-    visible:    bool
-    searchHit:  bool
+    text:        String
+    target:      String
+    imageSource: String
+    expression:  MathExpression
+    position:    Math.Rectangle
+    textStart:   u64     // Byte offset of this atom in the view's text, which is what a search and a selection address.
+    ascent:      f32
+    descent:     f32
+    colorIndex:  u32
+    flags:       InlineFlags
+    isMath:      bool
+    isImage:     bool
+    imageLoaded: bool
+    isSpace:     bool
+    isBreak:     bool
+    visible:     bool
+    searchHit:   bool
 }
 
 // Returns how many bytes one atom contributes to the view's text.
@@ -137,6 +140,7 @@ public struct InlineView
     kind:       BlockKind
     atoms:      Array'InlineAtom
     lines:      Array'InlineLine
+    images:     HtmlImageCache
 
     // Where this view sits in the reading order of every text view the document owns, which is
     // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
@@ -338,6 +342,20 @@ impl InlineView
         }
     }
 
+    mtd appendImage(alt, source: string, state: InlineState)
+    {
+        var atom: InlineAtom
+        atom.text = alt
+        atom.text.replace("<<", "<")
+        atom.imageSource = source
+        atom.imageSource.replace("<<", "<")
+        atom.target     = atom.imageSource
+        atom.flags      = state.flags() | .Link
+        atom.colorIndex = state.colorIndex
+        atom.isImage    = true
+        .atoms.add(#move atom)
+    }
+
     mtd parse(text: string)
     {
         .atoms.clear()
@@ -502,6 +520,18 @@ impl InlineView
                     .appendMath(text[index + 3 until end], state)
                     eaten = end - index + 4
                 }
+
+            case Utf8.startsWith(remaining, "<img>"):
+                let altEnd = Utf8.indexOf(text, "</img><src>", index + 5)
+                if altEnd != Swag.U64.Max
+                {
+                    let sourceEnd = Utf8.indexOf(text, "</src>", altEnd + 11)
+                    if sourceEnd != Swag.U64.Max
+                    {
+                        .appendImage(text[index + 5 until altEnd], text[altEnd + 11 until sourceEnd], state)
+                        eaten = sourceEnd - index + 6
+                    }
+                }
             }
 
             if !eaten
@@ -587,8 +617,24 @@ impl InlineView
         return .theme().createDefaultFont(size, style)
     }
 
-    mtd measureAtom(atom: *InlineAtom)
+    mtd measureAtom(atom: *InlineAtom, availableWidth = 0'f32)
     {
+        if atom.isImage
+        {
+            let entry = .images.fetch(atom.imageSource.toString())
+            atom.imageLoaded = entry != null
+            if entry
+            {
+                let width = cast(f32) entry!.image.width
+                let scale = availableWidth > 0 ? Math.min(availableWidth / width, 1) : 1
+                atom.position.width  = width * scale
+                atom.position.height = cast(f32) entry!.image.height * scale
+                atom.ascent          = atom.position.height
+                atom.descent         = 0
+                return
+            }
+        }
+
         if atom.isMath
         {
             var options: MathLayoutOptions
@@ -754,7 +800,7 @@ impl InlineView
         for &atom, index in .atoms
         {
             atom.visible = false
-            .measureAtom(atom)
+            .measureAtom(atom, right - continuationLeft)
             if atom.isBreak
             {
                 y                += .finishLine(first, index, y, lineLeft, right, wrapped: false)
@@ -835,7 +881,7 @@ impl InlineView
     // inside one names its start or its end and never a position between two of its bytes.
     private func isAtomOpaque(atom: const *InlineAtom)->bool
     {
-        return atom.isMath or atom.flags.has(.ListBullet) or atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
+        return atom.isMath or atom.imageLoaded or atom.flags.has(.ListBullet) or atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
     }
 
     // Returns how wide the first `bytes` of one atom are drawn.
@@ -1084,6 +1130,7 @@ impl InlineView
     {
         let result = Wnd.create'InlineView(parent, "gui.markdown.inline")
         result.owner           = owner
+        result.images.basePath = owner.fileName.isEmpty() ? "" : (Path.directoryName(owner.fileName.toString()) orelse "")
         result.kind            = kind
         result.backgroundStyle = .View
 
@@ -1102,6 +1149,11 @@ impl InlineView
 
 impl IWnd for InlineView
 {
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        .images.clear()
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
         let rect    = .clientRect()
@@ -1164,7 +1216,13 @@ impl IWnd for InlineView
         for &atom in .atoms where atom.visible
         {
             let color = .color(atom)
-            if atom.isMath
+            if atom.imageLoaded
+            {
+                let texture = .images.texture(evt.paintContext.renderer, atom.imageSource.toString())
+                if texture do
+                    painter.drawTexture(atom.position, texture[], Color.fromArgb(Argb.White))
+            }
+            elif atom.isMath
             {
                 var options: MathLayoutOptions
                 options.style = .Text

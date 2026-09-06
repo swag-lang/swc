@@ -2,6 +2,9 @@
 
 using Core, Pixel
 
+// A document may declare poster-sized vector bounds; cap their cached bitmap allocation.
+private const HtmlSvgRasterLimit = 2048.0
+
 // Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
 internal func htmlLocalResourcePath(basePath, source: string)->String
 {
@@ -108,6 +111,23 @@ impl HtmlImageCache
         let fileName = htmlLocalResourcePath(.basePath.toString(), source)
         if fileName.isEmpty() do
             return null
+
+        if Path.lowercaseExtension(fileName.toString()) == ".svg"
+        {
+            let text = catch File.readAllText(fileName) as readError
+            if readError != null do
+                return null
+            let drawing = catch Svg.Drawing.parse(text.toString()) as parseError
+            if parseError != null or drawing.width <= 0 or drawing.height <= 0 do
+                return null
+            let largest = Math.max(drawing.width, drawing.height)
+            let scale   = largest > HtmlSvgRasterLimit ? HtmlSvgRasterLimit / largest : 1
+            let width   = cast(s32) Math.max(Math.round(drawing.width * scale), 1)
+            let height  = cast(s32) Math.max(Math.round(drawing.height * scale), 1)
+            .entries[slot].image  = drawing.rasterize(width, height, 1)
+            .entries[slot].loaded = .entries[slot].image.isValid()
+            return .entries[slot].loaded ? &.entries[slot] : null
+        }
 
         let image = catch Image.load(fileName.toString()) as loadError
         if loadError != null do

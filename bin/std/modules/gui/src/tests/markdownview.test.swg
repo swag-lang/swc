@@ -3,6 +3,117 @@
 
 using Swag, Core
 
+// Blank lines inside a paired HTML container must not expose its comments or closing tags.
+#test
+{
+    let source = "Before.\n<!-- opening\n\ncomment -->\n<div align=\"center\">\n\n<img src=\"one.svg\" width=\"49%\"> <img src=\"two.svg\" width=\"49%\">\n\n</div>\n\nAfter."
+    let blocks = Markdown.parseBlocks(source)
+    Swag.assert(blocks.count == 3)
+    Swag.assert(blocks[0].kind == .Paragraph and blocks[0].text == "Before.")
+    Swag.assert(blocks[1].kind == .Html and Utf8.contains(blocks[1].text.toString(), "</div>"))
+    Swag.assert(blocks[2].kind == .Paragraph and blocks[2].text == "After.")
+    Swag.assert(Markdown.renderInline("Before <!-- hidden -->after.") == "Before after.")
+    Swag.assert(Markdown.renderInline("`<!-- visible -->`") == "<c><<!-- visible --></c>")
+    let afterComment = Markdown.parseBlocks("<!-- hidden -->\n**Visible**\n\n</div>\n\nAfter.")
+    Swag.assert(afterComment.count == 2 and afterComment[0].text == "<b>Visible</b>")
+}
+
+// The document image cache accepts local vectors as well as raster images.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_%.svg", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    let source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><rect width=\"40\" height=\"20\" fill=\"#285078\"/></svg>"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source)
+    var cache: HtmlImageCache
+    cache.basePath = Path.directoryName(fileName.toString())!
+    let entry = cache.fetch(Path.fileName(fileName.toString())!)
+    Swag.assert(entry != null and entry!.loaded)
+    Swag.assert(entry!.image.width == 40 and entry!.image.height == 20)
+    Swag.assert(entry!.image.pixelColor(20, 10).argb == 0xFF285078)
+}
+
+// Local, embedded, reference and inline-HTML images share layout, search, and cache ownership.
+#test
+{
+    const Embedded = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
+    let stem         = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_images_%", Guid64.random()).toString())
+    let imagePath    = Format.toString("%.png", stem)
+    let markdownPath = Format.toString("%.md", stem)
+    defer discard catch File.delete(imagePath)
+    defer discard catch File.delete(markdownPath)
+    var picture = Pixel.Image.create(480, 120, .RGBA8)
+    picture.fill(Pixel.Color.fromArgb(0xFF285078))
+    expect picture.save(imagePath)
+
+    let source = Format.toString("![Local figure](<%>)\n\n![Embedded](%)\n\n![Reference][figure] and <img src=\"%\" alt=\"Inline\">\n\n[figure]: <%>\n\n![Remote](https://example.com/image.png)\n\n![Missing](missing-image.png)", Path.fileName(imagePath.toString())!, Embedded, Path.fileName(imagePath.toString())!, Path.fileName(imagePath.toString())!)
+    discard expect File.writeAllBytes(markdownPath, cast(const [..] u8) source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 900)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, markdownPath)
+    view.resize(640, 900)
+    view.applyLayout()
+    for 64 where view.hasUnloadedSource() do
+        host.fireTimers()
+    Swag.assert(!view.hasUnloadedSource() and view.blocks.count == 5)
+    for index in 3 do
+        Swag.assert(view.blocks[index].inline!.atoms[0].imageLoaded)
+    Swag.assert(view.blocks[2].inline!.images.entries.count == 1)
+    Swag.assert(view.blocks[3].inline!.images.entries.isEmpty())
+    Swag.assert(view.blocks[3].inline!.text() == "[Image: Remote]")
+    Swag.assert(!view.blocks[4].inline!.atoms[0].imageLoaded)
+    Swag.assert(view.findText("Local figure"))
+    Swag.assert(view.blocks[0].inline!.text() == "Local figure")
+    view.clearSearchHighlight()
+
+    view.resize(280, 900)
+    view.applyLayout()
+    view.layoutDocument()
+    let narrow = view.blocks[0].inline!.atoms[0].position
+    Swag.assert(narrow.width <= view.blocks[0].wnd.position.width and narrow.width < 480)
+    Swag.assert(Math.abs(narrow.width / narrow.height - 4) < 0.01)
+    view.resize(640, 900)
+    view.applyLayout()
+    view.layoutDocument()
+    Swag.assert(view.blocks[0].inline!.atoms[0].position.width == 480)
+    discard host.render(view)
+    Swag.assert(view.blocks[0].inline!.images.entries[0].uploaded)
+    view.destroy()
+
+    let memory = Markdown.View.createText(&host.root, Format.toString("![Absolute](<%>) ![Embedded](%)", imagePath, Embedded).toString())
+    memory.resize(640, 900)
+    memory.applyLayout()
+    Swag.assert(memory.blocks[0].inline!.images.entries.count == 2)
+    for entry in memory.blocks[0].inline!.images.entries do
+        Swag.assert(entry.loaded)
+}
+
+// Streaming must retain a container whose opening comment and blank lines straddle a read.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_html_stream_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    var source = String.from("<!--\n")
+    for 900 do
+        source += "hidden note\n"
+    source += "\n-->\n<div align=\"center\">\n\n<p>Visible spread</p>\n\n</div>\n\nAfter."
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(640, 480)
+    view.applyLayout()
+    for 64 where view.hasUnloadedSource() do
+        host.fireTimers()
+    Swag.assert(!view.hasUnloadedSource() and view.blocks.count == 2)
+    Swag.assert(view.blocks[0].html != null)
+    Swag.assert(view.findText("Visible spread") and view.findText("After."))
+    Swag.assert(!view.findText("hidden note") and !view.findText("</div>"))
+}
+
 func markdownFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.comprehensive.md")

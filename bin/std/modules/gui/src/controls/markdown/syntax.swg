@@ -215,6 +215,15 @@ private struct HtmlInlineInfo
     text:  String
 }
 
+// Images keep their alternative text and source separate from link destinations. The view
+// resolves them only when it lays out a resident block, through the shared offline cache.
+private func renderImage(alt, source: string)->String
+{
+    if !Utf8.startsWith(source, "data:") and htmlLocalResourcePath("", source).isEmpty() do
+        return Format.toString("<a><p3>[Image: %]</p></a><t>%</t>", richText(alt, true), richText(source))
+    return Format.toString("<img>%</img><src>%</src>", richText(alt, true), richText(source))
+}
+
 private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocument, node: u32, references: const [..] Reference?)
 {
     for child in document.children(node) do
@@ -243,16 +252,7 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
     case .Img:
         let source = document.attribute(node, "src")
         let alt    = document.attribute(node, "alt")
-        output[] += "<a><p3>[Image"
-        if alt.count
-        {
-            output[] += ": "
-            output[] += richText(alt)
-        }
-
-        output[] += "]</p></a><t>"
-        output[] += richText(source)
-        output[] += "</t>"
+        output[] += renderImage(alt, source)
 
     case .A:
         output[] += "<a>"
@@ -307,6 +307,14 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
 private func parseHtmlInline(text: string, start: u64, references: const [..] Reference?)->HtmlInlineInfo
 {
     var result: retval
+
+    if Utf8.startsWith(text[start to], "<!--")
+    {
+        let end = Utf8.indexOf(text, "-->", start + 4)
+        result.found = true
+        result.eat   = end == Swag.U64.Max ? text.count - start : end + 3 - start
+        return result
+    }
 
     // A fragment: inline markup belongs to the Markdown paragraph around it, not to a document.
     var document = HtmlDocument.create()
@@ -370,11 +378,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
                 let target = parseLinkTarget(text, labelEnd + 2)
                 if target.found
                 {
-                    result += "<a><p3>[Image: "
-                    result += richText(text[index + 2 until labelEnd], true)
-                    result += "]</p></a><t>"
-                    result += richText(target.target)
-                    result += "</t>"
+                    result += renderImage(text[index + 2 until labelEnd], target.target)
                     index  = target.end + 1
                     continue
                 }
@@ -389,11 +393,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
                     let target        = resolveReferenceTarget(references, referenceName)
                     if target.count
                     {
-                        result += "<a><p3>[Image: "
-                        result += richText(text[index + 2 until labelEnd], true)
-                        result += "]</p></a><t>"
-                        result += richText(target)
-                        result += "</t>"
+                        result += renderImage(text[index + 2 until labelEnd], target)
                         index  = referenceEnd + 1
                         continue
                     }

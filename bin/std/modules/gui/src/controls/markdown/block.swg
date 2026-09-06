@@ -115,11 +115,20 @@ private struct OrderedCounter
 // Reports whether a line opens an HTML block by asking the HTML parser what element the source
 // actually creates. Inline phrasing tags stay in Markdown paragraphs and are handled by
 // renderInline.
-private func isHtmlBlockStart(line: string)->bool
+internal func isHtmlBlockStart(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
     if !trimmed.count or trimmed[0] != '<' do
         return false
+
+    if Utf8.startsWith(trimmed, "<!--") do
+        return true
+    if Utf8.startsWith(trimmed, "</")
+    {
+        let end = Utf8.indexOf(trimmed, '>'rune, 2)
+        if end != Swag.U64.Max do
+            return HtmlParser.startsBlock(HtmlDocument.tagFromName(String.from(Latin1.trim(trimmed[2 until end])).toLower().toString()))
+    }
 
     // A fragment: this asks the HTML parser what the line starts, not what document it makes.
     var document = HtmlDocument.create()
@@ -313,16 +322,28 @@ internal func parseBlocks(source: string)->Array'Block
 
         if isHtmlBlockStart(raw)
         {
-            var html: String
-            while index < lines.count and (Latin1.trim(lines[index])).count
+            var html:   String
+            var document = HtmlDocument.create()
+            var parser: HtmlParser
+            parser.start(&document, .Fragment)
+            while index < lines.count
             {
+                // A paired container owns its blank lines; comments may span them too.
+                if !(Latin1.trim(lines[index])).count and parser.stack.count == 1 and !parser.hasPendingSource() do
+                    break
                 if !html.isEmpty() do
                     html += "\n"
-                html  += lines[index]
+                html += lines[index]
+                parser.feed(lines[index])
+                parser.feed("\n")
                 index += 1
+                if !document.childCount(0) and !parser.hasPendingSource() do
+                    break
             }
 
-            appendBlock(&result, .Html, #move html)
+            parser.finish()
+            if document.childCount(0) do
+                appendBlock(&result, .Html, #move html)
             continue
         }
 
@@ -484,6 +505,8 @@ internal func parseBlocks(source: string)->Array'Block
         {
             let next           = Latin1.trim(lines[index])
             let nextDefinition = parseReferenceDefinition(lines[index])
+            if isHtmlBlockStart(lines[index]) do
+                break
             if !next.count or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
                 break
             if index + 1 < lines.count and setextLevel(lines[index + 1]) do

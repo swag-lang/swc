@@ -29,6 +29,9 @@ highlight, code spans, sub- and superscript, inline/reference/collapsed links, a
 URLs, escapes, entities, and inline mathematics parsed by `Pixel.MathExpression` rather than
 approximated with text. Inline phrasing HTML is translated into the same rich-text protocol;
 layout-bearing HTML is hosted by the adjacent HTML engine, including its offline image policy.
+Markdown images resolve local raster and SVG files beside the document, and embedded raster
+images from data URIs. Remote images remain links. Paired HTML containers retain their blank
+lines across streamed reads, and HTML comments contribute no visible text.
 The view streams multi-megabyte files behind a byte-to-height estimate,
 reveals an arbitrary byte offset without parsing what precedes it, navigates by line, page and
 document boundary from the keyboard, restyles live from a theme sheet and a typography style —
@@ -59,23 +62,6 @@ mathematics, wrap, forward and reverse streaming, and both failure paths.
 - Complete when: known shortcodes render their emoji with correct search/selection offsets,
   unknown names remain readable, and disabled mode preserves the authored text.
 - Related: std.gui.markdown.010
-
-### std.gui.markdown.001 — An image renders as a link, not as an image
-
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-
-`![alt](url)` renders the clickable text `[Image: alt]`. Every README leads with a logo or a
-screenshot, so this is the first difference a reader sees against any competitor. Local images —
-a path resolved against the document's directory — and `data:` URIs decode through Pixel and
-paint at their intrinsic size capped to the document column; the HTML engine beside this one
-already decodes `data:` images, and the network stance is shared: a remote URL stays a link.
-Streaming must survive it: decode off the parse step, occupy a placeholder, and relayout when the
-bitmap arrives, without disturbing the byte-to-height estimate.
-
-- Intent: Markdown documents show their images instead of naming them
-- Complete when: a fixture with a local image and a `data:` image paints both through `createText`
-  and `createFile`, and a remote URL still renders as today's link
 
 ### std.gui.markdown.002 — Block structure is flat: containers do not nest
 

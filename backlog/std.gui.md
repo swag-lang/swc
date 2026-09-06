@@ -643,7 +643,7 @@ as [app.capture.md](app.capture.md).
 - Complete when: the scrollbar-reversal test's resident window is decided by the number of ticks
   fired and not by their duration, shown by the full `gui` suite passing under deliberate CPU load.
 
-### std.gui.053 — The gui5 color-widget smoke crashes in devmode
+### std.gui.053 — The gui5 color-widget smoke crashes on a small aggregate conditional
 
 - Evidence: on 2026-09-06, `bin/swc.dm.exe --num-cores 6 tools/examples.swgs dm smoke gui5
   --rebuild --num-cores 6` ends with `0xC0000005` after launching the example. It reproduces
@@ -652,8 +652,17 @@ as [app.capture.md](app.capture.md).
   passes 700 tests, including the color-picker and palette-picker tests. The initial Windows
   application-error event identifies `gui5.exe` at RVA `0x23946`; neighboring workspace build
   output had already advanced to `gui6`, so the last printed module is not the failing process.
-- Next: isolate the page and frame in `bin/examples/modules/gui5`, identify the failing function,
-  and reduce the lifetime or rendering path into the owning GUI test. If the cause is generated
-  code, also reduce it into a standalone compiler-suite test.
+- Further evidence (2026-09-06): the memory campaign reproduces the release-program crash with
+  baseline `89c7c0e7a` and sanitizer candidate `717ec4db6`, both at RVA `0x1BDC0`. The embedded
+  `.swagdbg` table places it in `Gui5.onContrastPreviewEvent` (`main.swg:420`). The selected ARGB
+  scalar becomes the address in `mov edx, dword ptr [rdx]`. A standalone four-byte struct returned
+  from an inlined conditional also faults at address `4294967295` with the unchanged baseline
+  compiler; neither GUI code nor a window is needed to reproduce it.
+- Next: make conditional selection and inline aggregate returns agree on the payload representation.
+  `usesAddressBackedSelection` in `CodeGen.Conditional.cpp` currently makes small aggregates value
+  payloads, while `emitPayloadToAddress` in `CodeGen.Function.Post.cpp` treats a non-scalar value
+  payload as an address. Cover small and odd-sized structures, aliases, both branches, and inline
+  returns in a standalone native regression, then rerun the original GUI5 smoke. Preserve reference
+  and SIMD selection semantics when choosing the shared representation rule.
 - Complete when: the isolated smoke passes in devmode and release, and a regression test fails
   without the root-cause fix.

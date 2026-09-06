@@ -822,10 +822,7 @@ table so both a full restart and a narrow resume have explicit evidence:
   7. `bin\swc.exe tools\tests.swgs` - the full Release validation campaign. Do not add a Release
      `--all-cfg` pass; the repository workflow deliberately reserves all-config coverage for
      DevMode.
-  8. `bin\swc.exe tools\bench.swgs --quick` - prove the benchmark harness, generated programs, and
-     cross-compiler comparison still work. Run a recorded full benchmark campaign if a fix touches
-     generated-code performance or the measurement machinery.
-  9. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
+  8. `bin\swc.exe tools\vsix.swgs` - refresh and package the VSCode extension with its documented
      Node.js/vsce prerequisites, then inspect the package result.
 
 Do not silently skip a campaign because a prerequisite is absent. Install or arrange an in-scope

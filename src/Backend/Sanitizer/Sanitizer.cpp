@@ -69,7 +69,6 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         return reported_;
 
     cfg_ = &cfg;
-    inState_.assign(n, {});
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
 
@@ -109,14 +108,15 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // predecessor. Everything between two heads is a straight-line chain whose states
     // are recomputed on the fly — storing a state per instruction (and copying it on
     // every worklist iteration) made big loopy functions take minutes.
-    isHead_.assign(n, 0);
-    isHead_[0] = 1;
+    headStateIndex_.assign(n, K_NO_STATE);
+    headStateIndex_[0]  = 0;
+    uint32_t numStates = 1;
     for (uint32_t i = 1; i < n; i++)
     {
         const MicroControlFlowGraph::EdgeList& preds = cfg.predecessors(i);
         if (preds.size() >= 2)
         {
-            isHead_[i] = 1;
+            headStateIndex_[i] = numStates++;
             continue;
         }
         if (preds.size() == 1)
@@ -124,9 +124,13 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
             const MicroInstr&    predInst = *context_.instructions->ptr(cfg.instructionRefs()[preds[0]]);
             const MicroInstrDef& predDef  = MicroInstr::info(predInst.op);
             if (cfg.successors(preds[0]).size() != 1 || predDef.flags.has(MicroInstrFlagsE::ConditionalJump))
-                isHead_[i] = 1;
+                headStateIndex_[i] = numStates++;
         }
     }
+
+    // Empty hash maps also allocate buckets and sentinel nodes, so only chain heads
+    // get a stored state. Intermediate instructions need only the invalid index.
+    inState_.assign(numStates, {});
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
@@ -150,7 +154,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         worklist.pop_back();
         inWorklist_[head] = 0;
 
-        walkChain(head, inState_[head], {}, &worklist, steps);
+        walkChain(head, inState_[headStateIndex_[head]], {}, &worklist, steps);
     }
 
     // Apply the checks only on the converged states, walking each reached chain with
@@ -163,8 +167,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     uint64_t checkSteps = 0;
     for (uint32_t i = 0; i < n; i++)
     {
-        if (isHead_[i] && reached_[i])
-            walkChain(i, inState_[i], checks, nullptr, checkSteps);
+        if (headStateIndex_[i] != K_NO_STATE && reached_[i])
+            walkChain(i, inState_[headStateIndex_[i]], checks, nullptr, checkSteps);
     }
 
     return reported_;
@@ -221,7 +225,7 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, std::span<Sanitizer
         if (isModelledSingleEdge(def, succs))
         {
             const uint32_t s = succs[0];
-            if (!isHead_[s])
+            if (headStateIndex_[s] == K_NO_STATE)
             {
                 index = s; // straight-line: keep walking with the same state
                 continue;
@@ -341,16 +345,19 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
 
 void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist)
 {
+    const uint32_t stateIndex = headStateIndex_[index];
+    SWC_ASSERT(stateIndex != K_NO_STATE);
+
     bool changed;
     if (!reached_[index])
     {
-        reached_[index] = 1;
-        inState_[index] = edge;
-        changed         = true;
+        reached_[index]     = 1;
+        inState_[stateIndex] = edge;
+        changed             = true;
     }
     else
     {
-        changed = joinInto(inState_[index], edge);
+        changed = joinInto(inState_[stateIndex], edge);
     }
 
     if (changed && !inWorklist_[index])

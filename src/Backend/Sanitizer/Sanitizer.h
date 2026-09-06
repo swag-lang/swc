@@ -124,6 +124,7 @@ private:
     static bool isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs);
     void        report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, std::span<const ReportNote> notes);
 
+    static constexpr uint32_t K_NO_STATE         = std::numeric_limits<uint32_t>::max();
     static constexpr uint32_t K_MAX_INSTRUCTIONS = 20000;
     static constexpr uint64_t K_ITERATION_CAP    = 400000;
 
@@ -148,7 +149,7 @@ private:
     bool                         reported_           = false;
     bool                         converged_          = true;
     std::vector<SanitizerState>  inState_; // populated only at chain heads
-    std::vector<char>            isHead_;
+    std::vector<uint32_t>        headStateIndex_;
     std::vector<char>            reached_;
     std::vector<char>            inWorklist_;
     std::unordered_set<uint64_t> reportedLocations_;

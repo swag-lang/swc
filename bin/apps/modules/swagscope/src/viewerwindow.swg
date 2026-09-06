@@ -90,7 +90,7 @@ const ViewerPlayShuffleId = "scope.play.shuffle"
 // A menu entry borrows its identifier for as long as the menu lives, so the identifiers are
 // literals rather than strings formatted while the menu is built.
 const ViewerSlideIds: [5] string = ["scope.play.slide.0", "scope.play.slide.1", "scope.play.slide.2", "scope.play.slide.3", "scope.play.slide.4"]
-#assert ViewerSlideIds.count == ViewerSlideChoices.count
+#assert(ViewerSlideIds.count == ViewerSlideChoices.count)
 
 // What the window does once the current viewer has finished presenting its file.
 //

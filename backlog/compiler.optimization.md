@@ -107,7 +107,13 @@ the shared backlog conventions.
   and five memory operations, all through program arrays, with no allocator spill. Its enclosing
   loops still access the frame; do not infer an inner-loop promotion opportunity from their
   inclusive spans. The separate adjacent-element reuse opportunity is compiler.optimization.030.
-- Next: dump the current sha256 loop and Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
+- Current sha256 evidence (`d4cc0a0cd`, same configuration): the compression round has 74
+  instructions and five memory operations. Two loads read `KTAB[i]` and `w[i]`; one frame load and
+  one frame store carry `d` through `[rsp + 0x438]`, while another store writes the new `e` to
+  `[rsp + 0x440]`. The other carried state is already in registers. The historical eight-slot
+  diagnosis no longer describes this loop.
+- Next: trace the remaining `d` carry and the stored copy of `e` through pre/post allocation,
+  then inspect Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
   still requires one load/store pair, an unredefined register and one converged exit; if these
   restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
   distinguish allocator spill storage from addressable program objects before refining aliasing.

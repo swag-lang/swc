@@ -79,6 +79,19 @@ const ViewerSlideMinSeconds       = 1'f32
 const ViewerSlideMaxSeconds       = 3600'f32
 const ViewerSlideChoices: [5] f32 = [3, 5, 10, 30, 60]
 
+// Command identifiers of the play-mode menu.
+const ViewerPlayOnceId    = "scope.play.once"
+const ViewerPlayRepeatId  = "scope.play.repeat"
+const ViewerPlayFolderId  = "scope.play.folder"
+const ViewerPlayShuffleId = "scope.play.shuffle"
+
+// Command identifiers of the slideshow paces, one per entry of [[ViewerSlideChoices]].
+//
+// A menu entry borrows its identifier for as long as the menu lives, so the identifiers are
+// literals rather than strings formatted while the menu is built.
+const ViewerSlideIds: [5] string = ["scope.play.slide.0", "scope.play.slide.1", "scope.play.slide.2", "scope.play.slide.3", "scope.play.slide.4"]
+#assert ViewerSlideIds.count == ViewerSlideChoices.count
+
 // What the window does once the current viewer has finished presenting its file.
 //
 // The window owns the mode because it owns the folder: a viewer only reports that it has reached
@@ -2606,8 +2619,8 @@ impl ViewerWindow
         let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
         if canFilter
         {
-            menu.addItem(texts.ui_SearchMode, SearchModeId, checked: !.searchFilterMode)
-            menu.addItem(texts.ui_FilterMode, FilterModeId, checked: .searchFilterMode)
+            menu.addRadioItem(texts.ui_SearchMode, SearchModeId, checked: !.searchFilterMode)
+            menu.addRadioItem(texts.ui_FilterMode, FilterModeId, checked: .searchFilterMode)
             menu.addSeparator()
         }
 
@@ -3875,54 +3888,49 @@ impl ViewerWindow
         }
     }
 
-    // Offers the play modes and the slideshow pace.
+    // Builds the play-mode menu.
     //
-    // The four modes stand as one group with one check mark: the mode is what the reader is
-    // choosing, and a toggle per mode would let two be on at once. The pace is a submenu, since
-    // it qualifies only the folder modes, and only for pictures.
-    mtd showPlayModeMenu()
+    // The four modes are one choice, drawn as one: a radio mark per entry says that taking one
+    // leaves the others, where a check mark per entry would read as four toggles. The pace is a
+    // submenu of the same kind, since it qualifies only the folder modes, and only for pictures.
+    mtd createPlayModeMenu()->*MenuCtrl
     {
-        const OnceId    = "scope.play.once"
-        const RepeatId  = "scope.play.repeat"
-        const FolderId  = "scope.play.folder"
-        const ShuffleId = "scope.play.shuffle"
-
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_PlayOnce, OnceId, checked: .playMode == .Once)
-        menu.addItem(texts.ui_PlayRepeat, RepeatId, checked: .playMode == .Repeat)
-        menu.addItem(texts.ui_PlayFolder, FolderId, checked: .playMode == .Folder)
-        menu.addItem(texts.ui_PlayShuffle, ShuffleId, checked: .playMode == .Shuffle)
+        menu.addRadioItem(texts.ui_PlayOnce, ViewerPlayOnceId, checked: .playMode == .Once)
+        menu.addRadioItem(texts.ui_PlayRepeat, ViewerPlayRepeatId, checked: .playMode == .Repeat)
+        menu.addRadioItem(texts.ui_PlayFolder, ViewerPlayFolderId, checked: .playMode == .Folder)
+        menu.addRadioItem(texts.ui_PlayShuffle, ViewerPlayShuffleId, checked: .playMode == .Shuffle)
         menu.addSeparator()
 
-        var slideCommands: Array'String
-        slideCommands.reserve(ViewerSlideChoices.count)
         let slideMenu = MenuCtrl.createPopup(menu, owner: me)
-        for seconds, index in ViewerSlideChoices
-        {
-            slideCommands.add(Format.toString("scope.play.slide.%", index))
-            slideMenu.addItem(Format.toString("% s", cast(u32) seconds).toString(), slideCommands[index].toString(), checked: seconds == .slideSeconds)
-        }
-
+        for seconds, index in ViewerSlideChoices do
+            slideMenu.addRadioItem(Format.toString("% s", cast(u32) seconds).toString(), ViewerSlideIds[index], checked: seconds == .slideSeconds)
         menu.addPopup(texts.ui_PlaySlide, slideMenu)
+        return menu
+    }
 
+    // Offers the play modes and the slideshow pace, and applies the choice.
+    mtd showPlayModeMenu()
+    {
+        let menu   = .createPlayModeMenu()
         let chosen = menu.doModal(.playModeButton, autoDestroy: true) orelse ""
         switch chosen
         {
-        case OnceId:
+        case ViewerPlayOnceId:
             .setPlayMode(.Once)
 
-        case RepeatId:
+        case ViewerPlayRepeatId:
             .setPlayMode(.Repeat)
 
-        case FolderId:
+        case ViewerPlayFolderId:
             .setPlayMode(.Folder)
 
-        case ShuffleId:
+        case ViewerPlayShuffleId:
             .setPlayMode(.Shuffle)
 
         default:
-            for seconds, index in ViewerSlideChoices where chosen == slideCommands[index].toString()
+            for seconds, index in ViewerSlideChoices where chosen == ViewerSlideIds[index]
             {
                 .setSlideSeconds(seconds)
                 return

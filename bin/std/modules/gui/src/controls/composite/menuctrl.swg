@@ -320,19 +320,18 @@ public impl IWnd for MenuCtrl
             // submenu arrow — is levelled with the wording, not with the row.
             let textCenterY = labelPos.vertCenter()
 
-            // Icon
-            if it.checked or it.rg == .ExclusiveGroup
+            // Marker: a check mark for an option that is on, the dot of a radio button for the
+            // entry of an exclusive group that is chosen. The other entries of the group carry
+            // nothing: a ring on every one of them would say "choice" as many times as there
+            // are entries, where the one dot already says which is taken.
+            if it.checked
             {
                 var checkPos = iconPos
                 checkPos.y = opticalTop(.font(), textCenterY, metrics.menuPopup_IconSize)
                 checkPos.width, checkPos.height = metrics.menuPopup_IconSize
 
-                if it.rg == .ExclusiveGroup
-                {
-                    theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedBorder, colorText)
-                    if it.checked do
-                        theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, markerColor)
-                }
+                if it.rg == .ExclusiveGroup do
+                    theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, markerColor)
                 else do
                     theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, markerColor)
             }
@@ -1284,6 +1283,20 @@ public impl MenuCtrl
 
         .items.add(mitem)
         .dirtyLayout = true
+        return mitem
+    }
+
+    // Adds a command of a mutually exclusive group and returns its mutable item descriptor.
+    //
+    // The chosen entry carries the dot of a radio button rather than a check mark, and the
+    // other entries of the group carry nothing, so the reader sees one choice rather than a set
+    // of independent toggles. Add every entry of the group this way, the chosen one and the
+    // others alike: the group still reserves its marker column so the wording stays aligned.
+    #[Swag.Discardable]
+    mtd addRadioItem(name: string?, id: WndId, checked = false, rightName: string? = null, disabled = false)->*PopupMenuItem
+    {
+        let mitem = .addItem(name, id, rightName: rightName, disabled: disabled, checked: checked)
+        mitem.rg = .ExclusiveGroup
         return mitem
     }
 

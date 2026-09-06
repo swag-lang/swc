@@ -2277,4 +2277,15 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.thenClickPopupMenuItem("scope.play.slide.2")
     window.showPlayModeMenu()
     Swag.assert(window.slideSeconds == 10)
+
+    // The modes are one choice and the paces another: each entry carries a radio mark, and
+    // exactly one of each group is taken. Built last, because a popup lives in the top view
+    // until the next frame, where the driver of the menus above could find it first.
+    let menu = window.createPlayModeMenu()
+    defer menu.destroy()
+    for entry in 4'u32 do
+        Swag.assert(menu.itemAt(entry).rg == .ExclusiveGroup and menu.itemAt(entry).checked == (entry == 2))
+    let slideMenu = menu.itemAt(5).popup
+    for entry in cast(u32) ViewerSlideChoices.count do
+        Swag.assert(slideMenu.itemAt(entry).rg == .ExclusiveGroup and slideMenu.itemAt(entry).checked == (entry == 2))
 }

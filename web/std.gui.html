@@ -378,7 +378,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1183</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1184</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_AboutDlg_addSection">AboutDlg.addSection</a></li>
@@ -968,6 +968,7 @@
 <li><a href="#Gui_MenuCtrl_addItem">MenuCtrl.addItem</a></li>
 <li><a href="#Gui_MenuCtrl_addItems">MenuCtrl.addItems</a></li>
 <li><a href="#Gui_MenuCtrl_addPopup">MenuCtrl.addPopup</a></li>
+<li><a href="#Gui_MenuCtrl_addRadioItem">MenuCtrl.addRadioItem</a></li>
 <li><a href="#Gui_MenuCtrl_addSeparator">MenuCtrl.addSeparator</a></li>
 <li><a href="#Gui_MenuCtrl_clear">MenuCtrl.clear</a></li>
 <li><a href="#Gui_MenuCtrl_computeLayoutPopup">MenuCtrl.computeLayoutPopup</a></li>
@@ -3751,6 +3752,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_addItems">MenuCtrl.addItems</a></td><td><p>Adds commands whose labels, icons, and states come from their identifiers.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_addPopup">MenuCtrl.addPopup</a></td><td><p>Adds a submenu whose presentation comes from a command identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_MenuCtrl_addRadioItem">MenuCtrl.addRadioItem</a></td><td><p>Adds a command of a mutually exclusive group and returns its mutable item descriptor.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_addSeparator">MenuCtrl.addSeparator</a></td><td><p>Add a separator. Consecutive separators (and a leading one) are collapsed so callers</p>
 </td></tr>
@@ -9010,6 +9013,8 @@ document.sigLinkActivated += <span class="SKwd">func</span>(view, url)
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_addItems">addItems</a></td><td><p>Adds commands whose labels, icons, and states come from their identifiers.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_addPopup">addPopup</a></td><td><p>Adds a submenu whose presentation comes from a command identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_MenuCtrl_addRadioItem">addRadioItem</a></td><td><p>Adds a command of a mutually exclusive group and returns its mutable item descriptor.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_addSeparator">addSeparator</a></td><td><p>Add a separator. Consecutive separators (and a leading one) are collapsed so callers</p>
 </td></tr>
@@ -19725,12 +19730,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">setItem</span>(column: <span class="STpe">u32</span>, name: <span class="STpe">string</span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_ListItem">ListItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addGroup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addGroup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1266">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addGroup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addGroup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1265">src</a></div>
 <p>Adds a command group followed by a separator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addGroup</span>(ids: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addItem</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1253">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addItem</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1252">src</a></div>
 <p>Adds a command whose label, icon, and state come from its command identifier.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addItem</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;*<span class="SCst"><a href="#Gui_PopupMenuItem">PopupMenuItem</a></span></span></div>
@@ -19743,12 +19748,12 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">addItem</span>(name: <span class="SCst"><a href="#Gui_MenuLabelResolver">MenuLabelResolver</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {}, rightName: <span class="STpe">string</span>? = <span class="SKwd">null</span>, disabled = <span class="SKwd">false</span>, checked = <span class="SKwd">false</span>)-&gt;*<span class="SCst"><a href="#Gui_PopupMenuItem">PopupMenuItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addItems" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addItems</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addItems" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1259">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addItems" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addItems</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addItems" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1258">src</a></div>
 <p>Adds commands whose labels, icons, and states come from their identifiers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addItems</span>(ids: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1293">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1306">src</a></div>
 <p>Adds a submenu whose presentation comes from a command identifier.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">addPopup</span>(popup: *<span class="SCst"><a href="#Gui_MenuCtrl">MenuCtrl</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;*<span class="SCst"><a href="#Gui_PopupMenuItem">PopupMenuItem</a></span></span></div>
@@ -19761,35 +19766,42 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <span class="SKwd">mtd</span> <span class="SFct">addPopup</span>(name: <span class="SCst"><a href="#Gui_MenuLabelResolver">MenuLabelResolver</a></span>, popup: *<span class="SCst"><a href="#Gui_MenuCtrl">MenuCtrl</a></span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {}, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PopupMenuItem">PopupMenuItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addSeparator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addSeparator</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addSeparator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1349">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addRadioItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addRadioItem</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addRadioItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1297">src</a></div>
+<p>Adds a command of a mutually exclusive group and returns its mutable item descriptor.</p>
+<p>The chosen entry carries the dot of a radio button rather than a check mark, and the other entries of the group carry nothing, so the reader sees one choice rather than a set of independent toggles. Add every entry of the group this way, the chosen one and the others alike: the group still reserves its marker column so the wording stays aligned.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
+<span class="SKwd">mtd</span> <span class="SFct">addRadioItem</span>(name: <span class="STpe">string</span>?, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, checked = <span class="SKwd">false</span>, rightName: <span class="STpe">string</span>? = <span class="SKwd">null</span>, disabled = <span class="SKwd">false</span>)-&gt;*<span class="SCst"><a href="#Gui_PopupMenuItem">PopupMenuItem</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_addSeparator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.addSeparator</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_addSeparator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1362">src</a></div>
 <p>Add a separator. Consecutive separators (and a leading one) are collapsed so callers can unconditionally separate groups without producing duplicate dividers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addSeparator</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.clear</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1238">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.clear</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1237">src</a></div>
 <p>Removes every command, submenu entry, and separator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_computeLayoutPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.computeLayoutPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_computeLayoutPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1026">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_computeLayoutPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.computeLayoutPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_computeLayoutPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1025">src</a></div>
 <p>Computes layout popup.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">computeLayoutPopup</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_createBar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.createBar</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_createBar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1200">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_createBar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.createBar</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_createBar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1199">src</a></div>
 <p>Creates a persistent horizontal menu bar.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">createBar</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>, owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_MenuCtrl">MenuCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_createPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.createPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_createPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1181">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_createPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.createPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_createPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1180">src</a></div>
 <p>Creates a hidden popup menu in the presentation layer containing <span class="code-inline">parent</span>.</p>
 <p>Client controls place their menus in the root content view. Surface chrome and existing surface overlays place them in the root surface window, so the complete menu tree can cross the content inset without being clipped. <span class="code-inline">owner</span>, or <span class="code-inline">parent</span> when omitted, remains the logical owner for command routing.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">createPopup</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>, owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_MenuCtrl">MenuCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_doModal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.doModal</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_doModal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1366">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_doModal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.doModal</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_doModal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1379">src</a></div>
 <p>Runs a popup menu joined to a <a href="#Gui_IconButton">Gui.IconButton</a> and returns its selected command, or null when dismissed.</p>
 <p>The button is repainted as the popup's opening tab instead of pointing at a detached box with a notch. A <a href="#Gui_IconButtonArrowPosition_RightUpward">Gui.IconButtonArrowPosition.RightUpward</a> marker opens the menu above the button; every other marker opens it below. When <span class="code-inline">autoDestroy</span> is true, the menu destroys itself after the modal loop.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">doModal</span>(button: *<span class="SCst"><a href="#Gui_IconButton">IconButton</a></span>, autoDestroy: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Gui_WndId">WndId</a></span>?</span></div>
@@ -19797,43 +19809,43 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">doModal</span>(surfacePos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>, pos = <span class="SCst"><a href="#Gui_PopupPosition">PopupPosition</a></span>.<span class="SCst"><a href="#Gui_PopupPosition_TopLeft">TopLeft</a></span>, autoDestroy: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Gui_WndId">WndId</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_isModalEnded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.isModalEnded</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_isModalEnded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1156">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_isModalEnded" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.isModalEnded</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_isModalEnded" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1155">src</a></div>
 <p>Reports whether the current modal popup loop has ended.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isModalEnded</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_itemAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.itemAt</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_itemAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1218">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_itemAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.itemAt</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_itemAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1217">src</a></div>
 <p>Returns the item at <span class="code-inline">index</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">itemAt</span>(index: <span class="STpe">u32</span>)-&gt;*<span class="SCst"><a href="#Gui_PopupMenuItem">PopupMenuItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_modalResult" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.modalResult</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_modalResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1159">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_modalResult" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.modalResult</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_modalResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1158">src</a></div>
 <p>Returns the selected modal command, or null when dismissed or still running.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">modalResult</span>()-&gt;<span class="SCst"><a href="#Gui_WndId">WndId</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_removeItemAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.removeItemAt</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_removeItemAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1225">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_removeItemAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.removeItemAt</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_removeItemAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1224">src</a></div>
 <p>Removes one item and invalidates cached menu layout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeItemAt</span>(index: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_setFramePainting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.setFramePainting</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_setFramePainting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1134">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_setFramePainting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.setFramePainting</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_setFramePainting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1133">src</a></div>
 <p>Selects whether an enclosing frame paints the popup border and shadow.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFramePainting</span>(enabled: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_setSubmenuDirection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.setSubmenuDirection</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_setSubmenuDirection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1147">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_setSubmenuDirection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.setSubmenuDirection</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_setSubmenuDirection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1146">src</a></div>
 <p>Selects the side used by child menus and their chevron markers.</p>
 <p><a href="#Gui_SubmenuDirection_Automatic">Gui.SubmenuDirection.Automatic</a> keeps the conventional right side while it fits and switches both the child menu and its marker to the left near the window edge.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSubmenuDirection</span>(direction: <span class="SCst"><a href="#Gui_SubmenuDirection">SubmenuDirection</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.updateFlags</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1162">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.updateFlags</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1161">src</a></div>
 <p>Adds and removes presentation options, then invalidates cached layout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateFlags</span>(add: <span class="SCst"><a href="#Gui_MenuFlags">MenuFlags</a></span> = .<span class="SCst">None</span>, remove = <span class="SCst"><a href="#Gui_MenuFlags">MenuFlags</a></span>.<span class="SCst">None</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_MenuCtrl_updateState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.updateState</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_updateState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L819">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_MenuCtrl_updateState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.updateState</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_updateState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L818">src</a></div>
 <p>Updates state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateState</span>()</span></div>
 </section>
@@ -26085,6 +26097,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.MenuCtrl.addItem|Gui_MenuCtrl_addItem|Adds a command whose label, icon, and state come from its command identifier.",
 "f|Gui.MenuCtrl.addItems|Gui_MenuCtrl_addItems|Adds commands whose labels, icons, and states come from their identifiers.",
 "f|Gui.MenuCtrl.addPopup|Gui_MenuCtrl_addPopup|Adds a submenu whose presentation comes from a command identifier.",
+"f|Gui.MenuCtrl.addRadioItem|Gui_MenuCtrl_addRadioItem|Adds a command of a mutually exclusive group and returns its mutable item descriptor.",
 "f|Gui.MenuCtrl.addSeparator|Gui_MenuCtrl_addSeparator|Add a separator. Consecutive separators (and a leading one) are collapsed so callers",
 "f|Gui.MenuCtrl.clear|Gui_MenuCtrl_clear|Removes every command, submenu entry, and separator.",
 "f|Gui.MenuCtrl.computeLayoutPopup|Gui_MenuCtrl_computeLayoutPopup|Computes layout popup.",

@@ -50,10 +50,9 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Checked option", Menu_New, checked: true)
-    let selectedRadio = popup.addItem("Selected choice", Menu_Open, checked: true)
-    selectedRadio.rg = .ExclusiveGroup
-    let clearRadio = popup.addItem("Available choice", Menu_Quit)
-    clearRadio.rg = .ExclusiveGroup
+    let selectedRadio = popup.addRadioItem("Selected choice", Menu_Open, checked: true)
+    let clearRadio    = popup.addRadioItem("Available choice", Menu_Quit)
+    Swag.assert(selectedRadio.rg == .ExclusiveGroup and clearRadio.rg == .ExclusiveGroup)
     popup.addPopup("More choices", sub)
     popup.addItem("Unavailable option", "Menu.Disabled", disabled: true, checked: true)
 

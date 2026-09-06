@@ -973,7 +973,7 @@ private impl IndesignViewer
         for index in .pageCount()
         {
             commands.add(Format.toString("scope.indesign.page.%", index))
-            menu.addItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)).toString(), commands[index].toString(), checked: index == .previewIndex)
+            menu.addRadioItem(Format.toString(strings.ui_PageMenuEntry, .pageName(index)).toString(), commands[index].toString(), checked: index == .previewIndex)
         }
 
         let chosen = menu.doModal(.pageLabel, autoDestroy: true)

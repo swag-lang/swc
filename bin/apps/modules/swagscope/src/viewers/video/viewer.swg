@@ -1011,7 +1011,7 @@ internal impl VideoViewer
         {
             let sound = .video.audioTrack(index)!
             commands.add(videoAudioTrackCommand(index))
-            menu.addItem(videoAudioTrackText(index, sound), commands[index].toString(), checked: index == .audioTrackIndex)
+            menu.addRadioItem(videoAudioTrackText(index, sound), commands[index].toString(), checked: index == .audioTrackIndex)
         }
 
         let chosen = menu.doModal(.audioButton, autoDestroy: true)
@@ -1042,7 +1042,7 @@ internal impl VideoViewer
         for rate, index in VideoPlaybackRates
         {
             commands.add(videoPlaybackRateCommand(cast(u32) index))
-            menu.addItem(videoPlaybackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
+            menu.addRadioItem(videoPlaybackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
         }
 
         let chosen = menu.doModal(.settingsButton, autoDestroy: true)
@@ -1138,7 +1138,7 @@ internal impl VideoViewer
         let strings = videoStrings()
         let menu    = MenuCtrl.createPopup(.subtitleButton, owner: me)
         menu.setSubmenuDirection(.Left)
-        menu.addItem(strings.ui_SubtitleOff, "scope.video.subtitle.off", checked: .subtitleSource == .Off)
+        menu.addRadioItem(strings.ui_SubtitleOff, "scope.video.subtitle.off", checked: .subtitleSource == .Off)
 
         var embeddedCommands: Array'String
         var sidecarCommands:  Array'String
@@ -1149,44 +1149,44 @@ internal impl VideoViewer
         {
             let track = .video.subtitleTrack(index)!
             embeddedCommands.add(videoSubtitleTrackCommand(false, index))
-            menu.addItem(videoSubtitleTrackText(index, track, false), embeddedCommands[index].toString(), checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
+            menu.addRadioItem(videoSubtitleTrackText(index, track, false), embeddedCommands[index].toString(), checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
         }
 
         for track, index in .subtitleOverlay.sidecars
         {
             sidecarCommands.add(videoSubtitleTrackCommand(true, cast(u32) index))
-            menu.addItem(videoSubtitleTrackText(cast(u32) index, track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
+            menu.addRadioItem(videoSubtitleTrackText(cast(u32) index, track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
         }
 
         menu.addSeparator()
         let fontMenu = MenuCtrl.createPopup(menu, owner: me)
-        fontMenu.addItem(strings.ui_SubtitleFontSans, "scope.video.subtitle.font.sans", checked: g_VideoSubtitleSettings.font == .Sans)
-        fontMenu.addItem(strings.ui_SubtitleFontMono, "scope.video.subtitle.font.mono", checked: g_VideoSubtitleSettings.font == .Monospace)
+        fontMenu.addRadioItem(strings.ui_SubtitleFontSans, "scope.video.subtitle.font.sans", checked: g_VideoSubtitleSettings.font == .Sans)
+        fontMenu.addRadioItem(strings.ui_SubtitleFontMono, "scope.video.subtitle.font.mono", checked: g_VideoSubtitleSettings.font == .Monospace)
         menu.addPopup(strings.ui_SubtitleFont, fontMenu)
 
         let sizeMenu = MenuCtrl.createPopup(menu, owner: me)
-        sizeMenu.addItem(strings.ui_SubtitleSizeSmall, "scope.video.subtitle.size.small", checked: g_VideoSubtitleSettings.size == .Small)
-        sizeMenu.addItem(strings.ui_SubtitleSizeNormal, "scope.video.subtitle.size.normal", checked: g_VideoSubtitleSettings.size == .Normal)
-        sizeMenu.addItem(strings.ui_SubtitleSizeLarge, "scope.video.subtitle.size.large", checked: g_VideoSubtitleSettings.size == .Large)
-        sizeMenu.addItem(strings.ui_SubtitleSizeVeryLarge, "scope.video.subtitle.size.veryLarge", checked: g_VideoSubtitleSettings.size == .VeryLarge)
+        sizeMenu.addRadioItem(strings.ui_SubtitleSizeSmall, "scope.video.subtitle.size.small", checked: g_VideoSubtitleSettings.size == .Small)
+        sizeMenu.addRadioItem(strings.ui_SubtitleSizeNormal, "scope.video.subtitle.size.normal", checked: g_VideoSubtitleSettings.size == .Normal)
+        sizeMenu.addRadioItem(strings.ui_SubtitleSizeLarge, "scope.video.subtitle.size.large", checked: g_VideoSubtitleSettings.size == .Large)
+        sizeMenu.addRadioItem(strings.ui_SubtitleSizeVeryLarge, "scope.video.subtitle.size.veryLarge", checked: g_VideoSubtitleSettings.size == .VeryLarge)
         menu.addPopup(strings.ui_SubtitleSize, sizeMenu)
 
         let effectMenu = MenuCtrl.createPopup(menu, owner: me)
-        effectMenu.addItem(strings.ui_SubtitleEffectOutline, "scope.video.subtitle.effect.outline", checked: g_VideoSubtitleSettings.effect == .Outline)
-        effectMenu.addItem(strings.ui_SubtitleEffectShadow, "scope.video.subtitle.effect.shadow", checked: g_VideoSubtitleSettings.effect == .Shadow)
-        effectMenu.addItem(strings.ui_SubtitleEffectBackdrop, "scope.video.subtitle.effect.backdrop", checked: g_VideoSubtitleSettings.effect == .Background)
-        effectMenu.addItem(strings.ui_SubtitleEffectNone, "scope.video.subtitle.effect.none", checked: g_VideoSubtitleSettings.effect == .None)
+        effectMenu.addRadioItem(strings.ui_SubtitleEffectOutline, "scope.video.subtitle.effect.outline", checked: g_VideoSubtitleSettings.effect == .Outline)
+        effectMenu.addRadioItem(strings.ui_SubtitleEffectShadow, "scope.video.subtitle.effect.shadow", checked: g_VideoSubtitleSettings.effect == .Shadow)
+        effectMenu.addRadioItem(strings.ui_SubtitleEffectBackdrop, "scope.video.subtitle.effect.backdrop", checked: g_VideoSubtitleSettings.effect == .Background)
+        effectMenu.addRadioItem(strings.ui_SubtitleEffectNone, "scope.video.subtitle.effect.none", checked: g_VideoSubtitleSettings.effect == .None)
         menu.addPopup(strings.ui_SubtitleEffect, effectMenu)
 
         let positionMenu = MenuCtrl.createPopup(menu, owner: me)
-        positionMenu.addItem(strings.ui_SubtitlePositionBottom, "scope.video.subtitle.position.bottom", checked: g_VideoSubtitleSettings.position == .Bottom)
-        positionMenu.addItem(strings.ui_SubtitlePositionCenter, "scope.video.subtitle.position.center", checked: g_VideoSubtitleSettings.position == .Center)
-        positionMenu.addItem(strings.ui_SubtitlePositionTop, "scope.video.subtitle.position.top", checked: g_VideoSubtitleSettings.position == .Top)
+        positionMenu.addRadioItem(strings.ui_SubtitlePositionBottom, "scope.video.subtitle.position.bottom", checked: g_VideoSubtitleSettings.position == .Bottom)
+        positionMenu.addRadioItem(strings.ui_SubtitlePositionCenter, "scope.video.subtitle.position.center", checked: g_VideoSubtitleSettings.position == .Center)
+        positionMenu.addRadioItem(strings.ui_SubtitlePositionTop, "scope.video.subtitle.position.top", checked: g_VideoSubtitleSettings.position == .Top)
         menu.addPopup(strings.ui_SubtitlePosition, positionMenu)
 
         let colorMenu = MenuCtrl.createPopup(menu, owner: me)
-        colorMenu.addItem(strings.ui_SubtitleColorWhite, "scope.video.subtitle.color.white", checked: g_VideoSubtitleSettings.color == .White)
-        colorMenu.addItem(strings.ui_SubtitleColorYellow, "scope.video.subtitle.color.yellow", checked: g_VideoSubtitleSettings.color == .Yellow)
+        colorMenu.addRadioItem(strings.ui_SubtitleColorWhite, "scope.video.subtitle.color.white", checked: g_VideoSubtitleSettings.color == .White)
+        colorMenu.addRadioItem(strings.ui_SubtitleColorYellow, "scope.video.subtitle.color.yellow", checked: g_VideoSubtitleSettings.color == .Yellow)
         menu.addPopup(strings.ui_SubtitleColor, colorMenu)
 
         let delayMenu = MenuCtrl.createPopup(menu, owner: me)

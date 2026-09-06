@@ -156,6 +156,9 @@ interface IWnd
     // Handles a change to the window's logical size.
     mtd onResizeEvent(evt: *ResizeEvent)
 
+    // Rearranges content during a deferred layout pass.
+    mtd onLayout()
+
     // Paints content scheduled before child windows.
     mtd onBeforePaint(evt: *PaintEvent)
 
@@ -451,6 +454,9 @@ impl IWnd for Wnd
 
     // Ignores size changes by default.
     mtd impl onResizeEvent(evt: *ResizeEvent) {}
+
+    // Performs no type-specific work during a deferred layout pass.
+    mtd impl onLayout() {}
 
     // Paints no before-children content by default.
     mtd impl onBeforePaint(evt: *PaintEvent) {}
@@ -1232,7 +1238,7 @@ impl Wnd
         if .layoutDirty
         {
             .layoutDirty = false
-            .sendResizeEvent()
+            .itf.onLayout()
             .applyLayout()
             .invalidate()
         }

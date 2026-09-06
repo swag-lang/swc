@@ -32,6 +32,11 @@ struct StackLayoutCtrl
 
 impl IWnd for StackLayoutCtrl
 {
+    mtd impl onLayout()
+    {
+        .computeLayout()
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()

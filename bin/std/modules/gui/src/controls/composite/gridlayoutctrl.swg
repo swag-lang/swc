@@ -53,6 +53,11 @@ struct GridLayoutCtrl
 
 impl IWnd for GridLayoutCtrl
 {
+    mtd impl onLayout()
+    {
+        .computeLayout()
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()

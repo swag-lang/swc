@@ -80,6 +80,11 @@ struct FormLayoutCtrl
 
 impl IWnd for FormLayoutCtrl
 {
+    mtd impl onLayout()
+    {
+        .computeLayout()
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()

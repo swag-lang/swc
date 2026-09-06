@@ -18,14 +18,33 @@ struct WrapLayoutCtrl
 
 impl IWnd for WrapLayoutCtrl
 {
+    mtd impl onLayout()
+    {
+        .computeLayout()
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
+        .computeLayout()
+        .wnd.IWnd.onResizeEvent(evt)
+    }
+}
+
+impl WrapLayoutCtrl
+{
+    // Creates an empty wrapping layout.
+    func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl
+    {
+        let res = Wnd.create'WrapLayoutCtrl(parent, position)
+        return res
+    }
+
+    // Recomputes the flow of all visible children.
+    mtd computeLayout()
+    {
         .contentHeight = 0
-        if !.children.count
-        {
-            .wnd.IWnd.onResizeEvent(evt)
+        if !.children.count do
             return
-        }
 
         let client = .paddedClientRect()
 
@@ -61,23 +80,5 @@ impl IWnd for WrapLayoutCtrl
             rowHeight      = Math.max(rowHeight, outerHeight)
             .contentHeight = y + rowHeight + .padding.w
         }
-
-        .wnd.IWnd.onResizeEvent(evt)
-    }
-}
-
-impl WrapLayoutCtrl
-{
-    // Creates an empty wrapping layout.
-    func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl
-    {
-        let res = Wnd.create'WrapLayoutCtrl(parent, position)
-        return res
-    }
-
-    // Recomputes the flow of all visible children.
-    mtd computeLayout()
-    {
-        .sendResizeEvent()
     }
 }

@@ -36,6 +36,14 @@ using Swag, Core
     host.pump()
     let before = next.position.x
     let bounds = stack.position
+    var rootResizeCount: u32
+    host.root.hookOnEvent = func|count = &rootResizeCount|(wnd, evt)
+    {
+        discard wnd
+        if evt is ResizeEvent do
+            count[] += 1
+        return false
+    }
 
     label.setText("A much longer label in the same band")
 
@@ -43,10 +51,12 @@ using Swag, Core
     discard stack.measure({500, 80})
     host.pump()
     Swag.assert(stack.position == bounds)
+    Swag.assert(rootResizeCount == 0)
     Swag.assert(next.position.x > before)
     Swag.assert(next.position.x >= label.position.right() + stack.spacing)
     let after = next.position
     host.pump()
+    Swag.assert(rootResizeCount == 0)
     Swag.assert(next.position == after)
 }
 

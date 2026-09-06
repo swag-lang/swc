@@ -3,18 +3,27 @@
   "attempts": [
     {
       "log": "sparse-measurements.log",
-      "rejected_admissions": 0,
-      "observed_rejected_cpu_percent_range": []
+      "rejected_admissions": 22,
+      "observed_rejected_cpu_percent_range": [
+        19.0,
+        87.0
+      ]
     },
     {
       "log": "final-quiet-measurements.log",
-      "rejected_admissions": 0,
-      "observed_rejected_cpu_percent_range": []
+      "rejected_admissions": 20,
+      "observed_rejected_cpu_percent_range": [
+        26.0,
+        89.0
+      ]
     },
     {
       "log": "exploratory-measurements.log",
-      "rejected_admissions": 0,
-      "observed_rejected_cpu_percent_range": []
+      "rejected_admissions": 25,
+      "observed_rejected_cpu_percent_range": [
+        29.0,
+        91.0
+      ]
     }
   ]
 }

@@ -79,7 +79,7 @@ These measurements preceded the first compiler edit; they are not the acceptance
 | leven | 0 | n/a | n/a | 69 | n/a | n/a | n/a | n/a |
 | chacha | 0 | n/a | n/a | 69 | n/a | n/a | n/a | n/a |
 
-[Raw quiet samples and paired ratios](quiet-measurements.json). Rows with fewer than repeated complete pairs are incomplete.
+[Raw quiet samples and paired ratios](quiet-measurements.json). Rows with fewer than three complete pairs are incomplete.
 
 ## Exploratory comparison
 
@@ -96,7 +96,7 @@ These measurements preceded the first compiler edit; they are not the acceptance
 | leven | 1 | 59.7 | 57.1 | 69 | 173.0 | 2561.3 | 14.803 | 9.585 |
 | chacha | 0 | n/a | n/a | 69 | n/a | n/a | n/a | n/a |
 
-[Raw exploratory samples and paired ratios](exploratory-measurements.json). Rows with fewer than repeated complete pairs are incomplete.
+[Raw exploratory samples and paired ratios](exploratory-measurements.json). Rows with fewer than three complete pairs are incomplete.
 
 ## External heap attribution
 

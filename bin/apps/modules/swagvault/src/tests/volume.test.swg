@@ -1046,8 +1046,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // Reading is untouched: a read-only mount is a mount, not a refusal to open.
     let node = volume.resolve("\\note.txt")
     Swag.assert(node != null)
+    let nodeId = node!.id
     var readBack: [4] u8
-    Swag.assert(expect volume.readNode(node.id, 0, readBack) == 4)
+    Swag.assert(expect volume.readNode(nodeId, 0, readBack) == 4)
     Swag.assert(sameTestBytes(readBack, stored))
 
     // Every way in reports the same kind, whether it would have written a byte, a name, or a
@@ -1064,11 +1065,11 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
         return false
     }
 
-    Swag.assert(refuses(catch volume.writeNode(node.id, 0, stored, false, false)))
+    Swag.assert(refuses(catch volume.writeNode(nodeId, 0, stored, false, false)))
     Swag.assert(refuses(catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes())))
-    Swag.assert(refuses(catch volume.renameNode(node.id, "\\other.txt", false)))
-    Swag.assert(refuses(catch volume.resizeNode(node.id, 0)))
-    Swag.assert(refuses(catch volume.deleteNode(node.id)))
+    Swag.assert(refuses(catch volume.renameNode(nodeId, "\\other.txt", false)))
+    Swag.assert(refuses(catch volume.resizeNode(nodeId, 0)))
+    Swag.assert(refuses(catch volume.deleteNode(nodeId)))
     Swag.assert(refuses(catch volume.commit()))
     Swag.assert(refuses(catch volume.checkpoint()))
     Swag.assert(refuses(catch volume.changePassword(testPassword(), secondPassword())))

@@ -678,8 +678,10 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
     }
     elif evt is ResizeEvent
     {
+        let oldPageRect = g_PageView!.position
         layoutRootView()
-        buildPage()
+        if g_PageView!.position != oldPageRect do
+            buildPage()
         return true
     }
     elif evt is DestroyEvent

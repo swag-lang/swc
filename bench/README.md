@@ -48,7 +48,7 @@ under test on the repository's own sources — what the tools in `../tools` actu
 | `core_touch` | the same, after one file's write time moved | what one save costs — today, the whole module again |
 | `hello_build` | `swc build -f hello.swg` | the fixed cost, source to linked executable |
 | `doc_std` | `swc doc --workspace bin/std --rebuild` | the standard library's documentation, into `out/doc` |
-| `format_tree` | `swc format -d out/format` | every Swag source of the repository, on a private copy |
+| `format_tree` | `swc format -d out/format` | the source trees selected by `tools/format.swgs`, on a private copy with their `.swc-format` configuration |
 
 Each one is prepared outside the clock — outputs removed, a warm build made, a write time
 bumped, the sources mirrored — then timed once, like a build: minimum kept, every sample

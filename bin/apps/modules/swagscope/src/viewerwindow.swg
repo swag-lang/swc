@@ -3409,8 +3409,8 @@ impl ViewerWindow
         }
     }
 
-    // Shows what one file offers, wherever the reader pointed at it.
-    private mtd showFileActions(fileName: string, position: Math.Point, history: bool)
+    // Builds what one file offers, wherever the reader pointed at it.
+    private mtd createFileActionsMenu(history: bool)->*MenuCtrl
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
@@ -3425,6 +3425,14 @@ impl ViewerWindow
             menu.addSeparator()
             menu.addItem(texts.ui_MenuForget, "scope.file.forget", .theme().icon(.Remove, themeRowIconSize(.themeMetrics())))
         }
+
+        return menu
+    }
+
+    // Shows what one file offers, wherever the reader pointed at it.
+    private mtd showFileActions(fileName: string, position: Math.Point, history: bool)
+    {
+        let menu = .createFileActionsMenu(history)
 
         let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)
         if !chosen do

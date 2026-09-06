@@ -94,6 +94,21 @@ func sliderHeadlessReset()
     Swag.assert(Math.abs(slider.step() - 6) < 0.01)
 }
 
+// A step may span the whole range when the control represents exactly two values.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(280, 80)
+    defer host.shutdown()
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
+    slider.setBounds(0, 1, 1)
+
+    slider.setValue(0.4)
+    Swag.assert(Math.abs(slider.value()) < 0.01)
+    slider.setValue(0.6)
+    Swag.assert(Math.abs(slider.value() - 1) < 0.01)
+}
+
 // A mouse press jumps the value to the click position and dragging updates it.
 #test
 {

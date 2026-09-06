@@ -544,38 +544,47 @@ impl HexGridView
         .layouting = true
         defer .layouting = false
 
-        .computeMetrics()
-        if .autoFitRow do
-            .bytesPerRow = .fitBytesPerRow()
-        .topRow = Math.min(.topRow, .maxTopRow())
-
-        .headerText.clear()
-        if .grouping == .Bytes
+        // Publishing the virtual extent can make a scrollbar appear and resize this view while
+        // this method is protected from reentrance. Recompute against that final viewport here.
+        for 3
         {
-            for column in .bytesPerRow
+            let oldClient = .clientRect()
+            .computeMetrics()
+            if .autoFitRow do
+                .bytesPerRow = .fitBytesPerRow()
+            .topRow = Math.min(.topRow, .maxTopRow())
+
+            .headerText.clear()
+            if .grouping == .Bytes
             {
-                appendHexDigits(&.headerText, column, 2)
-                .headerText.add(' 'u8)
-                if column % HexDefaultGroupSize == HexDefaultGroupSize - 1 and column != .bytesPerRow - 1 do
+                for column in .bytesPerRow
+                {
+                    appendHexDigits(&.headerText, column, 2)
                     .headerText.add(' 'u8)
+                    if column % HexDefaultGroupSize == HexDefaultGroupSize - 1 and column != .bytesPerRow - 1 do
+                        .headerText.add(' 'u8)
+                }
             }
-        }
-        else
-        {
-            var column = 0'u64
-            while column < .bytesPerRow
+            else
             {
-                let start = .headerText.count
-                .headerText.add('+'u8)
-                appendHexDigits(&.headerText, column, 2)
-                while .headerText.count - start < .valueCellChars() do
+                var column = 0'u64
+                while column < .bytesPerRow
+                {
+                    let start = .headerText.count
+                    .headerText.add('+'u8)
+                    appendHexDigits(&.headerText, column, 2)
+                    while .headerText.count - start < .valueCellChars() do
+                        .headerText.add(' 'u8)
                     .headerText.add(' 'u8)
-                .headerText.add(' 'u8)
-                column += .valueSize()
+                    column += .valueSize()
+                }
             }
+
+            .syncScrollBar()
+            if .clientRect() == oldClient do
+                break
         }
 
-        .syncScrollBar()
         .invalidate()
     }
 
@@ -606,8 +615,8 @@ impl HexGridView
         if .syncing or !(.scroll != null) do
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
-        let ratio  = Math.clamp(position / usable, 0, 1)
-        let row    = Math.min(cast(u64) Math.round(ratio * cast(f32) .maxTopRow()), .maxTopRow())
+        let maxTop = .maxTopRow()
+        let row    = position <= 0 ? 0 : position >= usable ? maxTop : Math.min(cast(u64) Math.round(position / usable * cast(f32) maxTop), maxTop)
         if row == .topRow do
             return
         .topRow = row

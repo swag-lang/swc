@@ -604,10 +604,12 @@ impl Slider
     }
 
     // Configures inclusive bounds and an optional value-space step.
+    //
+    // `steps` may span the complete range, which creates a two-value control at the bounds.
     func setBounds(me, min, max: f32, steps: f32 = 0)
     {
         Debug.assert(min < max)
-        Debug.assert(steps >= 0 and steps < (max - min))
+        Debug.assert(steps >= 0 and steps <= (max - min))
         .min = min
         .max = max
         if steps > 0 do

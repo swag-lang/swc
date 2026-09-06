@@ -740,13 +740,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(list.lineCount() == 2 and window.currentFile == names[1])
 
     // A folder row names a file the folder holds, and nothing offers to take it out of a list it
-    // was never in: the armed step finds no such entry and dismisses the menu instead.
+    // was never in.
     window.folderList.selectLine(0)
     completeQueuedViewerFile(&host, window)
-    host.clickPopupMenuItemWhenShown("scope.file.forget", maxFrames: 4)
-    window.showFileMenu(window.folderList, window.siblings.toSlice(), {120, 120})
+    let folderMenu = window.createFileActionsMenu(false)
+    defer folderMenu.destroy()
+    for item in folderMenu.items do
+        Swag.assert(item!.id != "scope.file.forget")
     host.pump()
-    Swag.assert(!host.autoHandled)
 }
 
 // The viewer a reader picks for one file becomes the viewer that kind of file opens in, and

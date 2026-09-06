@@ -276,7 +276,13 @@ const SanitizerRegInfo* Sanitizer::findReg(const SanitizerState& state, MicroReg
 
 void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info)
 {
-    if (reg.isValid())
+    if (!reg.isValid())
+        return;
+
+    // Missing entries already mean Unknown; keep provenance even without a known value.
+    if (info == SanitizerRegInfo{})
+        state.regs.erase(reg.packed);
+    else
         state.regs[reg.packed] = info;
 }
 
@@ -305,8 +311,7 @@ void Sanitizer::applyPointerOrigin(SanitizerState& state, MicroReg reg, const Po
 
 void Sanitizer::setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
 {
-    if (reg.isValid())
-        state.regs[reg.packed] = SanitizerRegInfo{value};
+    setReg(state, reg, SanitizerRegInfo{value});
 }
 
 bool Sanitizer::resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const
@@ -643,7 +648,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         {
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, ops[3].valueU64, slot))
-                state.stack[slot] = getReg(state, ops[1].reg);
+            {
+                const SanitizerValue value = getReg(state, ops[1].reg);
+                if (value.kind == SanitizerValueKind::Unknown)
+                    state.stack.erase(slot);
+                else
+                    state.stack[slot] = value;
+            }
             return;
         }
 
@@ -903,12 +914,16 @@ void Sanitizer::queueRefined(const SanitizerState& state, uint32_t index, int64_
 
 void Sanitizer::dropZeros(SanitizerState& state)
 {
-    for (auto& info : state.regs | std::views::values)
-        if (info.value.isZero())
-            info.value = {};
-    for (auto& value : state.stack | std::views::values)
-        if (value.isZero())
-            value = {};
+    for (auto it = state.regs.begin(); it != state.regs.end();)
+    {
+        if (it->second.value.isZero())
+            it->second.value = {};
+        if (it->second == SanitizerRegInfo{})
+            it = state.regs.erase(it);
+        else
+            ++it;
+    }
+    std::erase_if(state.stack, [](const auto& entry) { return entry.second.isZero(); });
 }
 
 bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const

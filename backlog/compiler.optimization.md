@@ -103,12 +103,30 @@ the shared backlog conventions.
   carries-nothing-else test fails on all eight. Leven's DP loop writes `row1[y+1]` through a
   program pointer, which makes the body opaque to the aliasing model: any non-frame write may alias
   any frame slot.
-- Next: dump the current sha256 and Leven loops before selecting a change. `promoteCarriedSlots`
+- Current evidence (2026-09-06, release, `6ac854243`): Leven's inner DP loop has 22 instructions
+  and five memory operations, all through program arrays, with no allocator spill. Its enclosing
+  loops still access the frame; do not infer an inner-loop promotion opportunity from their
+  inclusive spans. The separate adjacent-element reuse opportunity is compiler.optimization.030.
+- Next: dump the current sha256 loop and Leven's enclosing loops before selecting a change. `promoteCarriedSlots`
   still requires one load/store pair, an unredefined register and one converged exit; if these
   restrictions bind the current code, evaluate group promotion or narrower residency. For Leven,
   distinguish allocator spill storage from addressable program objects before refining aliasing.
 - Complete when: current loop dumps either retire this lead or identify a measured promotion or
   residency improvement with aliasing and multi-slot regression coverage.
+
+### compiler.optimization.030 — Carry adjacent DP row values between Leven iterations
+
+- Area: compiler/backend
+- Found while: comparing the unchanged Leven benchmark with clang-cl and MSVC, 2026-09-06.
+- Evidence: after the boolean-select fold, Swag's inner DP loop has 22 instructions / five memory
+  operations; clang-cl has 16 / three and MSVC 18 / five. Swag's five accesses name the input byte
+  and DP rows, not allocator spill slots. Clang carries the already loaded `row0[y+1]` forward as
+  the next `row0[y]`, and the just-stored `row1[y+1]` forward as the next `row1[y]`.
+- Next: establish the two rows' disjointness, then evaluate forwarding those adjacent elements
+  across one loop backedge. Prove the entry values, affine stride, intervening writes, and exits;
+  keep this separate from frame-slot promotion and compare every benchmark loop for new spills.
+- Complete when: the two repeated loads disappear with aliasing and zero-trip coverage, or a
+  current experiment identifies the specific missing proof or register-pressure cost.
 
 ## Decompression
 
@@ -529,3 +547,20 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
   rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
 - Related: compiler.core.004, compiler.core.030.
+
+### compiler.optimization.031 — Scalar float-to-int conversions keep dead GP initialization
+
+- Area: compiler/backend
+- Found while: inspecting raytrace after scalar-literal sharing and hoisting, 2026-09-06.
+- Evidence: the release pixel loop in `6ac854243` has 56 instructions / six memory operations.
+  Each of its three `ConvertFloatToInt` operations is preceded by a GP `ClearReg`; both clang-cl
+  and MSVC emit their `cvttsd2si` conversions without initializing the integer destination.
+  The checksum loop of csvagg has two more instances of the same shape.
+- Mechanism: `OpBinaryRegReg` starts with a read/write destination mode, and
+  `MicroInstr.cpp::resolveRegModes` only adjusts exchange. A float-to-int conversion therefore
+  consumes the previous integer value in the use/def graph even though its encoding replaces it.
+- Next: model this conversion's destination as a definition, keeping partial XMM writes separate.
+  Check the effect on both SSA and physical-register liveness; only discard an old integer clear
+  where its CPU flags are dead. Recount all seven tasks before selecting broader changes.
+- Complete when: the unnecessary initializations disappear with width and live-flags regression
+  coverage, or an experiment identifies a remaining dataflow contract that prevents removal.

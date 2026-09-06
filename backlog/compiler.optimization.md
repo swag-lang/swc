@@ -35,6 +35,29 @@ the shared backlog conventions.
   the SLP pass sees the sixteen `[frame + K]` loads it now has.
 - Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
 
+### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
+
+- Area: compiler/backend
+- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
+- Evidence: with `/O2 /EHsc /std:c++20`, clang-cl's compression loop has 74 instructions and
+  five explicit memory operations per round, exactly the counts of Swag release at `d4cc0a0cd`.
+  MSVC advances its round counter by four: its loop has 224 instructions and eight memory
+  operations for four rounds, or 56 / two per round. The eight accesses read `KTAB` and the
+  message schedule; the compression state stays in registers. Swag's 74 / five includes three
+  frame accesses described in compiler.optimization.005. Counts exclude labels and address-only
+  `lea` instructions from memory operations and include loop control.
+- Observation: `Pass.LoopUnroll.cpp` only fully unrolls exact counted loops of at most eight
+  trips, so it cannot choose MSVC's four-round grouping for this 64-round loop. Both C++ outputs
+  still express this source's 64-bit masked rotate idiom with shifts and ORs; do not assume that
+  replacing it with a 32-bit rotate is the explanation of their output.
+- Next: evaluate a bounded partial-unroll factor of two or four, preserving the original loop
+  counter and carrying each copy's values correctly. Start with divisible exact trip counts;
+  measure body growth and register pressure, then compare every hot loop across the seven tasks.
+  Keep this separate from merely raising the full-unroll limit in compiler.optimization.002.
+- Complete when: partial unrolling lowers instructions and frame traffic per compression round
+  with loop-exit, carried-value, relocation, and counter-use regression coverage, or a measured
+  experiment identifies the missing proof or register-pressure cost.
+
 ## Register allocation and frame-slot promotion
 
 ### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own

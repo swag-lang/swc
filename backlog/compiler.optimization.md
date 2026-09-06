@@ -521,6 +521,14 @@ the executable Micro instruction stream has no explicit phi instruction.
   whole shared SSA state as soon as a pass reports `passChanged`, so every sweep of the fixed
   point rebuilds it from scratch for the next pass that asks, however local the mutation was.
   `devmode` is `O1`, "everything that does not cost compilation time", and this does.
+- Updated evidence (2026-09-06): external sampling of Release compiler 0.1.383 rebuilding a
+  private copy of tracked `bin/std` sources, six workers, still finds SSA construction prominent.
+  For `core` in `devmode`, 30 of 151 samples inside `JobManager::executeJob` include
+  `MicroSsaState::build`; in `release`, 25 of 131 do. The corresponding `CodeGenJob` counts are
+  110 and 99. These are inclusive stack counts, with each sample counted once per function;
+  they are attribution evidence, not independent percentages to add or unprofiled timings.
+  Repeated builds by the same baseline compiler also produce different raw PE `.text` hashes,
+  so a whole-section hash alone cannot establish whether an SSA change preserves code quality.
 - Next: count rebuilds and mutating passes per function on std/core to size the win, then keep the
   SSA state valid across the mutations that preserve it — a deleted instruction, a renamed
   operand, a folded constant — and rebuild only the blocks a pass touched otherwise. Measure with

@@ -174,6 +174,10 @@ internal struct ImageViewer
     reportDetails:        Viewer.ReportDetails?
     reportChromeChanged:  Viewer.ReportChromeChanged?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
+    reportFinished:       Viewer.ReportFinished?
+    reportShown:          Viewer.ReportShown?
+    lastFrameIndex:       s32      // Frame the animation was on before the current one.
+    handedOff:            bool     // The host was told the animation has run its cycle, and answered that it moves on.
     load:                 Viewer.BackgroundLoad'ImageViewerContent
     loadTimer:            *Timer?
     failureReason:        String
@@ -206,6 +210,24 @@ internal impl ImageViewer
         .timeline.setValueWithoutGesture(cast(f32) movie.frameIndex)
         .frameLabel.setText(Format.toString("% / %", movie.frameIndex + 1, movie.frameCount))
         .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
+
+        // Back on the first frame from the last one while running: one complete cycle is what
+        // an animated picture has instead of an end.
+        let wrapped = movie.frameIndex == 0 and .lastFrameIndex == movie.frameCount - 1 and !movie.isPaused
+        .lastFrameIndex = movie.frameIndex
+        if wrapped do
+            .finishCycle()
+    }
+
+    // Reports one complete cycle of the animation, unless the host already answered that it
+    // moves on: the animation keeps running until the host has the next file to show, and every
+    // further cycle would ask it for one more.
+    mtd finishCycle()
+    {
+        if .handedOff or !.reportFinished do
+            return
+        if .reportFinished!(me) == .Next do
+            .handedOff = true
     }
 
     mtd showPlayback()
@@ -366,6 +388,11 @@ private impl IWnd for ImageViewer
             .reportDetails!(me, .details.toString())
         if .reportLoadingChanged do
             .reportLoadingChanged!(me)
+
+        // A still picture has no end of its own; the host's slideshow gives it one.
+        let still = !.imageView.movie.isValid() or .imageView.movie.frameCount <= 1
+        if still and .reportShown do
+            .reportShown!(me)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -453,6 +480,8 @@ private impl ImageViewer
         result.reportDetails        = services.reportDetails
         result.reportChromeChanged  = services.reportChromeChanged
         result.reportLoadingChanged = services.reportLoadingChanged
+        result.reportFinished       = services.reportFinished
+        result.reportShown          = services.reportShown
 
         result.actions     = host.createCommandGroup(imageCommandWidth(result.themeMetrics()))
         result.info        = host.createInfoGroup(ImageInfoWidth)

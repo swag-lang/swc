@@ -349,3 +349,46 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     Swag.assert(view.waveform.readyCount == view.waveform.samples.count)
     Swag.assert(view.waveform.duration == view.duration)
 }
+
+// Answers a sound that has been played through with the continuation stored on the view.
+func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
+{
+    let answer = cast(*Viewer.Continuation) wnd.userData!
+    return answer[]
+}
+
+// Played through, a sound does what the host's answer calls for: a replay starts again from the
+// first sample without leaving the playing state, and any other answer stops it.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), "viewer.sound.finish.wav")
+    defer discard catch File.delete(fileName)
+    let wav = previewWav()
+    discard expect File.writeAllBytes(fileName, wav.toSlice())
+
+    Swag.assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 420)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})
+    Swag.assert(result.view != null)
+    let view   = cast(*SoundViewer) result.view!
+    var answer = Viewer.Continuation.Replay
+    view.userData = &answer
+    waitForSoundOpen(&host, view)
+    finishWaveform(view)
+    view.togglePlayback()
+    Swag.assert(view.playing and view.voice != null)
+
+    view.finishPlayback()
+    Swag.assert(view.playing and view.voice!.isPlaying() and view.elapsed == 0)
+
+    answer = .Next
+    view.finishPlayback()
+    Swag.assert(!view.playing and !view.voice!.isPlaying())
+}

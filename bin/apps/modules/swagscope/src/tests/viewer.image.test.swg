@@ -9,6 +9,26 @@ func countImageNavigation(wnd: *Wnd, delta: s32)
     count[] += delta
 }
 
+// What an image viewer reported to the host about the end of what it shows.
+struct ImageReports
+{
+    shown:    s32     // Still pictures reported on screen.
+    finished: s32     // Animation cycles reported complete.
+}
+
+func countImageShown(wnd: *Wnd)
+{
+    let reports = cast(*ImageReports) wnd.userData!
+    reports.shown += 1
+}
+
+func answerImageCycle(wnd: *Wnd)->Viewer.Continuation
+{
+    let reports = cast(*ImageReports) wnd.userData!
+    reports.finished += 1
+    return .Next
+}
+
 func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     completeViewerWindowClassification(host, window)
@@ -196,4 +216,57 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerBarHeight)
     Swag.assert(!window.searchGroup.isLocallyVisible())
     Swag.assert(Math.abs(window.currentCommands!.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
+}
+
+// A still picture reports that it is on screen, once, so the host can time a slideshow on it;
+// it has no end to report.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 440)
+    defer host.shutdown()
+
+    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
+    var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
+    Swag.assert(session.view != null)
+    let view = cast(*ImageViewer) session.view!
+    var reports: ImageReports
+    view.userData = &reports
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    Swag.assert(reports.shown == 1 and reports.finished == 0)
+}
+
+// An animated picture has a cycle instead of an end: it reports one when it comes back to its
+// first frame from its last one while running, and reports nothing more once the host answers
+// that it moves on.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 440)
+    defer host.shutdown()
+
+    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/imageset-animation.gif")
+    var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
+    Swag.assert(session.view != null)
+    let view = cast(*ImageViewer) session.view!
+    var reports: ImageReports
+    view.userData = &reports
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    let lastFrame = view.imageView.movie.frameCount - 1
+    Swag.assert(lastFrame > 0 and !view.imageView.movie.isPaused)
+    Swag.assert(reports.shown == 0 and reports.finished == 0)
+
+    // A seek within the animation is not a cycle.
+    view.imageView.setFrameIndex(lastFrame)
+    view.imageView.setFrameIndex(1)
+    Swag.assert(reports.finished == 0)
+
+    view.imageView.setFrameIndex(lastFrame)
+    view.imageView.setFrameIndex(0)
+    Swag.assert(reports.finished == 1 and view.handedOff)
+
+    // Answered that the host moves on, the picture keeps its next cycles to itself.
+    view.imageView.setFrameIndex(lastFrame)
+    view.imageView.setFrameIndex(0)
+    Swag.assert(reports.finished == 1)
 }

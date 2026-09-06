@@ -178,3 +178,60 @@ func statusForError(kind: ErrorKind)->s32
     discard catch WinFsp.ensurePortableGuardian() as elevationRefused
     Swag.assert(elevationRefused != null)
 }
+
+#test
+{
+    let temp = Env.getSpecialDirectory(.Temp)
+    let path = Path.combine(temp.toString(), Format.toString("vault_batch_rename_%.bin", Guid64.random()))
+    defer discard catch File.delete(path)
+    let password: const [..] u8 = cast() "batch rename password"
+    let security: const [..] u8 = cast() ""
+    var volume = expect Volume.create(path, password, MinimumSize)
+    discard expect volume.createNode("\\vid1", true, FileAttributeDirectory, security)
+    let occupied = expect volume.createNode("\\vid1\\clip (1).mp4", false, FileAttributeNormal, security)
+
+    const FileCount = 12
+    var ids: [FileCount] u64
+    for i in FileCount
+    {
+        let source = Format.toString("\\vid1\\source-%.mp4", i)
+        ids[i] = expect volume.createNode(source, false, FileAttributeNormal, security)
+        let bytes: [1] u8 = [cast(u8) (i + 1)]
+        Swag.assert(expect volume.writeNode(ids[i], 0, bytes, false, false) == 1)
+    }
+
+    expect volume.commit()
+    for i in FileCount
+    {
+        let source      = Format.toString("\\vid1\\source-%.mp4", i)
+        let destination = Format.toString("\\vid1\\clip (%).mp4", i + 2)
+
+        // WinFsp dispatchers do not inherit the main thread's initialized error allocator.
+        let previous = Swag.getContext()
+        defer Swag.setContext(previous)
+        var context: Swag.Context
+        context.allocator        = previous.allocator
+        context.defaultAllocator = previous.defaultAllocator
+        context.runtimeFlags     = previous.runtimeFlags
+        Swag.setContext(context)
+        defer context.errorAllocator.release()
+
+        Swag.assert(WinFsp.callbackRename(&volume, ids[i], source.buffer, ("\\vid1\\CLIP (1).MP4").buffer, 0) == WinFsp.StatusObjectNameCollision)
+        Swag.assert(volume.resolve(source)!.id == ids[i])
+        Swag.assert(volume.resolve("\\vid1\\clip (1).mp4")!.id == occupied)
+        Swag.assert(WinFsp.callbackRename(&volume, ids[i], source.buffer, destination.buffer, 0) == WinFsp.StatusSuccess)
+        Swag.assert(volume.resolve(source) == null and volume.resolve(destination)!.id == ids[i])
+        WinFsp.callbackCleanup(&volume, ids[i], 0)
+    }
+
+    volume.close()
+    var reopened = expect Volume.open(path, password)
+    for i in FileCount
+    {
+        let destination = Format.toString("\\vid1\\clip (%).mp4", i + 2)
+        let node        = reopened.resolve(destination)
+        Swag.assert(node != null and node!.id == ids[i])
+        var bytes: [1] u8
+        Swag.assert(expect reopened.readNode(ids[i], 0, bytes) == 1 and bytes[0] == i + 1)
+    }
+}

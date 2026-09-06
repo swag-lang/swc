@@ -11,9 +11,14 @@ func countVideoLoadingChange(wnd: *Wnd)
 
 func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
 {
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
-    let rate     = try FrameRate.create(4, 1)
-    var clip     = try Clip.create(160, 90, rate)
+    return try videoPreviewFileAt(Path.combine(Env.getSpecialDirectory(.Temp).toString(), name).toString(), frameCount)
+}
+
+// Writes a short silent movie of `frameCount` solid pictures at `fileName`.
+func videoPreviewFileAt(fileName: string, frameCount = 4'u32)->String fail
+{
+    let rate = try FrameRate.create(4, 1)
+    var clip = try Clip.create(160, 90, rate)
 
     for index in frameCount
     {
@@ -23,8 +28,47 @@ func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
         try clip.addFrame(frame)
     }
 
-    try clip.save(fileName.toString())
-    return fileName
+    try clip.save(fileName)
+    return String.from(fileName)
+}
+
+// Answers a movie that has been played through with the continuation stored on the view.
+func answerVideoEnd(wnd: *Wnd)->Viewer.Continuation
+{
+    let answer = cast(*Viewer.Continuation) wnd.userData!
+    return answer[]
+}
+
+// Runs the movie on screen to its end and lets the transport act on the host's answer.
+func playVideoThrough(view: *VideoViewer)
+{
+    let count = view.video.frameCount()
+    view.seekFrame(count - 1)
+    waitForVideoFrame(view)
+    Swag.assert(view.frameIndex == count - 1 and view.playing)
+
+    // No sound owns this clock, so pushing it past the end is exactly what real time would do.
+    view.elapsed = view.video.durationInSeconds() + 1
+    view.updatePlayback()
+}
+
+// Completes the hand-over to the file a play mode queued.
+//
+// The movie on its way out retires on its own thread, so the classification is pumped with
+// real time between turns rather than spun.
+func completeVideoHandover(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    var steps = 0'u32
+    while !window.pendingFile.isEmpty() and steps < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        Jobs.waitAll()
+        if window.startupTimer do
+            host.fireTimer(window.startupTimer)
+        steps += 1
+    }
+
+    Swag.assert(window.pendingFile.isEmpty())
 }
 
 func waitForVideoFrame(view: *VideoViewer)
@@ -450,15 +494,11 @@ func videoMatroskaFixturePath()->String
     view.setPlaybackRate(1)
     Swag.assert(view.playbackRate == 1 and view.details.indexOf("2×") == Swag.U64.Max)
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 1, 0.001))
-
-    // The loop entry is a plain toggle; its effect on the transport has its own soundless test.
-    host.clickPopupMenuItemWhenShown("scope.video.player.loop")
-    view.showPlayerSettingsMenu()
-    Swag.assert(view.loopPlayback)
 }
 
-// Looping replays from the first picture once the clock passes the last one, and keeps the
-// transport in its playing state across the wrap.
+// The host's answer to a movie that has been played through is what the transport does with
+// it: a replay restarts from the first picture without leaving the playing state, and any other
+// answer parks it on the last picture.
 #test
 {
     let fileName = expect videoPreviewFile(Format.toString("scope-video-loop-%.mp4", Guid64.random()).toString())
@@ -469,23 +509,56 @@ func videoMatroskaFixturePath()->String
     defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
-    var result   = openTestViewer(videoViewerPlugin(), &host.root, fileName, commandParent: commands)
+    var result   = openTestViewer(videoViewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerVideoEnd})
     Swag.assert(result.view != null)
-    let view = cast(*VideoViewer) result.view!
+    let view   = cast(*VideoViewer) result.view!
+    var answer = Viewer.Continuation.Replay
+    view.userData = &answer
     waitForVideoFrame(view)
     Swag.assert(view.playing and view.voice == null)
 
-    view.loopPlayback = true
-    let count = view.video.frameCount()
-    view.seekFrame(count - 1)
-    waitForVideoFrame(view)
-    Swag.assert(view.frameIndex == count - 1 and view.playing)
-
-    // No sound owns this clock, so pushing it past the end is exactly what real time would do.
-    view.elapsed = view.video.durationInSeconds() + 1
-    view.updatePlayback()
+    playVideoThrough(view)
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0 and view.playing)
+
+    // Told that the next file is on its way, the transport parks on the last picture.
+    answer = .Next
+    playVideoThrough(view)
+    Swag.assert(!view.playing and view.frameIndex == view.video.frameCount() - 1)
+}
+
+// Played through with the folder mode on, a movie hands over to the next movie of its folder,
+// past the notes stored beside it, and the last one hands over to the first. The movie that
+// arrives starts playing on its own, which is what makes the folder a playlist.
+#test
+{
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope_chain_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+    discard expect videoPreviewFileAt(Path.combine(folder.toString(), "clip1.mp4").toString())
+    discard expect videoPreviewFileAt(Path.combine(folder.toString(), "clip2.mp4").toString())
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(Path.combine(folder.toString(), "clip1.mp4").toString(), remember: false)
+    completeViewerWindowClassification(&host, window)
+    window.setPlayMode(.Folder)
+
+    for expected in ["clip2.mp4", "clip1.mp4"]
+    {
+        let view = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
+        waitForVideoFrame(view)
+        Swag.assert(window.currentView == view and view.playing)
+
+        playVideoThrough(view)
+        Swag.assert(!view.playing and Path.fileName(window.pendingFile.toString()) == expected)
+        completeVideoHandover(&host, window)
+        Swag.assert(Path.fileName(window.currentFile.toString()) == expected)
+    }
 }
 
 // Full-screen chrome is presentation-only: resizing and revealing either bar preserves the

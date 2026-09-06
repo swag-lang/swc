@@ -2100,3 +2100,169 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeQueuedViewerFile(&host, window)
     Swag.assert(Path.fileName(window.currentFile.toString()) == "pic2.svg")
 }
+
+// Writes `names` as copies of the sample vector picture into a fresh folder, and returns that folder.
+func createPictureFolder(stem: string, names: const [..] string)->String
+{
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("%_%", stem, Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
+    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.buffer!, imageSource.length)
+    for name in names do
+        discard expect File.writeAllBytes(Path.combine(folder.toString(), name).toString(), imageBytes)
+    return folder
+}
+
+// A folder play mode walks the files the current viewer opens, in folder order and around again
+// past the last one, whatever the panel filter says; a file alone of its kind has no successor.
+// The file it brings up is not one the reader chose, so the history does not grow with it.
+#test
+{
+    let folder = createPictureFolder("scope_play", ["pic1.svg", "pic2.svg", "pic3.svg"])
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
+    completeQueuedViewerFile(&host, window)
+    window.setFolderSameKind(false)
+    let recentCount = window.recent.count
+
+    Swag.assert(window.continueFile(.Folder))
+    Swag.assert(Path.fileName(window.pendingFile.toString()) == "pic2.svg")
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.continueFile(.Folder))
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(Path.fileName(window.currentFile.toString()) == "pic3.svg")
+    Swag.assert(window.continueFile(.Folder))
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(Path.fileName(window.currentFile.toString()) == "pic1.svg")
+    Swag.assert(window.recent.count == recentCount)
+
+    // The one text file has nothing of its kind to go on with, in either folder mode.
+    window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(!window.continueFile(.Folder) and !window.continueFile(.Shuffle))
+    Swag.assert(window.pendingFile.isEmpty())
+}
+
+// The shuffle reaches every file of the kind once before any comes again, and never brings
+// straight back the one that has just ended.
+#test
+{
+    let folder = createPictureFolder("scope_shuffle", ["pic1.svg", "pic2.svg", "pic3.svg", "pic4.svg"])
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
+    completeQueuedViewerFile(&host, window)
+
+    // Three continuations from the first picture reach the three others, whatever their order.
+    var seen: Array'String
+    for step in 3
+    {
+        Swag.assert(seen.count == step)
+        Swag.assert(window.continueFile(.Shuffle))
+        let picked = Path.fileName(window.pendingFile.toString()) orelse ""
+        Swag.assert(picked != "pic1.svg" and !seen.contains(String.from(picked)))
+        seen.add(String.from(picked))
+        completeQueuedViewerFile(&host, window)
+    }
+
+    // Every file has had its turn: a new round starts, and not with the one that just ended.
+    let last = String.from(Path.fileName(window.currentFile.toString()) orelse "")
+    Swag.assert(window.continueFile(.Shuffle))
+    Swag.assert(window.shufflePlayed.count == 1)
+    Swag.assert(Path.fileName(window.pendingFile.toString()) != last.toString())
+    completeQueuedViewerFile(&host, window)
+}
+
+// A viewer that has finished its file is answered by the play mode: stay, present it again, or
+// stay as it is while the next file of the folder comes up. A still picture has no end of its
+// own, so the folder modes count the slideshow pace on it, and only while it is the picture on
+// screen; a file alone of its kind is the whole playlist.
+#test
+{
+    let folder = createPictureFolder("scope_finish", ["pic1.svg", "pic2.svg"])
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
+    completeQueuedViewerFile(&host, window)
+    let view = window.currentView!
+
+    Swag.assert(window.playMode == .Once)
+    Swag.assert(reportViewerFinished(view) == .Stop and window.pendingFile.isEmpty())
+    window.setPlayMode(.Repeat)
+    Swag.assert(reportViewerFinished(view) == .Replay and window.pendingFile.isEmpty())
+
+    // The image viewer reported its still picture on arrival: a folder mode starts counting
+    // on it as soon as it is chosen, and stops the moment the mode leaves the folder.
+    Swag.assert(window.stillView == view and window.slideTimer == null)
+    window.setPlayMode(.Folder)
+    Swag.assert(window.slideTimer != null)
+    window.setPlayMode(.Once)
+    Swag.assert(window.slideTimer == null)
+    window.setPlayMode(.Folder)
+
+    // A view that is not the one on screen has no say.
+    Swag.assert(reportViewerFinished(window.openButton) == .Stop and window.pendingFile.isEmpty())
+
+    Swag.assert(reportViewerFinished(view) == .Next)
+    Swag.assert(Path.fileName(window.pendingFile.toString()) == "pic2.svg" and window.slideTimer == null)
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.stillView == window.currentView and window.slideTimer != null)
+    host.fireTimer(window.slideTimer)
+    Swag.assert(window.slideTimer == null and Path.fileName(window.pendingFile.toString()) == "pic1.svg")
+    completeQueuedViewerFile(&host, window)
+
+    window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.stillView == null and window.slideTimer == null)
+    Swag.assert(reportViewerFinished(window.currentView!) == .Replay and window.pendingFile.isEmpty())
+}
+
+// The play mode is chosen from the action bar, and the button carries the choice.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    Swag.assert(window.playMode == .Once and window.playModeButton.icon.index == cast(s32) ThemeIcons.PlayOnce)
+
+    host.clickPopupMenuItemWhenShown("scope.play.shuffle")
+    window.showPlayModeMenu()
+    Swag.assert(window.playMode == .Shuffle and window.playModeButton.icon.index == cast(s32) ThemeIcons.Shuffle)
+
+    host.clickPopupMenuItemWhenShown("scope.play.folder")
+    window.showPlayModeMenu()
+    Swag.assert(window.playMode == .Folder and window.playModeButton.icon.index == cast(s32) ThemeIcons.RepeatAll)
+
+    host.openPopupSubMenuWhenShown(appStrings().ui_PlaySlide)
+    host.thenClickPopupMenuItem("scope.play.slide.2")
+    window.showPlayModeMenu()
+    Swag.assert(window.slideSeconds == 10)
+}

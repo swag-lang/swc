@@ -59,6 +59,26 @@ const ViewerPaneMinSize  = 88.0
 const ViewerRecentCount        = 12'u64
 const ViewerFolderHistoryCount = 8'u64
 
+// How long a still picture stays on screen before a folder play mode moves on, and the paces the
+// play-mode menu offers. A picture is looked at rather than played, so the reader sets the pace.
+const ViewerSlideDefaultSeconds   = 5'f32
+const ViewerSlideMinSeconds       = 1'f32
+const ViewerSlideMaxSeconds       = 3600'f32
+const ViewerSlideChoices: [5] f32 = [3, 5, 10, 30, 60]
+
+// What the window does once the current viewer has finished presenting its file.
+//
+// The window owns the mode because it owns the folder: a viewer only reports that it has reached
+// the end of what it shows, and the window answers with what follows. The mode holds across files
+// and sessions, which is what lets one file hand over to the next.
+enum ViewerPlayMode
+{
+    Once        // Leaves the file where it ended.
+    Repeat      // Has the viewer present the same file again.
+    Folder      // Continues with the next file of the same kind, around again past the last one.
+    Shuffle     // Continues with a random file of the same kind, each once before any comes again.
+}
+
 // One remembered answer to "which viewer opens a file of this kind".
 //
 // A reader who turns to the bytes of one picture is telling the application what to do with the
@@ -569,6 +589,7 @@ struct ViewerWindow
         openDefaultButton:   *IconButton
         filesButton:         *IconButton
         fullScreenButton:    *IconButton
+        playModeButton:      *IconButton
         searchGroup:         *StackLayoutCtrl
         searchNavigation:    *StackLayoutCtrl
         searchBox:           *EditBox
@@ -665,6 +686,16 @@ struct ViewerWindow
     // the notes stored beside them.
     folderSameKind: bool
 
+    // The play mode and what it needs: the slideshow pace, the timer counting it down, the view
+    // that reported a still picture for it to count, and the files the shuffle has already
+    // continued from in its folder, so that every file gets its turn before any comes again.
+    playMode:      ViewerPlayMode
+    slideSeconds:  f32 = ViewerSlideDefaultSeconds
+    slideTimer:    *Timer?
+    stillView:     *Wnd?
+    shuffleFolder: String
+    shufflePlayed: Array'String
+
     // Guards the one nested dispatch [[forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
     forwardingViewerKey: bool
@@ -723,6 +754,18 @@ func reportViewerChromeChanged(view: *Wnd)
 func navigateViewerFile(view: *Wnd, delta: s32)
 {
     viewerWindowFor(view).navigate(delta)
+}
+
+// Answers a viewer that has finished presenting its file with what the play mode calls for.
+func reportViewerFinished(view: *Wnd)->Viewer.Continuation
+{
+    return viewerWindowFor(view).continueAfter(view)
+}
+
+// Starts the slideshow pace for a viewer showing content with no end of its own.
+func reportViewerShown(view: *Wnd)
+{
+    viewerWindowFor(view).showStill(view)
 }
 
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
@@ -845,6 +888,14 @@ impl IWnd for ViewerWindow
             return
         }
 
+        if evt.timer == .slideTimer
+        {
+            .removeTimer(evt.timer)
+            .slideTimer = null
+            .continueSlide()
+            return
+        }
+
         if evt.timer != .startupTimer
         {
             evt.accepted = false
@@ -869,6 +920,7 @@ impl IWnd for ViewerWindow
         catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
+        .stopSlide()
         for &set in .pluginIcons do
             set.icons.free()
         if .startupTimer
@@ -910,6 +962,8 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
         catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
+        catch evt.serializer.serialize("ViewerWindow.playMode", &me.playMode)
+        catch evt.serializer.serialize("ViewerWindow.slideSeconds", &me.slideSeconds)
         catch evt.serializer.serialize("ViewerWindow.searchMatchCase", &me.searchMatchCaseOption)
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
@@ -927,6 +981,9 @@ impl IWnd for ViewerWindow
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(!.folderHistory.isEmpty())
             .searchBox.setValidator(.searchBox.validator)
+            if cast(u32) .playMode > cast(u32) ViewerPlayMode.Shuffle do
+                .playMode = .Once
+            .slideSeconds                       = Math.clamp(.slideSeconds, ViewerSlideMinSeconds, ViewerSlideMaxSeconds)
             g_VideoSubtitleSettings.delay       = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
             g_MarkdownViewerSettings.themeIndex = Math.min(g_MarkdownViewerSettings.themeIndex, 5)
             g_MarkdownViewerSettings.widthIndex = Math.min(g_MarkdownViewerSettings.widthIndex, 3)
@@ -1001,6 +1058,7 @@ impl ViewerWindow
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
+        .refreshPlayModeIcon()
         .refreshSearchPresentation()
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
@@ -1217,6 +1275,19 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = result|(button)
             {
                 window.setFullScreen(button.isChecked)
+            }
+        }
+
+        with result.playModeButton = IconButton.create(result.commandBar, result.theme().icon(.PlayOnce, themeActionIconSize(result.themeMetrics())), {0, 0, dropDownWidth, actionSize}, flags: .CenterContent)
+        {
+            .dockStyle = .Right
+            .margin.z  = 8
+            .toolTip   = appStrings().ui_PlayMode
+            .setArrowPosition(.RightDownward)
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.showPlayModeMenu()
             }
         }
 
@@ -1674,6 +1745,8 @@ impl ViewerWindow
         .searchMatch    = Swag.U64.Max
         .searchComplete = false
         .refreshSearchReadout()
+        .stopSlide()
+        .stillView = null
 
         .pendingFile = fileName
         .pendingEmpty.clear()
@@ -2065,6 +2138,7 @@ impl ViewerWindow
         .currentInfo     = instance.info
         .currentCommands = instance.commands
         .setCurrentSidePanel(instance.sidePanelHost, instance.sidePanelButton)
+        .armSlide()
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .None
@@ -2292,7 +2366,9 @@ impl ViewerWindow
                 reportDetails: &reportViewerDetails,
                 reportChromeChanged: &reportViewerChromeChanged,
                 reportLoadingChanged: &reportViewerLoadingChanged,
-                navigateFile: &navigateViewerFile}}
+                navigateFile: &navigateViewerFile,
+                reportFinished: &reportViewerFinished,
+                reportShown: &reportViewerShown}}
         let host: Viewer.Host = &pluginHost
         catch next.create(plugin, host) as viewerError
         if viewerError != null
@@ -3216,6 +3292,7 @@ impl ViewerWindow
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
         .filesButton.toolTip         = texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
+        .playModeButton.toolTip      = texts.ui_PlayMode
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .recentClearButton.toolTip   = texts.ui_ClearHistory
         .viewerCombo.toolTip         = texts.ui_Viewer
@@ -3541,5 +3618,230 @@ impl ViewerWindow
         elif index >= cast(s64) .siblings.count do
             index = 0
         .queueFile(.siblings[cast(u64) index].toString())
+    }
+
+    // Returns the files of the current file's folder that its viewer opens, in folder order and
+    // whatever the panel filter says: a play mode walks the movies of a folder past the notes
+    // stored beside them, whether or not the list shows those notes.
+    mtd kindSiblings()->Array'String
+    {
+        var result: retval
+        for file in .folderFiles where .index.sharesViewer(.currentFile.toString(), file[].toString()) do
+            result.add(file[])
+        return result
+    }
+
+    // Queues the file that follows the current one in `mode` among those its viewer opens, and
+    // reports whether there was one to queue.
+    //
+    // A file that a play mode brings up is not one the reader chose, so it joins neither the
+    // recent list nor the folder history.
+    mtd continueFile(mode: ViewerPlayMode)->bool
+    {
+        if .currentFile.isEmpty() do
+            return false
+        let files = .kindSiblings()
+        if files.count <= 1 do
+            return false
+
+        var next: String
+        switch #complete mode
+        {
+        case .Once, .Repeat:
+            return false
+
+        case .Folder:
+            var index = 0'u64
+            for i in files.count where files[i] == .currentFile
+            {
+                index = i
+                break
+            }
+
+            next = files[(index + 1) % files.count]
+
+        case .Shuffle:
+            next = .pickShuffled(files.toSlice())
+        }
+
+        .queueFile(next.toString(), remember: false)
+        return true
+    }
+
+    // Picks a file the shuffle has not yet continued from in this folder, starting a new round
+    // once every file has had its turn.
+    //
+    // The file that has just ended is the one that must not come straight back, so a new round
+    // starts with it already taken. The round is not persisted: a shuffle is a walk through a
+    // folder, not a property of it.
+    mtd pickShuffled(files: const [..] String)->String
+    {
+        let folder = Path.directoryName(.currentFile.toString()) orelse ""
+        if Utf8.compare(.shuffleFolder.toString(), folder, .Latin1NoCase) != 0
+        {
+            .shuffleFolder = folder
+            .shufflePlayed.clear()
+        }
+
+        if !.shufflePlayed.contains(.currentFile) do
+            .shufflePlayed.add(.currentFile)
+
+        var candidates: Array'u64
+        for one, index in files where !.shufflePlayed.contains(one[]) do
+            candidates.add(index)
+        if candidates.isEmpty()
+        {
+            .shufflePlayed.clear()
+            .shufflePlayed.add(.currentFile)
+            for one, index in files where one[] != .currentFile do
+                candidates.add(index)
+        }
+
+        return files[candidates[Random.shared().nextU64(0, candidates.count)]]
+    }
+
+    // Answers a viewer that has finished presenting its file with what the play mode calls for.
+    //
+    // Only the current view has a say: one on its way out reports the end of a file the window
+    // has already left. A folder mode brings up the file that follows and tells the viewer to
+    // stay as it is; a file alone of its kind in its folder is the whole playlist, so those modes
+    // have it presented again.
+    mtd continueAfter(view: *Wnd)->Viewer.Continuation
+    {
+        if view != .currentView do
+            return .Stop
+        switch #complete .playMode
+        {
+        case .Once:             return .Stop
+        case .Repeat:           return .Replay
+        case .Folder, .Shuffle: return .continueFile(.playMode) ? .Next : .Replay
+        }
+    }
+
+    // Starts the slideshow pace for a view showing content with no end of its own.
+    //
+    // A progressive viewer may report before the window has committed to it; the commit then
+    // starts the count, so the order of the two does not matter.
+    mtd showStill(view: *Wnd)
+    {
+        .stillView = view
+        .armSlide()
+    }
+
+    // Counts the slideshow pace down for a still picture while a folder mode is on, and stops
+    // counting otherwise.
+    mtd armSlide()
+    {
+        .stopSlide()
+        if !.stillView or .stillView != .currentView do
+            return
+        if .playMode != .Folder and .playMode != .Shuffle do
+            return
+        .slideTimer = .addTimer(Time.Duration.fromSeconds(.slideSeconds))
+    }
+
+    mtd stopSlide()
+    {
+        if !.slideTimer do
+            return
+        .removeTimer(.slideTimer!)
+        .slideTimer = null
+    }
+
+    // Moves the slideshow on once its pace has elapsed on the picture that started it.
+    mtd continueSlide()
+    {
+        if !.stillView or .stillView != .currentView do
+            return
+        discard .continueFile(.playMode)
+    }
+
+    mtd setPlayMode(mode: ViewerPlayMode)
+    {
+        if .playMode == mode do
+            return
+        .playMode = mode
+        .refreshPlayModeIcon()
+        .armSlide()
+        catch .saveState()
+    }
+
+    mtd setSlideSeconds(seconds: f32)
+    {
+        .slideSeconds = Math.clamp(seconds, ViewerSlideMinSeconds, ViewerSlideMaxSeconds)
+        .armSlide()
+        catch .saveState()
+    }
+
+    // The button carries the mode, so the reader sees it without opening the menu.
+    mtd refreshPlayModeIcon()
+    {
+        .playModeButton.setIcon(.theme().icon(.playModeIcon(), themeActionIconSize(.themeMetrics())))
+    }
+
+    mtd const playModeIcon()->ThemeIcons
+    {
+        switch #complete .playMode
+        {
+        case .Once:    return .PlayOnce
+        case .Repeat:  return .RepeatOne
+        case .Folder:  return .RepeatAll
+        case .Shuffle: return .Shuffle
+        }
+    }
+
+    // Offers the play modes and the slideshow pace.
+    //
+    // The four modes stand as one group with one check mark: the mode is what the reader is
+    // choosing, and a toggle per mode would let two be on at once. The pace is a submenu, since
+    // it qualifies only the folder modes, and only for pictures.
+    mtd showPlayModeMenu()
+    {
+        const OnceId    = "scope.play.once"
+        const RepeatId  = "scope.play.repeat"
+        const FolderId  = "scope.play.folder"
+        const ShuffleId = "scope.play.shuffle"
+
+        let texts = appStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(texts.ui_PlayOnce, OnceId, checked: .playMode == .Once)
+        menu.addItem(texts.ui_PlayRepeat, RepeatId, checked: .playMode == .Repeat)
+        menu.addItem(texts.ui_PlayFolder, FolderId, checked: .playMode == .Folder)
+        menu.addItem(texts.ui_PlayShuffle, ShuffleId, checked: .playMode == .Shuffle)
+        menu.addSeparator()
+
+        var slideCommands: Array'String
+        slideCommands.reserve(ViewerSlideChoices.count)
+        let slideMenu = MenuCtrl.createPopup(menu, owner: me)
+        for seconds, index in ViewerSlideChoices
+        {
+            slideCommands.add(Format.toString("scope.play.slide.%", index))
+            slideMenu.addItem(Format.toString("% s", cast(u32) seconds).toString(), slideCommands[index].toString(), checked: seconds == .slideSeconds)
+        }
+
+        menu.addPopup(texts.ui_PlaySlide, slideMenu)
+
+        let chosen = menu.doModal(.playModeButton, autoDestroy: true) orelse ""
+        switch chosen
+        {
+        case OnceId:
+            .setPlayMode(.Once)
+
+        case RepeatId:
+            .setPlayMode(.Repeat)
+
+        case FolderId:
+            .setPlayMode(.Folder)
+
+        case ShuffleId:
+            .setPlayMode(.Shuffle)
+
+        default:
+            for seconds, index in ViewerSlideChoices where chosen == slideCommands[index].toString()
+            {
+                .setSlideSeconds(seconds)
+                return
+            }
+        }
     }
 }

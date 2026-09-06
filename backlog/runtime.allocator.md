@@ -30,6 +30,23 @@ Measured against the previous design on the same machine, alternating both binar
 
 The remaining work below is what turns that into a measured allocator contract.
 
+### runtime.allocator.011 — Audit error storage ownership and reclamation
+
+- Recorded: 2026-09-06 21:01
+- Evidence: while diagnosing Swag Vault rename collisions, `Core.Errors.mkString` and
+  runtime `__setErrRaw` both call `ScratchAllocator.alloc(size)`. That overload allocates directly
+  through the backing allocator; it does not advance `used` or link the allocation into
+  `firstLeak`. The error stack rewinds `used`, and `ScratchAllocator.release` only releases its
+  buffer and tracked spills, so these copies appear to escape error-storage reclamation.
+- Related evidence: `Threading.Thread.init` copies the parent's complete context and resets only
+  `tempAllocator`, leaving `errorAllocator` storage shared with the parent. A change to use the
+  scratch buffer must first establish independent error storage for each thread.
+- Next: add allocation-count and concurrent-error reproducers, then define the lifetime of caught
+  error values and strings before routing allocations through the scratch interface. Include
+  foreign-thread exit cleanup and nested catch/rethrow behavior.
+- Complete when: repeated handled errors reclaim their storage and simultaneous threads cannot
+  overwrite one another's errors, with native regression coverage.
+
 ### runtime.allocator.003 — Return idle memory without being asked
 
 - Recorded: 2026-08-05 10:27

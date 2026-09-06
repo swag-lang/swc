@@ -1,6 +1,7 @@
 #global if WINDOWS and #hastag("vault.integration")
 
 #foreignlib("kernel32")
+#foreignlib("shell32")
 
 using Core
 
@@ -41,6 +42,88 @@ namespace Integration
         func SetFileAttributesW(path: const [*] u16?, attributes: u32)->s32
         func GetFileAttributesW(path: const [*] u16?)->u32
         func GetLastError()->u32
+    }
+
+    // Only the Shell methods used by this harness are callable; the other slots retain ABI order.
+    struct IFileOperation
+    {
+        lpVtbl: *IFileOperationVtbl
+    }
+
+    struct IFileOperationVtbl
+    {
+        base:                    Win32.IUnknownVtbl
+        Advise:                  *void?
+        Unadvise:                *void?
+        SetOperationFlags:       func(*IFileOperation, u32)->s32
+        SetProgressMessage:      *void?
+        SetProgressDialog:       *void?
+        SetProperties:           *void?
+        SetOwnerWindow:          *void?
+        ApplyPropertiesToItem:   *void?
+        ApplyPropertiesToItems:  *void?
+        RenameItem:              *void?
+        RenameItems:             func(*IFileOperation, *Win32.IUnknown, const [*] u16)->s32
+        MoveItem:                *void?
+        MoveItems:               *void?
+        CopyItem:                *void?
+        CopyItems:               *void?
+        DeleteItem:              *void?
+        DeleteItems:             *void?
+        NewItem:                 *void?
+        PerformOperations:       func(*IFileOperation)->s32
+        GetAnyOperationsAborted: func(*IFileOperation, *s32)->s32
+    }
+
+    #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
+    {
+        func SHParseDisplayName(name: const [*] u16, context: *void?, idList: *(*void?), attributes: u32, resultAttributes: *u32?)->s32
+        func SHCreateShellItemArrayFromIDLists(count: u32, idLists: const [*] (*void?), items: *(*Win32.IUnknown?))->s32
+    }
+
+    func shellRenameItems(paths: const [..] String, name: string) fail
+    {
+        try verify(Win32.CoInitializeEx(null, Win32.COINIT_APARTMENTTHREADED) >= 0, "the Shell rename test needs a COM apartment")
+        defer Win32.CoUninitialize()
+
+        var classId     = Win32.GUID{0x3AD05575, 0x8857, 0x4850, [0x92, 0x77, 0x11, 0xB8, 0x5B, 0xDB, 0x8E, 0x09]}
+        var interfaceId = Win32.GUID{0x947AAB5F, 0x0A5C, 0x4C13, [0xB4, 0xD6, 0x4B, 0xF7, 0x83, 0x6F, 0xC9, 0xF8]}
+        var raw: Win32.LPVOID
+        try verify(Win32.CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw) >= 0, "Windows must create the Shell file operation")
+        let operation = cast(*IFileOperation) raw!
+        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown) operation)
+
+        var idLists: Array'(*void?)
+        defer
+        {
+            for idList in idLists do
+                Win32.CoTaskMemFree(idList)
+        }
+
+        for path in paths
+        {
+            // Shell parsing does not perform the slash conversion accepted by Win32 file APIs.
+            var shellPath = String.from(path.toString())
+            shellPath.replace('/', "\\")
+            let path16 = Utf16.toZeroTerminated(shellPath)
+            var idList: *void?
+            let status = SHParseDisplayName(path16.buffer!, null, &idList, 0, null)
+            try verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32) status))
+            idLists.add(idList)
+        }
+
+        var items: *Win32.IUnknown?
+        try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, idLists.buffer!, &items) >= 0, "the Shell must collect the batch rename sources")
+        defer discard (items!.lpVtbl.Release)(items!)
+
+        // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
+        const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
+        try verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
+        let name16 = Utf16.toZeroTerminated(name)
+        try verify((operation.lpVtbl.RenameItems)(operation, items!, name16.buffer!) >= 0, "the Shell must queue every file under the same requested name")
+        try verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
+        var aborted: s32
+        try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and !aborted, "the Shell must not skip any batch rename")
     }
 
     func password()->const [..] u8
@@ -380,6 +463,47 @@ namespace Integration
                           containsEntry(entries.toSlice(), "item-23.bin")
         try verify(scannedBulk, "directory scans must return every created file")
 
+        trace("FS: batch rename with name collisions")
+        let occupied = Path.combine(bulk, "occupied.bin")
+        discard File.writeAllBytes(occupied, first)
+        let occupied16 = Utf16.toZeroTerminated(occupied)
+        var renamePaths: Array'String
+        for index in 24
+        {
+            let source    = Path.combine(bulk, Format.toString("item-%.bin", index))
+            let source16  = Utf16.toZeroTerminated(source)
+            let collision = MoveFileExW(source16.buffer, occupied16.buffer, 0)
+            let error     = GetLastError()
+            try verify(!collision and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
+            try verify(File.exists(source) and sameBytes((try File.readAllBytes(occupied)).toSlice(), first), "a refused rename must preserve both files")
+
+            let destination = Path.combine(bulk, Format.toString("clip (%).mp4", index + 1))
+            renamePaths.add(destination)
+            movePath(source, destination)
+            let renamedBytes = try File.readAllBytes(destination)
+            try verify(!File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
+            var expected: [113] u8
+            for byteIndex in expected.count do
+                expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
+            try verify(sameBytes(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
+        }
+
+        trace("FS: Shell batch rename with automatic numbering")
+        shellRenameItems(renamePaths.toSlice(), "video.mp4")
+        let shellEntries = try Directory.enumerateFiles(bulk)
+        for entry in shellEntries do
+            trace(Format.toString("SHELL: %", entry.name))
+        for index in 24
+        {
+            let numbered     = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))
+            let renamedBytes = try File.readAllBytes(numbered)
+            try verify(!File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
+            var expected: [113] u8
+            for byteIndex in expected.count do
+                expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
+            try verify(sameBytes(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
+        }
+
         let documentsEntries = try Directory.enumerate(documents, {})
         let scannedDocuments = containsEntry(documentsEntries.toSlice(), "Renamed-Nested") and
                                containsEntry(documentsEntries.toSlice(), "résumé-東京.txt") and
@@ -410,7 +534,7 @@ namespace Integration
 
         let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = try Directory.enumerateFiles(bulk)
-        try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-12.bin"), "directory metadata must persist across remount")
+        try verify(entries.count == 25 and containsEntry(entries.toSlice(), "video (13).mp4") and containsEntry(entries.toSlice(), "occupied.bin"), "batch rename metadata must persist across remount")
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text            = "mounted twice"
@@ -505,7 +629,7 @@ namespace Integration
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows integration error."
         }
 
-        return "Unknown integration error."
+        return Errors.message(err)
     }
 
     func runAndExit()

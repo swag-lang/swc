@@ -58,3 +58,26 @@ func failDeep() fail
 {
     Swag.assert(Errors.message(null) == "")
 }
+
+#test
+{
+    // Native callbacks can build an error message before their first 'fail' initializes storage.
+    let previous = Swag.getContext()
+    defer Swag.setContext(previous)
+    var context: Swag.Context
+    context.allocator        = previous.allocator
+    context.defaultAllocator = previous.defaultAllocator
+    context.runtimeFlags     = previous.runtimeFlags
+    Swag.setContext(context)
+    defer context.errorAllocator.release()
+
+    Swag.assert(Errors.mkString(null) == null)
+    Swag.assert(Errors.mkString("") == "")
+    var text       = String.from("a name collision")
+    let persistent = Errors.mkString(text.toString())
+    text.clear()
+    Swag.assert(persistent == "a name collision")
+
+    catch failWithMessage() as err
+    Swag.assert(Errors.message(err) == "the message text")
+}

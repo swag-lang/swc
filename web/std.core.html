@@ -95,7 +95,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">192</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">194</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_CommandLine_FieldResult">CommandLine.FieldResult</a></li>
@@ -109,6 +109,8 @@
 <li><a href="#Core_Array">Core.Array</a></li>
 <li><a href="#Core_ArrayPtr">Core.ArrayPtr</a></li>
 <li><a href="#Core_BitArray">Core.BitArray</a></li>
+<li><a href="#Core_ByteSink">Core.ByteSink</a></li>
+<li><a href="#Core_ByteSource">Core.ByteSource</a></li>
 <li><a href="#Core_ByteStream">Core.ByteStream</a></li>
 <li><a href="#Core_ConcatBuffer">Core.ConcatBuffer</a></li>
 <li><a href="#Core_ConcatBufferBucket">Core.ConcatBufferBucket</a></li>
@@ -347,9 +349,11 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Constants</span><span class="toc-count">91</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">93</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
+<li><a href="#Core_ByteSink_WindowSize">ByteSink.WindowSize</a></li>
+<li><a href="#Core_ByteSource_WindowSize">ByteSource.WindowSize</a></li>
 <li><a href="#Core_ASSERT">Core.ASSERT</a></li>
 <li><a href="#Core_BIG_ENDIAN">Core.BIG_ENDIAN</a></li>
 <li><a href="#Core_StringSmallSize">Core.StringSmallSize</a></li>
@@ -444,7 +448,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1685</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1717</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -575,6 +579,38 @@
 <li><a href="#Core_Resources_Bundle_isOverridden">Bundle.isOverridden</a></li>
 <li><a href="#Core_Resources_Bundle_list">Bundle.list</a></li>
 <li><a href="#Core_Resources_Bundle_load">Bundle.load</a></li>
+<li><a href="#Core_ByteSink_close">ByteSink.close</a></li>
+<li><a href="#Core_ByteSink_createFile">ByteSink.createFile</a></li>
+<li><a href="#Core_ByteSink_createMemory">ByteSink.createMemory</a></li>
+<li><a href="#Core_ByteSink_flush">ByteSink.flush</a></li>
+<li><a href="#Core_ByteSink_patch">ByteSink.patch</a></li>
+<li><a href="#Core_ByteSink_path">ByteSink.path</a></li>
+<li><a href="#Core_ByteSink_position">ByteSink.position</a></li>
+<li><a href="#Core_ByteSink_write">ByteSink.write</a></li>
+<li><a href="#Core_ByteSink_writeBigEndian">ByteSink.writeBigEndian</a></li>
+<li><a href="#Core_ByteSink_writeByte">ByteSink.writeByte</a></li>
+<li><a href="#Core_ByteSink_writeLittleEndian">ByteSink.writeLittleEndian</a></li>
+<li><a href="#Core_ByteSink_writeNative">ByteSink.writeNative</a></li>
+<li><a href="#Core_ByteSink_writeText">ByteSink.writeText</a></li>
+<li><a href="#Core_ByteSource_close">ByteSource.close</a></li>
+<li><a href="#Core_ByteSource_isAtEnd">ByteSource.isAtEnd</a></li>
+<li><a href="#Core_ByteSource_isOpen">ByteSource.isOpen</a></li>
+<li><a href="#Core_ByteSource_openFile">ByteSource.openFile</a></li>
+<li><a href="#Core_ByteSource_openMemory">ByteSource.openMemory</a></li>
+<li><a href="#Core_ByteSource_path">ByteSource.path</a></li>
+<li><a href="#Core_ByteSource_peek">ByteSource.peek</a></li>
+<li><a href="#Core_ByteSource_position">ByteSource.position</a></li>
+<li><a href="#Core_ByteSource_read">ByteSource.read</a></li>
+<li><a href="#Core_ByteSource_readBigEndian">ByteSource.readBigEndian</a></li>
+<li><a href="#Core_ByteSource_readByte">ByteSource.readByte</a></li>
+<li><a href="#Core_ByteSource_readExact">ByteSource.readExact</a></li>
+<li><a href="#Core_ByteSource_readLine">ByteSource.readLine</a></li>
+<li><a href="#Core_ByteSource_readLittleEndian">ByteSource.readLittleEndian</a></li>
+<li><a href="#Core_ByteSource_readNative">ByteSource.readNative</a></li>
+<li><a href="#Core_ByteSource_remaining">ByteSource.remaining</a></li>
+<li><a href="#Core_ByteSource_seek">ByteSource.seek</a></li>
+<li><a href="#Core_ByteSource_size">ByteSource.size</a></li>
+<li><a href="#Core_ByteSource_skip">ByteSource.skip</a></li>
 <li><a href="#Core_ByteStream_advance">ByteStream.advance</a></li>
 <li><a href="#Core_ByteStream_isEof">ByteStream.isEof</a></li>
 <li><a href="#Core_ByteStream_length">ByteStream.length</a></li>
@@ -2256,7 +2292,7 @@ work.<span class="SFct">push</span>(<span class="SNum">10</span>)
 <p>Formatting creates text for display; parsing converts text back to typed values. Keep machine-readable formats independent of locale unless a declaration explicitly accepts globalization settings.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Files__paths__and_serialization">Files, paths, and serialization</h2>
-<p><a href="#namespace_Core_Path">Core.Path</a> manipulates path text without accessing the filesystem. <a href="#namespace_Core_File">Core.File</a> and <a href="#namespace_Core_Directory">Core.Directory</a> perform filesystem operations. <a href="#Core_File_FileStream">Core.File.FileStream</a>, <a href="#Core_ByteStream">Core.ByteStream</a>, and <a href="#Core_File_TextReader">Core.File.TextReader</a> support incremental I/O.</p>
+<p><a href="#namespace_Core_Path">Core.Path</a> manipulates path text without accessing the filesystem. <a href="#namespace_Core_File">Core.File</a> and <a href="#namespace_Core_Directory">Core.Directory</a> perform filesystem operations. <a href="#Core_File_FileStream">Core.File.FileStream</a>, <a href="#Core_ByteStream">Core.ByteStream</a>, <a href="#Core_ByteSource">Core.ByteSource</a>, <a href="#Core_ByteSink">Core.ByteSink</a>, and <a href="#Core_File_TextReader">Core.File.TextReader</a> support incremental I/O.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
 
 <span class="SKwd">let</span> configPath = <span class="SCst"><a href="#namespace_Core_Path">Path</a></span>.<span class="SFct">combine</span>(<span class="SStr">"config"</span>, <span class="SStr">"application.json"</span>)
@@ -2266,6 +2302,26 @@ work.<span class="SFct">push</span>(<span class="SNum">10</span>)
     <span class="SCmt">// Decode the source at the application boundary.</span>
 }</span></div>
 <p>Use whole-file helpers for small resources and configuration. Prefer streams for large files, bounded memory use, or processing that can start before the complete file is available.</p>
+<h3 id="guide_Files__paths__and_serialization_Decoding_a_file_of_any_size">Decoding a file of any size</h3>
+<p><a href="#Core_ByteSource">Core.ByteSource</a> and <a href="#Core_ByteSink">Core.ByteSink</a> are what a codec reads and writes through. Each has a file backing and a memory backing behind the same operations, so a decoder written once reads a ten-hour recording and a byte slice alike, and a file source holds one read window whatever the length of the file. A read larger than the window goes straight to its destination; <a href="#Core_ByteSource_peek">Core.ByteSource.peek</a> lends the bytes ahead of the read position without copying them, which is how a walker over frame headers scans a file at the cost of its index.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
+
+<span class="SKwd">var</span> source = <span class="SKwd">try</span> <span class="SCst"><a href="#Core_ByteSource">ByteSource</a></span>.<span class="SFct">openFile</span>(<span class="SStr">"recording.mp3"</span>)
+<span class="SLgc">while</span> !source.<span class="SFct">isAtEnd</span>()
+{
+    <span class="SKwd">let</span> header = <span class="SKwd">try</span> source.<span class="SFct">peek</span>(<span class="SNum">4</span>)
+    <span class="SKwd">let</span> length = <span class="SFct">frameLength</span>(header)
+    <span class="SKwd">try</span> source.<span class="SFct">skip</span>(length)
+}</span></div>
+<p>A container writer reserves the totals of its header and fills them in once the last frame has landed: <a href="#Core_ByteSink_patch">Core.ByteSink.patch</a> rewrites bytes the sink already accepted, so writing a long stream costs the memory of one frame rather than the memory of the result.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
+
+<span class="SKwd">var</span> sink = <span class="SKwd">try</span> <span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span>.<span class="SFct">createFile</span>(<span class="SStr">"clip.avi"</span>)
+<span class="SKwd">let</span> sizeField = sink.<span class="SFct">position</span>()
+<span class="SKwd">try</span> sink.<span class="SFct">writeLittleEndian</span>(<span class="SNum">0</span>'<span class="STpe">u32</span>)
+<span class="SCmt">// ... frames ...</span>
+<span class="SKwd">try</span> sink.<span class="SFct">patch</span>(sizeField, sizeBytes)
+<span class="SKwd">try</span> sink.<span class="SFct">close</span>()</span></div>
 <h3 id="guide_Files__paths__and_serialization_Memory-mapped_files">Memory-mapped files</h3>
 <p><a href="#Core_File_MappedFile">Core.File.MappedFile</a> creates independently owned <a href="#Core_File_MappedRegion">Core.File.MappedRegion</a> views for random access to large files. A region may start at any byte offset; the platform alignment is handled internally.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
@@ -2456,6 +2512,10 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_ArrayPtr">Core.ArrayPtr</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A specialized dynamic array for holding and owning pointers.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BitArray">Core.BitArray</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Manages a compact array of bit values.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink">Core.ByteSink</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Writes the bytes of a stream to a file or to memory, through one cursor and one window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource">Core.ByteSource</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Reads the bytes of a stream held in a file or in memory, through one cursor and one window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ByteStream">Core.ByteStream</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Provides a bounded cursor over borrowed bytes or a caller-owned byte array.</p>
 </td></tr>
@@ -2927,6 +2987,10 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Core_ByteSink_WindowSize">ByteSink.WindowSize</a></td><td><p>Size of the write window of a file sink, in bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_WindowSize">ByteSource.WindowSize</a></td><td><p>Size of the read window of a file source, in bytes.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ASSERT">Core.ASSERT</a></td><td><p>Defines assert.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BIG_ENDIAN">Core.BIG_ENDIAN</a></td><td><p>Defines big endian.</p>
@@ -3370,6 +3434,70 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Resources_Bundle_list">Bundle.list</a></td><td><p>Returns the sorted names of every resource starting with <span class="code-inline">prefix</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Resources_Bundle_load">Bundle.load</a></td><td><p>Loads the bytes of <span class="code-inline">name</span> from the first provider that owns it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_close">ByteSink.close</a></td><td><p>Flushes the stream and releases the file. Repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_createFile">ByteSink.createFile</a></td><td><p>Creates <span class="code-inline">fileName</span>, replacing any existing file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_createMemory">ByteSink.createMemory</a></td><td><p>Appends the stream to <span class="code-inline">buffer</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_flush">ByteSink.flush</a></td><td><p>Hands every buffered byte to the file. A memory sink has nothing to flush.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_patch">ByteSink.patch</a></td><td><p>Rewrites bytes this sink already accepted, at <span class="code-inline">offset</span> bytes from the start of its stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_path">ByteSink.path</a></td><td><p>Returns the file this sink writes, or an empty string for a memory sink.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_position">ByteSink.position</a></td><td><p>Returns the number of bytes written so far, which is where the next write lands.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_write">ByteSink.write</a></td><td><p>Appends <span class="code-inline">bytes</span> to the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeBigEndian">ByteSink.writeBigEndian</a></td><td><p>Appends an integer of type <span class="code-inline">T</span> in big-endian byte order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeByte">ByteSink.writeByte</a></td><td><p>Appends one byte.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeLittleEndian">ByteSink.writeLittleEndian</a></td><td><p>Appends an integer of type <span class="code-inline">T</span> in little-endian byte order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeNative">ByteSink.writeNative</a></td><td><p>Appends one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeText">ByteSink.writeText</a></td><td><p>Appends the bytes of <span class="code-inline">text</span> to the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_close">ByteSource.close</a></td><td><p>Releases the file or the borrowed bytes and leaves an empty source. Repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_isAtEnd">ByteSource.isAtEnd</a></td><td><p>Reports whether the read position reached the end of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_isOpen">ByteSource.isOpen</a></td><td><p>Reports whether the source still has a stream to read.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_openFile">ByteSource.openFile</a></td><td><p>Opens <span class="code-inline">fileName</span> for streaming reads.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_openMemory">ByteSource.openMemory</a></td><td><p>Borrows <span class="code-inline">bytes</span> as one complete stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_path">ByteSource.path</a></td><td><p>Returns the file this source reads, or an empty string for a memory source.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_peek">ByteSource.peek</a></td><td><p>Returns the bytes at the read position without consuming them.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_position">ByteSource.position</a></td><td><p>Returns the read position, in bytes from the start of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_read">ByteSource.read</a></td><td><p>Reads at most as many bytes as <span class="code-inline">buffer</span> holds and returns how many were read.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readBigEndian">ByteSource.readBigEndian</a></td><td><p>Reads a big-endian integer of type <span class="code-inline">T</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readByte">ByteSource.readByte</a></td><td><p>Reads one byte.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readExact">ByteSource.readExact</a></td><td><p>Reads exactly as many bytes as <span class="code-inline">buffer</span> holds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readLine">ByteSource.readLine</a></td><td><p>Reads the bytes up to the next line feed and returns the line without it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readLittleEndian">ByteSource.readLittleEndian</a></td><td><p>Reads a little-endian integer of type <span class="code-inline">T</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readNative">ByteSource.readNative</a></td><td><p>Reads one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_remaining">ByteSource.remaining</a></td><td><p>Returns the number of bytes between the read position and the end of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_seek">ByteSource.seek</a></td><td><p>Moves the read position to <span class="code-inline">offset</span> bytes from the start of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_size">ByteSource.size</a></td><td><p>Returns the total size of the stream, in bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_skip">ByteSource.skip</a></td><td><p>Advances the read position by <span class="code-inline">count</span> bytes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ByteStream_advance">ByteStream.advance</a></td><td><p>Advances by <span class="code-inline">count</span> bytes, clamping at the end of the buffer.</p>
 </td></tr>
@@ -6549,6 +6677,10 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BitArray">Core.BitArray</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Manages a compact array of bit values.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink">Core.ByteSink</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Writes the bytes of a stream to a file or to memory, through one cursor and one window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource">Core.ByteSource</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Reads the bytes of a stream held in a file or in memory, through one cursor and one window.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ByteStream">Core.ByteStream</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Provides a bounded cursor over borrowed bytes or a caller-owned byte array.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer">Core.ConcatBuffer</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents a growable buffer that is divided into buckets (chunks of memory).</p>
@@ -9379,6 +9511,115 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_BitArray_setAll">setAll</a></td><td><p>Sets all bits in the array to the specified boolean value.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BitArray_xorWith">xorWith</a></td><td><p>Performs a bitwise XOR operation between this array and another.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_ByteSink" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ByteSink</span> <a class="api-item-permalink" href="#Core_ByteSink" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L16">src</a></div>
+<p>Writes the bytes of a stream to a file or to memory, through one cursor and one window.</p>
+<p>An encoder receives one of these and appends to it piece by piece. A file sink holds one small write window and never accumulates the stream, so writing a long one costs the memory of one piece rather than the memory of the result; a piece larger than the window goes straight to the file.</p>
+<p>A memory sink borrows its destination buffer: it must stay valid until the sink is closed, and it holds the whole stream, which only a bounded result should ask for.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span></span></div>
+</section>
+<h3 id="Core_ByteSink_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_ByteSink_WindowSize">WindowSize</a></td><td><p>Size of the write window of a file sink, in bytes.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Core_ByteSink_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_ByteSink_close">close</a></td><td><p>Flushes the stream and releases the file. Repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_createFile">createFile</a></td><td><p>Creates <span class="code-inline">fileName</span>, replacing any existing file.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_createMemory">createMemory</a></td><td><p>Appends the stream to <span class="code-inline">buffer</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_flush">flush</a></td><td><p>Hands every buffered byte to the file. A memory sink has nothing to flush.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_patch">patch</a></td><td><p>Rewrites bytes this sink already accepted, at <span class="code-inline">offset</span> bytes from the start of its stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_path">path</a></td><td><p>Returns the file this sink writes, or an empty string for a memory sink.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_position">position</a></td><td><p>Returns the number of bytes written so far, which is where the next write lands.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_write">write</a></td><td><p>Appends <span class="code-inline">bytes</span> to the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeBigEndian">writeBigEndian</a></td><td><p>Appends an integer of type <span class="code-inline">T</span> in big-endian byte order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeByte">writeByte</a></td><td><p>Appends one byte.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeLittleEndian">writeLittleEndian</a></td><td><p>Appends an integer of type <span class="code-inline">T</span> in little-endian byte order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeNative">writeNative</a></td><td><p>Appends one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSink_writeText">writeText</a></td><td><p>Appends the bytes of <span class="code-inline">text</span> to the stream.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_ByteSource" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ByteSource</span> <a class="api-item-permalink" href="#Core_ByteSource" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L20">src</a></div>
+<p>Reads the bytes of a stream held in a file or in memory, through one cursor and one window.</p>
+<p>A decoder receives one of these and never learns which backing it has: the same reads, seeks, and peeks work on both. A file source keeps one read window alive and nothing else, so decoding costs the same memory whether the file holds ten frames or ten hours of them, and a read larger than the window goes straight to its destination rather than through it.</p>
+<p>A memory source borrows its bytes: they must stay valid and unchanged until the source is closed. <a href="#Core_ByteStream">Core.ByteStream</a> is the cursor for bytes that are already in memory; this is what a codec reads a file of any size through.</p>
+<p>A read that runs past the end of the stream fails with <a href="#Core_Errors_InvalidFormatError">Core.Errors.InvalidFormatError</a>, because a decoder computing such an offset is reading a truncated stream.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Core_ByteSource">ByteSource</a></span></span></div>
+</section>
+<h3 id="Core_ByteSource_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_ByteSource_WindowSize">WindowSize</a></td><td><p>Size of the read window of a file source, in bytes.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Core_ByteSource_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_ByteSource_close">close</a></td><td><p>Releases the file or the borrowed bytes and leaves an empty source. Repeated calls do nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_isAtEnd">isAtEnd</a></td><td><p>Reports whether the read position reached the end of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_isOpen">isOpen</a></td><td><p>Reports whether the source still has a stream to read.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_openFile">openFile</a></td><td><p>Opens <span class="code-inline">fileName</span> for streaming reads.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_openMemory">openMemory</a></td><td><p>Borrows <span class="code-inline">bytes</span> as one complete stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_path">path</a></td><td><p>Returns the file this source reads, or an empty string for a memory source.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_peek">peek</a></td><td><p>Returns the bytes at the read position without consuming them.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_position">position</a></td><td><p>Returns the read position, in bytes from the start of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_read">read</a></td><td><p>Reads at most as many bytes as <span class="code-inline">buffer</span> holds and returns how many were read.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readBigEndian">readBigEndian</a></td><td><p>Reads a big-endian integer of type <span class="code-inline">T</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readByte">readByte</a></td><td><p>Reads one byte.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readExact">readExact</a></td><td><p>Reads exactly as many bytes as <span class="code-inline">buffer</span> holds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readLine">readLine</a></td><td><p>Reads the bytes up to the next line feed and returns the line without it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readLittleEndian">readLittleEndian</a></td><td><p>Reads a little-endian integer of type <span class="code-inline">T</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_readNative">readNative</a></td><td><p>Reads one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_remaining">remaining</a></td><td><p>Returns the number of bytes between the read position and the end of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_seek">seek</a></td><td><p>Moves the read position to <span class="code-inline">offset</span> bytes from the start of the stream.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_size">size</a></td><td><p>Returns the total size of the stream, in bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ByteSource_skip">skip</a></td><td><p>Advances the read position by <span class="code-inline">count</span> bytes.</p>
 </td></tr>
 </tbody>
 </table>
@@ -16226,6 +16467,18 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_ByteSink_WindowSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">ByteSink.WindowSize</span> <a class="api-item-permalink" href="#Core_ByteSink_WindowSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L37">src</a></div>
+<p>Size of the write window of a file sink, in bytes.</p>
+<p>Markers and headers are a few bytes each and would otherwise be one write call apiece; a piece of at least this size goes straight to the file instead.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WindowSize</span> = <span class="SNum">64</span> * <span class="SNum">1024</span>'<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_ByteSource_WindowSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">ByteSource.WindowSize</span> <a class="api-item-permalink" href="#Core_ByteSource_WindowSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L43">src</a></div>
+<p>Size of the read window of a file source, in bytes.</p>
+<p>It bounds the memory a source of any length uses, and it is the threshold from which a read goes straight to its destination instead of being copied twice.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WindowSize</span> = <span class="SNum">64</span> * <span class="SNum">1024</span>'<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Core_ASSERT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Core.ASSERT</span> <a class="api-item-permalink" href="#Core_ASSERT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/config.swg#L9">src</a></div>
 <p>Defines assert.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_ASSERT">ASSERT</a></span> = <span class="SCmp">#cfg</span> == <span class="SStr">"devmode"</span> <span class="SLgc">or</span> <span class="SItr">#hastag</span>(<span class="SStr">"Std.Core.Assert"</span>)</span></div>
@@ -17698,6 +17951,180 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <p>Loads the bytes of <span class="code-inline">name</span> from the first provider that owns it.</p>
 <p>The returned bytes are always owned by the caller, embedded content included. Fails with <a href="#Core_Errors_FileNotFoundError">Core.Errors.FileNotFoundError</a> when no provider knows <span class="code-inline">name</span>, or with the underlying filesystem error when a disk read goes wrong.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">load</span>(name: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.close</span> <a class="api-item-permalink" href="#Core_ByteSink_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L184">src</a></div>
+<p>Flushes the stream and releases the file. Repeated calls do nothing.</p>
+<p>This is the operation whose failure decides whether the stream is complete, so an encoder calls it explicitly rather than leaving it to destruction: a sink that leaves scope unclosed drops whatever its window still holds.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.createFile</span> <a class="api-item-permalink" href="#Core_ByteSink_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L40">src</a></div>
+<p>Creates <span class="code-inline">fileName</span>, replacing any existing file.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_createMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.createMemory</span> <a class="api-item-permalink" href="#Core_ByteSink_createMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L53">src</a></div>
+<p>Appends the stream to <span class="code-inline">buffer</span>.</p>
+<p>Whatever <span class="code-inline">buffer</span> already holds stays untouched, and stream offsets remain relative to the first byte this sink writes, so a codec computes them the same way on both backings.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createMemory</span>(buffer: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>)-&gt;<span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.flush</span> <a class="api-item-permalink" href="#Core_ByteSink_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L171">src</a></div>
+<p>Hands every buffered byte to the file. A memory sink has nothing to flush.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flush</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_patch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.patch</span> <a class="api-item-permalink" href="#Core_ByteSink_patch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L144">src</a></div>
+<p>Rewrites bytes this sink already accepted, at <span class="code-inline">offset</span> bytes from the start of its stream.</p>
+<p>A container header carries totals a codec only learns once the last piece is written: a file size, a frame count, the size of the chunk holding the frames. Patching is how those fields are filled without holding the stream: the encoder writes a placeholder in the header, remembers where it went, and overwrites it here.</p>
+<p>The patched range must lie entirely inside what the sink already wrote; a range reaching past the end fails rather than extending the stream. The write position is unchanged, so appending resumes exactly where it stopped.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">patch</span>(offset: <span class="STpe">u64</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_path" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.path</span> <a class="api-item-permalink" href="#Core_ByteSink_path" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L62">src</a></div>
+<p>Returns the file this sink writes, or an empty string for a memory sink.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">path</span>()-&gt;<span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.position</span> <a class="api-item-permalink" href="#Core_ByteSink_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L65">src</a></div>
+<p>Returns the number of bytes written so far, which is where the next write lands.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.write</span> <a class="api-item-permalink" href="#Core_ByteSink_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L68">src</a></div>
+<p>Appends <span class="code-inline">bytes</span> to the stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeBigEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeBigEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeBigEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L129">src</a></div>
+<p>Appends an integer of type <span class="code-inline">T</span> in big-endian byte order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">writeBigEndian</span>(value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeByte</span> <a class="api-item-permalink" href="#Core_ByteSink_writeByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L105">src</a></div>
+<p>Appends one byte.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeByte</span>(value: <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeLittleEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeLittleEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeLittleEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L123">src</a></div>
+<p>Appends an integer of type <span class="code-inline">T</span> in little-endian byte order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">writeLittleEndian</span>(value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeNative</span> <a class="api-item-permalink" href="#Core_ByteSink_writeNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L116">src</a></div>
+<p>Appends one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
+<p>This is the write for a binary layout declared as a struct, or for an integer whose byte order is the host's. Use <a href="#Core_ByteSink_writeLittleEndian">Core.ByteSink.writeLittleEndian</a> or <a href="#Core_ByteSink_writeBigEndian">Core.ByteSink.writeBigEndian</a> for a persisted or transmitted integer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">writeNative</span>(value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeText</span> <a class="api-item-permalink" href="#Core_ByteSink_writeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L99">src</a></div>
+<p>Appends the bytes of <span class="code-inline">text</span> to the stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeText</span>(text: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.close</span> <a class="api-item-permalink" href="#Core_ByteSource_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L73">src</a></div>
+<p>Releases the file or the borrowed bytes and leaves an empty source. Repeated calls do nothing.</p>
+<p>A source that leaves scope closes itself; calling this earlier is how a reader releases a file before its own value goes away.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_isAtEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.isAtEnd</span> <a class="api-item-permalink" href="#Core_ByteSource_isAtEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L95">src</a></div>
+<p>Reports whether the read position reached the end of the stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isAtEnd</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.isOpen</span> <a class="api-item-permalink" href="#Core_ByteSource_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L80">src</a></div>
+<p>Reports whether the source still has a stream to read.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.openFile</span> <a class="api-item-permalink" href="#Core_ByteSource_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L49">src</a></div>
+<p>Opens <span class="code-inline">fileName</span> for streaming reads.</p>
+<p>The file stays open until the source is closed, and it must remain available and unchanged until then.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openFile</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_ByteSource">ByteSource</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_openMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.openMemory</span> <a class="api-item-permalink" href="#Core_ByteSource_openMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L60">src</a></div>
+<p>Borrows <span class="code-inline">bytes</span> as one complete stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openMemory</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_ByteSource">ByteSource</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_path" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.path</span> <a class="api-item-permalink" href="#Core_ByteSource_path" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L83">src</a></div>
+<p>Returns the file this source reads, or an empty string for a memory source.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">path</span>()-&gt;<span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_peek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.peek</span> <a class="api-item-permalink" href="#Core_ByteSource_peek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L240">src</a></div>
+<p>Returns the bytes at the read position without consuming them.</p>
+<p>The slice holds at least <span class="code-inline">count</span> bytes, and every further byte the source already holds after them: a memory source returns everything up to the end of the stream, a file source whatever its window covers. A scanner that walks frame headers therefore asks for the header it needs and reads ahead as far as the window goes at no cost. Fails when fewer than <span class="code-inline">count</span> bytes remain.</p>
+<p>The slice borrows the source's own storage and stays valid until the next read, seek, skip, or peek on it. A file source grows its window to hold <span class="code-inline">count</span> bytes when they do not fit, so a caller bounds <span class="code-inline">count</span> to bound its memory.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">peek</span>(count: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.position</span> <a class="api-item-permalink" href="#Core_ByteSource_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L89">src</a></div>
+<p>Returns the read position, in bytes from the start of the stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.read</span> <a class="api-item-permalink" href="#Core_ByteSource_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L120">src</a></div>
+<p>Reads at most as many bytes as <span class="code-inline">buffer</span> holds and returns how many were read.</p>
+<p>The count is smaller than the buffer only when the stream ends first, and zero once the read position is at the end. Fails when the file turns out shorter than it was when the source opened it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_readBigEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.readBigEndian</span> <a class="api-item-permalink" href="#Core_ByteSource_readBigEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L200">src</a></div>
+<p>Reads a big-endian integer of type <span class="code-inline">T</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">readBigEndian</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_readByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.readByte</span> <a class="api-item-permalink" href="#Core_ByteSource_readByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L174">src</a></div>
+<p>Reads one byte.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readByte</span>()-&gt;<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_readExact" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.readExact</span> <a class="api-item-permalink" href="#Core_ByteSource_readExact" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L166">src</a></div>
+<p>Reads exactly as many bytes as <span class="code-inline">buffer</span> holds.</p>
+<p>Fails when the stream ends first, and leaves the read position unspecified in that case: a decoder that hits the end of a stream reopens or seeks rather than resuming.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExact</span>(buffer: [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_readLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.readLine</span> <a class="api-item-permalink" href="#Core_ByteSource_readLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L210">src</a></div>
+<p>Reads the bytes up to the next line feed and returns the line without it.</p>
+<p>A trailing carriage return is removed, so a stream written with either end-of-line convention parses the same. Fails when the line reaches <span class="code-inline">maxBytes</span> or the stream ends before the terminator, which is how a text header of a binary stream stays bounded.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readLine</span>(maxBytes: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_readLittleEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.readLittleEndian</span> <a class="api-item-permalink" href="#Core_ByteSource_readLittleEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L194">src</a></div>
+<p>Reads a little-endian integer of type <span class="code-inline">T</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">readLittleEndian</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.readNative</span> <a class="api-item-permalink" href="#Core_ByteSource_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L186">src</a></div>
+<p>Reads one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
+<p>This is the read for a binary layout declared as a struct, or for an integer whose byte order is the host's. Use <a href="#Core_ByteSource_readLittleEndian">Core.ByteSource.readLittleEndian</a> or <a href="#Core_ByteSource_readBigEndian">Core.ByteSource.readBigEndian</a> for a persisted or transmitted integer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">readNative</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_remaining" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.remaining</span> <a class="api-item-permalink" href="#Core_ByteSource_remaining" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L92">src</a></div>
+<p>Returns the number of bytes between the read position and the end of the stream.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">remaining</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_seek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.seek</span> <a class="api-item-permalink" href="#Core_ByteSource_seek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L100">src</a></div>
+<p>Moves the read position to <span class="code-inline">offset</span> bytes from the start of the stream.</p>
+<p>Seeking to the end of the stream is valid; seeking past it fails.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seek</span>(offset: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_size" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.size</span> <a class="api-item-permalink" href="#Core_ByteSource_size" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L86">src</a></div>
+<p>Returns the total size of the stream, in bytes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">size</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ByteSource_skip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSource.skip</span> <a class="api-item-permalink" href="#Core_ByteSource_skip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesource.swg#L108">src</a></div>
+<p>Advances the read position by <span class="code-inline">count</span> bytes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">skip</span>(count: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ByteStream_advance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteStream.advance</span> <a class="api-item-permalink" href="#Core_ByteStream_advance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytestream.swg#L234">src</a></div>
@@ -27342,6 +27769,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "s|Core.Resources.EmbeddedResource|Core_Resources_EmbeddedResource|One embedded resource: a name and its compile-time bytes.",
 "v|Core.Resources.EmbeddedResource.bytes|Core_Resources_EmbeddedResource_bytes|Compile-time bytes, owned by the program image.",
 "v|Core.Resources.EmbeddedResource.name|Core_Resources_EmbeddedResource_name|Resource name, with / separators.",
+"s|Core.ByteSink|Core_ByteSink|Writes the bytes of a stream to a file or to memory, through one cursor and one window.",
+"s|Core.ByteSource|Core_ByteSource|Reads the bytes of a stream held in a file or in memory, through one cursor and one window.",
 "s|Core.ByteStream|Core_ByteStream|Provides a bounded cursor over borrowed bytes or a caller-owned byte array.",
 "s|Core.Serialization.Plan|Core_Serialization_Plan|Precomputed serialization plan of one struct type.",
 "v|Core.Serialization.Plan.fields|Core_Serialization_Plan_fields|The serializable fields, in declaration order.",
@@ -28146,6 +28575,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "c|Core.Math.Vector4.UnitY|Core_Math_Vector4_UnitY|Unit vector along Y-axis (0, 1, 0, 0)",
 "c|Core.Math.Vector4.UnitZ|Core_Math_Vector4_UnitZ|Unit vector along Z-axis (0, 0, 1, 0)",
 "c|Core.Math.Vector4.Zero|Core_Math_Vector4_Zero|Zero vector (0, 0, 0, 0)",
+"c|Core.ByteSink.WindowSize|Core_ByteSink_WindowSize|Size of the write window of a file sink, in bytes.",
+"c|Core.ByteSource.WindowSize|Core_ByteSource_WindowSize|Size of the read window of a file source, in bytes.",
 "c|Core.Serialization.Write.TagBinAdHocShape|Core_Serialization_Write_TagBinAdHocShape|Shape id of a section whose fields are self-described in the stream rather than",
 "c|Core.Serialization.Write.TagBinVersion1|Core_Serialization_Write_TagBinVersion1|Version mark written after the root signature. This is the only supported TagBin",
 "c|Core.Env.LineEnding|Core_Env_LineEnding|Native line-ending sequence.",
@@ -29254,6 +29685,38 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Resources.Bundle.isOverridden|Core_Resources_Bundle_isOverridden|Reports whether a disk folder provides name, hiding any embedded fallback.",
 "f|Core.Resources.Bundle.list|Core_Resources_Bundle_list|Returns the sorted names of every resource starting with prefix.",
 "f|Core.Resources.Bundle.load|Core_Resources_Bundle_load|Loads the bytes of name from the first provider that owns it.",
+"f|Core.ByteSink.close|Core_ByteSink_close|Flushes the stream and releases the file. Repeated calls do nothing.",
+"f|Core.ByteSink.createFile|Core_ByteSink_createFile|Creates fileName, replacing any existing file.",
+"f|Core.ByteSink.createMemory|Core_ByteSink_createMemory|Appends the stream to buffer.",
+"f|Core.ByteSink.flush|Core_ByteSink_flush|Hands every buffered byte to the file. A memory sink has nothing to flush.",
+"f|Core.ByteSink.patch|Core_ByteSink_patch|Rewrites bytes this sink already accepted, at offset bytes from the start of its stream.",
+"f|Core.ByteSink.path|Core_ByteSink_path|Returns the file this sink writes, or an empty string for a memory sink.",
+"f|Core.ByteSink.position|Core_ByteSink_position|Returns the number of bytes written so far, which is where the next write lands.",
+"f|Core.ByteSink.write|Core_ByteSink_write|Appends bytes to the stream.",
+"f|Core.ByteSink.writeBigEndian|Core_ByteSink_writeBigEndian|Appends an integer of type T in big-endian byte order.",
+"f|Core.ByteSink.writeByte|Core_ByteSink_writeByte|Appends one byte.",
+"f|Core.ByteSink.writeLittleEndian|Core_ByteSink_writeLittleEndian|Appends an integer of type T in little-endian byte order.",
+"f|Core.ByteSink.writeNative|Core_ByteSink_writeNative|Appends one value of type T laid out as the host stores it.",
+"f|Core.ByteSink.writeText|Core_ByteSink_writeText|Appends the bytes of text to the stream.",
+"f|Core.ByteSource.close|Core_ByteSource_close|Releases the file or the borrowed bytes and leaves an empty source. Repeated calls do nothing.",
+"f|Core.ByteSource.isAtEnd|Core_ByteSource_isAtEnd|Reports whether the read position reached the end of the stream.",
+"f|Core.ByteSource.isOpen|Core_ByteSource_isOpen|Reports whether the source still has a stream to read.",
+"f|Core.ByteSource.openFile|Core_ByteSource_openFile|Opens fileName for streaming reads.",
+"f|Core.ByteSource.openMemory|Core_ByteSource_openMemory|Borrows bytes as one complete stream.",
+"f|Core.ByteSource.path|Core_ByteSource_path|Returns the file this source reads, or an empty string for a memory source.",
+"f|Core.ByteSource.peek|Core_ByteSource_peek|Returns the bytes at the read position without consuming them.",
+"f|Core.ByteSource.position|Core_ByteSource_position|Returns the read position, in bytes from the start of the stream.",
+"f|Core.ByteSource.read|Core_ByteSource_read|Reads at most as many bytes as buffer holds and returns how many were read.",
+"f|Core.ByteSource.readBigEndian|Core_ByteSource_readBigEndian|Reads a big-endian integer of type T.",
+"f|Core.ByteSource.readByte|Core_ByteSource_readByte|Reads one byte.",
+"f|Core.ByteSource.readExact|Core_ByteSource_readExact|Reads exactly as many bytes as buffer holds.",
+"f|Core.ByteSource.readLine|Core_ByteSource_readLine|Reads the bytes up to the next line feed and returns the line without it.",
+"f|Core.ByteSource.readLittleEndian|Core_ByteSource_readLittleEndian|Reads a little-endian integer of type T.",
+"f|Core.ByteSource.readNative|Core_ByteSource_readNative|Reads one value of type T laid out as the host stores it.",
+"f|Core.ByteSource.remaining|Core_ByteSource_remaining|Returns the number of bytes between the read position and the end of the stream.",
+"f|Core.ByteSource.seek|Core_ByteSource_seek|Moves the read position to offset bytes from the start of the stream.",
+"f|Core.ByteSource.size|Core_ByteSource_size|Returns the total size of the stream, in bytes.",
+"f|Core.ByteSource.skip|Core_ByteSource_skip|Advances the read position by count bytes.",
 "f|Core.ByteStream.advance|Core_ByteStream_advance|Advances by count bytes, clamping at the end of the buffer.",
 "f|Core.ByteStream.isEof|Core_ByteStream_isEof|Returns true if the end of the buffer was reached during reading",
 "f|Core.ByteStream.length|Core_ByteStream_length|Returns the total length of the buffer (read or write)",

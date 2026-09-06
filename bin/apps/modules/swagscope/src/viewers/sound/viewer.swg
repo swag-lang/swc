@@ -444,6 +444,7 @@ internal struct SoundViewer
     reportDetails:        Viewer.ReportDetails?
     reportFailure:        Viewer.ReportFailure?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
+    reportFinished:       Viewer.ReportFinished?
 }
 
 internal impl SoundViewer
@@ -717,6 +718,18 @@ internal impl SoundViewer
         .elapsed = 0
         .updatePlaybackUi()
     }
+
+    // Applies what the window's play mode calls for once the sound has been played through.
+    //
+    // Stopping rewinds the transport either way: a sound has no last picture to park on, and
+    // one that is to be replayed starts again from its first sample.
+    mtd finishPlayback()
+    {
+        let continuation = .reportFinished ? .reportFinished!(me) : Viewer.Continuation.Stop
+        .stopPlayback()
+        if continuation == .Replay do
+            .togglePlayback()
+    }
 }
 
 internal impl IWnd for SoundViewer
@@ -767,7 +780,7 @@ internal impl IWnd for SoundViewer
         .elapsed = cast(f32) .voice!.playbackPositionSeconds()
         if .elapsed >= .duration
         {
-            .stopPlayback()
+            .finishPlayback()
             return
         }
 
@@ -808,6 +821,7 @@ internal impl SoundViewer
         let result   = Wnd.create'SoundViewer(host.contentParent(), "scope.sound")
         result.backgroundStyle      = .View
         result.reportDetails        = services.reportDetails
+        result.reportFinished       = services.reportFinished
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
 

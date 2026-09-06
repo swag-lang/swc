@@ -8,6 +8,12 @@ ui_Files        Fichiers à côté de celui-ci
 ui_FullScreen   Plein écran (F11)
 ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
+ui_PlayMode     Mode de lecture
+ui_PlayOnce     S'arrêter à la fin
+ui_PlayRepeat   Répéter le fichier
+ui_PlayFolder   Lire le dossier dans l'ordre
+ui_PlayShuffle  Lire le dossier au hasard
+ui_PlaySlide    Durée par image
 ui_Recent       Récents
 ui_ClearHistory Effacer l'historique
 ui_ConfirmClearHistory Tout l'historique des fichiers sera effacé.

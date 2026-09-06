@@ -628,7 +628,6 @@ internal struct VideoViewer
     playing:              bool
     autoPlayPending:      bool = true
     muted:                bool
-    loopPlayback:         bool
     playbackRate:         f64  = 1
     volume = 1'f32
     details:              String
@@ -639,6 +638,7 @@ internal struct VideoViewer
     reportDetails:        Viewer.ReportDetails?
     reportFailure:        Viewer.ReportFailure?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
+    reportFinished:       Viewer.ReportFinished?
     retireRequested:      bool
     retired:              bool
 
@@ -1027,17 +1027,15 @@ internal impl VideoViewer
         }
     }
 
-    // Offers the transport policies that qualify how the movie plays, not what it plays.
+    // Offers the playback rates, which qualify how the movie plays, not what it plays.
     //
-    // The rates stand directly in the menu rather than in a submenu: seven short rows cost
-    // less to scan than one more level, and the check mark keeps the current rate visible
-    // the moment the menu opens.
+    // What happens once it has played is the window's play mode, chosen from the action bar
+    // for every kind of media at once. The rates stand directly in the menu rather than in a
+    // submenu: seven short rows cost less to scan than one more level, and the check mark
+    // keeps the current rate visible the moment the menu opens.
     mtd showPlayerSettingsMenu()
     {
-        let strings = videoStrings()
-        let menu    = MenuCtrl.createPopup(.settingsButton, owner: me)
-        menu.addItem(strings.ui_PlayerLoop, "scope.video.player.loop", checked: .loopPlayback)
-        menu.addSeparator()
+        let menu = MenuCtrl.createPopup(.settingsButton, owner: me)
 
         var commands: Array'String
         commands.reserve(VideoPlaybackRates.count)
@@ -1050,12 +1048,6 @@ internal impl VideoViewer
         let chosen = menu.doModal(.settingsButton, autoDestroy: true)
         if !chosen do
             return
-        if chosen! == "scope.video.player.loop"
-        {
-            .loopPlayback = !.loopPlayback
-            return
-        }
-
         for rate, index in VideoPlaybackRates where chosen! == commands[index].toString()
         {
             .setPlaybackRate(rate)
@@ -1551,7 +1543,7 @@ internal impl VideoViewer
 
     // Wraps playback to the first picture without the pause a cold user seek shows.
     //
-    // A loop is not a reader's seek: the sound restarts at its first sample right away instead
+    // A replay is not a reader's seek: the sound restarts at its first sample right away instead
     // of waiting for the picture queue to rebuffer, and the last picture keeps the screen,
     // without the wait overlay, for exactly the decode of the first one.
     mtd restartForLoop()
@@ -1719,10 +1711,14 @@ internal impl VideoViewer
             return
         }
 
+        // The movie has been played through: the window's play mode says what follows. Parked
+        // on its last picture, the transport keeps that picture on screen until the reader acts
+        // or, when another file is on its way, until the host can show that one.
         let count = .video.frameCount()
         if count and clock >= count and .frameIndex + 1 >= count
         {
-            if .loopPlayback
+            let continuation = .reportFinished ? .reportFinished!(me) : Viewer.Continuation.Stop
+            if continuation == .Replay
             {
                 .restartForLoop()
                 return
@@ -2019,6 +2015,7 @@ private impl VideoViewer
         result.reportDetails        = services.reportDetails
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
+        result.reportFinished       = services.reportFinished
 
         result.commands    = host.createCommandGroup(VideoCommandWidth)
         result.information = MediaInfoPanel.create(host)

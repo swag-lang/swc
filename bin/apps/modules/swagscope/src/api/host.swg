@@ -18,6 +18,31 @@ alias ReportLoadingChanged = func(*Wnd)
 // Requests a neighboring file when a plugin assigns meaning to that direction.
 alias NavigateFile = func(*Wnd, s32)
 
+// What a plugin does with its file once it has finished presenting it, as the reader's play
+// mode decides.
+enum Continuation
+{
+    Stop       // Stays where the file ended.
+    Replay     // Presents the file again from its start.
+    Next       // Another file of the folder is on its way; the host retires this view once it can be shown.
+}
+
+// Reports that the plugin has finished presenting a file that has an end, and answers with what
+// to do next.
+//
+// A player calls it when its stream reaches the end, and a viewer of animated content when the
+// animation has run one complete cycle. The answer follows the reader's play mode: a folder mode
+// answers `Next` after queuing the file that follows, or `Replay` when the file is alone of its
+// kind in its folder. A view answered `Next` reports nothing more and stays as it is until the
+// host retires it.
+alias ReportFinished = func(*Wnd)->Continuation
+
+// Reports that the plugin is showing content with no end of its own, such as a still picture.
+//
+// A folder mode keeps such content on screen for the reader's slideshow time before moving on;
+// the other modes leave it there. Report it once the content is actually visible.
+alias ReportShown = func(*Wnd)
+
 // Callbacks a plugin may retain for asynchronous notifications after creation.
 struct HostServices
 {
@@ -28,6 +53,8 @@ struct HostServices
         reportChromeChanged:  ReportChromeChanged?      // Requests another contributed-group layout pass.
         reportLoadingChanged: ReportLoadingChanged?     // Notifies the host of changed loading state.
         navigateFile:         NavigateFile?             // Requests a neighboring file by signed direction.
+        reportFinished:       ReportFinished?           // Reports the end of a file that has one, and learns what follows.
+        reportShown:          ReportShown?              // Reports content with no end of its own, for a slideshow to time.
     }
 }
 

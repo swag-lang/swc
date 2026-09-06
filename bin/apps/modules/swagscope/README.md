@@ -96,8 +96,8 @@ alternative instead of guessing an encoding.
   presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
-  mute, volume, and matching keyboard controls, plus a settings menu offering loop playback and a
-  0.25x-2x playback rate whose pitch follows the rate and whose time labels stay in source time.
+  mute, volume, and matching keyboard controls, plus a settings menu offering a 0.25x-2x playback
+  rate whose pitch follows the rate and whose time labels stay in source time.
   It indexes packets without decoding the file up
   front and materializes only the selected picture and the few audio buffers queued at the device.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
@@ -180,6 +180,14 @@ returns to the last file viewed in the selected folder. Audio and video claim ba
 ten-second seeks while active, and use Space for play/pause and M for mute. An
 installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
 
+The action bar's play-mode button decides what follows a file that has been played through: stop
+there, play it again, continue with the next file of the same kind in its folder, or continue
+with a random one that has not had its turn in that folder yet, every file once before any comes
+again. Video and sound hand over when their stream ends, an animated picture when its animation
+has run one cycle, and a still picture after the time per picture the same menu sets, which turns
+a folder of pictures into a slideshow. The mode holds across files and sessions, the folder is
+walked whatever the panel filter shows, and a file the mode brings up stays out of the history.
+
 A common action-bar button opens the current file with the operating system's registered default
 application. A right click names the same action and the rest of what a file offers. On the
 information band above the document it answers for the open file, and on a panel row for the file
@@ -225,7 +233,10 @@ language before any file is opened.
 The creation callback calls `attachView` for its document and can create at most one action,
 information, and lower command group through the host, plus one optional side panel. It declares
 optional search and progressive-lifecycle behavior through `setSearch` and `setLifecycle`;
-retained asynchronous notifications come only from `host.services()`. Reject malformed content
+retained asynchronous notifications come only from `host.services()`. A viewer that plays its
+file reports the end through `reportFinished` and acts on the answer, and one showing a still
+picture reports it through `reportShown`, which is how the reader's play mode carries from one
+file to the next without any viewer knowing the folder. Reject malformed content
 with the exact decoder reason before attaching a view; the application presents every plugin
 failure on the same error surface and owns cleanup of all contributed windows.
 

@@ -6,6 +6,26 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.031 — Addressed immutable GUID values can silently stop lowering
+
+- Recorded: 2026-09-06 21:14
+- Found while: adding the Shell `IFileOperation` batch-rename integration test for Swag Vault.
+- Evidence: with compiler 0.1.390, local `let classId = Win32.GUID{...}` and
+  `let interfaceId = Win32.GUID{...}` passed by address to `Win32.CoCreateInstance` made the
+  Release application build report `Integration.run did not produce lowered machine code`.
+  Two identical six-worker runs failed. Giving those addressable GUID values `var` storage,
+  as existing COM consumers do, let the integration build complete.
+- Reduced probe: a `.swgs` file importing `core`, declaring those GUID values, and calling
+  `CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw)` inside a
+  helper reached from `#main` reported success with `0 mains`. Removing that call and its
+  GUID declarations restored `1 main`. The probe still imports Win32 and has not yet been
+  reduced to a standalone language-suite case.
+- Next: reduce the address-of-immutable-aggregate path, locate the silent semantic or lowering
+  failure, and add a native-suite regression. The command boundary also needs to reject a main
+  body that disappears during compilation.
+- Complete when: this source either runs correctly or reports its actual source error, and a
+  declared main cannot silently disappear from a successful script run.
+
 ### compiler.core.024 — A JIT '#test' can silently compute a wrong value in a release run
 
 - Recorded: 2026-08-22 21:23

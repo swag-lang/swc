@@ -37,28 +37,6 @@ the shared backlog conventions.
 
 ## Register allocation and frame-slot promotion
 
-### compiler.optimization.028 — Nonzero float literals still reload in the raytrace pixel loop
-
-- Area: compiler/backend
-- Found while: comparing the unchanged `bench/src/swagnat/raytrace.swg` with both C++ ports on
-  `9574fdd43`, with the scalar-copy and conversion-web improvements applied (2026-09-05).
-- Evidence: the release pixel loop falls from 76 instructions / 21 memory operations to 65 / 18
-  when the vertical conversion and arithmetic move to the scanline. Clang-cl emits 46 / 6 and
-  MSVC 53 / 6, including its cold sqrt path. The remaining Swag memory operations comprise twelve
-  literal loads, three global loads and three argument stores. On 2026-09-06, lowering positive
-  zero to an XMM clear removes three literal loads: the pixel loop is now 65 / 15, with nine
-  nonzero literal loads, three global loads and three argument stores. The other six benchmark
-  tasks retain their instruction and memory-operation counts, including each loop body.
-- Observation: before LICM these constants are floating `LoadRegImm` instructions. They become
-  RIP-relative loads during legalization, after LICM's profitability filter has treated their
-  single-use materializations as cheap. The conversion-web improvement adds two saved XMM
-  registers outside both loops; further hoisting must account for that register pressure.
-- Next: evaluate hoisting nonzero scalar literals using their eventual load cost.
-  Compare each loop in all seven tasks before keeping either change. Do not reopen relocated
-  address materialization hoisting, whose sha256 spill regression is documented in LICM.
-- Complete when: the remaining literal loads have a
-  measured register-pressure decision, with native and script correctness coverage.
-
 ### compiler.optimization.004 — Tracking frame addresses transitively through mem2reg does not pay on its own
 
 - Area: compiler/backend
@@ -553,20 +531,3 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
   rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
 - Related: compiler.core.004, compiler.core.030.
-
-### compiler.optimization.031 — Scalar float-to-int conversions keep dead GP initialization
-
-- Area: compiler/backend
-- Found while: inspecting raytrace after scalar-literal sharing and hoisting, 2026-09-06.
-- Evidence: the release pixel loop in `6ac854243` has 56 instructions / six memory operations.
-  Each of its three `ConvertFloatToInt` operations is preceded by a GP `ClearReg`; both clang-cl
-  and MSVC emit their `cvttsd2si` conversions without initializing the integer destination.
-  The checksum loop of csvagg has two more instances of the same shape.
-- Mechanism: `OpBinaryRegReg` starts with a read/write destination mode, and
-  `MicroInstr.cpp::resolveRegModes` only adjusts exchange. A float-to-int conversion therefore
-  consumes the previous integer value in the use/def graph even though its encoding replaces it.
-- Next: model this conversion's destination as a definition, keeping partial XMM writes separate.
-  Check the effect on both SSA and physical-register liveness; only discard an old integer clear
-  where its CPU flags are dead. Recount all seven tasks before selecting broader changes.
-- Complete when: the unnecessary initializations disappear with width and live-flags regression
-  coverage, or an experiment identifies a remaining dataflow contract that prevents removal.

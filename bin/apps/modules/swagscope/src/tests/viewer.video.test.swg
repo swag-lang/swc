@@ -578,12 +578,17 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) window.currentView!
     waitForVideoFrame(view)
 
-    // A click on the bottom timeline replaces the stale picture with the central wait overlay
-    // until the decoder publishes the requested frame.
+    // A click on the bottom timeline keeps the stale picture until the decoder publishes the
+    // requested frame, and brings the central wait overlay over it only once the decode has
+    // taken long enough to be a wait.
     view.timeline.setValue(cast(f32) view.frameSeconds(5))
-    Swag.assert(view.awaitingFrame and window.loadingOverlay.isLocallyVisible())
+    Swag.assert(view.awaitingFrame and !window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    expireViewerLoadingDelay(window)
+    Swag.assert(window.loadingOverlay.isLocallyVisible())
     waitForVideoFrame(view)
     window.updateLoadingIndicator()
+    Swag.assert(window.loadingOverlay.isLocallyVisible())
+    expireViewerLoadingLinger(window)
     Swag.assert(!window.loadingOverlay.isLocallyVisible())
 
     let voice = view.voice!
@@ -611,9 +616,12 @@ func videoMatroskaFixturePath()->String
     window.openFile(videoAudioFixturePath(), remember: false)
     completeViewerWindowClassification(&host, window)
     let view = cast(*VideoViewer) window.currentView!
+    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible())
     waitForVideoFrame(view)
     window.updateLoadingIndicator()
+    expireViewerLoadingLinger(window)
     Swag.assert(!window.loadingOverlay.isLocallyVisible())
 
     // Start the shortcut scenario from a deliberate pause; opening itself already started play.

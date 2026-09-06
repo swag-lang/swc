@@ -489,10 +489,9 @@ namespace Integration
         }
 
         trace("FS: Shell batch rename with automatic numbering")
-        shellRenameItems(renamePaths.toSlice(), "video.mp4")
-        let shellEntries = try Directory.enumerateFiles(bulk)
-        for entry in shellEntries do
-            trace(Format.toString("SHELL: %", entry.name))
+
+        // Seed the first number, as an Explorer batch rename does; the Shell chooses the rest.
+        shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
         for index in 24
         {
             let numbered     = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))

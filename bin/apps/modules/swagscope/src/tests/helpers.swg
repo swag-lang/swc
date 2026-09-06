@@ -58,6 +58,25 @@ func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.Bac
     host.fireTimer(timer)
 }
 
+// Ages the current wait past the delay the activity mark waits for, and lets the window decide again.
+func expireViewerLoadingDelay(window: *ViewerWindow)
+{
+    Swag.assert(window.loadingWantedSince != 0)
+    window.loadingWantedSince = 1
+    window.updateLoadingIndicator()
+}
+
+// Ages the shown activity mark past its minimum visible time, and lets the window decide again.
+//
+// A wait that ended before the mark could linger has nothing to age; the call is then harmless.
+func expireViewerLoadingLinger(window: *ViewerWindow)
+{
+    if !window.loadingShownSince do
+        return
+    window.loadingShownSince = 1
+    window.updateLoadingIndicator()
+}
+
 // Completes file classification without waiting for the selected viewer's own background work.
 func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {

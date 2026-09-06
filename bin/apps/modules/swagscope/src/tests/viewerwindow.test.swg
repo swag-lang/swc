@@ -102,6 +102,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
     }
 
     Swag.assert(steps < 4_096)
+    expireViewerLoadingLinger(window)
 }
 
 // Waits for the summary the text viewer publishes once its background analysis lands.
@@ -1671,9 +1672,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     reportViewerLoadingChanged(loading)
     Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
 
+    // The mark waits before it appears: a wait that has just begun shows nothing, and the one
+    // that has lasted the delay shows the mark, faded in over the preserved document.
     window.instances[0].needsLoadingOverlay = func(wnd)->bool { discard wnd; return true }
     reportViewerLoadingChanged(loading)
-    Swag.assert(window.loadingOverlay.isLocallyVisible())
+    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0 and window.loadingTimer != null)
+    expireViewerLoadingDelay(window)
+    Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingShownSince != 0)
+    host.app.animator.finishAll()
     Swag.assert(window.loadingOverlay.position == loading.position)
     Swag.assert(window.loadingOverlay.backgroundStyle == .Transparent)
     Swag.assert(window.loadingOverlay.wndFlags.has(.Disabled))
@@ -1702,8 +1708,12 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.currentView  = loading
     outgoing.destroy()
 
+    // A wait that ends right after the mark appeared does not take it away in the same frame:
+    // the mark lingers for its minimum time, watched by the poll timer, then goes.
     window.instances[0].needsLoadingOverlay = null
     reportViewerLoadingChanged(loading)
+    Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince == 0 and window.loadingTimer != null)
+    expireViewerLoadingLinger(window)
     Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     Swag.assert(window.activateChoice(1))
     Swag.assert(loading.retired and loading.isPendingDestroy)
@@ -1735,6 +1745,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(fileName, remember: false)
     Swag.assert(window.currentView == old and retireCalls == 0)
     Swag.assert(window.pendingFile == fileName and window.startupTimer != null)
+    Swag.assert(!window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == old.position)
 
     host.fireTimer(window.startupTimer)

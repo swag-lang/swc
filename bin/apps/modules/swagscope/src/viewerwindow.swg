@@ -21,19 +21,32 @@ const ViewerLoadingSpinnerMinRadius           = 15.0
 const ViewerLoadingSpinnerMaxRadius           = 21.0
 const ViewerLoadingSpinnerMinSweep            = 58.0
 const ViewerLoadingSpinnerMaxSweep            = 232.0
-const ViewerSearchMarkPadX                    = 5.0
-const ViewerSearchMarkPadY                    = 2.0
-const ViewerSearchMarkRadius                  = 4.0
-const ViewerSearchMarkEdge                    = 1.0
-const ViewerSearchGlowReach                   = 5.0
-const ViewerSearchGlowSteps                   = 4'u32
-const ViewerSearchOverlayInsetX               = ViewerSearchMarkPadX + ViewerSearchGlowReach
-const ViewerSearchOverlayInsetY               = ViewerSearchMarkPadY + ViewerSearchGlowReach
-const ViewerSearchGlowPeriod:   f32           = 1.35
-const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
-const ViewerSmokeStepLimit                    = 300'u32
-const ViewerSmokeExposureSteps                = 25'u32
-const ViewerSmokeMinimumSteps                 = 2'u32
+
+// How long a viewer may keep the window waiting before the activity mark appears, how long the
+// mark then stays once it has, and how often the wait is looked at.
+//
+// A file that arrives inside the delay was never a wait, and the document before it stays on
+// screen for that long anyway: showing the mark would only announce a pause nobody felt. A mark
+// that appears and leaves within one frame is a flicker over the document, so once shown it
+// lingers past the end of the wait. Both thresholds are what keep a fast file change reading as
+// instantaneous.
+const ViewerLoadingShowDelayMicroseconds       = 400_000'u64
+const ViewerLoadingMinVisibleMicroseconds      = 500_000'u64
+const ViewerLoadingPollInterval: Time.Duration = 50'ms
+const ViewerLoadingFadeIn:       Time.Duration = 120'ms
+const ViewerSearchMarkPadX                     = 5.0
+const ViewerSearchMarkPadY                     = 2.0
+const ViewerSearchMarkRadius                   = 4.0
+const ViewerSearchMarkEdge                     = 1.0
+const ViewerSearchGlowReach                    = 5.0
+const ViewerSearchGlowSteps                    = 4'u32
+const ViewerSearchOverlayInsetX                = ViewerSearchMarkPadX + ViewerSearchGlowReach
+const ViewerSearchOverlayInsetY                = ViewerSearchMarkPadY + ViewerSearchGlowReach
+const ViewerSearchGlowPeriod:    f32           = 1.35
+const ViewerSearchBoundsPoll:    Time.Duration = 16'ms
+const ViewerSmokeStepLimit                     = 300'u32
+const ViewerSmokeExposureSteps                 = 25'u32
+const ViewerSmokeMinimumSteps                  = 2'u32
 
 internal func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f32}
 {
@@ -273,12 +286,15 @@ struct ViewerLoadingSpinner
 //
 // A renderer only reports whether it is waiting; it neither chooses nor paints the feedback.
 // The transparent host leaves the document exactly as it was and adds only the activity mark,
-// so loading HTML or a picture cannot appear to change the document background.
+// so loading HTML or a picture cannot appear to change the document background. When the mark
+// is decided on is the window's business, see [[ViewerWindow.updateLoadingIndicator]]; this
+// surface only makes its arrival a fade rather than a pop.
 struct ViewerLoadingOverlay
 {
     using wnd: Wnd
 
     late spinner: *ViewerLoadingSpinner
+    fadeAni:      AnimationHandle
 }
 
 // One application-owned marker for every current occurrence. Viewers report the band they painted
@@ -395,6 +411,38 @@ impl ViewerLoadingOverlay
     {
         .setPosition(rect, computeLayout: false)
         .spinner.setPosition({(rect.width - ViewerLoadingSpinnerSize) * 0.5, (rect.height - ViewerLoadingSpinnerSize) * 0.5, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize}, computeLayout: false)
+    }
+
+    // Shows the mark, fading it in unless motion is reduced.
+    mtd reveal()
+    {
+        if .isLocallyVisible() do
+            return
+        .show()
+
+        let animator = &.app().animator
+        if animator.isActive(.fadeAni) do
+            animator.cancel(.fadeAni)
+        if .app().isReducedMotion()
+        {
+            .setPresentationOpacity(1)
+            return
+        }
+
+        .setPresentationOpacity(0)
+        var fade: AnimationOptions
+        fade.duration = ViewerLoadingFadeIn
+        fade.easing   = .EaseOut
+        .fadeAni      = animator.animateF32(me, AnimationChannel.from("scope.Loading.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value); }, fade)
+    }
+
+    // Hides the mark at once; a wait that ends is not announced.
+    mtd conceal()
+    {
+        let animator = &.app().animator
+        if animator.isActive(.fadeAni) do
+            animator.cancel(.fadeAni)
+        .hide()
     }
 }
 
@@ -651,6 +699,8 @@ struct ViewerWindow
     searchTimer:             *Timer?
     searchBoundsTimer:       *Timer?
     loadingTimer:            *Timer?
+    loadingWantedSince:      u64     // Monotonic microseconds at which the current wait began asking for the mark; zero outside a wait.
+    loadingShownSince:       u64     // Monotonic microseconds at which the mark was shown; zero while it is hidden.
     choiceLoad:              ViewerChoiceLoad
     smokeTimer:              *Timer?
     searchStream:            File.FileStream
@@ -2269,6 +2319,7 @@ impl ViewerWindow
         return true
     }
 
+    // Ends the wait presentation at once, whatever its clocks say: the document it announced is gone.
     mtd stopLoadingIndicator()
     {
         if .loadingTimer
@@ -2277,34 +2328,68 @@ impl ViewerWindow
             .loadingTimer = null
         }
 
-        .loadingOverlay.hide()
+        .loadingWantedSince = 0
+        .hideLoadingOverlay()
     }
 
+    mtd hideLoadingOverlay()
+    {
+        .loadingShownSince = 0
+        .loadingOverlay.conceal()
+    }
+
+    // Decides whether the wait deserves its mark right now, and keeps looking while it lasts.
+    //
+    // The mark appears only once the viewer has kept the window waiting for
+    // [[ViewerLoadingShowDelayMicroseconds]], and once shown it stays for
+    // [[ViewerLoadingMinVisibleMicroseconds]] even when the wait ends before that. The poll
+    // timer runs for as long as either clock has something left to decide.
     mtd updateLoadingIndicator()
     {
         .commitViewerTransition()
         let pending     = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
         var loading     = pending
-        var showOverlay = pending and .currentView != null
+        var wantOverlay = pending and .currentView != null
         if !loading and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
             loading     = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
-            showOverlay = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
+            wantOverlay = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
         }
 
-        if showOverlay and .currentView
+        let now = Time.monotonicMicroseconds()
+        var lingering: bool
+        if wantOverlay and .currentView
         {
-            .loadingOverlay.cover(.currentView!.position)
-            .loadingOverlay.show()
-            .loadingOverlay.bringToFront()
-            .layoutFullScreenChrome()
+            if !.loadingWantedSince do
+                .loadingWantedSince = now
+            if .loadingShownSince or now - .loadingWantedSince >= ViewerLoadingShowDelayMicroseconds
+            {
+                if !.loadingShownSince
+                {
+                    .loadingShownSince = now
+                    .loadingOverlay.reveal()
+                }
+
+                .loadingOverlay.cover(.currentView!.position)
+                .loadingOverlay.bringToFront()
+                .layoutFullScreenChrome()
+            }
         }
-        else do
-            .loadingOverlay.hide()
-        if loading and !.loadingTimer do
-            .loadingTimer = .addTimer(50'ms)
-        elif !loading and .loadingTimer
+        else
+        {
+            .loadingWantedSince = 0
+            lingering           = .loadingShownSince != 0 and .currentView != null and now - .loadingShownSince < ViewerLoadingMinVisibleMicroseconds
+            if lingering do
+                .loadingOverlay.cover(.currentView!.position)
+            else do
+                .hideLoadingOverlay()
+        }
+
+        let watching = loading or lingering
+        if watching and !.loadingTimer do
+            .loadingTimer = .addTimer(ViewerLoadingPollInterval)
+        elif !watching and .loadingTimer
         {
             .removeTimer(.loadingTimer!)
             .loadingTimer = null

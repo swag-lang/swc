@@ -165,9 +165,11 @@ current and total occurrences, F3 and Shift+F3 move forward and backward with wr
 viewer supplies
 only match geometry to the same animated, theme-derived current-result marker. Binary-pattern
 search hides the text-only case and whole-word switches and explains its syntax in the field.
-The information
-band shows a spinner while the active viewer is still producing visible content, and switching
-viewers retires hidden progressive work.
+The document
+shows a spinner once the active viewer has kept it waiting for 400 ms, keeps it for at least half
+a second so that it never flickers, and leaves the previous document on screen meanwhile, so a
+file that arrives quickly changes without any mark at all; switching viewers retires hidden
+progressive work.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder
 history, and remembered viewer choices in the user's application-data folder. It toggles full

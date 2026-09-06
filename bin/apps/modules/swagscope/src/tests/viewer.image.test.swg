@@ -43,6 +43,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         host.fireTimers()
         steps += 1
     }
+
+    expireViewerLoadingLinger(window)
 }
 
 #test

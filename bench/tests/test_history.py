@@ -136,6 +136,17 @@ def add_loop(result, wall_ms, hello_ms=None, error=None):
 
 
 class EditLoopTests(unittest.TestCase):
+    def test_resident_memory_is_distinct_from_commit_and_absent_in_old_campaigns(self):
+        old = add_loop(campaign("run-01", False), 2000.0)
+        current = add_loop(campaign("run-02", False), 2000.0, hello_ms=80.0)
+        current["loop"]["core_rebuild"]["peak_working_set_bytes"] = 3145728
+        current["hello_build"]["swag-release"]["peak_working_set_bytes"] = 4194304
+        entries = history.build_entries([old, current])
+        self.assertIsNone(entries[0]["loop"]["core_rebuild"]["peak_working_set_mb"])
+        self.assertEqual(entries[1]["loop"]["core_rebuild"]["peak_mb"], 2.0)
+        self.assertEqual(entries[1]["loop"]["core_rebuild"]["peak_working_set_mb"], 3.0)
+        self.assertEqual(entries[1]["loop"]["hello_build"]["peak_working_set_mb"], 4.0)
+
     def test_a_workload_is_corrected_by_the_build_context(self):
         baseline = add_loop(campaign("run-01", False), 2000.0, hello_ms=80.0)
         slower = add_loop(campaign("run-02", False, build_scale=1.25), 2500.0, hello_ms=100.0)

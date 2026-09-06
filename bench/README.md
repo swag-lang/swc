@@ -48,12 +48,18 @@ under test on the repository's own sources — what the tools in `../tools` actu
 | `core_touch` | the same, after one file's write time moved | what one save costs — today, the whole module again |
 | `hello_build` | `swc build -f hello.swg` | the fixed cost, source to linked executable |
 | `doc_std` | `swc doc --workspace bin/std --rebuild` | the standard library's documentation, into `out/doc` |
-| `format_tree` | `swc format -d out/format` | every Swag source of the repository, on a private copy |
+| `format_tree` | `swc format -d out/format` | the source trees selected by `tools/format.swgs`, on a private copy with their `.swc-format` configuration |
 
 Each one is prepared outside the clock — outputs removed, a warm build made, a write time
 bumped, the sources mirrored — then timed once, like a build: minimum kept, every sample
 recorded, no pinning, because a build is meant to use the whole machine. `--swc-cores` caps
 the compiler's worker pool and is stored with the campaign, since the number depends on it.
+
+Memory has two separate meanings: `peak_bytes` is the peak committed memory of the process
+tree, including compiler helpers; `peak_working_set_bytes` is the timed process's peak resident
+memory, reported by Windows after it exits. The edit-build history preserves both as `peak_mb`
+and `peak_working_set_mb`, without adjusting them by the timing context. Older campaigns have no
+resident-memory measurement; their committed-memory values are never substituted for it.
 
 In the history each workload is corrected by the campaign's compilation context, exactly as
 the tasks are, and indexed against the first clean campaign that measured it. The three

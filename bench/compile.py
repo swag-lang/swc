@@ -40,7 +40,8 @@ def summary(samples):
     wall = [s["wall_ms"] for s in samples]
     cpu = [s["cpu_ms"] for s in samples]
     peak = max(s["peak_job_bytes"] for s in samples) / 1048576.0
-    return min(wall), statistics.median(wall), statistics.median(cpu), peak
+    resident = max(s["peak_working_set_bytes"] for s in samples) / 1048576.0
+    return min(wall), statistics.median(wall), statistics.median(cpu), peak, resident
 
 
 def main():
@@ -82,24 +83,32 @@ def main():
             for wid in ids:
                 r = measure(plans[tag][wid], env)
                 samples[tag][wid].append(r)
-                print("  round %d %s %-13s wall=%9.1f ms  cpu=%9.1f ms  mem=%6.1f MB"
+                print("  round %d %s %-13s wall=%9.1f ms  cpu=%9.1f ms  commit=%6.1f MiB  ws=%6.1f MiB"
                       % (rnd + 1, tag, wid, r["wall_ms"], r["cpu_ms"],
-                         r["peak_job_bytes"] / 1048576.0))
+                         r["peak_job_bytes"] / 1048576.0, r["peak_working_set_bytes"] / 1048576.0))
                 sys.stdout.flush()
 
     print()
-    print("%-13s %-3s %10s %10s %10s %8s" % ("workload", "", "min ms", "median ms", "cpu ms", "peak MB"))
+    print("%-13s %-3s %10s %10s %10s %10s %10s" %
+          ("workload", "", "min ms", "median ms", "cpu ms", "commit MiB", "ws MiB"))
     for wid in ids:
         for tag, _ in binaries:
-            lo, med, cpu, peak = summary(samples[tag][wid])
-            print("%-13s %-3s %10.1f %10.1f %10.1f %8.1f" % (wid, tag, lo, med, cpu, peak))
+            lo, med, cpu, peak, resident = summary(samples[tag][wid])
+            print("%-13s %-3s %10.1f %10.1f %10.1f %10.1f %10.1f" % (wid, tag, lo, med, cpu, peak, resident))
         if len(binaries) == 2:
             pairs = zip(samples["A"][wid], samples["B"][wid])
             wall = [b["wall_ms"] / a["wall_ms"] for a, b in pairs]
             pairs = zip(samples["A"][wid], samples["B"][wid])
             cpu = [b["cpu_ms"] / a["cpu_ms"] for a, b in pairs if a["cpu_ms"]]
-            print("%-13s B/A %10s %10.3f %10.3f" % (wid, "", statistics.median(wall),
-                                                    statistics.median(cpu) if cpu else float("nan")))
+            pairs = zip(samples["A"][wid], samples["B"][wid])
+            commit = [b["peak_job_bytes"] / a["peak_job_bytes"] for a, b in pairs if a["peak_job_bytes"]]
+            pairs = zip(samples["A"][wid], samples["B"][wid])
+            resident = [b["peak_working_set_bytes"] / a["peak_working_set_bytes"]
+                        for a, b in pairs if a["peak_working_set_bytes"]]
+            print("%-13s B/A %10s %10.3f %10.3f %10.3f %10.3f" %
+                  (wid, "", statistics.median(wall), statistics.median(cpu) if cpu else float("nan"),
+                   statistics.median(commit) if commit else float("nan"),
+                   statistics.median(resident) if resident else float("nan")))
     return 0
 
 

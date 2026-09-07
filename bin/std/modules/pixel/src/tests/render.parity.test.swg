@@ -49,12 +49,8 @@ func renderOgl(className, title: string, width, height: s32, scene: RenderParity
 {
     var window = try Env.createWindow({identifier: className, title: title, width: width, height: height})
 
-    // Realize the window before creating the GL context. A never-shown, never-pumped window has
-    // no fully realized drawable, and its device context then yields a context whose framebuffer
-    // reads back empty at random on this platform: the render target is filled correctly but the
-    // read returns zeros. Realizing it and draining its queue is exactly what a real application
-    // does before its first frame, and it makes the readback deterministic. It is realized off
-    // the desktop: a test campaign is headless and must not flash a window at whoever runs it.
+    // Realize and pump the window before creating the GL context, as an application does at
+    // startup. Keep it outside the visible desktop so the test never takes focus or flashes.
     try window.showOffScreen()
     discard Env.processWindowMessages()
 
@@ -72,78 +68,12 @@ func renderOgl(className, title: string, width, height: s32, scene: RenderParity
     return scene(renderer)
 }
 
-// Reports whether `actual` is a lost windowed readback rather than a render of the scene.
-//
-// On this platform a freshly created windowed GL context occasionally reads back the default
-// framebuffer instead of its render target — a blank buffer, or a foreign window once the parity
-// window is shown — which reads as a whole-image difference from the CPU reference. Every real
-// CPU/OpenGL parity difference stays under a couple thousand edge pixels at a channel delta of a
-// few; a lost readback misses on a quarter of the image or more at a channel delta of tens, so the
-// two are never confused.
-private func readbackLost(expected, actual: const *Image)->bool
-{
-    if !actual.isValid() or actual.width != expected.width or actual.height != expected.height do
-        return true
-
-    let limit = (expected.width * expected.height) / 4
-    var bad   = 0
-    for y in expected.height
-    {
-        for x in expected.width
-        {
-            let e  = expected.pixelColor(x, y)
-            let a  = actual.pixelColor(x, y)
-            let dr = Math.abs(cast(s32) e.r - cast(s32) a.r)
-            let dg = Math.abs(cast(s32) e.g - cast(s32) a.g)
-            let db = Math.abs(cast(s32) e.b - cast(s32) a.b)
-            if Math.max(Math.max(dr, dg), db) > 24
-            {
-                bad += 1
-                if bad > limit do
-                    return true
-            }
-        }
-    }
-
-    return false
-}
-
-// Renders the OpenGL side of a parity scene and returns it, re-rendering when the windowed readback
-// is lost. The retry is what makes a real-window GL test deterministic on a live desktop; a genuine
-// parity difference is never catastrophic, so it is never retried away. An unsupported
-// advanced-blending context returns an invalid image on purpose — the capability answer, not a lost
-// readback — and is returned as-is for the caller to skip.
-func renderOglStable(className, title: string, width, height: s32, scene: RenderParityScene, expected: const *Image, needsAdvancedBlending = false)->Image fail
-{
-    var actual: Image
-    for 5
-    {
-        actual = expect renderOgl(className, title, width, height, scene, needsAdvancedBlending)
-        if needsAdvancedBlending and !actual.isValid() do
-            break
-        if !readbackLost(expected, &actual) do
-            return actual
-    }
-
-    // Five lost readbacks in a row is not a rendering difference, and reporting it as one
-    // sends a reader looking at the painter. Say what happened instead.
-    if !needsAdvancedBlending or actual.isValid()
-    {
-        if readbackLost(expected, &actual)
-        {
-            Console.println("[ogl] the readback never returned the scene for ", title, "; the context read a blank or foreign framebuffer five times")
-            Swag.assert(false)
-        }
-    }
-
-    return actual
-}
-
-// Renders both backends for one scene and asserts they agree within `options`.
+// Compares the first render from each backend within `options`. A divergent image is evidence
+// of a failure, including a large or intermittent difference, and must never be retried away.
 func assertOglParity(className, title: string, width, height: s32, scene: RenderParityScene, name: string, options: Testing.ImageGoldenOptions, needsAdvancedBlending = false) fail
 {
     let expected = renderCpu(scene)
-    let actual   = try renderOglStable(className, title, width, height, scene, &expected, needsAdvancedBlending)
+    let actual   = try renderOgl(className, title, width, height, scene, needsAdvancedBlending)
     if needsAdvancedBlending and !actual.isValid() do
         return
     Testing.assertImagesNear(&expected, &actual, name, options)
@@ -771,7 +701,7 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420
     var storage: Array'u8
     let picture  = makeRenderPlanarPicture(&storage)
     let expected = renderCpu(&renderPlanarParityScene)
-    let image    = try renderOglStable("SWAG_PIXEL_PLANAR_PARITY", "Pixel planar parity", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene, &expected)
+    let image    = try renderOgl("SWAG_PIXEL_PLANAR_PARITY", "Pixel planar parity", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.planar.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
     assertPlanarCornersUpright(&image, &picture)
 }
@@ -846,7 +776,7 @@ private func hasSoftEdge(image: const *Image, x, y: s32, fill: Color)->bool
     // The circle's edge, where it runs diagonally, is a ramp rather than a staircase.
     Swag.assert(hasSoftEdge(&expected, 172, 36, blue))
 
-    let actual = expect renderOglStable("SWAG_PIXEL_CLIP_PARITY", "Pixel clip region parity", RenderParityWidth, RenderParityHeight, &renderClipRegionParityScene, &expected)
+    let actual = expect renderOgl("SWAG_PIXEL_CLIP_PARITY", "Pixel clip region parity", RenderParityWidth, RenderParityHeight, &renderClipRegionParityScene)
     Testing.assertImagesNear(&expected, &actual, "render.parity.clipregion.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
 }
 
@@ -903,7 +833,7 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
 
     // Alpha is excluded from what is drawn, so only the colour is compared: OpenGL leaves the
     // scratch plane opaque over the batch it made opaque, the CPU leaves it untouched.
-    let actual = expect renderOglStable("SWAG_PIXEL_BACKDROP_PARITY", "Pixel opaque backdrop parity", RenderBlendWidth, RenderBlendHeight, &renderOpaqueBackdropParityScene, &expected, true)
+    let actual = expect renderOgl("SWAG_PIXEL_BACKDROP_PARITY", "Pixel opaque backdrop parity", RenderBlendWidth, RenderBlendHeight, &renderOpaqueBackdropParityScene, true)
     if !actual.isValid() do
         return
     let expectedColor = colorOnly(&expected)

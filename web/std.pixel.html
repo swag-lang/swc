@@ -233,7 +233,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">461</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">464</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -480,6 +480,7 @@
 <li><a href="#Pixel_LinePath_flatten">LinePath.flatten</a></li>
 <li><a href="#Pixel_LinePath_flattenedPolygon">LinePath.flattenedPolygon</a></li>
 <li><a href="#Pixel_LinePath_lineTo">LinePath.lineTo</a></li>
+<li><a href="#Pixel_LinePath_memoryUsage">LinePath.memoryUsage</a></li>
 <li><a href="#Pixel_LinePath_opDrop">LinePath.opDrop</a></li>
 <li><a href="#Pixel_LinePath_opPostCopy">LinePath.opPostCopy</a></li>
 <li><a href="#Pixel_LinePath_recomputeFlattenedPolygon">LinePath.recomputeFlattenedPolygon</a></li>
@@ -499,6 +500,7 @@
 <li><a href="#Pixel_LinePathList_count">LinePathList.count</a></li>
 <li><a href="#Pixel_LinePathList_flatten">LinePathList.flatten</a></li>
 <li><a href="#Pixel_LinePathList_intersect">LinePathList.intersect</a></li>
+<li><a href="#Pixel_LinePathList_memoryUsage">LinePathList.memoryUsage</a></li>
 <li><a href="#Pixel_LinePathList_newPath">LinePathList.newPath</a></li>
 <li><a href="#Pixel_LinePathList_offset">LinePathList.offset</a></li>
 <li><a href="#Pixel_LinePathList_opDrop">LinePathList.opDrop</a></li>
@@ -549,6 +551,7 @@
 <li><a href="#Pixel_Painter_fillPolygon">Painter.fillPolygon</a></li>
 <li><a href="#Pixel_Painter_fillRect">Painter.fillRect</a></li>
 <li><a href="#Pixel_Painter_fillRoundRect">Painter.fillRoundRect</a></li>
+<li><a href="#Pixel_Painter_fillShadow">Painter.fillShadow</a></li>
 <li><a href="#Pixel_Painter_flattenScale">Painter.flattenScale</a></li>
 <li><a href="#Pixel_Painter_glyphs">Painter.glyphs</a></li>
 <li><a href="#Pixel_Painter_hairline">Painter.hairline</a></li>
@@ -1945,6 +1948,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePath_lineTo">LinePath.lineTo</a></td><td><p>Adds a straight segment from the current endpoint to <span class="code-inline">(x, y)</span>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_LinePath_memoryUsage">LinePath.memoryUsage</a></td><td><p>Returns roughly what this contour holds in memory, in bytes.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePath_opDrop">LinePath.opDrop</a></td><td><p>Releases cached tessellation when the path leaves scope.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePath_opPostCopy">LinePath.opPostCopy</a></td><td><p>Detaches cached tessellation after copying the path.</p>
@@ -1982,6 +1987,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_LinePathList_flatten">LinePathList.flatten</a></td><td><p>Flattens all paths at <span class="code-inline">quality</span> and recomputes combined bounds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePathList_intersect">LinePathList.intersect</a></td><td><p>Keeps the regions of this already-flattened list that also lie inside <span class="code-inline">clip</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_LinePathList_memoryUsage">LinePathList.memoryUsage</a></td><td><p>Returns roughly what this list holds in memory, in bytes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePathList_newPath">LinePathList.newPath</a></td><td><p>Allocates, owns, and returns a new empty path.</p>
 </td></tr>
@@ -2082,6 +2089,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_Painter_fillRect">Painter.fillRect</a></td><td><p>Draw a filled rectangle</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_fillRoundRect">Painter.fillRoundRect</a></td><td><p>Draw a filled round rectangle</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_fillShadow">Painter.fillShadow</a></td><td><p>Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_flattenScale">Painter.flattenScale</a></td><td><p>Returns the quantized flattening scale of subsequent path draws.</p>
 </td></tr>
@@ -3684,7 +3693,7 @@ painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-interface"><span id="Pixel_IImageDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Pixel.IImageDecoder</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L53">src</a></div>
+<div class="api-item api-item-interface"><span id="Pixel_IImageDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Pixel.IImageDecoder</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L54">src</a></div>
 <p>Defines a decoder selected by filename extension and applied to encoded bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Pixel_IImageDecoder">IImageDecoder</a></span></span></div>
 </section>
@@ -4392,6 +4401,8 @@ path.<span class="SFct">close</span>()</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePath_lineTo">lineTo</a></td><td><p>Adds a straight segment from the current endpoint to <span class="code-inline">(x, y)</span>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_LinePath_memoryUsage">memoryUsage</a></td><td><p>Returns roughly what this contour holds in memory, in bytes.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePath_opDrop">opDrop</a></td><td><p>Releases cached tessellation when the path leaves scope.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePath_opPostCopy">opPostCopy</a></td><td><p>Detaches cached tessellation after copying the path.</p>
@@ -4451,6 +4462,8 @@ path.<span class="SFct">close</span>()</span></div>
 <tr><td class="code-type"><a href="#Pixel_LinePathList_flatten">flatten</a></td><td><p>Flattens all paths at <span class="code-inline">quality</span> and recomputes combined bounds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePathList_intersect">intersect</a></td><td><p>Keeps the regions of this already-flattened list that also lie inside <span class="code-inline">clip</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_LinePathList_memoryUsage">memoryUsage</a></td><td><p>Returns roughly what this list holds in memory, in bytes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_LinePathList_newPath">newPath</a></td><td><p>Allocates, owns, and returns a new empty path.</p>
 </td></tr>
@@ -4654,6 +4667,8 @@ painter.<span class="SFct">end</span>()</span></div>
 <tr><td class="code-type"><a href="#Pixel_Painter_fillRect">fillRect</a></td><td><p>Draw a filled rectangle</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_fillRoundRect">fillRoundRect</a></td><td><p>Draw a filled round rectangle</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Painter_fillShadow">fillShadow</a></td><td><p>Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Painter_flattenScale">flattenScale</a></td><td><p>Returns the quantized flattening scale of subsequent path draws.</p>
 </td></tr>
@@ -8069,13 +8084,13 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, images: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.decode</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L65">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.decode</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L66">src</a></div>
 <p>Decodes one complete encoded buffer according to <span class="code-inline">opt</span>.</p>
 <p>Fails when the data is malformed, truncated, or uses unsupported features.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decode</span>(buf: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, opt: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_format" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.format</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L60">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_format" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.format</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L61">src</a></div>
 <p>Describes the format this decoder reads.</p>
 <p>The registry stores the result once, at registration, and derives extension matching from it. It is called on a decoder with no instance behind it, so it must return a constant and must not read the decoder's own state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">format</span>()-&gt;<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
@@ -8113,12 +8128,12 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">aspectRatio</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canLoad</span> <a class="api-item-permalink" href="#Pixel_Image_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L141">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canLoad</span> <a class="api-item-permalink" href="#Pixel_Image_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L151">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the given filename has a corresponding decoder</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canLoad</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_canSave" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canSave</span> <a class="api-item-permalink" href="#Pixel_Image_canSave" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L71">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_canSave" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canSave</span> <a class="api-item-permalink" href="#Pixel_Image_canSave" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L80">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the given filename has a corresponding encoder</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canSave</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -8196,30 +8211,30 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cropped</span>(cropRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L131">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L141">src</a></div>
 <p>Returns the format read by each registered decoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another decoder afterwards does not change it. Use it to build the format list of an open dialog.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decode</span> <a class="api-item-permalink" href="#Pixel_Image_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L144">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decode</span> <a class="api-item-permalink" href="#Pixel_Image_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L154">src</a></div>
 <p>Decode the given image buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(fileName: <span class="STpe">string</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>?, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_encodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_encodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L70">src</a></div>
 <p>Returns the format written by each registered encoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another encoder afterwards does not change it. Use it to build the format list of a save dialog.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encode</span> <a class="api-item-permalink" href="#Pixel_Image_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L77">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encode</span> <a class="api-item-permalink" href="#Pixel_Image_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L86">src</a></div>
 <p>Encodes the image to an owned segmented memory buffer.</p>
 <p><span class="code-inline">fileName</span> selects the encoder by extension; no file is opened. Fails if the image is invalid or no encoder accepts the extension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodeToBytes</span> <a class="api-item-permalink" href="#Pixel_Image_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodeToBytes</span> <a class="api-item-permalink" href="#Pixel_Image_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L126">src</a></div>
 <p>Encodes the image to one contiguous owned block.</p>
 <p>Selection works exactly as in <a href="#Pixel_Image_encode">Pixel.Image.encode</a>. This is what a caller handing the bytes to something that wants a single slice asks for — a clipboard medium, a drag payload, a request body — rather than flattening the segmented buffer itself every time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
@@ -8286,7 +8301,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">from</span>(hbitmap: <span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_fromDataUri" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fromDataUri</span> <a class="api-item-permalink" href="#Pixel_Image_fromDataUri" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L176">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_fromDataUri" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fromDataUri</span> <a class="api-item-permalink" href="#Pixel_Image_fromDataUri" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L187">src</a></div>
 <p>Decodes an image carried inline in a <span class="code-inline">data:</span> URI.</p>
 <p>This is how HTML and SVG documents embed a picture in their own source. Only the base64 form is read: <span class="code-inline">data:image/png;base64,...</span>. The media type selects the decoder the same way a file extension does, and the payload is decoded with <a href="std.core.html#Core_Base64_decode">Core.Base64.decode</a>. A reference that is not an image data URI or names a media type with no decoder reports <span class="code-inline">UnsupportedFormatError</span>; a malformed payload reports the codec's own failure.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromDataUri</span>(uri: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
@@ -8341,7 +8356,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lightness</span>(factor: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.load</span> <a class="api-item-permalink" href="#Pixel_Image_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L156">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.load</span> <a class="api-item-permalink" href="#Pixel_Image_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L167">src</a></div>
 <p>Load the given image file</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -8388,14 +8403,20 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pixelColor</span>(pixX, pixY: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Color">Color</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_registerDecoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerDecoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L116">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_registerDecoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerDecoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L117">src</a></div>
 <p>Registers a decoder type unless it is already present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerDecoder</span>()</span></div>
+<p>Registers a decoder described by reflection, unless that type is already registered.</p>
+<p><span class="code-inline">type</span> must implement <a href="#Pixel_IImageDecoder">Pixel.IImageDecoder</a>. Its format method must return static metadata without reading an instance. Registration updates the module's shared registry; a decoding already in progress keeps using its selected type, including its metadata probe.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerDecoder</span>(type: <span class="SKwd">const</span> *<span class="SCst"><a href="swag.runtime.html#Swag_TypeInfoStruct">TypeInfoStruct</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Image_registerEncoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerEncoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerEncoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L46">src</a></div>
 <p>Registers an encoder type unless it is already present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerEncoder</span>()</span></div>
+<p>Registers an encoder described by reflection, unless that type is already registered.</p>
+<p><span class="code-inline">type</span> must implement <a href="#Pixel_IImageEncoder">Pixel.IImageEncoder</a>. Its format method must return static metadata without reading an instance. Registration updates the module's shared registry; an encoding already in progress keeps using its selected type.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerEncoder</span>(type: <span class="SKwd">const</span> *<span class="SCst"><a href="swag.runtime.html#Swag_TypeInfoStruct">TypeInfoStruct</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Image_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.release</span> <a class="api-item-permalink" href="#Pixel_Image_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/image.swg#L532">src</a></div>
@@ -8423,7 +8444,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rotated</span>(angle: <span class="SCst"><a href="#Pixel_Image_Rotation">Rotation</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.save</span> <a class="api-item-permalink" href="#Pixel_Image_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L126">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.save</span> <a class="api-item-permalink" href="#Pixel_Image_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L133">src</a></div>
 <p>Encodes the image and writes it to <span class="code-inline">fileName</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -8806,29 +8827,29 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">texture</span>()-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_arcTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.arcTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_arcTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L198">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_arcTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.arcTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_arcTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L216">src</a></div>
 <p>Add an arc from the previous point</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">arcTo</span>(centerX, centerY: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>, initAngle, maxAngle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_bezierTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.bezierTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_bezierTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L165">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_bezierTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.bezierTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_bezierTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L183">src</a></div>
 <p>Adds a quadratic Bézier ending at <span class="code-inline">(x, y)</span> with one control point.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bezierTo</span>(x, y: <span class="STpe">f32</span>, ctx, cty: <span class="STpe">f32</span>)</span></div>
 <p>Adds a cubic Bézier ending at <span class="code-inline">(x, y)</span> with two control points.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bezierTo</span>(x, y: <span class="STpe">f32</span>, ct1x, ct1y: <span class="STpe">f32</span>, ct2x, ct2y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.clear</span> <a class="api-item-permalink" href="#Pixel_LinePath_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L117">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.clear</span> <a class="api-item-permalink" href="#Pixel_LinePath_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L135">src</a></div>
 <p>Releases all path geometry and restores an empty value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.close</span> <a class="api-item-permalink" href="#Pixel_LinePath_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L312">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.close</span> <a class="api-item-permalink" href="#Pixel_LinePath_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L330">src</a></div>
 <p>Close the figure Will add a line or a curve to the first point if necessary</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePath_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L275">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePath_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L293">src</a></div>
 <p>Returns the rectangle enclosing every point that defines this path.</p>
 <p>A Bézier is contained by its control polygon and an arc by its centre and radii, so this answers without flattening anything: it works on a path still being built, and costs one pass over the segments. The result can be wider than the ink the path finally lays down, and is never narrower — which is what makes it safe to reject work against, and unsuitable for measuring a drawing.</p>
 <div class="code-block"><span class="SCde"><span class="SLgc">if</span> !path.<span class="SFct">controlBounds</span>().<span class="SFct">intersects</span>(dirtyRect) <span class="SLgc">do</span>
@@ -8836,128 +8857,134 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">controlBounds</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_curveTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.curveTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_curveTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L150">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_curveTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.curveTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_curveTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L168">src</a></div>
 <p>Adds a smoothed curve point at <span class="code-inline">(x, y)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">curveTo</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePath_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L554">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePath_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L572">src</a></div>
 <p>Convert the path to a list of points</p>
 <p><span class="code-inline">scale</span> is the number of device pixels one path unit covers when the result is drawn: the flattening tolerance is expressed in path units, so a curve zoomed by a transform needs proportionally more segments to look as smooth on screen as it does at scale one. The cache keeps the finest flattening produced so far, whichever combination of quality and scale asked for it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flatten</span>(quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_flattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_flattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L530">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_flattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.flattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_flattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L548">src</a></div>
 <p>Flattens the path as needed and returns its mutable cached contour.</p>
 <p>Mutating the returned points changes only the cache. Call <a href="#Pixel_LinePath_recomputeFlattenedPolygon">Pixel.LinePath.recomputeFlattenedPolygon</a> after geometric edits; a later path edit may replace the contour completely.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flattenedPolygon</span>(quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)-&gt;*<span class="SCst"><a href="#Pixel_Polygon">Polygon</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_lineTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.lineTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_lineTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L135">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_lineTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.lineTo</span> <a class="api-item-permalink" href="#Pixel_LinePath_lineTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L153">src</a></div>
 <p>Adds a straight segment from the current endpoint to <span class="code-inline">(x, y)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lineTo</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opDrop</span> <a class="api-item-permalink" href="#Pixel_LinePath_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L93">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_memoryUsage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.memoryUsage</span> <a class="api-item-permalink" href="#Pixel_LinePath_memoryUsage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L99">src</a></div>
+<p>Returns roughly what this contour holds in memory, in bytes.</p>
+<p>The answer covers the segments the contour is described by and the geometry cached beside them — the flattened points, the tessellation, and the outward directions of its vertices — which is what makes a contour expensive once it has been drawn. It is an estimate: a consumer bounding a cache of shapes needs the order of magnitude, not the allocator's exact bookkeeping.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">memoryUsage</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_LinePath_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opDrop</span> <a class="api-item-permalink" href="#Pixel_LinePath_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L111">src</a></div>
 <p>Releases cached tessellation when the path leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_LinePath_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_LinePath_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L117">src</a></div>
 <p>Detaches cached tessellation after copying the path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_recomputeFlattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.recomputeFlattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_recomputeFlattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L537">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_recomputeFlattenedPolygon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.recomputeFlattenedPolygon</span> <a class="api-item-permalink" href="#Pixel_LinePath_recomputeFlattenedPolygon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L555">src</a></div>
 <p>Refreshes bounds and polygon properties after editing the flattened contour.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">recomputeFlattenedPolygon</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setArc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setArc</span> <a class="api-item-permalink" href="#Pixel_LinePath_setArc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L482">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setArc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setArc</span> <a class="api-item-permalink" href="#Pixel_LinePath_setArc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L500">src</a></div>
 <p>Initialize the path with an arc</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setArc</span>(centerX, centerY: <span class="STpe">f32</span>, radius: <span class="STpe">f32</span>, startAngle, endAngle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setCircle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setCircle</span> <a class="api-item-permalink" href="#Pixel_LinePath_setCircle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L467">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setCircle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setCircle</span> <a class="api-item-permalink" href="#Pixel_LinePath_setCircle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L485">src</a></div>
 <p>Initialize the path with a circle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCircle</span>(centerX, centerY: <span class="STpe">f32</span>, radius: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipse</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L456">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipse</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L474">src</a></div>
 <p>Initialize the path with an ellipse</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEllipse</span>(centerX, centerY: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipseRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipseRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipseRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L445">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setEllipseRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setEllipseRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setEllipseRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L463">src</a></div>
 <p>Initialize the path with an ellipse at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setEllipse">setEllipse</a>, the center and radii are not snapped to the pixel grid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setEllipseRaw</span>(cX, cY: <span class="STpe">f32</span>, rX, rY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L399">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L417">src</a></div>
 <p>Initialize the path with a rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRect</span>(left, top, width, height: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L385">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L403">src</a></div>
 <p>Initialize the path with a rectangle at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setRect">setRect</a>, nothing is snapped to the pixel grid: authored fractional geometry, such as a parsed vector document, stays untouched.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRectRaw</span>(l, t, w, h: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L432">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRect</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L450">src</a></div>
 <p>Initialize the path with a round rectangle</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRoundRect</span>(left, top, width, height: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L413">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_setRoundRectRaw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.setRoundRectRaw</span> <a class="api-item-permalink" href="#Pixel_LinePath_setRoundRectRaw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L431">src</a></div>
 <p>Initialize the path with a round rectangle at exact coordinates.</p>
 <p>Unlike <a href="#Pixel_LinePath_setRoundRect">setRoundRect</a>, nothing is snapped to the pixel grid; the radii are clamped to half the dimensions, so a full radius produces a capsule.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRoundRectRaw</span>(l, t, w, h: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.start</span> <a class="api-item-permalink" href="#Pixel_LinePath_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L124">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.start</span> <a class="api-item-permalink" href="#Pixel_LinePath_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L142">src</a></div>
 <p>Clears the path and starts a new open contour at <span class="code-inline">(startX, startY)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(startX, startY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePath_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.transform</span> <a class="api-item-permalink" href="#Pixel_LinePath_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L238">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePath_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePath.transform</span> <a class="api-item-permalink" href="#Pixel_LinePath_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepath.swg#L256">src</a></div>
 <p>Maps every point of the path through an affine transform, in place.</p>
 <p>Lines and Bézier segments map exactly. An arc does not survive an affine map — a rotation or a skew turns it into an elliptical arc this representation cannot express — so an arc is first rewritten as the cubic Bézier segments that trace it, and those are mapped. The flattened geometry is discarded; the path flattens again the next time it is painted.</p>
 <div class="code-block"><span class="SCde">clip.<span class="SFct">transform</span>(placement.<span class="SFct">inverse</span>())</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(transform: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_clean" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.clean</span> <a class="api-item-permalink" href="#Pixel_LinePathList_clean" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L340">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_clean" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.clean</span> <a class="api-item-permalink" href="#Pixel_LinePathList_clean" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L355">src</a></div>
 <p>Unions and normalizes groups of already-flattened paths.</p>
 <p><span class="code-inline">rule</span> decides which regions of a self-overlapping or multi-contour group count as interior. The default treats a nonzero winding count as filled, which is what the clockwise-outer, anticlockwise-hole convention of this type expresses; pass <span class="code-inline">EvenOdd</span> for geometry authored under the alternating rule, where two overlapping contours of the same direction cancel instead of merging.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clean</span>(rule = <span class="SCst"><a href="#namespace_Pixel_Clipper">Clipper</a></span>.<span class="SCst"><a href="#Pixel_Clipper_PolyFillType">PolyFillType</a></span>.<span class="SCst">NonZero</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.clear</span> <a class="api-item-permalink" href="#Pixel_LinePathList_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L169">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.clear</span> <a class="api-item-permalink" href="#Pixel_LinePathList_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L184">src</a></div>
 <p>Releases and removes all owned paths.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePathList_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_controlBounds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.controlBounds</span> <a class="api-item-permalink" href="#Pixel_LinePathList_controlBounds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L168">src</a></div>
 <p>Returns the rectangle enclosing every point that defines the owned paths.</p>
 <p>This is the union of each path's <a href="#Pixel_LinePath_controlBounds">Pixel.LinePath.controlBounds</a>, and shares its properties: it needs no flattening, it can be wider than the ink, and it is never narrower. An empty list answers an empty rectangle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">controlBounds</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.count</span> <a class="api-item-permalink" href="#Pixel_LinePathList_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L140">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.count</span> <a class="api-item-permalink" href="#Pixel_LinePathList_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L155">src</a></div>
 <p>Returns the number of owned paths.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">count</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePathList_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L190">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_flatten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.flatten</span> <a class="api-item-permalink" href="#Pixel_LinePathList_flatten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L205">src</a></div>
 <p>Flattens all paths at <span class="code-inline">quality</span> and recomputes combined bounds.</p>
 <p><span class="code-inline">scale</span> is the number of device pixels one path unit covers when the result is drawn; see <a href="#Pixel_LinePath_flatten">Pixel.LinePath.flatten</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flatten</span>(quality: <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span> = .<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_intersect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.intersect</span> <a class="api-item-permalink" href="#Pixel_LinePathList_intersect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L428">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_intersect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.intersect</span> <a class="api-item-permalink" href="#Pixel_LinePathList_intersect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L443">src</a></div>
 <p>Keeps the regions of this already-flattened list that also lie inside <span class="code-inline">clip</span>.</p>
 <p><span class="code-inline">rule</span> says which regions of this list count as interior and <span class="code-inline">clipRule</span> says the same for <span class="code-inline">clip</span>, so a ring authored under the alternating rule clips as a ring. Both lists must be flattened first, the way <a href="#Pixel_LinePathList_clean">Pixel.LinePathList.clean</a> requires, and the result is normalized the same way: outer contours clockwise, each followed by its own holes. A clip that shares no region with the list leaves it empty.</p>
 <div class="code-block"><span class="SCde">shape.<span class="SFct">flatten</span>(.<span class="SCst"><a href="#Pixel_PaintQuality_High">High</a></span>)
@@ -8966,12 +8993,18 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">intersect</span>(clip: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, rule = <span class="SCst"><a href="#namespace_Pixel_Clipper">Clipper</a></span>.<span class="SCst"><a href="#Pixel_Clipper_PolyFillType">PolyFillType</a></span>.<span class="SCst">NonZero</span>, clipRule = <span class="SCst"><a href="#namespace_Pixel_Clipper">Clipper</a></span>.<span class="SCst"><a href="#Pixel_Clipper_PolyFillType">PolyFillType</a></span>.<span class="SCst">NonZero</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_newPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.newPath</span> <a class="api-item-permalink" href="#Pixel_LinePathList_newPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L179">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_memoryUsage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.memoryUsage</span> <a class="api-item-permalink" href="#Pixel_LinePathList_memoryUsage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L95">src</a></div>
+<p>Returns roughly what this list holds in memory, in bytes.</p>
+<p>The answer is the sum of every contour's own <a href="#Pixel_LinePath_memoryUsage">Pixel.LinePath.memoryUsage</a> and of the normalized copy the fill cache may hold beside them.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">memoryUsage</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_newPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.newPath</span> <a class="api-item-permalink" href="#Pixel_LinePathList_newPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L194">src</a></div>
 <p>Allocates, owns, and returns a new empty path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">newPath</span>()-&gt;*<span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_offset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.offset</span> <a class="api-item-permalink" href="#Pixel_LinePathList_offset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L220">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_offset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.offset</span> <a class="api-item-permalink" href="#Pixel_LinePathList_offset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L235">src</a></div>
 <p>Offsets every already-flattened polygon using its winding direction.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">offset</span>(value: <span class="STpe">f32</span>)</span></div>
 <p>Rebuilds every already-flattened path with a quality offset.</p>
@@ -8979,24 +9012,24 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">offset</span>(value: <span class="STpe">f32</span>, joinStyle: <span class="SCst"><a href="#Pixel_JoinStyle">JoinStyle</a></span>, toler: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.opDrop</span> <a class="api-item-permalink" href="#Pixel_LinePathList_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L102">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.opDrop</span> <a class="api-item-permalink" href="#Pixel_LinePathList_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L117">src</a></div>
 <p>Releases every owned path when the list leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_LinePathList_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L111">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_LinePathList_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L126">src</a></div>
 <p>Deep-copies every owned path after copying the list.</p>
 <p>The fill cache stays with the source: its pointer was copied raw, so it is detached here rather than dropped, and the copy rebuilds its own on first use.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.toSlice</span> <a class="api-item-permalink" href="#Pixel_LinePathList_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L146">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.toSlice</span> <a class="api-item-permalink" href="#Pixel_LinePathList_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L161">src</a></div>
 <p>Returns a borrowed read-only view of the owned path pointers.</p>
 <p>The view is invalidated when the list is cleared, offset, cleaned, copied, or destroyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toSlice</span>()-&gt;<span class="SKwd">const</span> [..] *<span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_LinePathList_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.transform</span> <a class="api-item-permalink" href="#Pixel_LinePathList_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_LinePathList_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">LinePathList.transform</span> <a class="api-item-permalink" href="#Pixel_LinePathList_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/linepathlist.swg#L227">src</a></div>
 <p>Maps every path through an affine transform, in place.</p>
 <p>Each segment maps the way <a href="#Pixel_LinePath_transform">Pixel.LinePath.transform</a> describes. The combined bounds are derived again by the next flattening.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(transform: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Transform2">Transform2</a></span>)</span></div>
@@ -9294,6 +9327,13 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillRoundRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, radiusX, radiusY: <span class="STpe">f32</span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillRoundRect</span>(left, top, width, height: <span class="STpe">f32</span>, radiusX, radiusY: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillRoundRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, radiusX, radiusY: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Painter_fillShadow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.fillShadow</span> <a class="api-item-permalink" href="#Pixel_Painter_fillShadow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawrect.swg#L233">src</a></div>
+<p>Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.</p>
+<p><span class="code-inline">spread</span> is how far the shadow reaches beyond the shape, in logical units, and <span class="code-inline">color</span>'s alpha is the darkening it reaches where it meets the shape — not the alpha of any one part of it. Nothing is drawn inside the shape, which the caller paints over the result.</p>
+<p>The shadow is built out of nested rings. They are filled shapes stacked on one another, so what a pixel ends up with is the product of everything painted over it: handing each ring the alpha the profile asks for at its own distance would darken the shadow with every ring added, and the whole picture would change the moment the ring count were tuned for smoothness. Each ring's alpha is solved from what the stack has already reached instead, so the accumulated profile is the same at any ring count and the count is a pure quality knob: one ring per device pixel of spread, below which the gradient bands and above which the extra rings land on a pixel that is already covered.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillShadow</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, cornerRadius, spread: <span class="STpe">f32</span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Painter_flattenScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.flattenScale</span> <a class="api-item-permalink" href="#Pixel_Painter_flattenScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/painter.swg#L483">src</a></div>
@@ -10145,7 +10185,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.399</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.400</div>
 </footer>
 </section>
 </main>
@@ -11610,6 +11650,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.Painter.fillPolygon|Pixel_Painter_fillPolygon|Fill the polygon with the given color",
 "f|Pixel.Painter.fillRect|Pixel_Painter_fillRect|Draw a filled rectangle",
 "f|Pixel.Painter.fillRoundRect|Pixel_Painter_fillRoundRect|Draw a filled round rectangle",
+"f|Pixel.Painter.fillShadow|Pixel_Painter_fillShadow|Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.",
 "f|Pixel.Painter.flattenScale|Pixel_Painter_flattenScale|Returns the quantized flattening scale of subsequent path draws.",
 "f|Pixel.Painter.glyphs|Pixel_Painter_glyphs|Resolves the glyph descriptors for a UTF-8 string and font.",
 "f|Pixel.Painter.hairline|Pixel_Painter_hairline|Returns a stroke thickness covering a whole number of device pixels.",
@@ -11847,6 +11888,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.LinePath.flatten|Pixel_LinePath_flatten|Convert the path to a list of points",
 "f|Pixel.LinePath.flattenedPolygon|Pixel_LinePath_flattenedPolygon|Flattens the path as needed and returns its mutable cached contour.",
 "f|Pixel.LinePath.lineTo|Pixel_LinePath_lineTo|Adds a straight segment from the current endpoint to (x, y).",
+"f|Pixel.LinePath.memoryUsage|Pixel_LinePath_memoryUsage|Returns roughly what this contour holds in memory, in bytes.",
 "f|Pixel.LinePath.opDrop|Pixel_LinePath_opDrop|Releases cached tessellation when the path leaves scope.",
 "f|Pixel.LinePath.opPostCopy|Pixel_LinePath_opPostCopy|Detaches cached tessellation after copying the path.",
 "f|Pixel.LinePath.recomputeFlattenedPolygon|Pixel_LinePath_recomputeFlattenedPolygon|Refreshes bounds and polygon properties after editing the flattened contour.",
@@ -11866,6 +11908,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.LinePathList.count|Pixel_LinePathList_count|Returns the number of owned paths.",
 "f|Pixel.LinePathList.flatten|Pixel_LinePathList_flatten|Flattens all paths at quality and recomputes combined bounds.",
 "f|Pixel.LinePathList.intersect|Pixel_LinePathList_intersect|Keeps the regions of this already-flattened list that also lie inside clip.",
+"f|Pixel.LinePathList.memoryUsage|Pixel_LinePathList_memoryUsage|Returns roughly what this list holds in memory, in bytes.",
 "f|Pixel.LinePathList.newPath|Pixel_LinePathList_newPath|Allocates, owns, and returns a new empty path.",
 "f|Pixel.LinePathList.offset|Pixel_LinePathList_offset|Offsets every already-flattened polygon using its winding direction.",
 "f|Pixel.LinePathList.opDrop|Pixel_LinePathList_opDrop|Releases every owned path when the list leaves scope.",

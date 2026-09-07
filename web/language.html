@@ -7010,6 +7010,7 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s32</span>) view == <span class="SNum">42</span>)
 }</span></div>
 <p><span class="code-inline">Swag.makeInterface</span> and <span class="code-inline">Swag.tableOf</span> are the corresponding low-level building blocks for interface values. Normal 'cast(MyInterface) value' syntax is safer and clearer; use the intrinsics only when implementing generic runtime machinery.</p>
+<p>With a runtime type descriptor, <span class="code-inline">Swag.makeInterface</span> returns a nullable interface: it is absent when the concrete type does not implement the requested interface. Presence is determined by the method table. The instance pointer may be null when the methods only return static metadata and do not access instance storage.</p>
 <h3 id="_008_004_math_and_bit_intrinsics_swg">Math and Bit Intrinsics</h3>
 <h3 id="_008_004_math_and_bit_intrinsics_swg_Integer_Helpers">Integer Helpers</h3>
 <p><span class="code-inline">Swag.min</span>, <span class="code-inline">Swag.max</span>, and <span class="code-inline">Swag.abs</span> preserve the operand type. Bit intrinsics operate on unsigned widths from <span class="code-inline">u8</span> through <span class="code-inline">u64</span>.</p>

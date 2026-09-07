@@ -71,7 +71,7 @@ func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [.
     cb.addStruct(dib)
 
     cb.addBytes(dibBody)
-    return cbToArray(&cb)
+    return cb.toArray()
 }
 
 func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail

@@ -9,8 +9,8 @@ using Core.Errors
 // of one piece rather than the memory of the result; a piece larger than the window goes
 // straight to the file.
 //
-// A memory sink borrows its destination buffer: it must stay valid until the sink is closed,
-// and it holds the whole stream, which only a bounded result should ask for.
+// A memory sink borrows its destination buffer: keep it valid and write to it only through the
+// sink until closing it. It holds the whole stream, which only a bounded result should ask for.
 #[Swag.NoCopy]
 struct ByteSink
 {
@@ -49,8 +49,10 @@ impl ByteSink
     //
     // Whatever `buffer` already holds stays untouched, and stream offsets remain relative to the
     // first byte this sink writes, so a codec computes them the same way on both backings.
+    // The buffer's cursor moves to its end before the sink starts writing.
     func createMemory(buffer: *ConcatBuffer)->ByteSink
     {
+        buffer.advance(buffer.count() - ConcatBuffer.offsetOf(buffer.position()))
         var result: retval
         result.buffer = buffer
         result.origin = buffer.position()

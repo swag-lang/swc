@@ -677,6 +677,10 @@ namespace Swag
         RequiresExplicitInit = 0x00080000     // This type must be explicitly initialized
     }
 
+    // Runtime representation of an interface value.
+    //
+    // A null method table means the interface is absent. A present interface may have a
+    // null instance pointer when its methods do not access instance storage.
     struct Interface
     {
         public

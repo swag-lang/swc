@@ -349,7 +349,7 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         // family: a constant left selects the fallback exactly when it is null. Reading that
         // from the constant keeps the condition rules off a spelling that is not a condition,
         // where they would reject the dead fallback a non-null left deliberately keeps.
-        const bool        leftIsFalse = sema.cstMgr().get(nodeLeftView.cstRef()).isNull();
+        const bool        leftIsFalse = sema.cstMgr().get(nodeLeftView.cstRef()).isNullValue(sema.ctx());
         const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef() : nodeLeftView.nodeRef();
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef() : nodeLeftView.cstRef();
         if (selectedCst.isValid())

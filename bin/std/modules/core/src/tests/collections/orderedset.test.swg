@@ -48,3 +48,14 @@ using Swag
     discard copy.remove("beta")
     Swag.assert(set.count == 3 and copy.count == 2)
 }
+
+// Reserving less storage preserves the elements and their existing capacity.
+#test
+{
+    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    set.add(42)
+    let capacity = set.capacity()
+    set.reserve(0)
+    Swag.assert(set.count == 1 and set.capacity() == capacity)
+    Swag.assert(set.contains(42))
+}

@@ -860,6 +860,59 @@ uint32_t ConstantValue::hash() const noexcept
     return h;
 }
 
+bool ConstantValue::isNullValue(const TaskContext& ctx) const noexcept
+{
+    if (isNull())
+        return true;
+    if (isValuePointer())
+        return getValuePointer() == 0;
+    if (isBlockPointer())
+        return getBlockPointer() == 0;
+    if (isStruct() && typeRef().isValid())
+    {
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef());
+        if (typeInfo.isInterface())
+        {
+            const std::span<const std::byte> bytes = getStruct();
+            SWC_ASSERT(bytes.size() == sizeof(Runtime::Interface));
+            Runtime::Interface runtimeInterface{};
+            std::memcpy(&runtimeInterface, bytes.data(), sizeof(runtimeInterface));
+            return runtimeInterface.itable == nullptr;
+        }
+
+        if (typeInfo.isAny())
+        {
+            const std::span<const std::byte> bytes = getStruct();
+            if (bytes.size() != sizeof(Runtime::Any))
+                return false;
+
+            Runtime::Any runtimeAny{};
+            std::memcpy(&runtimeAny, bytes.data(), sizeof(runtimeAny));
+            return runtimeAny.type == nullptr && runtimeAny.value == nullptr;
+        }
+
+        if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
+        {
+            const std::span<const std::byte> bytes = getStruct();
+            if (bytes.size() != sizeof(Runtime::ClosureValue))
+                return false;
+
+            const auto* closureValue = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
+            if (closureValue->invoke)
+                return false;
+
+            for (const uint8_t byte : closureValue->capture)
+            {
+                if (byte != 0)
+                    return false;
+            }
+
+            return true;
+        }
+    }
+    return false;
+}
+
 ApsInt ConstantValue::getIntLike() const
 {
     if (isInt())

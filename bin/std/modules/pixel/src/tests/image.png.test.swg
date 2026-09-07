@@ -684,7 +684,7 @@ func buildPalettedPng(width: u32, transparency = true)->Array'u8
         addPngChunk(&result, "tRNS", alpha)
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 func buildGrayscalePng(width: u32)->Array'u8
@@ -700,7 +700,7 @@ func buildGrayscalePng(width: u32)->Array'u8
     addPngHeader(&result, width, 1, 8, 0)
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 func buildGrayscaleTransparencyPng(width: u32, key: u8)->Array'u8
@@ -718,7 +718,7 @@ func buildGrayscaleTransparencyPng(width: u32, key: u8)->Array'u8
     addPngChunk(&result, "tRNS", transparency)
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 func buildGrayscaleAlphaPng(width: u32)->Array'u8
@@ -738,7 +738,7 @@ func buildGrayscaleAlphaPng(width: u32)->Array'u8
     addPngHeader(&result, width, 1, 8, 4)
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 func buildRgbTransparencyPng(width: u32)->Array'u8
@@ -765,12 +765,12 @@ func buildRgbTransparencyPng(width: u32)->Array'u8
     addPngChunk(&result, "tRNS", transparency)
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
-    let bytes = cbToArray(encoded)
+    let bytes = encoded.toArray()
     var image: Image
     image = catch Image.decode(fileName, nnBytes(bytes.toSlice()), {}) as decodeError
     Swag.assert(decodeError != null)
@@ -854,7 +854,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     addPngChunk(&result, "IDAT", nnBytes(compressed.toSlice()))
     addPngChunk(&result, "IEND", "")
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 // Reject structural errors before reading pixels or indexing palette data.

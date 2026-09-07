@@ -106,8 +106,7 @@ namespace
     {
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
-        MicroReg operandReg;
-        loadOperandToRegister(operandReg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
+        const MicroReg operandReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         CodeGenCompareHelpers::emitCompareRegZero(codeGen, operandReg, *info.storageTypeInfo, info.opBits);

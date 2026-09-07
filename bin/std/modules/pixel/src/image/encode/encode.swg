@@ -45,12 +45,21 @@ public impl Image
     func(T) registerEncoder()
     {
         #assert(Reflection.hasInterface(#typeof(T), IImageEncoder))
+        registerEncoder(#typeof(T))
+    }
 
-        for &encoder in encoders where encoder.type == #typeof(T) do
+    // Registers an encoder described by reflection, unless that type is already registered.
+    //
+    // `type` must implement [[Pixel.IImageEncoder]]. Its format method must return static
+    // metadata without reading an instance. Registration updates the module's shared registry;
+    // an encoding already in progress keeps using its selected type.
+    func registerEncoder(type: const *TypeInfoStruct)
+    {
+        for &encoder in encoders where encoder.type == type do
             return
 
-        let itf = Swag.makeInterface(null, #typeof(T), IImageEncoder)
-        encoders.add({itf.format(), #typeof(T)})
+        let itf = Swag.makeInterface(null, type, IImageEncoder)!
+        encoders.add({itf.format(), type})
     }
 
     // Returns the format written by each registered encoder, in registration order.
@@ -81,20 +90,22 @@ public impl Image
         let found = getEncoder(fileName)
         if !found do
             fail UnsupportedFormatError{"no matching image encoder"}
-        let safeFound = found!
+
+        // Codec code may register more encoders and relocate the registry.
+        let encoderType = found.type
 
         // Create an encoder instance
-        let ptrEncoder = Memory.new(safeFound.type)
+        let ptrEncoder = Memory.new(encoderType)
         defer
         {
-            if safeFound.type.opDrop do
-                safeFound.type.opDrop(ptrEncoder)
-            Memory.free(ptrEncoder, cast(u64) safeFound.type.sizeof)
+            if encoderType.opDrop do
+                encoderType.opDrop(ptrEncoder)
+            Memory.free(ptrEncoder, cast(u64) encoderType.sizeof)
         }
 
         // Encode
         // The registry only ever holds types that implement the interface, so the table resolves.
-        let itf = Swag.makeInterface(ptrEncoder, safeFound.type, IImageEncoder)!
+        let itf = Swag.makeInterface(ptrEncoder, encoderType, IImageEncoder)!
         var result: retval
         if .alphaMode == .Premultiplied
         {
@@ -113,12 +124,8 @@ public impl Image
     // a request body — rather than flattening the segmented buffer itself every time.
     mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
     {
-        var buffer = try .encode(fileName, options)
-        buffer.makeLinear()
-
-        var result: retval
-        result.add(buffer.toSlice()!)
-        return result
+        let buffer = try .encode(fileName, options)
+        return buffer.toArray()
     }
 
     // Encodes the image and writes it to `fileName`.

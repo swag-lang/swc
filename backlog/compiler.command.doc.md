@@ -29,6 +29,39 @@ price of a run. A frontend, semantic-analysis, or code-generation defect that a 
 merely exposed belongs in [compiler.core.md](compiler.core.md): the file follows the fix,
 not the discovery.
 
+### compiler.command.doc.008 — The runtime page links to API entries it does not emit
+
+- Recorded: 2026-09-07 21:16
+- Found during prompt 7 after `tools/web.swgs dm --num-cores 6` regenerated the complete site.
+- Evidence: the API HTML audit reports nine missing targets in `web/swag.runtime.html`:
+  `Swag_AtomicFlag_reset`, `Swag_Condition_wait`, `Swag_ParallelChunk`, `Swag_Scheduler`,
+  `Swag_Semaphore_setPermits`, `Swag_TaskGroup_cancel`, `Swag_Task_submit`, `Swag_Task_wait`,
+  and `Swag_WorkNode`. The affected links come from existing runtime comments and signatures;
+  for example `AtomicFlag` links to its `reset` method and `Task` links to `submit` and `wait`.
+  The generated page also publishes a `private func runParallelChunk` signature whose parameter
+  links to an absent `ParallelChunk` entry. These declarations are present in the runtime sources.
+- Next: reconcile runtime collection and effective visibility with the intended public runtime
+  surface. Inspect the missing method entries and the exposed private helper together, then make
+  reference generation respect the emitted target set. Do not hide the mismatch by hand-editing HTML.
+- Complete when: a full website regeneration produces the intended runtime declarations, excludes
+  private implementation helpers, and the runtime API audit reports no missing target anchors.
+
+### compiler.command.doc.007 — Generic type parameters link to unrelated enum members
+
+- Recorded: 2026-09-07 20:02
+- Found during prompt 7 in the `codex/bin-quality` worktree, starting at
+  `62c52cd5700dc3c446fad2d1b5476ec1ed5f5e37`.
+- A fresh `bin/swc.dm.exe doc --workspace bin/std --workspace-module core --doc-output-dir web
+  --num-cores 6` renders the generic parameter in `Core.CommandLine.IsSet` as
+  `<a href="#Core_Input_Key_T">T</a>`. Other generic `T` and `K` occurrences also resolve to
+  keyboard enum members, although those names denote local type parameters.
+- The target anchor exists, so `audit_api_html.py web/std.core.html --source-root . --json`
+  reports no unresolved link or broken anchor. Structural validity does not establish binding
+  correctness.
+- Next: trace signature token linking in `src/Doc`, preserve lexical generic bindings before
+  name-based global lookup, and add a documentation regression where a generic parameter
+  collides with an exported enum member. Regenerate owning output; do not patch HTML by hand.
+
 ### compiler.command.doc.002 — Search stops at the page it is printed in
 
 - Recorded: 2026-08-06 20:18

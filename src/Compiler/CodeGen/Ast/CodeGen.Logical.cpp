@@ -28,13 +28,7 @@ namespace
             return;
         }
 
-        outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-
-        MicroBuilder& builder = codeGen.builder();
-        if (operandPayload.isAddress())
-            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, operandBits);
-        else
-            builder.emitLoadRegReg(outReg, operandPayload.reg, operandBits);
+        outReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, operandBits);
 
         if (operandType.isBool())
             return;

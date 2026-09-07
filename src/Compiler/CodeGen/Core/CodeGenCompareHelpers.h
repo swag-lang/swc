@@ -145,21 +145,30 @@ namespace CodeGenCompareHelpers
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, notEqualLabel);
     }
 
+    // Presence belongs to the method table of an interface. A null receiver is valid
+    // for implementations whose methods do not access instance storage.
+    inline MicroReg materializeConditionOperand(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroOpBits bits)
+    {
+        const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
+        const MicroReg  resultReg = codeGen.nextVirtualRegisterForType(typeRef);
+        if (payload.isAddress() || typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t))
+        {
+            const uint64_t offset = typeInfo.isInterface() ? offsetof(Runtime::Interface, itable) : 0;
+            codeGen.builder().emitLoadRegMem(resultReg, payload.reg, offset, bits);
+        }
+        else
+            codeGen.builder().emitLoadRegReg(resultReg, payload.reg, bits);
+        return resultReg;
+    }
+
     inline void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
         if (typeRef.isValid() && payload.typeRef.isValid() && codeGen.typeMgr().get(typeRef).isBool())
             typeRef = payload.typeRef;
 
-        const TypeInfo&   typeInfo           = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits           = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg            = codeGen.nextVirtualRegisterForType(typeRef);
-        const bool        addressBackedValue = !payload.isAddress() && typeInfo.sizeOf(codeGen.ctx()) > 8;
-
-        MicroBuilder& builder = codeGen.builder();
-        if (payload.isAddress() || addressBackedValue)
-            builder.emitLoadRegMem(condReg, payload.reg, 0, condBits);
-        else
-            builder.emitLoadRegReg(condReg, payload.reg, condBits);
+        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        const MicroReg    condReg  = materializeConditionOperand(codeGen, payload, typeRef, condBits);
 
         emitCompareRegZero(codeGen, condReg, typeInfo, condBits);
         emitConditionJump(codeGen, typeInfo, falseyCondition(typeInfo), falseLabel);

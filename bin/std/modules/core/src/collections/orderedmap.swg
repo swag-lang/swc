@@ -95,13 +95,16 @@ impl OrderedMap
     mtd const capacity()->u64 => .entries.capacity
 
     // Reserves storage for at least `newCapacity` entries without changing the map.
+    //
+    // Requests at or below the current capacity, including zero, do nothing.
     mtd reserve(newCapacity: u64)
     {
+        if newCapacity <= .capacity() do
+            return
         .entries.reserve(newCapacity)
     }
 
-    #[Swag.NoDoc]
-    mtd const compareKeys(left, right: K)->s32
+    private mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
             return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)

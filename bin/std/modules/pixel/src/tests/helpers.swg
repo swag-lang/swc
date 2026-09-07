@@ -28,20 +28,6 @@ func makeTempGifPath()->String  => makeTempImagePath(".gif")
 func makeTempTiffPath()->String => makeTempImagePath(".tif")
 func makeTempIcoPath()->String  => makeTempImagePath(".ico")
 
-// Copy a ConcatBuffer's bytes into an owning Array. ConcatBuffer cannot be
-// returned by value safely (it owns linked buckets), so test builders that
-// assemble bytes return an Array instead.
-func cbToArray(cb: *ConcatBuffer)->Array'u8
-{
-    cb.makeLinear()
-    var result: retval
-    let s = cb.toSlice()
-    result.resize(s.count)
-    if s.count do
-        Memory.copy(result.buffer, s.buffer, s.count)
-    return result
-}
-
 func nnBytes(bytes: const [..] u8?)->const [..] u8
 {
     Swag.assert(bytes != null)

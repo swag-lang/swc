@@ -108,12 +108,8 @@ impl Clip
     // Encodes the clip to one contiguous owned byte array.
     mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
     {
-        var buffer = try .encode(fileName, options)
-        buffer.makeLinear()
-
-        var result: retval
-        result.add(buffer.toSlice()!)
-        return result
+        let buffer = try .encode(fileName, options)
+        return buffer.toArray()
     }
 
     // Encodes the clip and writes it to `fileName`.

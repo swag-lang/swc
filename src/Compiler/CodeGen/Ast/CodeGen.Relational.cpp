@@ -893,12 +893,13 @@ namespace
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
 
         // An aggregate (struct/array) wider than a machine register must be compared over its full
-        // content, and one holding a member with an answer of its own must be compared part by
+        // content. Interfaces compare both their receiver and method table. An aggregate
+        // holding a member with an answer of its own must be compared part by
         // part whatever its size. The scalar path below only compares a single register-sized
         // load, which would ignore every field beyond the first machine word and every answer but
         // the storage.
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            (compareType.isStruct() || compareType.isArray() || compareType.isAggregate()))
+            (compareType.isStruct() || compareType.isArray() || compareType.isAggregate() || compareType.isInterface()))
         {
             SmallVector<ComparePart> parts;
             appendCompareParts(codeGen, parts, compareTypeRef, 0);

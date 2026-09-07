@@ -37,7 +37,8 @@ impl DecodeOptions
         let pixels = cast(u64) width * cast(u64) height
         if .maxPixels and pixels > .maxPixels do
             fail UnsupportedFormatError{"image exceeds the decoded pixel limit"}
-        if .maxDecodedBytes and pixels * (format.bitsPerPixel() / 8) > .maxDecodedBytes do
+        let bytesPerPixel = format.bitsPerPixel() / 8
+        if .maxDecodedBytes and bytesPerPixel and pixels > .maxDecodedBytes / bytesPerPixel do
             fail UnsupportedFormatError{"image exceeds the decoded byte limit"}
     }
 
@@ -77,7 +78,7 @@ impl Image
     }
 
     // Decode the given image buffer with the given decoder
-    func decode(decoder: *ImageDecoder, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
+    func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
     {
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
@@ -86,22 +87,22 @@ impl Image
             var probeOptions = options
             probeOptions.decodePixels   = false
             probeOptions.decodeMetadata = false
-            let probe = decode(decoder, bytes, probeOptions)
+            let probe = decode(decoderType, bytes, probeOptions)
             options.checkImage(probe.width, probe.height, probe.pixelFormat)
         }
 
         // Create a decoder instance
-        let ptrDecoder = Memory.new(decoder.type)
+        let ptrDecoder = Memory.new(decoderType)
         defer
         {
-            if decoder.type.opDrop do
-                decoder.type.opDrop(ptrDecoder)
-            Memory.free(ptrDecoder, cast(u64) decoder.type.sizeof)
+            if decoderType.opDrop do
+                decoderType.opDrop(ptrDecoder)
+            Memory.free(ptrDecoder, cast(u64) decoderType.sizeof)
         }
 
         // Decode
         // The registry only ever holds types that implement the interface, so the table resolves.
-        let itf    = Swag.makeInterface(ptrDecoder, decoder.type, IImageDecoder)!
+        let itf    = Swag.makeInterface(ptrDecoder, decoderType, IImageDecoder)!
         var result = #move try itf.decode(bytes, options)
         options.checkImage(result.width, result.height, result.pixelFormat)
         return #move result
@@ -115,12 +116,21 @@ public impl Image
     func(T) registerDecoder()
     {
         #assert(Reflection.hasInterface(#typeof(T), IImageDecoder))
+        registerDecoder(#typeof(T))
+    }
 
-        for &decoder in decoders where decoder.type == #typeof(T) do
+    // Registers a decoder described by reflection, unless that type is already registered.
+    //
+    // `type` must implement [[Pixel.IImageDecoder]]. Its format method must return static
+    // metadata without reading an instance. Registration updates the module's shared registry;
+    // a decoding already in progress keeps using its selected type, including its metadata probe.
+    func registerDecoder(type: const *TypeInfoStruct)
+    {
+        for &decoder in decoders where decoder.type == type do
             return
 
-        let itf = Swag.makeInterface(null, #typeof(T), IImageDecoder)
-        decoders.add({itf.format(), #typeof(T)})
+        let itf = Swag.makeInterface(null, type, IImageDecoder)!
+        decoders.add({itf.format(), type})
     }
 
     // Returns the format read by each registered decoder, in registration order.
@@ -147,8 +157,9 @@ public impl Image
         let found = getDecoder(fileName)
         if !found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var result = #move try decode(cast(*ImageDecoder) (found), cast(const [..] u8) (bytes), options)
-        return #move result
+
+        // Both the metadata probe and decoding may register more codec types.
+        return try decode(found.type, bytes!, options)
     }
 
     // Load the given image file

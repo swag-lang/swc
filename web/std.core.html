@@ -446,7 +446,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1707</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1709</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -653,6 +653,7 @@
 <li><a href="#Core_ConcatBuffer_offsetOf">ConcatBuffer.offsetOf</a></li>
 <li><a href="#Core_ConcatBuffer_opCount">ConcatBuffer.opCount</a></li>
 <li><a href="#Core_ConcatBuffer_opDrop">ConcatBuffer.opDrop</a></li>
+<li><a href="#Core_ConcatBuffer_opPostMove">ConcatBuffer.opPostMove</a></li>
 <li><a href="#Core_ConcatBuffer_opVisit">ConcatBuffer.opVisit</a></li>
 <li><a href="#Core_ConcatBuffer_position">ConcatBuffer.position</a></li>
 <li><a href="#Core_ConcatBuffer_release">ConcatBuffer.release</a></li>
@@ -662,6 +663,7 @@
 <li><a href="#Core_ConcatBuffer_setBucketSize">ConcatBuffer.setBucketSize</a></li>
 <li><a href="#Core_ConcatBuffer_setFirstBucket">ConcatBuffer.setFirstBucket</a></li>
 <li><a href="#Core_ConcatBuffer_setPosition">ConcatBuffer.setPosition</a></li>
+<li><a href="#Core_ConcatBuffer_toArray">ConcatBuffer.toArray</a></li>
 <li><a href="#Core_ConcatBuffer_toSlice">ConcatBuffer.toSlice</a></li>
 <li><a href="#Core_ConcatBuffer_toString">ConcatBuffer.toString</a></li>
 <li><a href="#Core_ConcatBuffer_truncate">ConcatBuffer.truncate</a></li>
@@ -2223,7 +2225,7 @@ writer.<span class="SFct">initialize</span>(profile)
 <p>Operations that can fail use Swag's <span class="code-inline">fail</span> mechanism. Propagate a failure with <span class="code-inline">try</span>, or catch it at the boundary where the program can add useful context.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Collections_and_borrowing">Collections and borrowing</h2>
-<p><a href="#Core_Array">Core.Array</a> is the default growable sequence. <a href="#Core_HashTable">Core.HashTable</a> provides key-value lookup, <a href="#Core_HashSet">Core.HashSet</a> stores unique keys, and <a href="#Core_StaticArray">Core.StaticArray</a> keeps a small growable sequence inline before allocating. <a href="#Core_OrderedMap">Core.OrderedMap</a> and <a href="#Core_OrderedSet">Core.OrderedSet</a> trade insertion cost for sorted traversal and range queries. <a href="#Core_Deque">Core.Deque</a> serves both ends of a sequence, while <a href="#Core_PriorityQueue">Core.PriorityQueue</a> exposes the next element selected by a comparator.</p>
+<p><a href="#Core_Array">Core.Array</a> is the default growable sequence. <a href="#Core_HashTable">Core.HashTable</a> provides key-value lookup, <a href="#Core_HashSet">Core.HashSet</a> stores unique keys, and <a href="#Core_StaticArray">Core.StaticArray</a> keeps a sequence inline with a fixed maximum capacity. <a href="#Core_OrderedMap">Core.OrderedMap</a> and <a href="#Core_OrderedSet">Core.OrderedSet</a> trade insertion cost for sorted traversal and range queries. <a href="#Core_Deque">Core.Deque</a> serves both ends of a sequence, while <a href="#Core_PriorityQueue">Core.PriorityQueue</a> exposes the next element selected by a comparator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
 
 <span class="SKwd">var</span> names: <span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span>
@@ -2255,8 +2257,15 @@ work.<span class="SFct">push</span>(<span class="SNum">10</span>)
 <h3 id="guide_Collections_and_borrowing_Ownership_rule">Ownership rule</h3>
 <p>An owning collection controls its elements and buffer. A slice returned by <span class="code-inline">toSlice</span>, <span class="code-inline">range</span>, a pointer returned by lookup, or an iterator variable borrows that storage. Adding, removing, resizing, clearing, or freeing the collection can invalidate those borrowed values.</p>
 <p>Prefer a slice when a function only needs temporary sequential access. Prefer an owned collection when the callee must retain or modify the data independently.</p>
+<p>Use <a href="#Core_Deque_frontPtr">Core.Deque.frontPtr</a>, <a href="#Core_Deque_backPtr">Core.Deque.backPtr</a>, or <a href="#Core_PriorityQueue_peekPtr">Core.PriorityQueue.peekPtr</a> to inspect an element without copying it. Their read-only overloads also work when the element owns a resource and cannot be copied. Borrowing either end of a deque does not allocate or move its elements.</p>
 <h3 id="guide_Collections_and_borrowing_Capacity_and_reuse">Capacity and reuse</h3>
 <p>Repeated insertion can grow a collection. Reserve capacity before a known batch when pointer stability or allocation cost matters, and use <span class="code-inline">clear</span> when the allocation should be retained for reuse. Use <span class="code-inline">free</span> when the capacity itself should be returned immediately.</p>
+<p>For <a href="#Core_Deque">Core.Deque</a>, <a href="#Core_PriorityQueue">Core.PriorityQueue</a>, <a href="#Core_OrderedMap">Core.OrderedMap</a>, and <a href="#Core_OrderedSet">Core.OrderedSet</a>, reserving zero or an already available capacity leaves elements and storage intact. <a href="#Core_Array_reserve">Core.Array.reserve</a> has a different, explicit zero-capacity contract: <span class="code-inline">reserve(0)</span> releases its storage and removes all elements, just like <a href="#Core_Array_free">Core.Array.free</a>.</p>
+<h3 id="guide_Collections_and_borrowing_Building_byte_buffers">Building byte buffers</h3>
+<p><a href="#Core_ConcatBuffer">Core.ConcatBuffer</a> owns a chain of byte buckets and supports a write cursor. Writes overwrite existing bytes at that cursor and extend the buffer when needed. <a href="#Core_ConcatBuffer_reserveInPlace">Core.ConcatBuffer.reserveInPlace</a> returns contiguous storage to fill directly; crossing an existing bucket boundary merges the content and invalidates borrowed positions and pointers. Save a <a href="#Core_ConcatBufferPosition">Core.ConcatBufferPosition</a> only while its bucket storage remains valid.</p>
+<p><span class="code-inline">clear</span> retains the buckets for reuse; <span class="code-inline">release</span> frees them and leaves the buffer reusable with the same allocator and bucket size. The buffer can be moved with <span class="code-inline">#move</span>, but implicit copies are rejected. Moving an embedded first bucket also invalidates positions borrowed from that header.</p>
+<p><a href="#Core_ConcatBuffer_toArray">Core.ConcatBuffer.toArray</a> copies all bytes into an independently owned array without merging buckets or moving the cursor. Use it when an API needs one contiguous owned block, such as an encoded image or video payload.</p>
+<p><a href="#Core_ConcatBuffer_toString">Core.ConcatBuffer.toString</a> copies the content. <a href="#Core_ConcatBuffer_moveToString">Core.ConcatBuffer.moveToString</a> consumes a single heap bucket and returns an owned, null-terminated string; it copies multiple active buckets or an embedded first bucket, leaving the buffer intact. Use <a href="#Core_ConcatBuffer_toSlice">Core.ConcatBuffer.toSlice</a> for a temporary borrow when one active bucket holds the content. Its const overload exposes read-only bytes.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Text_and_Unicode">Text and Unicode</h2>
 <p><a href="#Core_String">Core.String</a> owns mutable UTF-8 bytes. A Swag <span class="code-inline">string</span> or byte slice can refer to existing storage without owning it. Use the owning type when text must survive changes to its source.</p>
@@ -3551,11 +3560,11 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Random_ComplementaryMultiplyWithCarry4096_seedU32">ComplementaryMultiplyWithCarry4096.seedU32</a></td><td><p>Seeds the generator with a 32-bit unsigned value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_addBytes">ConcatBuffer.addBytes</a></td><td><p>Appends a slice of bytes to the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_addBytes">ConcatBuffer.addBytes</a></td><td><p>Writes bytes at the cursor, overwriting existing bytes and extending the buffer as needed.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_addNative">ConcatBuffer.addNative</a></td><td><p>Appends a native type (like u8, s32, f64) to the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_addNative">ConcatBuffer.addNative</a></td><td><p>Writes a native value at the cursor, overwriting or extending the buffer as needed.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_addStruct">ConcatBuffer.addStruct</a></td><td><p>Appends the raw byte content of a struct to the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_addStruct">ConcatBuffer.addStruct</a></td><td><p>Writes the raw bytes of a struct contiguously at the cursor, like <a href="#Core_ConcatBuffer_addBytes">addBytes</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_advance">ConcatBuffer.advance</a></td><td><p>Advances the cursor by <span class="code-inline">num</span> bytes, growing the buffer when needed.</p>
 </td></tr>
@@ -3565,7 +3574,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_makeLinear">ConcatBuffer.makeLinear</a></td><td><p>Merges all buckets into a single, contiguous memory block.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">ConcatBuffer.moveToString</a></td><td><p>Moves the buffer's content into a new <span class="code-inline">String</span>, invalidating the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">ConcatBuffer.moveToString</a></td><td><p>Returns an owned string, transferring a single heap bucket when possible.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_offsetOf">ConcatBuffer.offsetOf</a></td><td><p>Returns the absolute byte offset represented by <span class="code-inline">position</span>.</p>
 </td></tr>
@@ -3573,13 +3582,15 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_opDrop">ConcatBuffer.opDrop</a></td><td><p>Ensures all allocated memory is freed when the buffer goes out of scope.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_opPostMove">ConcatBuffer.opPostMove</a></td><td><p>Rebinds an embedded bucket header after ownership moves to another value.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_opVisit">ConcatBuffer.opVisit</a></td><td><p>Provides a way to iterate over each bucket in the buffer.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_position">ConcatBuffer.position</a></td><td><p>Returns the current write position.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_position">ConcatBuffer.position</a></td><td><p>Returns the current write position, including after restoring an earlier position.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_release">ConcatBuffer.release</a></td><td><p>Frees all memory associated with the buffer, including all buckets.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">ConcatBuffer.reserveInPlace</a></td><td><p>Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">ConcatBuffer.reserveInPlace</a></td><td><p>Reserves <span class="code-inline">count</span> contiguous bytes at the cursor and returns where to write them.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_reversed">ConcatBuffer.reversed</a></td><td><p>Returns an immutable zero-allocation view that traverses buckets from last to first.</p>
 </td></tr>
@@ -3589,13 +3600,15 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setFirstBucket">ConcatBuffer.setFirstBucket</a></td><td><p>Initializes the buffer by taking ownership of an existing slice as its first bucket.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_setPosition">ConcatBuffer.setPosition</a></td><td><p>Sets the current read/write position.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_setPosition">ConcatBuffer.setPosition</a></td><td><p>Restores a position borrowed from this buffer; a default position selects its beginning.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_toArray">ConcatBuffer.toArray</a></td><td><p>Copies all content into one independently owned byte array using <span class="code-inline">alloc</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_toSlice">ConcatBuffer.toSlice</a></td><td><p>Returns the buffer's content as a slice, but only if the buffer is <span class="code-inline">linear</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_toString">ConcatBuffer.toString</a></td><td><p>Converts the buffer to a <a href="#Core_String">Core.String</a> by copying its content.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_truncate">ConcatBuffer.truncate</a></td><td><p>Truncates the buffer at <span class="code-inline">position</span> and moves the cursor there.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_truncate">ConcatBuffer.truncate</a></td><td><p>Truncates at a borrowed position; a default position clears the buffer and retains storage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Console_fatal">Console.fatal</a></td><td><p>Fatal error</p>
 </td></tr>
@@ -4087,7 +4100,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Format_countPercent">Format.countPercent</a></td><td><p>Count the number of valid <span class="code-inline">%</span> placeholders in the string format.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Format_replaceString">Format.replaceString</a></td><td><p>Format a string in <span class="code-inline">dest</span>.</p>
+<tr><td class="code-type"><a href="#Core_Format_replaceString">Format.replaceString</a></td><td><p>Replaces <span class="code-inline">dest</span> with formatted text, reusing its capacity when sufficient.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Format_toInterp">Format.toInterp</a></td><td><p>String interpolation.</p>
 </td></tr>
@@ -7356,7 +7369,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Format_countPercent">Format.countPercent</a></td><td><p>Count the number of valid <span class="code-inline">%</span> placeholders in the string format.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Format_replaceString">Format.replaceString</a></td><td><p>Format a string in <span class="code-inline">dest</span>.</p>
+<tr><td class="code-type"><a href="#Core_Format_replaceString">Format.replaceString</a></td><td><p>Replaces <span class="code-inline">dest</span> with formatted text, reusing its capacity when sufficient.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Format_toInterp">Format.toInterp</a></td><td><p>String interpolation.</p>
 </td></tr>
@@ -9445,7 +9458,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <div class="api-item api-item-struct"><span id="Core_ByteSink" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ByteSink</span> <a class="api-item-permalink" href="#Core_ByteSink" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L16">src</a></div>
 <p>Writes the bytes of a stream to a file or to memory, through one cursor and one window.</p>
 <p>An encoder receives one of these and appends to it piece by piece. A file sink holds one small write window and never accumulates the stream, so writing a long one costs the memory of one piece rather than the memory of the result; a piece larger than the window goes straight to the file.</p>
-<p>A memory sink borrows its destination buffer: it must stay valid until the sink is closed, and it holds the whole stream, which only a bounded result should ask for.</p>
+<p>A memory sink borrows its destination buffer: keep it valid and write to it only through the sink until closing it. It holds the whole stream, which only a bounded result should ask for.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span></span></div>
 </section>
@@ -9609,8 +9622,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_ConcatBuffer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ConcatBuffer</span> <a class="api-item-permalink" href="#Core_ConcatBuffer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L31">src</a></div>
-<p>Represents a growable buffer that is divided into buckets (chunks of memory). This structure avoids large reallocations and copies when the buffer needs to grow, making it efficient for building data piece by piece.</p>
+<div class="api-item api-item-struct"><span id="Core_ConcatBuffer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ConcatBuffer</span> <a class="api-item-permalink" href="#Core_ConcatBuffer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L32">src</a></div>
+<p>Represents a growable buffer that is divided into buckets (chunks of memory). This structure avoids large reallocations and copies when the buffer needs to grow, making it efficient for building data piece by piece. It owns its storage and can be moved with <span class="code-inline">#move</span>; implicit copies are rejected.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -9627,11 +9640,11 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_addBytes">addBytes</a></td><td><p>Appends a slice of bytes to the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_addBytes">addBytes</a></td><td><p>Writes bytes at the cursor, overwriting existing bytes and extending the buffer as needed.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_addNative">addNative</a></td><td><p>Appends a native type (like u8, s32, f64) to the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_addNative">addNative</a></td><td><p>Writes a native value at the cursor, overwriting or extending the buffer as needed.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_addStruct">addStruct</a></td><td><p>Appends the raw byte content of a struct to the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_addStruct">addStruct</a></td><td><p>Writes the raw bytes of a struct contiguously at the cursor, like <a href="#Core_ConcatBuffer_addBytes">addBytes</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_advance">advance</a></td><td><p>Advances the cursor by <span class="code-inline">num</span> bytes, growing the buffer when needed.</p>
 </td></tr>
@@ -9641,7 +9654,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_makeLinear">makeLinear</a></td><td><p>Merges all buckets into a single, contiguous memory block.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">moveToString</a></td><td><p>Moves the buffer's content into a new <span class="code-inline">String</span>, invalidating the buffer.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">moveToString</a></td><td><p>Returns an owned string, transferring a single heap bucket when possible.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_offsetOf">offsetOf</a></td><td><p>Returns the absolute byte offset represented by <span class="code-inline">position</span>.</p>
 </td></tr>
@@ -9649,13 +9662,15 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_opDrop">opDrop</a></td><td><p>Ensures all allocated memory is freed when the buffer goes out of scope.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_opPostMove">opPostMove</a></td><td><p>Rebinds an embedded bucket header after ownership moves to another value.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_opVisit">opVisit</a></td><td><p>Provides a way to iterate over each bucket in the buffer.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_position">position</a></td><td><p>Returns the current write position.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_position">position</a></td><td><p>Returns the current write position, including after restoring an earlier position.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_release">release</a></td><td><p>Frees all memory associated with the buffer, including all buckets.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">reserveInPlace</a></td><td><p>Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">reserveInPlace</a></td><td><p>Reserves <span class="code-inline">count</span> contiguous bytes at the cursor and returns where to write them.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_reversed">reversed</a></td><td><p>Returns an immutable zero-allocation view that traverses buckets from last to first.</p>
 </td></tr>
@@ -9665,13 +9680,15 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setFirstBucket">setFirstBucket</a></td><td><p>Initializes the buffer by taking ownership of an existing slice as its first bucket.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_setPosition">setPosition</a></td><td><p>Sets the current read/write position.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_setPosition">setPosition</a></td><td><p>Restores a position borrowed from this buffer; a default position selects its beginning.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_toArray">toArray</a></td><td><p>Copies all content into one independently owned byte array using <span class="code-inline">alloc</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_toSlice">toSlice</a></td><td><p>Returns the buffer's content as a slice, but only if the buffer is <span class="code-inline">linear</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_toString">toString</a></td><td><p>Converts the buffer to a <a href="#Core_String">Core.String</a> by copying its content.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_truncate">truncate</a></td><td><p>Truncates the buffer at <span class="code-inline">position</span> and moves the cursor there.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_truncate">truncate</a></td><td><p>Truncates at a borrowed position; a default position clears the buffer and retains storage.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10266,7 +10283,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_ReversedConcatBuffer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedConcatBuffer</span> <a class="api-item-permalink" href="#Core_ReversedConcatBuffer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L55">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_ReversedConcatBuffer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedConcatBuffer</span> <a class="api-item-permalink" href="#Core_ReversedConcatBuffer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L57">src</a></div>
 <p>Iterates a borrowed concatenation buffer from its last bucket to its first.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_ReversedConcatBuffer">ReversedConcatBuffer</a></span></span></div>
@@ -17864,7 +17881,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">load</span>(name: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.close</span> <a class="api-item-permalink" href="#Core_ByteSink_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L184">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.close</span> <a class="api-item-permalink" href="#Core_ByteSink_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L186">src</a></div>
 <p>Flushes the stream and releases the file. Repeated calls do nothing.</p>
 <p>This is the operation whose failure decides whether the stream is complete, so an encoder calls it explicitly rather than leaving it to destruction: a sink that leaves scope unclosed drops whatever its window still holds.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
@@ -17875,61 +17892,61 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_createMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.createMemory</span> <a class="api-item-permalink" href="#Core_ByteSink_createMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L53">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_createMemory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.createMemory</span> <a class="api-item-permalink" href="#Core_ByteSink_createMemory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L54">src</a></div>
 <p>Appends the stream to <span class="code-inline">buffer</span>.</p>
-<p>Whatever <span class="code-inline">buffer</span> already holds stays untouched, and stream offsets remain relative to the first byte this sink writes, so a codec computes them the same way on both backings.</p>
+<p>Whatever <span class="code-inline">buffer</span> already holds stays untouched, and stream offsets remain relative to the first byte this sink writes, so a codec computes them the same way on both backings. The buffer's cursor moves to its end before the sink starts writing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createMemory</span>(buffer: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>)-&gt;<span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.flush</span> <a class="api-item-permalink" href="#Core_ByteSink_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L171">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.flush</span> <a class="api-item-permalink" href="#Core_ByteSink_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L173">src</a></div>
 <p>Hands every buffered byte to the file. A memory sink has nothing to flush.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flush</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_patch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.patch</span> <a class="api-item-permalink" href="#Core_ByteSink_patch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L144">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_patch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.patch</span> <a class="api-item-permalink" href="#Core_ByteSink_patch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L146">src</a></div>
 <p>Rewrites bytes this sink already accepted, at <span class="code-inline">offset</span> bytes from the start of its stream.</p>
 <p>A container header carries totals a codec only learns once the last piece is written: a file size, a frame count, the size of the chunk holding the frames. Patching is how those fields are filled without holding the stream: the encoder writes a placeholder in the header, remembers where it went, and overwrites it here.</p>
 <p>The patched range must lie entirely inside what the sink already wrote; a range reaching past the end fails rather than extending the stream. The write position is unchanged, so appending resumes exactly where it stopped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">patch</span>(offset: <span class="STpe">u64</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_path" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.path</span> <a class="api-item-permalink" href="#Core_ByteSink_path" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L62">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_path" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.path</span> <a class="api-item-permalink" href="#Core_ByteSink_path" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L64">src</a></div>
 <p>Returns the file this sink writes, or an empty string for a memory sink.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">path</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.position</span> <a class="api-item-permalink" href="#Core_ByteSink_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L65">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.position</span> <a class="api-item-permalink" href="#Core_ByteSink_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L67">src</a></div>
 <p>Returns the number of bytes written so far, which is where the next write lands.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.write</span> <a class="api-item-permalink" href="#Core_ByteSink_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.write</span> <a class="api-item-permalink" href="#Core_ByteSink_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L70">src</a></div>
 <p>Appends <span class="code-inline">bytes</span> to the stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeBigEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeBigEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeBigEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L129">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeBigEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeBigEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeBigEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L131">src</a></div>
 <p>Appends an integer of type <span class="code-inline">T</span> in big-endian byte order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">writeBigEndian</span>(value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeByte</span> <a class="api-item-permalink" href="#Core_ByteSink_writeByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L105">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeByte</span> <a class="api-item-permalink" href="#Core_ByteSink_writeByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L107">src</a></div>
 <p>Appends one byte.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeByte</span>(value: <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeLittleEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeLittleEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeLittleEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L123">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeLittleEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeLittleEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeLittleEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L125">src</a></div>
 <p>Appends an integer of type <span class="code-inline">T</span> in little-endian byte order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">writeLittleEndian</span>(value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeNative</span> <a class="api-item-permalink" href="#Core_ByteSink_writeNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L116">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeNative</span> <a class="api-item-permalink" href="#Core_ByteSink_writeNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L118">src</a></div>
 <p>Appends one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
 <p>This is the write for a binary layout declared as a struct, or for an integer whose byte order is the host's. Use <a href="#Core_ByteSink_writeLittleEndian">Core.ByteSink.writeLittleEndian</a> or <a href="#Core_ByteSink_writeBigEndian">Core.ByteSink.writeBigEndian</a> for a persisted or transmitted integer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">writeNative</span>(value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeText</span> <a class="api-item-permalink" href="#Core_ByteSink_writeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeText</span> <a class="api-item-permalink" href="#Core_ByteSink_writeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L101">src</a></div>
 <p>Appends the bytes of <span class="code-inline">text</span> to the stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeText</span>(text: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -18212,44 +18229,45 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seedU32</span>(value: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_addBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addBytes</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L281">src</a></div>
-<p>Appends a slice of bytes to the buffer. If <span class="code-inline">contiguous</span> is false, the slice can be split across multiple buckets if necessary.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_addBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addBytes</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L312">src</a></div>
+<p>Writes bytes at the cursor, overwriting existing bytes and extending the buffer as needed. A contiguous write occupies one bucket; crossing existing buckets merges the buffer and invalidates its borrowed positions and pointers. With <span class="code-inline">contiguous</span> false, bytes may span buckets. Input borrowed from this buffer is copied before an overwrite can invalidate it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addBytes</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>?, contiguous = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_addNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addNative</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L240">src</a></div>
-<p>Appends a native type (like u8, s32, f64) to the buffer.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_addNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addNative</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L268">src</a></div>
+<p>Writes a native value at the cursor, overwriting or extending the buffer as needed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">addNative</span>(val: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addStruct</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L274">src</a></div>
-<p>Appends the raw byte content of a struct to the buffer.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_addStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.addStruct</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_addStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L303">src</a></div>
+<p>Writes the raw bytes of a struct contiguously at the cursor, like <a href="#Core_ConcatBuffer_addBytes">addBytes</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">addStruct</span>(val: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_advance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.advance</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_advance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L399">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_advance" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.advance</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_advance" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L429">src</a></div>
 <p>Advances the cursor by <span class="code-inline">num</span> bytes, growing the buffer when needed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">advance</span>(num: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.clear</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L227">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.clear</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L255">src</a></div>
 <p>Clears the buffer's content without deallocating memory. This resets the buffer to be empty, allowing its allocated buckets to be reused.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.count</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L123">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.count</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L147">src</a></div>
 <p>Returns the total number of bytes currently stored in the buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">count</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_makeLinear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.makeLinear</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_makeLinear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L572">src</a></div>
-<p>Merges all buckets into a single, contiguous memory block. After this call, the buffer is guaranteed to be linear.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_makeLinear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.makeLinear</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_makeLinear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L644">src</a></div>
+<p>Merges all buckets into a single, contiguous memory block. Merging invalidates all borrowed buckets, positions, and pointers and moves the cursor to the end. An already linear or unallocated buffer is unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">makeLinear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_moveToString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.moveToString</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_moveToString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L551">src</a></div>
-<p>Moves the buffer's content into a new <span class="code-inline">String</span>, invalidating the buffer. If the buffer is linear (one bucket), this is a fast operation that avoids copying. Otherwise, it falls back to copying the data.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_moveToString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.moveToString</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_moveToString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L615">src</a></div>
+<p>Returns an owned string, transferring a single heap bucket when possible.</p>
+<p>Transferring storage leaves the buffer empty and reusable and invalidates its borrows. Storage grows when needed to satisfy String capacity and null-termination requirements. Multiple active buckets or an embedded first bucket are copied, leaving the buffer intact. A buffer without allocated storage returns an empty string.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">moveToString</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -18258,76 +18276,91 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">offsetOf</span>(position: <span class="SCst"><a href="#Core_ConcatBufferPosition">ConcatBufferPosition</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opCount</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L86">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opCount</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L93">src</a></div>
 <p>Returns the total number of bytes in the buffer.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opDrop</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L92">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opDrop</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L99">src</a></div>
 <p>Ensures all allocated memory is freed when the buffer goes out of scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opVisit</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opPostMove</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L105">src</a></div>
+<p>Rebinds an embedded bucket header after ownership moves to another value.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostMove</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.opVisit</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L121">src</a></div>
 <p>Provides a way to iterate over each bucket in the buffer. This is a macro that accepts a code block to execute for each bucket. Block parameter: <span class="code-inline">bucket</span> is the bucket pointer.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(bucket))</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.position</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L377">src</a></div>
-<p>Returns the current write position.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">position</span>()-&gt;<span class="SCst"><a href="#Core_ConcatBufferPosition">ConcatBufferPosition</a></span></span></div>
+<p>Returns the current write position, including after restoring an earlier position.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="SCst"><a href="#Core_ConcatBufferPosition">ConcatBufferPosition</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.release</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L205">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.release</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L230">src</a></div>
 <p>Frees all memory associated with the buffer, including all buckets.</p>
+<p>Leaves an empty, reusable buffer with the same allocator and bucket size. Every borrowed bucket, position, and byte pointer is invalidated. Repeated calls are safe.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_reserveInPlace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.reserveInPlace</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_reserveInPlace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L391">src</a></div>
-<p>Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
-<p>The cursor moves past the reserved bytes, so the caller fills them in place and keeps appending afterwards. The returned pointer stays valid until the next call that grows the buffer. Reserve first and write later when the content depends on what follows, as a length or a checksum field does.</p>
+<p>Reserves <span class="code-inline">count</span> contiguous bytes at the cursor and returns where to write them.</p>
+<p>The cursor moves past the reserved bytes, so the caller fills them in place and keeps appending afterwards. Existing bytes outside the reservation are preserved. Crossing an existing bucket boundary merges the buffer and invalidates earlier borrowed positions and pointers. A zero-byte reservation does not move the cursor but may allocate on an empty buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserveInPlace</span>(count: <span class="STpe">u64</span>)-&gt;[*] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.reversed</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L117">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.reversed</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L141">src</a></div>
 <p>Returns an immutable zero-allocation view that traverses buckets from last to first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SCst"><a href="#Core_ReversedConcatBuffer">ReversedConcatBuffer</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setAllocator</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setAllocator</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L213">src</a></div>
 <p>Associates a specific allocator with the buffer. This can only be called when the buffer is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAllocator</span>(alloc: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setBucketSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setBucketSize</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setBucketSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L198">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setBucketSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setBucketSize</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setBucketSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L220">src</a></div>
 <p>Sets the minimum size for new buckets allocated by the buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setBucketSize</span>(size: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setFirstBucket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setFirstBucket</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setFirstBucket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L496">src</a></div>
-<p>Initializes the buffer by taking ownership of an existing slice as its first bucket. The slice is released through the buffer's allocator; its bucket header remains embedded.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setFirstBucket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setFirstBucket</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setFirstBucket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L540">src</a></div>
+<p>Initializes the buffer by taking ownership of an existing slice as its first bucket. The slice supplies capacity, not content: the buffer starts empty. Its storage must be releasable through the selected allocator, which is captured from the context when unset. The bucket header remains embedded; moving the buffer invalidates positions in that header.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFirstBucket</span>(data: [..] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setPosition</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L442">src</a></div>
-<p>Sets the current read/write position.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_setPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setPosition</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L473">src</a></div>
+<p>Restores a position borrowed from this buffer; a default position selects its beginning.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPosition</span>(position: <span class="SCst"><a href="#Core_ConcatBufferPosition">ConcatBufferPosition</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.toSlice</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L483">src</a></div>
-<p>Returns the buffer's content as a slice, but only if the buffer is <span class="code-inline">linear</span>. A buffer is linear if it consists of a single bucket. Returns <span class="code-inline">null</span> otherwise. See <a href="#Core_ConcatBuffer_makeLinear">makeLinear</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toSlice</span>()-&gt;[..] <span class="STpe">u8</span>?</span></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_toArray" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.toArray</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_toArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L582">src</a></div>
+<p>Copies all content into one independently owned byte array using <span class="code-inline">alloc</span>.</p>
+<p>A null allocator selects the current context allocator. The buffer's buckets, cursor, and borrowed positions remain unchanged. An empty result allocates no storage.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toArray</span>(alloc: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.toString</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L510">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.toSlice</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L514">src</a></div>
+<p>Returns the buffer's content as a slice, but only if the buffer is <span class="code-inline">linear</span>.</p>
+<p>A buffer is linear if it consists of a single bucket. Returns <span class="code-inline">null</span> when no bucket has been allocated or when several buckets hold content. The slice borrows the buffer. See <a href="#Core_ConcatBuffer_makeLinear">makeLinear</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toSlice</span>()-&gt;[..] <span class="STpe">u8</span>?</span></div>
+<p>Borrows read-only bytes when the buffer has one active bucket; otherwise returns null.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toSlice</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span>?</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.toString</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L557">src</a></div>
 <p>Converts the buffer to a <a href="#Core_String">Core.String</a> by copying its content.</p>
 <p>The buffer remains valid after this call. See <a href="#Core_ConcatBuffer_moveToString">Core.ConcatBuffer.moveToString</a> to reuse linear storage when possible.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(alloc: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_truncate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.truncate</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_truncate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L460">src</a></div>
-<p>Truncates the buffer at <span class="code-inline">position</span> and moves the cursor there.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_truncate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.truncate</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_truncate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L493">src</a></div>
+<p>Truncates at a borrowed position; a default position clears the buffer and retains storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">truncate</span>(position: <span class="SCst"><a href="#Core_ConcatBufferPosition">ConcatBufferPosition</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -18917,14 +18950,18 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_back" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.back</span> <a class="api-item-permalink" href="#Core_Deque_back" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L174">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_back" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.back</span> <a class="api-item-permalink" href="#Core_Deque_back" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L199">src</a></div>
 <p>Returns a copy of the back element and asserts if the queue is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">back</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_backPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.backPtr</span> <a class="api-item-permalink" href="#Core_Deque_backPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L166">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_backPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.backPtr</span> <a class="api-item-permalink" href="#Core_Deque_backPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L183">src</a></div>
 <p>Returns a pointer to the back element and asserts if the queue is empty.</p>
+<p>This operation does not allocate, move elements, or invalidate existing borrows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">backPtr</span>()-&gt;*<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
+<p>Borrows the back element for reading without copying it or changing the queue.</p>
+<p>Asserts if the queue is empty. Mutation of the queue can invalidate the pointer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">backPtr</span>()-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Deque_capacity" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.capacity</span> <a class="api-item-permalink" href="#Core_Deque_capacity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L34">src</a></div>
@@ -18933,24 +18970,28 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">capacity</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.clear</span> <a class="api-item-permalink" href="#Core_Deque_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L200">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.clear</span> <a class="api-item-permalink" href="#Core_Deque_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L225">src</a></div>
 <p>Removes all elements while retaining allocated storage at both ends.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.free</span> <a class="api-item-permalink" href="#Core_Deque_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L208">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.free</span> <a class="api-item-permalink" href="#Core_Deque_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L233">src</a></div>
 <p>Removes all elements and releases allocated storage at both ends.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_front" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.front</span> <a class="api-item-permalink" href="#Core_Deque_front" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_front" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.front</span> <a class="api-item-permalink" href="#Core_Deque_front" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L173">src</a></div>
 <p>Returns a copy of the front element and asserts if the queue is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">front</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_frontPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.frontPtr</span> <a class="api-item-permalink" href="#Core_Deque_frontPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L150">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_frontPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.frontPtr</span> <a class="api-item-permalink" href="#Core_Deque_frontPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L157">src</a></div>
 <p>Returns a pointer to the front element and asserts if the queue is empty.</p>
+<p>This operation does not allocate, move elements, or invalidate existing borrows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frontPtr</span>()-&gt;*<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
+<p>Borrows the front element for reading without copying it or changing the queue.</p>
+<p>Asserts if the queue is empty. Mutation of the queue can invalidate the pointer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frontPtr</span>()-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Deque_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.isEmpty</span> <a class="api-item-permalink" href="#Core_Deque_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L30">src</a></div>
@@ -18965,47 +19006,48 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.opIndexPtr</span> <a class="api-item-permalink" href="#Core_Deque_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L46">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.opIndexPtr</span> <a class="api-item-permalink" href="#Core_Deque_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L53">src</a></div>
 <p>Returns the mutable address of the element at logical <span class="code-inline">index</span> from the front.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexPtr</span>(index: <span class="STpe">u64</span>)-&gt;*<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 <p>Returns the address of the element at logical <span class="code-inline">index</span> from the front.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opIndexPtr</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.opIndexSet</span> <a class="api-item-permalink" href="#Core_Deque_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L64">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.opIndexSet</span> <a class="api-item-permalink" href="#Core_Deque_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L71">src</a></div>
 <p>Assigns a new value to the element at logical <span class="code-inline">index</span> from the front.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexSet</span>(index: <span class="STpe">u64</span>, value: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.opVisit</span> <a class="api-item-permalink" href="#Core_Deque_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L217">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.opVisit</span> <a class="api-item-permalink" href="#Core_Deque_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L242">src</a></div>
 <p>Iterates elements in logical order from front to back.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">func</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(<span class="SKwd">const</span> <span class="STpe">me</span>, stmt: <span class="SItr">#code</span>(item, index: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_popBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.popBack</span> <a class="api-item-permalink" href="#Core_Deque_popBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_popBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.popBack</span> <a class="api-item-permalink" href="#Core_Deque_popBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L216">src</a></div>
 <p>Removes and returns the back element and asserts if the queue is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">popBack</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_popFront" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.popFront</span> <a class="api-item-permalink" href="#Core_Deque_popFront" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L182">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_popFront" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.popFront</span> <a class="api-item-permalink" href="#Core_Deque_popFront" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L207">src</a></div>
 <p>Removes and returns the front element and asserts if the queue is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">popFront</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_pushBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.pushBack</span> <a class="api-item-permalink" href="#Core_Deque_pushBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L80">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_pushBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.pushBack</span> <a class="api-item-permalink" href="#Core_Deque_pushBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L87">src</a></div>
 <p>Adds <span class="code-inline">value</span> at the back of the queue. The value is copied; pass it with <span class="code-inline">#move</span> to transfer it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushBack</span>(value: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_pushFront" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.pushFront</span> <a class="api-item-permalink" href="#Core_Deque_pushFront" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Deque_pushFront" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.pushFront</span> <a class="api-item-permalink" href="#Core_Deque_pushFront" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L79">src</a></div>
 <p>Adds <span class="code-inline">value</span> at the front of the queue. The value is copied; pass it with <span class="code-inline">#move</span> to transfer it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pushFront</span>(value: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Deque_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.reserve</span> <a class="api-item-permalink" href="#Core_Deque_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L38">src</a></div>
-<p>Reserves combined storage for at least <span class="code-inline">newCapacity</span> elements. The reservation is split between both ends and does not change the queue.</p>
+<div class="api-item api-item-func"><span id="Core_Deque_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deque.reserve</span> <a class="api-item-permalink" href="#Core_Deque_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/deque.swg#L40">src</a></div>
+<p>Reserves combined storage for at least <span class="code-inline">newCapacity</span> elements.</p>
+<p>Existing elements are preserved. Requests at or below the current capacity, including zero, do nothing. Additional storage is split between both ends.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -19732,12 +19774,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeNative</span>(buffer: <span class="SKwd">const</span> *<span class="STpe">void</span>, length: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Format_append" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.append</span> <a class="api-item-permalink" href="#Core_Format_append" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L84">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Format_append" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.append</span> <a class="api-item-permalink" href="#Core_Format_append" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L81">src</a></div>
 <p>Format a string and put the result in a ConcatBuffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">append</span>(buf: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>, fmt: <span class="STpe">string</span>, values: ...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Format_byteSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.byteSize</span> <a class="api-item-permalink" href="#Core_Format_byteSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L238">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Format_byteSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.byteSize</span> <a class="api-item-permalink" href="#Core_Format_byteSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L235">src</a></div>
 <p>Formats a byte count as a compact human-readable size, such as <span class="code-inline">"312 B"</span>, <span class="code-inline">"4.10 KB"</span> or <span class="code-inline">"13.4 MB"</span>.</p>
 <p>Units are 1024-based with the conventional <span class="code-inline">KB</span>/<span class="code-inline">MB</span>/<span class="code-inline">GB</span>/<span class="code-inline">TB</span> labels. Scaled values keep three significant digits; exact byte counts below 1 KB are printed unscaled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">byteSize</span>(bytes: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
@@ -19754,12 +19796,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">countPercent</span>(fmt: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Format_replaceString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.replaceString</span> <a class="api-item-permalink" href="#Core_Format_replaceString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L40">src</a></div>
-<p>Format a string in <span class="code-inline">dest</span>. Can be a lot faster than the convenient version which returns a String.</p>
+<div class="api-item api-item-func"><span id="Core_Format_replaceString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.replaceString</span> <a class="api-item-permalink" href="#Core_Format_replaceString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L41">src</a></div>
+<p>Replaces <span class="code-inline">dest</span> with formatted text, reusing its capacity when sufficient. Formatting completes before the destination changes, so <span class="code-inline">fmt</span> and values may borrow it. The destination keeps its allocator and contains a null-terminated string, including when empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">replaceString</span>(dest: *<span class="SCst"><a href="#Core_String">String</a></span>, fmt: <span class="STpe">string</span>, values: ...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Format_toInterp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.toInterp</span> <a class="api-item-permalink" href="#Core_Format_toInterp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L172">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Format_toInterp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.toInterp</span> <a class="api-item-permalink" href="#Core_Format_toInterp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L169">src</a></div>
 <p>String interpolation. Format is <span class="code-inline">{&lt;value to interpolate&gt;:format}</span> A mixin: the interpolated expressions are caller-side names, so the generated code must resolve in the caller scope; the internal locals use "#uniq?".</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Mixin]</span>
 <span class="SKwd">func</span> <span class="SFct">toInterp</span>(buf: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>, exp: <span class="STpe">string</span>)</span></div>
@@ -19768,7 +19810,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">toInterp</span>(exp: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Format_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.toString</span> <a class="api-item-permalink" href="#Core_Format_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L74">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Format_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Format.toString</span> <a class="api-item-permalink" href="#Core_Format_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/format.swg#L71">src</a></div>
 <p>Format a string and returns the result as a String. Use <span class="code-inline">%</span> as a place holder for a value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> x = <span class="SCst"><a href="#namespace_Core_Format">Format</a></span>.<span class="SFct">toString</span>(<span class="SStr">"my life is %"</span>, myLife)</span></div>
 <p><span class="code-inline">%</span> can be followed by a format option between <span class="code-inline">{}</span>.</p>
@@ -22166,7 +22208,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SFct">set</span>(values: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.add</span> <a class="api-item-permalink" href="#Core_OrderedMap_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L218">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.add</span> <a class="api-item-permalink" href="#Core_OrderedMap_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L221">src</a></div>
 <p>Adds a key-value pair in sorted position, replacing the value of an existing key. The key and value are copied; pass either with <span class="code-inline">#move</span> to transfer it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(key: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, value: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)-&gt;*<span class="SCst"><a href="#Core_OrderedMapEntry">OrderedMapEntry</a></span></span></div>
@@ -22178,12 +22220,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">capacity</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.clear</span> <a class="api-item-permalink" href="#Core_OrderedMap_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L250">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.clear</span> <a class="api-item-permalink" href="#Core_OrderedMap_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L253">src</a></div>
 <p>Removes all entries while retaining allocated capacity and the selected comparator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.contains</span> <a class="api-item-permalink" href="#Core_OrderedMap_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L168">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.contains</span> <a class="api-item-permalink" href="#Core_OrderedMap_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L171">src</a></div>
 <p>Returns whether the map contains <span class="code-inline">key</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -22193,14 +22235,14 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(comparator: <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Core_OrderedMap">OrderedMap</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.find</span> <a class="api-item-permalink" href="#Core_OrderedMap_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L194">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.find</span> <a class="api-item-permalink" href="#Core_OrderedMap_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L197">src</a></div>
 <p>Returns the entry for <span class="code-inline">key</span> and asserts if the key is absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">find</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_OrderedMapEntry">OrderedMapEntry</a></span></span></div>
 <p>Returns the entry for <span class="code-inline">key</span> and asserts if the key is absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">find</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_OrderedMapEntry">OrderedMapEntry</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.free</span> <a class="api-item-permalink" href="#Core_OrderedMap_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L257">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.free</span> <a class="api-item-permalink" href="#Core_OrderedMap_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L260">src</a></div>
 <p>Removes all entries and releases allocated storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
@@ -22216,7 +22258,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_lowerBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.lowerBound</span> <a class="api-item-permalink" href="#Core_OrderedMap_lowerBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_lowerBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.lowerBound</span> <a class="api-item-permalink" href="#Core_OrderedMap_lowerBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L118">src</a></div>
 <p>Returns the first index whose key is not less than <span class="code-inline">key</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lowerBound</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -22227,57 +22269,58 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.opIndexPtr</span> <a class="api-item-permalink" href="#Core_OrderedMap_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L210">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.opIndexPtr</span> <a class="api-item-permalink" href="#Core_OrderedMap_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L213">src</a></div>
 <p>Returns the mutable address of the value for <span class="code-inline">key</span> and asserts if the key is absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexPtr</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_Input_Key_V">V</a></span></span></div>
 <p>Returns the address of the value for <span class="code-inline">key</span> and asserts if the key is absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opIndexPtr</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_V">V</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.opIndexSet</span> <a class="api-item-permalink" href="#Core_OrderedMap_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L233">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.opIndexSet</span> <a class="api-item-permalink" href="#Core_OrderedMap_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L236">src</a></div>
 <p>Assigns <span class="code-inline">value</span> to <span class="code-inline">key</span>, inserting the key when necessary.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexSet</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, value: <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.opVisit</span> <a class="api-item-permalink" href="#Core_OrderedMap_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L265">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.opVisit</span> <a class="api-item-permalink" href="#Core_OrderedMap_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L268">src</a></div>
 <p>Iterates entries from the least key to the greatest key.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key, value, index: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_range" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.range</span> <a class="api-item-permalink" href="#Core_OrderedMap_range" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_range" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.range</span> <a class="api-item-permalink" href="#Core_OrderedMap_range" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L161">src</a></div>
 <p>Returns the sorted entries with keys in the half-open interval <span class="code-inline">[lower, upper)</span>. The returned slice borrows the map and is invalidated by any insertion or removal.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">range</span>(lower, upper: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> [..] <span class="SFct">OrderedMapEntry</span>'(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.remove</span> <a class="api-item-permalink" href="#Core_OrderedMap_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L239">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.remove</span> <a class="api-item-permalink" href="#Core_OrderedMap_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L242">src</a></div>
 <p>Removes <span class="code-inline">key</span> and returns whether an entry was present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.reserve</span> <a class="api-item-permalink" href="#Core_OrderedMap_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.reserve</span> <a class="api-item-permalink" href="#Core_OrderedMap_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L101">src</a></div>
 <p>Reserves storage for at least <span class="code-inline">newCapacity</span> entries without changing the map.</p>
+<p>Requests at or below the current capacity, including zero, do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.reversed</span> <a class="api-item-permalink" href="#Core_OrderedMap_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L288">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.reversed</span> <a class="api-item-permalink" href="#Core_OrderedMap_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L291">src</a></div>
 <p>Returns an immutable zero-allocation view that traverses entries in descending key order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedOrderedMap</span>'(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_tryFind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.tryFind</span> <a class="api-item-permalink" href="#Core_OrderedMap_tryFind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_tryFind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.tryFind</span> <a class="api-item-permalink" href="#Core_OrderedMap_tryFind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L178">src</a></div>
 <p>Returns the entry for <span class="code-inline">key</span>, or <span class="code-inline">null</span> when the key is absent. The returned pointer is invalidated by insertion or removal.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryFind</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_OrderedMapEntry">OrderedMapEntry</a></span>?</span></div>
 <p>Returns the entry for <span class="code-inline">key</span>, or <span class="code-inline">null</span> when the key is absent. The returned pointer is invalidated by insertion or removal.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">tryFind</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_OrderedMapEntry">OrderedMapEntry</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedMap_upperBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.upperBound</span> <a class="api-item-permalink" href="#Core_OrderedMap_upperBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L136">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedMap_upperBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedMap.upperBound</span> <a class="api-item-permalink" href="#Core_OrderedMap_upperBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedmap.swg#L139">src</a></div>
 <p>Returns the first index whose key is greater than <span class="code-inline">key</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">upperBound</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.add</span> <a class="api-item-permalink" href="#Core_OrderedSet_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L162">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.add</span> <a class="api-item-permalink" href="#Core_OrderedSet_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L165">src</a></div>
 <p>Adds <span class="code-inline">key</span> in sorted position and returns whether it was newly inserted. The key is copied; pass it with <span class="code-inline">#move</span> to transfer it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(key: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -22289,12 +22332,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">capacity</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.clear</span> <a class="api-item-permalink" href="#Core_OrderedSet_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L184">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.clear</span> <a class="api-item-permalink" href="#Core_OrderedSet_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L187">src</a></div>
 <p>Removes all keys while retaining allocated capacity and the selected comparator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.contains</span> <a class="api-item-permalink" href="#Core_OrderedSet_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.contains</span> <a class="api-item-permalink" href="#Core_OrderedSet_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L156">src</a></div>
 <p>Returns whether the set contains <span class="code-inline">key</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -22304,7 +22347,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(comparator: <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Core_OrderedSet">OrderedSet</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.free</span> <a class="api-item-permalink" href="#Core_OrderedSet_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.free</span> <a class="api-item-permalink" href="#Core_OrderedSet_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L194">src</a></div>
 <p>Removes all keys and releases allocated storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
@@ -22320,7 +22363,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_lowerBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.lowerBound</span> <a class="api-item-permalink" href="#Core_OrderedSet_lowerBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L100">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_lowerBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.lowerBound</span> <a class="api-item-permalink" href="#Core_OrderedSet_lowerBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L103">src</a></div>
 <p>Returns the first index whose key is not less than <span class="code-inline">key</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lowerBound</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -22331,33 +22374,34 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.opVisit</span> <a class="api-item-permalink" href="#Core_OrderedSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L199">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.opVisit</span> <a class="api-item-permalink" href="#Core_OrderedSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L202">src</a></div>
 <p>Iterates keys from least to greatest.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key, index: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_range" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.range</span> <a class="api-item-permalink" href="#Core_OrderedSet_range" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L143">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_range" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.range</span> <a class="api-item-permalink" href="#Core_OrderedSet_range" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L146">src</a></div>
 <p>Returns the sorted keys in the half-open interval <span class="code-inline">[lower, upper)</span>. The returned slice borrows the set and is invalidated by any insertion or removal.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">range</span>(lower, upper: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> [..] <span class="SCst"><a href="#Core_Input_Key_K">K</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.remove</span> <a class="api-item-permalink" href="#Core_OrderedSet_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L173">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.remove</span> <a class="api-item-permalink" href="#Core_OrderedSet_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L176">src</a></div>
 <p>Removes <span class="code-inline">key</span> and returns whether it was present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.reserve</span> <a class="api-item-permalink" href="#Core_OrderedSet_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L84">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.reserve</span> <a class="api-item-permalink" href="#Core_OrderedSet_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L86">src</a></div>
 <p>Reserves storage for at least <span class="code-inline">newCapacity</span> keys without changing the set.</p>
+<p>Requests at or below the current capacity, including zero, do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.reversed</span> <a class="api-item-permalink" href="#Core_OrderedSet_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L217">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.reversed</span> <a class="api-item-permalink" href="#Core_OrderedSet_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L220">src</a></div>
 <p>Returns an immutable zero-allocation view that traverses keys in descending order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedOrderedSet</span>'<span class="SCst"><a href="#Core_Input_Key_K">K</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_OrderedSet_upperBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.upperBound</span> <a class="api-item-permalink" href="#Core_OrderedSet_upperBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L121">src</a></div>
+<div class="api-item api-item-func"><span id="Core_OrderedSet_upperBound" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">OrderedSet.upperBound</span> <a class="api-item-permalink" href="#Core_OrderedSet_upperBound" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/orderedset.swg#L124">src</a></div>
 <p>Returns the first index whose key is greater than <span class="code-inline">key</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">upperBound</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -22569,7 +22613,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">capacity</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.clear</span> <a class="api-item-permalink" href="#Core_PriorityQueue_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L132">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.clear</span> <a class="api-item-permalink" href="#Core_PriorityQueue_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L144">src</a></div>
 <p>Removes all elements while retaining allocated storage and the selected comparator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
@@ -22579,7 +22623,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(comparator: <span class="SKwd">func</span>(<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Core_PriorityQueue">PriorityQueue</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.free</span> <a class="api-item-permalink" href="#Core_PriorityQueue_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.free</span> <a class="api-item-permalink" href="#Core_PriorityQueue_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L151">src</a></div>
 <p>Removes all elements and releases allocated storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
@@ -22601,28 +22645,32 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_peek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.peek</span> <a class="api-item-permalink" href="#Core_PriorityQueue_peek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L96">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_peek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.peek</span> <a class="api-item-permalink" href="#Core_PriorityQueue_peek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L108">src</a></div>
 <p>Returns a copy of the highest-priority element and asserts if the queue is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">peek</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_peekPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.peekPtr</span> <a class="api-item-permalink" href="#Core_PriorityQueue_peekPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L89">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_peekPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.peekPtr</span> <a class="api-item-permalink" href="#Core_PriorityQueue_peekPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L92">src</a></div>
 <p>Returns a pointer to the highest-priority element and asserts if the queue is empty. Mutating it in a way that changes its priority violates the heap ordering.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">peekPtr</span>()-&gt;*<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
+<p>Borrows the highest-priority element for reading without copying it.</p>
+<p>Asserts if the queue is empty. Mutation of the queue can invalidate the pointer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">peekPtr</span>()-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_pop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.pop</span> <a class="api-item-permalink" href="#Core_PriorityQueue_pop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L104">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_pop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.pop</span> <a class="api-item-permalink" href="#Core_PriorityQueue_pop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L116">src</a></div>
 <p>Removes and returns the highest-priority element and asserts if the queue is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pop</span>()-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_push" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.push</span> <a class="api-item-permalink" href="#Core_PriorityQueue_push" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L71">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_push" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.push</span> <a class="api-item-permalink" href="#Core_PriorityQueue_push" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L74">src</a></div>
 <p>Adds <span class="code-inline">value</span> to the queue. The value is copied; pass it with <span class="code-inline">#move</span> to transfer it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">push</span>(value: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_PriorityQueue_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.reserve</span> <a class="api-item-permalink" href="#Core_PriorityQueue_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Core_PriorityQueue_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PriorityQueue.reserve</span> <a class="api-item-permalink" href="#Core_PriorityQueue_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/priorityqueue.swg#L56">src</a></div>
 <p>Reserves storage for at least <span class="code-inline">newCapacity</span> elements without changing the queue.</p>
+<p>Requests at or below the current capacity, including zero, do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -23508,7 +23556,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">split</span>(str: <span class="STpe">string</span>?)-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ReversedConcatBuffer_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedConcatBuffer.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedConcatBuffer_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L64">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ReversedConcatBuffer_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedConcatBuffer.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedConcatBuffer_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L66">src</a></div>
 <p>Visits borrowed buckets from the last bucket to the first.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(bucket))</span></div>
@@ -26997,7 +27045,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.399</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.400</div>
 </footer>
 </section>
 </main>
@@ -28561,29 +28609,31 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.BitArray.set|Core_BitArray_set|Sets the bit at a specific position to the specified value.",
 "f|Core.BitArray.setAll|Core_BitArray_setAll|Sets all bits in the array to the specified boolean value.",
 "f|Core.BitArray.xorWith|Core_BitArray_xorWith|Performs a bitwise XOR operation between this array and another.",
-"f|Core.ConcatBuffer.addBytes|Core_ConcatBuffer_addBytes|Appends a slice of bytes to the buffer.",
-"f|Core.ConcatBuffer.addNative|Core_ConcatBuffer_addNative|Appends a native type (like u8, s32, f64) to the buffer.",
-"f|Core.ConcatBuffer.addStruct|Core_ConcatBuffer_addStruct|Appends the raw byte content of a struct to the buffer.",
+"f|Core.ConcatBuffer.addBytes|Core_ConcatBuffer_addBytes|Writes bytes at the cursor, overwriting existing bytes and extending the buffer as needed.",
+"f|Core.ConcatBuffer.addNative|Core_ConcatBuffer_addNative|Writes a native value at the cursor, overwriting or extending the buffer as needed.",
+"f|Core.ConcatBuffer.addStruct|Core_ConcatBuffer_addStruct|Writes the raw bytes of a struct contiguously at the cursor, like addBytes.",
 "f|Core.ConcatBuffer.advance|Core_ConcatBuffer_advance|Advances the cursor by num bytes, growing the buffer when needed.",
 "f|Core.ConcatBuffer.clear|Core_ConcatBuffer_clear|Clears the buffer's content without deallocating memory.",
 "f|Core.ConcatBuffer.count|Core_ConcatBuffer_count|Returns the total number of bytes currently stored in the buffer.",
 "f|Core.ConcatBuffer.makeLinear|Core_ConcatBuffer_makeLinear|Merges all buckets into a single, contiguous memory block.",
-"f|Core.ConcatBuffer.moveToString|Core_ConcatBuffer_moveToString|Moves the buffer's content into a new 'String', invalidating the buffer.",
+"f|Core.ConcatBuffer.moveToString|Core_ConcatBuffer_moveToString|Returns an owned string, transferring a single heap bucket when possible.",
 "f|Core.ConcatBuffer.offsetOf|Core_ConcatBuffer_offsetOf|Returns the absolute byte offset represented by position.",
 "f|Core.ConcatBuffer.opCount|Core_ConcatBuffer_opCount|Returns the total number of bytes in the buffer.",
 "f|Core.ConcatBuffer.opDrop|Core_ConcatBuffer_opDrop|Ensures all allocated memory is freed when the buffer goes out of scope.",
+"f|Core.ConcatBuffer.opPostMove|Core_ConcatBuffer_opPostMove|Rebinds an embedded bucket header after ownership moves to another value.",
 "f|Core.ConcatBuffer.opVisit|Core_ConcatBuffer_opVisit|Provides a way to iterate over each bucket in the buffer.",
-"f|Core.ConcatBuffer.position|Core_ConcatBuffer_position|Returns the current write position.",
+"f|Core.ConcatBuffer.position|Core_ConcatBuffer_position|Returns the current write position, including after restoring an earlier position.",
 "f|Core.ConcatBuffer.release|Core_ConcatBuffer_release|Frees all memory associated with the buffer, including all buckets.",
-"f|Core.ConcatBuffer.reserveInPlace|Core_ConcatBuffer_reserveInPlace|Reserves count bytes at the cursor and returns where to write them.",
+"f|Core.ConcatBuffer.reserveInPlace|Core_ConcatBuffer_reserveInPlace|Reserves count contiguous bytes at the cursor and returns where to write them.",
 "f|Core.ConcatBuffer.reversed|Core_ConcatBuffer_reversed|Returns an immutable zero-allocation view that traverses buckets from last to first.",
 "f|Core.ConcatBuffer.setAllocator|Core_ConcatBuffer_setAllocator|Associates a specific allocator with the buffer.",
 "f|Core.ConcatBuffer.setBucketSize|Core_ConcatBuffer_setBucketSize|Sets the minimum size for new buckets allocated by the buffer.",
 "f|Core.ConcatBuffer.setFirstBucket|Core_ConcatBuffer_setFirstBucket|Initializes the buffer by taking ownership of an existing slice as its first bucket.",
-"f|Core.ConcatBuffer.setPosition|Core_ConcatBuffer_setPosition|Sets the current read/write position.",
+"f|Core.ConcatBuffer.setPosition|Core_ConcatBuffer_setPosition|Restores a position borrowed from this buffer; a default position selects its beginning.",
+"f|Core.ConcatBuffer.toArray|Core_ConcatBuffer_toArray|Copies all content into one independently owned byte array using alloc.",
 "f|Core.ConcatBuffer.toSlice|Core_ConcatBuffer_toSlice|Returns the buffer's content as a slice, but only if the buffer is 'linear'.",
 "f|Core.ConcatBuffer.toString|Core_ConcatBuffer_toString|Converts the buffer to a Core.String by copying its content.",
-"f|Core.ConcatBuffer.truncate|Core_ConcatBuffer_truncate|Truncates the buffer at position and moves the cursor there.",
+"f|Core.ConcatBuffer.truncate|Core_ConcatBuffer_truncate|Truncates at a borrowed position; a default position clears the buffer and retains storage.",
 "f|Core.Deque.back|Core_Deque_back|Returns a copy of the back element and asserts if the queue is empty.",
 "f|Core.Deque.backPtr|Core_Deque_backPtr|Returns a pointer to the back element and asserts if the queue is empty.",
 "f|Core.Deque.capacity|Core_Deque_capacity|Returns the combined capacity of the two internal segments.",
@@ -29873,7 +29923,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Format.byteSize|Core_Format_byteSize|Formats a byte count as a compact human-readable size, such as \"312 B\", \"4.10 KB\" or \"13.4 MB\".",
 "f|Core.Format.checkFormat|Core_Format_checkFormat|Check if this is a valid 'fmt/values' pair, coherent with 'format' specification",
 "f|Core.Format.countPercent|Core_Format_countPercent|Count the number of valid '%' placeholders in the string format.",
-"f|Core.Format.replaceString|Core_Format_replaceString|Format a string in 'dest'.",
+"f|Core.Format.replaceString|Core_Format_replaceString|Replaces dest with formatted text, reusing its capacity when sufficient.",
 "f|Core.Format.toInterp|Core_Format_toInterp|String interpolation.",
 "f|Core.Format.toString|Core_Format_toString|Format a string and returns the result as a String.",
 "f|Core.Latin1.compare|Core_Latin1_compare|Compare two utf8 strings, dealing only with latin1 table",

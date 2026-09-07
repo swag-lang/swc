@@ -3,15 +3,6 @@
 
 using Swag, Core.Errors
 
-// Returns every byte a concat buffer holds, in order, whatever its buckets are.
-func concatBytes(buffer: ConcatBuffer)->Array'u8
-{
-    var result: retval
-    for bucket in buffer do
-        result.add(Swag.makeSlice(bucket.data, bucket.count))
-    return result
-}
-
 func sinkBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 {
     if actual.count != expected.count do
@@ -108,7 +99,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     let expected = writeSinkStream(&sink)
     expect sink.close()
 
-    let actual = concatBytes(buffer)
+    let actual = buffer.toArray()
     Swag.assert(actual.count == 6 + expected.count)
     Swag.assert(sinkBytesEqual(actual.toSlice()[0 until 6], cast(const [..] u8) "prefix"))
     Swag.assert(sinkBytesEqual(actual.toSlice()[6 until actual.count], expected.toSlice()))
@@ -136,4 +127,23 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
 
     let actual = expect File.readAllBytes(fileName)
     Swag.assert(sinkBytesEqual(actual.toSlice(), [7'u8, 9, 3]))
+}
+
+// A memory sink appends even when the caller previously moved its buffer cursor backwards.
+#test
+{
+    var buffer: ConcatBuffer
+    buffer.setBucketSize(4)
+    buffer.addBytes("prefix")
+    buffer.addBytes(" kept")
+    buffer.setPosition({})
+    buffer.advance(2)
+
+    var sink = ByteSink.createMemory(&buffer)
+    expect sink.writeText("data")
+    expect sink.patch(1, cast(const [..] u8) "XY")
+    expect sink.writeByte('!'u8)
+    expect sink.close()
+    Swag.assert(buffer.toString() == "prefix keptdXYa!")
+    Swag.assert(sink.position() == 5)
 }

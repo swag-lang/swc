@@ -418,8 +418,9 @@ namespace
         std::vector valueBytes(sizeOf, std::byte{0});
         SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcTypeRef));
 
-        uint64_t rawValue = 0;
-        std::memcpy(&rawValue, valueBytes.data(), std::min<uint64_t>(sizeof(rawValue), valueBytes.size()));
+        uint64_t       rawValue = 0;
+        const uint64_t offset   = srcType.isInterface() ? offsetof(Runtime::Interface, itable) : 0;
+        std::memcpy(&rawValue, valueBytes.data() + offset, std::min<uint64_t>(sizeof(rawValue), valueBytes.size() - offset));
         castRequest.setConstantFoldingResult(rawValue ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
         return Result::Continue;
     }

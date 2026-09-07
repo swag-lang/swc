@@ -85,6 +85,9 @@ public:
     bool           isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
     bool           isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
 
+    // Tests absence in both literal nulls and compound runtime representations.
+    bool isNullValue(const TaskContext& ctx) const noexcept;
+
     bool isPayloadBorrowed() const
     {
         SWC_ASSERT(isStruct() || isArray() || isSlice());

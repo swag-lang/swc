@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.034 — 'orelse' loses a strict interface alias when removing nullability
+
+- Recorded: 2026-09-07 21:16
+- Found during prompt 7 while testing nullable interface presence.
+- Evidence: with `interface IValue { mtd value()->u32 }` and
+  `#[Swag.Strict] alias Handle = IValue`, the function
+  `func choose(value: Handle?, fallback: Handle)->Handle { return value orelse fallback }`
+  reports `cannot cast from 'Handle' to 'IValue'` on `fallback`. The reduced standalone source
+  fails under checkout-local `swc.dm.exe sema --file <source> --num-cores 6`, build 0.1.399.
+  Ordinary nullable-interface coalescing works; strict-alias boolean presence and equality also work.
+- Source lead: `resolveNullCoalescingResultType` in
+  [Sema.Conditional.cpp](../src/Compiler/Sema/Ast/Sema.Conditional.cpp) unwraps the alias before
+  removing `Nullable`, and only restores the alias when the concrete type did not change.
+  Existing `strictHandleFallback` coverage keeps the fallback nullable, so that concrete type
+  stays unchanged and does not exercise this narrowing case.
+- Next: specify how nullability changes preserve a strict alias, then cover nullable-to-required
+  coalescing for pointer and interface aliases, both branch outcomes, constants, and result types.
+  Check that any accepted implicit conversion changes only nullability, not the alias identity.
+- Complete when: these coalescing expressions retain the intended strict type and compile/run with
+  standalone sema and native regressions, or a deliberate restriction has a precise diagnostic.
+
 ### compiler.core.033 — A closure cannot capture the parameter of the macro it is written in
 
 - Recorded: 2026-09-07 16:02

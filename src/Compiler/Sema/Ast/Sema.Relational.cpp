@@ -17,50 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isNullComparableConstant(Sema& sema, const ConstantValue& cst) noexcept
-    {
-        if (cst.isNull())
-            return true;
-        if (cst.isValuePointer())
-            return cst.getValuePointer() == 0;
-        if (cst.isBlockPointer())
-            return cst.getBlockPointer() == 0;
-        if (cst.isStruct() && cst.typeRef().isValid())
-        {
-            const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
-            if (typeInfo.isAny())
-            {
-                const std::span<const std::byte> bytes = cst.getStruct();
-                if (bytes.size() != sizeof(Runtime::Any))
-                    return false;
-
-                Runtime::Any runtimeAny{};
-                std::memcpy(&runtimeAny, bytes.data(), sizeof(runtimeAny));
-                return runtimeAny.type == nullptr && runtimeAny.value == nullptr;
-            }
-
-            if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
-            {
-                const std::span<const std::byte> bytes = cst.getStruct();
-                if (bytes.size() != sizeof(Runtime::ClosureValue))
-                    return false;
-
-                const auto* closureValue = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
-                if (closureValue->invoke)
-                    return false;
-
-                for (const uint8_t byte : closureValue->capture)
-                {
-                    if (byte != 0)
-                        return false;
-                }
-
-                return true;
-            }
-        }
-        return false;
-    }
-
     bool constantPointerAddress(uint64_t& result, const ConstantValue& cst) noexcept
     {
         if (cst.isNull())
@@ -278,9 +234,9 @@ namespace
 
     bool hasNullComparableOperandConstant(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cst() && isNullComparableConstant(sema, *nodeLeftView.cst()))
+        if (nodeLeftView.cst() && nodeLeftView.cst()->isNullValue(sema.ctx()))
             return true;
-        if (nodeRightView.cst() && isNullComparableConstant(sema, *nodeRightView.cst()))
+        if (nodeRightView.cst() && nodeRightView.cst()->isNullValue(sema.ctx()))
             return true;
         return false;
     }
@@ -346,10 +302,10 @@ namespace
             return Result::Continue;
         }
 
-        if (isNullComparableConstant(sema, *compareLeftView.cst()) || isNullComparableConstant(sema, *compareRightView.cst()))
+        if (compareLeftView.cst()->isNullValue(sema.ctx()) || compareRightView.cst()->isNullValue(sema.ctx()))
         {
-            result = sema.cstMgr().cstBool(isNullComparableConstant(sema, *compareLeftView.cst()) &&
-                                           isNullComparableConstant(sema, *compareRightView.cst()));
+            result = sema.cstMgr().cstBool(compareLeftView.cst()->isNullValue(sema.ctx()) &&
+                                           compareRightView.cst()->isNullValue(sema.ctx()));
             return Result::Continue;
         }
 

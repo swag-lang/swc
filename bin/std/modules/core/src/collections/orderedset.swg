@@ -80,13 +80,16 @@ impl OrderedSet
     mtd const capacity()->u64 => .keys.capacity
 
     // Reserves storage for at least `newCapacity` keys without changing the set.
+    //
+    // Requests at or below the current capacity, including zero, do nothing.
     mtd reserve(newCapacity: u64)
     {
+        if newCapacity <= .capacity() do
+            return
         .keys.reserve(newCapacity)
     }
 
-    #[Swag.NoDoc]
-    mtd const compareKeys(left, right: K)->s32
+    private mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
             return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)

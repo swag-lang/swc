@@ -34,23 +34,20 @@ func countPercent(fmt: string)->u32
     return cptPercent
 }
 
-// Format a string in 'dest'.
-// Can be a lot faster than the convenient version which returns a String.
+// Replaces `dest` with formatted text, reusing its capacity when sufficient.
+// Formatting completes before the destination changes, so `fmt` and values may borrow it.
+// The destination keeps its allocator and contains a null-terminated string, including when empty.
 func replaceString(dest: *String, fmt: string, values: ...)
 {
     var buf: ConcatBuffer
-
     buf.allocator = dest.allocator
-    buf.setFirstBucket(Swag.makeSlice(dest.buffer, dest.capacity))
-
     append(&buf, fmt, values)
 
-    buf.makeLinear()
-    let {data, count, capacity} = buf.eatBuffer()
-
-    dest.buffer   = data
-    dest.length   = count
-    dest.capacity = capacity
+    dest.clear()
+    dest.grow(buf.count() + 1)
+    for bucket in buf do
+        dest.append(Swag.makeString(bucket.data, bucket.count))
+    dest.buffer![dest.length] = 0
 }
 
 // Format a string and returns the result as a String.

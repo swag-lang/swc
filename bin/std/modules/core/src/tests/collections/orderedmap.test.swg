@@ -73,3 +73,14 @@ struct OrderedMapKey
     copy.add({rank: 2}, 20)
     Swag.assert(map.count == 2 and copy.count == 3)
 }
+
+// Reserving less storage preserves the elements and their existing capacity.
+#test
+{
+    var map = OrderedMap'(s32, String).create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    map.add(42, "kept")
+    let capacity = map.capacity()
+    map.reserve(0)
+    Swag.assert(map.count == 1 and map.capacity() == capacity)
+    Swag.assert(map.find(42).value == "kept")
+}

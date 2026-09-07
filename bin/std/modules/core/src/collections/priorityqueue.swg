@@ -50,13 +50,16 @@ impl PriorityQueue
     mtd const capacity()->u64 => .items.capacity
 
     // Reserves storage for at least `newCapacity` elements without changing the queue.
+    //
+    // Requests at or below the current capacity, including zero, do nothing.
     mtd reserve(newCapacity: u64)
     {
+        if newCapacity <= .capacity() do
+            return
         .items.reserve(newCapacity)
     }
 
-    #[Swag.NoDoc]
-    mtd const compareItems(left, right: T)->s32
+    private mtd const compareItems(left, right: T)->s32
     {
         if .comparator do
             return (cast(func(const *T, const *T)->s32) .comparator!)(&left, &right)
@@ -86,6 +89,15 @@ impl PriorityQueue
     // Returns a pointer to the highest-priority element and asserts if the queue is empty.
     // Mutating it in a way that changes its priority violates the heap ordering.
     mtd peekPtr()->*T
+    {
+        Swag.assert(.count > 0, "priority queue is empty")
+        return &.items[0]
+    }
+
+    // Borrows the highest-priority element for reading without copying it.
+    //
+    // Asserts if the queue is empty. Mutation of the queue can invalidate the pointer.
+    mtd const peekPtr()->const *T
     {
         Swag.assert(.count > 0, "priority queue is empty")
         return &.items[0]

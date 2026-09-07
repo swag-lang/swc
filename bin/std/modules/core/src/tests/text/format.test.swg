@@ -48,6 +48,44 @@ func formatReferencedString(value: String)->String
 
 #test
 {
+    var dest: String
+    Format.replaceString(&dest, "fresh %", "value")
+    Swag.assert(assertFormatString(dest, "fresh value"))
+    Swag.assert(dest.buffer![dest.count] == 0)
+}
+
+#test
+{
+    var dest: String = "small"
+    Format.replaceString(&dest, "a replacement larger than inline storage: %", 42)
+    Swag.assert(assertFormatString(dest, "a replacement larger than inline storage: 42"))
+    Swag.assert(dest.buffer![dest.count] == 0)
+}
+
+#test
+{
+    var dest: String = "original"
+    let borrowed     = dest.toString()
+    Format.replaceString(&dest, "[%] %", borrowed, borrowed)
+    Swag.assert(assertFormatString(dest, "[original] original"))
+}
+
+#test
+{
+    var dest: String = "abcdefghijklmnopqrstuvwxyz"
+    let storage      = dest.buffer
+    Format.replaceString(&dest, "%", "short")
+    Swag.assert(assertFormatString(dest, "short"))
+    Swag.assert(dest.buffer == storage)
+    Swag.assert(dest.buffer![dest.count] == 0)
+    Format.replaceString(&dest, "")
+    Swag.assert(dest.isEmpty())
+    Swag.assert(dest.buffer == storage)
+    Swag.assert(dest.buffer![0] == 0)
+}
+
+#test
+{
     var direct: ConcatBuffer
     let fmt:    StrConv.ConvertFormat
     let text = "variable"

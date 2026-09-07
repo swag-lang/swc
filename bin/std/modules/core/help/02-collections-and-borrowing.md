@@ -2,7 +2,7 @@
 
 [[Core.Array]] is the default growable sequence. [[Core.HashTable]] provides
 key-value lookup, [[Core.HashSet]] stores unique keys, and [[Core.StaticArray]]
-keeps a small growable sequence inline before allocating. [[Core.OrderedMap]]
+keeps a sequence inline with a fixed maximum capacity. [[Core.OrderedMap]]
 and [[Core.OrderedSet]] trade insertion cost for sorted traversal and range
 queries. [[Core.Deque]] serves both ends of a sequence, while
 [[Core.PriorityQueue]] exposes the next element selected by a comparator.
@@ -59,9 +59,43 @@ invalidate those borrowed values.
 Prefer a slice when a function only needs temporary sequential access. Prefer an
 owned collection when the callee must retain or modify the data independently.
 
+Use [[Core.Deque.frontPtr]], [[Core.Deque.backPtr]], or [[Core.PriorityQueue.peekPtr]]
+to inspect an element without copying it. Their read-only overloads also work when
+the element owns a resource and cannot be copied. Borrowing either end of a deque
+does not allocate or move its elements.
+
 ## Capacity and reuse
 
 Repeated insertion can grow a collection. Reserve capacity before a known batch
 when pointer stability or allocation cost matters, and use `clear` when the
 allocation should be retained for reuse. Use `free` when the capacity itself
 should be returned immediately.
+
+For [[Core.Deque]], [[Core.PriorityQueue]], [[Core.OrderedMap]], and [[Core.OrderedSet]],
+reserving zero or an already available capacity leaves elements and storage intact.
+[[Core.Array.reserve]] has a different, explicit zero-capacity contract: `reserve(0)`
+releases its storage and removes all elements, just like [[Core.Array.free]].
+
+## Building byte buffers
+
+[[Core.ConcatBuffer]] owns a chain of byte buckets and supports a write cursor.
+Writes overwrite existing bytes at that cursor and extend the buffer when needed.
+[[Core.ConcatBuffer.reserveInPlace]] returns contiguous storage to fill directly;
+crossing an existing bucket boundary merges the content and invalidates borrowed
+positions and pointers. Save a [[Core.ConcatBufferPosition]] only while its bucket
+storage remains valid.
+
+`clear` retains the buckets for reuse; `release` frees them and leaves the buffer
+reusable with the same allocator and bucket size. The buffer can be moved with
+`#move`, but implicit copies are rejected. Moving an embedded first bucket also
+invalidates positions borrowed from that header.
+
+[[Core.ConcatBuffer.toArray]] copies all bytes into an independently owned array without
+merging buckets or moving the cursor. Use it when an API needs one contiguous owned
+block, such as an encoded image or video payload.
+
+[[Core.ConcatBuffer.toString]] copies the content. [[Core.ConcatBuffer.moveToString]]
+consumes a single heap bucket and returns an owned, null-terminated string; it copies
+multiple active buckets or an embedded first bucket, leaving the buffer intact.
+Use [[Core.ConcatBuffer.toSlice]] for a temporary borrow when one active bucket holds
+the content. Its const overload exposes read-only bytes.

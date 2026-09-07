@@ -58,7 +58,7 @@ func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
     result.addBytes(encoded[until 2])
     result.addBytes(app14)
     result.addBytes(encoded[2 to])
-    return cbToArray(&result)
+    return result.toArray()
 }
 
 func fillSolidImage(img: *Image, b, g, r, a: u8)

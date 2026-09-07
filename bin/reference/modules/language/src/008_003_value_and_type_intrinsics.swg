@@ -58,4 +58,9 @@ so like 'Swag.makeSlice' above, it must not outlive the storage it points at.
 'Swag.makeInterface' and 'Swag.tableOf' are the corresponding low-level building blocks
 for interface values. Normal 'cast(MyInterface) value' syntax is safer and
 clearer; use the intrinsics only when implementing generic runtime machinery.
+
+With a runtime type descriptor, 'Swag.makeInterface' returns a nullable interface:
+it is absent when the concrete type does not implement the requested interface.
+Presence is determined by the method table. The instance pointer may be null when
+the methods only return static metadata and do not access instance storage.
 */

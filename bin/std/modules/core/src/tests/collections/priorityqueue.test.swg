@@ -20,6 +20,13 @@ impl PriorityItem
     }
 }
 
+func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
+{
+    let item = queue.peekPtr()
+    #assert(#typeof(item) == const *PriorityItem)
+    return item.priority
+}
+
 #test
 {
     var queue: PriorityQueue's32
@@ -65,6 +72,9 @@ impl PriorityItem
         queue.push(#move first)
         queue.push(#move second)
 
+        Swag.assert(borrowedPriority(queue) == 1)
+        Swag.assert(g_PriorityItemDrops == 0)
+
         let poppedFirst = queue.pop()
         Swag.assert(poppedFirst.id == 1)
         let poppedSecond = queue.pop()
@@ -72,4 +82,15 @@ impl PriorityItem
     }
 
     Swag.assert(g_PriorityItemDrops == 3)
+}
+
+// Reserving less storage preserves the elements and their existing capacity.
+#test
+{
+    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    queue.push(42)
+    let capacity = queue.capacity()
+    queue.reserve(0)
+    Swag.assert(queue.count == 1 and queue.capacity() == capacity)
+    Swag.assert(queue.pop() == 42)
 }

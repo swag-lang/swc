@@ -31,36 +31,15 @@ namespace
         MicroLabelRef doneLabel  = MicroLabelRef::invalid();
     };
 
-    void materializeScalarOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
-    {
-        outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-
-        MicroBuilder& builder = codeGen.builder();
-        if (operandPayload.isAddress())
-            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
-        else
-            builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
-    }
-
     MicroReg materializeTruthyOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         if (operandTypeRef.isValid() && operandPayload.typeRef.isValid() && codeGen.typeMgr().get(operandTypeRef).isBool())
             operandTypeRef = operandPayload.typeRef;
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(operandTypeRef);
-        const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
-        if (sizeOf > 8)
-        {
-            const MicroReg resultReg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegMem(resultReg, operandPayload.reg, 0, MicroOpBits::B64);
-            return resultReg;
-        }
-
-        const MicroOpBits opBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        const TypeInfo&   typeInfo = codeGen.typeMgr().get(operandTypeRef);
+        const MicroOpBits opBits   = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
-        MicroReg outReg;
-        materializeScalarOperand(outReg, codeGen, operandPayload, operandTypeRef, opBits);
-        return outReg;
+        return CodeGenCompareHelpers::materializeConditionOperand(codeGen, operandPayload, operandTypeRef, opBits);
     }
 
     ConditionalExprCodeGenPayload* conditionalExprCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)

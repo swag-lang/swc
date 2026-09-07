@@ -4,6 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
@@ -391,22 +392,6 @@ namespace
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedExpect, args);
     }
 
-    MicroReg materializeNullablePresenceReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroOpBits& outBits)
-    {
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
-        outBits                  = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
-        SWC_ASSERT(outBits != MicroOpBits::Zero);
-
-        MicroBuilder&  builder   = codeGen.builder();
-        const MicroReg resultReg = codeGen.nextVirtualIntRegister();
-        if (sizeOf > sizeof(uint64_t) || payload.isAddress())
-            builder.emitLoadRegMem(resultReg, payload.reg, 0, outBits);
-        else
-            builder.emitLoadRegReg(resultReg, payload.reg, outBits);
-        return resultReg;
-    }
-
     Result emitNotNullRuntimeSafety(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef exprRef)
     {
         if (!isNotNullUnwrap(codeGen, ownerRef) || !hasExpectRuntimeSafety(codeGen, ownerRef))
@@ -424,9 +409,9 @@ namespace
         if (unwrappedExprTypeRef.isValid())
             exprTypeRef = unwrappedExprTypeRef;
 
-        auto                      presenceBits = MicroOpBits::Zero;
+        const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(exprTypeRef), codeGen.ctx());
         const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
-        const MicroReg            presenceReg  = materializeNullablePresenceReg(codeGen, exprPayload, exprTypeRef, presenceBits);
+        const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, presenceBits);
         MicroBuilder&             builder      = codeGen.builder();
         const MicroLabelRef       presentLabel = builder.createLabel();
         builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);

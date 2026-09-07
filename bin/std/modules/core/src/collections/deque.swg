@@ -33,12 +33,19 @@ impl Deque
     mtd const capacity()->u64 => .frontItems.capacity + .backItems.capacity
 
     // Reserves combined storage for at least `newCapacity` elements.
-    // The reservation is split between both ends and does not change the queue.
+    //
+    // Existing elements are preserved. Requests at or below the current capacity, including
+    // zero, do nothing. Additional storage is split between both ends.
     mtd reserve(newCapacity: u64)
     {
-        let frontCapacity = (newCapacity + 1) / 2
-        .frontItems.reserve(frontCapacity)
-        .backItems.reserve(newCapacity - frontCapacity)
+        if newCapacity <= .capacity() do
+            return
+        let frontCapacity = newCapacity / 2 + newCapacity % 2
+        let backCapacity  = newCapacity - frontCapacity
+        if frontCapacity > .frontItems.capacity do
+            .frontItems.reserve(frontCapacity)
+        if backCapacity > .backItems.capacity do
+            .backItems.reserve(backCapacity)
     }
 
     // Returns the mutable address of the element at logical `index` from the front.
@@ -82,8 +89,7 @@ impl Deque
         .count += 1
     }
 
-    #[Swag.NoDoc]
-    mtd ensureFrontSegment()
+    private mtd ensureFrontSegment()
     {
         if .frontItems.count or !.backItems.count do
             return
@@ -113,8 +119,7 @@ impl Deque
         .backItems  = #move newBack
     }
 
-    #[Swag.NoDoc]
-    mtd ensureBackSegment()
+    private mtd ensureBackSegment()
     {
         if .backItems.count or !.frontItems.count do
             return
@@ -146,11 +151,21 @@ impl Deque
     }
 
     // Returns a pointer to the front element and asserts if the queue is empty.
+    //
+    // This operation does not allocate, move elements, or invalidate existing borrows.
     mtd frontPtr()->*T
     {
         Swag.assert(.count > 0, "deque is empty")
-        .ensureFrontSegment()
-        return &.frontItems[.frontItems.count - 1]
+        return .opIndexPtr(0)
+    }
+
+    // Borrows the front element for reading without copying it or changing the queue.
+    //
+    // Asserts if the queue is empty. Mutation of the queue can invalidate the pointer.
+    mtd const frontPtr()->const *T
+    {
+        Swag.assert(.count > 0, "deque is empty")
+        return .opIndexPtr(0)
     }
 
     // Returns a copy of the front element and asserts if the queue is empty.
@@ -162,11 +177,21 @@ impl Deque
     }
 
     // Returns a pointer to the back element and asserts if the queue is empty.
+    //
+    // This operation does not allocate, move elements, or invalidate existing borrows.
     mtd backPtr()->*T
     {
         Swag.assert(.count > 0, "deque is empty")
-        .ensureBackSegment()
-        return &.backItems[.backItems.count - 1]
+        return .opIndexPtr(.count - 1)
+    }
+
+    // Borrows the back element for reading without copying it or changing the queue.
+    //
+    // Asserts if the queue is empty. Mutation of the queue can invalidate the pointer.
+    mtd const backPtr()->const *T
+    {
+        Swag.assert(.count > 0, "deque is empty")
+        return .opIndexPtr(.count - 1)
     }
 
     // Returns a copy of the back element and asserts if the queue is empty.

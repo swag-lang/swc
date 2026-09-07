@@ -69,7 +69,7 @@ private impl GridLayoutCtrl
 {
     mtd ensureStorage()
     {
-        Debug.assert(.numColumns > 0 and .numRows > 0)
+        Swag.assert(.numColumns > 0 and .numRows > 0)
 
         let cols  = cast(u64) .numColumns
         let rows  = cast(u64) .numRows
@@ -304,7 +304,7 @@ impl GridLayoutCtrl
     // Creates an empty grid with `numColumns` columns and `numRows` rows.
     func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = {})->*GridLayoutCtrl
     {
-        Debug.assert(numColumns > 0 and numRows > 0)
+        Swag.assert(numColumns > 0 and numRows > 0)
 
         let res = Wnd.create'GridLayoutCtrl(parent, position)
         res.numColumns = numColumns
@@ -371,7 +371,7 @@ impl GridLayoutCtrl
     mtd setColumnSize(column: s32, size: f32)
     {
         .ensureStorage()
-        Debug.assert(column >= 0 and column < .numColumns)
+        Swag.assert(column >= 0 and column < .numColumns)
         .setColumnTrack(column, GridTrackKind.Fixed, size)
     }
 
@@ -379,7 +379,7 @@ impl GridLayoutCtrl
     mtd setRowSize(row: s32, size: f32)
     {
         .ensureStorage()
-        Debug.assert(row >= 0 and row < .numRows)
+        Swag.assert(row >= 0 and row < .numRows)
         .setRowTrack(row, GridTrackKind.Fixed, size)
     }
 
@@ -387,8 +387,8 @@ impl GridLayoutCtrl
     mtd setColumnTrack(column: s32, kind: GridTrackKind, value: f32 = 1, minimum: f32 = 0, maximum: f32 = 0)
     {
         .ensureStorage()
-        Debug.assert(column >= 0 and column < .numColumns)
-        Debug.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
+        Swag.assert(column >= 0 and column < .numColumns)
+        Swag.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
         .columnTracks[column] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
     }
 
@@ -396,8 +396,8 @@ impl GridLayoutCtrl
     mtd setRowTrack(row: s32, kind: GridTrackKind, value: f32 = 1, minimum: f32 = 0, maximum: f32 = 0)
     {
         .ensureStorage()
-        Debug.assert(row >= 0 and row < .numRows)
-        Debug.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
+        Swag.assert(row >= 0 and row < .numRows)
+        Swag.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
         .rowTracks[row] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
     }
 
@@ -408,10 +408,10 @@ impl GridLayoutCtrl
     mtd setCell(child: *Wnd, column, row: s32, columnSpan, rowSpan: s32 = 1)
     {
         .ensureStorage()
-        Debug.assert(child.parent == me)
-        Debug.assert(column >= 0 and row >= 0)
-        Debug.assert(column + columnSpan <= .numColumns and row + rowSpan <= .numRows)
-        Debug.assert(columnSpan > 0 and rowSpan > 0)
+        Swag.assert(child.parent == me)
+        Swag.assert(column >= 0 and row >= 0)
+        Swag.assert(column + columnSpan <= .numColumns and row + rowSpan <= .numRows)
+        Swag.assert(columnSpan > 0 and rowSpan > 0)
 
         for idx in .layout.count
         {
@@ -426,7 +426,7 @@ impl GridLayoutCtrl
             for j in rowSpan
             {
                 let x1 = x + (j * .numColumns)
-                Debug.assert(!.layout[x1], "grid cell is already assigned")
+                Swag.assert(!.layout[x1], "grid cell is already assigned")
                 .layout[x1] = child
             }
         }

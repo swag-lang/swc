@@ -130,7 +130,7 @@ impl PdfParser
 
     mtd parseName()->u32 fail
     {
-        Debug.assert(.bytes[.pos] == '/')
+        Swag.assert(.bytes[.pos] == '/')
         .pos += 1
         var node: Node
         node.kind = .Name
@@ -153,7 +153,7 @@ impl PdfParser
 
     mtd parseLiteralString()->u32 fail
     {
-        Debug.assert(.bytes[.pos] == '(')
+        Swag.assert(.bytes[.pos] == '(')
         .pos += 1
         var depth = 1'u32
         var node: Node
@@ -237,7 +237,7 @@ impl PdfParser
 
     mtd parseHexString()->u32 fail
     {
-        Debug.assert(.bytes[.pos] == '<' and !.startsWith("<<"))
+        Swag.assert(.bytes[.pos] == '<' and !.startsWith("<<"))
         .pos += 1
         var node: Node
         node.kind = .String
@@ -270,7 +270,7 @@ impl PdfParser
 
     mtd parseArray()->u32 fail
     {
-        Debug.assert(.bytes[.pos] == '[')
+        Swag.assert(.bytes[.pos] == '[')
         .pos += 1
         var node: Node
         node.kind = .Array
@@ -293,7 +293,7 @@ impl PdfParser
 
     mtd parseDictionary()->u32 fail
     {
-        Debug.assert(.startsWith("<<"))
+        Swag.assert(.startsWith("<<"))
         .pos += 2
         var node: Node
         node.kind = .Dictionary

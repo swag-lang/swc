@@ -505,7 +505,7 @@ impl ColorPicker
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ColorPicker
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'ColorPicker(parent, null, position, id)
         result.focusPolicy = .Click
         result.wndFlags    |= .AfterChildrenPaint

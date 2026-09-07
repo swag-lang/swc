@@ -11,7 +11,7 @@ impl Painter
             return
         if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
-        Debug.assert(endAngle.radians > startAngle.radians)
+        Swag.assert(endAngle.radians > startAngle.radians)
 
         let pen = Pen.createSolid(color, penSize)
         .sharedLinePath.setArc(centerX, centerY, radius, startAngle, endAngle)

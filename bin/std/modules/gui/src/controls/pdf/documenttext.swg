@@ -30,7 +30,7 @@ impl DocumentText
     // Starts extracting the `pageCount` pages of `fileName` on a worker.
     mtd start(fileName: string, pageCount: u64)
     {
-        Debug.assert(!.started)
+        Swag.assert(!.started)
         .fileName = fileName
         .pages.resize(pageCount)
         .ready   = 0
@@ -50,7 +50,7 @@ impl DocumentText
     // Returns the text of one published page.
     mtd pageText(index: u64)->string
     {
-        Debug.assert(index < .readyCount())
+        Swag.assert(index < .readyCount())
         return .pages[index].toString()
     }
 

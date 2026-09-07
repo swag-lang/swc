@@ -1207,7 +1207,12 @@ namespace
 
     Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
-        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
+        if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Assert))
+            return Result::Continue;
+
+        SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef()));
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).addRuntimeSafety(Runtime::SafetyWhat::Assert);
+        return Result::Continue;
     }
 
     // `Swag.assert(cond)` panics when `cond` is false, so the statements after it are only

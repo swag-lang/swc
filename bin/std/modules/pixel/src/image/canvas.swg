@@ -77,7 +77,7 @@ impl ImageCanvas
     // same renderer.
     private func open(canvas: *ImageCanvas, width, height: s32) fail
     {
-        Debug.assert(width > 0 and height > 0, "invalid dimensions")
+        Swag.assert(width > 0 and height > 0, "invalid dimensions")
 
         canvas.width      = width
         canvas.height     = height

@@ -416,7 +416,7 @@ impl Painter
     // referenced by the painter.
     mtd setRenderer(renderer: IRenderer)
     {
-        Debug.assert(!.drawingBegin)
+        Swag.assert(!.drawingBegin)
         .rendererItf = renderer
     }
 
@@ -430,7 +430,7 @@ impl Painter
     // logical and physical passes.
     mtd setContentScale(scale: f32)
     {
-        Debug.assert(scale > 0)
+        Swag.assert(scale > 0)
         .curContentScale = scale
     }
 
@@ -456,7 +456,7 @@ impl Painter
     // consumers reached the same geometry.
     mtd setFlattenScale(scale: f32)
     {
-        Debug.assert(scale > 0)
+        Swag.assert(scale > 0)
         .curFlattenScale = Painter.quantizeFlattenScale(scale)
     }
 
@@ -468,7 +468,7 @@ impl Painter
     // what is prepared is exactly what the frame will look for.
     func quantizeFlattenScale(scale: f32)->f32
     {
-        Debug.assert(scale > 0)
+        Swag.assert(scale > 0)
         var bucket = 1.0'f32
         while bucket * 2 <= scale and bucket < 64 do
             bucket *= 2
@@ -519,7 +519,7 @@ impl Painter
     // The returned interface borrows the concrete renderer.
     mtd renderer()->IRenderer
     {
-        Debug.assert(.rendererItf != null, "painter has no renderer")
+        Swag.assert(.rendererItf != null, "painter has no renderer")
         return .rendererItf!
     }
 
@@ -534,7 +534,7 @@ impl Painter
     // Rendering is synchronous. Call [[Painter.end]] before this method.
     mtd render()
     {
-        Debug.assert(!.drawingBegin)
+        Swag.assert(!.drawingBegin)
         .renderer().draw(me)
     }
 
@@ -1009,7 +1009,7 @@ impl Painter
     #[Swag.Inline]
     private mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
     {
-        Debug.assert(.drawingBegin, "begin() not called before")
+        Swag.assert(.drawingBegin, "begin() not called before")
 
         // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count
@@ -1063,7 +1063,7 @@ impl Painter
     // Set `layoutOnly` to compute layout without emitting text geometry.
     mtd begin(layoutOnly = false)
     {
-        Debug.assert(.drawingBegin == false)
+        Swag.assert(.drawingBegin == false)
 
         .commandBuffer.clear()
         .vertexBuffer.clear()
@@ -1089,7 +1089,7 @@ impl Painter
     // Ends the active recording scope.
     mtd end()
     {
-        Debug.assert(.drawingBegin)
+        Swag.assert(.drawingBegin)
         for texture in .transientTextures
         {
             let cmd = .newCommand(.ReleaseTexture, true)
@@ -1547,7 +1547,7 @@ impl Painter
             .curRT = .stackRT.popBack()
         else
         {
-            Debug.assert(.curRT != null)
+            Swag.assert(.curRT != null)
             .curRT = null
         }
 
@@ -1575,7 +1575,7 @@ impl Painter
     // for the parameterized programs.
     mtd setDefaultShader(shader: DefaultShaderId = .Default)
     {
-        Debug.assert(shader == .Default or shader == .Simple)
+        Swag.assert(shader == .Default or shader == .Simple)
         let cmd = .newCommand(.SetDefaultShader, true)
         cmd.defaultShader.id     = shader
         cmd.defaultShader.axis   = 0
@@ -1589,7 +1589,7 @@ impl Painter
     // `radius` must be positive.
     mtd setBlurShader(axis: s32, radius: f32)
     {
-        Debug.assert((axis == 0 or axis == 1) and radius > 0)
+        Swag.assert((axis == 0 or axis == 1) and radius > 0)
         let cmd = .newCommand(.SetDefaultShader, true)
         cmd.defaultShader.id     = .Blur
         cmd.defaultShader.axis   = axis
@@ -1602,7 +1602,7 @@ impl Painter
     // `factor` must be between `1` and `8`, inclusive.
     mtd setResolveShader(factor: s32)
     {
-        Debug.assert(factor >= 1 and factor <= 8)
+        Swag.assert(factor >= 1 and factor <= 8)
         let cmd = .newCommand(.SetDefaultShader, true)
         cmd.defaultShader.id     = .Resolve
         cmd.defaultShader.axis   = 0

@@ -118,7 +118,7 @@ impl IEncoder for Encoder
         .info = info
         if options.buffer != null
         {
-            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            Swag.assert(Swag.kindOf(options) == EncodeOptions)
             .options = options.buffer![as EncodeOptions]
         }
 

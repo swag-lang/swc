@@ -348,7 +348,7 @@ impl SurfaceWnd
     // Registers an application action in the caption, immediately before the native controls.
     internal mtd registerCaptionButton(button: *IconButton)
     {
-        Debug.assert(button.parent == me)
+        Swag.assert(button.parent == me)
         .captionButtons.add(button)
         .sendResizeEvent()
         .invalidate()

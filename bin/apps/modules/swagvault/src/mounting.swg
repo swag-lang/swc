@@ -32,7 +32,7 @@ impl MountedVault
 {
     mtd open(path: string, password: const [..] u8, destination: string, readOnly = false, protectionPassword: const [..] u8 = "") fail
     {
-        Debug.assert(.handle == null)
+        Swag.assert(.handle == null)
         .handle = mountVaultNative(path, password, destination, readOnly, protectionPassword)
     }
 
@@ -48,7 +48,7 @@ impl MountedVault
 
     mtd space()->MountedVaultSpace
     {
-        Debug.assert(.handle != null)
+        Swag.assert(.handle != null)
         return mountedVaultSpaceNative(.handle!)
     }
 

@@ -67,7 +67,7 @@ impl ZipEntryExtract
 {
     mtd start(archiveFileName: string, entry: const *ZipEntry, destination: string)
     {
-        Debug.assert(!.started)
+        Swag.assert(!.started)
         .archiveFileName = archiveFileName
         .entry           = entry[]
         .destination     = destination
@@ -84,7 +84,7 @@ impl ZipEntryExtract
 
     mtd finish()->String
     {
-        Debug.assert(.isDone())
+        Swag.assert(.isDone())
         .wait()
         let result = Errors.message(.error)
         .error = null

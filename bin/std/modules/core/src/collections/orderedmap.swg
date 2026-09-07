@@ -77,8 +77,8 @@ impl OrderedMap
     // The map must be empty so that no key was positioned by another ordering.
     mtd initialize(comparator: func(const *K, const *K)->s32)
     {
-        Debug.assert(comparator != null)
-        Debug.assert(.isEmpty(), "ordered map is not empty")
+        Swag.assert(comparator != null)
+        Swag.assert(.isEmpty(), "ordered map is not empty")
         .comparator = cast(*void) comparator
     }
 
@@ -106,7 +106,7 @@ impl OrderedMap
         if .comparator do
             return (cast(func(const *K, const *K)->s32) .comparator!)(&left, &right)
 
-        Debug.assert(false, "ordered map has not been initialized with a comparator")
+        Swag.assert(false, "ordered map has not been initialized with a comparator")
         return 0
     }
 
@@ -193,7 +193,7 @@ impl OrderedMap
     mtd find(key: K)->*OrderedMapEntry
     {
         let result = .tryFind(key)
-        Debug.assert(result != null, "key not found")
+        Swag.assert(result != null, "key not found")
         return result!
     }
 
@@ -201,7 +201,7 @@ impl OrderedMap
     mtd const find(key: K)->const *OrderedMapEntry
     {
         let result = .tryFind(key)
-        Debug.assert(result != null, "key not found")
+        Swag.assert(result != null, "key not found")
         return result!
     }
 

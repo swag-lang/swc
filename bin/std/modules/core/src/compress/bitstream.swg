@@ -48,8 +48,8 @@ impl BitStream
     // Advances by whole source bytes while no bits are buffered.
     mtd advanceBytes(count: u64)
     {
-        Debug.assert(.numBits == 0)
-        Debug.assert(count <= .size() - .curByte)
+        Swag.assert(.numBits == 0)
+        Swag.assert(count <= .size() - .curByte)
         .curByte += count
         .eof     = .curByte == .size()
     }
@@ -117,7 +117,7 @@ impl BitStream
     // Like peekBits, but assumes enough bits are already available
     mtd peekBitsUnchecked(width: u8)->u32
     {
-        Debug.assert(.numBits >= width)
+        Swag.assert(.numBits >= width)
         return cast(u32) (.codeBuffer & ((1'u64 << width) - 1))
     }
 
@@ -156,7 +156,7 @@ impl BitStream
     // Reverts stream to last byte-aligned state (undo partial read)
     mtd revert()
     {
-        Debug.assert(!(.numBits & 7))     // Must be aligned
+        Swag.assert(!(.numBits & 7))     // Must be aligned
         .curByte    -= .numBits / 8
         .numBits    = 0
         .codeBuffer = 0

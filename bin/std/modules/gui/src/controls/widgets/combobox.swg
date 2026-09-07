@@ -416,7 +416,7 @@ impl ComboBox
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
 
         // The theme height is a floor, not a default. A field packed below it clips its own
@@ -498,7 +498,7 @@ impl ComboBox
     // Removes one item while preserving order and adjusts the selection silently.
     mtd removeItemAt(index: u32)
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         .hidePopup()
         .items.deleteAt(index)
         .recomputeMaximumIconWidth()
@@ -528,8 +528,8 @@ impl ComboBox
     // Selects one selectable item and optionally emits the change signal and command.
     mtd setSelectedIndex(index: u32, notify = true)
     {
-        Debug.assert(index < .items.count)
-        Debug.assert(!.items[index]!.isSeparator)
+        Swag.assert(index < .items.count)
+        Swag.assert(!.items[index]!.isSeparator)
         .applySelectedIndex(index, notify)
     }
 

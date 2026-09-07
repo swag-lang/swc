@@ -84,7 +84,7 @@ impl Dialog
     // [[Gui.SurfaceFlags.LargeCaption]].
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
-        Debug.assert(from != null)
+        Swag.assert(from != null)
         .parentSurface = from
 
         // The close cross is the dialog's to decide, never the caller's: it says "this can
@@ -132,7 +132,7 @@ impl Dialog
     // adrift in a margin, and the box then has to grow by twice that inset to show the same rows.
     internal mtd createContentView(inset = true)->*Wnd
     {
-        Debug.assert(.contentView == null, "a dialog can only have one standard content view")
+        Swag.assert(.contentView == null, "a dialog can only have one standard content view")
 
         let content = Wnd.create'Wnd(.surface!.wnd.view)
         content.dockStyle       = .Center
@@ -162,7 +162,7 @@ impl Dialog
     // allowance when one of the common metrics changes.
     internal mtd fitHeightToContent(contentHeight: f32)
     {
-        Debug.assert(contentHeight >= 0, "dialog content height cannot be negative")
+        Swag.assert(contentHeight >= 0, "dialog content height cannot be negative")
 
         let metrics = .themeMetrics()
         let surface = .surface!
@@ -204,7 +204,7 @@ impl Dialog
     #[Swag.Discardable]
     mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {
-        Debug.assert(str.count != 0, "dialog button text cannot be empty")
+        Swag.assert(str.count != 0, "dialog button text cannot be empty")
         if isDefault
         {
             for button in .buttons where button.form == .Default do

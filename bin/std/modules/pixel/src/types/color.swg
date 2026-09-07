@@ -524,9 +524,9 @@ impl Color
     // - Returns: A new color meeting or exceeding the required contrast ratio.
     mtd ensureContrast(target: Color, requiredContrast: f32 = 4.5, step: f32 = 0.02, maxSteps: s32 = 64)
     {
-        Debug.assert(requiredContrast >= 1 and requiredContrast <= 21)
-        Debug.assert(step != 0)
-        Debug.assert(maxSteps >= 0)
+        Swag.assert(requiredContrast >= 1 and requiredContrast <= 21)
+        Swag.assert(step != 0)
+        Swag.assert(maxSteps >= 0)
 
         let initialContrast = .contrastRatio(target)
 

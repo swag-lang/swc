@@ -61,7 +61,7 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
 
     if index >= arr.count
     {
-        Debug.assert(false)
+        Swag.assert(false)
         return
     }
 

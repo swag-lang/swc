@@ -99,7 +99,7 @@ impl TweakFile
     // Parses tweak content from an array of lines
     mtd parse(lines: Array'(string)) fail
     {
-        Debug.assert(!.folders.isEmpty())
+        Swag.assert(!.folders.isEmpty())
 
         struct Ref
         {

@@ -57,7 +57,7 @@ impl PaintImage
     // Initializes an offscreen target of `w` by `h` pixels.
     public mtd init(w, h: s32)
     {
-        Debug.assert(w > 0 and h > 0, "paint image dimensions must be positive")
+        Swag.assert(w > 0 and h > 0, "paint image dimensions must be positive")
         .surface          = expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)!
         .surface.userData = me
         .w                = w

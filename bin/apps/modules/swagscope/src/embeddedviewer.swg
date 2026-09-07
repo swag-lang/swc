@@ -38,7 +38,7 @@ private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer
     var parent = view.parent
     while parent and !parent.userData do
         parent = parent.parent
-    Debug.assert(parent != null and parent.userData != null)
+    Swag.assert(parent != null and parent.userData != null)
     return cast(*EmbeddedViewer) parent!.userData!
 }
 

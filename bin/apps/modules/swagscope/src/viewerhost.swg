@@ -139,7 +139,7 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl createEmbedded(parent: *Wnd)->Viewer.Embedded
     {
-        Debug.assert(.window != null, "embedded viewers need an application window")
+        Swag.assert(.window != null, "embedded viewers need an application window")
         let embedded                = EmbeddedViewer.create(parent, .window!)
         let result: Viewer.Embedded = embedded
         return result
@@ -147,14 +147,14 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl createActionGroup(width: f32)->*Wnd
     {
-        Debug.assert(.session.actions == null)
+        Swag.assert(.session.actions == null)
         .session.actions = .createGroup(.actionParent, width)
         return .session.actions!
     }
 
     mtd impl createInfoGroup(width: f32)->*Wnd
     {
-        Debug.assert(.session.info == null)
+        Swag.assert(.session.info == null)
         .session.info = .createInfoWnd(.infoParent, width)
         .session.info!.style.addStyleSheetColors("label_TextLight $label_TextFaint")
         .session.info!.computeStyle()
@@ -163,15 +163,15 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl createCommandGroup(width: f32)->*Wnd
     {
-        Debug.assert(.session.commands == null)
+        Swag.assert(.session.commands == null)
         .session.commands = .createGroup(.commandParent, width)
         return .session.commands!
     }
 
     mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string)->Viewer.SidePanel
     {
-        Debug.assert(.session.sidePanelHost == null)
-        Debug.assert(width > 0)
+        Swag.assert(.session.sidePanelHost == null)
+        Swag.assert(width > 0)
 
         let gutter = .sidePanelParent.themeMetrics().panel_GutterSize
         with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, {0, 0, width + gutter, 0})
@@ -212,7 +212,7 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl attachView(view: *Wnd)
     {
-        Debug.assert(.session.view == null)
+        Swag.assert(.session.view == null)
         .session.view = view
     }
 
@@ -223,7 +223,7 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl reject(reason: string)
     {
-        Debug.assert(.session.view == null)
+        Swag.assert(.session.view == null)
         .session.actions?.destroy()
         .session.info?.destroy()
         .session.commands?.destroy()

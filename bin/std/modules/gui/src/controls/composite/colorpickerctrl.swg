@@ -139,7 +139,7 @@ impl ColorPickerCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: WndId? = null)->*ColorPickerCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
         if pos.width == 0 do
             pos.width = 340

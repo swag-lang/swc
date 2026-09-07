@@ -32,8 +32,8 @@ impl PriorityQueue
     // The queue must be empty so that no element was positioned by another ordering.
     mtd initialize(comparator: func(const *T, const *T)->s32)
     {
-        Debug.assert(comparator != null)
-        Debug.assert(.isEmpty(), "priority queue is not empty")
+        Swag.assert(comparator != null)
+        Swag.assert(.isEmpty(), "priority queue is not empty")
         .comparator = cast(*void) comparator
     }
 
@@ -61,7 +61,7 @@ impl PriorityQueue
         if .comparator do
             return (cast(func(const *T, const *T)->s32) .comparator!)(&left, &right)
 
-        Debug.assert(false, "priority queue has not been initialized with a comparator")
+        Swag.assert(false, "priority queue has not been initialized with a comparator")
         return 0
     }
 
@@ -87,14 +87,14 @@ impl PriorityQueue
     // Mutating it in a way that changes its priority violates the heap ordering.
     mtd peekPtr()->*T
     {
-        Debug.assert(.count > 0, "priority queue is empty")
+        Swag.assert(.count > 0, "priority queue is empty")
         return &.items[0]
     }
 
     // Returns a copy of the highest-priority element and asserts if the queue is empty.
     mtd const peek()->T
     {
-        Debug.assert(.count > 0, "priority queue is empty")
+        Swag.assert(.count > 0, "priority queue is empty")
         let result: retval = .items[0]
         return result
     }
@@ -102,7 +102,7 @@ impl PriorityQueue
     // Removes and returns the highest-priority element and asserts if the queue is empty.
     mtd pop()->T
     {
-        Debug.assert(.count > 0, "priority queue is empty")
+        Swag.assert(.count > 0, "priority queue is empty")
         .items.swap(0, .count - 1)
         var result: retval = .items.popBack()
         .count -= 1

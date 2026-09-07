@@ -28,7 +28,7 @@ impl Mdct
     // Prepares a transform of `n` outputs, a power of two of at least sixteen.
     func create(n: u32)->Mdct
     {
-        Debug.assert(n >= 16 and (n & (n - 1)) == 0)
+        Swag.assert(n >= 16 and (n & (n - 1)) == 0)
         var result: retval
         result.n = n
 

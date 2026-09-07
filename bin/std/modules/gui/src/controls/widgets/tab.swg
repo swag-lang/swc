@@ -633,7 +633,7 @@ impl Tab
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Tab
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let result = Wnd.create'Tab(parent, null, position, id)
         result.focusPolicy = .Tab
         result.wndFlags    |= .NoFocusRing
@@ -692,9 +692,9 @@ impl Tab
     // Configures width measurement and validates non-negative sizing values.
     mtd setLayout(layout: TabLayout, minimumItemWidth = 25'f32, fixedItemWidth = 100'f32, itemPadding = 25'f32)
     {
-        Debug.assert(minimumItemWidth >= 0)
-        Debug.assert(fixedItemWidth >= 0)
-        Debug.assert(itemPadding >= 0)
+        Swag.assert(minimumItemWidth >= 0)
+        Swag.assert(fixedItemWidth >= 0)
+        Swag.assert(itemPadding >= 0)
         .layout           = layout
         .minimumItemWidth = minimumItemWidth
         .fixedItemWidth   = fixedItemWidth
@@ -753,7 +753,7 @@ impl Tab
     // ended.
     mtd setItemName(index: u32, name: string)
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         .items[index]!.name = name
         .sendResizeEvent()
         .invalidate()
@@ -762,7 +762,7 @@ impl Tab
     // Removes one tab, destroys its owned page, and selects the nearest remaining tab.
     mtd removeItemAt(index: u32)
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         .closePopups()
         .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
 
@@ -817,7 +817,7 @@ impl Tab
     // Selects one tab and emits a change signal when the effective item changes.
     mtd setSelectedIndex(index: u32)
     {
-        Debug.assert(index < .items.count)
+        Swag.assert(index < .items.count)
         if .selectedIndex == index do
             return
 

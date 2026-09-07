@@ -114,7 +114,7 @@ impl Guid64
     // Writes exactly 16 uppercase hexadecimal digits to `result`.
     mtd const toString(result: [..] u8)
     {
-        Debug.assert(result.count == 16)
+        Swag.assert(result.count == 16)
 
         const Tbl = "0123456789ABCDEF"
 

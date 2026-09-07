@@ -35,7 +35,7 @@ public impl DateTimeFormatInfo
     // Returns the localized full name of a month numbered from 1 through 12.
     mtd const monthName(month: u16)->string
     {
-        Debug.assert(month >= 1 and month <= 12, "month is outside the supported range")
+        Swag.assert(month >= 1 and month <= 12, "month is outside the supported range")
         return .monthNames[month - 1]
     }
 
@@ -145,7 +145,7 @@ public impl DateTimeFormatInfo
     // Formats a date using [[shortDatePattern]] or [[longDatePattern]].
     mtd const formatDate(value: Time.DateTime, long = false)->String
     {
-        Debug.assert(value.isValid(), "cannot format an invalid date")
+        Swag.assert(value.isValid(), "cannot format an invalid date")
         let pattern = long ? .longDatePattern : .shortDatePattern
         return .formatPattern(value, pattern)
     }
@@ -153,7 +153,7 @@ public impl DateTimeFormatInfo
     // Formats a clock value using [[shortTimePattern]] or [[longTimePattern]].
     mtd const formatTime(value: Time.DateTime, withSeconds = true)->String
     {
-        Debug.assert(value.isValid(), "cannot format an invalid time")
+        Swag.assert(value.isValid(), "cannot format an invalid time")
         let pattern = withSeconds ? .longTimePattern : .shortTimePattern
         return .formatPattern(value, pattern)
     }

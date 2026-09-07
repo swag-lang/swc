@@ -449,7 +449,7 @@ private func checkPropertyKeysAreDistinct()
                 continue
 
             let clash = Format.toString("property key [[%]] is declared by both [[%]] and [[%]]", value, other.name orelse "", name)
-            Debug.assert(false, clash.toString())
+            Swag.assert(false, clash.toString())
         }
     }
 }

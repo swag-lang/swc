@@ -100,8 +100,8 @@ public impl NumberFormatInfo
     // unit at that precision before grouping is applied to the integer part.
     mtd const format(value: f64, decimals = 2'u8, grouped = false)->String
     {
-        Debug.assert(decimals <= 18, "numeric precision is too large")
-        Debug.assert(Math.isFinite(value), "cannot format a non-finite number")
+        Swag.assert(decimals <= 18, "numeric precision is too large")
+        Swag.assert(Math.isFinite(value), "cannot format a non-finite number")
 
         var scale = 1'u64
         for decimals do
@@ -109,7 +109,7 @@ public impl NumberFormatInfo
 
         let negative = value < 0
         let absolute = Math.abs(value)
-        Debug.assert(absolute <= cast(f64) Swag.U64.Max / cast(f64) scale, "numeric value is too large at the requested precision")
+        Swag.assert(absolute <= cast(f64) Swag.U64.Max / cast(f64) scale, "numeric value is too large at the requested precision")
         let scaled   = cast(u64) Math.round(absolute * cast(f64) scale)
         let whole    = decimals ? scaled / scale : scaled
         let fraction = decimals ? scaled % scale : 0

@@ -51,7 +51,7 @@ impl Polygon
     #[Swag.Inline]
     mtd pointAt(i: u64)->*Vector2
     {
-        Debug.assert(i < .points.count)
+        Swag.assert(i < .points.count)
         let points = .points.buffer!
         return points + i
     }
@@ -60,7 +60,7 @@ impl Polygon
     #[Swag.Inline]
     mtd const pointAt(i: u64)->const *Vector2
     {
-        Debug.assert(i < .points.count)
+        Swag.assert(i < .points.count)
         let points = .points.buffer!
         return points + i
     }
@@ -97,18 +97,18 @@ impl Polygon
     // Returns point `i`, optionally offset along the averaged edge normal.
     mtd const offsetPointAt(i: u64, offset: f32)->Vector2
     {
-        Debug.assert(.points.count)
+        Swag.assert(.points.count)
         let points = .points.buffer!
         if Math.isZeroEpsilon(offset)
         {
-            Debug.assert(i < .points.count)
+            Swag.assert(i < .points.count)
             return points[i]
         }
 
         var count = .points.count
         if count > 1 and points[0].distanceSquaredTo(points[count - 1]) < 0.5 * 0.5 do
             count -= 1
-        Debug.assert(count)
+        Swag.assert(count)
         let pointIndex = i % count
         if count < 3 do
             return points[pointIndex]
@@ -204,7 +204,7 @@ impl Polygon
     // Divide by adding points if two points are too far away
     mtd subdivideEdges(maxDistance: f32, closed: bool = true)
     {
-        Debug.assert(maxDistance > 0)
+        Swag.assert(maxDistance > 0)
         if .points.count < 2 do
             return
 

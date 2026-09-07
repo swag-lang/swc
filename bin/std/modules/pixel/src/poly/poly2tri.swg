@@ -186,7 +186,7 @@ impl Edge
             }
             elif p1.x == p2.x
             {
-                Debug.assert(false, "Edge::Edge: p1 == p2")
+                Swag.assert(false, "Edge::Edge: p1 == p2")
             }
         }
 
@@ -269,7 +269,7 @@ impl Triangle
         if p == .points[2] do
             return 2
 
-        Debug.assert(false)
+        Swag.assert(false)
         return -1
     }
 
@@ -282,7 +282,7 @@ impl Triangle
             return .neighbors[1]
         if idx == 2 do
             return .neighbors[2]
-        Debug.assert(false)
+        Swag.assert(false)
         return null
     }
 
@@ -295,7 +295,7 @@ impl Triangle
             return .neighbors[2]
         if idx == 2 do
             return .neighbors[0]
-        Debug.assert(false)
+        Swag.assert(false)
         return null
     }
 
@@ -308,7 +308,7 @@ impl Triangle
             return .neighbors[0]
         if idx == 2 do
             return .neighbors[1]
-        Debug.assert(false)
+        Swag.assert(false)
         return null
     }
 
@@ -321,7 +321,7 @@ impl Triangle
             return .constrainedEdge[0]
         if idx == 2 do
             return .constrainedEdge[1]
-        Debug.assert(false)
+        Swag.assert(false)
         return false
     }
 
@@ -334,7 +334,7 @@ impl Triangle
             return .constrainedEdge[2]
         if idx == 2 do
             return .constrainedEdge[0]
-        Debug.assert(false)
+        Swag.assert(false)
         return false
     }
 
@@ -347,7 +347,7 @@ impl Triangle
             return .points[0]
         if idx == 2 do
             return .points[1]
-        Debug.assert(false)
+        Swag.assert(false)
         return cast(*Point) 1'u64
     }
 
@@ -360,7 +360,7 @@ impl Triangle
             return .points[2]
         if idx == 2 do
             return .points[0]
-        Debug.assert(false)
+        Swag.assert(false)
         return cast(*Point) 1'u64
     }
 
@@ -373,7 +373,7 @@ impl Triangle
             return .delaunayEdge[0]
         if idx == 2 do
             return .delaunayEdge[1]
-        Debug.assert(false)
+        Swag.assert(false)
         return false
     }
 
@@ -386,7 +386,7 @@ impl Triangle
             return .delaunayEdge[2]
         if idx == 2 do
             return .delaunayEdge[0]
-        Debug.assert(false)
+        Swag.assert(false)
         return false
     }
 
@@ -411,7 +411,7 @@ impl Triangle
             return
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
     }
 
     mtd setDelaunayEdgeCW(p: *Point, e: bool)
@@ -435,7 +435,7 @@ impl Triangle
             return
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
     }
 
     mtd setConstrainedEdgeCCW(p: *Point, ce: bool)
@@ -459,7 +459,7 @@ impl Triangle
             return
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
     }
 
     mtd setConstrainedEdgeCW(p: *Point, ce: bool)
@@ -483,7 +483,7 @@ impl Triangle
             return
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
     }
 
     mtd clearNeighbors()
@@ -519,7 +519,7 @@ impl Triangle
         elif (p1 == .points[0] and p2 == .points[1]) or (p1 == .points[1] and p2 == .points[0]) do
             .neighbors[2] = t
         else do
-            Debug.assert(false)
+            Swag.assert(false)
     }
 
     mtd markNeighbor(t: *Triangle)
@@ -568,7 +568,7 @@ impl Triangle
             return
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -590,7 +590,7 @@ impl AdvancingFront
                 elif point == nnNode(start.next).point do
                     node = start.next
                 else do
-                    Debug.assert(false)
+                    Swag.assert(false)
             }
         }
         elif px < nx
@@ -993,7 +993,7 @@ impl Tessellate
                 i += 1
         }
 
-        Debug.assert(.polyStart != .points.count, "no points !")
+        Swag.assert(.polyStart != .points.count, "no points !")
         initEdges(me, .points[.polyStart to .points.count - 1])
     }
 
@@ -1084,7 +1084,7 @@ impl Tessellate
             }
             else
             {
-                Debug.assert(false, "EdgeEvent - collinear points not supported")
+                Swag.assert(false, "EdgeEvent - collinear points not supported")
             }
 
             return
@@ -1104,7 +1104,7 @@ impl Tessellate
             }
             else
             {
-                Debug.assert(false, "EdgeEvent - collinear points not supported")
+                Swag.assert(false, "EdgeEvent - collinear points not supported")
             }
 
             return
@@ -1185,7 +1185,7 @@ impl Tessellate
         let o2d = orient2d(eq, op, ep)
         if o2d == .CW do
             return ot.pointCCW(op)
-        Debug.assert(o2d == .CCW, "[Unsupported] Opposing point on constrained edge")
+        Swag.assert(o2d == .CCW, "[Unsupported] Opposing point on constrained edge")
         return ot.pointCW(op)
     }
 
@@ -1352,7 +1352,7 @@ impl Tessellate
     mtd pointEvent(point: *Point)->*Node
     {
         let node = .locateNode(point)
-        Debug.assert(node.next, "null node")
+        Swag.assert(node.next != null, "null node")
         let newNode = .newFrontTriangle(point, node)
 
         // Point coordinates are f32; compare with an f32 epsilon so the test stays in single

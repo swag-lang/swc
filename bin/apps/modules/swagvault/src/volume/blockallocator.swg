@@ -17,7 +17,7 @@ impl BlockAllocator
 {
     mtd initialize(blockCount: u64)
     {
-        Debug.assert(!.free.count and !.deferredFree.count)
+        Swag.assert(!.free.count and !.deferredFree.count)
         if blockCount do
             .free.add({0, blockCount})
         .freeBlocksCount = blockCount
@@ -79,7 +79,7 @@ impl BlockAllocator
             return
         }
 
-        Debug.assert(!.free.count or .free.back().first + .free.back().count < first)
+        Swag.assert(!.free.count or .free.back().first + .free.back().count < first)
         .free.add({first, count})
         .freeBlocksCount += count
     }
@@ -93,7 +93,7 @@ impl BlockAllocator
     {
         if !.free.count do
             failWith("The virtual disk is full.", .DiskFull)
-        Debug.assert(maximumCount != 0)
+        Swag.assert(maximumCount != 0)
 
         let index  = .free.count - 1
         let count  = Math.min(maximumCount, .free[index].count)
@@ -110,7 +110,7 @@ impl BlockAllocator
     // without accidentally choosing another block that the new geometry will discard.
     mtd allocateRunBelow(limit, maximumCount: u64)->FreeExtent fail
     {
-        Debug.assert(maximumCount != 0)
+        Swag.assert(maximumCount != 0)
         var index = .free.count
         while index
         {

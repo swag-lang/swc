@@ -65,7 +65,7 @@ impl BinaryReport
 
     mtd endGroup()
     {
-        Debug.assert(.level > 0, "a report closed a group it never opened")
+        Swag.assert(.level > 0, "a report closed a group it never opened")
         .level -= 1
     }
 

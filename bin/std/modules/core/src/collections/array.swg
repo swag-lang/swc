@@ -755,7 +755,7 @@ impl Array
     // Sorts the array using a custom comparison function.
     mtd sort(cb: func||(T, T)->s32)
     {
-        Debug.assert(cb != null)
+        Swag.assert(cb != null)
         if .count <= 1 do
             return
         let buffer = .buffer!
@@ -766,7 +766,7 @@ impl Array
     // Asserts if the array is empty.
     mtd const front()->T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let buffer         = .buffer!
         let result: retval = buffer[0]
         return result
@@ -776,7 +776,7 @@ impl Array
     // Asserts if the array is empty.
     mtd frontPtr()->*T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         return .buffer!
     }
 
@@ -784,7 +784,7 @@ impl Array
     // Asserts if the array is empty.
     mtd const back()->T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let buffer         = .buffer!
         let result: retval = buffer[.count - 1]
         return result
@@ -794,7 +794,7 @@ impl Array
     // Asserts if the array is empty.
     mtd backPtr()->*T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let buffer = .buffer!
         return buffer + .count - 1
     }
@@ -803,7 +803,7 @@ impl Array
     // Asserts if the array is empty.
     mtd popBack()->T
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         let buffer = .buffer!
         var result: retval
         result = #relocate buffer[.count - 1]
@@ -815,7 +815,7 @@ impl Array
     // Asserts if the array is empty.
     mtd removeBack()
     {
-        Debug.assert(.count > 0, "array is empty")
+        Swag.assert(.count > 0, "array is empty")
         Swag.drop(.buffer + .count - 1)
         .count -= 1
     }

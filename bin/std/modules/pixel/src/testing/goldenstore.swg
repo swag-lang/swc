@@ -81,8 +81,8 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 // writes `<name>.expected.png` and `<name>.actual.png` beside the calling test.
 func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
-    Debug.assert(expected != null and expected.isValid(), "expected image needs allocated pixels")
-    Debug.assert(actual != null and actual.isValid(), "actual image needs allocated pixels")
+    Swag.assert(expected != null and expected.isValid(), "expected image needs allocated pixels")
+    Swag.assert(actual != null and actual.isValid(), "actual image needs allocated pixels")
 
     let difference = compareImages(expected, actual, options)
     if isWithinTolerance(&difference, options) do
@@ -108,7 +108,7 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // raster differences; both limits default to exact comparison.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
-    Debug.assert(image != null and image.isValid(), "image golden needs allocated pixels")
+    Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)
 
     if !File.exists(path)

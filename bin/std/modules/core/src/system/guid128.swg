@@ -80,7 +80,7 @@ impl Guid128
     #[Swag.Safety(.BoundCheck, false)]
     mtd const toString(result: [..] u8)
     {
-        Debug.assert(result.count == 36)
+        Swag.assert(result.count == 36)
 
         const Tbl = "0123456789abcdef"
 

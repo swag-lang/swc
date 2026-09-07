@@ -40,7 +40,7 @@ impl EditCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string?, text: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
         var pos     = position
         if pos.width == 0 do
@@ -62,7 +62,7 @@ impl EditCtrl
     // Changes label width, edit width, and spacing, then reapplies layout.
     mtd setLayoutMetrics(labelWidth, editWidth, spacing: f32 = 5)
     {
-        Debug.assert(labelWidth >= 0 and editWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
+        Swag.assert(labelWidth >= 0 and editWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
         if .labelWidth == labelWidth and .editWidth == editWidth and .spacing == spacing do
             return
         .labelWidth = labelWidth

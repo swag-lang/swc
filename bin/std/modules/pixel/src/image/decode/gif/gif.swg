@@ -165,7 +165,7 @@ public impl Decoder
     // trailer has been reached.
     mtd nextFrame(img: *Image)->bool fail
     {
-        Debug.assert(.reader.isOpen())
+        Swag.assert(.reader.isOpen())
         if .nextIndex >= .reader.info.frames.count do
             return false
         img[]      = .reader.read(.nextIndex)
@@ -176,14 +176,14 @@ public impl Decoder
     // Returns the number of frames indexed when the GIF was opened.
     mtd frameCount()->s32 fail
     {
-        Debug.assert(.reader.isOpen())
+        Swag.assert(.reader.isOpen())
         return cast(s32) .reader.info.frames.count
     }
 
     // Rewinds frame iteration to the first frame.
     mtd rewind()
     {
-        Debug.assert(.reader.isOpen())
+        Swag.assert(.reader.isOpen())
         .nextIndex = 0
     }
 }

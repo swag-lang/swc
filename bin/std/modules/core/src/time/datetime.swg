@@ -137,7 +137,7 @@ impl DateTime
     // Returns the month name corresponding to a month number (1 to 12)
     func monthName(month: u16)->string
     {
-        Debug.assert(month >= 1 and month <= 12)
+        Swag.assert(month >= 1 and month <= 12)
         return MonthNames[month - 1]
     }
 

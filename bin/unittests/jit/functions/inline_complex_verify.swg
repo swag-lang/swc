@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.Safety(.Assert, true)]
 
 struct Payload
 {

@@ -25,7 +25,7 @@ impl EncodeBitWriter
 {
     mtd writeBits(value: u32, count: u32)
     {
-        Debug.assert(count <= 32)
+        Swag.assert(count <= 32)
         let mask = count == 32 ? 0xFFFFFFFF'u64 : ((1'u64 << count) - 1)
         .bits     |= (cast(u64) value & mask) << .bitCount
         .bitCount += count
@@ -248,7 +248,7 @@ impl Encoder
 
     func writeLength(writer: *EncodeBitWriter, length: u32)
     {
-        Debug.assert(length >= 1 and length <= 4096)
+        Swag.assert(length >= 1 and length <= 4096)
         for symbol in LOSSLESS_LENGTH_CODES
         {
             var base:      u32
@@ -274,7 +274,7 @@ impl Encoder
             return
         }
 
-        Debug.assert(false)
+        Swag.assert(false)
     }
 
     func writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)

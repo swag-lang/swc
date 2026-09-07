@@ -429,7 +429,7 @@ private impl RenderCpu
         case .Yuv420:
 
             // A surface is always packed: this backend converts a planar picture on upload.
-            Debug.assert(false, "cannot write one pixel of a planar picture")
+            Swag.assert(false, "cannot write one pixel of a planar picture")
 
         case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
              .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
@@ -2341,10 +2341,10 @@ private impl RenderCpu
             if !shader do
                 .program = CpuProgram_Default
             else do
-                Debug.assert(false, "RenderCpu does not support custom shaders")
+                Swag.assert(false, "RenderCpu does not support custom shaders")
 
         case .SetShaderParam:
-            Debug.assert(false, "RenderCpu does not support custom shader parameters")
+            Swag.assert(false, "RenderCpu does not support custom shader parameters")
 
         case .SetFontEffect:
             .fontEffect = cmd.fontEffect
@@ -2376,7 +2376,7 @@ impl RenderCpu
     // over. No native context is created.
     mtd begin(width, height: s32)
     {
-        Debug.assert(width > 0 and height > 0, "RenderCpu.begin needs positive width and height")
+        Swag.assert(width > 0 and height > 0, "RenderCpu.begin needs positive width and height")
         .ensureSurface(width, height)
         .resetTransformImpl()
     }
@@ -2389,7 +2389,7 @@ impl RenderCpu
     // Returns an owned copy of the current surface pixels.
     mtd surfaceImage()->Image
     {
-        Debug.assert(.surface.isValid(), "surfaceImage needs an active CPU surface")
+        Swag.assert(.surface.isValid(), "surfaceImage needs an active CPU surface")
         return .surface
     }
 
@@ -2439,7 +2439,7 @@ impl RenderCpu
     // The target is borrowed until [[Pixel.RenderCpu.unbindRenderTarget]] restores its parent.
     internal mtd bindRenderTargetImpl(rt: *RenderTarget)
     {
-        Debug.assert(rt != null, "bindRenderTarget needs a target")
+        Swag.assert(rt != null, "bindRenderTarget needs a target")
         if !rt.colorBuffer.isValid() do
             return
         if .curRT do
@@ -2454,9 +2454,9 @@ impl RenderCpu
     // The rectangle is clamped to the target and must retain at least one pixel.
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, width, height: s32)->Image
     {
-        Debug.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
+        Swag.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
         let storage = .findTexture(rt.colorBuffer.handle)
-        Debug.assert(storage != null, "render target is not owned by this renderer")
+        Swag.assert(storage != null, "render target is not owned by this renderer")
         let source = storage!
 
         // Cropping a copy allocates and walks the whole target a second time, and the read that
@@ -2492,7 +2492,7 @@ impl RenderCpu
     // Creates a transparent off-screen BGRA target with positive dimensions.
     internal mtd createRenderTargetImpl(width, height: s32)->RenderTarget
     {
-        Debug.assert(width > 0 and height > 0, "createRenderTarget needs positive width and height")
+        Swag.assert(width > 0 and height > 0, "createRenderTarget needs positive width and height")
 
         let targetHandle = cast(RenderTargetHandle) .nextHandle
         .nextHandle += 1
@@ -2557,7 +2557,7 @@ impl RenderCpu
         if !texture.isValid() do
             return
         let storage = .findTexture(texture.handle)
-        Debug.assert(storage != null, "texture is not owned by this renderer")
+        Swag.assert(storage != null, "texture is not owned by this renderer")
         view.convertToRgb(&storage!.image)
     }
 
@@ -2586,7 +2586,7 @@ impl RenderCpu
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
     {
         let storage = .findTexture(texture.handle)
-        Debug.assert(storage != null, "texture is not owned by this renderer")
+        Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage!
         Memory.copy(target.image.pixels.buffer, pixels, target.image.byteCount)
     }
@@ -2598,7 +2598,7 @@ impl RenderCpu
         if !texture.isValid() do
             return result
         let storage = .findTexture(texture.handle)
-        Debug.assert(storage != null, "texture is not owned by this renderer")
+        Swag.assert(storage != null, "texture is not owned by this renderer")
         let source = storage!
         let image  = source.image.convertedTo(pixelFormat)
         result = image.pixels
@@ -2656,7 +2656,7 @@ impl RenderCpu
     // [[Pixel.RenderCpu.releaseRenderTarget]] after unbinding it.
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
-        Debug.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
+        Swag.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
         let h2 = Math.roundUpToPowerOf2(cast(u32) height)
 

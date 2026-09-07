@@ -1023,7 +1023,7 @@ impl Deflate
                 srcBufLeft      -= numBytesToProcess
                 d.lookaheadSize += numBytesToProcess
 
-                Debug.assert(pSrc != null)
+                Swag.assert(pSrc != null)
                 while pSrc != pSrc_end
                 {
                     let c = pSrc![]
@@ -1153,7 +1153,7 @@ impl Deflate
             }
 
             d.lookaheadPos += lenToMove
-            Debug.assert(d.lookaheadSize >= lenToMove)
+            Swag.assert(d.lookaheadSize >= lenToMove)
             d.lookaheadSize -= lenToMove
             d.dictSize      = Math.min(d.dictSize + lenToMove, cast(u32) LzDictSize)
 
@@ -1231,7 +1231,7 @@ public impl Deflate
             fail err
         }
 
-        Debug.assert(.state != null, "'init' not called")
+        Swag.assert(.state != null, "'init' not called")
 
         let d = .state!
         d.result     = result
@@ -1242,7 +1242,7 @@ public impl Deflate
 
         .compress()
         .flushBlock(true)
-        Debug.assert(!d.lookaheadSize and !d.srcBufLeft)
+        Swag.assert(!d.lookaheadSize and !d.srcBufLeft)
 
         if has(.initFlags, CompressionFlags.ComputeAdler32)
         {

@@ -89,7 +89,7 @@ impl IActionUI for ActionAlign
         default:            return false
         }
 
-        Debug.assert(undo != null)
+        Swag.assert(undo != null)
         capture.pushUndo(undo)
         main.invalidate()
 

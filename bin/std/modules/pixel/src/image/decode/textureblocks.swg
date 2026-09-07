@@ -22,7 +22,7 @@ internal func blockBytes(format: Format)->u64
     switch #complete format
     {
     case .None:
-        Debug.assert(false)
+        Swag.assert(false)
         return 0
 
     case .BC1, .BC4:

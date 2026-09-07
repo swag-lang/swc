@@ -288,7 +288,7 @@ private func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Arra
 // executable search path and a path containing spaces needs no quoting from the caller.
 func startProcess(info: StartInfo)->Process fail
 {
-    Debug.assert(info.fileName != null, "missing process filename")
+    Swag.assert(info.fileName != null, "missing process filename")
 
     var result: retval
 
@@ -520,7 +520,7 @@ impl Process
     {
         if .exited do
             return .status
-        Debug.assert(.handle != null, "invalid process handle")
+        Swag.assert(.handle != null, "invalid process handle")
 
         let interval: DWORD = .hasCapturedStream() ? PipePollInterval : INFINITE
         while !.exited
@@ -544,7 +544,7 @@ impl Process
     {
         if .exited do
             return true
-        Debug.assert(.handle != null, "invalid process handle")
+        Swag.assert(.handle != null, "invalid process handle")
 
         var remaining = timeout.milliseconds()
         for

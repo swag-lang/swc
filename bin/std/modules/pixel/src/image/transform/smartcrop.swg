@@ -875,7 +875,7 @@ public impl Image
     // crop always uses the original pixels, even when search downscaling is enabled.
     mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})
     {
-        Debug.assert(rect.width > 0 and rect.height > 0)
+        Swag.assert(rect.width > 0 and rect.height > 0)
 
         let w0 = .width
         let h0 = .height

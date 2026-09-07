@@ -60,7 +60,7 @@ func haarTransform1DVertical(data: [*] f32, col: s32, length: s32, stride: s32)
 
 func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [*] f32)
 {
-    Debug.assert(targetWidth > 0 and targetHeight > 0, "Target dimensions must be positive")
+    Swag.assert(targetWidth > 0 and targetHeight > 0, "Target dimensions must be positive")
 
     for y in targetHeight
     {
@@ -113,8 +113,8 @@ public struct HaarFeatures
 // Extract Haar coefficients from the image
 public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatures
 {
-    Debug.assert(Math.isPowerOf2(windowSize))
-    Debug.assert(windowSize >= 32)
+    Swag.assert(Math.isPowerOf2(windowSize))
+    Swag.assert(windowSize >= 32)
 
     var features: retval
 
@@ -139,7 +139,7 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
 // Compare Haar coefficients with multiscale weights
 public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 {
-    Debug.assert(haar1.size == haar2.size, "Haar features must have same size")
+    Swag.assert(haar1.size == haar2.size, "Haar features must have same size")
 
     var totalSimilarity: f64 = 0.0
     var totalWeight:     f64 = 0.0
@@ -222,8 +222,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 // Compare to another image with Haar coefficients
 public func haarCompareTo(one, two: Image, windowSize: u32 = 128)->f32
 {
-    Debug.assert(Math.isPowerOf2(windowSize))
-    Debug.assert(windowSize >= 32)
+    Swag.assert(Math.isPowerOf2(windowSize))
+    Swag.assert(windowSize >= 32)
 
     let haar1 = one.extractHaarFeatures(windowSize)
     let haar2 = two.extractHaarFeatures(windowSize)
@@ -233,9 +233,9 @@ public func haarCompareTo(one, two: Image, windowSize: u32 = 128)->f32
 // Extract Haar coefficients from the image (fast version)
 public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFeatures
 {
-    Debug.assert(Math.isPowerOf2(windowSize))
-    Debug.assert(windowSize >= 32)
-    Debug.assert(image.width > 0 and image.height > 0, "Image must have positive dimensions")
+    Swag.assert(Math.isPowerOf2(windowSize))
+    Swag.assert(windowSize >= 32)
+    Swag.assert(image.width > 0 and image.height > 0, "Image must have positive dimensions")
 
     var features: retval
     features.coefficients.resize(windowSize * windowSize)
@@ -270,7 +270,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
 // Compare Haar coefficients (simplified version)
 public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 {
-    Debug.assert(haar1.size == haar2.size, "Haar features must have same size")
+    Swag.assert(haar1.size == haar2.size, "Haar features must have same size")
 
     var norm1, norm2, correlation: f64
     let coeffCount = haar1.coefficients.count
@@ -293,8 +293,8 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 // Compare to another image with Haar coefficients, fast simplified version
 public func quickHaarCompareTo(one, two: Image, windowSize: u32 = 32)->f32
 {
-    Debug.assert(Math.isPowerOf2(windowSize))
-    Debug.assert(windowSize >= 32)
+    Swag.assert(Math.isPowerOf2(windowSize))
+    Swag.assert(windowSize >= 32)
 
     let haar1 = one.quickExtractHaarFeatures(windowSize)
     let haar2 = two.quickExtractHaarFeatures(windowSize)

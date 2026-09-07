@@ -32,7 +32,7 @@ public impl EditDlg
     #[Swag.Discardable]
     func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
-        Debug.assert(from != null)
+        Swag.assert(from != null)
         let dlg = Wnd.create'EditDlg()
         let srf = dlg.createSurface(from, 0, 0, 450, 210)
         srf.setTitle(options.title)
@@ -55,8 +55,8 @@ public impl EditDlg
     #[Swag.Discardable]
     func createMultiLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
-        Debug.assert(from != null)
-        Debug.assert(options.editorHeight > 0, "editor height must be positive")
+        Swag.assert(from != null)
+        Swag.assert(options.editorHeight > 0, "editor height must be positive")
         let dlg = Wnd.create'EditDlg()
         let srf = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
         srf.setTitle(options.title)
@@ -176,7 +176,7 @@ public impl EditDlg
     // not a height the message is held to.
     mtd setMessage(message: string, height: s32 = 40)
     {
-        Debug.assert(height > 0, "message height must be positive")
+        Swag.assert(height > 0, "message height must be positive")
         if !(.label != null)
         {
             Swag.assert(.surface != null)

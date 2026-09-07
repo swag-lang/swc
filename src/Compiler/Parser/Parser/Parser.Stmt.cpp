@@ -1069,7 +1069,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::IntrinsicBreakpoint:
             return parseIntrinsicCallExpr(0);
-        case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicSetContext:
             return parseIntrinsicCallExpr(1);
         case TokenId::IntrinsicCompilerError:
@@ -1082,6 +1081,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicMemMove:
         case TokenId::IntrinsicMemSet:
             return parseIntrinsicCallExpr(3);
+        case TokenId::IntrinsicAssert:
         case TokenId::IntrinsicPrint:
             return parseIntrinsicCallExpr(UINT32_MAX);
 

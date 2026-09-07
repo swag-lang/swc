@@ -36,6 +36,11 @@ namespace
 {
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
 
+    struct AssertCodeGenPayload : CodeGenNodePayload
+    {
+        MicroLabelRef doneLabel = MicroLabelRef::invalid();
+    };
+
     ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
     {
         const ConstantRef cstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), typeRef);
@@ -1223,16 +1228,6 @@ namespace
         if (children.empty())
             return Result::Continue;
 
-        const AstNodeRef          exprRef     = children[0];
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        const MicroReg            condReg     = codeGen.nextVirtualIntRegister();
-        constexpr auto            condBits    = MicroOpBits::B8;
-
-        if (exprPayload.isAddress())
-            builder.emitLoadRegMem(condReg, exprPayload.reg, 0, condBits);
-        else
-            builder.emitLoadRegReg(condReg, exprPayload.reg, condBits);
-
         const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
@@ -1243,15 +1238,29 @@ namespace
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(3);
 
-        const ConstantRef nullMessageRef = makeZeroStructConstant(codeGen, codeGen.typeMgr().typeString());
-        const auto        nullMessage    = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, nullMessageRef);
+        CodeGenNodePayload message;
+        if (children.size() > 1)
+            message = codeGen.payload(children[1]);
+        else
+            message = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, makeZeroStructConstant(codeGen, codeGen.typeMgr().typeString()));
 
-        ConstantRef sourceLocRef = ConstantRef::invalid();
-        SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocRef, node));
-        const auto sourceLoc = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, sourceLocRef);
+        CodeGenNodePayload sourceLoc;
+        TypeRef            locationTypeRef;
+        if (children.size() > 2)
+        {
+            sourceLoc       = codeGen.payload(children[2]);
+            locationTypeRef = codeGen.viewType(children[2]).typeRef();
+        }
+        else
+        {
+            ConstantRef sourceLocRef = ConstantRef::invalid();
+            SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocRef, node));
+            sourceLoc       = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, sourceLocRef);
+            locationTypeRef = codeGen.cstMgr().get(sourceLocRef).typeRef();
+        }
 
         ABICall::PreparedArg messageArg;
-        messageArg.srcReg = nullMessage.reg;
+        messageArg.srcReg = message.reg;
         {
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().typeString(), ABITypeNormalize::Usage::Argument);
             messageArg.kind                                      = ABICall::PreparedArgKind::Direct;
@@ -1264,12 +1273,11 @@ namespace
         ABICall::PreparedArg locationArg;
         locationArg.srcReg = sourceLoc.reg;
         {
-            const TypeRef                          locationTypeRef = codeGen.cstMgr().get(sourceLocRef).typeRef();
-            const ABITypeNormalize::NormalizedType normalizedArg   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, locationTypeRef, ABITypeNormalize::Usage::Argument);
-            locationArg.kind                                       = ABICall::PreparedArgKind::Direct;
-            locationArg.isFloat                                    = normalizedArg.isFloat;
-            locationArg.numBits                                    = normalizedArg.numBits;
-            locationArg.isAddressed                                = false;
+            const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, locationTypeRef, ABITypeNormalize::Usage::Argument);
+            locationArg.kind                                     = ABICall::PreparedArgKind::Direct;
+            locationArg.isFloat                                  = normalizedArg.isFloat;
+            locationArg.numBits                                  = normalizedArg.numBits;
+            locationArg.isAddressed                              = false;
         }
         preparedArgs.push_back(locationArg);
 
@@ -1282,9 +1290,9 @@ namespace
         kindArg.isAddressed = false;
         preparedArgs.push_back(kindArg);
 
-        const MicroLabelRef doneLabel = builder.createLabel();
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
+        const auto* state = codeGen.safeNodePayload<AssertCodeGenPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(state != nullptr && state->doneLabel.isValid());
+        const MicroLabelRef doneLabel = state->doneLabel;
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         ABICall::callLocal(builder, callConvKind, &raiseExceptionFunction, preparedCall);
@@ -2586,8 +2594,57 @@ namespace
     }
 }
 
+Result AstIntrinsicCallExpr::codeGenPreNode(CodeGen& codeGen) const
+{
+    if (intrinsicId != TokenId::IntrinsicAssert)
+        return Result::Continue;
+
+    const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (!payload || !payload->hasRuntimeSafety(Runtime::SafetyWhat::Assert))
+        return Result::SkipChildren;
+
+    codeGen.ensureNodePayload<AssertCodeGenPayload>(codeGen.curNodeRef());
+    return Result::Continue;
+}
+
+Result AstIntrinsicCallExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (intrinsicId != TokenId::IntrinsicAssert)
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> children;
+    codeGen.ast().appendNodes(children, spanChildrenRef);
+    if (children.empty() || codeGen.resolvedNodeRef(childRef) != codeGen.resolvedNodeRef(children.front()))
+        return Result::Continue;
+
+    // Branch before visiting the diagnostic arguments: successful assertions do not evaluate them.
+    const CodeGenNodePayload& condition = codeGen.payload(childRef);
+    const MicroReg            condReg   = codeGen.nextVirtualIntRegister();
+    MicroBuilder&             builder   = codeGen.builder();
+    if (condition.isAddress())
+        builder.emitLoadRegMem(condReg, condition.reg, 0, MicroOpBits::B8);
+    else
+        builder.emitLoadRegReg(condReg, condition.reg, MicroOpBits::B8);
+
+    auto* state = codeGen.safeNodePayload<AssertCodeGenPayload>(codeGen.curNodeRef());
+    SWC_ASSERT(state != nullptr);
+    state->doneLabel = builder.createLabel();
+    builder.emitCmpRegImm(condReg, ApInt(0, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, state->doneLabel);
+    return Result::Continue;
+}
+
 Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    // Vector dispatch materializes its first argument, so assertions must be handled before it.
+    if (intrinsicId == TokenId::IntrinsicAssert)
+    {
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (!payload || !payload->hasRuntimeSafety(Runtime::SafetyWhat::Assert))
+            return Result::Continue;
+        return codeGenAssert(codeGen, *this);
+    }
+
     bool vectorHandled = false;
     SWC_RESULT(codeGenVectorIntrinsic(codeGen, *this, intrinsicId, vectorHandled));
     if (vectorHandled)
@@ -2595,8 +2652,6 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     switch (intrinsicId)
     {
-        case TokenId::IntrinsicAssert:
-            return codeGenAssert(codeGen, *this);
         case TokenId::IntrinsicSqrt:
             return codeGenSqrt(codeGen, *this);
         case TokenId::IntrinsicASin:

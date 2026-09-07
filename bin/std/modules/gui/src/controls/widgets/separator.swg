@@ -68,8 +68,8 @@ impl Separator
     #[Swag.Discardable]
     func create(parent: *Wnd, dock: DockStyle, form = SeparatorForm.Hairline, id: WndId? = null)->*Separator
     {
-        Debug.assert(parent != null)
-        Debug.assert(dock == .Top or dock == .Bottom or dock == .Left or dock == .Right, "a separator docks against one edge")
+        Swag.assert(parent != null)
+        Swag.assert(dock == .Top or dock == .Bottom or dock == .Left or dock == .Right, "a separator docks against one edge")
 
         let metrics = parent.themeMetrics()
         let size    = form == .Accent ? metrics.separator_AccentSize : metrics.separator_HairlineSize

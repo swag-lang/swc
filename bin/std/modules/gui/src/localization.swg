@@ -198,7 +198,7 @@ func(T) registerStrings(table: *T, file: string)
 // Registers a string table through its reflected type; prefer the typed overload.
 func registerStrings(type: typeinfo, table: *void, file: string)
 {
-    Debug.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
+    Swag.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
 
     let state = &g_Localization
     for &existing in state.tables where existing.data == table do
@@ -241,7 +241,7 @@ private func ensureReferenceLanguage()
 // application registers its own tag next to the resources that carry it. GUI thread only.
 func registerLanguage(tag, nativeName: string)
 {
-    Debug.assert(tag.count != 0, "empty language tag")
+    Swag.assert(tag.count != 0, "empty language tag")
 
     ensureReferenceLanguage()
     for &existing in g_Localization.languages where existing.tag == tag
@@ -301,7 +301,7 @@ func systemLanguage()->string
 // [[Application.setLanguage]], which also notifies every surface. GUI thread only.
 func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 {
-    Debug.assert(tag.count != 0, "empty language tag")
+    Swag.assert(tag.count != 0, "empty language tag")
 
     let state = &g_Localization
     if !findLanguage(tag) do
@@ -351,7 +351,7 @@ func(T) validateStrings(content: string) fail
 // Decodes `content` against a reflected string table type; prefer the typed overload.
 func validateStrings(type: typeinfo, content: string) fail
 {
-    Debug.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
+    Swag.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
 
     // The probe only receives `string` views, so releasing the raw block is enough.
     let structType = cast(const *Swag.TypeInfoStruct) type

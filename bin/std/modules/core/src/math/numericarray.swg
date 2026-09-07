@@ -93,7 +93,7 @@ impl NumericArray
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: const [..] T)
     {
-        Debug.assert(what.count == N)
+        Swag.assert(what.count == N)
         for i in N do
             .buf[i] = what[i]
     }
@@ -102,7 +102,7 @@ impl NumericArray
     #[Safety(.BoundCheck, false)]
     func from(values: T...)->NumericArray
     {
-        Debug.assert(values.count == N)
+        Swag.assert(values.count == N)
         var result: retval
         for index in N do
             result.buf[index] = values[index]
@@ -113,7 +113,7 @@ impl NumericArray
     #[Safety(.BoundCheck, false)]
     mtd set(values: T...)
     {
-        Debug.assert(values.count == N)
+        Swag.assert(values.count == N)
         for i in N do
             .buf[i] = values[i]
     }

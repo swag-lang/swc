@@ -1648,7 +1648,7 @@ impl MainWindow
 
     mtd beginOperation(kind: OperationKind)
     {
-        Debug.assert(.operation.kind == .None)
+        Swag.assert(.operation.kind == .None)
         .operation.kind  = kind
         .operation.error = null
         .operation.timer = .app().addTimer(50'ms, me)

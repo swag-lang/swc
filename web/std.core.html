@@ -42,7 +42,7 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group">
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">47</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">46</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Core">Core</a></li>
@@ -63,7 +63,6 @@
 <li><a href="#namespace_Core_Hardware">Core.Hardware</a></li>
 <li><a href="#namespace_Core_Hash">Core.Hash</a></li>
 <li><a href="#namespace_Core_Input">Core.Input</a></li>
-<li><a href="#namespace_Core_Jobs">Core.Jobs</a></li>
 <li><a href="#namespace_Core_Latin1">Core.Latin1</a></li>
 <li><a href="#namespace_Core_Math">Core.Math</a></li>
 <li><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></li>
@@ -95,7 +94,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">194</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">193</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_CommandLine_FieldResult">CommandLine.FieldResult</a></li>
@@ -203,7 +202,6 @@
 <li><a href="#Core_Input_Mouse">Input.Mouse</a></li>
 <li><a href="#Core_Input_MouseState">Input.MouseState</a></li>
 <li><a href="#Core_Input_VirtualKey">Input.VirtualKey</a></li>
-<li><a href="#Core_Jobs_Job">Jobs.Job</a></li>
 <li><a href="#Core_Math_Angle">Math.Angle</a></li>
 <li><a href="#Core_Math_Const">Math.Const</a></li>
 <li><a href="#Core_Math_ConstF32">Math.ConstF32</a></li>
@@ -448,7 +446,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1717</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1708</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1074,15 +1072,6 @@
 <li><a href="#Core_Serialization_ISerialize_readElement">ISerialize.readElement</a></li>
 <li><a href="#Core_Serialization_ISerialize_write">ISerialize.write</a></li>
 <li><a href="#Core_Serialization_ISerialize_writeElement">ISerialize.writeElement</a></li>
-<li><a href="#Core_Jobs_initialize">Jobs.initialize</a></li>
-<li><a href="#Core_Jobs_isDone">Jobs.isDone</a></li>
-<li><a href="#Core_Jobs_isSynchronous">Jobs.isSynchronous</a></li>
-<li><a href="#Core_Jobs_parallelFor">Jobs.parallelFor</a></li>
-<li><a href="#Core_Jobs_parallelVisit">Jobs.parallelVisit</a></li>
-<li><a href="#Core_Jobs_schedule">Jobs.schedule</a></li>
-<li><a href="#Core_Jobs_wait">Jobs.wait</a></li>
-<li><a href="#Core_Jobs_waitAll">Jobs.waitAll</a></li>
-<li><a href="#Core_Jobs_workerCount">Jobs.workerCount</a></li>
 <li><a href="#Core_Serialization_Read_Json_beginElement">Json.beginElement</a></li>
 <li><a href="#Core_Serialization_Write_Json_beginElement">Json.beginElement</a></li>
 <li><a href="#Core_Serialization_Read_Json_beginRoot">Json.beginRoot</a></li>
@@ -2226,7 +2215,7 @@ writer.<span class="SFct">initialize</span>(profile)
 <tr><td>Work with files and paths</td><td><a href="#namespace_Core_File">Core.File</a>, <a href="#namespace_Core_Directory">Core.Directory</a>, and <a href="#namespace_Core_Path">Core.Path</a></td></tr>
 <tr><td>Encode structured data</td><td><a href="#namespace_Core_Serialization">Core.Serialization</a></td></tr>
 <tr><td>Measure time or dates</td><td><a href="#namespace_Core_Time">Core.Time</a></td></tr>
-<tr><td>Run concurrent work</td><td><a href="#namespace_Core_Jobs">Core.Jobs</a>, <a href="#namespace_Core_Threading">Core.Threading</a>, and <a href="#namespace_Core_Sync">Core.Sync</a></td></tr>
+<tr><td>Run concurrent work</td><td><a href="swag.runtime.html#Swag_Task">Swag.Task</a>, <a href="#namespace_Core_Threading">Core.Threading</a>, and <a href="#namespace_Core_Sync">Core.Sync</a></td></tr>
 <tr><td>Inspect types at runtime</td><td><a href="#namespace_Core_Reflection">Core.Reflection</a></td></tr>
 <tr><td>Hash or checksum bytes</td><td><a href="#namespace_Core_Hash">Core.Hash</a></td></tr>
 </tbody>
@@ -2367,19 +2356,19 @@ options.recurse = <span class="SKwd">true</span>
 </section>
 <section class="api-guide"><h2 id="guide_Time_and_concurrency">Time and concurrency</h2>
 <p><a href="#Core_Time_Duration">Core.Time.Duration</a> represents an interval expressed in seconds. <a href="#Core_Time_Timestamp">Core.Time.Timestamp</a> represents a wall-clock instant as ticks, while <a href="#Core_Time_DateTime">Core.Time.DateTime</a> exposes its calendar components. Use <a href="#Core_Time_Stopwatch">Core.Time.Stopwatch</a> for elapsed-time measurement and <a href="#Core_Time_FrameTiming">Core.Time.FrameTiming</a> for frame loops.</p>
-<p>Concurrency is split into three layers:</p>
+<p>Concurrency is split into layers, and the shared worker pool is not one of Core's: tasks and parallel loops belong to the runtime.</p>
 <table class="table-markdown">
 <thead>
 <tr><th>Need</th><th>API</th></tr>
 </thead>
 <tbody>
-<tr><td>A managed worker pool and parallel loops</td><td><a href="#namespace_Core_Jobs">Core.Jobs</a></td></tr>
+<tr><td>Independent work on the shared pool</td><td><a href="swag.runtime.html#Swag_Task">Swag.Task</a>, <a href="swag.runtime.html#Swag_TaskGroup">Swag.TaskGroup</a>, <a href="swag.runtime.html#Swag_parallelRange">Swag.parallelRange</a></td></tr>
 <tr><td>A dedicated operating-system thread</td><td><a href="#Core_Threading_Thread">Core.Threading.Thread</a></td></tr>
 <tr><td>Mutual exclusion, events, and read/write locking</td><td><a href="#namespace_Core_Sync">Core.Sync</a></td></tr>
 <tr><td>Lock-free counters and values</td><td><a href="#namespace_Core_Atomic">Core.Atomic</a></td></tr>
 </tbody>
 </table>
-<p>Prefer jobs for independent CPU work. Use a dedicated thread for a long-lived blocking activity or a subsystem that requires thread affinity. Keep critical sections small and never retain a pointer into a container while another thread may resize that container.</p>
+<p>Prefer a runtime task for independent CPU work: one process has one worker budget, whichever module submits to it. Use a dedicated thread for a long-lived blocking activity or a subsystem that requires thread affinity. Keep critical sections small and never retain a pointer into a container while another thread may resize that container.</p>
 <p>Time values have different clocks and purposes. Wall-clock dates can change when the system clock is adjusted; elapsed-time measurements should use the monotonic timer exposed by the timing APIs.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Mathematics__reflection__and_diagnostics">Mathematics, reflection, and diagnostics</h2>
@@ -2392,7 +2381,7 @@ options.recurse = <span class="SKwd">true</span>
 </thead>
 <tbody>
 <tr><td>Terminal input and output</td><td><a href="#namespace_Core_Console">Core.Console</a></td></tr>
-<tr><td>Development assertions</td><td><a href="#namespace_Core_Debug">Core.Debug</a></td></tr>
+<tr><td>Programmer assertions</td><td><a href="swag.runtime.html#Swag_assert">Swag.assert</a></td></tr>
 <tr><td>Debugger interaction</td><td><a href="#namespace_Core_Debugger">Core.Debugger</a></td></tr>
 <tr><td>Process, arguments, and environment</td><td><a href="#namespace_Core_Env">Core.Env</a></td></tr>
 <tr><td>Hardware information</td><td><a href="#namespace_Core_Hardware">Core.Hardware</a></td></tr>
@@ -2400,6 +2389,7 @@ options.recurse = <span class="SKwd">true</span>
 </tbody>
 </table>
 <p>Assertions protect programmer invariants; they are not a substitute for handling invalid files, user input, or operating-system failures. Public operations that can encounter those conditions report them through <span class="code-inline">fail</span>.</p>
+<p>Use <span class="code-inline">Swag.assert(condition, message)</span> without a Core import. The message is optional. <a href="swag.runtime.html#Swag_SafetyWhat_Assert">Swag.SafetyWhat.Assert</a> controls assertion emission through <span class="code-inline">BuildCfg.safetyGuards</span> and <a href="swag.runtime.html#Swag_Safety">Swag.Safety</a> overrides: enabled in devmode and disabled in release by default. Disabled assertions evaluate none of their arguments, so keep required side effects outside them. <span class="code-inline">Core.Debug.assert</span> and <span class="code-inline">Core.ASSERT</span> are deprecated; query the local setting with <span class="code-inline">#safety(Swag.SafetyWhat.Assert)</span>. The former <span class="code-inline">Std.Core.Assert</span> tag is replaced by the safety flag. <span class="code-inline">#assert</span> remains an unconditional compile-time check.</p>
 </section>
 <section class="api-guide"><h2 id="guide_JSON_and_globalization">JSON and globalization</h2>
 <p>The reflection-driven JSON codec reads and writes ordinary Swag structs without a schema or annotations. Fields marked <a href="#Core_Serialization_NoSerialize">Core.Serialization.NoSerialize</a> stay out of the document. The reader accepts properties in any order, retains initialized values for missing properties, and ignores properties the current declaration does not know, which lets configuration files evolve.</p>
@@ -2456,7 +2446,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#namespace_Core_Hardware">Core.Hardware</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Hash">Core.Hash</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Input">Core.Input</a></td></tr>
-<tr><td class="code-type"><a href="#namespace_Core_Jobs">Core.Jobs</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Latin1">Core.Latin1</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math">Core.Math</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math_Geometry">Core.Math.Geometry</a></td></tr>
@@ -2700,8 +2689,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Input_MouseState">Input.MouseState</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Captures cursor position and button state at one update.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_VirtualKey">Input.VirtualKey</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Represents a virtual system key</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_Job">Jobs.Job</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one callback that can be submitted to the global job scheduler.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_Angle">Math.Angle</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents an angle stored in radians.</p>
 </td></tr>
@@ -2991,7 +2978,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ByteSource_WindowSize">ByteSource.WindowSize</a></td><td><p>Size of the read window of a file source, in bytes.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ASSERT">Core.ASSERT</a></td><td><p>Defines assert.</p>
+<tr><td class="code-type"><a href="#Core_ASSERT">Core.ASSERT</a></td><td><p>Deprecated: use #safety(Swag.SafetyWhat.Assert) to include local safety overrides.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BIG_ENDIAN">Core.BIG_ENDIAN</a></td><td><p>Defines big endian.</p>
 </td></tr>
@@ -3773,7 +3760,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_monthName">DateTimeFormatInfo.monthName</a></td><td><p>Returns the localized full name of a month numbered from 1 through 12.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Debug_assert">Debug.assert</a></td><td><p>Performs the assert operation.</p>
+<tr><td class="code-type"><a href="#Core_Debug_assert">Debug.assert</a></td><td><p>Checks a programmer invariant through <a href="swag.runtime.html#Swag_assert">Swag.assert</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Debug_safety">Debug.safety</a></td><td><p>Performs the safety operation.</p>
 </td></tr>
@@ -4424,24 +4411,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Serialization_ISerialize_write">ISerialize.write</a></td><td><p>Performs the write operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_ISerialize_writeElement">ISerialize.writeElement</a></td><td><p>Writes element.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_initialize">Jobs.initialize</a></td><td><p>Initializes the global scheduler with a fixed worker count.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_isDone">Jobs.isDone</a></td><td><p>Returns whether <span class="code-inline">job</span> completed its most recent scheduled execution.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_isSynchronous">Jobs.isSynchronous</a></td><td><p>Returns whether jobs execute synchronously on a waiting thread.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_parallelFor">Jobs.parallelFor</a></td><td><p>Do a for in parallel chunks.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_parallelVisit">Jobs.parallelVisit</a></td><td><p>Operate on a range in parallel chunks.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_schedule">Jobs.schedule</a></td><td><p>Submits a borrowed job for one execution.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_wait">Jobs.wait</a></td><td><p>Executes available work and waits until <span class="code-inline">job</span> has completed.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_waitAll">Jobs.waitAll</a></td><td><p>Executes available work and waits until every submitted job has completed.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_workerCount">Jobs.workerCount</a></td><td><p>Returns the number of active worker threads.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Read_Json_beginElement">Json.beginElement</a></td><td><p>Finds a property by name in the current object.</p>
 </td></tr>
@@ -6642,7 +6611,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#namespace_Core_Hardware">Core.Hardware</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Hash">Core.Hash</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Input">Core.Input</a></td></tr>
-<tr><td class="code-type"><a href="#namespace_Core_Jobs">Core.Jobs</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Latin1">Core.Latin1</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Math">Core.Math</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Memory">Core.Memory</a></td></tr>
@@ -6755,7 +6723,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_ASSERT">Core.ASSERT</a></td><td><p>Defines assert.</p>
+<tr><td class="code-type"><a href="#Core_ASSERT">Core.ASSERT</a></td><td><p>Deprecated: use #safety(Swag.SafetyWhat.Assert) to include local safety overrides.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_BIG_ENDIAN">Core.BIG_ENDIAN</a></td><td><p>Defines big endian.</p>
 </td></tr>
@@ -7005,7 +6973,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Debug_assert">Debug.assert</a></td><td><p>Performs the assert operation.</p>
+<tr><td class="code-type"><a href="#Core_Debug_assert">Debug.assert</a></td><td><p>Checks a programmer invariant through <a href="swag.runtime.html#Swag_assert">Swag.assert</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Debug_safety">Debug.safety</a></td><td><p>Performs the safety operation.</p>
 </td></tr>
@@ -7572,42 +7540,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Input_setMousePosition">Input.setMousePosition</a></td><td><p>Set the current mouse position</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_showMouseCursor">Input.showMouseCursor</a></td><td><p>Shoud or hide the mouse cursor</p>
-</td></tr>
-</tbody>
-</table>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="namespace_Core_Jobs" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Core.Jobs</span> <a class="api-item-permalink" href="#namespace_Core_Jobs" aria-label="Permalink">#</a></span></div>
-<p>Public API declared directly in <span class="code-inline">Core.Jobs</span>.</p>
-<h3 id="namespace_Core_Jobs_types">Types</h3>
-<table class="api-summary">
-<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td class="code-type"><a href="#Core_Jobs_Job">Jobs.Job</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one callback that can be submitted to the global job scheduler.</p>
-</td></tr>
-</tbody>
-</table>
-<h3 id="namespace_Core_Jobs_functions">Functions</h3>
-<table class="api-summary">
-<thead><tr><th>Name</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td class="code-type"><a href="#Core_Jobs_initialize">Jobs.initialize</a></td><td><p>Initializes the global scheduler with a fixed worker count.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_isDone">Jobs.isDone</a></td><td><p>Returns whether <span class="code-inline">job</span> completed its most recent scheduled execution.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_isSynchronous">Jobs.isSynchronous</a></td><td><p>Returns whether jobs execute synchronously on a waiting thread.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_parallelFor">Jobs.parallelFor</a></td><td><p>Do a for in parallel chunks.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_parallelVisit">Jobs.parallelVisit</a></td><td><p>Operate on a range in parallel chunks.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_schedule">Jobs.schedule</a></td><td><p>Submits a borrowed job for one execution.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_wait">Jobs.wait</a></td><td><p>Executes available work and waits until <span class="code-inline">job</span> has completed.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_waitAll">Jobs.waitAll</a></td><td><p>Executes available work and waits until every submitted job has completed.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Jobs_workerCount">Jobs.workerCount</a></td><td><p>Returns the number of active worker threads.</p>
 </td></tr>
 </tbody>
 </table>
@@ -12149,22 +12081,6 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Input_VirtualKey">VirtualKey</a></span> = <span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Jobs_Job" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Jobs.Job</span> <a class="api-item-permalink" href="#Core_Jobs_Job" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L19">src</a></div>
-<p>Describes one callback that can be submitted to the global job scheduler.</p>
-<p>Keep the value alive until <a href="#Core_Jobs_wait">Core.Jobs.wait</a> or <a href="#Core_Jobs_waitAll">Core.Jobs.waitAll</a> has completed. The scheduler borrows both the job and <span class="code-inline">data</span>; it owns neither.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Jobs_Job">Job</a></span></span></div>
-</section>
-<h3>Fields</h3>
-<table class="table-enumeration api-summary">
-<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td id="Core_Jobs_Job_data" class="code-type">data</td><td class="code-type">*void?</td><td><p>Opaque caller-owned context passed to <span class="code-inline">lambda</span>.</p>
-</td></tr>
-<tr><td id="Core_Jobs_Job_lambda" class="code-type">lambda</td><td class="code-type">(func(*void?))?</td><td><p>Callback invoked once, or <span class="code-inline">null</span> for a no-op job.</p>
-</td></tr>
-</tbody>
-</table>
-<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Math_Angle" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Math.Angle</span> <a class="api-item-permalink" href="#Core_Math_Angle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/angle.swg#L8">src</a></div>
 <p>Represents an angle stored in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Math_Angle">Angle</a></span></span></div>
@@ -16480,8 +16396,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Core_ASSERT" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Core.ASSERT</span> <a class="api-item-permalink" href="#Core_ASSERT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/config.swg#L9">src</a></div>
-<p>Defines assert.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_ASSERT">ASSERT</a></span> = <span class="SCmp">#cfg</span> == <span class="SStr">"devmode"</span> <span class="SLgc">or</span> <span class="SItr">#hastag</span>(<span class="SStr">"Std.Core.Assert"</span>)</span></div>
+<p>Deprecated: use #safety(Swag.SafetyWhat.Assert) to include local safety overrides.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_ASSERT">ASSERT</a></span> = <span class="SItr">#safety</span>(<span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_SafetyWhat">SafetyWhat</a></span>.<span class="SCst">Assert</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Core_BIG_ENDIAN" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Core.BIG_ENDIAN</span> <a class="api-item-permalink" href="#Core_BIG_ENDIAN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/config.swg#L3">src</a></div>
@@ -18931,19 +18847,20 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">monthName</span>(month: <span class="STpe">u16</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Debug_assert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.assert</span> <a class="api-item-permalink" href="#Core_Debug_assert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L7">src</a></div>
-<p>Performs the assert operation.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
+<div class="api-item api-item-func"><span id="Core_Debug_assert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.assert</span> <a class="api-item-permalink" href="#Core_Debug_assert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L9">src</a></div>
+<p>Checks a programmer invariant through <a href="swag.runtime.html#Swag_assert">Swag.assert</a>.</p>
+<p>This compatibility macro follows <a href="swag.runtime.html#Swag_SafetyWhat_Assert">Swag.SafetyWhat.Assert</a>. Use <a href="swag.runtime.html#Swag_assert">Swag.assert</a> in new code.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Deprecated("use Swag.assert"), </span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">assert</span>(expr: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Debug_safety" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safety</span> <a class="api-item-permalink" href="#Core_Debug_safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L18">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Debug_safety" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safety</span> <a class="api-item-permalink" href="#Core_Debug_safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L17">src</a></div>
 <p>Performs the safety operation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span>(what: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_SafetyWhat">SafetyWhat</a></span>) <span class="SFct">safety</span>(expr: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Debug_safetyBoundCheck" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safetyBoundCheck</span> <a class="api-item-permalink" href="#Core_Debug_safetyBoundCheck" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L29">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Debug_safetyBoundCheck" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safetyBoundCheck</span> <a class="api-item-permalink" href="#Core_Debug_safetyBoundCheck" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L28">src</a></div>
 <p>Performs the safety bound check operation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">safetyBoundCheck</span>(expr50: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
@@ -20729,63 +20646,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Serialization_ISerialize_writeElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ISerialize.writeElement</span> <a class="api-item-permalink" href="#Core_Serialization_ISerialize_writeElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/serialize.swg#L56">src</a></div>
 <p>Writes element.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeElement</span>(type: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, data: <span class="SKwd">const</span> *<span class="STpe">void</span>?, encoder: <span class="SCst"><a href="#Core_Serialization_IEncoder">IEncoder</a></span>)-&gt;<span class="STpe">bool</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.initialize</span> <a class="api-item-permalink" href="#Core_Jobs_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L170">src</a></div>
-<p>Initializes the global scheduler with a fixed worker count.</p>
-<p>Pass zero to use the host processor count. Call this once, before submitting jobs; otherwise the scheduler remains synchronous.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">initialize</span>(workerCount: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.isDone</span> <a class="api-item-permalink" href="#Core_Jobs_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L164">src</a></div>
-<p>Returns whether <span class="code-inline">job</span> completed its most recent scheduled execution.</p>
-<p>Keep the job and its borrowed data alive until this returns true or <a href="#Core_Jobs_wait">Core.Jobs.wait</a> completes.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isDone</span>(job: *<span class="SCst"><a href="#Core_Jobs_Job">Job</a></span>)-&gt;<span class="STpe">bool</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_isSynchronous" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.isSynchronous</span> <a class="api-item-permalink" href="#Core_Jobs_isSynchronous" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L155">src</a></div>
-<p>Returns whether jobs execute synchronously on a waiting thread.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSynchronous</span>()-&gt;<span class="STpe">bool</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_parallelFor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.parallelFor</span> <a class="api-item-permalink" href="#Core_Jobs_parallelFor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L333">src</a></div>
-<p>Do a for in parallel chunks. Block parameters:</p>
-<ul>
-<li><span class="code-inline">index</span>: current for index</li>
-<li><span class="code-inline">data</span>:  contextData as passed to the macro</li>
-</ul>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
-<span class="SKwd">func</span> <span class="SFct">parallelFor</span>(count: <span class="STpe">u32</span>, contextData: *<span class="STpe">void</span>? = <span class="SKwd">null</span>, stmt: <span class="SItr">#code</span>(index: <span class="STpe">u32</span>, data))</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_parallelVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.parallelVisit</span> <a class="api-item-permalink" href="#Core_Jobs_parallelVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L262">src</a></div>
-<p>Operate on a range in parallel chunks. Block parameters:</p>
-<ul>
-<li><span class="code-inline">buffer</span>: address of the element of the range to process</li>
-<li><span class="code-inline">data</span>:   contextData as passed to the macro</li>
-</ul>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
-<span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">parallelVisit</span>(range: [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, offset: <span class="STpe">u32</span> = <span class="SNum">1</span>, contextData: *<span class="STpe">void</span>? = <span class="SKwd">null</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> buffer, data))</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_schedule" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.schedule</span> <a class="api-item-permalink" href="#Core_Jobs_schedule" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L190">src</a></div>
-<p>Submits a borrowed job for one execution.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">schedule</span>(job: *<span class="SCst"><a href="#Core_Jobs_Job">Job</a></span>)</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.wait</span> <a class="api-item-permalink" href="#Core_Jobs_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L211">src</a></div>
-<p>Executes available work and waits until <span class="code-inline">job</span> has completed.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wait</span>(job: *<span class="SCst"><a href="#Core_Jobs_Job">Job</a></span>)</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_waitAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.waitAll</span> <a class="api-item-permalink" href="#Core_Jobs_waitAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L204">src</a></div>
-<p>Executes available work and waits until every submitted job has completed.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">waitAll</span>()</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_workerCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.workerCount</span> <a class="api-item-permalink" href="#Core_Jobs_workerCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L158">src</a></div>
-<p>Returns the number of active worker threads.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">workerCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Read_Json_beginElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Json.beginElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Json_beginElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/json.swg#L373">src</a></div>
@@ -27149,7 +27009,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.396</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.399</div>
 </footer>
 </section>
 </main>
@@ -27423,7 +27283,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "n|Core.Hardware|namespace_Core_Hardware|",
 "n|Core.Hash|namespace_Core_Hash|",
 "n|Core.Input|namespace_Core_Input|",
-"n|Core.Jobs|namespace_Core_Jobs|",
 "n|Core.Latin1|namespace_Core_Latin1|",
 "n|Core.Math|namespace_Core_Math|",
 "n|Core.Math.Geometry|namespace_Core_Math_Geometry|",
@@ -27954,9 +27813,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "s|Core.StringRunes|Core_StringRunes|Iterates Unicode scalar values decoded lazily from borrowed UTF-8 bytes.",
 "s|Core.Parser.RegExp|Core_Parser_RegExp|A compiled regular expression.",
 "s|Core.Parser.Span|Core_Parser_Span|One occurrence of a pattern in a subject, as byte offsets into that subject.",
-"s|Core.Jobs.Job|Core_Jobs_Job|Describes one callback that can be submitted to the global job scheduler.",
-"v|Core.Jobs.Job.data|Core_Jobs_Job_data|Opaque caller-owned context passed to lambda.",
-"v|Core.Jobs.Job.lambda|Core_Jobs_Job_lambda|Callback invoked once, or null for a no-op job.",
 "s|Core.Sync.Event|Core_Sync_Event|Represents event.",
 "v|Core.Sync.Event.handle|Core_Sync_Event_handle|Handle associated with this value.",
 "s|Core.Sync.Mutex|Core_Sync_Mutex|Represents mutex.",
@@ -28512,7 +28368,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "k|Core.Time.DayOfWeek.Thursday|Core_Time_DayOfWeek_Thursday|Thursday",
 "k|Core.Time.DayOfWeek.Tuesday|Core_Time_DayOfWeek_Tuesday|Tuesday",
 "k|Core.Time.DayOfWeek.Wednesday|Core_Time_DayOfWeek_Wednesday|Wednesday",
-"c|Core.ASSERT|Core_ASSERT|Defines assert.",
+"c|Core.ASSERT|Core_ASSERT|Deprecated: use #safety(Swag.SafetyWhat.Assert) to include local safety overrides.",
 "c|Core.BIG_ENDIAN|Core_BIG_ENDIAN|Defines big endian.",
 "c|Core.WINDOWS|Core_WINDOWS|Defines windows.",
 "c|Core.Compress.Inflate.InflateMaxDistance|Core_Compress_Inflate_InflateMaxDistance|Defines inflate max distance.",
@@ -28989,7 +28845,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Console.setTextColor|Core_Console_setTextColor|Set the console foreground color",
 "f|Core.Console.silent|Core_Console_silent|Disable console output. This is a counter, so can be called",
 "f|Core.Console.unlock|Core_Console_unlock|Releases the lock.",
-"f|Core.Debug.assert|Core_Debug_assert|Performs the assert operation.",
+"f|Core.Debug.assert|Core_Debug_assert|Checks a programmer invariant through Swag.assert.",
 "f|Core.Debug.safety|Core_Debug_safety|Performs the safety operation.",
 "f|Core.Debug.safetyBoundCheck|Core_Debug_safetyBoundCheck|Performs the safety bound check operation.",
 "f|Core.Debugger.attach|Core_Debugger_attach|Try to attach to a debugger by calling \"vsjitdebugger.exe\"",
@@ -30250,15 +30106,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Atomic.logicAnd|Core_Atomic_logicAnd|Performs the logic and operation.",
 "f|Core.Atomic.logicOr|Core_Atomic_logicOr|Performs the logic or operation.",
 "f|Core.Atomic.logicXor|Core_Atomic_logicXor|Performs the logic xor operation.",
-"f|Core.Jobs.initialize|Core_Jobs_initialize|Initializes the global scheduler with a fixed worker count.",
-"f|Core.Jobs.isDone|Core_Jobs_isDone|Returns whether job completed its most recent scheduled execution.",
-"f|Core.Jobs.isSynchronous|Core_Jobs_isSynchronous|Returns whether jobs execute synchronously on a waiting thread.",
-"f|Core.Jobs.parallelFor|Core_Jobs_parallelFor|Do a for in parallel chunks.",
-"f|Core.Jobs.parallelVisit|Core_Jobs_parallelVisit|Operate on a range in parallel chunks.",
-"f|Core.Jobs.schedule|Core_Jobs_schedule|Submits a borrowed job for one execution.",
-"f|Core.Jobs.wait|Core_Jobs_wait|Executes available work and waits until job has completed.",
-"f|Core.Jobs.waitAll|Core_Jobs_waitAll|Executes available work and waits until every submitted job has completed.",
-"f|Core.Jobs.workerCount|Core_Jobs_workerCount|Returns the number of active worker threads.",
 "f|Core.Sync.Event.create|Core_Sync_Event_create|Creates a new event",
 "f|Core.Sync.Event.init|Core_Sync_Event_init|Initialize event",
 "f|Core.Sync.Event.isValid|Core_Sync_Event_isValid|Returns true if the event is valid",

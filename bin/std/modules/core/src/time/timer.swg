@@ -48,7 +48,7 @@ impl Timer
 
     internal mtd initialize(delay: Duration, callback: func(*Timer), periodic: bool) fail
     {
-        Debug.assert(.handle == null)
+        Swag.assert(.handle == null)
         let delayMs = delay.milliseconds()
         if !delayMs or delayMs >= Swag.U32.Max do
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}

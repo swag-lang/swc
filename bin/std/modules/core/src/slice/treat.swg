@@ -24,7 +24,7 @@ func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
 // The first reduced value is the first element of the slice.
 func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 {
-    Debug.assert(values.count > 0, "cannot reduce an empty slice")
+    Swag.assert(values.count > 0, "cannot reduce an empty slice")
     var result = values[0]
     if values.count == 1 do
         return result
@@ -36,7 +36,7 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 // Get the minimum value of a slice, and the corresponding value index.
 func(T) min(values: const [..] T)->{ value: T, index: u64 }
 {
-    Debug.assert(values.count > 0, "cannot get the minimum of an empty slice")
+    Swag.assert(values.count > 0, "cannot get the minimum of an empty slice")
     var result: retval
     result.value = values[0]
     if values.count == 1 do
@@ -57,7 +57,7 @@ func(T) min(values: const [..] T)->{ value: T, index: u64 }
 // Get the maximum value of a slice, and the corresponding value index.
 func(T) max(values: const [..] T)->{ value: T, index: u64 }
 {
-    Debug.assert(values.count > 0, "cannot get the maximum of an empty slice")
+    Swag.assert(values.count > 0, "cannot get the maximum of an empty slice")
     var result: retval
     result.value = values[0]
     if values.count == 1 do

@@ -347,7 +347,7 @@ impl Encoder
     // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
     mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
-        Debug.assert(Reflection.isStruct(Swag.kindOf(value)))
+        Swag.assert(Reflection.isStruct(Swag.kindOf(value)))
         .start(result, Swag.kindOf(value))
         .writeValue(value.buffer, Swag.kindOf(value))
         end(me)

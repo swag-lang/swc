@@ -63,7 +63,7 @@ func subtitleViewerFixturePath()->String
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     let expectedCount = Format.toString(subtitleStrings().ui_Cues, 2)
-    Debug.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
+    Swag.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
                  Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount).toString())
     Swag.assert(view.cueButton.toolTip == subtitleStrings().ui_GoToCue)
     Swag.assert(view.durationButton.toolTip == subtitleStrings().ui_GoToTime)

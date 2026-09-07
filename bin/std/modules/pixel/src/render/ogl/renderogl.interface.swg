@@ -28,13 +28,13 @@ impl IRenderer for RenderOgl
 
     mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
     {
-        Debug.assert(renderHandle != null, "OpenGL renderer contexts need a platform drawable")
-        Debug.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
+        Swag.assert(renderHandle != null, "OpenGL renderer contexts need a platform drawable")
+        Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
 
         if shared
         {
             let sharedOgl = oglContext(shared[])
-            Debug.assert(.nativeContext == sharedOgl.hRC, "shared context belongs to another renderer")
+            Swag.assert(.nativeContext == sharedOgl.hRC, "shared context belongs to another renderer")
         }
 
         let sharedRC = .nativeContext
@@ -60,7 +60,7 @@ impl IRenderer for RenderOgl
         }
 
         let ogl = oglContext(context[])
-        Debug.assert(.contextCount > 0)
+        Swag.assert(.contextCount > 0)
         .contextCount -= 1
         if !.contextCount
         {

@@ -6,7 +6,7 @@
 // Uses the standard ellipse equation: (x-cx)²/rx² + (y-cy)²/ry² ≤ 1.
 func ellipseContainsPoint(point, center: Vector2, radiusX, radiusY: f32)->bool
 {
-    Debug.assert(radiusX > 0 and radiusY > 0)
+    Swag.assert(radiusX > 0 and radiusY > 0)
     return (pow((point.x - center.x), 2) / pow(radiusX, 2)) + (pow((point.y - center.y), 2) / pow(radiusY, 2)) <= 1
 }
 

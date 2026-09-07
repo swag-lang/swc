@@ -17,7 +17,7 @@ func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiag
     let commandLine = Tool.joinArguments(arguments.toSlice())
     let executable  = Env.Process.currentExecutablePath()
     let process     = Env.runProcess(executable.toString(), commandLine.toString())
-    Debug.assert(process.exitCode() == expectedExit, process.standardOutput())
+    Swag.assert(process.exitCode() == expectedExit, process.standardOutput())
     if expectedDiagnostic.count do
         Swag.assert(Utf8.contains(process.standardOutput(), expectedDiagnostic))
 }
@@ -145,7 +145,7 @@ func checkRelated(root: string, related: string, expectedExit: s32) fail
     captureArguments.add(["--num-cores", "6", #curlocation.fileName!, "--check-capture"])
     let captureLine = Tool.joinArguments(captureArguments.toSlice())
     let captured    = expect Env.runProcess(executable.toString(), captureLine.toString())
-    Debug.assert(captured.exitCode() == 0, captured.standardOutput())
+    Swag.assert(captured.exitCode() == 0, captured.standardOutput())
     Swag.assert(Utf8.contains(captured.standardOutput(), "CAPTURE_MARKER"))
     Swag.assert(Utf8.contains(captured.standardOutput(), "CAPTURE_DIAGNOSTIC"))
     Swag.assert(Utf8.contains(captured.standardOutput(), "capture failure was detected"))

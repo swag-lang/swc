@@ -285,7 +285,7 @@ impl HevcStream
     // Returns the container presentation timestamp of one display-order picture.
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
-        Debug.assert(rank < .sampleAtRank.count)
+        Swag.assert(rank < .sampleAtRank.count)
         return .frames[cast(u64) .sampleAtRank[rank]].presentationTime
     }
 

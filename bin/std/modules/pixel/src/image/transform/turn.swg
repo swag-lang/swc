@@ -51,7 +51,7 @@ impl Image
     // Rotates the image clockwise by a predefined angle.
     public mtd rotate(angle: Rotation)
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         if angle == .HalfTurn do
             .allocWorkingBuffer()
         else do
@@ -63,7 +63,7 @@ impl Image
     // Returns a clockwise-rotated copy of the image.
     public mtd const rotated(angle: Rotation)->Image
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
 
         var result: retval
         if angle == .HalfTurn do

@@ -282,6 +282,7 @@ namespace Swag
         Memory      = 0x0200     // Check some memory things (mostly in sanity pass)
         Expect      = 0x0400     // Check if 'expect' must panic on an unexpected runtime error
         Lifecycle   = 0x0800     // Check use of moved-from values, and poison abandoned/dropped storage
+        Assert      = 0x1000     // Emit assertions; enabled in devmode and disabled in release by default.
         None        = 0x0000
         All         = 0xFFFF
     }
@@ -1177,8 +1178,16 @@ namespace Swag
     }
 }
 
-// Panic if the expression is false. Typically used in tests.
-func assert(value: bool)
+// Checks a programmer invariant and stops execution when it is false.
+//
+// Assertions are controlled by [[Swag.SafetyWhat.Assert]] in [[Swag.BuildCfg.safetyGuards]]
+// and by [[Swag.Safety]] overrides. They are enabled in devmode and disabled in release.
+// Disabled assertions emit no code and evaluate none of their arguments; their arguments
+// still need to type-check. Keep required side effects outside assertions.
+// The optional message and source location are evaluated only when the condition is false.
+// The condition establishes flow-narrowing facts for subsequent code even when disabled:
+// callers remain responsible for the invariant. Use '#assert' for unconditional compile-time checks.
+func assert(value: bool, message: string? = null, loc = #callerlocation)
 
 // Stop a bytecode execution, and launch the bytecode debugger.
 func breakpoint()

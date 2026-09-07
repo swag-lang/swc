@@ -585,7 +585,7 @@ impl Transform
         {
             .useFullRange = true
             if pt.x > HiRange or pt.y > HiRange or -pt.x > HiRange or -pt.y > HiRange do
-                Debug.assert(false, "Coordinate outside allowed range")
+                Swag.assert(false, "Coordinate outside allowed range")
         }
     }
 
@@ -1955,7 +1955,7 @@ impl Transform
         }
         else
         {
-            Debug.assert(false)
+            Swag.assert(false)
         }
     }
 

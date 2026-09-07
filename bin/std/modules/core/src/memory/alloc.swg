@@ -218,7 +218,7 @@ func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: st
     if !ptr do
         return
 
-    Debug.assert(type != null)
+    Swag.assert(type != null)
     let userHint = hint orelse type.name
     assertIsAllocated(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
 
@@ -230,7 +230,7 @@ func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: st
 // Allocates and default-initializes num contiguous values of T.
 func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] T
 {
-    Debug.assert(num > 0)
+    Swag.assert(num > 0)
 
     let userHint = hint orelse #stringof(T)
     let ptr      = cast([*] T) alloc(#sizeof(T) * num, allocator, alignment, userHint, loc)
@@ -243,7 +243,7 @@ func(T) delete(ptr: [*] T?, num: u64, allocator: IAllocator? = null, hint: strin
 {
     if !ptr do
         return
-    Debug.assert(num > 0)
+    Swag.assert(num > 0)
 
     let userHint = hint orelse #stringof(T)
     assertIsAllocated(ptr, #sizeof(T) * num, allocator, userHint, loc)

@@ -68,7 +68,7 @@ public impl ByteStream
     // Writes a native value of type 'T' to the stream
     mtd(T) writeNative(val: T)
     {
-        Debug.assert(writeBuffer != null)
+        Swag.assert(writeBuffer != null)
 
         let wb = writeBuffer!
         if seek + #sizeof(T) > wb.count do
@@ -83,7 +83,7 @@ public impl ByteStream
     // Writes a slice of bytes to the stream
     mtd writeBytes(slice: const [..] u8)
     {
-        Debug.assert(.writeBuffer != null)
+        Swag.assert(.writeBuffer != null)
 
         let count = slice.count
         if !count do
@@ -247,7 +247,7 @@ public impl ByteStream
     mtd setPosition(position: u64)
     {
         let len = .length()
-        Debug.assert(position <= len)
+        Swag.assert(position <= len)
         .seek = position
         .eof  = .seek >= len
     }

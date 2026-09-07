@@ -80,7 +80,7 @@ internal impl Properties
     // the texts stretch — the look of an editor's settings page.
     mtd listUsefulWidth()->f32
     {
-        Debug.assert(!.isGridLike())
+        Swag.assert(!.isGridLike())
         var width = cast(f32) .editorWidth
         if .edView.position.width > 0 do
             width = .edView.position.width
@@ -89,7 +89,7 @@ internal impl Properties
 
     mtd listContentWidthFromUseful(width: f32)->f32
     {
-        Debug.assert(!.isGridLike())
+        Swag.assert(!.isGridLike())
         return Math.max(width - .leftMargin - .rightMargin, 1.0)
     }
 

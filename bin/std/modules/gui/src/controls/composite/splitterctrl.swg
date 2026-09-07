@@ -380,14 +380,14 @@ private impl SplitterCtrl
                 result.x += barSize
         }
 
-        Debug.assert(false, "splitter pane index is not visible")
+        Swag.assert(false, "splitter pane index is not visible")
         return result
     }
 
     mtd setPaneSizePrivate(idx: u32, newSize: f32)
     {
         let curPane = .items[idx]!
-        Debug.assert(curPane.visible)
+        Swag.assert(curPane.visible)
 
         var reqSize = Math.max(curPane.minimumSize, newSize)
         if curPane.maximumSize > 0 do
@@ -449,7 +449,7 @@ impl SplitterCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: WndId? = null)->*SplitterCtrl
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
 
         let pos = position
         let res = Wnd.create'SplitterCtrl(parent, null, pos, id)
@@ -521,7 +521,7 @@ impl SplitterCtrl
     // Sets a pane size while respecting its limits and resizing adjacent visible panes.
     mtd setPaneSize(idx: u32, newSize: f32)
     {
-        Debug.assert(idx < .items.count)
+        Swag.assert(idx < .items.count)
         .setPaneSizePrivate(idx, newSize)
         .sendResizeEvent()
     }
@@ -529,7 +529,7 @@ impl SplitterCtrl
     // Shows or hides a pane and its optional title.
     mtd setPaneVisible(idx: u32, visible: bool)
     {
-        Debug.assert(idx < .items.count)
+        Swag.assert(idx < .items.count)
         let pane = .items[idx]!
 
         if pane.visible == visible do
@@ -555,7 +555,7 @@ impl SplitterCtrl
     // Reports whether a pane participates in layout.
     mtd const isPaneVisible(idx: u32)->bool
     {
-        Debug.assert(idx < .items.count)
+        Swag.assert(idx < .items.count)
         return .items[idx]!.visible
     }
 }

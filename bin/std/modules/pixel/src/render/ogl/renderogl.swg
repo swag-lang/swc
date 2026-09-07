@@ -185,7 +185,7 @@ private impl RenderOgl
 {
     func oglContext(rc: RenderContext)->*OglContext
     {
-        Debug.assert(rc.data != null, "OpenGL render context has no backend state")
+        Swag.assert(rc.data != null, "OpenGL render context has no backend state")
         return cast(*OglContext) rc.data!
     }
 
@@ -367,7 +367,7 @@ private impl RenderOgl
 
     func generateTexture(datas: const [..] u8, w, h: s32)->GLuint
     {
-        Debug.assert(datas.count <= 8 * 8)
+        Swag.assert(datas.count <= 8 * 8)
 
         var arr: [64] u32
         for p, i in datas do
@@ -503,7 +503,7 @@ private impl RenderOgl
             glBlendEquation(GL_FUNC_ADD)
 
         case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity:
-            Debug.assert(.advancedBlending != AdvancedBlendingNone, "OpenGL renderer does not support advanced blending modes on this context")
+            Swag.assert(.advancedBlending != AdvancedBlendingNone, "OpenGL renderer does not support advanced blending modes on this context")
             if .advancedBlending == AdvancedBlendingNone
             {
                 glEnable(GL_BLEND)
@@ -545,7 +545,7 @@ impl RenderOgl
     // Releases queued and currently bound render-target descriptors, and the glyph atlases.
     mtd opDrop()
     {
-        Debug.assert(.contextCount == 0, "renderer contexts must be deleted before the renderer")
+        Swag.assert(.contextCount == 0, "renderer contexts must be deleted before the renderer")
         .releaseFontTextures()
 
         for rt in .stackReleasedRT do
@@ -844,7 +844,7 @@ impl RenderOgl
     // Set the current render target
     internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: *Math.Rectangle? = null)
     {
-        Debug.assert(rt != null)
+        Swag.assert(rt != null)
         if !rt.colorBuffer.isValid() do
             return
         if .curRT do
@@ -913,7 +913,7 @@ impl RenderOgl
     // Create a render target
     internal mtd createRenderTargetImpl(w, h: s32)->RenderTarget
     {
-        Debug.assert(w > 0 and h > 0)
+        Swag.assert(w > 0 and h > 0)
         var colorID: GLuint
         glGenTextures(1, &colorID)
         glBindTexture(GL_TEXTURE_2D, colorID)
@@ -1039,7 +1039,7 @@ impl RenderOgl
         // A planar picture has no single upload format; it goes through the plane path.
         if image.pixelFormat == .Yuv420
         {
-            Debug.assert(false, "a planar picture is added through its view")
+            Swag.assert(false, "a planar picture is added through its view")
             return {}
         }
 
@@ -1148,7 +1148,7 @@ impl RenderOgl
         var result: retval
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, cast() texture.handle)
-        Debug.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
+        Swag.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
         result.resize(cast(u64) texture.width * cast(u64) texture.height * pixelFormat.bitsPerPixel() / 8)
         let fmt = pixelFormatToNative(pixelFormat)
         glPixelStorei(GL_PACK_ALIGNMENT, 1)
@@ -1670,7 +1670,7 @@ impl RenderOgl
             .uploadClipMaskState()
 
         case .UnbindRenderTarget:
-            Debug.assert(.curRT != null)
+            Swag.assert(.curRT != null)
 
             let curRT = .curRT!
             if curRT.paintAlpha
@@ -1742,7 +1742,7 @@ impl RenderOgl
             {
             case s32: glUniform1i(cast(GLint) params.param, params._s32)
             case f32: glUniform1f(cast(GLint) params.param, params._f32)
-            default:  Debug.assert(false)
+            default:  Swag.assert(false)
             }
 
         case .SetFontEffect:
@@ -1924,7 +1924,7 @@ impl RenderOgl
     // Return it with [[Pixel.RenderOgl.releaseRenderTarget]].
     internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
-        Debug.assert(width > 0 and height > 0)
+        Swag.assert(width > 0 and height > 0)
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
         let h2 = Math.roundUpToPowerOf2(cast(u32) height)
 

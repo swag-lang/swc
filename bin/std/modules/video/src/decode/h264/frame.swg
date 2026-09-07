@@ -120,7 +120,7 @@ impl Frame
         Atomic.exchange(&.heldByCaller, 0)
         Atomic.exchange(&.parseProgress, 0)
         Atomic.exchange(&.progressRows, 0)
-        Debug.assert(Atomic.get(&.reconstructionHolds) == 0)
+        Swag.assert(Atomic.get(&.reconstructionHolds) == 0)
     }
 
     // Returns the progress value that covers the whole picture, padding included.
@@ -270,7 +270,7 @@ impl Frame
     // addressed at exactly half the luma coordinates.
     mtd view(width, height, cropLeft, cropTop: s32)->Pixel.Yuv420View
     {
-        Debug.assert((cropLeft & 1) == 0 and (cropTop & 1) == 0)
+        Swag.assert((cropLeft & 1) == 0 and (cropTop & 1) == 0)
         return {
             luma: .pixLuma(cropLeft, cropTop),
             chromaB: .pixChroma(0, cropLeft / 2, cropTop / 2),

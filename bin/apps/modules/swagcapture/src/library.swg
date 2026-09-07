@@ -42,7 +42,7 @@ impl Library
             return g_Library.defaultFolder
 
         let documents = Env.getSpecialDirectory(.UserDocuments)
-        Debug.assert(!documents.isEmpty())
+        Swag.assert(!documents.isEmpty())
 
         g_Library.defaultFolder = Path.combine(documents, ProductName)
         return g_Library.defaultFolder

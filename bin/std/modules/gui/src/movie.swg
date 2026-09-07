@@ -150,7 +150,7 @@ impl Movie
     // Uses a borrowed image-list atlas as the frame source.
     mtd setSpriteSheet(imageList: ImageList)
     {
-        Debug.assert(imageList.isValid(), "image list is invalid")
+        Swag.assert(imageList.isValid(), "image list is invalid")
         .clear()
         .source     = .SpriteSheet
         .imgList    = imageList
@@ -271,8 +271,8 @@ impl Movie
     // Advances playback by `deltaSeconds` and reports whether the frame changed.
     mtd update(deltaSeconds: f32)->bool
     {
-        Debug.assert(deltaSeconds >= 0, "frame delta cannot be negative")
-        Debug.assert(.frameDurationSeconds > 0, "frame duration must be positive")
+        Swag.assert(deltaSeconds >= 0, "frame delta cannot be negative")
+        Swag.assert(.frameDurationSeconds > 0, "frame duration must be positive")
 
         let wasDirty = .dirtyFrame
         .dirtyFrame = false

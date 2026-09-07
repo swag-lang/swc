@@ -3361,7 +3361,7 @@ private impl Parser
                             appendArcElement(path, state, element.position, element.p1, element.p2)
 
                         default:
-                            Debug.assert(false, "definition uses an unsupported segment type")
+                            Swag.assert(false, "definition uses an unsupported segment type")
                         }
                     }
 
@@ -3949,7 +3949,7 @@ impl Drawing
     // GPU backend does it in a fraction of the time.
     mtd const rasterize(width, height: s32, supersample: u8 = 2)->Image
     {
-        Debug.assert(width > 0 and height > 0)
+        Swag.assert(width > 0 and height > 0)
 
         var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
@@ -3971,7 +3971,7 @@ impl Drawing
     // called — because this records a complete painter submission and executes it.
     mtd const rasterize(renderer: IRenderer, width, height: s32, supersample: u8 = 2)->Image
     {
-        Debug.assert(width > 0 and height > 0)
+        Swag.assert(width > 0 and height > 0)
         return .rasterizeWithSampleTileSide(renderer, width, height, supersample, RasterSampleTileSide)
     }
 
@@ -3986,8 +3986,8 @@ impl Drawing
     // Rasterizes with an explicit sampled-tile bound for module tests.
     internal mtd const rasterizeWithSampleTileSide(renderer: IRenderer, width, height: s32, supersample: u8, sampleTileSide: s32)->Image
     {
-        Debug.assert(width > 0 and height > 0)
-        Debug.assert(sampleTileSide > 0)
+        Swag.assert(width > 0 and height > 0)
+        Swag.assert(sampleTileSide > 0)
 
         let ss            = cast(s32) Math.max(supersample, 1'u8)
         let tileWidth     = Math.min(width, Math.max(sampleTileSide / ss, 1))

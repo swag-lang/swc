@@ -154,7 +154,7 @@ impl Image
     // Apply a kernel to the image
     public mtd applyKernel(kernel: Kernel)
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
         .doKernel(.safeWorkingBuffer(), kernel)
         .applyWorkingBuffer()
@@ -163,7 +163,7 @@ impl Image
     // Apply a kernel to the image
     public mtd withKernelApplied(kernel: Kernel)->Image
     {
-        Debug.assert(.pixels.buffer != null)
+        Swag.assert(.pixels.buffer != null)
         var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doKernel(&result, kernel)
         return result

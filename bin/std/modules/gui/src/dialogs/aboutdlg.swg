@@ -105,8 +105,8 @@ public impl AboutDlg
     #[Swag.Discardable]
     func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
     {
-        Debug.assert(from != null)
-        Debug.assert(width >= 0 and height >= 0, "dialog dimensions cannot be negative")
+        Swag.assert(from != null)
+        Swag.assert(width >= 0 and height >= 0, "dialog dimensions cannot be negative")
         let dlg = Wnd.create'AboutDlg()
         let w   = width != 0 ? cast(s32) width : 500
         let h   = height != 0 ? cast(s32) height : 300
@@ -211,7 +211,7 @@ public impl AboutDlg
     // display it opens on.
     mtd addSection(title, content: string)
     {
-        Debug.assert(title.count or content.count, "an about section carries no text")
+        Swag.assert(title.count or content.count, "an about section carries no text")
 
         let metrics = .themeMetrics()
         if !.sectionsScroll

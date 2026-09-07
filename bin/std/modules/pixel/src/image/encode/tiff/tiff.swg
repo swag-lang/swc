@@ -83,7 +83,7 @@ internal impl IImageEncoder for Encoder
         var userOptions: EncodeOptions
         if options.buffer != null
         {
-            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            Swag.assert(Swag.kindOf(options) == EncodeOptions)
             userOptions = options.buffer![as EncodeOptions]
         }
 

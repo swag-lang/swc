@@ -184,7 +184,8 @@ func currentAllocatorThreadHeap()->*AllocatorThreadHeap?
 
 private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
 {
-    Swag.assert(__hostThreadStorageSet(allocatorThreadHeapFlsId(), heap))
+    let installed = __hostThreadStorageSet(allocatorThreadHeapFlsId(), heap)
+    Swag.assert(installed)
 }
 
 private func currentThreadId()->u64

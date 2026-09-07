@@ -608,12 +608,12 @@ impl Circular
     // Sets both range endpoints and emits at most one change notification.
     mtd setRange(lower, upper: f32)
     {
-        Debug.assert(lower <= upper)
-        Debug.assert(.flags.has(.Range))
+        Swag.assert(lower <= upper)
+        Swag.assert(.flags.has(.Range))
         let diff     = .max - .min
         let newLower = .clamp((lower - .min) / diff)
         let newUpper = .clamp((upper - .min) / diff)
-        Debug.assert(newLower <= newUpper)
+        Swag.assert(newLower <= newUpper)
 
         let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
@@ -631,8 +631,8 @@ impl Circular
     // Configures inclusive bounds and an optional value-space step.
     func setBounds(me, min, max: f32, steps: f32 = 0)
     {
-        Debug.assert(min < max)
-        Debug.assert(steps >= 0 and steps < (max - min))
+        Swag.assert(min < max)
+        Swag.assert(steps >= 0 and steps < (max - min))
         .min = min
         .max = max
         if steps > 0 do
@@ -645,8 +645,8 @@ impl Circular
     // Configures the clockwise angular span used for the value range.
     func setAngleRange(me, startAngle, endAngle: Math.Angle)
     {
-        Debug.assert(endAngle.radians > startAngle.radians)
-        Debug.assert((endAngle.radians - startAngle.radians) <= Math.ConstF32.TwoPi)
+        Swag.assert(endAngle.radians > startAngle.radians)
+        Swag.assert((endAngle.radians - startAngle.radians) <= Math.ConstF32.TwoPi)
         .startAngle = startAngle.radians
         .endAngle   = endAngle.radians
         .invalidate()
@@ -676,7 +676,7 @@ impl Circular
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, range = false)->*Circular
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
 
         if pos.width == 0 do

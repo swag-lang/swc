@@ -212,7 +212,7 @@ impl Process
     // successful [[Core.Env.Process.tryWaitForExit]] guarantees.
     mtd const exitCode()->s32
     {
-        Debug.assert(.exited, "the process has not exited yet")
+        Swag.assert(.exited, "the process has not exited yet")
         return .status
     }
 

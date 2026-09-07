@@ -56,8 +56,8 @@ impl KeySlot
     // Builds a slot that unwraps `master` with the container-wide password key.
     func create(slotKey, master: const [..] u8, index: u64)->KeySlot fail
     {
-        Debug.assert(slotKey.count == Crypto.KeySize)
-        Debug.assert(master.count == Crypto.MasterKeySize)
+        Swag.assert(slotKey.count == Crypto.KeySize)
+        Swag.assert(master.count == Crypto.MasterKeySize)
 
         var result: retval
         Core.Crypto.randomBytes(result.nonce)
@@ -69,8 +69,8 @@ impl KeySlot
     // to the already-derived password key.
     mtd const unwrap(slotKey: const [..] u8, index: u64, master: [..] u8)->bool fail
     {
-        Debug.assert(slotKey.count == Crypto.KeySize)
-        Debug.assert(master.count == Crypto.MasterKeySize)
+        Swag.assert(slotKey.count == Crypto.KeySize)
+        Swag.assert(master.count == Crypto.MasterKeySize)
         return Core.Crypto.chacha20Poly1305Open(slotKey, .nonce, .wrapped, .tag, Crypto.associatedData(KeySlotKind, index), master)
     }
 
@@ -93,7 +93,7 @@ impl KeySlot
     // unused slot simply fails to unwrap.
     func decode(record: const [..] u8)->KeySlot
     {
-        Debug.assert(record.count == KeySlotPayloadSize)
+        Swag.assert(record.count == KeySlotPayloadSize)
 
         var result: retval
         var offset = 0'u64

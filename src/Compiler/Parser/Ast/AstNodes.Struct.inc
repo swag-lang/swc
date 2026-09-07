@@ -561,6 +561,8 @@ struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr, AstCall
     TokenId intrinsicId = TokenId::Invalid;
 
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     codeGenPreNode(CodeGen& codeGen) const;
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

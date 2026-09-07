@@ -875,7 +875,7 @@ impl TagBin
     // Returns true if the element exists in the stream and should be processed, false to skip it.
     mtd beginElement(val: TypeValue)->bool fail
     {
-        Debug.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
+        Swag.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If this name is in the ignore list, then skip it
         if .ignoreElements.contains(val.name)
@@ -898,9 +898,9 @@ impl TagBin
         if sec.positional
         {
             let shape = sec.shape!
-            Debug.assert(sec.posIndex < shape.fields.count)
+            Swag.assert(sec.posIndex < shape.fields.count)
             let sf = shape.fields.buffer! + sec.posIndex
-            Debug.assert(sf.key == wireFieldKey(val))
+            Swag.assert(sf.key == wireFieldKey(val))
             sec.posIndex += 1
 
             catch .enterElementPayload(sf.flags.has(.Compressed), val) as err
@@ -988,13 +988,13 @@ impl TagBin
     {
         .convertNextNative = null
 
-        Debug.assert(!.elemStack.isEmpty())
+        Swag.assert(!.elemStack.isEmpty())
         let ctx = .elemStack.popBack()
         if !ctx.compressed do
             return
 
         // We must have a previous buffer to append into
-        Debug.assert(!.outStack.isEmpty())
+        Swag.assert(!.outStack.isEmpty())
         let {parentOut, parentSeek} = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp

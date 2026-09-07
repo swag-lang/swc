@@ -346,7 +346,7 @@ impl Decoder
     // Read a full struct
     mtd(TR) readAll(input: const [..] u8)->*TR? fail
     {
-        Debug.assert(Reflection.isStruct(TR))
+        Swag.assert(Reflection.isStruct(TR))
 
         .start(input, TR)
 

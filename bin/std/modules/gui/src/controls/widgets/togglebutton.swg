@@ -124,7 +124,7 @@ impl ToggleButton
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ToggleButton
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
         if pos.height == 0 do
             pos.height = parent.themeMetrics().btnToggle_Height

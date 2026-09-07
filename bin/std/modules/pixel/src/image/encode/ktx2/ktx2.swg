@@ -114,7 +114,7 @@ func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] 
         channelIds[][3] = 15
 
     case .Yuv420:
-        Debug.assert(false)
+        Swag.assert(false)
     }
 }
 

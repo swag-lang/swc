@@ -567,7 +567,7 @@ impl HashTable
     mtd find(key: K)->*HashTableEntry
     {
         let result = .tryFind(key)
-        Debug.assert(result != null, "key not found")
+        Swag.assert(result != null, "key not found")
         return result!
     }
 
@@ -576,7 +576,7 @@ impl HashTable
     mtd const find(key: K)->const *HashTableEntry
     {
         let result = .tryFind(key)
-        Debug.assert(result != null, "key not found")
+        Swag.assert(result != null, "key not found")
         return result!
     }
 

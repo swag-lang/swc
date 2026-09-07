@@ -625,7 +625,7 @@ impl Wnd
     mtd destroyNow()
     {
         let srfn = .surface!
-        Debug.assert(!.isPendingDestroy)
+        Swag.assert(!.isPendingDestroy)
 
         // Each child's destroyWnd removes it from '.children': iterating the array while it
         // shrinks would skip every other child, so always consume the back one.
@@ -695,15 +695,15 @@ impl Wnd
 
         if who
         {
-            Debug.assert(who != me)
-            Debug.assert(!.isAncestorOf(who), "cannot parent a window to its descendant")
+            Swag.assert(who != me)
+            Swag.assert(!.isAncestorOf(who), "cannot parent a window to its descendant")
         }
 
         if .parent
         {
             let oldParent = .parent!
             let detached  = oldParent.detachChild(me)
-            Debug.assert(detached)
+            Swag.assert(detached)
         }
 
         if who
@@ -1162,7 +1162,7 @@ impl Wnd
     // feedback rather than for zooming a view.
     mtd setPresentationScale(scale: Math.Point)
     {
-        Debug.assert(scale.x > 0 and scale.y > 0)
+        Swag.assert(scale.x > 0 and scale.y > 0)
         if .presentationScale == scale do
             return
         .invalidatePresentation()
@@ -1592,8 +1592,8 @@ impl Wnd
     // Children built by appending can be placed at their final position in one step.
     mtd moveLastChildrenTo(index: u64, count: u64)
     {
-        Debug.assert(count <= .children.count)
-        Debug.assert(index + count <= .children.count)
+        Swag.assert(count <= .children.count)
+        Swag.assert(index + count <= .children.count)
 
         for i in count do
             .children.insertAt(index + i, .children[.children.count - count + i])
@@ -1608,7 +1608,7 @@ impl Wnd
             return
 
         let idx = Slice.findLinear(parent.children.toSlice(), me)
-        Debug.assert(idx != Swag.U64.Max)
+        Swag.assert(idx != Swag.U64.Max)
 
         parent.children.removeAtOrdered(idx)
         parent.children.insertAt(0, me)
@@ -1622,7 +1622,7 @@ impl Wnd
             return
 
         let idx = Slice.findLinear(parent.children.toSlice(), me)
-        Debug.assert(idx != Swag.U64.Max)
+        Swag.assert(idx != Swag.U64.Max)
 
         // Put the window at the back, or just before the first topmost window
         var idxToReplace = parent.children.count - 1

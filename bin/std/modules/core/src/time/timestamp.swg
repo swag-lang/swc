@@ -31,14 +31,14 @@ impl Timestamp
     // Creates a timestamp from raw ticks since 0001-01-01 00:00:00.
     func fromTicks(ticks: Ticks)->Timestamp
     {
-        Debug.assert(ticks <= MaxTicks)
+        Swag.assert(ticks <= MaxTicks)
         return Timestamp{ticks}
     }
 
     // Creates a timestamp from a valid calendar date and time.
     func fromDateTime(dateTime: DateTime)->Timestamp
     {
-        Debug.assert(dateTime.isValid())
+        Swag.assert(dateTime.isValid())
         var result: retval
         result.ticks = dateToTicks(dateTime.year, dateTime.month, dateTime.day)
         result.ticks += timeToTicks(dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond)
@@ -57,14 +57,14 @@ impl Timestamp
     // Shifts the calendar year, clamping a leap day when necessary.
     mtd addYears(years: s32)
     {
-        Debug.assert(-10000 <= years and years <= 10000, "overflow")
+        Swag.assert(-10000 <= years and years <= 10000, "overflow")
         .addMonths(years * 12)
     }
 
     // Shifts the calendar month, clamping the day when necessary.
     mtd addMonths(months: s32)
     {
-        Debug.assert(-120000 <= months and months <= 120000, "overflow")
+        Swag.assert(-120000 <= months and months <= 120000, "overflow")
         var {y, m, d} = ticksToDate(.ticks)
         var year      = cast(s32) y
         let i         = cast(s32) (m - 1) + months
@@ -79,7 +79,7 @@ impl Timestamp
             year += (i - 11) / 12
         }
 
-        Debug.assert(1 <= year and year <= 9999, "overflow")
+        Swag.assert(1 <= year and year <= 9999, "overflow")
         y = cast(u16) year
         let days = daysInMonth(y, m)
         if d > days do
@@ -151,9 +151,9 @@ impl Timestamp
     private mtd add(value: u32, scale: u64)
     {
         var millis = value * scale
-        Debug.assert(millis <= MaxMillisecondsToYear10000, "overflow")
+        Swag.assert(millis <= MaxMillisecondsToYear10000, "overflow")
         millis *= TicksPerMillisecond
-        Debug.assert(millis <= (MaxTicks - .ticks), "overflow")
+        Swag.assert(millis <= (MaxTicks - .ticks), "overflow")
         .ticks += millis
     }
 
@@ -161,9 +161,9 @@ impl Timestamp
     private mtd remove(value: u32, scale: u64)
     {
         var millis = value * scale
-        Debug.assert(millis <= MaxMillisecondsToYear10000, "overflow")
+        Swag.assert(millis <= MaxMillisecondsToYear10000, "overflow")
         millis *= TicksPerMillisecond
-        Debug.assert(millis <= .ticks, "ticks overflow")
+        Swag.assert(millis <= .ticks, "ticks overflow")
         .ticks -= millis
     }
 }

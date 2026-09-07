@@ -78,7 +78,7 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
     {
         if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
             continue
-        Debug.assert(field.pointedType != null)
+        Swag.assert(field.pointedType != null)
 
         var pf: PlanField
         pf.value = field

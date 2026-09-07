@@ -230,7 +230,7 @@ public impl BitArray
     // Sets the bit at a specific position to the specified value.
     mtd set(index: u64, value: bool)
     {
-        Debug.assert(index < .count)
+        Swag.assert(index < .count)
         let val    = index >> 5
         let bit    = index - (val << 5)
         let shift  = 1'u32 << cast(u32) bit
@@ -244,7 +244,7 @@ public impl BitArray
     // Returns the boolean value of the bit at a specific position.
     mtd const get(index: u64)->bool
     {
-        Debug.assert(index < .count)
+        Swag.assert(index < .count)
         let val   = index >> 5
         let bit   = index - (val << 5)
         let shift = 1'u32 << cast(u32) bit
@@ -255,7 +255,7 @@ public impl BitArray
     // Changes a 'true' bit to 'false' and a 'false' bit to 'true'.
     mtd invert(index: u64)
     {
-        Debug.assert(index < .count)
+        Swag.assert(index < .count)
         let val    = index >> 5
         let bit    = index - (val << 5)
         let shift  = 1'u32 << cast(u32) bit
@@ -292,7 +292,7 @@ public impl BitArray
     // The current array is modified to store the result. Asserts that arrays are of the same size.
     mtd andWith(other: BitArray)
     {
-        Debug.assert(.count == other.count)
+        Swag.assert(.count == other.count)
         if !.count do
             return
         let buffer      = .dataPtr()
@@ -319,7 +319,7 @@ public impl BitArray
     // The current array is modified to store the result. Asserts that arrays are of the same size.
     mtd orWith(other: BitArray)
     {
-        Debug.assert(.count == other.count)
+        Swag.assert(.count == other.count)
         if !.count do
             return
         let buffer      = .dataPtr()
@@ -346,7 +346,7 @@ public impl BitArray
     // The current array is modified to store the result. Asserts that arrays are of the same size.
     mtd xorWith(other: BitArray)
     {
-        Debug.assert(.count == other.count)
+        Swag.assert(.count == other.count)
         if !.count do
             return
         let buffer      = .dataPtr()

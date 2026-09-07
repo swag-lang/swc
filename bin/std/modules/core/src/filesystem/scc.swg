@@ -262,7 +262,7 @@ private func makeId(text: string)->Guid128
 {
     var result: Guid128
     let valid = Guid128.tryParse(text, &result)
-    Debug.assert(valid)
+    Swag.assert(valid)
     return result
 }
 
@@ -382,7 +382,7 @@ impl Writer
     // Initializes this writer as an empty container for `containerKind`.
     mtd initialize(containerKind: Guid128)
     {
-        Debug.assert(!containerKind.isNull())
+        Swag.assert(!containerKind.isNull())
         .header.containerKind = containerKind
         .header.containerId   = Guid128.random()
     }
@@ -403,10 +403,10 @@ impl Writer
     // Registers a borrowed custom chunk codec.
     mtd registerCodec(codec: ICodec)
     {
-        Debug.assert(!codec.id().isNull())
-        Debug.assert(!sameId(codec.id(), deflateCodecId()))
+        Swag.assert(!codec.id().isNull())
+        Swag.assert(!sameId(codec.id(), deflateCodecId()))
         for current in .codecs do
-            Debug.assert(!sameId(current.id(), codec.id()))
+            Swag.assert(!sameId(current.id(), codec.id()))
         .codecs.add(codec)
     }
 
@@ -471,7 +471,7 @@ impl Writer
         writeU64(&prefix, headerBytes.count)
         writeU32(&prefix, Hash.Crc32.compute(headerBytes.toSlice()))
         writeU32(&prefix, 0)
-        Debug.assert(prefix.count == PrefixSize)
+        Swag.assert(prefix.count == PrefixSize)
 
         let temporary = Format.toString("%.scc-tmp-%", fileName, Guid64.random())
         var committed = false
@@ -603,10 +603,10 @@ impl Reader
     // Registers a borrowed custom chunk codec.
     mtd registerCodec(codec: ICodec)
     {
-        Debug.assert(!codec.id().isNull())
-        Debug.assert(!sameId(codec.id(), deflateCodecId()))
+        Swag.assert(!codec.id().isNull())
+        Swag.assert(!sameId(codec.id(), deflateCodecId()))
         for current in .codecs do
-            Debug.assert(!sameId(current.id(), codec.id()))
+            Swag.assert(!sameId(current.id(), codec.id()))
         .codecs.add(codec)
     }
 

@@ -478,7 +478,7 @@ impl Properties
     // Sets the preferred maximum width of value editors and refreshes the current layout.
     mtd setEditorWidth(width: s32)
     {
-        Debug.assert(width > 0)
+        Swag.assert(width > 0)
         if .editorWidth == width do
             return
         .editorWidth = width
@@ -535,7 +535,7 @@ impl Properties
     mtd addStruct(val: any, section: string? = null)
     {
         let typeof = Swag.kindOf(val)
-        Debug.assert(typeof.kind == .Struct)
+        Swag.assert(typeof.kind == .Struct)
 
         var bases: Array'(*u8)
         bases.add(cast(*u8) val.buffer)
@@ -550,8 +550,8 @@ impl Properties
     // row: the grid becomes opt-in, for structs whose fields are mostly internal state.
     mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string? = null, onlyNamed = false)
     {
-        Debug.assert(typeof.kind == .Struct)
-        Debug.assert(bases.count >= 1)
+        Swag.assert(typeof.kind == .Struct)
+        Swag.assert(bases.count >= 1)
 
         .buildOnlyNamed = onlyNamed
         defer .buildOnlyNamed = false

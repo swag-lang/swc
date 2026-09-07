@@ -59,7 +59,7 @@ func set(dest: [*] void, value: u8, size: u64)
 #[Inline]
 func align(value: u64, alignment: u32)->u64
 {
-    Debug.assert(!alignment or !(alignment & (alignment - 1)), "alignment must be a power of two")
+    Swag.assert(!alignment or !(alignment & (alignment - 1)), "alignment must be a power of two")
     let toAlign: u64 = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void)) - 1
     return (value + toAlign) & ~toAlign
 }

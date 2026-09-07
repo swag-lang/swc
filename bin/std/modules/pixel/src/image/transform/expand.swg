@@ -6,7 +6,7 @@ impl Image
     {
         let cw = .width + l + r
         let ch = .height + t + b
-        Debug.assert(cw > 0 and ch > 0)
+        Swag.assert(cw > 0 and ch > 0)
         return {cw, ch}
     }
 

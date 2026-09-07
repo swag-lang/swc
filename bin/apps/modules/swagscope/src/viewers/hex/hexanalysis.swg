@@ -248,7 +248,7 @@ impl HexAnalysisOperation
 {
     mtd start(fileName: string, range: HexAnalysisRange)
     {
-        Debug.assert(!.started)
+        Swag.assert(!.started)
         .fileName = fileName
         .range    = range
         .result   = {}
@@ -275,7 +275,7 @@ impl HexAnalysisOperation
 
     mtd finish()->HexAnalysisResult
     {
-        Debug.assert(.isDone())
+        Swag.assert(.isDone())
         .task.wait()
         .started = false
         return #move .result

@@ -82,7 +82,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
 
         if !(concreteType.flags & TypeInfoFlags.Tuple)
         {
-            Debug.assert(false)
+            Swag.assert(false)
             return
         }
 

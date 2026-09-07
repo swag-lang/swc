@@ -6824,11 +6824,24 @@ indent-style = spaces</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">min</span>(left, right) == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_008_000_intrinsics_swg_Failure_Behavior">Failure Behavior</h3>
-<p><span class="code-inline">Swag.assert</span> and <span class="code-inline">Swag.panic</span> stop execution. Compiler-facing code can report diagnostics with <span class="code-inline">Swag.compilerError</span> and <span class="code-inline">Swag.compilerWarning</span>. Memory and math intrinsics are also subject to the safety and sanity policies described later in this reference.</p>
+<p>'Swag.assert(condition, message)' is the standard assertion for programmer invariants, available without importing Core. It stops execution when an enabled assertion is false. <span class="code-inline">Swag.SafetyWhat.Assert</span> controls its emission through <span class="code-inline">BuildCfg.safetyGuards</span> and '#[Swag.Safety(.Assert, true/false)]': enabled in devmode, disabled in release. Disabled assertions evaluate none of their arguments, so keep required side effects outside them. Arguments still type-check, and the asserted invariant still narrows subsequent code. A message is optional and is evaluated only on failure.</p>
+<p><span class="code-inline">Core.Debug.assert</span> is deprecated; use <span class="code-inline">Swag.assert</span>. Use <span class="code-inline">#assert</span> for an unconditional compile-time assertion, and <span class="code-inline">Swag.panic</span> for an unconditional stop. Compiler-facing code can report diagnostics with <span class="code-inline">Swag.compilerError</span> and <span class="code-inline">Swag.compilerWarning</span>. Memory and math intrinsics are also subject to the safety and sanity policies described later in this reference.</p>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Intrinsics do not imply ownership. <span class="code-inline">Swag.makeSlice</span> and <span class="code-inline">Swag.makeString</span> create views, while <span class="code-inline">Swag.memcpy</span> ignores value lifecycle hooks. The caller remains responsible for lifetime, bounds, alignment, and element semantics.</p>
 </div>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Assert, true)]</span>
+    {
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">2</span> + <span class="SNum">2</span> == <span class="SNum">4</span>, <span class="SStr">"arithmetic invariant"</span>)
+    }
+
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Assert, false)]</span>
+    {
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>, <span class="SStr">"this assertion emits no code"</span>)
+    }
+}</span></div>
 <h3 id="_008_001_init_swg">Init</h3>
 <h3 id="_008_001_init_swg__Swag_init__Intrinsic"><span class="code-inline">Swag.init</span> Intrinsic</h3>
 <p>Reinitializes a variable or memory region to either its type default value or a provided custom value (tuple for aggregates).</p>
@@ -8394,6 +8407,23 @@ indent-style = spaces</span></div>
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>Safety covers the RUNTIME guards. Their static, compile-time counterparts are controlled separately with <span class="code-inline">#[Swag.Sanity]</span> and stay enabled in <span class="code-inline">release</span>; see the dedicated 'Sanity Checks in Swag' section.</p>
 </div>
+<h3 id="_013_002_safety_swg_Assertions">Assertions</h3>
+<p>'Swag.assert(condition, message)' is the standard assertion for programmer invariants. <span class="code-inline">SafetyWhat.Assert</span> follows the same defaults as other runtime safety guards: enabled in <span class="code-inline">devmode</span>, disabled in <span class="code-inline">release</span>. Set 'buildCfg.safetyGuards |= .Assert' to keep assertions in a release module, or use a local <span class="code-inline">Swag.Safety</span> override.</p>
+<p>When disabled, the assertion emits no code and evaluates none of its arguments. Arguments still type-check. The invariant remains a precondition for subsequent flow-narrowed code. Keep required side effects outside the assertion. <span class="code-inline">#assert</span> is a separate compile-time check and is unaffected by this flag.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Assert, true)]</span>
+    {
+        <span class="SCmp">#assert</span>(<span class="SItr">#safety</span>(<span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">Assert</span>))
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">10</span> &gt; <span class="SNum">0</span>, <span class="SStr">"positive value"</span>)
+    }
+
+    <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Assert, false)]</span>
+    {
+        <span class="SCmp">#assert</span>(!<span class="SItr">#safety</span>(<span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">Assert</span>))
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+    }
+}</span></div>
 <h3 id="_013_002_safety_swg_Overflow_Safety">Overflow Safety</h3>
 <p>Example: #[Swag.Safety(.Overflow, true)] When enabled, Swag panics on arithmetic overflow, on a runtime negative shift count, or when bits are lost during integer conversions.</p>
 <p>Operators that can overflow include '+ - <i>' and compound forms '+= -= </i>='. Shifts have defined truncating and large-count behavior; overflow safety only guards their negative signed counts.</p>
@@ -9808,7 +9838,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.397</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.399</div>
 </footer>
 </section>
 </main>
@@ -10649,6 +10679,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Defer on Error Paths|_013_001_error_management_swg_Defer_on_Error_Paths|",
 "h|Safety|_013_002_safety_swg|",
 "h|Runtime Safety Checks|_013_002_safety_swg_Runtime_Safety_Checks|",
+"h|Assertions|_013_002_safety_swg_Assertions|",
 "h|Overflow Safety|_013_002_safety_swg_Overflow_Safety|",
 "h|Disabling Overflow Safety with #wrap|_013_002_safety_swg_Disabling_Overflow_Safety_with___wrap_|",
 "h|Global Overflow Safety Control|_013_002_safety_swg_Global_Overflow_Safety_Control|",

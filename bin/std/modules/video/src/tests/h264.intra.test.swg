@@ -107,7 +107,7 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
         }
 
     default:
-        Debug.assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -181,7 +181,7 @@ func referenceIntra16x16(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         }
 
     default:
-        Debug.assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -295,7 +295,7 @@ func referenceIntraChroma(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         }
 
     default:
-        Debug.assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -479,7 +479,7 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
         }
 
     default:
-        Debug.assert(false)
+        Swag.assert(false)
     }
 }
 

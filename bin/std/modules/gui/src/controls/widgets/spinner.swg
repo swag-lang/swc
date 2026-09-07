@@ -71,7 +71,7 @@ impl Spinner
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Spinner
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
 
         var pos = position
         if pos.width == 0 do

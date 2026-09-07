@@ -847,12 +847,12 @@ impl HtmlDocument
     mtd addAttribute(element: u32, name: HtmlRange, value: HtmlRange)
     {
         let node = &.nodes[element]
-        Debug.assert(node.attributes.start + node.attributes.count == cast(u32) .attributePool.count, "an element's attributes must stay contiguous")
+        Swag.assert(node.attributes.start + node.attributes.count == cast(u32) .attributePool.count, "an element's attributes must stay contiguous")
 
         // The length rejects every other attribute before a byte of it is read.
         if name.count == ("class").count and .text(name) == "class"
         {
-            Debug.assert(node.classes.start + node.classes.count == cast(u32) .classPool.count, "an element's classes must stay contiguous")
+            Swag.assert(node.classes.start + node.classes.count == cast(u32) .classPool.count, "an element's classes must stay contiguous")
 
             // A class is a run inside the value that is already interned, so the index costs no
             // text of its own.

@@ -83,7 +83,7 @@ impl IActionUI for ActionMoveSel
             return false
         }
 
-        Debug.assert(undo != null)
+        Swag.assert(undo != null)
         capture.pushUndo(undo)
         main.invalidate()
 

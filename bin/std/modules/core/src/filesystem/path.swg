@@ -132,7 +132,7 @@ func rootName(fullname: string?)->string?
     if fullname == null do
         return null
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
     let length = rootLength(path)
     if !length do
         return null
@@ -146,7 +146,7 @@ func isRooted(fullname: string?)->bool
     if fullname == null do
         return false
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
     let countof = path.count
     if countof >= 1 and isDirectorySeparator(path[0]) do
         return true
@@ -162,7 +162,7 @@ func directoryName(fullname: string?)->string?
     if fullname == null do
         return null
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
 
     let countof = path.count
     var cpt     = countof
@@ -190,7 +190,7 @@ func fileName(fullname: string?)->string?
     if fullname == null do
         return null
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
 
     let countof = path.count
     var cpt     = countof
@@ -216,7 +216,7 @@ func fileNameWithoutExtension(fullname: string?)->string?
     if fullname == null do
         return null
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
 
     let countof = path.count
     var cpt     = countof
@@ -248,7 +248,7 @@ func extension(fullname: string?)->string?
     if fullname == null do
         return null
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
 
     var cpt = path.count
     while cpt
@@ -286,7 +286,7 @@ func hasExtension(fullname: string?)->bool
     if fullname == null do
         return false
     let path = fullname
-    Debug.assert(isValidPathName(path))
+    Swag.assert(isValidPathName(path))
 
     var cpt = path.count
     while cpt

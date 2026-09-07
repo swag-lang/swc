@@ -425,7 +425,7 @@ impl HeadlessHost
     // confirmation after accepting a file dialog).
     mtd thenClickModalButton(button: WndId)
     {
-        Debug.assert(.autoArmed)
+        Swag.assert(.autoArmed)
         discard .addAutoStage(.ModalButton, button)
     }
 
@@ -433,7 +433,7 @@ impl HeadlessHost
     // popup menu (e.g. inside a submenu opened by the previous step).
     mtd thenClickPopupMenuItem(id: WndId)
     {
-        Debug.assert(.autoArmed)
+        Swag.assert(.autoArmed)
         discard .addAutoStage(.PopupItem, id)
     }
 
@@ -441,7 +441,7 @@ impl HeadlessHost
     // of the captured popup menu.
     mtd thenOpenPopupSubMenu(label: string)
     {
-        Debug.assert(.autoArmed)
+        Swag.assert(.autoArmed)
         discard .addAutoStage(.PopupSubMenu, label: label)
     }
 
@@ -449,7 +449,7 @@ impl HeadlessHost
     // stage's button is clicked. May be called several times for several edits.
     mtd withModalEdit(label, text: string)
     {
-        Debug.assert(.autoArmed and .autoStages.count > 0)
+        Swag.assert(.autoArmed and .autoStages.count > 0)
         let stage = .autoStages.buffer! + .autoStages.count - 1
         let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
@@ -550,7 +550,7 @@ impl HeadlessHost
     // Advances the finite-animation clock by an exact interval and drains resulting work.
     mtd advanceAnimations(deltaSeconds: f32)
     {
-        Debug.assert(deltaSeconds >= 0)
+        Swag.assert(deltaSeconds >= 0)
         .app.animator.advance(deltaSeconds)
         .pump()
     }
@@ -711,7 +711,7 @@ impl HeadlessHost
     // Clicks the center of a window.
     mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
-        Debug.assert(wnd != null)
+        Swag.assert(wnd != null)
 
         var pt  = wnd.surfaceRect().center()
         let srf = wnd.surface!
@@ -983,7 +983,7 @@ impl HeadlessHost
     // parent exactly as a real drop does.
     mtd dropFilesOnWnd(wnd: *Wnd, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
     {
-        Debug.assert(wnd != null)
+        Swag.assert(wnd != null)
 
         .dragData.clear()
         for f in files do

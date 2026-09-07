@@ -71,6 +71,8 @@ func test()
     Swag.breakpoint()
 
     Swag.assert(a)
+    Swag.assert(a, b)
+    Swag.assert(a, b, c)
     Swag.panic(a, b)
     Swag.setContext(a)
 

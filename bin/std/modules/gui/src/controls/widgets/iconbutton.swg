@@ -886,7 +886,7 @@ impl IconButton
     #[Swag.Discardable]
     func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
     {
-        Debug.assert(parent != null)
+        Swag.assert(parent != null)
         var pos = position
         if pos.height == 0 do
             pos.height = parent.themeMetrics().btnPush_Height
@@ -906,7 +906,7 @@ impl IconButton
     // Changes checked state silently for a radio or toggle button.
     mtd setChecked(checked: bool)
     {
-        Debug.assert(.flags.has(.Radio) or .flags.has(.Toggle))
+        Swag.assert(.flags.has(.Radio) or .flags.has(.Toggle))
         if .isChecked == checked do
             return
         .isChecked = checked
@@ -919,7 +919,7 @@ impl IconButton
         var newFlags = .flags
         newFlags.add(add)
         newFlags.remove(remove)
-        Debug.assert(!(newFlags.has(.Radio) and newFlags.has(.Toggle)), "radio and toggle modes are mutually exclusive")
+        Swag.assert(!(newFlags.has(.Radio) and newFlags.has(.Toggle)), "radio and toggle modes are mutually exclusive")
         .flags = newFlags
         if !.flags.has(.Radio) and !.flags.has(.Toggle) do
             .isChecked = false
@@ -965,7 +965,7 @@ impl IconButton
     // Creates and owns a popup anchored above or below the button.
     mtd createAnchorPopup(width, height: f32)->*FrameWnd
     {
-        Debug.assert(width >= 0 and height >= 0)
+        Swag.assert(width >= 0 and height >= 0)
         if .popup do
             me.hidePopup()
         let pos          = .surfaceRect()

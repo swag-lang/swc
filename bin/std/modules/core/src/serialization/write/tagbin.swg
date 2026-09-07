@@ -326,8 +326,8 @@ impl TagBin
     // body to the caller buffer, compressing it when requested.
     mtd endRoot()
     {
-        Debug.assert(.sections.isEmpty())
-        Debug.assert(.output == &.body)
+        Swag.assert(.sections.isEmpty())
+        Swag.assert(.output == &.body)
 
         // Shape directory: the field list of every struct type used by the stream,
         // written once.
@@ -482,7 +482,7 @@ impl TagBin
     // Begins a new element inside the current section and records its metadata
     mtd beginElement(val: TypeValue) fail
     {
-        Debug.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
+        Swag.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If section is raw, then we just have values without versioning
         let sec = .sections.back()!
@@ -498,9 +498,9 @@ impl TagBin
             // inline metadata at all. Its offset goes to the fat, everything else is in
             // the shape.
             let plan = sec.plan!
-            Debug.assert(sec.fieldIndex < plan.fields.count)
+            Swag.assert(sec.fieldIndex < plan.fields.count)
             let pf = plan.fields.buffer! + sec.fieldIndex
-            Debug.assert(pf.key == wireFieldKey(val))
+            Swag.assert(pf.key == wireFieldKey(val))
             sec.fieldIndex += 1
 
             let off = ConcatBuffer.offsetOf(output.position()) - sec.payloadStart
@@ -560,13 +560,13 @@ impl TagBin
         if sec.kind == .Raw do
             return
 
-        Debug.assert(!.elemStack.isEmpty())
+        Swag.assert(!.elemStack.isEmpty())
         let ctx = .elemStack.popBack()
         if !ctx.compressed do
             return
 
         // We must have a previous buffer to append into
-        Debug.assert(!.outStack.isEmpty())
+        Swag.assert(!.outStack.isEmpty())
         let parentOut = .outStack.popBack()!
 
         // Gather uncompressed bytes

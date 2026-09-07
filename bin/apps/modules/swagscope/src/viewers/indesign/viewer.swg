@@ -474,7 +474,7 @@ private impl IndesignPreviewLoad
 {
     mtd start(fileName: string, preview: const *IndesignPreview)
     {
-        Debug.assert(!.started)
+        Swag.assert(!.started)
         .fileName = fileName
         .preview  = preview[]
         .started  = true
@@ -489,7 +489,7 @@ private impl IndesignPreviewLoad
 
     mtd finish(value: *Image)->String
     {
-        Debug.assert(.isDone())
+        Swag.assert(.isDone())
         .wait()
         value[] = #move .value
         let result = Errors.message(.error)
@@ -849,7 +849,7 @@ private impl IndesignViewer
 
     mtd selectPreview(index: u64)
     {
-        Debug.assert(index < .pageCount())
+        Swag.assert(index < .pageCount())
         if .isMarkup()
         {
             .selectMarkupPage(index)
@@ -872,7 +872,7 @@ private impl IndesignViewer
 
     mtd selectMarkupPage(index: u64)
     {
-        Debug.assert(index < .markupPages.count)
+        Swag.assert(index < .markupPages.count)
         .previewIndex = index
         .htmlView?.destroy()
         .markupRenderedScale       = .markupPageScale(index)

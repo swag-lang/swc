@@ -8,8 +8,8 @@ impl IRenderer for RenderCpu
 
     mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
     {
-        Debug.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
-        Debug.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
+        Swag.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
+        Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
         discard shared
         return {renderHandle, null, width, height}
     }

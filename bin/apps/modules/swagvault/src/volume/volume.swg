@@ -355,7 +355,7 @@ impl Volume
 
         result.nodes.add(#move root)
         let rootIndexed = result.nodeLookup.add(&result.nodes[0], 0)
-        Debug.assert(rootIndexed)
+        Swag.assert(rootIndexed)
 
         result.blocks.initialize(result.blockCount)
         result.dirty = true
@@ -563,7 +563,7 @@ impl Volume
 
         result.nodes.add(#move root)
         let indexed = result.nodeLookup.add(&result.nodes[0], 0)
-        Debug.assert(indexed)
+        Swag.assert(indexed)
         result.blocks.initialize(result.blockCount)
         result.dirty = true
         try result.checkpoint()
@@ -1270,7 +1270,7 @@ impl Volume
 
     mtd readMetadataPage(physical: u64, destination: [..] u8) fail
     {
-        Debug.assert(destination.count == BlockSize)
+        Swag.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
@@ -1287,7 +1287,7 @@ impl Volume
 
     mtd writeMetadataPage(physical: u64, source: const [..] u8) fail
     {
-        Debug.assert(source.count == BlockSize)
+        Swag.assert(source.count == BlockSize)
         var record: [BlockRecordSize] u8
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
@@ -1732,7 +1732,7 @@ impl Volume
 
     mtd readPhysical(physical: u64, destination: [..] u8) fail
     {
-        Debug.assert(destination.count == BlockSize)
+        Swag.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
@@ -1760,9 +1760,9 @@ impl Volume
 
     mtd readPhysicalRun(physical: u64, destination: [..] u8) fail
     {
-        Debug.assert(destination.count != 0 and destination.count % BlockSize == 0)
+        Swag.assert(destination.count != 0 and destination.count % BlockSize == 0)
         let count = destination.count / BlockSize
-        Debug.assert(count <= MaximumIoBatchBlocks)
+        Swag.assert(count <= MaximumIoBatchBlocks)
 
         var records: Array'u8
         records.resize(count * BlockRecordSize)
@@ -1796,9 +1796,9 @@ impl Volume
 
     mtd writePhysicalRun(physical: u64, source: const [..] u8) fail
     {
-        Debug.assert(source.count != 0 and source.count % BlockSize == 0)
+        Swag.assert(source.count != 0 and source.count % BlockSize == 0)
         let count = source.count / BlockSize
-        Debug.assert(count <= MaximumIoBatchBlocks)
+        Swag.assert(count <= MaximumIoBatchBlocks)
 
         var records: Array'u8
         records.resize(count * BlockRecordSize)
@@ -1830,7 +1830,7 @@ impl Volume
     // the metadata commit makes the new mapping durable.
     mtd replaceBlockRun(node: *Node, logical, physical, count: u64)
     {
-        Debug.assert(count != 0 and logical <= Swag.U64.Max - count)
+        Swag.assert(count != 0 and logical <= Swag.U64.Max - count)
         let end = logical + count
         var updated: Array'BlockMapping
         updated.reserve(node.blocks.count + 2)
@@ -1886,7 +1886,7 @@ impl Volume
 
     mtd writeBlock(nodeId, logical: u64, source: const [..] u8) fail
     {
-        Debug.assert(source.count == BlockSize)
+        Swag.assert(source.count == BlockSize)
         let allocated = try .blocks.allocateRun(1)
         let physical  = allocated.first
         var published = false
@@ -1906,7 +1906,7 @@ impl Volume
 
     mtd writeFullBlocks(nodeId, logical: u64, source: const [..] u8) fail
     {
-        Debug.assert(source.count != 0 and source.count % BlockSize == 0)
+        Swag.assert(source.count != 0 and source.count % BlockSize == 0)
         var doneBlocks = 0'u64
         let blockCount = source.count / BlockSize
         while doneBlocks < blockCount
@@ -2160,7 +2160,7 @@ impl Volume
         let result = node.id
         .nodes.add(#move node)
         let indexed = .nodeLookup.add(&.nodes[.nodes.count - 1], .nodes.count - 1)
-        Debug.assert(indexed)
+        Swag.assert(indexed)
         .touch(result)
         .scalarsDirty = true
         return result
@@ -2181,7 +2181,7 @@ impl Volume
 
     mtd removeNodeAt(index: u64)
     {
-        Debug.assert(index < .nodes.count)
+        Swag.assert(index < .nodes.count)
         .nodeLookup.remove(&.nodes[index])
         .nodes.removeAt(index)
         if index < .nodes.count do
@@ -2253,7 +2253,7 @@ impl Volume
 
         let updated      = .nodeById(id)!
         let indexUpdated = .nodeLookup.changeParent(updated, destinationParentId, name)
-        Debug.assert(indexUpdated)
+        Swag.assert(indexUpdated)
         updated.changeTime = volumeTimeNow()
         .touchMetadata(id)
         .commit()

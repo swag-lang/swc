@@ -446,7 +446,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1708</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1707</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -746,7 +746,6 @@
 <li><a href="#Core_Globalization_DateTimeFormatInfo_formatDateTime">DateTimeFormatInfo.formatDateTime</a></li>
 <li><a href="#Core_Globalization_DateTimeFormatInfo_formatTime">DateTimeFormatInfo.formatTime</a></li>
 <li><a href="#Core_Globalization_DateTimeFormatInfo_monthName">DateTimeFormatInfo.monthName</a></li>
-<li><a href="#Core_Debug_assert">Debug.assert</a></li>
 <li><a href="#Core_Debug_safety">Debug.safety</a></li>
 <li><a href="#Core_Debug_safetyBoundCheck">Debug.safetyBoundCheck</a></li>
 <li><a href="#Core_Debugger_attach">Debugger.attach</a></li>
@@ -2389,7 +2388,7 @@ options.recurse = <span class="SKwd">true</span>
 </tbody>
 </table>
 <p>Assertions protect programmer invariants; they are not a substitute for handling invalid files, user input, or operating-system failures. Public operations that can encounter those conditions report them through <span class="code-inline">fail</span>.</p>
-<p>Use <span class="code-inline">Swag.assert(condition, message)</span> without a Core import. The message is optional. <a href="swag.runtime.html#Swag_SafetyWhat_Assert">Swag.SafetyWhat.Assert</a> controls assertion emission through <span class="code-inline">BuildCfg.safetyGuards</span> and <a href="swag.runtime.html#Swag_Safety">Swag.Safety</a> overrides: enabled in devmode and disabled in release by default. Disabled assertions evaluate none of their arguments, so keep required side effects outside them. <span class="code-inline">Core.Debug.assert</span> and <span class="code-inline">Core.ASSERT</span> are deprecated; query the local setting with <span class="code-inline">#safety(Swag.SafetyWhat.Assert)</span>. The former <span class="code-inline">Std.Core.Assert</span> tag is replaced by the safety flag. <span class="code-inline">#assert</span> remains an unconditional compile-time check.</p>
+<p>Use <span class="code-inline">Swag.assert(condition, message)</span> without a Core import. The message is optional. <a href="swag.runtime.html#Swag_SafetyWhat_Assert">Swag.SafetyWhat.Assert</a> controls assertion emission through <span class="code-inline">BuildCfg.safetyGuards</span> and <a href="swag.runtime.html#Swag_Safety">Swag.Safety</a> overrides: enabled in devmode and disabled in release by default. Disabled assertions evaluate none of their arguments, so keep required side effects outside them. <span class="code-inline">Core.ASSERT</span> is deprecated; query the local setting with <span class="code-inline">#safety(Swag.SafetyWhat.Assert)</span>. The former <span class="code-inline">Std.Core.Assert</span> tag is replaced by the safety flag. <span class="code-inline">#assert</span> remains an unconditional compile-time check.</p>
 </section>
 <section class="api-guide"><h2 id="guide_JSON_and_globalization">JSON and globalization</h2>
 <p>The reflection-driven JSON codec reads and writes ordinary Swag structs without a schema or annotations. Fields marked <a href="#Core_Serialization_NoSerialize">Core.Serialization.NoSerialize</a> stay out of the document. The reader accepts properties in any order, retains initialized values for missing properties, and ignores properties the current declaration does not know, which lets configuration files evolve.</p>
@@ -3759,8 +3758,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatTime">DateTimeFormatInfo.formatTime</a></td><td><p>Formats a clock value using <a href="#Core_Globalization_DateTimeFormatInfo_shortTimePattern">shortTimePattern</a> or <a href="#Core_Globalization_DateTimeFormatInfo_longTimePattern">longTimePattern</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_monthName">DateTimeFormatInfo.monthName</a></td><td><p>Returns the localized full name of a month numbered from 1 through 12.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Core_Debug_assert">Debug.assert</a></td><td><p>Checks a programmer invariant through <a href="swag.runtime.html#Swag_assert">Swag.assert</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Debug_safety">Debug.safety</a></td><td><p>Performs the safety operation.</p>
 </td></tr>
@@ -6973,8 +6970,6 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Debug_assert">Debug.assert</a></td><td><p>Checks a programmer invariant through <a href="swag.runtime.html#Swag_assert">Swag.assert</a>.</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Core_Debug_safety">Debug.safety</a></td><td><p>Performs the safety operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Debug_safetyBoundCheck">Debug.safetyBoundCheck</a></td><td><p>Performs the safety bound check operation.</p>
@@ -18847,20 +18842,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">monthName</span>(month: <span class="STpe">u16</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Debug_assert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.assert</span> <a class="api-item-permalink" href="#Core_Debug_assert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L9">src</a></div>
-<p>Checks a programmer invariant through <a href="swag.runtime.html#Swag_assert">Swag.assert</a>.</p>
-<p>This compatibility macro follows <a href="swag.runtime.html#Swag_SafetyWhat_Assert">Swag.SafetyWhat.Assert</a>. Use <a href="swag.runtime.html#Swag_assert">Swag.assert</a> in new code.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Deprecated("use Swag.assert"), </span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
-<span class="SKwd">func</span> <span class="SFct">assert</span>(expr: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Debug_safety" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safety</span> <a class="api-item-permalink" href="#Core_Debug_safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L17">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Debug_safety" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safety</span> <a class="api-item-permalink" href="#Core_Debug_safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L7">src</a></div>
 <p>Performs the safety operation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span>(what: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_SafetyWhat">SafetyWhat</a></span>) <span class="SFct">safety</span>(expr: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Debug_safetyBoundCheck" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safetyBoundCheck</span> <a class="api-item-permalink" href="#Core_Debug_safetyBoundCheck" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L28">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Debug_safetyBoundCheck" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Debug.safetyBoundCheck</span> <a class="api-item-permalink" href="#Core_Debug_safetyBoundCheck" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/diagnostics/assert.swg#L18">src</a></div>
 <p>Performs the safety bound check operation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">safetyBoundCheck</span>(expr50: <span class="SItr">#code</span>-&gt;<span class="STpe">bool</span>, message: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
@@ -28845,7 +28833,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Console.setTextColor|Core_Console_setTextColor|Set the console foreground color",
 "f|Core.Console.silent|Core_Console_silent|Disable console output. This is a counter, so can be called",
 "f|Core.Console.unlock|Core_Console_unlock|Releases the lock.",
-"f|Core.Debug.assert|Core_Debug_assert|Checks a programmer invariant through Swag.assert.",
 "f|Core.Debug.safety|Core_Debug_safety|Performs the safety operation.",
 "f|Core.Debug.safetyBoundCheck|Core_Debug_safetyBoundCheck|Performs the safety bound check operation.",
 "f|Core.Debugger.attach|Core_Debugger_attach|Try to attach to a debugger by calling \"vsjitdebugger.exe\"",

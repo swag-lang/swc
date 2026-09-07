@@ -177,6 +177,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
         window.showTab(1)
         assertFormEndsInsideCard(&window.mountCard)
+        Testing.assertContentFits(window)
+        let optionGap = window.protectHidden.position.x - window.readOnly.position.right()
+        Swag.assert(optionGap >= 0 and optionGap <= window.themeMetrics().dialog_BtnPadding * 3 + 0.5)
+        let actionGap = window.mountCard.actions.position.y - window.mountCard.form.position.bottom()
+        Swag.assert(actionGap >= 0 and actionGap <= window.themeMetrics().dialog_BtnPadding * 3 + 0.5)
+        Swag.assert(window.mountCard.actions.position.bottom() <= window.mountCard.body.clientRect().height + 0.5)
 
         window.showTab(3)
         assertFormEndsInsideCard(&window.optionsCard)

@@ -88,12 +88,11 @@ internal enum CreateRow
 // Rows of the "open an existing vault" form, in the order `createOpenVaultCard` adds them.
 internal enum MountRow
 {
-    Path              // Container file to open.
-    Password          // Password unlocking the container, or empty when it has none.
-    KeyFiles          // Ordered files combined with the password.
-    Drive             // Drive letter the volume appears on.
-    ReadOnly          // Whether the drive opens for reading alone.
-    ProtectHidden     // Whether mounting asks for hidden access before enabling writes.
+    Path             // Container file to open.
+    Password         // Password unlocking the container, or empty when it has none.
+    KeyFiles         // Ordered files combined with the password.
+    Drive            // Drive letter the volume appears on.
+    MountOptions     // Read-only mounting and optional hidden-volume protection.
 }
 
 // Rows of the automatic-unmount form, in the order `createOptionsCard` adds them.
@@ -238,6 +237,7 @@ struct MainWindow
         mountPassword:  *PasswordEdit
         mountKeyFiles:  *KeyFileField
         drive:          *ComboBox
+        mountOptions:   *StackLayoutCtrl
         protectHidden:  *CheckButton
         hiddenButton:   *PushButton
         readOnly:       *CheckButton
@@ -494,11 +494,12 @@ internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
 {
     let texts = appStrings()
     let form  = dialog.form
+    VaultForm.configure(form)
 
     let replacement = form.addPasswordField(texts.ui_NewPassword, placeholder: texts.ui_OptionalPassword, help: texts.ui_RemovePasswordHelp)
     let confirm     = form.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
 
-    form.computeLayout()
+    VaultForm.finish(form)
     return {replacement, confirm}
 }
 
@@ -508,6 +509,7 @@ internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 {
     let texts = appStrings()
     let form  = dialog.form
+    VaultForm.configure(form)
 
     let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
     capacity.setUnsignedIntegerRange(1, 1024 * 1024)
@@ -531,7 +533,7 @@ internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
         unit.enable(enabled)
     }
 
-    form.computeLayout()
+    VaultForm.finish(form)
     return {capacity, unit, keepCapacity}
 }
 
@@ -539,10 +541,11 @@ internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 // remain on the open card; the box contains only the list being changed.
 internal func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String)->*KeyFileField
 {
+    VaultForm.configure(dialog.form)
     let result = KeyFileField.create(dialog.form)
     result.setPaths(current)
     discard dialog.form.addField(appStrings().ui_KeyFiles, result, help: appStrings().ui_KeyFilesHelp)
-    dialog.form.computeLayout()
+    VaultForm.finish(dialog.form)
     return result
 }
 
@@ -552,7 +555,7 @@ impl MainWindow
     // the widest card's form plus its padding, and French wraps widest, so it is the language
     // that sizes this. The height is the tallest card, which is the one that opens a vault.
     const WindowWidth  = 720's32
-    const WindowHeight = 1000's32
+    const WindowHeight = 900's32
 
     // The page that opens a vault.
     const OpenTabIndex = 1'u32
@@ -669,6 +672,7 @@ impl MainWindow
         .applyLayout()
         .createCard.endForm()
         .mountCard.endForm()
+        .mountOptions.computeLayout()
         .optionsCard.endForm()
     }
 
@@ -1244,8 +1248,12 @@ impl MainWindow
 
         // Under the letter rather than beside the password: it says what the drive will be, not
         // how the container is opened, and a reader deciding on a letter is already there.
-        .readOnly            = form.addOptionField(appStrings().ui_ReadOnly)
-        .protectHidden       = form.addOptionField(appStrings().ui_ProtectHidden)
+        let mountOptions = StackLayoutCtrl.create(form, .Left)
+        .mountOptions        = mountOptions
+        mountOptions.spacing = form.themeMetrics().dialog_BtnPadding * 3
+        discard form.addField("", mountOptions)
+        .readOnly            = CheckButton.create(mountOptions, appStrings().ui_ReadOnly)
+        .protectHidden       = CheckButton.create(mountOptions, appStrings().ui_ProtectHidden)
         .readOnly.sigChanged += func|window = me|(button)
         {
             window.protectHidden.enable(!button.isChecked())
@@ -1490,6 +1498,7 @@ impl MainWindow
         .applyLayout()
         .createCard.endForm()
         .mountCard.endForm()
+        .mountOptions.computeLayout()
         .optionsCard.endForm()
         .createCard.actions.computeLayout()
         .mountCard.actions.computeLayout()
@@ -2372,11 +2381,12 @@ impl MainWindow
         options.width             = 520
         options.height            = 250
 
-        let dialog   = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(.surface!, options)
+        VaultForm.configure(dialog.form)
         let password = dialog.form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword, help: path)
         let keyFiles = KeyFileField.create(dialog.form)
         discard dialog.form.addField(appStrings().ui_KeyFiles, keyFiles, help: appStrings().ui_KeyFilesHelp)
-        dialog.form.computeLayout()
+        VaultForm.finish(dialog.form)
         if dialog.doModal() != Dialog.BtnOk do
             return false
 

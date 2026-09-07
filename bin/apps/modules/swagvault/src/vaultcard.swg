@@ -8,7 +8,7 @@ using Core, Gui
 struct VaultCard
 {
     late panel:    *Wnd
-    late body:     *Wnd
+    late body:     *StackLayoutCtrl
     late form:     *FormLayoutCtrl
     late actions:  *StackLayoutCtrl
     late title:    *Label
@@ -34,31 +34,18 @@ impl VaultCard
         subtitleLabel.dockStyle = .Top
         subtitleLabel.margin    = {0, 4, 0, 0}
         subtitleLabel.setTextAlignment(.Left, .Top)
+        subtitleLabel.setLineGap(cast(s32) (panel.themeMetrics().dialog_BtnPadding / 2))
 
-        let actions = StackLayoutCtrl.create(panel, .Right, {0, 0, 0, 36})
-        actions.dockStyle = .Bottom
-        actions.spacing   = 8
-
-        let body = Wnd.create'Wnd(panel)
+        // Keep actions next to the fields they submit instead of pinning them to the card floor.
+        let body = StackLayoutCtrl.create(panel, .Top)
         body.dockStyle       = .Center
         body.backgroundStyle = .Transparent
-        body.margin          = {0, 24, 0, 24}
+        body.margin          = {0, 8, 0, 0}
+        body.spacing         = panel.themeMetrics().dialog_BtnPadding * 2
 
-        // A field label names its field; it is not a heading. Small, bold, and quiet keeps it
-        // under the prose above it and under the value the field will hold. The smaller face
-        // also needs less room than the theme reserves for a label at body size.
-        with var options: FormLayoutOptions
-        {
-            .labelHeight  = 18
-            .labelSpacing = 6
-            .rowSpacing   = 22
-            .helpHeight   = 40
-            .labelFont    = panel.theme().createDefaultFont(12, .Bold)
-            .labelFlags   = .SecondaryText
-        }
-
-        let form = FormLayoutCtrl.create(body, options)
-        form.dockStyle = .Top
+        let form    = FormLayoutCtrl.create(body, VaultForm.options(body))
+        let actions = StackLayoutCtrl.create(body, .Right, {0, 0, 0, 36})
+        actions.spacing = panel.themeMetrics().dialog_BtnPadding
         panel.applyLayout()
         return {panel, body, form, actions, titleLabel, subtitleLabel}
     }
@@ -81,6 +68,7 @@ impl VaultCard
     // so the pass is asked for here rather than waited for.
     mtd endForm()
     {
+        VaultForm.finish(.form)
         .body.applyLayout()
         .form.computeLayout()
     }

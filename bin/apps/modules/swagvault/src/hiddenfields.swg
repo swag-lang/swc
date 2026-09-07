@@ -16,7 +16,8 @@ struct HiddenFields
 func buildHiddenCreateForm(dialog: *FormDlg)->HiddenFields
 {
     var result: retval
-    let form  = dialog.form
+    let form = dialog.form
+    VaultForm.configure(form)
     let texts = appStrings()
     result.capacity = form.addTextField(texts.ui_FixedCapacity, "256", help: texts.ui_HiddenCreateHelp)
     result.capacity.setUnsignedIntegerRange(1, 1024 * 1024)
@@ -34,18 +35,19 @@ func buildHiddenCreateForm(dialog: *FormDlg)->HiddenFields
     result.confirm  = form.addPasswordField(texts.ui_ConfirmPassword)
     result.keyFiles = KeyFileField.create(form)
     discard form.addField(texts.ui_KeyFiles, result.keyFiles, help: texts.ui_KeyFilesHelp)
-    form.computeLayout()
+    VaultForm.finish(form)
     return result
 }
 
 func buildHiddenProtectionForm(dialog: *FormDlg)->HiddenFields
 {
     var result: retval
-    let form  = dialog.form
+    let form = dialog.form
+    VaultForm.configure(form)
     let texts = appStrings()
     result.password = form.addPasswordField(texts.ui_HiddenPassword, help: texts.ui_HiddenProtectionHelp)
     result.keyFiles = KeyFileField.create(form, canGenerate: false)
     discard form.addField(texts.ui_KeyFiles, result.keyFiles, help: texts.ui_KeyFilesHelp)
-    form.computeLayout()
+    VaultForm.finish(form)
     return result
 }

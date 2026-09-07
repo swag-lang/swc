@@ -28,6 +28,7 @@ struct Label
             iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
             textColor:   Color                                       // Explicit text color, or transparent for theme colors.
             flags                   = LabelFlags.None                // Active text layout and presentation options.
+            lineGap:     s32                                         // Extra space between text lines, in logical pixels; zero by default.
             maxLines:    u32                                         // Largest number of lines the text may occupy; zero keeps every line.
             iconHorizontalAlignment = StringHorzAlignment.Center     // Horizontal icon alignment.
             iconVerticalAlignment   = StringVertAlignment.Center     // Vertical icon alignment.
@@ -203,6 +204,7 @@ impl Label
         sf.horzAlignment = .textHorizontalAlignment
         sf.vertAlignment = .textVerticalAlignment
         sf.maxLines      = .maxLines
+        sf.lineGap       = .lineGap
 
         if .textColor.a
         {
@@ -309,6 +311,21 @@ impl Label
             return
         .maxLines = count
         .invalidate()
+        .updateAutomaticHeight()
+    }
+
+    // Changes the extra space between text lines, in logical pixels.
+    //
+    // Negative values are clamped to zero. Measurement, painting, and automatic height use
+    // the same gap; changing it invalidates the parent layout as well.
+    mtd setLineGap(gap: s32)
+    {
+        let value = Math.max(gap, 0)
+        if .lineGap == value do
+            return
+        .lineGap = value
+        .invalidate()
+        .invalidateLayout()
         .updateAutomaticHeight()
     }
 

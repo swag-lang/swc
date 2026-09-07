@@ -26,6 +26,19 @@ effects that makes a capture look produced, and output.
 Scrolling and recorded capture require a timed acquisition and export subsystem; those outcomes come after the
 still-image editing and output work.
 
+### app.capture.026 — Menu snapshots still expect radio outlines
+
+- Recorded: 2026-09-07 08:13
+- Evidence: the golden campaign reports identical differences before and after the Vault label
+  spacing change in `main.menu.view` (228 pixels), `library.menu.view` (180),
+  `library.menu.sort` (480), and `library.menu.filter` (660). Re-running
+  `tools/apps.swgs dm test swagcapture --test-file surface.test.swg --test-tag golden`
+  with the original `Label` reproduces all four differences. The stored pictures have
+  outlined radio circles; the current menu draws only the selected dot.
+- Next: review these four consumer snapshots against the intended shared menu-marker design,
+  then promote them if the dot-only presentation is confirmed.
+- Complete when: the focused Capture menu golden tests pass with reviewed references.
+
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
 - Recorded: 2026-09-06 17:42

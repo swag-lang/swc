@@ -40,3 +40,21 @@ using Swag, Core
     Swag.assert(label.iconPadding == Math.Vector4{2, 1, 2, 1})
     Swag.assert(label.position.height >= 20)
 }
+
+// Interline spacing changes the painted and measured text by the same amount.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 160)
+    defer host.shutdown()
+    let label = Label.create(&host.root, "First\nSecond\nThird", {0, 0, 200, 0}, flags: .WordWrap | .AutoHeight)
+    label.setTextAlignment(.Left, .Top)
+    let initial = label.measure({200, 0}).preferred.y
+    label.setLineGap(4)
+    Swag.assert(Math.abs(label.measure({200, 0}).preferred.y - initial - 8) < 0.5)
+    var image = host.render(label)
+    Swag.assert(Math.abs(label.name.boundRect.height - initial - 8) < 0.5)
+    label.setLineGap(-1)
+    Swag.assert(label.lineGap == 0)
+    Swag.assert(Math.abs(label.measure({200, 0}).preferred.y - initial) < 0.5)
+}

@@ -238,6 +238,22 @@ private func writeZipFixture()->String
     Swag.assert(viewer.list.lineCount() == 4)
     Swag.assert(viewer.entryLines.count == 2)
 
+    // Shell icon pixels depend on Windows, file associations, and its scaling path. Keep
+    // checking that the viewer supplied icons, then render fixed folder/JSON/text inputs.
+    let iconFile  = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.icons.png")
+    let iconImage = expect Image.load(iconFile)
+    var icons     = ImageList.create(host.app.renderer.addImage(&iconImage), 16, 16)
+    defer icons.release(host.app.renderer)
+    Swag.assert(icons.frameCount == 3)
+    for index in viewer.list.lineCount()
+    {
+        let row  = viewer.list.lineAt(index)!
+        let item = row.itemAt(0)
+        Swag.assert(item.icon.isValid())
+        let frame = row.canExpand() ? 0 : item.name == "sample.json" ? 1 : 2
+        item.icon = Icon.from(&icons, frame)
+    }
+
     let line         = viewer.entryLines[1]!
     var visibleIndex = Swag.U32.Max
     for index in viewer.list.lineCount() where viewer.list.lineAt(index) == line do

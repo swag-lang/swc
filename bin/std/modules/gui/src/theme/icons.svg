@@ -277,4 +277,9 @@
     <path d="M10 4 H5 L4 5 V19 L5 20 H19 L20 19 V14"/>
     <path d="M14 4 H20 V10 M20 4 L10 14"/>
   </g>
+  <g id="PlaybackSpeed" transform="translate(144 192)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 19 A9 9 0 1 1 19 19 H5"/>
+    <path d="M12 5 V7 M5 10 L7 11 M19 10 L17 11 M12 15 L16 7"/>
+    <circle cx="12" cy="15" r="1" fill="#ffffff"/>
+  </g>
 </svg>

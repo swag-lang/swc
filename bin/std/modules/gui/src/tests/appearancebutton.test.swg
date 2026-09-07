@@ -41,7 +41,7 @@ using Swag, Core, Pixel
     let icons = [ThemeIcons.FullScreen, .ExitFullScreen, .SeekBackward, .SeekForward, .Volume,
                  ThemeIcons.VolumeMute, .FitView, .ActualSize, .Wrap, .AudioTracks,
                  ThemeIcons.SearchPrevious, .SearchNext, .MatchWholeWord, .PlayOnce, .RepeatOne,
-                 ThemeIcons.RepeatAll, .Shuffle]
+                 ThemeIcons.RepeatAll, .Shuffle, .PlaybackSpeed]
     for icon, idx in icons
     {
         let x = 8 + cast(f32) (idx % 5) * 48

@@ -537,7 +537,8 @@ internal struct VideoViewer
         forwardButton:   *IconButton
         timeline:        *Slider
         timeLabel:       *Label
-        settingsButton:  *IconButton
+        speedButton:     *IconButton
+        playModeButton:  *Viewer.PlaybackButton
         audioButton:     *IconButton
         subtitleButton:  *IconButton
         muteButton:      *IconButton
@@ -639,7 +640,6 @@ internal struct VideoViewer
     reportFailure:        Viewer.ReportFailure?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
     reportFinished:       Viewer.ReportFinished?
-    playback:             Viewer.PlaybackApi
     retireRequested:      bool
     retired:              bool
 
@@ -749,7 +749,7 @@ private impl VideoViewer
 
         .audioButton.toolTip    = videoStrings().ui_TipAudio
         .subtitleButton.toolTip = videoStrings().ui_TipSubtitles
-        .settingsButton.toolTip = videoStrings().ui_TipPlayerSettings
+        .speedButton.toolTip    = videoStrings().ui_TipPlaybackSpeed
 
         .refreshDetails()
     }
@@ -1028,12 +1028,10 @@ internal impl VideoViewer
         }
     }
 
-    // Offers the shared end-of-file modes and this player's playback rates in one settings menu.
-    mtd showPlayerSettingsMenu()
+    // Offers the playback rates independently of the shared end-of-file mode.
+    mtd showPlaybackSpeedMenu()
     {
-        let menu = MenuCtrl.createPopup(.settingsButton, owner: me)
-        .playback.appendMenuItems(menu, me)
-        menu.addSeparator()
+        let menu = MenuCtrl.createPopup(.speedButton, owner: me)
 
         var commands: Array'String
         commands.reserve(VideoPlaybackRates.count)
@@ -1043,10 +1041,8 @@ internal impl VideoViewer
             menu.addRadioItem(videoPlaybackRateText(rate), commands[index].toString(), checked: rate == .playbackRate)
         }
 
-        let chosen = menu.doModal(.settingsButton, autoDestroy: true)
+        let chosen = menu.doModal(.speedButton, autoDestroy: true)
         if !chosen do
-            return
-        if .playback.applyMenuChoice(me, chosen!) do
             return
         for rate, index in VideoPlaybackRates where chosen! == commands[index].toString()
         {
@@ -2016,7 +2012,6 @@ private impl VideoViewer
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
         result.reportFinished       = services.reportFinished
-        result.playback             = services.playback
 
         result.commands    = host.createCommandGroup(VideoCommandWidth)
         result.information = MediaInfoPanel.create(host)
@@ -2079,17 +2074,23 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.settingsButton = IconButton.create(result.commands, result.theme().icon(.Options, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
+        with result.speedButton = IconButton.create(result.commands, result.theme().icon(.PlaybackSpeed, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.x  = 4
-            .toolTip   = videoStrings().ui_TipPlayerSettings
+            .toolTip   = videoStrings().ui_TipPlaybackSpeed
             .setArrowPosition(.RightUpward)
             .sigPressed += func|view = result|(button)
             {
                 discard button
-                view.showPlayerSettingsMenu()
+                view.showPlaybackSpeedMenu()
             }
+        }
+
+        with result.playModeButton = Viewer.PlaybackButton.create(result.commands, result, services.playback)
+        {
+            .dockStyle = .Right
+            .margin.x  = 4
         }
 
         with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)

@@ -465,7 +465,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.voice!.playbackSampleFrame() == 0)
 }
 
-// The player settings menu qualifies how the movie plays: an adjusted rate scales the silent
+// The playback speed menu changes how fast the movie plays: an adjusted rate scales the silent
 // clock and the sound together, and stays declared by the host summary until reset.
 #test
 {
@@ -482,12 +482,13 @@ func videoMatroskaFixturePath()->String
     Swag.assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
-    Swag.assert(view.settingsButton.icon.isValid() and view.settingsButton.isEnabled())
+    Swag.assert(view.speedButton.icon.index == cast(s32) ThemeIcons.PlaybackSpeed and view.speedButton.isEnabled())
+    Swag.assert(!view.playModeButton.isEnabled())
     Swag.assert(view.audio != null and view.voice != null)
 
     // The speed entry rescales the voice with the clock, and the summary declares the rate.
     host.clickPopupMenuItemWhenShown("scope.video.player.speed.6")
-    view.showPlayerSettingsMenu()
+    view.showPlaybackSpeedMenu()
     Swag.assert(view.playbackRate == 2)
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 2, 0.001))
     Swag.assert(view.details.indexOf("2×") != Swag.U64.Max)
@@ -553,13 +554,16 @@ func videoMatroskaFixturePath()->String
         let view = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
         waitForVideoFrame(view)
         Swag.assert(window.currentView == view and view.playing)
-        Swag.assert(view.settingsButton.parent == window.currentCommands)
+        Swag.assert(view.playModeButton.parent == window.currentCommands and view.speedButton.parent == window.currentCommands)
         host.clickPopupMenuItemWhenShown("scope.play.shuffle")
-        view.showPlayerSettingsMenu()
-        Swag.assert(window.playMode == .Shuffle)
+        view.playModeButton.showMenu()
+        Swag.assert(window.playMode == .Shuffle and view.playModeButton.icon.index == cast(s32) ThemeIcons.Shuffle)
+        host.clickPopupMenuItemWhenShown("scope.video.player.speed.6")
+        view.showPlaybackSpeedMenu()
+        Swag.assert(view.playbackRate == 2 and window.playMode == .Shuffle)
+        view.setPlaybackRate(1)
         window.setPlayMode(.Folder)
-        let menu = MenuCtrl.createPopup(view.settingsButton, owner: view)
-        view.playback.appendMenuItems(menu, view)
+        let menu = view.playModeButton.createMenu()
         Swag.assert(menu.items.count == 4)
         menu.destroy()
 
@@ -731,6 +735,7 @@ func videoMatroskaFixturePath()->String
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.assert(view.audioButton.toolTip == "Piste audio")
+    Swag.assert(view.speedButton.toolTip == "Vitesse de lecture")
     Swag.assert(videoAudioTrackText(1, view.video.audioTrack(1)!).indexOf("can.") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("2 can.") != Swag.U64.Max)
 
@@ -745,8 +750,9 @@ func videoMatroskaFixturePath()->String
     Swag.assert(view.timeLabel.textHorizontalAlignment == .Right)
     Swag.assert(view.volumeSlider.position.right() <= view.subtitleButton.position.x)
     Swag.assert(view.subtitleButton.position.right() <= view.audioButton.position.x)
-    Swag.assert(view.audioButton.position.right() <= view.settingsButton.position.x)
-    Swag.assert(view.settingsButton.position.right() == view.commands.clientRect().right())
+    Swag.assert(view.audioButton.position.right() <= view.playModeButton.position.x)
+    Swag.assert(view.playModeButton.position.right() <= view.speedButton.position.x)
+    Swag.assert(view.speedButton.position.right() == view.commands.clientRect().right())
     Testing.assertContentFits(view.commands)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")

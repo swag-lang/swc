@@ -214,4 +214,50 @@ impl Painter
     {
         .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)
     }
+
+    // Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.
+    //
+    // `spread` is how far the shadow reaches beyond the shape, in logical units, and `color`'s
+    // alpha is the darkening it reaches where it meets the shape — not the alpha of any one part
+    // of it. Nothing is drawn inside the shape, which the caller paints over the result.
+    //
+    // The shadow is built out of nested rings. They are filled shapes stacked on one another, so
+    // what a pixel ends up with is the product of everything painted over it: handing each ring
+    // the alpha the profile asks for at its own distance would darken the shadow with every ring
+    // added, and the whole picture would change the moment the ring count were tuned for
+    // smoothness. Each ring's alpha is solved from what the stack has already reached instead, so
+    // the accumulated profile is the same at any ring count and the count is a pure quality knob:
+    // one ring per device pixel of spread, below which the gradient bands and above which the
+    // extra rings land on a pixel that is already covered.
+    mtd fillShadow(rect: Math.Rectangle, cornerRadius, spread: f32, color: Color)
+    {
+        if spread <= 0 or color.a == 0 do
+            return
+
+        let rings = Math.max(1, Math.ceilS32(spread * .contentScale()))
+        let peak  = cast(f32) color.a / 255.0
+
+        var reached = 0.0'f32
+        for i in rings
+        {
+            // `depth` runs 0 at the outermost ring to 1 at the shape. Smoothstep gives the shadow
+            // a long faint tail where it meets the ground and a flat shoulder against the shape,
+            // which is what reads as air under it rather than as an outline drawn around it.
+            let ringSpread = spread * cast(f32) (rings - i) / cast(f32) rings
+            let depth      = 1.0 - ringSpread / spread
+            let target     = peak * Math.smoothstep(0.0, 1.0, depth)
+
+            let alpha = 1.0 - (1.0 - target) / (1.0 - reached)
+            reached = target
+
+            let quantized = cast(u8) Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0)
+            if quantized == 0 do
+                continue
+
+            var ring = rect
+            ring.inflate(ringSpread)
+            let radius = cornerRadius + ringSpread
+            .fillRoundRect(ring, radius, radius, color.withAlpha(quantized))
+        }
+    }
 }

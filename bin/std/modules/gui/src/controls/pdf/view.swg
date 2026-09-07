@@ -63,6 +63,7 @@ impl PdfTextPosition
         return .offset < other.offset
     }
 
+    // Reports whether both positions name the same byte of the same page.
     mtd const opEquals(other: PdfTextPosition)->bool => .pageIndex == other.pageIndex and .offset == other.offset
 }
 
@@ -549,6 +550,11 @@ internal impl PdfView
     const ResidentPageLimit  = 8'u64
     const ResidentPageBudget = 32 * 1024 * 1024'u64
 
+    // How far the air under a page reaches, in logical units. A page is paper standing on the
+    // ground the viewer shows it against, and the shadow is what says so; without it the page is
+    // a white rectangle drawn on a dark one.
+    const PageShadowSpread = 6.0'f32
+
     // Lays the document out for the current viewport and scale, and publishes what can be
     // scrolled.
     //
@@ -796,6 +802,7 @@ internal impl PdfView
             // The paper is drawn whether or not the page arrived, so a document scrolled faster
             // than it decodes shows where its pages are instead of a hole that fills in behind
             // the reader.
+            painter.fillShadow(box, 0, PageShadowSpread, colors.wnd_Shadow)
             painter.fillRect(box, Color.fromArgb(Argb.White))
             painter.drawRect(box, colors.border, 1)
 
@@ -1094,9 +1101,12 @@ internal impl IWnd for PdfCanvas
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let owner   = .owner
+        let owner = .owner
+
+        // The pages stand on the panel ground rather than on the ground content is read on: the
+        // paper of a page is its own, and a white page on a white ground has no edge.
         let painter = evt.paintContext.painter
-        painter.fillRect(.clientRect(), .themeColors().view_Bk)
+        painter.fillRect(.clientRect(), .themeColors().wnd_Bk)
         if !owner.hasDocument do
             return
 
@@ -1255,7 +1265,7 @@ impl PdfView
             return false
         })
 
-        view.backgroundStyle = .View
+        view.backgroundStyle = .Window
 
         result.canvas          = Wnd.create'PdfCanvas(view, "gui.pdf.canvas")
         result.canvas.owner    = result

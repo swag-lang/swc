@@ -668,16 +668,8 @@ impl Surface
         .painter.resetClippingRegion()
     }
 
-    // Builds the shadow out of nested rings, from the faint outer edge in to the body.
-    //
-    // The rings are filled shapes stacked on one another, so what a pixel ends up with is the
-    // product of everything painted over it, not the last value written. Handing each ring the
-    // alpha the profile asks for at its own distance therefore darkens the shadow with every ring
-    // added, and the whole picture changes the moment the ring count is tuned for smoothness. The
-    // per-ring alpha is solved from what the stack has already reached instead, so the accumulated
-    // profile is the same at any ring count and the count becomes a pure quality knob: one ring
-    // per device pixel of spread, below which the gradient bands and above which the extra rings
-    // land on a pixel that is already covered.
+    // Lays the air under the window down: the same shadow any shape standing on a ground casts,
+    // offset by what the theme says the light does.
     private mtd paintShadow()
     {
         let metrics = &.app.theme.metrics
@@ -688,34 +680,7 @@ impl Surface
 
         var bodyRect = .bodyShape()
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
-
-        let rings      = Math.max(1, Math.ceilS32(spread * .dpiScale))
-        let peak       = cast(f32) color.a / 255.0
-        let baseCorner = .cornerRadius()
-
-        var reached = 0.0'f32
-        for i in rings
-        {
-            // `depth` runs 0 at the outermost ring to 1 at the body. Smoothstep gives the shadow
-            // a long faint tail where it meets the desktop and a flat shoulder against the body,
-            // which is what reads as air under the window rather than as an outline drawn around
-            // it.
-            let ringSpread = spread * cast(f32) (rings - i) / cast(f32) rings
-            let depth      = 1.0 - ringSpread / spread
-            let target     = peak * Math.smoothstep(0.0, 1.0, depth)
-
-            let alpha = 1.0 - (1.0 - target) / (1.0 - reached)
-            reached = target
-
-            let quantized = cast(u8) Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0)
-            if quantized == 0 do
-                continue
-
-            var rect = bodyRect
-            rect.inflate(ringSpread)
-            let radius = baseCorner + ringSpread
-            .painter.fillRoundRect(rect, radius, radius, color.withAlpha(quantized))
-        }
+        .painter.fillShadow(bodyRect, .cornerRadius(), spread, color)
     }
 
     // Presses one of the two standard buttons of the surface, when there is one to press.

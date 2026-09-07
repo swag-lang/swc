@@ -34,8 +34,8 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 18:27 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-07 16:28 |
-| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 16:07 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-07 13:30 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-07 13:22 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |

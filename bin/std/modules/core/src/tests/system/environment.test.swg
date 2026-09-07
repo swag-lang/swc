@@ -23,18 +23,3 @@ using Swag
     Swag.assert(Env.hasArgument("swag.test"))
     Swag.assert(Env.executablePath().count != 0)
 }
-
-// Native windows are returned as scope-bound owning values and can be closed repeatedly.
-#test
-{
-    var window = expect Env.createWindow({
-        identifier: "core-environment-test",
-        title: "Core environment test",
-        width: 64,
-        height: 64})
-    Swag.assert(window.isOpen())
-
-    expect window.close()
-    Swag.assert(!window.isOpen())
-    expect window.close()
-}

@@ -64,6 +64,37 @@ func pageText(page: const *Pdf.Page)->String
     return result
 }
 
+// Renders until every page the viewport shows has been decoded and published.
+//
+// Pages are decoded on a worker, so what one frame shows depends on what has landed by then. A
+// test asks for the settled state instead of the first frame, which is also what a reader sees.
+func settlePdfView(host: *Gui.Testing.HeadlessHost, view: *Gui.PdfView)
+{
+    for 4000
+    {
+        discard host.render()
+        host.fireTimers()
+
+        var ready = !view.cache.isLoading() and !view.preparing
+        let range = view.visibleRange()
+        for index in range.first to range.last where !view.cache.isResident(index) do
+            ready = false
+        if ready do
+            return
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.panic("PDF pages never finished decoding", #curlocation)
+}
+
+// Returns the rectangle one page occupies in the view's canvas, which is what a pointer aims at.
+func pdfPageRectOnScreen(view: *Gui.PdfView, index: u64)->Math.Rectangle
+{
+    let rect   = view.pageRect(index)
+    let origin = view.documentOrigin()
+    return {origin.x + rect.x, origin.y + rect.y, rect.width, rect.height}
+}
+
 // Returns the path of one real-document fixture.
 //
 // Resolving it from the source location keeps a focused run working from every worktree and

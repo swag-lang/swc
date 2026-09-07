@@ -275,6 +275,21 @@ impl Page
 
 internal impl Page
 {
+    // Returns roughly what this page holds in memory, in bytes.
+    //
+    // The answer covers every item's rasters and geometry, the tessellation cached inside them,
+    // and the page's clip shapes. It is what a viewer bounds a cache of decoded pages with: a
+    // page of scans costs a hundred times a page of text, and a page count says nothing about it.
+    mtd const memoryUsage()->u64
+    {
+        var result = cast(u64) #sizeof(Page)
+        for item in .items do
+            result += item.memoryUsage()
+        for clip in .clipPaths do
+            result += clip!.path.memoryUsage()
+        return result
+    }
+
     // Records one item in paint order, dropping a clip that cannot cut it.
     //
     // A writer that draws every glyph through a form of its own gives each one that form's

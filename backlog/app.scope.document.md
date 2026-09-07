@@ -5,6 +5,23 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.014 — PDF viewing has no facing-page layout
+
+- Recorded: 2026-08-29 08:36
+- Updated: 2026-09-07 20:47 — git: Continuous scrolling and Fit Width shipped; facing pages remain
+- Evidence: `PdfView` now lays every page out in one scrolled column, decodes pages on a worker as
+  the viewport reaches them, and offers Fit Page, Fit Width, an explicit zoom and a one-page-at-a-time
+  layout, all reachable from the viewer's zoom menu. What remains is the two-page reading of a
+  document: facing pages, continuous facing pages, the cover-page rule that decides whether page
+  one stands alone, and Fit Selection. The host also provides F11 content-only fullscreen and has
+  no PDF-specific slide presentation workflow.
+- Next: lay two pages per row in `PdfView` behind the existing `PdfPageLayout`, deciding the cover
+  rule from the document's page count and first page size, and reuse the same visible-range and
+  residency path the column already uses.
+- Complete when: Single, Continuous, Facing and Continuous Facing share navigation, search and
+  selection; Fit Page, Fit Width and Fit Selection are distinct; page gaps and cover handling are
+  correct; and decoded-page caching stays bounded in all of them.
+
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
 
 - Recorded: 2026-08-29 08:36
@@ -84,19 +101,6 @@ integration around those engines.
   navigation working across a page it could only partly decode.
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
 - Related: std.gui.pdf.002
-
-### app.scope.document.014 — PDF viewing has no fit-width or multi-page layout
-
-- Recorded: 2026-08-29 08:36
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Evidence: `PdfView` exposes one `pageIndex`, Fit Page, Actual Size, and arbitrary zoom. The host
-  already provides F11 content-only fullscreen. There is no fit-width, continuous scroll, facing
-  pages, cover-page rule or PDF-specific slide presentation workflow.
-- Next: separate page layout from zoom and add Fit Width plus continuous single-page layout before
-  facing-page composition.
-- Complete when: Single, Continuous, Facing, and Continuous Facing modes share navigation and
-  search; Fit Page/Width/Selection are distinct; page gaps and cover handling are correct; and
-  decoded-page caching stays bounded.
 
 ### app.scope.document.022 — Jupyter notebooks have no document reader
 

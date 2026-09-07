@@ -34,6 +34,8 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-07 20:47 |
+| [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-09-07 20:45 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 19:11 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-07 18:27 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-07 18:27 |
@@ -47,7 +49,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-06 21:01 |
-| [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-09-06 19:13 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-06 17:53 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-06 17:42 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-06 17:42 |
@@ -68,7 +69,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-06 07:51 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-06 07:51 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-06 07:51 |
-| [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-09-06 07:51 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-06 07:51 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-05 16:27 |
 | [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-01 08:37 |

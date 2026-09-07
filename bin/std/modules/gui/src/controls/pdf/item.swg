@@ -111,6 +111,25 @@ struct Item
 
 internal impl Item
 {
+    // Returns roughly what this item holds in memory, in bytes.
+    //
+    // A raster and the geometry cached beside a path are what an item is made of once it has been
+    // drawn; the rest of an item is a handful of scalars. A viewer bounding how many decoded
+    // pages it keeps needs that order of magnitude.
+    mtd const memoryUsage()->u64
+    {
+        var result = cast(u64) #sizeof(Item)
+        result += .text.capacity
+        result += .textCodes.capacity * #sizeof(u32)
+        result += .textAdvances.capacity * #sizeof(f32)
+        result += .path.memoryUsage()
+        result += .imageClip.memoryUsage()
+        result += .image.byteCount
+        if .hasMask do
+            result += .maskImage.byteCount
+        return result
+    }
+
     // Returns the page-space box this item's marks cannot leave.
     //
     // Text is the one kind that cannot answer: a run's extent needs the resolved face, which the

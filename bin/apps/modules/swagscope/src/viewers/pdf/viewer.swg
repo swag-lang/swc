@@ -151,6 +151,7 @@ private impl IWnd for PdfViewer
         case .Subtract, .OemMinus:                  .pdfView.zoomOut()
         case .D0 where evt.modifiers.has(.Control): .pdfView.actualSize()
         case .F where evt.modifiers == .None:       .pdfView.zoomToFit()
+        case .W where evt.modifiers == .None:       .pdfView.zoomToFitWidth()
         default:                                    evt.accepted = false
         }
     }
@@ -214,7 +215,7 @@ private impl PdfViewer
         let parsed = catch StrConv.parseU64(text) as parseError
         if parseError != null or parsed.eat != text.count or parsed.ovf or !parsed.value or parsed.value > .pdfView.pageCount() do
             return false
-        catch .pdfView.showPage(parsed.value - 1)
+        .pdfView.showPage(parsed.value - 1)
         return true
     }
 
@@ -242,15 +243,22 @@ private impl PdfViewer
         menu.addItem("150%", "scope.pdf.zoom150")
         menu.addItem("200%", "scope.pdf.zoom200")
         menu.addSeparator()
-        menu.addItem(pdfStrings().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(pdfStrings().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
+        menu.addItem(pdfStrings().ui_FitWidth, "scope.pdf.zoomFitWidth", rightName: "W", checked: .pdfView.zoomMode == .FitWidth)
+        menu.addSeparator()
+        menu.addItem(pdfStrings().ui_Continuous, "scope.pdf.layoutContinuous", checked: .pdfView.pageLayout == .Continuous)
+        menu.addItem(pdfStrings().ui_SinglePage, "scope.pdf.layoutSingle", checked: .pdfView.pageLayout == .Single)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
-        case "scope.pdf.zoom50":     .pdfView.setZoom(0.5)
-        case "scope.pdf.zoomActual": .pdfView.actualSize()
-        case "scope.pdf.zoom125":    .pdfView.setZoom(1.25)
-        case "scope.pdf.zoom150":    .pdfView.setZoom(1.5)
-        case "scope.pdf.zoom200":    .pdfView.setZoom(2)
-        case "scope.pdf.zoomFit":    .pdfView.zoomToFit()
+        case "scope.pdf.zoom50":           .pdfView.setZoom(0.5)
+        case "scope.pdf.zoomActual":       .pdfView.actualSize()
+        case "scope.pdf.zoom125":          .pdfView.setZoom(1.25)
+        case "scope.pdf.zoom150":          .pdfView.setZoom(1.5)
+        case "scope.pdf.zoom200":          .pdfView.setZoom(2)
+        case "scope.pdf.zoomFit":          .pdfView.zoomToFit()
+        case "scope.pdf.zoomFitWidth":     .pdfView.zoomToFitWidth()
+        case "scope.pdf.layoutContinuous": .pdfView.setPageLayout(.Continuous)
+        case "scope.pdf.layoutSingle":     .pdfView.setPageLayout(.Single)
         }
     }
 

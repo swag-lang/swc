@@ -478,6 +478,45 @@ public impl ScrollWnd
         return .view.scrollPos
     }
 
+    // Returns where a running smooth scroll is heading, which is the current position when none
+    // is running.
+    mtd const scrollTarget()->Math.Point
+    {
+        return .scrollRequestPos
+    }
+
+    // Glides to `pt` over the surface's panel motion instead of jumping there.
+    //
+    // The target is clamped exactly as [[Gui.ScrollWnd.setScrollPos]] clamps one. A call made
+    // while a previous glide is still running retargets it from where the view is now, so
+    // repeated steps — wheel notches, held arrows — accumulate into one continuous movement
+    // rather than restarting at each of them. Read [[Gui.ScrollWnd.scrollTarget]] to compose the
+    // next step on top of the one in flight.
+    mtd smoothScrollTo(pt: Math.Point)
+    {
+        let target = .scrollPositionPrivate(pt.x, pt.y)
+        .scrollRequestPos = target
+        if target == .view.scrollPos
+        {
+            .app().animator.cancel(me, AnimationChannel.from("Gui.Scroll.Position"))
+            return
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animatePoint(me,
+                                             AnimationChannel.from("Gui.Scroll.Position"),
+                                             .view.scrollPos,
+                                             target,
+                                             func|scrollWnd=me|(animationWnd, value)
+                                             {
+                                                 discard animationWnd
+                                                 discard scrollWnd.setScrollPosPrivate(value.x, value.y)
+                                             },
+                                             options)
+    }
+
     private mtd scrollPositionPrivate(x, y: f32)->Math.Point
     {
         var newSP: Math.Point

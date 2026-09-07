@@ -1433,37 +1433,62 @@ private func boxRectangle(parser: *PdfParser, boxId: u32)->Math.Rectangle
     return {Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)}
 }
 
-internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, rotate: s64, decode: PageDecode)->Page fail
+// Returns the region of a page a reader displays, and the rotation it is displayed through.
+//
+// The MediaBox bounds the medium; the CropBox, when present, is the region a reader displays.
+// The page is their intersection, so the margins an author trimmed away stay trimmed here the
+// same way the file shows everywhere else. A malformed crop is ignored rather than costing the
+// page.
+internal func pageBox(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCropBox: u32, rotate: s64)->{ box: Math.Rectangle, rotate: s64 } fail
 {
     let mediaId = parser.dict(pageId, "MediaBox")
     let media   = mediaId != InvalidNode ? mediaId : inheritedMediaBox
     if media == InvalidNode or parser.nodes[media].kind != .Array or parser.nodes[media].values.count < 4 do
         fail InvalidFormatError{"PDF page has no valid MediaBox"}
-    var box = boxRectangle(parser, media)
 
-    // The MediaBox bounds the medium; the CropBox, when present, is the region a reader
-    // displays. The page is their intersection, so the margins an author trimmed away stay
-    // trimmed here the same way the file shows everywhere else. A malformed crop is ignored
-    // rather than costing the page.
+    var result: retval
+    result.box = boxRectangle(parser, media)
+
     let cropId = parser.dict(pageId, "CropBox")
     let crop   = cropId != InvalidNode ? cropId : inheritedCropBox
     if crop != InvalidNode and parser.nodes[crop].kind == .Array and parser.nodes[crop].values.count >= 4
     {
         var cropped = boxRectangle(parser, crop)
-        cropped.intersect(box)
+        cropped.intersect(result.box)
         if cropped.width > 0 and cropped.height > 0 and Math.isFinite(cropped.width) and Math.isFinite(cropped.height) do
-            box = cropped
+            result.box = cropped
     }
 
-    let x0          = box.x
-    let y0          = box.y
-    let mediaWidth  = box.width
-    let mediaHeight = box.height
-    if mediaWidth <= 0 or mediaHeight <= 0 or !Math.isFinite(mediaWidth) or !Math.isFinite(mediaHeight) do
+    if result.box.width <= 0 or result.box.height <= 0 or !Math.isFinite(result.box.width) or !Math.isFinite(result.box.height) do
         fail InvalidFormatError{"PDF page has invalid dimensions"}
-    let normalizedRotate = ((rotate % 360) + 360) % 360
-    if normalizedRotate != 0 and normalizedRotate != 90 and normalizedRotate != 180 and normalizedRotate != 270 do
+
+    result.rotate = ((rotate % 360) + 360) % 360
+    if result.rotate != 0 and result.rotate != 90 and result.rotate != 180 and result.rotate != 270 do
         fail UnsupportedFormatError{"PDF page rotation is not a multiple of 90 degrees"}
+    return result
+}
+
+// Returns the size a page is displayed at, in PDF points, without reading its content.
+//
+// A quarter turn shows the medium's height across, which is what a viewer lays a document out
+// with before any page is decoded.
+internal func pageBoxSize(parser: *PdfParser, pageId, inheritedMediaBox, inheritedCropBox: u32, rotate: s64)->Math.Point fail
+{
+    let resolved = try pageBox(parser, pageId, inheritedMediaBox, inheritedCropBox, rotate)
+    if resolved.rotate == 90 or resolved.rotate == 270 do
+        return {resolved.box.height, resolved.box.width}
+    return {resolved.box.width, resolved.box.height}
+}
+
+internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, rotate: s64, decode: PageDecode)->Page fail
+{
+    let resolved         = try pageBox(parser, pageId, inheritedMediaBox, inheritedCropBox, rotate)
+    let x0               = resolved.box.x
+    let y0               = resolved.box.y
+    let mediaWidth       = resolved.box.width
+    let mediaHeight      = resolved.box.height
+    let normalizedRotate = resolved.rotate
+
     var result: retval = normalizedRotate == 90 or normalizedRotate == 270 ? Page.create(mediaHeight, mediaWidth) : Page.create(mediaWidth, mediaHeight)
 
     let ownResources = parser.dict(pageId, "Resources")

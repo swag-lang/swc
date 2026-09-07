@@ -87,6 +87,21 @@ private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 
 impl LinePathList
 {
+    // Returns roughly what this list holds in memory, in bytes.
+    //
+    // The answer is the sum of every contour's own [[Pixel.LinePath.memoryUsage]] and of the
+    // normalized copy the fill cache may hold beside them.
+    mtd const memoryUsage()->u64
+    {
+        var result = cast(u64) #sizeof(LinePathList)
+        for path in .paths do
+            result += path.memoryUsage()
+        result += .fillCacheStamps.capacity * #sizeof(u64)
+        if .fillCache do
+            result += .fillCache!.memoryUsage()
+        return result
+    }
+
     // Establishes the combined bounds of the list.
     //
     // The operations that build a list from an existing shape already know its bounds, so they

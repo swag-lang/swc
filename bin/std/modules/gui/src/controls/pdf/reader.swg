@@ -73,6 +73,20 @@ impl Reader
         return #move result
     }
 
+    // Returns the size of the page at zero-based `index`, in PDF points, without decoding it.
+    //
+    // The size is the displayed region — the MediaBox intersected with the CropBox — turned by
+    // the page's rotation. It costs the page's own attributes and nothing else, so a viewer can
+    // lay a whole document out before a single page is decoded. An out-of-range index reports
+    // [[Core.Errors.BadParameterError]].
+    mtd pageSize(index: u64)->Math.Point fail
+    {
+        if index >= .sources.count do
+            fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
+        let source = .sources[index]
+        return try pageBoxSize(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate)
+    }
+
     // Returns the text of the page at zero-based `index`, in reading order.
     //
     // Lines run from top to bottom and words from left to right, one space per word gap and one

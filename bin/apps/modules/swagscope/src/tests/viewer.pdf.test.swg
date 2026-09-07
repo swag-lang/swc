@@ -45,7 +45,7 @@ private func createPdfFixture()->String
 
     let pdf = view.pdfView
     Swag.assert(pdf.pageCount() == 2 and pdf.pageIndex == 0)
-    Swag.assert(pdf.isFitted)
+    Swag.assert(pdf.zoomMode == .FitPage and pdf.pageLayout == .Continuous)
 
     // Actual size shows one PDF point per 1/96 logical inch; an explicit zoom multiplies the
     // shown size exactly, with the rasterization following the widget internally.
@@ -64,9 +64,17 @@ private func createPdfFixture()->String
     Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
 
     pdf.zoomToFit()
-    Swag.assert(pdf.isFitted)
+    Swag.assert(pdf.zoomMode == .FitPage)
+
+    // Fitting the width is the reading scale of a continuous document, and the shortcut the
+    // viewer binds for it.
+    var fitWidth = KeyEvent{kind: .Pressed, key: .W}
+    view.sendEvent(&fitWidth)
+    Swag.assert(pdf.zoomMode == .FitWidth)
+    pdf.zoomToFit()
+
     Swag.assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())
-    expect pdf.showPage(1)
+    pdf.showPage(1)
     Swag.assert(pdf.pageIndex == 1)
     Swag.assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
 
@@ -77,7 +85,7 @@ private func createPdfFixture()->String
     Swag.assert(view.pageLabel.toolTip == pdfStrings().ui_GoToPage and view.pageLabel.toolTip != oldTip)
     Swag.assert(view.previousButton.toolTip == pdfStrings().ui_Previous and view.nextButton.toolTip == pdfStrings().ui_Next)
     Swag.assert(view.zoomLabel.toolTip == pdfStrings().ui_ZoomMenu)
-    Swag.assert(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.isFitted)
+    Swag.assert(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.zoomMode == .FitPage)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
     Swag.assert(view.pageLabel.toolTip == oldTip)
@@ -211,8 +219,20 @@ private func createPdfFixture()->String
     Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second"))
     Swag.assert(view.pdfView.pageIndex == 1)
     Swag.assert(view.pdfView.selectedText() == "Second")
+
+    // The page carrying the match is decoded on a worker, and the geometry of a match answers
+    // once that page has landed, which is when the host's own poll picks the marker up.
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    for 4000
+    {
+        discard host.render()
+        host.fireTimers()
+        if result.searchBounds!(result.view!, matches[0], &bounds) do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.assert(!bounds.isEmpty())
     result.clearSearch!(result.view!)
     Swag.assert(view.pdfView.selectedText().isEmpty())
     matches.clear()

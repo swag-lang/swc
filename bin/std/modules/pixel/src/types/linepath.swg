@@ -88,6 +88,24 @@ private func nextContourRevision()->u64 => Swag.atomadd(&g_ContourRevision, 1) +
 
 public impl LinePath
 {
+    // Returns roughly what this contour holds in memory, in bytes.
+    //
+    // The answer covers the segments the contour is described by and the geometry cached beside
+    // them — the flattened points, the tessellation, and the outward directions of its vertices —
+    // which is what makes a contour expensive once it has been drawn. It is an estimate: a
+    // consumer bounding a cache of shapes needs the order of magnitude, not the allocator's exact
+    // bookkeeping.
+    mtd const memoryUsage()->u64
+    {
+        var result = cast(u64) #sizeof(LinePath)
+        result += .elements.capacity * #sizeof(Element)
+        result += .polygon.points.capacity * #sizeof(Vector2)
+        result += .triangles.vertices.capacity * #sizeof(Vector2)
+        result += .triangleOffsets.capacity * #sizeof(Vector2)
+        result += .offsetDirs.capacity * #sizeof(Vector2)
+        return result
+    }
+
     // Releases cached tessellation when the path leaves scope.
     mtd opDrop()
     {

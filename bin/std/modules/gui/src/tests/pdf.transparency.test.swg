@@ -202,8 +202,10 @@ private func markedPixels(frame: const *Image)->u64
     // The mask keeps a fifty-point square of the hundred-point mark, so the mark covers 2500
     // pixels at one pixel per point and four times that at two.
     view.setZoom(1)
+    settlePdfView(&host, view)
     let singleFrame = host.render()
     view.setZoom(2)
+    settlePdfView(&host, view)
     let doubledFrame = host.render()
     Swag.assert(!view.reportedPaintError)
     Swag.assert(Math.isEqualEpsilon(cast(f32) markedPixels(&singleFrame), 2500.0, 400.0))

@@ -38,11 +38,16 @@ The following capabilities are already implemented.
   document declared, per character code.
 - **The corpus is real.** 354 pages from eleven LLVM and Polly documents produced by several
   generations of writers, plus five PDFBox fixtures, all decoded lazily through `Pdf.Reader`.
-- **The widget paints vectors, not rasters.** `PdfView` keeps the decoded page and draws its
-  items straight through the frame's painter — the application renderer — so a zoom or pan step
-  is a transform change: images upload once per page, typefaces resolve once per page, path
+- **The widget paints vectors, not rasters.** `PdfView` keeps its decoded pages and draws their
+  items straight through the frame's painter — the application renderer — so a zoom or scroll
+  step is a transform change: images upload once per page, typefaces resolve once per page, path
   tessellations cache inside the decoded page, and no offline rasterization, readback, or
   texture re-upload sits between the page and the screen.
+- **The widget reads a document, not a page.** Page sizes come from the page tree, so the whole
+  column is laid out and scrollable before anything is decoded; pages are decoded on a worker as
+  the viewport reaches them, bounded by a page count and a memory budget, and a page that has not
+  arrived shows as the paper it will be. Selection and search run across page boundaries, and
+  Fit Page, Fit Width and one-page-at-a-time are the same document seen differently.
 - **A document caches decoded resources.** Fonts are cached by object. Images are cached by
   object and resource dictionary within `ImageCacheBudget`; stencils depend on the current fill
   color and bypass that cache. Pages still own copies, as described in the cost entries below.
@@ -74,6 +79,46 @@ longer be satisfied by calling into it from `pixel`. When that entry is taken up
 writer moves below both consumers or `pixel` grows its own, and that choice belongs to std.pixel.005.
 
 ## Entries
+
+### std.gui.pdf.036 — One page is decoded at a time, and the eviction budget is an estimate
+
+- Recorded: 2026-09-07 20:45
+- Intent: `PdfPageCache` runs one worker with one `Pdf.Reader`, so a reader scrolling faster than
+  a page decodes walks over blank paper until the worker catches up, one page behind at a time.
+  A `Reader` is single-threaded, so a second decoder means a second reader on the same file, and
+  the cost of that — a second mapping, a second object index, a second font cache — has not been
+  measured against what it buys.
+- Evidence: the same walk also shows the eviction budget resting on an approximation.
+  `Pdf.Page.memoryUsage` reported 18 MB for the eight resident pages of
+  `llvm-polly-kernelgen-ncar-2012-slides.pdf` while evicting all eight freed 34 MB, so the
+  estimate is short by about half: it counts rasters and contour geometry and not what a page
+  holds beside them. The budget is set against the estimate, so it bounds twice what it says.
+- Next: measure a two-worker cache on the 90 MB corpus document against the current one, on the
+  time between a scroll step and the frame that shows the page it reached; separately, account
+  for the resolved faces and the tessellator's own storage in `memoryUsage` and re-measure the
+  gap.
+- Complete when: scrolling a document faster than one page per frame shows decoded pages within
+  a bounded number of frames, and the cache's reported memory is within a small factor of what
+  evicting it frees.
+- Related: std.gui.pdf.025, std.gui.pdf.027
+
+### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
+
+- Recorded: 2026-08-18 14:15
+- Updated: 2026-09-07 20:45 — git: A decode that cannot be abandoned now blocks closing a document
+- Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
+  with a pathological number of paths can take arbitrarily long. This concerns the headless
+  callers — a batch export, a thumbnailer, a test — and, since the viewer decodes pages on a
+  worker, the viewer itself: `PdfPageCache.abandonLoad` cannot stop a decode, only wait for it,
+  so closing a document while the worker is inside `Reader.loadPage` blocks the GUI thread for
+  what remains of that page. The corpus measurement in std.gui.pdf.025 puts the worst page of a
+  90 MB scanned document at 2.8 s.
+- Next: give `decodePage` and the render loop the same cancellation signal, checked between
+  content-stream operators and between items, and have `PdfPageCache` raise it instead of
+  waiting.
+- Complete when: a decode and a render both accept a cancellation signal and an optional work
+  budget, report an interrupted result distinctly from a failed one, and closing a document
+  never waits for a page.
 
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
@@ -187,33 +232,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   exercise text, images, strokes and forms compare rendered output rather than model fields, and a
   round trip through the writer is judged on its rendered result.
 - Related: std.gui.pdf.021
-
-### std.gui.pdf.034 — Turning a page decodes it on the GUI thread
-
-- Recorded: 2026-09-03 13:14
-- Updated: 2026-09-04 09:47 — git: Close the recording-cost entry and name what a stroke still costs
-- Intent: `PdfView.showPage` decodes the page it is asked for, images included, before it
-  returns, and only then does the frame paint it. A reader turning pages waits for that decode
-  every time, and a search revealing a hit on another page pays it too: the document's text is
-  now read on a worker, so the search itself never waits, but showing the page it found still
-  does.
-- Evidence: a 90 MB, 95-page document with 1 073 images, release configuration, measured through
-  `Reader.loadPage` in one run: 30.8 s for the whole document, 324 ms per page on average and
-  2.8 s for the worst page, against 651 ms for the whole document — 6.9 ms per page, 23 ms at
-  worst — through `Reader.loadPageText`. The difference is the images, which the text never
-  needed and the page turn still does.
-- Next: decode the requested page on a worker and publish it the way the application's viewer
-  publishes the first page, keeping the previous page shown until the next one is ready, and call
-  `Page.prepare` there too so the frame that first shows it neither decodes nor tessellates; then
-  keep a small number of decoded pages around so the page a search or a back-step returns to
-  costs nothing. Measure the same document afterwards on the time between the request and the
-  first frame that shows the new page.
-- Note: a page's *first* frame is the one preparation left on the GUI thread — a resize now hands
-  its flattening to a worker, but a page nothing has drawn yet has no coarser geometry to fall
-  back on. On the corpus's densest vector page that first frame costs 3.5 ms against 1.3 ms warm.
-- Complete when: turning a page never blocks the GUI thread for longer than a frame, whatever the
-  page holds, and returning to a page just left costs no decode.
-- Related: std.gui.pdf.025, std.gui.pdf.035
 
 ### std.gui.pdf.035 — Stroking a page costs four times filling the same geometry
 
@@ -498,17 +516,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 - Complete when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
   a decoded font program is shared between the pages that reference the same font object, and a
   `Document` load of the corpus costs one copy per distinct program.
-
-### std.gui.pdf.029 — A render cannot be cancelled or bounded in time
-
-- Recorded: 2026-08-18 14:15
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: `RenderOptions` bounds the output dimensions and pixel count and nothing else. A page
-  with a pathological number of paths can take arbitrarily long. The interactive viewer no
-  longer runs offline renders, so this now concerns the headless callers — a batch export, a
-  thumbnailer, a test — which still have no way to abandon a render.
-- Complete when: a render accepts a cancellation signal and an optional work budget, and reports
-  an interrupted render distinctly from a failed one.
 
 ---
 

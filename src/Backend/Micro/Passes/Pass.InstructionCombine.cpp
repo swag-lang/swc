@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -40,6 +40,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldShiftAddIntoScaledAddress);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldMultiplyAddIntoScaledAddress);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);

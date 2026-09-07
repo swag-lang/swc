@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -116,6 +117,97 @@ SWC_TEST_BEGIN(InstCombine_ConstantAddressLoad_FoldsToRip)
     }
 
     return foundFoldedLoad ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
+{
+    enum class Case
+    {
+        Same,
+        Kind,
+        Address,
+        Symbol,
+        Constant,
+        Shard,
+        Offset,
+        Width,
+        Store,
+        Call,
+        Overwritten,
+        Label,
+    };
+    SymbolFunction firstSymbol(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolFunction secondSymbol(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    for (const Case test : {Case::Same, Case::Kind, Case::Address, Case::Symbol, Case::Constant, Case::Shard, Case::Offset, Case::Width, Case::Store, Case::Call, Case::Overwritten, Case::Label})
+        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            constexpr MicroReg first  = MicroReg::virtualIntReg(1);
+            constexpr MicroReg second = MicroReg::virtualIntReg(2);
+            constexpr MicroReg base   = MicroReg::intReg(3);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegMem(first, MicroReg::instructionPointer(), 0, bits);
+            MicroRelocation relocation;
+            const bool constantTarget = test == Case::Constant || test == Case::Shard || test == Case::Offset;
+            relocation.kind           = constantTarget ? MicroRelocation::Kind::ConstantAddress : MicroRelocation::Kind::GlobalInitAddress;
+            if (constantTarget)
+            {
+                relocation.constantRef    = ConstantRef(0);
+                relocation.constantShard  = 0;
+                relocation.constantOffset = 8;
+            }
+            if (test == Case::Symbol)
+            {
+                relocation.kind         = MicroRelocation::Kind::LocalFunctionAddress;
+                relocation.targetSymbol = &firstSymbol;
+            }
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.targetAddress  = 8;
+            relocation.instructionRef = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+            builder.addRelocation(relocation);
+            const MicroInstrRef firstRef = relocation.instructionRef;
+
+            if (test == Case::Store)
+                builder.emitLoadMemReg(base, 0, first, bits);
+            else if (test == Case::Call)
+                builder.emitCallReg(MicroReg::intReg(0), CallConvKind::Swag);
+            else if (test == Case::Overwritten)
+                builder.emitLoadRegImm(first, ApInt(7, 64), bits);
+            else if (test == Case::Label)
+                builder.placeLabel(builder.createLabel());
+
+            builder.emitLoadRegMem(second, MicroReg::instructionPointer(), 0, test == Case::Width ? (bits == MicroOpBits::B32 ? MicroOpBits::B64 : MicroOpBits::B32) : bits);
+            relocation.instructionRef = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+            const MicroInstrRef secondRef = relocation.instructionRef;
+            switch (test)
+            {
+                case Case::Kind:     relocation.kind = MicroRelocation::Kind::GlobalZeroAddress; break;
+                case Case::Address:  relocation.targetAddress = 16; break;
+                case Case::Symbol:   relocation.targetSymbol = &secondSymbol; break;
+                case Case::Constant: relocation.constantRef = ConstantRef(1); break;
+                case Case::Shard:    relocation.constantShard = 1; break;
+                case Case::Offset:   relocation.constantOffset = 16; break;
+                default: break;
+            }
+            builder.addRelocation(relocation);
+            builder.emitLoadMemReg(base, 8, first, bits);
+            builder.emitLoadMemReg(base, 16, second, bits);
+            builder.emitRet();
+            SWC_RESULT(runInstCombinePass(builder));
+            const MicroInstr* folded = builder.instructions().ptr(secondRef);
+            if (!folded || folded->op != (test == Case::Same ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+                return Result::Error;
+            bool firstRelocation = false;
+            bool secondRelocation = false;
+            for (const MicroRelocation& current : builder.codeRelocations())
+            {
+                firstRelocation |= current.instructionRef == firstRef;
+                secondRelocation |= current.instructionRef == secondRef;
+            }
+            if (!firstRelocation || secondRelocation != (test != Case::Same))
+                return Result::Error;
+        }
+    return Result::Continue;
 }
 SWC_TEST_END()
 
@@ -976,35 +1068,153 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(InstCombine_FloatResultCopy_DefinesAccumulatorDirectly)
 {
-    for (const bool preserve : {false, true})
-        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
-        {
-            constexpr MicroReg acc    = MicroReg::virtualFloatReg(1);
-            constexpr MicroReg src    = MicroReg::virtualFloatReg(2);
-            constexpr MicroReg result = MicroReg::virtualFloatReg(3);
-            constexpr MicroReg base   = MicroReg::virtualIntReg(1);
-            MicroBuilder       builder(ctx);
-            builder.emitLoadRegMem(acc, base, 0, bits);
-            builder.emitLoadRegMem(src, base, 8, bits);
-            builder.emitOpBinaryRegRegReg(result, acc, src, MicroOp::FloatMultiply, bits);
-            builder.emitLoadRegReg(acc, result, bits);
-            if (preserve)
-                builder.preserveVirtualCopy(acc);
-            builder.emitLoadMemReg(base, 16, acc, bits);
-            builder.emitRet();
-            SWC_RESULT(runInstCombinePass(builder));
-            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (preserve ? 1u : 0u) ||
-                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg) != 1)
-                return Result::Error;
-            for (const MicroInstr& inst : builder.instructions().view())
+    for (const MicroOp op : {MicroOp::FloatMultiply, MicroOp::FloatSqrt})
+        for (const bool preserve : {false, true})
+            for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
             {
-                if (inst.op != MicroInstrOpcode::OpBinaryRegRegReg)
+                constexpr MicroReg acc    = MicroReg::virtualFloatReg(1);
+                constexpr MicroReg src    = MicroReg::virtualFloatReg(2);
+                constexpr MicroReg result = MicroReg::virtualFloatReg(3);
+                constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+                MicroBuilder       builder(ctx);
+                builder.emitLoadRegMem(acc, base, 0, bits);
+                builder.emitLoadRegMem(src, base, 8, bits);
+                if (op == MicroOp::FloatSqrt)
+                    builder.emitOpBinaryRegReg(result, acc, op, bits);
+                else
+                    builder.emitOpBinaryRegRegReg(result, acc, src, op, bits);
+                builder.emitLoadRegReg(acc, result, bits);
+                if (preserve)
+                    builder.preserveVirtualCopy(acc);
+                builder.emitLoadMemReg(base, 16, acc, bits);
+                builder.emitRet();
+                SWC_RESULT(runInstCombinePass(builder));
+                const MicroInstrOpcode opcode = op == MicroOp::FloatSqrt ? MicroInstrOpcode::OpBinaryRegReg : MicroInstrOpcode::OpBinaryRegRegReg;
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (preserve ? 1u : 0u) ||
+                    Backend::Unittest::countOpcode(builder, opcode) != 1)
+                    return Result::Error;
+                for (const MicroInstr& inst : builder.instructions().view())
+                {
+                    if (inst.op != opcode)
+                        continue;
+                    const MicroInstrOperand* ops = inst.ops(builder.operands());
+                    if (ops[0].reg != (preserve ? result : acc) || ops[1].reg != acc ||
+                        (op != MicroOp::FloatSqrt && ops[2].reg != src))
+                        return Result::Error;
+                }
+            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_PreservesPackedDestination)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        constexpr MicroReg src    = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg result = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg copied = MicroReg::virtualFloatReg(3);
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadVecRegMem(src, base, 0, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(copied, base, 16, MicroOpBits::B128);
+        builder.emitOpBinaryRegReg(result, src, MicroOp::FloatSqrt, bits);
+        builder.emitLoadRegReg(copied, result, bits);
+        builder.emitStoreVecMemReg(base, 32, copied, MicroOpBits::B128);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_SqrtResultCopy_KeepsOtherUses)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        constexpr MicroReg src    = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg result = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg copied = MicroReg::virtualFloatReg(3);
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegMem(src, base, 0, bits);
+        builder.emitOpBinaryRegReg(result, src, MicroOp::FloatSqrt, bits);
+        builder.emitLoadRegReg(copied, result, bits);
+        builder.emitLoadMemReg(base, 8, copied, bits);
+        builder.emitLoadMemReg(base, 16, result, bits);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_SharedAndInputs_PreservesValuesAndFlags)
+{
+    enum class Case
+    {
+        Fold,
+        SharedResult,
+        CommonChanged,
+        CommonChangedAfter,
+        LiveFirstFlags,
+        LiveSecondFlags,
+        CopyBeforeSecond,
+    };
+    for (const Case test : {Case::Fold, Case::SharedResult, Case::CommonChanged, Case::CommonChangedAfter, Case::LiveFirstFlags, Case::LiveSecondFlags, Case::CopyBeforeSecond})
+        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+            for (const bool copy : {false, true})
+            {
+                if (test == Case::CopyBeforeSecond && !copy)
                     continue;
-                const MicroInstrOperand* ops = inst.ops(builder.operands());
-                if (ops[0].reg != (preserve ? result : acc) || ops[1].reg != acc || ops[2].reg != src)
+                constexpr MicroReg common = MicroReg::virtualIntReg(1);
+                constexpr MicroReg b      = MicroReg::virtualIntReg(2);
+                constexpr MicroReg c      = MicroReg::virtualIntReg(3);
+                constexpr MicroReg first  = MicroReg::virtualIntReg(4);
+                constexpr MicroReg second = MicroReg::virtualIntReg(5);
+                constexpr MicroReg copied = MicroReg::virtualIntReg(6);
+                constexpr MicroReg flag   = MicroReg::virtualIntReg(7);
+                constexpr MicroReg base   = MicroReg::intReg(3);
+                const MicroReg     result = copy ? copied : first;
+                MicroBuilder       builder(ctx);
+                builder.emitLoadRegReg(common, MicroReg::intReg(0), bits);
+                builder.emitLoadRegReg(b, MicroReg::intReg(1), bits);
+                builder.emitLoadRegReg(c, MicroReg::intReg(2), bits);
+                builder.emitLoadRegReg(first, common, bits);
+                builder.emitOpBinaryRegReg(first, b, MicroOp::And, bits);
+                if (test == Case::SharedResult)
+                    builder.emitLoadMemReg(base, 8, first, bits);
+                if (test == Case::LiveFirstFlags)
+                    builder.emitSetCondReg(flag, MicroCond::Zero);
+                if (test == Case::CommonChanged)
+                    builder.emitLoadRegReg(common, MicroReg::intReg(4), bits);
+                if (test == Case::CopyBeforeSecond)
+                    builder.emitLoadRegReg(copied, first, bits);
+                builder.emitLoadRegReg(second, common, bits);
+                builder.emitOpBinaryRegReg(second, c, MicroOp::And, bits);
+                if (test == Case::LiveSecondFlags)
+                    builder.emitSetCondReg(flag, MicroCond::Zero);
+                if (test == Case::CommonChangedAfter)
+                    builder.emitLoadRegReg(common, MicroReg::intReg(4), bits);
+                if (copy && test != Case::CopyBeforeSecond)
+                    builder.emitLoadRegReg(copied, first, bits);
+                builder.emitOpBinaryRegReg(result, second, MicroOp::Xor, bits);
+                builder.emitLoadMemReg(base, 0, result, bits);
+                if (test == Case::LiveFirstFlags || test == Case::LiveSecondFlags)
+                    builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+                builder.emitRet();
+                SWC_RESULT(runInstCombinePass(builder));
+                uint32_t andCount = 0;
+                for (const MicroInstr& inst : builder.instructions().view())
+                    if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.ops(builder.operands())[3].microOp == MicroOp::And)
+                        ++andCount;
+                if (andCount != (test == Case::Fold ? 1u : 2u))
                     return Result::Error;
             }
-        }
     return Result::Continue;
 }
 SWC_TEST_END()

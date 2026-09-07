@@ -507,8 +507,8 @@ namespace InstructionCombine
     }
 
     // A pure result copied straight into an accumulator can define that
-    // accumulator itself. Both indexed addresses and three-operand arithmetic
-    // read their explicit inputs before writing the destination.
+    // accumulator itself. Indexed addresses, three-operand arithmetic and
+    // packed square roots read their explicit inputs before writing the destination.
     bool tryFoldPureResultCopy(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
         if (!ctx.ssa || ctx.isClaimed(ref))
@@ -516,8 +516,11 @@ namespace InstructionCombine
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
         if (!ops)
             return false;
+        const bool sqrt = inst.op == MicroInstrOpcode::OpBinaryRegReg;
+        if (sqrt && ops[3].microOp != MicroOp::FloatSqrt)
+            return false;
         const bool        address = inst.op == MicroInstrOpcode::LoadAddrAmcRegMem;
-        const MicroOpBits bits    = ops[3].opBits;
+        const MicroOpBits bits    = ops[sqrt ? 2 : 3].opBits;
         if (address ? !ops[0].reg.isVirtualInt() : !ops[0].reg.isVirtualFloat())
             return false;
         if (bits != MicroOpBits::B64 && (address || bits != MicroOpBits::B32))
@@ -534,6 +537,29 @@ namespace InstructionCombine
         if (ctx.builder &&
             (ctx.builder->shouldPreserveVirtualCopy(copyOps[0].reg) || ctx.builder->shouldPreserveVirtualCopy(copyOps[1].reg)))
             return false;
+        if (sqrt)
+        {
+            // MOVSS/MOVSD retain the copy destination's higher lanes, while
+            // SQRTPS/SQRTPD replace them. Retarget only when every floating
+            // read in the function stays within the scalar width; unknown or
+            // wider consumers keep the original copy and its preserved lanes.
+            const auto view = ctx.storage->view();
+            for (auto it = view.begin(); it != view.end(); ++it)
+            {
+                const auto* useDef = ctx.ssa->instrUseDef(it.current);
+                if (!useDef)
+                    return false;
+                const MicroInstrOperand* useOps = it->ops(*ctx.operands);
+                for (const MicroReg used : useDef->uses)
+                {
+                    if (!used.isVirtualFloat())
+                        continue;
+                    const MicroOpBits readBits = it->op == MicroInstrOpcode::OpBinaryRegRegReg && useOps ? useOps[3].opBits : useReadBits(*it, useOps, used);
+                    if (readBits == MicroOpBits::Zero || getNumBytes(readBits) > getNumBytes(bits))
+                        return false;
+                }
+            }
+        }
         if (!valueHasSingleUse(*ctx.ssa, ops[0].reg, ref) || !ctx.claimAll({ref, copyRef}))
             return false;
 

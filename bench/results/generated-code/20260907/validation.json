@@ -1,0 +1,207 @@
+{
+  "runs": [
+    {
+      "compiler_build": 392,
+      "name": "bitwise.devmode",
+      "started": "2026-09-07T10:38:29.314964",
+      "ended": "2026-09-07T10:38:44.143782",
+      "exit": 0
+    },
+    {
+      "compiler_build": 392,
+      "name": "bitwise.release",
+      "started": "2026-09-07T10:38:50.836008",
+      "ended": "2026-09-07T10:38:55.455538",
+      "exit": 0
+    },
+    {
+      "compiler_build": 392,
+      "name": "tests.final.dm",
+      "started": "2026-09-07T10:39:01.905239",
+      "ended": "2026-09-07T10:52:13.654119",
+      "exit": 5
+    },
+    {
+      "compiler_build": 392,
+      "name": "tests.final.all-cfg",
+      "started": "2026-09-07T10:52:20.067211",
+      "ended": "2026-09-07T11:11:53.324123",
+      "exit": 5
+    },
+    {
+      "compiler_build": 393,
+      "name": "backlog.relocation",
+      "started": "2026-09-07T11:13:03.616395",
+      "ended": "2026-09-07T11:13:13.923214",
+      "exit": 0
+    },
+    {
+      "compiler_build": 393,
+      "name": "tests.relocation.dm",
+      "started": "2026-09-07T11:13:19.908945",
+      "ended": "2026-09-07T11:21:25.593737",
+      "exit": 5
+    },
+    {
+      "compiler_build": 393,
+      "name": "tests.relocation.all-cfg",
+      "started": "2026-09-07T11:21:33.559557",
+      "ended": "2026-09-07T11:38:03.454449",
+      "exit": 5
+    },
+    {
+      "compiler_build": 394,
+      "name": "native.final.devmode",
+      "started": "2026-09-07T11:38:43.744144",
+      "ended": "2026-09-07T11:39:02.441924",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "native.final.release",
+      "started": "2026-09-07T11:39:08.126735",
+      "ended": "2026-09-07T11:39:19.609300",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "jit.sqrt.final",
+      "started": "2026-09-07T11:39:25.275919",
+      "ended": "2026-09-07T11:39:27.343404",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "scripts.final.devmode",
+      "started": "2026-09-07T11:39:33.003114",
+      "ended": "2026-09-07T11:43:44.931584",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "scripts.final.release",
+      "started": "2026-09-07T11:43:50.675850",
+      "ended": "2026-09-07T11:46:46.541134",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "reference.final.devmode",
+      "started": "2026-09-07T11:46:52.573450",
+      "ended": "2026-09-07T11:46:58.287133",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "reference.final.release",
+      "started": "2026-09-07T11:47:04.614216",
+      "ended": "2026-09-07T11:47:09.047371",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "aoc2019.devmode",
+      "started": "2026-09-07T11:42:34.720301",
+      "ended": "2026-09-07T11:43:15.707052",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "aoc2019.release",
+      "started": "2026-09-07T11:43:21.573239",
+      "ended": "2026-09-07T11:43:34.332099",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "swagscope.release",
+      "started": "2026-09-07T11:48:12.644713",
+      "ended": "2026-09-07T11:50:41.142014",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "swagvault.release",
+      "started": "2026-09-07T11:50:46.949708",
+      "ended": "2026-09-07T11:51:15.019267",
+      "exit": 0
+    },
+    {
+      "compiler_build": 394,
+      "name": "swagscope.devmode",
+      "started": "2026-09-07T11:51:20.881116",
+      "ended": "2026-09-07T11:55:18.089899",
+      "exit": 5
+    },
+    {
+      "compiler_build": 394,
+      "name": "cpp.final",
+      "exit": 0,
+      "passed": 622
+    },
+    {
+      "compiler_build": 394,
+      "name": "global-load.focused.devmode-and-release",
+      "exit": 0,
+      "tests_per_configuration": 1,
+      "execution": "JIT and native"
+    },
+    {
+      "compiler_build": 394,
+      "name": "repository-contract.final",
+      "exit": 0,
+      "log": "repository-check.log"
+    }
+  ],
+  "known_failure": {
+    "entry": "app.capture.026",
+    "goldens": [
+      "main.menu.view",
+      "library.menu.view",
+      "library.menu.sort",
+      "library.menu.filter"
+    ],
+    "baseline_rebuilt": true,
+    "baseline_native_failed_tests": 4,
+    "actual_image_hashes": "capture-hashes.json"
+  },
+  "limits": [
+    "No Release compiler or recorded timing campaign. Runtime-ratio targets remain unmeasured.",
+    "Whole campaigns used builds 391, 392 and 393. The final build 394 lane guard is covered by the C++ regression, both native configurations, focused JIT, script smokes, AoC2019 and the language reference; final run completion is listed above.",
+    "The complete application/reference/example smoke ladder was interrupted by the pre-existing Capture failures. Subsequent focused consumers are listed individually."
+  ],
+  "regression_detection": [
+    {
+      "disabled": "sqrt destination metadata",
+      "failed_test": "MicroInstr_SqrtReplacesItsDestination"
+    },
+    {
+      "disabled": "sqrt result-copy fold",
+      "failed_test": "InstCombine_FloatResultCopy_DefinesAccumulatorDirectly"
+    },
+    {
+      "disabled": "shared AND factoring",
+      "failed_test": "InstCombine_SharedAndInputs_PreservesValuesAndFlags"
+    },
+    {
+      "disabled": "relocated load forwarding",
+      "failed_test": "InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory"
+    },
+    {
+      "disabled": "scalar lane guard",
+      "failed_test": "InstCombine_SqrtResultCopy_PreservesPackedDestination"
+    }
+  ],
+  "unresolved_failure": {
+    "entry": "app.scope.video.017",
+    "configuration": "devmode",
+    "passed": 217,
+    "failed": 2,
+    "baseline_verified": false,
+    "assertions": [
+      "viewer.video.test.swg:598",
+      "viewer.video.test.swg:112"
+    ]
+  },
+  "retained_temporary_outputs": "Recursive benchmark-output cleanup was rejected by automatic policy review. Ignored investigation files and benchmark outputs remain in the isolated worktree."
+}

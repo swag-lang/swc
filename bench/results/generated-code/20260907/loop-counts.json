@@ -1,0 +1,2945 @@
+{
+  "baseline": {
+    "wordfreq": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "ByteMap.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapFree",
+        "instructions": 14,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapClaim",
+        "instructions": 20,
+        "memory": 10,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapInit",
+        "instructions": 42,
+        "memory": 7,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapProbe",
+        "instructions": 61,
+        "memory": 13,
+        "loops": [
+          {
+            "start": 14,
+            "end": 22,
+            "instructions": 8,
+            "memory": 1,
+            "source": "h ^= cast(u64) m.base[off + i]"
+          },
+          {
+            "start": 30,
+            "end": 59,
+            "instructions": 28,
+            "memory": 8,
+            "source": "if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do"
+          }
+        ]
+      },
+      {
+        "name": "Wordfreq.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.less",
+        "instructions": 68,
+        "memory": 24,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.qsort",
+        "instructions": 71,
+        "memory": 14,
+        "loops": [
+          {
+            "start": 28,
+            "end": 38,
+            "instructions": 10,
+            "memory": 2,
+            "source": "while less(g_Idx[cast(u64) i], p) do"
+          },
+          {
+            "start": 40,
+            "end": 50,
+            "instructions": 10,
+            "memory": 2,
+            "source": "while less(p, g_Idx[cast(u64) j]) do"
+          },
+          {
+            "start": 25,
+            "end": 53,
+            "instructions": 24,
+            "memory": 4,
+            "source": "while i <= j"
+          },
+          {
+            "start": 25,
+            "end": 65,
+            "instructions": 36,
+            "memory": 12,
+            "source": "while i <= j"
+          },
+          {
+            "start": 13,
+            "end": 72,
+            "instructions": 53,
+            "memory": 14,
+            "source": "let p = g_Idx[cast(u64) ((low + high) / 2)]"
+          }
+        ]
+      },
+      {
+        "name": "Wordfreq.__main_0",
+        "instructions": 300,
+        "memory": 57,
+        "loops": [
+          {
+            "start": 46,
+            "end": 73,
+            "instructions": 27,
+            "memory": 1,
+            "source": "vocabBytes[vp] = cast(u8) (97 + (nn % 26))"
+          },
+          {
+            "start": 26,
+            "end": 77,
+            "instructions": 49,
+            "memory": 3,
+            "source": "var nn = i + 1"
+          },
+          {
+            "start": 101,
+            "end": 112,
+            "instructions": 11,
+            "memory": 3,
+            "source": "g_Text[n] = vocabBytes[o + k]"
+          },
+          {
+            "start": 85,
+            "end": 135,
+            "instructions": 46,
+            "memory": 9,
+            "source": "let idx = rnd() % VOCAB"
+          },
+          {
+            "start": 156,
+            "end": 207,
+            "instructions": 46,
+            "memory": 7,
+            "source": "let c = g_Text[i]"
+          },
+          {
+            "start": 262,
+            "end": 287,
+            "instructions": 24,
+            "memory": 16,
+            "source": "if counts.used[s] == 0 do"
+          },
+          {
+            "start": 296,
+            "end": 305,
+            "instructions": 9,
+            "memory": 2,
+            "source": "check += (k + 1) * g_Cnt[g_Idx[k]]"
+          }
+        ]
+      }
+    ],
+    "csvagg": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "ByteMap.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapFree",
+        "instructions": 14,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapClaim",
+        "instructions": 20,
+        "memory": 10,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapInit",
+        "instructions": 42,
+        "memory": 7,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapProbe",
+        "instructions": 61,
+        "memory": 13,
+        "loops": [
+          {
+            "start": 14,
+            "end": 22,
+            "instructions": 8,
+            "memory": 1,
+            "source": "h ^= cast(u64) m.base[off + i]"
+          },
+          {
+            "start": 30,
+            "end": 59,
+            "instructions": 28,
+            "memory": 8,
+            "source": "if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do"
+          }
+        ]
+      },
+      {
+        "name": "Csvagg.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.writeUInt2",
+        "instructions": 27,
+        "memory": 2,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.writeUInt",
+        "instructions": 62,
+        "memory": 6,
+        "loops": [
+          {
+            "start": 23,
+            "end": 46,
+            "instructions": 23,
+            "memory": 1,
+            "source": "tmp[n] = cast(u8) (48 + (x % 10))"
+          },
+          {
+            "start": 51,
+            "end": 61,
+            "instructions": 10,
+            "memory": 2,
+            "source": "i      -= 1"
+          }
+        ]
+      },
+      {
+        "name": "Csvagg.__main_0",
+        "instructions": 671,
+        "memory": 154,
+        "loops": [
+          {
+            "start": 113,
+            "end": 121,
+            "instructions": 8,
+            "memory": 3,
+            "source": "text[n] = region[i]"
+          },
+          {
+            "start": 23,
+            "end": 223,
+            "instructions": 197,
+            "memory": 25,
+            "source": "if j > 0"
+          },
+          {
+            "start": 268,
+            "end": 273,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while eol < n and text[eol] != '\\n' do"
+          },
+          {
+            "start": 278,
+            "end": 283,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 290,
+            "end": 295,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 303,
+            "end": 308,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 316,
+            "end": 326,
+            "instructions": 10,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ','"
+          },
+          {
+            "start": 333,
+            "end": 343,
+            "instructions": 10,
+            "memory": 1,
+            "source": "while p < eol and text[p] != '.'"
+          },
+          {
+            "start": 350,
+            "end": 358,
+            "instructions": 8,
+            "memory": 1,
+            "source": "fr = fr * 10 + cast(u64) (text[p] - 48)"
+          },
+          {
+            "start": 258,
+            "end": 485,
+            "instructions": 193,
+            "memory": 40,
+            "source": "while pos < n"
+          },
+          {
+            "start": 492,
+            "end": 496,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var order:  [64] u64"
+          },
+          {
+            "start": 502,
+            "end": 506,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var keyIdx: [64] u64"
+          },
+          {
+            "start": 511,
+            "end": 522,
+            "instructions": 10,
+            "memory": 4,
+            "source": "if agg.used[i] != 0"
+          },
+          {
+            "start": 527,
+            "end": 531,
+            "instructions": 4,
+            "memory": 1,
+            "source": "order[i] = i"
+          },
+          {
+            "start": 551,
+            "end": 609,
+            "instructions": 54,
+            "memory": 23,
+            "source": "if j <= i do"
+          },
+          {
+            "start": 545,
+            "end": 626,
+            "instructions": 75,
+            "memory": 33,
+            "source": "var best = i"
+          },
+          {
+            "start": 644,
+            "end": 711,
+            "instructions": 63,
+            "memory": 14,
+            "source": "let slot = agg.val[keyIdx[order[k]]]"
+          }
+        ]
+      }
+    ],
+    "sha256": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Sha256.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Sha256.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Sha256.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Sha256.rotr",
+        "instructions": 18,
+        "memory": 0,
+        "loops": []
+      },
+      {
+        "name": "Sha256.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Sha256.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Sha256.__main_0",
+        "instructions": 361,
+        "memory": 67,
+        "loops": [
+          {
+            "start": 19,
+            "end": 27,
+            "instructions": 8,
+            "memory": 1,
+            "source": "msg[i] = cast(u8) (rnd() % 256)"
+          },
+          {
+            "start": 38,
+            "end": 44,
+            "instructions": 6,
+            "memory": 2,
+            "source": "Swag.memcpy(buf, msg, SIZE)"
+          },
+          {
+            "start": 47,
+            "end": 54,
+            "instructions": 7,
+            "memory": 1,
+            "source": "while (nb % 64) != 56"
+          },
+          {
+            "start": 135,
+            "end": 139,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var w: [64] u64"
+          },
+          {
+            "start": 160,
+            "end": 176,
+            "instructions": 16,
+            "memory": 5,
+            "source": "let p = o + t * 4"
+          },
+          {
+            "start": 181,
+            "end": 219,
+            "instructions": 38,
+            "memory": 5,
+            "source": "let x  = w[t - 15]"
+          },
+          {
+            "start": 237,
+            "end": 311,
+            "instructions": 74,
+            "memory": 5,
+            "source": "let s1  = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)"
+          },
+          {
+            "start": 154,
+            "end": 343,
+            "instructions": 184,
+            "memory": 40,
+            "source": "let o = b * 64"
+          }
+        ]
+      }
+    ],
+    "dijkstra": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.push",
+        "instructions": 46,
+        "memory": 26,
+        "loops": [
+          {
+            "start": 15,
+            "end": 46,
+            "instructions": 31,
+            "memory": 20,
+            "source": "let p = (i - 1) >> 1"
+          }
+        ]
+      },
+      {
+        "name": "Dijkstra.pop",
+        "instructions": 67,
+        "memory": 43,
+        "loops": [
+          {
+            "start": 21,
+            "end": 67,
+            "instructions": 45,
+            "memory": 26,
+            "source": "let l = 2 * i + 1"
+          }
+        ]
+      },
+      {
+        "name": "Dijkstra.__main_0",
+        "instructions": 260,
+        "memory": 82,
+        "loops": [
+          {
+            "start": 17,
+            "end": 32,
+            "instructions": 15,
+            "memory": 1,
+            "source": "weight[i] = 1 + (rnd() % 9)"
+          },
+          {
+            "start": 41,
+            "end": 46,
+            "instructions": 5,
+            "memory": 2,
+            "source": "dist[i] = INF"
+          },
+          {
+            "start": 87,
+            "end": 133,
+            "instructions": 45,
+            "memory": 26,
+            "source": "let l = 2 * i + 1"
+          },
+          {
+            "start": 63,
+            "end": 141,
+            "instructions": 75,
+            "memory": 49,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 220,
+            "instructions": 146,
+            "memory": 63,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 228,
+            "instructions": 154,
+            "memory": 66,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 233,
+            "instructions": 159,
+            "memory": 68,
+            "source": "while g_HeapSize > 0"
+          }
+        ]
+      }
+    ],
+    "raytrace": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.__main_0",
+        "instructions": 119,
+        "memory": 30,
+        "loops": [
+          {
+            "start": 41,
+            "end": 94,
+            "instructions": 53,
+            "memory": 6,
+            "source": "let dx = ((cast(f64) px + 0.5'f64) / cast(f64) W * 2.0'f64 - 1.0'f64) * aspect"
+          },
+          {
+            "start": 30,
+            "end": 97,
+            "instructions": 66,
+            "memory": 6,
+            "source": "for px in W"
+          }
+        ]
+      },
+      {
+        "name": "Raytrace.trace",
+        "instructions": 218,
+        "memory": 74,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.intersect",
+        "instructions": 210,
+        "memory": 37,
+        "loops": []
+      }
+    ],
+    "leven": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Leven.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Leven.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Leven.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Leven.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Leven.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Leven.__main_0",
+        "instructions": 421,
+        "memory": 107,
+        "loops": [
+          {
+            "start": 56,
+            "end": 84,
+            "instructions": 28,
+            "memory": 2,
+            "source": "g_Bytes[wp] = cast(u8) (97 + (n % 26))"
+          },
+          {
+            "start": 29,
+            "end": 88,
+            "instructions": 57,
+            "memory": 6,
+            "source": "var n = i + 1"
+          },
+          {
+            "start": 128,
+            "end": 136,
+            "instructions": 8,
+            "memory": 3,
+            "source": "tmp[i] = g_Bytes[g_WordOff[src] + i]"
+          },
+          {
+            "start": 171,
+            "end": 179,
+            "instructions": 8,
+            "memory": 2,
+            "source": "while i + 1 < nw"
+          },
+          {
+            "start": 187,
+            "end": 193,
+            "instructions": 6,
+            "memory": 2,
+            "source": "tmp[i] = tmp[i - 1]"
+          },
+          {
+            "start": 231,
+            "end": 239,
+            "instructions": 8,
+            "memory": 2,
+            "source": "{"
+          },
+          {
+            "start": 248,
+            "end": 254,
+            "instructions": 6,
+            "memory": 2,
+            "source": "{"
+          },
+          {
+            "start": 270,
+            "end": 279,
+            "instructions": 9,
+            "memory": 3,
+            "source": "g_QBytes[qp] = tmp[i]"
+          },
+          {
+            "start": 108,
+            "end": 285,
+            "instructions": 155,
+            "memory": 32,
+            "source": "var tmp: [32] u8"
+          },
+          {
+            "start": 293,
+            "end": 297,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var row0: [64] u64"
+          },
+          {
+            "start": 302,
+            "end": 306,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var row1: [64] u64"
+          },
+          {
+            "start": 346,
+            "end": 350,
+            "instructions": 4,
+            "memory": 1,
+            "source": "row0[j] = j"
+          },
+          {
+            "start": 368,
+            "end": 390,
+            "instructions": 22,
+            "memory": 5,
+            "source": "if ca == g_Bytes[bo + y] do"
+          },
+          {
+            "start": 395,
+            "end": 401,
+            "instructions": 6,
+            "memory": 2,
+            "source": "row0[j] = row1[j]"
+          },
+          {
+            "start": 357,
+            "end": 409,
+            "instructions": 48,
+            "memory": 15,
+            "source": "row1[0] = x + 1"
+          },
+          {
+            "start": 329,
+            "end": 430,
+            "instructions": 91,
+            "memory": 33,
+            "source": "let bo = g_WordOff[i]"
+          },
+          {
+            "start": 318,
+            "end": 444,
+            "instructions": 115,
+            "memory": 48,
+            "source": "let ao      = g_QOff[q]"
+          }
+        ]
+      }
+    ],
+    "chacha": [
+      {
+        "name": "Chacha.add32",
+        "instructions": 6,
+        "memory": 0,
+        "loops": []
+      },
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Chacha.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Chacha.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Chacha.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Chacha.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Chacha.quarterRound",
+        "instructions": 57,
+        "memory": 25,
+        "loops": []
+      },
+      {
+        "name": "Chacha.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Chacha.__main_0",
+        "instructions": 214,
+        "memory": 66,
+        "loops": [
+          {
+            "start": 15,
+            "end": 23,
+            "instructions": 8,
+            "memory": 1,
+            "source": "data[i] = cast(u32) (rnd() & M32)"
+          },
+          {
+            "start": 121,
+            "end": 176,
+            "instructions": 55,
+            "memory": 0,
+            "source": "state[][a] = add32(state[][a], state[][b])"
+          },
+          {
+            "start": 183,
+            "end": 193,
+            "instructions": 10,
+            "memory": 3,
+            "source": "data[offset + i] ^= add32(state[i], initial[i])"
+          },
+          {
+            "start": 105,
+            "end": 197,
+            "instructions": 90,
+            "memory": 20,
+            "source": "initial[12] = counter"
+          },
+          {
+            "start": 202,
+            "end": 208,
+            "instructions": 6,
+            "memory": 1,
+            "source": "check ^= (cast(u64) data[i] + i) & M32"
+          }
+        ]
+      }
+    ]
+  },
+  "sqrt_and_factoring": {
+    "wordfreq": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "ByteMap.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapFree",
+        "instructions": 14,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapClaim",
+        "instructions": 20,
+        "memory": 10,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapInit",
+        "instructions": 42,
+        "memory": 7,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapProbe",
+        "instructions": 61,
+        "memory": 13,
+        "loops": [
+          {
+            "start": 14,
+            "end": 22,
+            "instructions": 8,
+            "memory": 1,
+            "source": "h ^= cast(u64) m.base[off + i]"
+          },
+          {
+            "start": 30,
+            "end": 59,
+            "instructions": 28,
+            "memory": 8,
+            "source": "if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do"
+          }
+        ]
+      },
+      {
+        "name": "Wordfreq.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.less",
+        "instructions": 68,
+        "memory": 24,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.qsort",
+        "instructions": 71,
+        "memory": 14,
+        "loops": [
+          {
+            "start": 28,
+            "end": 38,
+            "instructions": 10,
+            "memory": 2,
+            "source": "while less(g_Idx[cast(u64) i], p) do"
+          },
+          {
+            "start": 40,
+            "end": 50,
+            "instructions": 10,
+            "memory": 2,
+            "source": "while less(p, g_Idx[cast(u64) j]) do"
+          },
+          {
+            "start": 25,
+            "end": 53,
+            "instructions": 24,
+            "memory": 4,
+            "source": "while i <= j"
+          },
+          {
+            "start": 25,
+            "end": 65,
+            "instructions": 36,
+            "memory": 12,
+            "source": "while i <= j"
+          },
+          {
+            "start": 13,
+            "end": 72,
+            "instructions": 53,
+            "memory": 14,
+            "source": "let p = g_Idx[cast(u64) ((low + high) / 2)]"
+          }
+        ]
+      },
+      {
+        "name": "Wordfreq.__main_0",
+        "instructions": 300,
+        "memory": 57,
+        "loops": [
+          {
+            "start": 46,
+            "end": 73,
+            "instructions": 27,
+            "memory": 1,
+            "source": "vocabBytes[vp] = cast(u8) (97 + (nn % 26))"
+          },
+          {
+            "start": 26,
+            "end": 77,
+            "instructions": 49,
+            "memory": 3,
+            "source": "var nn = i + 1"
+          },
+          {
+            "start": 101,
+            "end": 112,
+            "instructions": 11,
+            "memory": 3,
+            "source": "g_Text[n] = vocabBytes[o + k]"
+          },
+          {
+            "start": 85,
+            "end": 135,
+            "instructions": 46,
+            "memory": 9,
+            "source": "let idx = rnd() % VOCAB"
+          },
+          {
+            "start": 156,
+            "end": 207,
+            "instructions": 46,
+            "memory": 7,
+            "source": "let c = g_Text[i]"
+          },
+          {
+            "start": 262,
+            "end": 287,
+            "instructions": 24,
+            "memory": 16,
+            "source": "if counts.used[s] == 0 do"
+          },
+          {
+            "start": 296,
+            "end": 305,
+            "instructions": 9,
+            "memory": 2,
+            "source": "check += (k + 1) * g_Cnt[g_Idx[k]]"
+          }
+        ]
+      }
+    ],
+    "csvagg": [
+      {
+        "name": "ByteMap.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapFree",
+        "instructions": 14,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapClaim",
+        "instructions": 20,
+        "memory": 10,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapInit",
+        "instructions": 42,
+        "memory": 7,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapProbe",
+        "instructions": 61,
+        "memory": 13,
+        "loops": [
+          {
+            "start": 14,
+            "end": 22,
+            "instructions": 8,
+            "memory": 1,
+            "source": "h ^= cast(u64) m.base[off + i]"
+          },
+          {
+            "start": 30,
+            "end": 59,
+            "instructions": 28,
+            "memory": 8,
+            "source": "if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do"
+          }
+        ]
+      },
+      {
+        "name": "Csvagg.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.writeUInt2",
+        "instructions": 27,
+        "memory": 2,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.writeUInt",
+        "instructions": 62,
+        "memory": 6,
+        "loops": [
+          {
+            "start": 23,
+            "end": 46,
+            "instructions": 23,
+            "memory": 1,
+            "source": "tmp[n] = cast(u8) (48 + (x % 10))"
+          },
+          {
+            "start": 51,
+            "end": 61,
+            "instructions": 10,
+            "memory": 2,
+            "source": "i      -= 1"
+          }
+        ]
+      },
+      {
+        "name": "Csvagg.__main_0",
+        "instructions": 671,
+        "memory": 154,
+        "loops": [
+          {
+            "start": 113,
+            "end": 121,
+            "instructions": 8,
+            "memory": 3,
+            "source": "text[n] = region[i]"
+          },
+          {
+            "start": 23,
+            "end": 223,
+            "instructions": 197,
+            "memory": 25,
+            "source": "if j > 0"
+          },
+          {
+            "start": 268,
+            "end": 273,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while eol < n and text[eol] != '\\n' do"
+          },
+          {
+            "start": 278,
+            "end": 283,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 290,
+            "end": 295,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 303,
+            "end": 308,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 316,
+            "end": 326,
+            "instructions": 10,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ','"
+          },
+          {
+            "start": 333,
+            "end": 343,
+            "instructions": 10,
+            "memory": 1,
+            "source": "while p < eol and text[p] != '.'"
+          },
+          {
+            "start": 350,
+            "end": 358,
+            "instructions": 8,
+            "memory": 1,
+            "source": "fr = fr * 10 + cast(u64) (text[p] - 48)"
+          },
+          {
+            "start": 258,
+            "end": 485,
+            "instructions": 193,
+            "memory": 40,
+            "source": "while pos < n"
+          },
+          {
+            "start": 492,
+            "end": 496,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var order:  [64] u64"
+          },
+          {
+            "start": 502,
+            "end": 506,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var keyIdx: [64] u64"
+          },
+          {
+            "start": 511,
+            "end": 522,
+            "instructions": 10,
+            "memory": 4,
+            "source": "if agg.used[i] != 0"
+          },
+          {
+            "start": 527,
+            "end": 531,
+            "instructions": 4,
+            "memory": 1,
+            "source": "order[i] = i"
+          },
+          {
+            "start": 551,
+            "end": 609,
+            "instructions": 54,
+            "memory": 23,
+            "source": "if j <= i do"
+          },
+          {
+            "start": 545,
+            "end": 626,
+            "instructions": 75,
+            "memory": 33,
+            "source": "var best = i"
+          },
+          {
+            "start": 644,
+            "end": 711,
+            "instructions": 63,
+            "memory": 14,
+            "source": "let slot = agg.val[keyIdx[order[k]]]"
+          }
+        ]
+      }
+    ],
+    "sha256": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Sha256.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Sha256.rotr",
+        "instructions": 18,
+        "memory": 0,
+        "loops": []
+      },
+      {
+        "name": "Sha256.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Sha256.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Sha256.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Sha256.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Sha256.__main_0",
+        "instructions": 359,
+        "memory": 67,
+        "loops": [
+          {
+            "start": 19,
+            "end": 27,
+            "instructions": 8,
+            "memory": 1,
+            "source": "msg[i] = cast(u8) (rnd() % 256)"
+          },
+          {
+            "start": 38,
+            "end": 44,
+            "instructions": 6,
+            "memory": 2,
+            "source": "Swag.memcpy(buf, msg, SIZE)"
+          },
+          {
+            "start": 47,
+            "end": 54,
+            "instructions": 7,
+            "memory": 1,
+            "source": "while (nb % 64) != 56"
+          },
+          {
+            "start": 135,
+            "end": 139,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var w: [64] u64"
+          },
+          {
+            "start": 160,
+            "end": 176,
+            "instructions": 16,
+            "memory": 5,
+            "source": "let p = o + t * 4"
+          },
+          {
+            "start": 181,
+            "end": 219,
+            "instructions": 38,
+            "memory": 5,
+            "source": "let x  = w[t - 15]"
+          },
+          {
+            "start": 237,
+            "end": 309,
+            "instructions": 72,
+            "memory": 5,
+            "source": "let s1  = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)"
+          },
+          {
+            "start": 154,
+            "end": 341,
+            "instructions": 182,
+            "memory": 40,
+            "source": "let o = b * 64"
+          }
+        ]
+      }
+    ],
+    "dijkstra": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.push",
+        "instructions": 46,
+        "memory": 26,
+        "loops": [
+          {
+            "start": 15,
+            "end": 46,
+            "instructions": 31,
+            "memory": 20,
+            "source": "let p = (i - 1) >> 1"
+          }
+        ]
+      },
+      {
+        "name": "Dijkstra.pop",
+        "instructions": 67,
+        "memory": 43,
+        "loops": [
+          {
+            "start": 21,
+            "end": 67,
+            "instructions": 45,
+            "memory": 26,
+            "source": "let l = 2 * i + 1"
+          }
+        ]
+      },
+      {
+        "name": "Dijkstra.__main_0",
+        "instructions": 260,
+        "memory": 82,
+        "loops": [
+          {
+            "start": 17,
+            "end": 32,
+            "instructions": 15,
+            "memory": 1,
+            "source": "weight[i] = 1 + (rnd() % 9)"
+          },
+          {
+            "start": 41,
+            "end": 46,
+            "instructions": 5,
+            "memory": 2,
+            "source": "dist[i] = INF"
+          },
+          {
+            "start": 87,
+            "end": 133,
+            "instructions": 45,
+            "memory": 26,
+            "source": "let l = 2 * i + 1"
+          },
+          {
+            "start": 63,
+            "end": 141,
+            "instructions": 75,
+            "memory": 49,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 220,
+            "instructions": 146,
+            "memory": 63,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 228,
+            "instructions": 154,
+            "memory": 66,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 233,
+            "instructions": 159,
+            "memory": 68,
+            "source": "while g_HeapSize > 0"
+          }
+        ]
+      }
+    ],
+    "raytrace": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.intersect",
+        "instructions": 202,
+        "memory": 37,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.__main_0",
+        "instructions": 118,
+        "memory": 30,
+        "loops": [
+          {
+            "start": 41,
+            "end": 93,
+            "instructions": 52,
+            "memory": 6,
+            "source": "let dx = ((cast(f64) px + 0.5'f64) / cast(f64) W * 2.0'f64 - 1.0'f64) * aspect"
+          },
+          {
+            "start": 30,
+            "end": 96,
+            "instructions": 65,
+            "memory": 6,
+            "source": "for px in W"
+          }
+        ]
+      },
+      {
+        "name": "Raytrace.trace",
+        "instructions": 217,
+        "memory": 74,
+        "loops": []
+      }
+    ],
+    "leven": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Leven.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Leven.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Leven.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Leven.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Leven.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Leven.__main_0",
+        "instructions": 421,
+        "memory": 107,
+        "loops": [
+          {
+            "start": 56,
+            "end": 84,
+            "instructions": 28,
+            "memory": 2,
+            "source": "g_Bytes[wp] = cast(u8) (97 + (n % 26))"
+          },
+          {
+            "start": 29,
+            "end": 88,
+            "instructions": 57,
+            "memory": 6,
+            "source": "var n = i + 1"
+          },
+          {
+            "start": 128,
+            "end": 136,
+            "instructions": 8,
+            "memory": 3,
+            "source": "tmp[i] = g_Bytes[g_WordOff[src] + i]"
+          },
+          {
+            "start": 171,
+            "end": 179,
+            "instructions": 8,
+            "memory": 2,
+            "source": "while i + 1 < nw"
+          },
+          {
+            "start": 187,
+            "end": 193,
+            "instructions": 6,
+            "memory": 2,
+            "source": "tmp[i] = tmp[i - 1]"
+          },
+          {
+            "start": 231,
+            "end": 239,
+            "instructions": 8,
+            "memory": 2,
+            "source": "{"
+          },
+          {
+            "start": 248,
+            "end": 254,
+            "instructions": 6,
+            "memory": 2,
+            "source": "{"
+          },
+          {
+            "start": 270,
+            "end": 279,
+            "instructions": 9,
+            "memory": 3,
+            "source": "g_QBytes[qp] = tmp[i]"
+          },
+          {
+            "start": 108,
+            "end": 285,
+            "instructions": 155,
+            "memory": 32,
+            "source": "var tmp: [32] u8"
+          },
+          {
+            "start": 293,
+            "end": 297,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var row0: [64] u64"
+          },
+          {
+            "start": 302,
+            "end": 306,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var row1: [64] u64"
+          },
+          {
+            "start": 346,
+            "end": 350,
+            "instructions": 4,
+            "memory": 1,
+            "source": "row0[j] = j"
+          },
+          {
+            "start": 368,
+            "end": 390,
+            "instructions": 22,
+            "memory": 5,
+            "source": "if ca == g_Bytes[bo + y] do"
+          },
+          {
+            "start": 395,
+            "end": 401,
+            "instructions": 6,
+            "memory": 2,
+            "source": "row0[j] = row1[j]"
+          },
+          {
+            "start": 357,
+            "end": 409,
+            "instructions": 48,
+            "memory": 15,
+            "source": "row1[0] = x + 1"
+          },
+          {
+            "start": 329,
+            "end": 430,
+            "instructions": 91,
+            "memory": 33,
+            "source": "let bo = g_WordOff[i]"
+          },
+          {
+            "start": 318,
+            "end": 444,
+            "instructions": 115,
+            "memory": 48,
+            "source": "let ao      = g_QOff[q]"
+          }
+        ]
+      }
+    ],
+    "chacha": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Chacha.add32",
+        "instructions": 6,
+        "memory": 0,
+        "loops": []
+      },
+      {
+        "name": "Chacha.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Chacha.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Chacha.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Chacha.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Chacha.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Chacha.quarterRound",
+        "instructions": 57,
+        "memory": 25,
+        "loops": []
+      },
+      {
+        "name": "Chacha.__main_0",
+        "instructions": 214,
+        "memory": 66,
+        "loops": [
+          {
+            "start": 15,
+            "end": 23,
+            "instructions": 8,
+            "memory": 1,
+            "source": "data[i] = cast(u32) (rnd() & M32)"
+          },
+          {
+            "start": 121,
+            "end": 176,
+            "instructions": 55,
+            "memory": 0,
+            "source": "state[][a] = add32(state[][a], state[][b])"
+          },
+          {
+            "start": 183,
+            "end": 193,
+            "instructions": 10,
+            "memory": 3,
+            "source": "data[offset + i] ^= add32(state[i], initial[i])"
+          },
+          {
+            "start": 105,
+            "end": 197,
+            "instructions": 90,
+            "memory": 20,
+            "source": "initial[12] = counter"
+          },
+          {
+            "start": 202,
+            "end": 208,
+            "instructions": 6,
+            "memory": 1,
+            "source": "check ^= (cast(u64) data[i] + i) & M32"
+          }
+        ]
+      }
+    ]
+  },
+  "final": {
+    "raytrace": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.__main_0",
+        "instructions": 118,
+        "memory": 30,
+        "loops": [
+          {
+            "start": 41,
+            "end": 93,
+            "instructions": 52,
+            "memory": 6,
+            "source": "let dx = ((cast(f64) px + 0.5'f64) / cast(f64) W * 2.0'f64 - 1.0'f64) * aspect"
+          },
+          {
+            "start": 30,
+            "end": 96,
+            "instructions": 65,
+            "memory": 6,
+            "source": "for px in W"
+          }
+        ]
+      },
+      {
+        "name": "Raytrace.intersect",
+        "instructions": 202,
+        "memory": 37,
+        "loops": []
+      },
+      {
+        "name": "Raytrace.trace",
+        "instructions": 217,
+        "memory": 74,
+        "loops": []
+      }
+    ],
+    "wordfreq": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "ByteMap.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapFree",
+        "instructions": 14,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapClaim",
+        "instructions": 20,
+        "memory": 10,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapInit",
+        "instructions": 42,
+        "memory": 7,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.mapProbe",
+        "instructions": 61,
+        "memory": 13,
+        "loops": [
+          {
+            "start": 14,
+            "end": 22,
+            "instructions": 8,
+            "memory": 1,
+            "source": "h ^= cast(u64) m.base[off + i]"
+          },
+          {
+            "start": 30,
+            "end": 59,
+            "instructions": 28,
+            "memory": 8,
+            "source": "if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do"
+          }
+        ]
+      },
+      {
+        "name": "Wordfreq.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.less",
+        "instructions": 61,
+        "memory": 18,
+        "loops": []
+      },
+      {
+        "name": "Wordfreq.qsort",
+        "instructions": 69,
+        "memory": 12,
+        "loops": [
+          {
+            "start": 28,
+            "end": 38,
+            "instructions": 10,
+            "memory": 2,
+            "source": "while less(g_Idx[cast(u64) i], p) do"
+          },
+          {
+            "start": 40,
+            "end": 50,
+            "instructions": 10,
+            "memory": 2,
+            "source": "while less(p, g_Idx[cast(u64) j]) do"
+          },
+          {
+            "start": 25,
+            "end": 53,
+            "instructions": 24,
+            "memory": 4,
+            "source": "while i <= j"
+          },
+          {
+            "start": 25,
+            "end": 63,
+            "instructions": 34,
+            "memory": 10,
+            "source": "while i <= j"
+          },
+          {
+            "start": 13,
+            "end": 70,
+            "instructions": 51,
+            "memory": 12,
+            "source": "let p = g_Idx[cast(u64) ((low + high) / 2)]"
+          }
+        ]
+      },
+      {
+        "name": "Wordfreq.__main_0",
+        "instructions": 300,
+        "memory": 57,
+        "loops": [
+          {
+            "start": 46,
+            "end": 73,
+            "instructions": 27,
+            "memory": 1,
+            "source": "vocabBytes[vp] = cast(u8) (97 + (nn % 26))"
+          },
+          {
+            "start": 26,
+            "end": 77,
+            "instructions": 49,
+            "memory": 3,
+            "source": "var nn = i + 1"
+          },
+          {
+            "start": 101,
+            "end": 112,
+            "instructions": 11,
+            "memory": 3,
+            "source": "g_Text[n] = vocabBytes[o + k]"
+          },
+          {
+            "start": 85,
+            "end": 135,
+            "instructions": 46,
+            "memory": 9,
+            "source": "let idx = rnd() % VOCAB"
+          },
+          {
+            "start": 156,
+            "end": 207,
+            "instructions": 46,
+            "memory": 7,
+            "source": "let c = g_Text[i]"
+          },
+          {
+            "start": 262,
+            "end": 287,
+            "instructions": 24,
+            "memory": 16,
+            "source": "if counts.used[s] == 0 do"
+          },
+          {
+            "start": 296,
+            "end": 305,
+            "instructions": 9,
+            "memory": 2,
+            "source": "check += (k + 1) * g_Cnt[g_Idx[k]]"
+          }
+        ]
+      }
+    ],
+    "csvagg": [
+      {
+        "name": "ByteMap.swagLifecycleInitWrapper",
+        "instructions": 7,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapFree",
+        "instructions": 14,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapProbe",
+        "instructions": 61,
+        "memory": 13,
+        "loops": [
+          {
+            "start": 14,
+            "end": 22,
+            "instructions": 8,
+            "memory": 1,
+            "source": "h ^= cast(u64) m.base[off + i]"
+          },
+          {
+            "start": 30,
+            "end": 59,
+            "instructions": 28,
+            "memory": 8,
+            "source": "if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do"
+          }
+        ]
+      },
+      {
+        "name": "Csvagg.mapInit",
+        "instructions": 42,
+        "memory": 7,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.mapClaim",
+        "instructions": 20,
+        "memory": 10,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.writeUInt2",
+        "instructions": 27,
+        "memory": 2,
+        "loops": []
+      },
+      {
+        "name": "Csvagg.writeUInt",
+        "instructions": 62,
+        "memory": 6,
+        "loops": [
+          {
+            "start": 23,
+            "end": 46,
+            "instructions": 23,
+            "memory": 1,
+            "source": "tmp[n] = cast(u8) (48 + (x % 10))"
+          },
+          {
+            "start": 51,
+            "end": 61,
+            "instructions": 10,
+            "memory": 2,
+            "source": "i      -= 1"
+          }
+        ]
+      },
+      {
+        "name": "Csvagg.__main_0",
+        "instructions": 671,
+        "memory": 154,
+        "loops": [
+          {
+            "start": 113,
+            "end": 121,
+            "instructions": 8,
+            "memory": 3,
+            "source": "text[n] = region[i]"
+          },
+          {
+            "start": 23,
+            "end": 223,
+            "instructions": 197,
+            "memory": 25,
+            "source": "if j > 0"
+          },
+          {
+            "start": 268,
+            "end": 273,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while eol < n and text[eol] != '\\n' do"
+          },
+          {
+            "start": 278,
+            "end": 283,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 290,
+            "end": 295,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 303,
+            "end": 308,
+            "instructions": 5,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ',' do"
+          },
+          {
+            "start": 316,
+            "end": 326,
+            "instructions": 10,
+            "memory": 1,
+            "source": "while p < eol and text[p] != ','"
+          },
+          {
+            "start": 333,
+            "end": 343,
+            "instructions": 10,
+            "memory": 1,
+            "source": "while p < eol and text[p] != '.'"
+          },
+          {
+            "start": 350,
+            "end": 358,
+            "instructions": 8,
+            "memory": 1,
+            "source": "fr = fr * 10 + cast(u64) (text[p] - 48)"
+          },
+          {
+            "start": 258,
+            "end": 485,
+            "instructions": 193,
+            "memory": 40,
+            "source": "while pos < n"
+          },
+          {
+            "start": 492,
+            "end": 496,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var order:  [64] u64"
+          },
+          {
+            "start": 502,
+            "end": 506,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var keyIdx: [64] u64"
+          },
+          {
+            "start": 511,
+            "end": 522,
+            "instructions": 10,
+            "memory": 4,
+            "source": "if agg.used[i] != 0"
+          },
+          {
+            "start": 527,
+            "end": 531,
+            "instructions": 4,
+            "memory": 1,
+            "source": "order[i] = i"
+          },
+          {
+            "start": 551,
+            "end": 609,
+            "instructions": 54,
+            "memory": 23,
+            "source": "if j <= i do"
+          },
+          {
+            "start": 545,
+            "end": 626,
+            "instructions": 75,
+            "memory": 33,
+            "source": "var best = i"
+          },
+          {
+            "start": 644,
+            "end": 711,
+            "instructions": 63,
+            "memory": 14,
+            "source": "let slot = agg.val[keyIdx[order[k]]]"
+          }
+        ]
+      }
+    ],
+    "sha256": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Sha256.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Sha256.rotr",
+        "instructions": 18,
+        "memory": 0,
+        "loops": []
+      },
+      {
+        "name": "Sha256.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Sha256.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Sha256.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Sha256.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Sha256.__main_0",
+        "instructions": 359,
+        "memory": 67,
+        "loops": [
+          {
+            "start": 19,
+            "end": 27,
+            "instructions": 8,
+            "memory": 1,
+            "source": "msg[i] = cast(u8) (rnd() % 256)"
+          },
+          {
+            "start": 38,
+            "end": 44,
+            "instructions": 6,
+            "memory": 2,
+            "source": "Swag.memcpy(buf, msg, SIZE)"
+          },
+          {
+            "start": 47,
+            "end": 54,
+            "instructions": 7,
+            "memory": 1,
+            "source": "while (nb % 64) != 56"
+          },
+          {
+            "start": 135,
+            "end": 139,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var w: [64] u64"
+          },
+          {
+            "start": 160,
+            "end": 176,
+            "instructions": 16,
+            "memory": 5,
+            "source": "let p = o + t * 4"
+          },
+          {
+            "start": 181,
+            "end": 219,
+            "instructions": 38,
+            "memory": 5,
+            "source": "let x  = w[t - 15]"
+          },
+          {
+            "start": 237,
+            "end": 309,
+            "instructions": 72,
+            "memory": 5,
+            "source": "let s1  = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)"
+          },
+          {
+            "start": 154,
+            "end": 341,
+            "instructions": 182,
+            "memory": 40,
+            "source": "let o = b * 64"
+          }
+        ]
+      }
+    ],
+    "dijkstra": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Dijkstra.push",
+        "instructions": 41,
+        "memory": 21,
+        "loops": [
+          {
+            "start": 15,
+            "end": 41,
+            "instructions": 26,
+            "memory": 15,
+            "source": "let p = (i - 1) >> 1"
+          }
+        ]
+      },
+      {
+        "name": "Dijkstra.pop",
+        "instructions": 59,
+        "memory": 35,
+        "loops": [
+          {
+            "start": 19,
+            "end": 59,
+            "instructions": 39,
+            "memory": 20,
+            "source": "let l = 2 * i + 1"
+          }
+        ]
+      },
+      {
+        "name": "Dijkstra.__main_0",
+        "instructions": 252,
+        "memory": 74,
+        "loops": [
+          {
+            "start": 17,
+            "end": 32,
+            "instructions": 15,
+            "memory": 1,
+            "source": "weight[i] = 1 + (rnd() % 9)"
+          },
+          {
+            "start": 41,
+            "end": 46,
+            "instructions": 5,
+            "memory": 2,
+            "source": "dist[i] = INF"
+          },
+          {
+            "start": 85,
+            "end": 125,
+            "instructions": 39,
+            "memory": 20,
+            "source": "let l = 2 * i + 1"
+          },
+          {
+            "start": 63,
+            "end": 133,
+            "instructions": 67,
+            "memory": 41,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 212,
+            "instructions": 138,
+            "memory": 55,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 220,
+            "instructions": 146,
+            "memory": 58,
+            "source": "while g_HeapSize > 0"
+          },
+          {
+            "start": 63,
+            "end": 225,
+            "instructions": 151,
+            "memory": 60,
+            "source": "while g_HeapSize > 0"
+          }
+        ]
+      }
+    ],
+    "leven": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Leven.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Leven.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Leven.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Leven.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Leven.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Leven.__main_0",
+        "instructions": 421,
+        "memory": 107,
+        "loops": [
+          {
+            "start": 56,
+            "end": 84,
+            "instructions": 28,
+            "memory": 2,
+            "source": "g_Bytes[wp] = cast(u8) (97 + (n % 26))"
+          },
+          {
+            "start": 29,
+            "end": 88,
+            "instructions": 57,
+            "memory": 6,
+            "source": "var n = i + 1"
+          },
+          {
+            "start": 128,
+            "end": 136,
+            "instructions": 8,
+            "memory": 3,
+            "source": "tmp[i] = g_Bytes[g_WordOff[src] + i]"
+          },
+          {
+            "start": 171,
+            "end": 179,
+            "instructions": 8,
+            "memory": 2,
+            "source": "while i + 1 < nw"
+          },
+          {
+            "start": 187,
+            "end": 193,
+            "instructions": 6,
+            "memory": 2,
+            "source": "tmp[i] = tmp[i - 1]"
+          },
+          {
+            "start": 231,
+            "end": 239,
+            "instructions": 8,
+            "memory": 2,
+            "source": "{"
+          },
+          {
+            "start": 248,
+            "end": 254,
+            "instructions": 6,
+            "memory": 2,
+            "source": "{"
+          },
+          {
+            "start": 270,
+            "end": 279,
+            "instructions": 9,
+            "memory": 3,
+            "source": "g_QBytes[qp] = tmp[i]"
+          },
+          {
+            "start": 108,
+            "end": 285,
+            "instructions": 155,
+            "memory": 32,
+            "source": "var tmp: [32] u8"
+          },
+          {
+            "start": 293,
+            "end": 297,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var row0: [64] u64"
+          },
+          {
+            "start": 302,
+            "end": 306,
+            "instructions": 4,
+            "memory": 1,
+            "source": "var row1: [64] u64"
+          },
+          {
+            "start": 346,
+            "end": 350,
+            "instructions": 4,
+            "memory": 1,
+            "source": "row0[j] = j"
+          },
+          {
+            "start": 368,
+            "end": 390,
+            "instructions": 22,
+            "memory": 5,
+            "source": "if ca == g_Bytes[bo + y] do"
+          },
+          {
+            "start": 395,
+            "end": 401,
+            "instructions": 6,
+            "memory": 2,
+            "source": "row0[j] = row1[j]"
+          },
+          {
+            "start": 357,
+            "end": 409,
+            "instructions": 48,
+            "memory": 15,
+            "source": "row1[0] = x + 1"
+          },
+          {
+            "start": 329,
+            "end": 430,
+            "instructions": 91,
+            "memory": 33,
+            "source": "let bo = g_WordOff[i]"
+          },
+          {
+            "start": 318,
+            "end": 444,
+            "instructions": 115,
+            "memory": 48,
+            "source": "let ao      = g_QOff[q]"
+          }
+        ]
+      }
+    ],
+    "chacha": [
+      {
+        "name": "BenchAllocationHeader.swagLifecycleInitWrapper",
+        "instructions": 4,
+        "memory": 1,
+        "loops": []
+      },
+      {
+        "name": "Chacha.add32",
+        "instructions": 6,
+        "memory": 0,
+        "loops": []
+      },
+      {
+        "name": "Chacha.now",
+        "instructions": 42,
+        "memory": 4,
+        "loops": []
+      },
+      {
+        "name": "Chacha.benchFree",
+        "instructions": 52,
+        "memory": 17,
+        "loops": []
+      },
+      {
+        "name": "Chacha.benchAlloc",
+        "instructions": 61,
+        "memory": 21,
+        "loops": []
+      },
+      {
+        "name": "Chacha.quarterRound",
+        "instructions": 57,
+        "memory": 25,
+        "loops": []
+      },
+      {
+        "name": "Chacha.rnd",
+        "instructions": 17,
+        "memory": 3,
+        "loops": []
+      },
+      {
+        "name": "Chacha.report",
+        "instructions": 41,
+        "memory": 19,
+        "loops": []
+      },
+      {
+        "name": "Chacha.__main_0",
+        "instructions": 214,
+        "memory": 66,
+        "loops": [
+          {
+            "start": 15,
+            "end": 23,
+            "instructions": 8,
+            "memory": 1,
+            "source": "data[i] = cast(u32) (rnd() & M32)"
+          },
+          {
+            "start": 121,
+            "end": 176,
+            "instructions": 55,
+            "memory": 0,
+            "source": "state[][a] = add32(state[][a], state[][b])"
+          },
+          {
+            "start": 183,
+            "end": 193,
+            "instructions": 10,
+            "memory": 3,
+            "source": "data[offset + i] ^= add32(state[i], initial[i])"
+          },
+          {
+            "start": 105,
+            "end": 197,
+            "instructions": 90,
+            "memory": 20,
+            "source": "initial[12] = counter"
+          },
+          {
+            "start": 202,
+            "end": 208,
+            "instructions": 6,
+            "memory": 1,
+            "source": "check ^= (cast(u64) data[i] + i) & M32"
+          }
+        ]
+      }
+    ]
+  }
+}

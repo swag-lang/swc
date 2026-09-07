@@ -34,6 +34,8 @@ does not move a row: the backlog holds only what remains, and the removal itself
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-07 11:56 |
+| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-07 08:13 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-06 21:14 |
@@ -48,7 +50,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [std.core.md](std.core.md) | `std/core` | 2026-09-06 17:42 |
 | [std.gui.markdown.md](std.gui.markdown.md) | The Markdown engine behind `Gui.Markdown.View` | 2026-09-06 17:42 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-06 17:42 |
-| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-06 15:21 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-06 15:21 |
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-06 07:51 |
@@ -58,7 +59,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-06 07:51 |
-| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-06 07:51 |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts and capabilities shared by several Swag Scope viewers | 2026-09-06 07:51 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |

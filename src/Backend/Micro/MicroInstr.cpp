@@ -28,38 +28,6 @@ namespace
 {
     constexpr uint8_t K_CALL_ARG_MASK_ALL = 0xFF;
 
-    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrDef& info, const MicroInstrOperand* ops)
-    {
-        auto modes = info.regModes;
-
-        switch (info.special)
-        {
-            case MicroInstrRegSpecial::None:
-                break;
-            case MicroInstrRegSpecial::OpBinaryRegReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                {
-                    modes[0] = MicroInstrRegMode::UseDef;
-                    modes[1] = MicroInstrRegMode::UseDef;
-                }
-                else if (ops[info.microOpIndex].microOp == MicroOp::ConvertFloatToInt)
-                {
-                    // CVTTSS2SI/CVTTSD2SI replace the integer destination. Unlike
-                    // scalar XMM operations, no old destination bits survive.
-                    modes[0] = MicroInstrRegMode::Def;
-                }
-                break;
-            case MicroInstrRegSpecial::OpBinaryMemReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                    modes[1] = MicroInstrRegMode::UseDef;
-                break;
-            case MicroInstrRegSpecial::OpTernaryRegRegReg:
-                break;
-        }
-
-        return modes;
-    }
-
     void collectRegUseDefFromModes(MicroInstrUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
     {
         if (!ops)
@@ -193,7 +161,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
             useDef.addDef(reg);
     }
 
-    const auto modes = resolveRegModes(opcodeInfo, ops);
+    const auto modes = opcodeInfo.resolvedRegModes(ops);
     collectRegUseDefFromModes(useDef, ops, modes);
 
     if (encoder)
@@ -206,7 +174,7 @@ void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<M
 {
     const MicroInstrDef& opcodeInfo = info(op);
     MicroInstrOperand*   ops        = this->ops(operands);
-    const auto           modes      = resolveRegModes(opcodeInfo, ops);
+    const auto           modes      = opcodeInfo.resolvedRegModes(ops);
     collectRegOperandsFromModes(out, ops, modes);
 }
 

@@ -1,0 +1,44 @@
+{
+  "wordfreq": {
+    "swag-release": 130489,
+    "swag-fast-debug": 130489,
+    "cpp-clang-cl": 130489,
+    "cpp-msvc": 130489
+  },
+  "csvagg": {
+    "swag-release": 24828641,
+    "swag-fast-debug": 24828641,
+    "cpp-clang-cl": 24828641,
+    "cpp-msvc": 24828641
+  },
+  "sha256": {
+    "swag-release": 2503168387,
+    "swag-fast-debug": 2503168387,
+    "cpp-clang-cl": 2503168387,
+    "cpp-msvc": 2503168387
+  },
+  "dijkstra": {
+    "swag-release": 4431000,
+    "swag-fast-debug": 4431000,
+    "cpp-clang-cl": 4431000,
+    "cpp-msvc": 4431000
+  },
+  "raytrace": {
+    "swag-release": 56061776,
+    "swag-fast-debug": 56061776,
+    "cpp-clang-cl": 56061776,
+    "cpp-msvc": 56061776
+  },
+  "leven": {
+    "swag-release": 67441,
+    "swag-fast-debug": 67441,
+    "cpp-clang-cl": 67441,
+    "cpp-msvc": 67441
+  },
+  "chacha": {
+    "swag-release": 633277775,
+    "swag-fast-debug": 633277775,
+    "cpp-clang-cl": 633277775,
+    "cpp-msvc": 633277775
+  }
+}

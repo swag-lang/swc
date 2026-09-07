@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -28,11 +29,95 @@ namespace InstructionCombine
                    info.flags.has(MicroInstrFlagsE::IsCallInstruction);
         }
 
-        // The single instruction that consumes `valueId`, ignoring phantom uses
-        // that flow only into dead phis (loop-header phis for scratch temps that
-        // are redefined before use). Returns invalid if the value has zero or more
-        // than one real instruction use, or if its only real use is reached
-        // indirectly through a phi rather than as a direct operand.
+        // (a & b) ^ (a & c) = a & (b ^ c). Keep the two non-common
+        // inputs at their original read positions and move only the common
+        // input, after proving that its value survives to the final operation.
+        bool tryFactorXorOfAnds(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Xor || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+
+            std::array    regs{ops[0].reg, ops[1].reg};
+            std::array    defs{ctx.ssa->reachingDef(regs[0], ref), ctx.ssa->reachingDef(regs[1], ref)};
+            MicroInstrRef lhsCopy = MicroInstrRef::invalid();
+            if (defs[0].valid() && !defs[0].isPhi && defs[0].inst && defs[0].inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copied = defs[0].inst->ops(*ctx.operands);
+                if (!copied || copied[2].opBits != bits || !copied[1].reg.isVirtualInt() ||
+                    !valueHasSingleUse(*ctx.ssa, regs[0], defs[0].instRef))
+                    return false;
+                lhsCopy = defs[0].instRef;
+                regs[0] = copied[1].reg;
+                defs[0] = ctx.ssa->reachingDef(regs[0], lhsCopy);
+            }
+            if (regs[0] == regs[1])
+                return false;
+            std::array<MicroSsaState::ReachingDef, 2> initial;
+            std::array<const MicroInstrOperand*, 2>   andOps;
+            std::array<const MicroInstrOperand*, 2>   copyOps;
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::OpBinaryRegReg)
+                    return false;
+                andOps[i] = defs[i].inst->ops(*ctx.operands);
+                if (!andOps[i] || andOps[i][2].opBits != bits || andOps[i][3].microOp != MicroOp::And ||
+                    !valueHasSingleUse(*ctx.ssa, regs[i], defs[i].instRef))
+                    return false;
+                initial[i] = ctx.ssa->reachingDef(regs[i], defs[i].instRef);
+                if (!initial[i].valid() || initial[i].isPhi || !initial[i].inst || initial[i].inst->op != MicroInstrOpcode::LoadRegReg)
+                    return false;
+                copyOps[i] = initial[i].inst->ops(*ctx.operands);
+                if (!copyOps[i] || copyOps[i][2].opBits != bits || !copyOps[i][1].reg.isVirtualInt() ||
+                    andOps[i][1].reg == regs[0] || andOps[i][1].reg == regs[1] || andOps[i][1].reg == ops[0].reg)
+                    return false;
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef))
+                    return false;
+            }
+
+            const MicroReg common = copyOps[0][1].reg;
+            if (common != copyOps[1][1].reg || common == regs[0] || common == regs[1] || common == ops[0].reg)
+                return false;
+            const auto commonValue = ctx.ssa->reachingDef(common, initial[0].instRef);
+            if (!commonValue.valid() || ctx.ssa->reachingDef(common, initial[1].instRef).valueId != commonValue.valueId ||
+                ctx.ssa->reachingDef(common, ref).valueId != commonValue.valueId)
+                return false;
+
+            bool          seenSecond = false;
+            MicroInstrRef cursor     = defs[0].instRef;
+            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+            {
+                const MicroInstr* current = ctx.storage->ptr(cursor);
+                if (!current || isBlockBoundary(*current))
+                    return false;
+                seenSecond |= cursor == defs[1].instRef;
+                if (cursor == lhsCopy && !seenSecond)
+                    return false;
+                cursor = ctx.storage->findNextInstructionRef(cursor);
+            }
+            if (cursor != ref || !seenSecond || !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, initial[0].instRef, initial[1].instRef, lhsCopy.isValid() ? lhsCopy : ref}))
+                return false;
+
+            MicroInstrOperand first[3];
+            first[0].reg    = regs[0];
+            first[1].reg    = andOps[0][1].reg;
+            first[2].opBits = bits;
+            ctx.emitRewrite(defs[0].instRef, MicroInstrOpcode::LoadRegReg, first);
+
+            MicroInstrOperand factored[4];
+            factored[0].reg     = regs[0];
+            factored[1].reg     = andOps[1][1].reg;
+            factored[2].opBits  = bits;
+            factored[3].microOp = MicroOp::Xor;
+            ctx.emitRewrite(defs[1].instRef, MicroInstrOpcode::OpBinaryRegReg, factored);
+            factored[0].reg     = ops[0].reg;
+            factored[1].reg     = common;
+            factored[3].microOp = MicroOp::And;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, factored);
+            return true;
+        }
     }
 
     // Collapse the in-place-update copy round-trip that `acc op= x` lowers to once
@@ -177,8 +262,10 @@ namespace InstructionCombine
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[0].reg != ops[1].reg || !ops[0].reg.isVirtualInt())
+        if (!ops || !ops[0].reg.isVirtualInt())
             return false;
+        if (ops[0].reg != ops[1].reg)
+            return tryFactorXorOfAnds(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

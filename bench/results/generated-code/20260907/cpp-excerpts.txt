@@ -1,0 +1,567 @@
+raytrace / clang / .LBB0_2
+.LBB0_2:                                #   Parent Loop BB0_1 Depth=1
+                                        # =>  This Inner Loop Header: Depth=2
+	xorps	xmm3, xmm3
+	cvtsi2sd	xmm3, r12
+	addsd	xmm3, xmm6
+	divsd	xmm3, xmm9
+	addsd	xmm3, xmm3
+	addsd	xmm3, xmm10
+	mulsd	xmm3, xmm11
+	movapd	xmm0, xmm3
+	mulsd	xmm0, xmm3
+	addsd	xmm0, xmm14
+	addsd	xmm0, xmm8
+	sqrtsd	xmm0, xmm0
+	movapd	xmm1, xmm8
+	divsd	xmm1, xmm0
+	movapd	xmm0, xmm13
+	mulsd	xmm0, xmm1
+	mulsd	xmm3, xmm1
+	movsd	qword ptr [rsp + 40], xmm1
+	movsd	qword ptr [rsp + 32], xmm0
+	mov	dword ptr [rsp + 48], 0
+	xorpd	xmm0, xmm0
+	xorpd	xmm1, xmm1
+	xorps	xmm2, xmm2
+	call	"?trace@@YAXNNNNNNH@Z"
+	movsd	xmm0, qword ptr [rip + g_OutR]  # xmm0 = mem[0],zero
+	mulsd	xmm0, xmm12
+	cvttsd2si	rax, xmm0
+	movsd	xmm0, qword ptr [rip + g_OutG]  # xmm0 = mem[0],zero
+	mulsd	xmm0, xmm12
+	cvttsd2si	rcx, xmm0
+	movsd	xmm0, qword ptr [rip + g_OutB]  # xmm0 = mem[0],zero
+	mulsd	xmm0, xmm12
+	cvttsd2si	rdx, xmm0
+	cmp	rax, 255
+	cmovge	rax, r14
+	cmp	rcx, 255
+	cmovge	rcx, r14
+	cmp	rdx, 255
+	cmovge	rdx, r14
+	lea	rdx, [rdx + 2*rdx]
+	add	rax, rsi
+	lea	rsi, [rax + 2*rcx]
+	add	rsi, rdx
+	inc	r12
+	cmp	r12, 480
+	jne	.LBB0_2
+
+raytrace / msvc / $LL7@main
+$LL7@main:
+; Line 132
+	xorps	xmm6, xmm6
+	xorps	xmm0, xmm0
+	cvtsi2sd xmm6, rbx
+	addsd	xmm6, xmm10
+	divsd	xmm6, xmm11
+	addsd	xmm6, xmm6
+	subsd	xmm6, xmm7
+	mulsd	xmm6, xmm12
+; Line 135
+	movaps	xmm1, xmm6
+	mulsd	xmm1, xmm6
+	addsd	xmm1, xmm8
+	addsd	xmm1, xmm7
+	ucomisd	xmm0, xmm1
+	ja	SHORT $LN29@main
+	sqrtpd	xmm0, xmm1
+	jmp	SHORT $LN30@main
+$LN29@main:
+	movaps	xmm0, xmm1
+	call	sqrt
+$LN30@main:
+	movaps	xmm1, xmm7
+; Line 136
+	mov	DWORD PTR [rsp+48], r14d
+	divsd	xmm1, xmm0
+	xorps	xmm2, xmm2
+	movaps	xmm0, xmm1
+	mulsd	xmm6, xmm1
+	mulsd	xmm0, xmm9
+	movsd	QWORD PTR [rsp+40], xmm1
+	xorps	xmm1, xmm1
+	movaps	xmm3, xmm6
+	movsd	QWORD PTR [rsp+32], xmm0
+	xorps	xmm0, xmm0
+	call	?trace@@YAXNNNNNNH@Z			; trace
+; Line 138
+	movsd	xmm0, QWORD PTR ?g_OutR@@3NA
+; Line 139
+	movsd	xmm1, QWORD PTR ?g_OutG@@3NA
+	mulsd	xmm0, xmm13
+	mulsd	xmm1, xmm13
+	cvttsd2si r8, xmm0
+; Line 140
+	movsd	xmm0, QWORD PTR ?g_OutB@@3NA
+; Line 141
+	cmp	r8, rbp
+	mulsd	xmm0, xmm13
+	cmovg	r8, rbp
+	cvttsd2si rdx, xmm1
+	cvttsd2si rcx, xmm0
+; Line 143
+	cmp	rdx, rbp
+	cmovg	rdx, rbp
+; Line 145
+	cmp	rcx, rbp
+	cmovg	rcx, rbp
+	inc	rbx
+; Line 147
+	lea	rax, QWORD PTR [r8+rcx]
+	lea	rax, QWORD PTR [rax+rcx*2]
+	lea	rcx, QWORD PTR [rax+rdx*2]
+	add	rsi, rcx
+	cmp	rbx, 480				; 000001e0H
+	jl	$LL7@main
+
+sha256 / clang / .LBB0_8
+.LBB0_8:                                #   Parent Loop BB0_5 Depth=1
+                                        # =>  This Inner Loop Header: Depth=2
+	mov	rbx, rax
+	mov	rdi, r10
+	mov	r12, rbp
+	mov	r10, rdx
+	mov	rax, rbp
+	shr	rax, 6
+	mov	rcx, rbp
+	shl	rcx, 26
+	or	rcx, rax
+	mov	rax, rbp
+	shr	rax, 11
+	mov	rdx, rbp
+	shl	rdx, 21
+	or	rdx, rax
+	xor	rdx, rcx
+	mov	rax, rbp
+	shr	rax, 25
+	mov	rcx, rbp
+	shl	rcx, 7
+	or	rcx, rax
+	xor	rcx, rdx
+	mov	rax, r13
+	and	rax, rbp
+	mov	edx, 2600822924
+	add	rdx, 1694144371
+	xor	rdx, rbp
+	and	rdx, r10
+	xor	rdx, rax
+	add	rdx, r14
+	add	rdx, rcx
+	lea	rax, [rip + KTAB]
+	add	rdx, qword ptr [r15 + rax]
+	mov	r9, r11
+	add	rdx, qword ptr [rsp + r15 + 176]
+	mov	rax, rbx
+	shr	rax, 2
+	mov	rcx, rbx
+	shl	rcx, 30
+	or	rcx, rax
+	mov	rax, rbx
+	shr	rax, 13
+	mov	r8, rbx
+	shl	r8, 19
+	or	r8, rax
+	xor	r8, rcx
+	mov	rax, rbx
+	shr	rax, 22
+	mov	rcx, rbx
+	shl	rcx, 10
+	or	rcx, rax
+	xor	rcx, r8
+	mov	rax, r11
+	xor	rax, rdi
+	and	rax, rbx
+	mov	r8, r11
+	and	r8, rdi
+	xor	r8, rax
+	add	r8, rcx
+	mov	rcx, qword ptr [rsp + 64]       # 8-byte Reload
+	add	rcx, rdx
+	mov	ebp, ecx
+	add	r8, rdx
+	mov	eax, r8d
+	add	r15, 8
+	mov	qword ptr [rsp + 152], r10      # 8-byte Spill
+	mov	r14, r10
+	mov	rsi, r13
+	mov	rdx, r13
+	mov	r13, r12
+	mov	qword ptr [rsp + 64], r11       # 8-byte Spill
+	mov	r11, rdi
+	mov	r10, rbx
+	cmp	r15, 512
+	jne	.LBB0_8
+
+sha256 / msvc / $LL82@main
+$LL82@main:
+; Line 18
+	mov	r8, rdi
+	mov	rax, rdi
+	shr	rax, 11
+	mov	rcx, rdi
+	shl	rcx, 26
+	mov	rdx, r9
+	shl	r8, 21
+	or	r8, rax
+	shl	rdx, 19
+	mov	rax, rdi
+	shr	rax, 6
+	or	rcx, rax
+	mov	rax, rdi
+; Line 91
+	xor	r8, rcx
+; Line 18
+	shl	rax, 7
+	mov	rcx, rdi
+	shr	rcx, 25
+	or	rcx, rax
+; Line 92
+	mov	rax, rsi
+	xor	r8, rcx
+	and	rax, rdi
+	mov	rcx, rdi
+	not	rcx
+	and	rcx, r14
+	xor	rcx, rax
+; Line 18
+	mov	rax, r9
+; Line 93
+	add	r8, rcx
+; Line 18
+	shr	rax, 13
+; Line 93
+	add	r8d, DWORD PTR [r13+r12*8]
+; Line 18
+	or	rdx, rax
+; Line 93
+	add	r8d, DWORD PTR w$[rbp+r12*8-256]
+; Line 18
+	mov	rax, r9
+	shl	rax, 10
+; Line 93
+	add	r8, r15
+	mov	r8d, r8d
+; Line 18
+	mov	rcx, r9
+	shr	rcx, 22
+	or	rcx, rax
+	mov	rax, r9
+; Line 94
+	xor	rdx, rcx
+; Line 18
+	shr	rax, 2
+; Line 100
+	lea	r15, QWORD PTR [r8+rbx]
+; Line 18
+	mov	rcx, r9
+	shl	rcx, 30
+; Line 95
+	mov	rbx, r10
+; Line 18
+	or	rcx, rax
+; Line 100
+	mov	r15d, r15d
+	xor	rdx, rcx
+	xor	rbx, r9
+	and	rbx, r11
+	mov	rax, r10
+	and	rax, r9
+; Line 18
+	mov	ecx, r15d
+; Line 95
+	xor	rbx, rax
+; Line 18
+	shl	rcx, 26
+; Line 104
+	lea	rax, QWORD PTR [r8+rdx]
+; Line 18
+	mov	r8d, r15d
+; Line 104
+	add	rbx, rax
+; Line 18
+	shl	r8, 21
+	mov	eax, r15d
+; Line 104
+	mov	ebx, ebx
+; Line 18
+	shr	rax, 11
+	or	r8, rax
+	mov	eax, r15d
+	shr	rax, 6
+	or	rcx, rax
+	mov	eax, r15d
+; Line 91
+	xor	r8, rcx
+; Line 18
+	shl	rax, 7
+	mov	ecx, r15d
+	shr	rcx, 25
+	or	rcx, rax
+; Line 92
+	mov	eax, r15d
+	xor	r8, rcx
+	and	rax, rdi
+	mov	ecx, r15d
+	not	rcx
+	and	rcx, rsi
+	xor	rcx, rax
+; Line 93
+	add	r8, rcx
+	add	r8, QWORD PTR w$[rbp+r12*8-248]
+	add	r8, QWORD PTR [r13+r12*8+8]
+; Line 18
+	mov	edx, ebx
+; Line 93
+	add	r8, r14
+; Line 18
+	shl	rdx, 19
+	mov	eax, ebx
+	mov	ecx, ebx
+	shr	rax, 13
+	or	rdx, rax
+	shr	rcx, 22
+; Line 100
+	lea	r14, QWORD PTR [r8+r11]
+; Line 18
+	mov	eax, ebx
+	shl	rax, 10
+; Line 95
+	mov	r11d, ebx
+; Line 18
+	or	rcx, rax
+; Line 100
+	mov	r14d, r14d
+	xor	rdx, rcx
+	xor	r11, r9
+	and	r11, r10
+; Line 18
+	mov	ecx, ebx
+	shl	rcx, 30
+	mov	eax, ebx
+	shr	rax, 2
+	or	rcx, rax
+; Line 95
+	mov	eax, ebx
+	xor	rdx, rcx
+	and	rax, r9
+	xor	r11, rax
+; Line 18
+	mov	ecx, r14d
+	shl	rcx, 26
+; Line 104
+	lea	rax, QWORD PTR [r8+rdx]
+; Line 18
+	mov	r8d, r14d
+; Line 104
+	add	r11, rax
+; Line 18
+	shl	r8, 21
+; Line 104
+	mov	r11d, r11d
+; Line 18
+	mov	eax, r14d
+	shr	rax, 11
+	mov	edx, r11d
+	or	r8, rax
+	shl	rdx, 19
+	mov	eax, r14d
+	shr	rax, 6
+	or	rcx, rax
+	mov	eax, r14d
+; Line 91
+	xor	r8, rcx
+; Line 18
+	shl	rax, 7
+	mov	ecx, r14d
+	shr	rcx, 25
+	or	rcx, rax
+; Line 92
+	mov	eax, r14d
+	xor	r8, rcx
+	and	rax, r15
+	mov	ecx, r14d
+	not	rcx
+	and	rcx, rdi
+	xor	rcx, rax
+; Line 18
+	mov	eax, r11d
+; Line 93
+	add	r8, rcx
+; Line 18
+	shr	rax, 13
+; Line 93
+	add	r8, QWORD PTR w$[rbp+r12*8-240]
+; Line 18
+	or	rdx, rax
+; Line 93
+	add	r8, QWORD PTR [r13+r12*8+16]
+; Line 18
+	mov	eax, r11d
+	shl	rax, 10
+; Line 93
+	add	r8, rsi
+; Line 18
+	mov	ecx, r11d
+	shr	rcx, 22
+	or	rcx, rax
+	mov	eax, r11d
+; Line 94
+	xor	rdx, rcx
+; Line 18
+	shr	rax, 2
+; Line 100
+	lea	rsi, QWORD PTR [r8+r10]
+; Line 18
+	mov	ecx, r11d
+	shl	rcx, 30
+; Line 95
+	mov	r10d, ebx
+; Line 18
+	or	rcx, rax
+; Line 100
+	mov	esi, esi
+	xor	r10, r11
+	xor	rdx, rcx
+	and	r10, r9
+	mov	eax, ebx
+	and	rax, r11
+; Line 95
+	xor	r10, rax
+; Line 18
+	mov	ecx, esi
+; Line 104
+	lea	rax, QWORD PTR [r8+rdx]
+; Line 18
+	shl	rcx, 26
+; Line 104
+	add	r10, rax
+; Line 18
+	mov	r8d, esi
+	shl	r8, 21
+	mov	eax, esi
+	shr	rax, 11
+	or	r8, rax
+; Line 104
+	mov	r10d, r10d
+; Line 18
+	mov	eax, esi
+	mov	edx, r10d
+	shr	rax, 6
+	or	rcx, rax
+	shl	rdx, 19
+; Line 91
+	xor	r8, rcx
+; Line 18
+	mov	eax, esi
+	shl	rax, 7
+	mov	ecx, esi
+	shr	rcx, 25
+	or	rcx, rax
+; Line 92
+	mov	eax, esi
+	xor	r8, rcx
+	and	rax, r14
+	mov	ecx, esi
+	not	rcx
+	and	rcx, r15
+	xor	rcx, rax
+; Line 18
+	mov	eax, r10d
+; Line 93
+	add	r8, rcx
+; Line 18
+	shr	rax, 13
+; Line 93
+	add	r8, QWORD PTR w$[rbp+r12*8-232]
+; Line 18
+	or	rdx, rax
+; Line 93
+	add	r8, QWORD PTR [r13+r12*8+24]
+; Line 18
+	mov	eax, r10d
+	shl	rax, 10
+; Line 93
+	add	r8, rdi
+; Line 18
+	mov	ecx, r10d
+; Line 89
+	add	r12, 4
+; Line 18
+	shr	rcx, 22
+	or	rcx, rax
+	mov	eax, r10d
+; Line 100
+	lea	rdi, QWORD PTR [r8+r9]
+; Line 18
+	shr	rax, 2
+; Line 94
+	xor	rdx, rcx
+; Line 100
+	mov	edi, edi
+; Line 18
+	mov	ecx, r10d
+; Line 95
+	mov	r9d, r10d
+	xor	r9, r11
+; Line 18
+	shl	rcx, 30
+	or	rcx, rax
+; Line 95
+	and	r9, rbx
+	xor	rdx, rcx
+	mov	eax, r10d
+	and	rax, r11
+	xor	r9, rax
+; Line 104
+	lea	rax, QWORD PTR [r8+rdx]
+	add	r9, rax
+	mov	r9d, r9d
+	cmp	r12, 64					; 00000040H
+	jb	$LL82@main
+
+dijkstra / clang / .LBB0_24
+.LBB0_24:                               #   Parent Loop BB0_12 Depth=1
+                                        # =>  This Inner Loop Header: Depth=2
+	lea	rdx, [r8 - 1]
+	mov	r12, rdx
+	shr	r12
+	mov	rbp, qword ptr [rbx + 8*r12]
+	mov	r13, qword ptr [rbx + 8*r8]
+	cmp	rbp, r13
+	jbe	.LBB0_26
+# %bb.25:                               #   in Loop: Header=BB0_24 Depth=2
+	mov	qword ptr [rbx + 8*r12], r13
+	mov	qword ptr [rbx + 8*r8], rbp
+	mov	r13, qword ptr [r14 + 8*r12]
+	mov	rbp, qword ptr [r14 + 8*r8]
+	mov	qword ptr [r14 + 8*r12], rbp
+	mov	qword ptr [r14 + 8*r8], r13
+	mov	r8, r12
+	cmp	rdx, 1
+	ja	.LBB0_24
+
+dijkstra / msvc / $LL2@push
+$LL2@push:
+; Line 24
+	mov	rdx, QWORD PTR [r9+r8*8]
+	lea	rax, QWORD PTR [r8-1]
+	shr	rax, 1
+	mov	rcx, QWORD PTR [r9+rax*8]
+	cmp	rcx, rdx
+	jbe	SHORT $LN7@push
+; Line 27
+	mov	QWORD PTR [r9+rax*8], rdx
+; Line 28
+	mov	QWORD PTR [r9+r8*8], rcx
+; Line 30
+	mov	rcx, QWORD PTR [r10+r8*8]
+	mov	rdx, QWORD PTR [r10+rax*8]
+	mov	QWORD PTR [r10+rax*8], rcx
+; Line 31
+	mov	QWORD PTR [r10+r8*8], rdx
+; Line 32
+	mov	r8, rax
+	test	rax, rax
+	jne	SHORT $LL2@push

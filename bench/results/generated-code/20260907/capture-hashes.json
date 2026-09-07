@@ -1,0 +1,38 @@
+{
+  "library.menu.filter.actual.png": {
+    "baseline_and_first_candidate": "dbfe865e85f1d5a9422b5d8f612fb1cb1fb310209f71d7048df6f95133e1c40c",
+    "final_392": "dbfe865e85f1d5a9422b5d8f612fb1cb1fb310209f71d7048df6f95133e1c40c",
+    "identical": true,
+    "final_393_devmode": "dbfe865e85f1d5a9422b5d8f612fb1cb1fb310209f71d7048df6f95133e1c40c",
+    "final_393_devmode_identical": true,
+    "build_393_all_cfg": "dbfe865e85f1d5a9422b5d8f612fb1cb1fb310209f71d7048df6f95133e1c40c",
+    "build_393_all_cfg_identical": true
+  },
+  "library.menu.sort.actual.png": {
+    "baseline_and_first_candidate": "35bc646cef291679882116296a6dce5f57da1013076c04dcb92f296912849e1c",
+    "final_392": "35bc646cef291679882116296a6dce5f57da1013076c04dcb92f296912849e1c",
+    "identical": true,
+    "final_393_devmode": "35bc646cef291679882116296a6dce5f57da1013076c04dcb92f296912849e1c",
+    "final_393_devmode_identical": true,
+    "build_393_all_cfg": "35bc646cef291679882116296a6dce5f57da1013076c04dcb92f296912849e1c",
+    "build_393_all_cfg_identical": true
+  },
+  "library.menu.view.actual.png": {
+    "baseline_and_first_candidate": "07fcc8f6e60782a53cdcf464338dae6c93faf47f837821f9fdf554b86ccb8442",
+    "final_392": "07fcc8f6e60782a53cdcf464338dae6c93faf47f837821f9fdf554b86ccb8442",
+    "identical": true,
+    "final_393_devmode": "07fcc8f6e60782a53cdcf464338dae6c93faf47f837821f9fdf554b86ccb8442",
+    "final_393_devmode_identical": true,
+    "build_393_all_cfg": "07fcc8f6e60782a53cdcf464338dae6c93faf47f837821f9fdf554b86ccb8442",
+    "build_393_all_cfg_identical": true
+  },
+  "main.menu.view.actual.png": {
+    "baseline_and_first_candidate": "5a5e444f787e6fec317b7e83415bd84b0eb037d546657f36b7a4ae420932f1dd",
+    "final_392": "5a5e444f787e6fec317b7e83415bd84b0eb037d546657f36b7a4ae420932f1dd",
+    "identical": true,
+    "final_393_devmode": "5a5e444f787e6fec317b7e83415bd84b0eb037d546657f36b7a4ae420932f1dd",
+    "final_393_devmode_identical": true,
+    "build_393_all_cfg": "5a5e444f787e6fec317b7e83415bd84b0eb037d546657f36b7a4ae420932f1dd",
+    "build_393_all_cfg_identical": true
+  }
+}

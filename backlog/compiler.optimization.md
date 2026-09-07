@@ -12,6 +12,84 @@ builds now use interval splitting, so those measurements identify workloads to r
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
 the executable Micro instruction stream has no explicit phi instruction.
 
+### compiler.optimization.034 — Keep Dijkstra heap values across stores and branches
+
+- Recorded: 2026-09-07 10:46
+- Updated: 2026-09-07 11:12 — Narrow the remaining gap to aliasing and control-flow reuse
+- Area: compiler/backend, memory optimization
+- Found while: the generated-code campaign, comparing Dijkstra's heap loops with current
+  clang-cl and MSVC output at `8d3f0498b` on 2026-09-07.
+- Evidence: after local identical-target load forwarding, Swag release's sift-up loop has
+  26 instructions / 15 explicit memory operations, against clang-cl's 16 / eight and MSVC's
+  15 / eight. Five Swag accesses reload global pointer cells; ten access heap elements,
+  including the values read again after the comparison branch. These are program-memory
+  accesses, not allocator spill slots. The sift-down loop still has 39 / 20.
+- Boundary: the local forwarding cache is flushed by control flow and potentially aliasing
+  stores. Reusing a global pointer across an arbitrary heap write needs a provenance proof;
+  keeping the heap elements already read by a comparison needs control-flow-aware memory
+  availability. An exact relocation identity alone proves neither.
+- Next: establish which heap stores cannot reach the global pointer cells, and propagate a
+  compared element only along paths with no intervening aliasing write. Preserve the global
+  reload when a pointer can address that global, and exercise both branch outcomes, calls,
+  and zero-trip loops. Recount the individual heap loops and check register pressure across
+  every benchmark task before broadening the alias analysis.
+- Complete when: the remaining repeated pointer/element reads disappear with sound alias and
+  control-flow proofs, or a focused experiment identifies the register-residency constraint.
+- Related: compiler.optimization.026.
+
+### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
+
+- Recorded: 2026-09-06 14:53
+- Updated: 2026-09-07 09:52 — Reject two- and four-round clones that increase frame traffic
+- Area: compiler/backend
+- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
+- Evidence: the 2026-09-07 comparison at `8d3f0498b` reproduces the earlier counts. With
+  `/O2 /EHsc /std:c++20`, clang-cl and Swag release both emit 74 instructions and five explicit
+  memory operations per compression round. MSVC emits 224 instructions and eight memory
+  operations for four rounds, or 56 / two per round; its accesses read only `KTAB` and the
+  message schedule. Counts exclude labels and do not count address-only instructions as memory.
+- Attempted 2026-09-07, reverted: bounded partial unrolling of divisible exact trip counts,
+  retaining the original counter and inserting its add/compare between cloned bodies so that
+  counter readers, forward exits, and incoming CPU flags keep their original behavior. Internal
+  labels and relocations were cloned as in the existing full unroller. Four rounds emitted
+  296 instructions / 25 memory operations (74 / 6.25 per round); two emitted 146 / 12
+  (73 / six per round). Neither approaches MSVC's register residency. The sixteen-word input
+  decode improved from 16 / five per word to 58 / 20 per four words or 30 / ten per two words,
+  but that smaller win does not justify increasing traffic in the compression loop. No timing
+  claim or correctness acceptance was made for either rejected prototype.
+- Observation: duplicating the body alone does not eliminate the carried-state frame accesses
+  described in compiler.optimization.005. The current pass only fully unrolls at most eight
+  trips; merely raising that limit is a different experiment, compiler.optimization.002.
+- Next: trace which carried-state values acquire the extra frame accesses after cloning, and
+  evaluate copy coalescing or independent register webs before retrying partial unrolling.
+  Compare every hot loop across the seven tasks, with counter, exit, relocation, and carried-value
+  regression coverage if a prototype improves the emitted code.
+- Complete when: grouping rounds lowers both instructions and frame traffic per compression round
+  with correctness coverage, or the remaining register-residency prerequisite is isolated.
+- Related: compiler.optimization.005, compiler.optimization.016.
+
+### compiler.optimization.033 — CSV aggregation retains a cross-file map-probe call
+
+- Recorded: 2026-09-07 09:33
+- Area: compiler/inlining, generated-code performance
+- Found while: the generated-code campaign, comparing current clang-cl, MSVC, and Swag release
+  output at `8d3f0498b` on 2026-09-07.
+- Evidence: both C++ compilers inline `mapProbe` into CSV aggregation. Swag calls it once for
+  each of 400,000 input rows. Its declaration is in `bench/src/swagnat/bytemap.swg`, while the
+  caller is in `csvagg.swg`; `shouldAutoInline` in `SemaInline.cpp` rejects a different source Ast before
+  considering the body budget. The delimiter scans already match C++ at five instructions and
+  one memory operation per character. The extra extension in the numeric scans preserves Swag's
+  byte-width subtraction and cannot be removed merely because C++ promotes that subtraction.
+- Constraint: cross-Ast inlining requires safe publication and rebinding of the callee body,
+  and an acyclic completion dependency. The generic cross-Ast attempt in std.video.005
+  miscompiled the `aoc2019` smoke; removing the source-Ast gate alone is not a safe fix.
+- Next: establish a same-module, non-generic cross-file eligibility and publication contract,
+  then compare the inlined map-probe loop and its caller's frame traffic. Keep benchmark sources
+  unchanged and exercise cross-file binding and the script smokes with parallel compilation.
+- Complete when: the call disappears with correct cross-file binding and better emitted code,
+  or a focused experiment identifies which remaining eligibility rule prevents the gain.
+- Related: std.video.005.
+
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
@@ -44,30 +122,6 @@ the executable Micro instruction stream has no explicit phi instruction.
 - Complete when: `core_rebuild` and `hello_build` move by the share the profile attributes to SSA
   rebuilds, at identical generated code on the seven bench tasks, and the `native` suite is green.
 - Related: compiler.core.004, compiler.core.030.
-
-### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
-
-- Recorded: 2026-09-06 14:53
-- Area: compiler/backend
-- Found while: comparing current SHA-256 output with both C++ compilers, 2026-09-06.
-- Evidence: with `/O2 /EHsc /std:c++20`, clang-cl's compression loop has 74 instructions and
-  five explicit memory operations per round, exactly the counts of Swag release at `d4cc0a0cd`.
-  MSVC advances its round counter by four: its loop has 224 instructions and eight memory
-  operations for four rounds, or 56 / two per round. The eight accesses read `KTAB` and the
-  message schedule; the compression state stays in registers. Swag's 74 / five includes three
-  frame accesses described in compiler.optimization.005. Counts exclude labels and address-only
-  `lea` instructions from memory operations and include loop control.
-- Observation: `Pass.LoopUnroll.cpp` only fully unrolls exact counted loops of at most eight
-  trips, so it cannot choose MSVC's four-round grouping for this 64-round loop. Both C++ outputs
-  still express this source's 64-bit masked rotate idiom with shifts and ORs; do not assume that
-  replacing it with a 32-bit rotate is the explanation of their output.
-- Next: evaluate a bounded partial-unroll factor of two or four, preserving the original loop
-  counter and carrying each copy's values correctly. Start with divisible exact trip counts;
-  measure body growth and register pressure, then compare every hot loop across the seven tasks.
-  Keep this separate from merely raising the full-unroll limit in compiler.optimization.002.
-- Complete when: partial unrolling lowers instructions and frame traffic per compression round
-  with loop-exit, carried-value, relocation, and counter-use regression coverage, or a measured
-  experiment identifies the missing proof or register-pressure cost.
 
 ### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
 

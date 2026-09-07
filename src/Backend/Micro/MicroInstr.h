@@ -11,6 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Encoder;
 class MicroOperandStorage;
+struct MicroInstrOperand;
 
 enum class MicroInstrRegMode : uint8_t
 {
@@ -24,6 +25,7 @@ enum class MicroInstrRegSpecial : uint8_t
 {
     None,
     OpBinaryRegReg,
+    OpBinaryRegMem,
     OpBinaryMemReg,
     OpTernaryRegRegReg,
 };
@@ -51,6 +53,8 @@ struct MicroInstrDef
     MicroInstrFlags                  flags                 = MicroInstrFlagsE::Zero;
     uint8_t                          memBaseOperandIndex   = 0;
     uint8_t                          memOffsetOperandIndex = 0;
+
+    std::array<MicroInstrRegMode, 3> resolvedRegModes(const MicroInstrOperand* ops) const;
 };
 
 // Register width contract, inherited from x86-64: an integer instruction with
@@ -122,6 +126,45 @@ struct MicroInstrOperand
         return ApInt(valueU64, fallbackBitWidth);
     }
 };
+
+inline std::array<MicroInstrRegMode, 3> MicroInstrDef::resolvedRegModes(const MicroInstrOperand* ops) const
+{
+    auto modes = regModes;
+    if (!ops)
+        return modes;
+
+    switch (special)
+    {
+        case MicroInstrRegSpecial::OpBinaryRegReg:
+            if (ops[microOpIndex].microOp == MicroOp::Exchange)
+            {
+                modes[0] = MicroInstrRegMode::UseDef;
+                modes[1] = MicroInstrRegMode::UseDef;
+            }
+            else if (ops[microOpIndex].microOp == MicroOp::ConvertFloatToInt ||
+                     ops[microOpIndex].microOp == MicroOp::FloatSqrt)
+            {
+                // CVTTSS2SI/CVTTSD2SI replace the integer destination, and
+                // SQRTPS/SQRTPD replace every XMM lane. Neither reads the
+                // previous destination, unlike scalar XMM arithmetic.
+                modes[0] = MicroInstrRegMode::Def;
+            }
+            break;
+        case MicroInstrRegSpecial::OpBinaryRegMem:
+            if (ops[microOpIndex].microOp == MicroOp::FloatSqrt)
+                modes[0] = MicroInstrRegMode::Def;
+            break;
+        case MicroInstrRegSpecial::OpBinaryMemReg:
+            if (ops[microOpIndex].microOp == MicroOp::Exchange)
+                modes[1] = MicroInstrRegMode::UseDef;
+            break;
+        case MicroInstrRegSpecial::None:
+        case MicroInstrRegSpecial::OpTernaryRegRegReg:
+            break;
+    }
+
+    return modes;
+}
 
 struct MicroInstrUseDef
 {

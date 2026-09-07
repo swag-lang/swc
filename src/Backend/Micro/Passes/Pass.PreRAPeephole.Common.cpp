@@ -6,41 +6,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PreRaPeephole
 {
-    namespace
-    {
-        std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstr& inst, const MicroInstrOperand* ops)
-        {
-            const MicroInstrDef& info  = MicroInstr::info(inst.op);
-            auto                 modes = info.regModes;
-            if (!ops)
-                return modes;
-
-            switch (info.special)
-            {
-                case MicroInstrRegSpecial::OpBinaryRegReg:
-                    if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                    {
-                        modes[0] = MicroInstrRegMode::UseDef;
-                        modes[1] = MicroInstrRegMode::UseDef;
-                    }
-                    break;
-
-                case MicroInstrRegSpecial::OpBinaryMemReg:
-                    if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                        modes[1] = MicroInstrRegMode::UseDef;
-                    break;
-
-                case MicroInstrRegSpecial::OpTernaryRegRegReg:
-                    break;
-
-                default:
-                    break;
-            }
-
-            return modes;
-        }
-    }
-
     bool Context::claimAll(std::initializer_list<MicroInstrRef> refs)
     {
         for (const MicroInstrRef ref : refs)
@@ -79,7 +44,7 @@ namespace PreRaPeephole
             outAction.ops[idx] = ops[idx];
 
         bool       changed = false;
-        const auto modes   = resolveRegModes(consumer, ops);
+        const auto modes   = MicroInstr::info(consumer.op).resolvedRegModes(ops);
         for (size_t idx = 0; idx < modes.size() && idx < consumer.numOperands; ++idx)
         {
             if (modes[idx] != MicroInstrRegMode::Use)

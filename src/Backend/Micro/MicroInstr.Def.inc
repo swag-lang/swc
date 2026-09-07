@@ -512,8 +512,8 @@ SWC_MICRO_INSTR_DEF(
     OpBinaryRegMem,
     MicroInstrDef{
         .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::None},
-        .special               = MicroInstrRegSpecial::None,
-        .microOpIndex          = 0,
+        .special               = MicroInstrRegSpecial::OpBinaryRegMem,
+        .microOpIndex          = 3,
         .callConvIndex         = 0,
         .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
         .memBaseOperandIndex   = 1,

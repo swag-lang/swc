@@ -1,0 +1,1472 @@
+sha256 / Sha256.__main_0 / baseline
+237 0534
+238 0536 load_reg_reg rcx, r12, b64
+239 0538 op_binary_reg_imm shr, rcx, 0x6, b64
+240 0540 load_reg_reg rax, r12, b64
+241 0542 op_binary_reg_imm shl, rax, 0x1A, b64
+242 0545 op_binary_reg_reg or, rcx, rax, b32
+243 0558 load_reg_reg rax, r12, b64
+244 0560 op_binary_reg_imm shr, rax, 0xB, b64
+245 0562 load_reg_reg rdi, r12, b64
+246 0564 op_binary_reg_imm shl, rdi, 0x15, b64
+247 0567 op_binary_reg_reg or, rax, rdi, b32
+248 0581 op_binary_reg_reg xor, rcx, rax, b64
+249 0583 load_reg_reg rax, r12, b64
+250 0585 op_binary_reg_imm shr, rax, 0x19, b64
+251 0587 load_reg_reg rdi, r12, b64
+252 0589 op_binary_reg_imm shl, rdi, 0x7, b64
+253 0592 op_binary_reg_reg or, rax, rdi, b32
+254 0606 op_binary_reg_reg xor, rcx, rax, b64
+255 0610 load_reg_reg rax, r12, b64
+256 0612 op_binary_reg_reg and, rax, r9, b64
+257 0613 load_reg_reg rdi, r12, b64
+258 0614 op_unary_reg not, rdi, b64
+259 0618 load_zero_ext_reg_reg rdi, rdi, b64 <- b32
+260 0621 op_binary_reg_reg and, rdi, r8, b64
+261 0624 op_binary_reg_reg xor, rax, rdi, b64
+262 0630 op_binary_reg_reg add, rdx, rcx, b64
+263 0633 op_binary_reg_reg add, rdx, rax, b64
+264 0634 load_reg_ptr_reloc rax, b64, <0x1B6FFF909E8>
+265 0637 load_amc_reg_mem rax, [rax + r13 * 0x8], b64
+266 0638 op_binary_reg_reg add, rdx, rax, b64
+267 0640 load_reg_reg rax, rdx, b64
+268 0641 load_amc_reg_mem rcx, [r14 + r13 * 0x8], b64
+269 0642 op_binary_reg_reg add, rax, rcx, b32
+270 0651 load_reg_reg rcx, r10, b64
+271 0653 op_binary_reg_imm shr, rcx, 0x2, b64
+272 0655 load_reg_reg rdx, r10, b64
+273 0657 op_binary_reg_imm shl, rdx, 0x1E, b64
+274 0660 op_binary_reg_reg or, rcx, rdx, b32
+275 0673 load_reg_reg rdx, r10, b64
+276 0675 op_binary_reg_imm shr, rdx, 0xD, b64
+277 0677 load_reg_reg rdi, r10, b64
+278 0679 op_binary_reg_imm shl, rdi, 0x13, b64
+279 0682 op_binary_reg_reg or, rdx, rdi, b32
+280 0696 op_binary_reg_reg xor, rcx, rdx, b64
+281 0698 load_reg_reg rdx, r10, b64
+282 0700 op_binary_reg_imm shr, rdx, 0x16, b64
+283 0702 load_reg_reg rdi, r10, b64
+284 0704 op_binary_reg_imm shl, rdi, 0xA, b64
+285 0707 op_binary_reg_reg or, rdx, rdi, b32
+286 0721 op_binary_reg_reg xor, rcx, rdx, b64
+287 0725 load_reg_reg rdx, r10, b64
+288 0727 op_binary_reg_reg and, rdx, r11, b64
+289 0728 load_reg_reg rdi, r10, b64
+290 0730 op_binary_reg_reg and, rdi, rsi, b64
+291 0733 op_binary_reg_reg xor, rdx, rdi, b64
+292 0734 load_reg_reg rdi, r11, b64
+293 0736 op_binary_reg_reg and, rdi, rsi, b64
+294 0739 op_binary_reg_reg xor, rdx, rdi, b64
+295 0745 op_binary_reg_reg add, rcx, rdx, b32
+296 0755 load_reg_reg rdx, r8, b64
+297 0758 load_reg_reg r8, r9, b64
+298 0761 load_reg_reg r9, r12, b64
+299 0749 load_reg_mem rdi, [rsp + 0x438], b64
+300 0764 op_binary_reg_reg add, rdi, rax, b32
+301 0770 load_reg_reg r12, rdi, b64
+302 0711 load_mem_reg [rsp + 0x440], rdi, b64
+303 0773 load_reg_reg rdi, rsi, b64
+304 0686 load_mem_reg [rsp + 0x438], rdi, b64
+305 0776 load_reg_reg rsi, r11, b64
+306 0779 load_reg_reg r11, r10, b64
+307 0782 op_binary_reg_reg add, rax, rcx, b32
+308 0788 load_reg_reg r10, rax, b64
+309 0790 op_binary_reg_imm add, r13, 0x1, b64
+310 0791 cmp_reg_imm r13, 0x40, b64
+311 0792 jump_cond b, b32 534
+
+sha256 / Sha256.__main_0 / final
+237 0534
+238 0536 load_reg_reg rcx, r12, b64
+239 0538 op_binary_reg_imm shr, rcx, 0x6, b64
+240 0540 load_reg_reg rax, r12, b64
+241 0542 op_binary_reg_imm shl, rax, 0x1A, b64
+242 0545 op_binary_reg_reg or, rcx, rax, b32
+243 0558 load_reg_reg rax, r12, b64
+244 0560 op_binary_reg_imm shr, rax, 0xB, b64
+245 0562 load_reg_reg rdi, r12, b64
+246 0564 op_binary_reg_imm shl, rdi, 0x15, b64
+247 0567 op_binary_reg_reg or, rax, rdi, b32
+248 0581 op_binary_reg_reg xor, rcx, rax, b64
+249 0583 load_reg_reg rax, r12, b64
+250 0585 op_binary_reg_imm shr, rax, 0x19, b64
+251 0587 load_reg_reg rdi, r12, b64
+252 0589 op_binary_reg_imm shl, rdi, 0x7, b64
+253 0592 op_binary_reg_reg or, rax, rdi, b32
+254 0606 op_binary_reg_reg xor, rcx, rax, b64
+255 0610 load_reg_reg rax, r12, b64
+256 0612 op_binary_reg_reg and, rax, r9, b64
+257 0613 load_reg_reg rdi, r12, b64
+258 0614 op_unary_reg not, rdi, b64
+259 0618 load_zero_ext_reg_reg rdi, rdi, b64 <- b32
+260 0621 op_binary_reg_reg and, rdi, r8, b64
+261 0624 op_binary_reg_reg xor, rax, rdi, b64
+262 0630 op_binary_reg_reg add, rdx, rcx, b64
+263 0633 op_binary_reg_reg add, rdx, rax, b64
+264 0634 load_reg_ptr_reloc rax, b64, <0x1C2C6E7CEB0>
+265 0637 load_amc_reg_mem rax, [rax + r13 * 0x8], b64
+266 0638 op_binary_reg_reg add, rdx, rax, b64
+267 0640 load_reg_reg rax, rdx, b64
+268 0641 load_amc_reg_mem rcx, [r14 + r13 * 0x8], b64
+269 0642 op_binary_reg_reg add, rax, rcx, b32
+270 0651 load_reg_reg rcx, r10, b64
+271 0653 op_binary_reg_imm shr, rcx, 0x2, b64
+272 0655 load_reg_reg rdx, r10, b64
+273 0657 op_binary_reg_imm shl, rdx, 0x1E, b64
+274 0660 op_binary_reg_reg or, rcx, rdx, b32
+275 0673 load_reg_reg rdx, r10, b64
+276 0675 op_binary_reg_imm shr, rdx, 0xD, b64
+277 0677 load_reg_reg rdi, r10, b64
+278 0679 op_binary_reg_imm shl, rdi, 0x13, b64
+279 0682 op_binary_reg_reg or, rdx, rdi, b32
+280 0696 op_binary_reg_reg xor, rcx, rdx, b64
+281 0698 load_reg_reg rdx, r10, b64
+282 0700 op_binary_reg_imm shr, rdx, 0x16, b64
+283 0702 load_reg_reg rdi, r10, b64
+284 0704 op_binary_reg_imm shl, rdi, 0xA, b64
+285 0707 op_binary_reg_reg or, rdx, rdi, b32
+286 0721 op_binary_reg_reg xor, rcx, rdx, b64
+287 0727 load_reg_reg rdx, r11, b64
+288 0730 op_binary_reg_reg xor, rdx, rsi, b64
+289 0733 op_binary_reg_reg and, rdx, r10, b64
+290 0734 load_reg_reg rdi, r11, b64
+291 0736 op_binary_reg_reg and, rdi, rsi, b64
+292 0739 op_binary_reg_reg xor, rdx, rdi, b64
+293 0745 op_binary_reg_reg add, rcx, rdx, b32
+294 0755 load_reg_reg rdx, r8, b64
+295 0758 load_reg_reg r8, r9, b64
+296 0761 load_reg_reg r9, r12, b64
+297 0749 load_reg_mem rdi, [rsp + 0x438], b64
+298 0764 op_binary_reg_reg add, rdi, rax, b32
+299 0770 load_reg_reg r12, rdi, b64
+300 0711 load_mem_reg [rsp + 0x440], rdi, b64
+301 0773 load_reg_reg rdi, rsi, b64
+302 0686 load_mem_reg [rsp + 0x438], rdi, b64
+303 0776 load_reg_reg rsi, r11, b64
+304 0779 load_reg_reg r11, r10, b64
+305 0782 op_binary_reg_reg add, rax, rcx, b32
+306 0788 load_reg_reg r10, rax, b64
+307 0790 op_binary_reg_imm add, r13, 0x1, b64
+308 0791 cmp_reg_imm r13, 0x40, b64
+309 0792 jump_cond b, b32 534
+
+raytrace / Raytrace.__main_0 / baseline
+041 0028
+042 0030 clear_reg xmm0, b64
+043 0091 load_signed_ext_reg_reg rax, r12, b64 <- b32
+044 0031 op_binary_reg_reg cvti2f, xmm0, rax, b64
+045 0035 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm7, b64
+046 0039 op_binary_reg_reg_reg fdiv, xmm0, xmm0, xmm8, b64
+047 0043 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm0, b64
+048 0047 op_binary_reg_reg_reg fsub, xmm0, xmm0, xmm9, b64
+049 0051 op_binary_reg_reg_reg fmul, xmm3, xmm0, xmm10, b64
+050 0084 op_binary_reg_reg_reg fmul, xmm0, xmm3, xmm3, b64
+051 0090 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm14, b64
+052 0094 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm9, b64
+053 0095 load_reg_reg xmm1, xmm0, b64
+054 0096 op_binary_reg_reg fsqrt, xmm1, xmm0, b64
+055 0102 op_binary_reg_reg_reg fdiv, xmm4, xmm9, xmm1, b64
+056 0124 op_binary_reg_imm sub, rsp, 0x38, b64
+057 0064 op_binary_reg_reg_reg fmul, xmm0, xmm13, xmm4, b64
+058 0125 load_mem_reg [rsp + 0x20], xmm0, b64
+059 0126 load_mem_reg [rsp + 0x28], xmm4, b64
+060 0127 load_mem_imm [rsp + 0x30], 0x0, b64
+061 0082 clear_reg xmm0, b64
+062 0109 clear_reg xmm1, b64
+063 0112 clear_reg xmm2, b64
+064 0087 op_binary_reg_reg_reg fmul, xmm3, xmm3, xmm4, b64
+065 0132 call_local swag, <0x0>
+066 0133 op_binary_reg_imm add, rsp, 0x38, b64
+067 0136 load_reg_mem xmm0, [rip], b64
+068 0138 op_binary_reg_reg fmul, xmm0, xmm12, b64
+069 0140 op_binary_reg_reg cvtf2i, rax, xmm0, b64
+070 0143 load_reg_reg rcx, rax, b64
+071 0146 load_reg_mem xmm0, [rip], b64
+072 0148 op_binary_reg_reg fmul, xmm0, xmm12, b64
+073 0150 op_binary_reg_reg cvtf2i, rdx, xmm0, b64
+074 0153 load_reg_reg r8, rdx, b64
+075 0156 load_reg_mem xmm0, [rip], b64
+076 0158 op_binary_reg_reg fmul, xmm0, xmm12, b64
+077 0160 op_binary_reg_reg cvtf2i, r9, xmm0, b64
+078 0163 load_reg_reg r10, r9, b64
+079 0167 cmp_reg_imm rax, 0xFF, b64
+080 0001 load_reg_imm rax, b64, 0xFF
+081 0236 load_cond_reg_reg rcx, rax, g, b64
+082 0180 cmp_reg_imm rdx, 0xFF, b64
+083 0210 load_reg_imm rax, b64, 0xFF
+084 0203 load_cond_reg_reg r8, rax, g, b64
+085 0193 cmp_reg_imm r9, 0xFF, b64
+086 0200 load_reg_imm rax, b64, 0xFF
+087 0199 load_cond_reg_reg r10, rax, g, b64
+088 0168 load_addr_amc_reg_mem rax, [rcx + r8 * 0x2], b64
+089 0195 load_addr_amc_reg_mem rcx, [r10 + r10 * 0x2], b64
+090 0216 op_binary_reg_reg add, rax, rcx, b64
+091 0220 op_binary_reg_reg add, rsi, rax, b64
+092 0223 op_binary_reg_imm add, r12, 0x1, b64
+093 0224 cmp_reg_imm r12, 0x1E0, b64
+094 0225 jump_cond l, b32 028
+
+raytrace / Raytrace.__main_0 / final
+041 0028
+042 0030 clear_reg xmm0, b64
+043 0091 load_signed_ext_reg_reg rax, r12, b64 <- b32
+044 0031 op_binary_reg_reg cvti2f, xmm0, rax, b64
+045 0035 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm7, b64
+046 0039 op_binary_reg_reg_reg fdiv, xmm0, xmm0, xmm8, b64
+047 0043 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm0, b64
+048 0047 op_binary_reg_reg_reg fsub, xmm0, xmm0, xmm9, b64
+049 0051 op_binary_reg_reg_reg fmul, xmm3, xmm0, xmm10, b64
+050 0084 op_binary_reg_reg_reg fmul, xmm0, xmm3, xmm3, b64
+051 0090 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm14, b64
+052 0094 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm9, b64
+053 0096 op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+054 0102 op_binary_reg_reg_reg fdiv, xmm4, xmm9, xmm0, b64
+055 0124 op_binary_reg_imm sub, rsp, 0x38, b64
+056 0064 op_binary_reg_reg_reg fmul, xmm0, xmm13, xmm4, b64
+057 0125 load_mem_reg [rsp + 0x20], xmm0, b64
+058 0126 load_mem_reg [rsp + 0x28], xmm4, b64
+059 0127 load_mem_imm [rsp + 0x30], 0x0, b64
+060 0082 clear_reg xmm0, b64
+061 0109 clear_reg xmm1, b64
+062 0112 clear_reg xmm2, b64
+063 0087 op_binary_reg_reg_reg fmul, xmm3, xmm3, xmm4, b64
+064 0132 call_local swag, <0x0>
+065 0133 op_binary_reg_imm add, rsp, 0x38, b64
+066 0136 load_reg_mem xmm0, [rip], b64
+067 0138 op_binary_reg_reg fmul, xmm0, xmm12, b64
+068 0140 op_binary_reg_reg cvtf2i, rax, xmm0, b64
+069 0143 load_reg_reg rcx, rax, b64
+070 0146 load_reg_mem xmm0, [rip], b64
+071 0148 op_binary_reg_reg fmul, xmm0, xmm12, b64
+072 0150 op_binary_reg_reg cvtf2i, rdx, xmm0, b64
+073 0153 load_reg_reg r8, rdx, b64
+074 0156 load_reg_mem xmm0, [rip], b64
+075 0158 op_binary_reg_reg fmul, xmm0, xmm12, b64
+076 0160 op_binary_reg_reg cvtf2i, r9, xmm0, b64
+077 0163 load_reg_reg r10, r9, b64
+078 0167 cmp_reg_imm rax, 0xFF, b64
+079 0001 load_reg_imm rax, b64, 0xFF
+080 0236 load_cond_reg_reg rcx, rax, g, b64
+081 0180 cmp_reg_imm rdx, 0xFF, b64
+082 0210 load_reg_imm rax, b64, 0xFF
+083 0203 load_cond_reg_reg r8, rax, g, b64
+084 0193 cmp_reg_imm r9, 0xFF, b64
+085 0200 load_reg_imm rax, b64, 0xFF
+086 0199 load_cond_reg_reg r10, rax, g, b64
+087 0168 load_addr_amc_reg_mem rax, [rcx + r8 * 0x2], b64
+088 0195 load_addr_amc_reg_mem rcx, [r10 + r10 * 0x2], b64
+089 0216 op_binary_reg_reg add, rax, rcx, b64
+090 0220 op_binary_reg_reg add, rsi, rax, b64
+091 0223 op_binary_reg_imm add, r12, 0x1, b64
+092 0224 cmp_reg_imm r12, 0x1E0, b64
+093 0225 jump_cond l, b32 028
+
+raytrace / Raytrace.intersect / baseline
+001 0013 push rbp
+002 0007 op_binary_reg_imm sub, rsp, 0xA8, b64
+003 0337 load_reg_reg rbp, rsp, b64
+004 0006 load_mem_reg [rsp], xmm6, b128
+005 0211 load_mem_reg [rsp + 0x10], xmm7, b128
+006 0208 load_mem_reg [rsp + 0x20], xmm8, b128
+007 0321 load_mem_reg [rsp + 0x30], xmm9, b128
+008 0314 load_mem_reg [rsp + 0x40], xmm10, b128
+009 0284 load_mem_reg [rsp + 0x50], xmm11, b128
+010 0239 load_mem_reg [rsp + 0x60], xmm12, b128
+011 0137 load_mem_reg [rsp + 0x70], xmm13, b128
+012 0119 load_mem_reg [rsp + 0x80], xmm14, b128
+013 0134 load_mem_reg [rsp + 0x90], xmm15, b128
+014 0216 op_binary_reg_imm sub, rsp, 0x50, b64
+015 0005 load_reg_reg xmm4, xmm3, b64
+016 0232 load_reg_reg xmm5, xmm0, b64
+017 0059 load_reg_reg xmm0, xmm1, b64
+018 0289 load_reg_reg xmm1, xmm2, b64
+019 0009 load_reg_mem xmm2, [rbp + 0xD8], b64
+020 0010 load_reg_mem xmm3, [rbp + 0xE0], b64
+021 0011 load_reg_mem xmm6, [rbp + 0xE8], b64
+022 0004 load_reg_mem xmm7, [rip], b64
+023 0017 load_reg_imm rax, b32, 0xFFFFFFFF
+024 0019 clear_reg rcx, b64
+025 0003 load_reg_mem xmm8, [rip], b64
+026 0002 load_reg_mem xmm9, [rip], b64
+027 0277 load_reg_mem xmm11, [rip], b64
+028 0039 op_binary_reg_reg_reg fsub, xmm10, xmm0, xmm11, b64
+029 0069 load_reg_mem xmm12, [rip], b64
+030 0048 op_binary_reg_reg_reg fsub, xmm11, xmm1, xmm12, b64
+031 0055 op_binary_reg_reg_reg fmul, xmm12, xmm5, xmm4, b64
+032 0058 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm2, b64
+033 0061 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+034 0064 op_binary_reg_reg_reg fmul, xmm13, xmm11, xmm3, b64
+035 0067 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+036 0070 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+037 0076 op_binary_reg_reg_reg fmul, xmm13, xmm5, xmm5, b64
+038 0079 op_binary_reg_reg_reg fmul, xmm10, xmm10, xmm10, b64
+039 0082 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+040 0085 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm11, b64
+041 0088 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+042 0156 load_reg_mem xmm14, [rip], b64
+043 0100 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+044 0106 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+045 0110 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+046 0113 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+047 0028 clear_reg xmm11, b64
+048 0120 cmp_reg_reg xmm11, xmm10, b64
+049 0128 jump_cond a, b32 202
+050 0131 load_reg_reg xmm11, xmm10, b64
+051 0132 op_binary_reg_reg fsqrt, xmm11, xmm10, b64
+052 0138 load_reg_reg xmm10, xmm11, b64
+053 0140 clear_reg xmm13, b64
+054 0141 op_binary_reg_reg fsub, xmm13, xmm12, b64
+055 0144 op_binary_reg_reg_reg fsub, xmm11, xmm13, xmm11, b64
+056 0148 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+057 0151 load_reg_reg xmm13, xmm11, b64
+058 0154 cmp_reg_reg xmm6, xmm11, b64
+059 0162 jump_cond be, b32 174
+060 0164 clear_reg xmm11, b64
+061 0165 op_binary_reg_reg fsub, xmm11, xmm12, b64
+062 0168 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+063 0172 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+064 0174
+065 0177 cmp_reg_reg xmm13, xmm6, b64
+066 0182 jump_cond b, b32 201
+067 0185 cmp_reg_reg xmm7, xmm13, b64
+068 0195 jump_cond be, b32 201
+069 0197 load_reg_reg xmm7, xmm13, b64
+070 0200 load_reg_imm rax, b32, 0x0
+071 0201
+072 0202
+073 0312 load_reg_mem xmm10, [rip], b64
+074 0155 op_binary_reg_reg_reg fsub, xmm15, xmm5, xmm10, b64
+075 0290 load_reg_mem xmm12, [rip], b64
+076 0103 op_binary_reg_reg_reg fsub, xmm11, xmm1, xmm12, b64
+077 0196 op_binary_reg_reg_reg fmul, xmm12, xmm15, xmm4, b64
+078 0191 op_binary_reg_reg_reg fmul, xmm13, xmm0, xmm2, b64
+079 0184 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+080 0180 op_binary_reg_reg_reg fmul, xmm13, xmm11, xmm3, b64
+081 0175 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+082 0143 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+083 0105 op_binary_reg_reg_reg fmul, xmm13, xmm15, xmm15, b64
+084 0078 op_binary_reg_reg_reg fmul, xmm10, xmm0, xmm0, b64
+085 0075 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+086 0146 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm11, b64
+087 0111 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+088 0056 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+089 0129 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+090 0206 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+091 0192 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+092 0278 clear_reg xmm11, b64
+093 0181 cmp_reg_reg xmm11, xmm10, b64
+094 0161 jump_cond a, b32 171
+095 0127 load_reg_reg xmm11, xmm10, b64
+096 0023 op_binary_reg_reg fsqrt, xmm11, xmm10, b64
+097 0157 load_reg_reg xmm10, xmm11, b64
+098 0001 clear_reg xmm13, b64
+099 0210 op_binary_reg_reg fsub, xmm13, xmm12, b64
+100 0158 op_binary_reg_reg_reg fsub, xmm11, xmm13, xmm11, b64
+101 0149 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+102 0136 load_reg_reg xmm13, xmm11, b64
+103 0114 cmp_reg_reg xmm6, xmm11, b64
+104 0101 jump_cond be, b32 027
+105 0052 clear_reg xmm11, b64
+106 0049 op_binary_reg_reg fsub, xmm11, xmm12, b64
+107 0040 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+108 0031 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+109 0027
+110 0020 cmp_reg_reg xmm13, xmm6, b64
+111 0018 jump_cond b, b32 176
+112 0014 cmp_reg_reg xmm7, xmm13, b64
+113 0212 jump_cond be, b32 176
+114 0198 load_reg_reg xmm7, xmm13, b64
+115 0193 load_reg_imm rax, b32, 0x1
+116 0176
+117 0171
+118 0230 load_reg_mem xmm10, [rip], b64
+119 0112 op_binary_reg_reg_reg fsub, xmm15, xmm5, xmm10, b64
+120 0068 load_reg_mem xmm12, [rip], b64
+121 0115 op_binary_reg_reg_reg fsub, xmm11, xmm1, xmm12, b64
+122 0072 op_binary_reg_reg_reg fmul, xmm12, xmm15, xmm4, b64
+123 0050 op_binary_reg_reg_reg fmul, xmm13, xmm0, xmm2, b64
+124 0041 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+125 0032 op_binary_reg_reg_reg fmul, xmm13, xmm11, xmm3, b64
+126 0016 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+127 0000 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+128 0220 op_binary_reg_reg_reg fmul, xmm13, xmm15, xmm15, b64
+129 0222 op_binary_reg_reg_reg fmul, xmm10, xmm0, xmm0, b64
+130 0223 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+131 0225 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm11, b64
+132 0226 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+133 0233 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+134 0235 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+135 0237 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+136 0238 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+137 0065 clear_reg xmm11, b64
+138 0240 cmp_reg_reg xmm11, xmm10, b64
+139 0241 jump_cond a, b32 273
+140 0242 load_reg_reg xmm11, xmm10, b64
+141 0243 op_binary_reg_reg fsqrt, xmm11, xmm10, b64
+142 0244 load_reg_reg xmm10, xmm11, b64
+143 0246 clear_reg xmm13, b64
+144 0247 op_binary_reg_reg fsub, xmm13, xmm12, b64
+145 0249 op_binary_reg_reg_reg fsub, xmm11, xmm13, xmm11, b64
+146 0250 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+147 0251 load_reg_reg xmm13, xmm11, b64
+148 0253 cmp_reg_reg xmm6, xmm11, b64
+149 0254 jump_cond be, b32 262
+150 0256 clear_reg xmm11, b64
+151 0257 op_binary_reg_reg fsub, xmm11, xmm12, b64
+152 0259 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+153 0261 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+154 0262
+155 0263 cmp_reg_reg xmm13, xmm6, b64
+156 0264 jump_cond b, b32 272
+157 0266 cmp_reg_reg xmm7, xmm13, b64
+158 0269 jump_cond be, b32 272
+159 0270 load_reg_reg xmm7, xmm13, b64
+160 0271 load_reg_imm rax, b32, 0x2
+161 0272
+162 0273
+163 0122 load_reg_mem xmm11, [rip], b64
+164 0285 op_binary_reg_reg_reg fsub, xmm10, xmm0, xmm11, b64
+165 0293 op_binary_reg_reg_reg fmul, xmm12, xmm5, xmm4, b64
+166 0294 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm2, b64
+167 0295 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+168 0296 op_binary_reg_reg_reg fmul, xmm13, xmm1, xmm3, b64
+169 0297 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+170 0299 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+171 0302 op_binary_reg_reg_reg fmul, xmm13, xmm5, xmm5, b64
+172 0304 op_binary_reg_reg_reg fmul, xmm10, xmm10, xmm10, b64
+173 0305 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+174 0307 op_binary_reg_reg_reg fmul, xmm11, xmm1, xmm1, b64
+175 0308 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+176 0095 load_reg_mem xmm14, [rip], b64
+177 0315 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+178 0317 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+179 0319 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+180 0320 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+181 0029 clear_reg xmm11, b64
+182 0322 cmp_reg_reg xmm11, xmm10, b64
+183 0323 jump_cond a, b32 355
+184 0324 load_reg_reg xmm11, xmm10, b64
+185 0325 op_binary_reg_reg fsqrt, xmm11, xmm10, b64
+186 0326 load_reg_reg xmm10, xmm11, b64
+187 0328 clear_reg xmm13, b64
+188 0329 op_binary_reg_reg fsub, xmm13, xmm12, b64
+189 0331 op_binary_reg_reg_reg fsub, xmm11, xmm13, xmm11, b64
+190 0332 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+191 0333 load_reg_reg xmm13, xmm11, b64
+192 0335 cmp_reg_reg xmm6, xmm11, b64
+193 0336 jump_cond be, b32 344
+194 0338 clear_reg xmm11, b64
+195 0339 op_binary_reg_reg fsub, xmm11, xmm12, b64
+196 0341 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+197 0343 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+198 0344
+199 0345 cmp_reg_reg xmm13, xmm6, b64
+200 0346 jump_cond b, b32 354
+201 0348 cmp_reg_reg xmm7, xmm13, b64
+202 0351 jump_cond be, b32 354
+203 0352 load_reg_reg xmm7, xmm13, b64
+204 0353 load_reg_imm rax, b32, 0x3
+205 0354
+206 0355
+207 0209 load_mem_reg [rip], xmm7, b64
+208 0213 load_mem_reg [rip], rax, b32
+209 0217 op_binary_reg_imm add, rsp, 0x50, b64
+210 0116 load_reg_mem xmm6, [rsp], b128
+211 0178 load_reg_mem xmm7, [rsp + 0x10], b128
+212 0117 load_reg_mem xmm8, [rsp + 0x20], b128
+213 0097 load_reg_mem xmm9, [rsp + 0x30], b128
+214 0047 load_reg_mem xmm10, [rsp + 0x40], b128
+215 0038 load_reg_mem xmm11, [rsp + 0x50], b128
+216 0173 load_reg_mem xmm12, [rsp + 0x60], b128
+217 0190 load_reg_mem xmm13, [rsp + 0x70], b128
+218 0012 load_reg_mem xmm14, [rsp + 0x80], b128
+219 0291 load_reg_mem xmm15, [rsp + 0x90], b128
+220 0279 op_binary_reg_imm add, rsp, 0xA8, b64
+221 0066 pop rbp
+222 0215 ret
+
+raytrace / Raytrace.intersect / final
+001 0013 push rbp
+002 0007 op_binary_reg_imm sub, rsp, 0xA8, b64
+003 0333 load_reg_reg rbp, rsp, b64
+004 0006 load_mem_reg [rsp], xmm6, b128
+005 0211 load_mem_reg [rsp + 0x10], xmm7, b128
+006 0208 load_mem_reg [rsp + 0x20], xmm8, b128
+007 0318 load_mem_reg [rsp + 0x30], xmm9, b128
+008 0311 load_mem_reg [rsp + 0x40], xmm10, b128
+009 0281 load_mem_reg [rsp + 0x50], xmm11, b128
+010 0237 load_mem_reg [rsp + 0x60], xmm12, b128
+011 0057 load_mem_reg [rsp + 0x70], xmm13, b128
+012 0147 load_mem_reg [rsp + 0x80], xmm14, b128
+013 0192 load_mem_reg [rsp + 0x90], xmm15, b128
+014 0216 op_binary_reg_imm sub, rsp, 0x50, b64
+015 0005 load_reg_reg xmm4, xmm3, b64
+016 0230 load_reg_reg xmm5, xmm0, b64
+017 0062 load_reg_reg xmm0, xmm1, b64
+018 0286 load_reg_reg xmm1, xmm2, b64
+019 0009 load_reg_mem xmm2, [rbp + 0xD8], b64
+020 0010 load_reg_mem xmm3, [rbp + 0xE0], b64
+021 0011 load_reg_mem xmm6, [rbp + 0xE8], b64
+022 0004 load_reg_mem xmm7, [rip], b64
+023 0017 load_reg_imm rax, b32, 0xFFFFFFFF
+024 0019 clear_reg rcx, b64
+025 0003 load_reg_mem xmm8, [rip], b64
+026 0002 load_reg_mem xmm9, [rip], b64
+027 0274 load_reg_mem xmm11, [rip], b64
+028 0039 op_binary_reg_reg_reg fsub, xmm10, xmm0, xmm11, b64
+029 0087 load_reg_mem xmm12, [rip], b64
+030 0048 op_binary_reg_reg_reg fsub, xmm11, xmm1, xmm12, b64
+031 0055 op_binary_reg_reg_reg fmul, xmm12, xmm5, xmm4, b64
+032 0058 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm2, b64
+033 0061 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+034 0064 op_binary_reg_reg_reg fmul, xmm13, xmm11, xmm3, b64
+035 0067 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+036 0070 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+037 0076 op_binary_reg_reg_reg fmul, xmm13, xmm5, xmm5, b64
+038 0079 op_binary_reg_reg_reg fmul, xmm10, xmm10, xmm10, b64
+039 0082 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+040 0085 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm11, b64
+041 0088 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+042 0156 load_reg_mem xmm14, [rip], b64
+043 0100 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+044 0106 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+045 0110 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+046 0113 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+047 0028 clear_reg xmm11, b64
+048 0120 cmp_reg_reg xmm11, xmm10, b64
+049 0128 jump_cond a, b32 202
+050 0132 op_binary_reg_reg fsqrt, xmm10, xmm10, b64
+051 0140 clear_reg xmm11, b64
+052 0141 op_binary_reg_reg fsub, xmm11, xmm12, b64
+053 0144 op_binary_reg_reg_reg fsub, xmm11, xmm11, xmm10, b64
+054 0148 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+055 0151 load_reg_reg xmm13, xmm11, b64
+056 0154 cmp_reg_reg xmm6, xmm11, b64
+057 0162 jump_cond be, b32 174
+058 0164 clear_reg xmm11, b64
+059 0165 op_binary_reg_reg fsub, xmm11, xmm12, b64
+060 0168 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+061 0172 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+062 0174
+063 0177 cmp_reg_reg xmm13, xmm6, b64
+064 0182 jump_cond b, b32 201
+065 0185 cmp_reg_reg xmm7, xmm13, b64
+066 0195 jump_cond be, b32 201
+067 0197 load_reg_reg xmm7, xmm13, b64
+068 0200 load_reg_imm rax, b32, 0x0
+069 0201
+070 0202
+071 0309 load_reg_mem xmm10, [rip], b64
+072 0155 op_binary_reg_reg_reg fsub, xmm15, xmm5, xmm10, b64
+073 0287 load_reg_mem xmm12, [rip], b64
+074 0103 op_binary_reg_reg_reg fsub, xmm11, xmm1, xmm12, b64
+075 0196 op_binary_reg_reg_reg fmul, xmm12, xmm15, xmm4, b64
+076 0191 op_binary_reg_reg_reg fmul, xmm13, xmm0, xmm2, b64
+077 0184 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+078 0180 op_binary_reg_reg_reg fmul, xmm13, xmm11, xmm3, b64
+079 0175 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+080 0143 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+081 0109 op_binary_reg_reg_reg fmul, xmm13, xmm15, xmm15, b64
+082 0084 op_binary_reg_reg_reg fmul, xmm10, xmm0, xmm0, b64
+083 0078 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+084 0170 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm11, b64
+085 0146 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+086 0059 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+087 0053 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+088 0133 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+089 0206 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+090 0275 clear_reg xmm11, b64
+091 0134 cmp_reg_reg xmm11, xmm10, b64
+092 0181 jump_cond a, b32 193
+093 0161 op_binary_reg_reg fsqrt, xmm10, xmm10, b64
+094 0157 clear_reg xmm11, b64
+095 0123 op_binary_reg_reg fsub, xmm11, xmm12, b64
+096 0210 op_binary_reg_reg_reg fsub, xmm11, xmm11, xmm10, b64
+097 0207 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+098 0158 load_reg_reg xmm13, xmm11, b64
+099 0136 cmp_reg_reg xmm6, xmm11, b64
+100 0124 jump_cond be, b32 036
+101 0101 clear_reg xmm11, b64
+102 0071 op_binary_reg_reg fsub, xmm11, xmm12, b64
+103 0049 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+104 0040 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+105 0036
+106 0031 cmp_reg_reg xmm13, xmm6, b64
+107 0027 jump_cond b, b32 198
+108 0018 cmp_reg_reg xmm7, xmm13, b64
+109 0159 jump_cond be, b32 198
+110 0125 load_reg_reg xmm7, xmm13, b64
+111 0212 load_reg_imm rax, b32, 0x1
+112 0198
+113 0193
+114 0228 load_reg_mem xmm10, [rip], b64
+115 0126 op_binary_reg_reg_reg fsub, xmm15, xmm5, xmm10, b64
+116 0081 load_reg_mem xmm12, [rip], b64
+117 0054 op_binary_reg_reg_reg fsub, xmm11, xmm1, xmm12, b64
+118 0115 op_binary_reg_reg_reg fmul, xmm12, xmm15, xmm4, b64
+119 0102 op_binary_reg_reg_reg fmul, xmm13, xmm0, xmm2, b64
+120 0072 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+121 0050 op_binary_reg_reg_reg fmul, xmm13, xmm11, xmm3, b64
+122 0041 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+123 0016 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+124 0218 op_binary_reg_reg_reg fmul, xmm13, xmm15, xmm15, b64
+125 0220 op_binary_reg_reg_reg fmul, xmm10, xmm0, xmm0, b64
+126 0221 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+127 0223 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm11, b64
+128 0224 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+129 0231 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+130 0233 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+131 0235 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+132 0236 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+133 0080 clear_reg xmm11, b64
+134 0238 cmp_reg_reg xmm11, xmm10, b64
+135 0239 jump_cond a, b32 270
+136 0240 op_binary_reg_reg fsqrt, xmm10, xmm10, b64
+137 0243 clear_reg xmm11, b64
+138 0244 op_binary_reg_reg fsub, xmm11, xmm12, b64
+139 0246 op_binary_reg_reg_reg fsub, xmm11, xmm11, xmm10, b64
+140 0247 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+141 0248 load_reg_reg xmm13, xmm11, b64
+142 0250 cmp_reg_reg xmm6, xmm11, b64
+143 0251 jump_cond be, b32 259
+144 0253 clear_reg xmm11, b64
+145 0254 op_binary_reg_reg fsub, xmm11, xmm12, b64
+146 0256 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+147 0258 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+148 0259
+149 0260 cmp_reg_reg xmm13, xmm6, b64
+150 0261 jump_cond b, b32 269
+151 0263 cmp_reg_reg xmm7, xmm13, b64
+152 0266 jump_cond be, b32 269
+153 0267 load_reg_reg xmm7, xmm13, b64
+154 0268 load_reg_imm rax, b32, 0x2
+155 0269
+156 0270
+157 0122 load_reg_mem xmm11, [rip], b64
+158 0282 op_binary_reg_reg_reg fsub, xmm10, xmm0, xmm11, b64
+159 0290 op_binary_reg_reg_reg fmul, xmm12, xmm5, xmm4, b64
+160 0291 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm2, b64
+161 0292 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+162 0293 op_binary_reg_reg_reg fmul, xmm13, xmm1, xmm3, b64
+163 0294 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm13, b64
+164 0296 op_binary_reg_reg_reg fadd, xmm12, xmm12, xmm12, b64
+165 0299 op_binary_reg_reg_reg fmul, xmm13, xmm5, xmm5, b64
+166 0301 op_binary_reg_reg_reg fmul, xmm10, xmm10, xmm10, b64
+167 0302 op_binary_reg_reg_reg fadd, xmm10, xmm13, xmm10, b64
+168 0304 op_binary_reg_reg_reg fmul, xmm11, xmm1, xmm1, b64
+169 0305 op_binary_reg_reg_reg fadd, xmm10, xmm10, xmm11, b64
+170 0095 load_reg_mem xmm14, [rip], b64
+171 0312 op_binary_reg_reg_reg fsub, xmm10, xmm10, xmm14, b64
+172 0314 op_binary_reg_reg_reg fmul, xmm11, xmm12, xmm12, b64
+173 0316 op_binary_reg_reg_reg fmul, xmm10, xmm8, xmm10, b64
+174 0317 op_binary_reg_reg_reg fsub, xmm10, xmm11, xmm10, b64
+175 0029 clear_reg xmm11, b64
+176 0319 cmp_reg_reg xmm11, xmm10, b64
+177 0320 jump_cond a, b32 351
+178 0321 op_binary_reg_reg fsqrt, xmm10, xmm10, b64
+179 0324 clear_reg xmm11, b64
+180 0325 op_binary_reg_reg fsub, xmm11, xmm12, b64
+181 0327 op_binary_reg_reg_reg fsub, xmm11, xmm11, xmm10, b64
+182 0328 op_binary_reg_reg_reg fmul, xmm11, xmm11, xmm9, b64
+183 0329 load_reg_reg xmm13, xmm11, b64
+184 0331 cmp_reg_reg xmm6, xmm11, b64
+185 0332 jump_cond be, b32 340
+186 0334 clear_reg xmm11, b64
+187 0335 op_binary_reg_reg fsub, xmm11, xmm12, b64
+188 0337 op_binary_reg_reg_reg fadd, xmm10, xmm11, xmm10, b64
+189 0339 op_binary_reg_reg_reg fmul, xmm13, xmm10, xmm9, b64
+190 0340
+191 0341 cmp_reg_reg xmm13, xmm6, b64
+192 0342 jump_cond b, b32 350
+193 0344 cmp_reg_reg xmm7, xmm13, b64
+194 0347 jump_cond be, b32 350
+195 0348 load_reg_reg xmm7, xmm13, b64
+196 0349 load_reg_imm rax, b32, 0x3
+197 0350
+198 0351
+199 0209 load_mem_reg [rip], xmm7, b64
+200 0213 load_mem_reg [rip], rax, b32
+201 0217 op_binary_reg_imm add, rsp, 0x50, b64
+202 0116 load_reg_mem xmm6, [rsp], b128
+203 0178 load_reg_mem xmm7, [rsp + 0x10], b128
+204 0117 load_reg_mem xmm8, [rsp + 0x20], b128
+205 0097 load_reg_mem xmm9, [rsp + 0x30], b128
+206 0047 load_reg_mem xmm10, [rsp + 0x40], b128
+207 0038 load_reg_mem xmm11, [rsp + 0x50], b128
+208 0173 load_reg_mem xmm12, [rsp + 0x60], b128
+209 0190 load_reg_mem xmm13, [rsp + 0x70], b128
+210 0012 load_reg_mem xmm14, [rsp + 0x80], b128
+211 0288 load_reg_mem xmm15, [rsp + 0x90], b128
+212 0276 op_binary_reg_imm add, rsp, 0xA8, b64
+213 0069 pop rbp
+214 0215 ret
+
+raytrace / Raytrace.trace / baseline
+001 0352 push rbp
+002 0364 push rsi
+003 0370 push rdi
+004 0383 op_binary_reg_imm sub, rsp, 0xA8, b64
+005 0157 load_reg_reg rbp, rsp, b64
+006 0254 load_mem_reg [rsp], xmm6, b128
+007 0420 load_mem_reg [rsp + 0x10], xmm7, b128
+008 0253 load_mem_reg [rsp + 0x20], xmm8, b128
+009 0252 load_mem_reg [rsp + 0x30], xmm9, b128
+010 0251 load_mem_reg [rsp + 0x40], xmm10, b128
+011 0024 load_mem_reg [rsp + 0x50], xmm11, b128
+012 0023 load_mem_reg [rsp + 0x60], xmm12, b128
+013 0022 load_mem_reg [rsp + 0x70], xmm13, b128
+014 0021 load_mem_reg [rsp + 0x80], xmm14, b128
+015 0456 load_mem_reg [rsp + 0x90], xmm15, b128
+016 0424 op_binary_reg_imm sub, rsp, 0xF8, b64
+017 0005 load_reg_reg xmm6, xmm3, b64
+018 0155 load_reg_reg xmm4, xmm0, b64
+019 0006 load_reg_reg xmm7, xmm4, b64
+020 0434 load_reg_reg xmm0, xmm1, b64
+021 0007 load_reg_reg xmm8, xmm0, b64
+022 0419 load_reg_reg xmm0, xmm2, b64
+023 0008 load_reg_reg xmm9, xmm0, b64
+024 0009 load_reg_mem xmm10, [rbp + 0xE8], b64
+025 0010 load_reg_mem xmm11, [rbp + 0xF0], b64
+026 0011 load_signed_ext_reg_mem rsi, [rbp + 0xF8], b64 <- b32
+027 0018 load_mem_reg [rsp + 0x20], xmm10, b64
+028 0019 load_mem_reg [rsp + 0x28], xmm11, b64
+029 0194 load_reg_mem xmm0, [rip], b64
+030 0020 load_mem_reg [rsp + 0x30], xmm0, b64
+031 0150 load_reg_reg xmm0, xmm7, b64
+032 0335 load_reg_reg xmm1, xmm8, b64
+033 0336 load_reg_reg xmm2, xmm9, b64
+034 0201 load_reg_reg xmm3, xmm6, b64
+035 0025 call_local swag, <0x0>
+036 0030 load_reg_mem rax, [rip], b64
+037 0031 load_reg_reg xmm0, rax, b64
+038 0037 load_reg_mem rax, [rip], b32
+039 0042 cmp_reg_imm rax, 0x0, b32
+040 0047 jump_cond ge, b32 059
+041 0436 load_reg_mem xmm0, [rip], b64
+042 0050 load_mem_reg [rip], xmm0, b64
+043 0421 load_reg_mem xmm0, [rip], b64
+044 0053 load_mem_reg [rip], xmm0, b64
+045 0406 load_reg_mem xmm0, [rip], b64
+046 0056 load_mem_reg [rip], xmm0, b64
+047 0462 op_binary_reg_imm add, rsp, 0xF8, b64
+048 0453 load_reg_mem xmm6, [rsp], b128
+049 0450 load_reg_mem xmm7, [rsp + 0x10], b128
+050 0391 load_reg_mem xmm8, [rsp + 0x20], b128
+051 0390 load_reg_mem xmm9, [rsp + 0x30], b128
+052 0389 load_reg_mem xmm10, [rsp + 0x40], b128
+053 0388 load_reg_mem xmm11, [rsp + 0x50], b128
+054 0387 load_reg_mem xmm12, [rsp + 0x60], b128
+055 0386 load_reg_mem xmm13, [rsp + 0x70], b128
+056 0381 load_reg_mem xmm14, [rsp + 0x80], b128
+057 0375 load_reg_mem xmm15, [rsp + 0x90], b128
+058 0369 op_binary_reg_imm add, rsp, 0xA8, b64
+059 0271 pop rdi
+060 0246 pop rsi
+061 0245 pop rbp
+062 0058 ret
+063 0059
+064 0061 load_signed_ext_reg_reg rdi, rax, b64 <- b32
+065 0067 op_binary_reg_reg_reg fmul, xmm1, xmm6, xmm0, b64
+066 0070 op_binary_reg_reg_reg fadd, xmm7, xmm7, xmm1, b64
+067 0076 op_binary_reg_reg_reg fmul, xmm1, xmm10, xmm0, b64
+068 0079 op_binary_reg_reg_reg fadd, xmm8, xmm8, xmm1, b64
+069 0085 op_binary_reg_reg_reg fmul, xmm0, xmm11, xmm0, b64
+070 0088 op_binary_reg_reg_reg fadd, xmm9, xmm9, xmm0, b64
+071 0412 load_reg_mem xmm12, [rip], b64
+072 0322 load_mem_reg [rsp + 0xE8], xmm12, b64
+073 0093 load_reg_ptr_reloc rax, b64, <0x264435FCA30>
+074 0098 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+075 0099 op_binary_reg_reg_reg fdiv, xmm0, xmm12, xmm1, b64
+076 0103 load_reg_ptr_reloc rax, b64, <0x26443610A58>
+077 0108 load_amc_reg_mem xmm2, [rax + rdi * 0x8], b64
+078 0109 op_binary_reg_reg_reg fsub, xmm1, xmm7, xmm2, b64
+079 0112 op_binary_reg_reg_reg fmul, xmm13, xmm1, xmm0, b64
+080 0116 load_reg_ptr_reloc rax, b64, <0x264435ECC48>
+081 0121 load_amc_reg_mem xmm2, [rax + rdi * 0x8], b64
+082 0122 op_binary_reg_reg_reg fsub, xmm1, xmm8, xmm2, b64
+083 0125 op_binary_reg_reg_reg fmul, xmm14, xmm1, xmm0, b64
+084 0129 load_reg_ptr_reloc rax, b64, <0x264435E0840>
+085 0134 load_amc_reg_mem xmm2, [rax + rdi * 0x8], b64
+086 0135 op_binary_reg_reg_reg fsub, xmm1, xmm9, xmm2, b64
+087 0138 op_binary_reg_reg_reg fmul, xmm15, xmm1, xmm0, b64
+088 0376 load_reg_mem xmm0, [rip], b64
+089 0145 op_binary_reg_reg_reg fsub, xmm3, xmm0, xmm7, b64
+090 0152 op_binary_reg_reg_reg fsub, xmm0, xmm0, xmm8, b64
+091 0149 load_reg_mem xmm1, [rip], b64
+092 0159 op_binary_reg_reg_reg fsub, xmm1, xmm1, xmm9, b64
+093 0166 op_binary_reg_reg_reg fmul, xmm2, xmm3, xmm3, b64
+094 0169 op_binary_reg_reg_reg fmul, xmm4, xmm0, xmm0, b64
+095 0172 op_binary_reg_reg_reg fadd, xmm2, xmm2, xmm4, b64
+096 0175 op_binary_reg_reg_reg fmul, xmm4, xmm1, xmm1, b64
+097 0178 op_binary_reg_reg_reg fadd, xmm2, xmm2, xmm4, b64
+098 0179 load_reg_reg xmm4, xmm2, b64
+099 0180 op_binary_reg_reg fsqrt, xmm4, xmm2, b64
+100 0186 op_binary_reg_reg_reg fdiv, xmm2, xmm12, xmm4, b64
+101 0192 op_binary_reg_reg_reg fmul, xmm3, xmm3, xmm2, b64
+102 0196 op_binary_reg_reg_reg fmul, xmm0, xmm0, xmm2, b64
+103 0200 op_binary_reg_reg_reg fmul, xmm1, xmm1, xmm2, b64
+104 0204 op_binary_reg_reg_reg fmul, xmm2, xmm13, xmm3, b64
+105 0207 op_binary_reg_reg_reg fmul, xmm4, xmm14, xmm0, b64
+106 0210 op_binary_reg_reg_reg fadd, xmm2, xmm2, xmm4, b64
+107 0213 op_binary_reg_reg_reg fmul, xmm4, xmm15, xmm1, b64
+108 0216 op_binary_reg_reg_reg fadd, xmm4, xmm2, xmm4, b64
+109 0323 clear_reg xmm2, b64
+110 0223 cmp_reg_reg xmm2, xmm4, b64
+111 0231 jump_cond be, b32 235
+112 0378 clear_reg xmm0, b64
+113 0233 load_reg_reg xmm4, xmm0, b64
+114 0418 load_reg_reg xmm12, xmm4, b64
+115 0234 jump_cond jump 270
+116 0235
+117 0248 load_mem_reg [rsp + 0x20], xmm0, b64
+118 0249 load_mem_reg [rsp + 0x28], xmm1, b64
+119 0372 load_reg_mem xmm0, [rip], b64
+120 0250 load_mem_reg [rsp + 0x30], xmm0, b64
+121 0435 load_reg_reg xmm0, xmm7, b64
+122 0433 load_reg_reg xmm1, xmm8, b64
+123 0427 load_reg_reg xmm2, xmm9, b64
+124 0272 load_reg_reg xmm12, xmm4, b64
+125 0255 call_local swag, <0x0>
+126 0259 load_reg_mem rax, [rip], b32
+127 0261 cmp_reg_imm rax, 0x0, b32
+128 0266 jump_cond l, b32 269
+129 0366 clear_reg xmm0, b64
+130 0268 load_reg_reg xmm12, xmm0, b64
+131 0269
+132 0270
+133 0128 load_reg_mem xmm0, [rip], b64
+134 0275 op_binary_reg_reg_reg fmul, xmm0, xmm0, xmm12, b64
+135 0141 load_reg_mem xmm1, [rip], b64
+136 0278 op_binary_reg_reg_reg fadd, xmm0, xmm1, xmm0, b64
+137 0282 load_reg_ptr_reloc rax, b64, <0x264435ECBE0>
+138 0286 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+139 0288 op_binary_reg_reg fmul, xmm1, xmm0, b64
+140 0291 load_reg_reg xmm12, xmm1, b64
+141 0292 load_reg_ptr_reloc rax, b64, <0x264435F0A00>
+142 0296 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+143 0298 op_binary_reg_reg fmul, xmm1, xmm0, b64
+144 0301 load_reg_reg xmm4, xmm1, b64
+145 0302 load_reg_ptr_reloc rax, b64, <0x264435ECCB0>
+146 0306 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+147 0308 op_binary_reg_reg fmul, xmm1, xmm0, b64
+148 0311 load_reg_reg xmm5, xmm1, b64
+149 0312 load_reg_ptr_reloc rax, b64, <0x264435F8CC0>
+150 0320 load_amc_reg_mem rax, [rax + rdi * 0x8], b64
+151 0321 load_reg_reg xmm3, rax, b64
+152 0148 clear_reg xmm0, b64
+153 0325 cmp_reg_reg xmm3, xmm0, b64
+154 0330 jump_cond a, b32 220
+155 0267 load_reg_reg xmm8, xmm4, b64
+156 0193 load_reg_reg xmm6, xmm5, b64
+157 0232 jump_cond jump 448
+158 0220
+159 0334 cmp_reg_imm rsi, 0x2, b32
+160 0341 jump_cond l, b32 055
+161 0156 load_reg_reg xmm8, xmm4, b64
+162 0142 load_reg_reg xmm6, xmm5, b64
+163 0092 jump_cond jump 448
+164 0055
+165 0345 op_binary_reg_reg_reg fmul, xmm0, xmm6, xmm13, b64
+166 0348 op_binary_reg_reg_reg fmul, xmm1, xmm10, xmm14, b64
+167 0351 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm1, b64
+168 0354 op_binary_reg_reg_reg fmul, xmm1, xmm11, xmm15, b64
+169 0357 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm1, b64
+170 0360 op_binary_reg_reg_reg fadd, xmm2, xmm0, xmm0, b64
+171 0385 op_binary_reg_imm add, rsi, 0x1, b32
+172 0190 op_binary_reg_reg_reg fmul, xmm0, xmm2, xmm14, b64
+173 0405 op_binary_reg_reg_reg fsub, xmm0, xmm10, xmm0, b64
+174 0394 load_mem_reg [rsp + 0x20], xmm0, b64
+175 0173 op_binary_reg_reg_reg fmul, xmm0, xmm2, xmm15, b64
+176 0403 op_binary_reg_reg_reg fsub, xmm0, xmm11, xmm0, b64
+177 0395 load_mem_reg [rsp + 0x28], xmm0, b64
+178 0396 load_mem_reg [rsp + 0x30], rsi, b64
+179 0397 load_reg_reg xmm0, xmm7, b64
+180 0398 load_reg_reg xmm1, xmm8, b64
+181 0052 load_reg_reg xmm7, xmm2, b64
+182 0399 load_reg_reg xmm2, xmm9, b64
+183 0083 op_binary_reg_reg_reg fmul, xmm7, xmm7, xmm13, b64
+184 0143 op_binary_reg_reg_reg fsub, xmm6, xmm6, xmm7, b64
+185 0049 load_reg_reg xmm7, xmm3, b64
+186 0400 load_reg_reg xmm3, xmm6, b64
+187 0404 load_reg_reg xmm8, xmm4, b64
+188 0162 load_reg_reg xmm6, xmm5, b64
+189 0401 call_local swag, <0x0>
+190 0411 load_reg_mem xmm0, [rip], b64
+191 0413 op_binary_reg_reg fmul, xmm0, xmm7, b64
+192 0439 load_reg_mem xmm1, [rsp + 0xE8], b64
+193 0136 op_binary_reg_reg_reg fsub, xmm2, xmm1, xmm7, b64
+194 0346 op_binary_reg_reg_reg fmul, xmm2, xmm12, xmm2, b64
+195 0416 op_binary_reg_reg_reg fadd, xmm12, xmm2, xmm0, b64
+196 0426 load_reg_mem xmm0, [rip], b64
+197 0428 op_binary_reg_reg fmul, xmm0, xmm7, b64
+198 0123 op_binary_reg_reg_reg fsub, xmm2, xmm1, xmm7, b64
+199 0343 op_binary_reg_reg_reg fmul, xmm2, xmm8, xmm2, b64
+200 0431 op_binary_reg_reg_reg fadd, xmm8, xmm2, xmm0, b64
+201 0441 load_reg_mem xmm0, [rip], b64
+202 0443 op_binary_reg_reg fmul, xmm0, xmm7, b64
+203 0110 op_binary_reg_reg_reg fsub, xmm1, xmm1, xmm7, b64
+204 0273 op_binary_reg_reg_reg fmul, xmm1, xmm6, xmm1, b64
+205 0446 op_binary_reg_reg_reg fadd, xmm6, xmm1, xmm0, b64
+206 0448
+207 0451 load_mem_reg [rip], xmm12, b64
+208 0454 load_mem_reg [rip], xmm8, b64
+209 0457 load_mem_reg [rip], xmm6, b64
+210 0463 op_binary_reg_imm add, rsp, 0xF8, b64
+211 0244 load_reg_mem xmm6, [rsp], b128
+212 0243 load_reg_mem xmm7, [rsp + 0x10], b128
+213 0242 load_reg_mem xmm8, [rsp + 0x20], b128
+214 0241 load_reg_mem xmm9, [rsp + 0x30], b128
+215 0240 load_reg_mem xmm10, [rsp + 0x40], b128
+216 0239 load_reg_mem xmm11, [rsp + 0x50], b128
+217 0238 load_reg_mem xmm12, [rsp + 0x60], b128
+218 0237 load_reg_mem xmm13, [rsp + 0x70], b128
+219 0236 load_reg_mem xmm14, [rsp + 0x80], b128
+220 0163 load_reg_mem xmm15, [rsp + 0x90], b128
+221 0016 op_binary_reg_imm add, rsp, 0xA8, b64
+222 0015 pop rdi
+223 0014 pop rsi
+224 0013 pop rbp
+225 0459 ret
+
+raytrace / Raytrace.trace / final
+001 0352 push rbp
+002 0364 push rsi
+003 0370 push rdi
+004 0383 op_binary_reg_imm sub, rsp, 0xA8, b64
+005 0157 load_reg_reg rbp, rsp, b64
+006 0254 load_mem_reg [rsp], xmm6, b128
+007 0420 load_mem_reg [rsp + 0x10], xmm7, b128
+008 0253 load_mem_reg [rsp + 0x20], xmm8, b128
+009 0252 load_mem_reg [rsp + 0x30], xmm9, b128
+010 0251 load_mem_reg [rsp + 0x40], xmm10, b128
+011 0024 load_mem_reg [rsp + 0x50], xmm11, b128
+012 0023 load_mem_reg [rsp + 0x60], xmm12, b128
+013 0022 load_mem_reg [rsp + 0x70], xmm13, b128
+014 0021 load_mem_reg [rsp + 0x80], xmm14, b128
+015 0456 load_mem_reg [rsp + 0x90], xmm15, b128
+016 0424 op_binary_reg_imm sub, rsp, 0xF8, b64
+017 0005 load_reg_reg xmm6, xmm3, b64
+018 0155 load_reg_reg xmm4, xmm0, b64
+019 0006 load_reg_reg xmm7, xmm4, b64
+020 0434 load_reg_reg xmm0, xmm1, b64
+021 0007 load_reg_reg xmm8, xmm0, b64
+022 0419 load_reg_reg xmm0, xmm2, b64
+023 0008 load_reg_reg xmm9, xmm0, b64
+024 0009 load_reg_mem xmm10, [rbp + 0xE8], b64
+025 0010 load_reg_mem xmm11, [rbp + 0xF0], b64
+026 0011 load_signed_ext_reg_mem rsi, [rbp + 0xF8], b64 <- b32
+027 0018 load_mem_reg [rsp + 0x20], xmm10, b64
+028 0019 load_mem_reg [rsp + 0x28], xmm11, b64
+029 0194 load_reg_mem xmm0, [rip], b64
+030 0020 load_mem_reg [rsp + 0x30], xmm0, b64
+031 0150 load_reg_reg xmm0, xmm7, b64
+032 0335 load_reg_reg xmm1, xmm8, b64
+033 0336 load_reg_reg xmm2, xmm9, b64
+034 0201 load_reg_reg xmm3, xmm6, b64
+035 0025 call_local swag, <0x0>
+036 0030 load_reg_mem rax, [rip], b64
+037 0031 load_reg_reg xmm0, rax, b64
+038 0037 load_reg_mem rax, [rip], b32
+039 0042 cmp_reg_imm rax, 0x0, b32
+040 0047 jump_cond ge, b32 059
+041 0436 load_reg_mem xmm0, [rip], b64
+042 0050 load_mem_reg [rip], xmm0, b64
+043 0421 load_reg_mem xmm0, [rip], b64
+044 0053 load_mem_reg [rip], xmm0, b64
+045 0406 load_reg_mem xmm0, [rip], b64
+046 0056 load_mem_reg [rip], xmm0, b64
+047 0462 op_binary_reg_imm add, rsp, 0xF8, b64
+048 0453 load_reg_mem xmm6, [rsp], b128
+049 0450 load_reg_mem xmm7, [rsp + 0x10], b128
+050 0391 load_reg_mem xmm8, [rsp + 0x20], b128
+051 0390 load_reg_mem xmm9, [rsp + 0x30], b128
+052 0389 load_reg_mem xmm10, [rsp + 0x40], b128
+053 0388 load_reg_mem xmm11, [rsp + 0x50], b128
+054 0387 load_reg_mem xmm12, [rsp + 0x60], b128
+055 0386 load_reg_mem xmm13, [rsp + 0x70], b128
+056 0381 load_reg_mem xmm14, [rsp + 0x80], b128
+057 0375 load_reg_mem xmm15, [rsp + 0x90], b128
+058 0369 op_binary_reg_imm add, rsp, 0xA8, b64
+059 0271 pop rdi
+060 0246 pop rsi
+061 0245 pop rbp
+062 0058 ret
+063 0059
+064 0061 load_signed_ext_reg_reg rdi, rax, b64 <- b32
+065 0067 op_binary_reg_reg_reg fmul, xmm1, xmm6, xmm0, b64
+066 0070 op_binary_reg_reg_reg fadd, xmm7, xmm7, xmm1, b64
+067 0076 op_binary_reg_reg_reg fmul, xmm1, xmm10, xmm0, b64
+068 0079 op_binary_reg_reg_reg fadd, xmm8, xmm8, xmm1, b64
+069 0085 op_binary_reg_reg_reg fmul, xmm0, xmm11, xmm0, b64
+070 0088 op_binary_reg_reg_reg fadd, xmm9, xmm9, xmm0, b64
+071 0412 load_reg_mem xmm12, [rip], b64
+072 0322 load_mem_reg [rsp + 0xE8], xmm12, b64
+073 0093 load_reg_ptr_reloc rax, b64, <0x2425B47CA78>
+074 0098 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+075 0099 op_binary_reg_reg_reg fdiv, xmm0, xmm12, xmm1, b64
+076 0103 load_reg_ptr_reloc rax, b64, <0x2425B490AD8>
+077 0108 load_amc_reg_mem xmm2, [rax + rdi * 0x8], b64
+078 0109 op_binary_reg_reg_reg fsub, xmm1, xmm7, xmm2, b64
+079 0112 op_binary_reg_reg_reg fmul, xmm13, xmm1, xmm0, b64
+080 0116 load_reg_ptr_reloc rax, b64, <0x2425B46CCB8>
+081 0121 load_amc_reg_mem xmm2, [rax + rdi * 0x8], b64
+082 0122 op_binary_reg_reg_reg fsub, xmm1, xmm8, xmm2, b64
+083 0125 op_binary_reg_reg_reg fmul, xmm14, xmm1, xmm0, b64
+084 0129 load_reg_ptr_reloc rax, b64, <0x2425B460840>
+085 0134 load_amc_reg_mem xmm2, [rax + rdi * 0x8], b64
+086 0135 op_binary_reg_reg_reg fsub, xmm1, xmm9, xmm2, b64
+087 0138 op_binary_reg_reg_reg fmul, xmm15, xmm1, xmm0, b64
+088 0376 load_reg_mem xmm0, [rip], b64
+089 0145 op_binary_reg_reg_reg fsub, xmm3, xmm0, xmm7, b64
+090 0152 op_binary_reg_reg_reg fsub, xmm0, xmm0, xmm8, b64
+091 0149 load_reg_mem xmm1, [rip], b64
+092 0159 op_binary_reg_reg_reg fsub, xmm1, xmm1, xmm9, b64
+093 0166 op_binary_reg_reg_reg fmul, xmm2, xmm3, xmm3, b64
+094 0169 op_binary_reg_reg_reg fmul, xmm4, xmm0, xmm0, b64
+095 0172 op_binary_reg_reg_reg fadd, xmm2, xmm2, xmm4, b64
+096 0175 op_binary_reg_reg_reg fmul, xmm4, xmm1, xmm1, b64
+097 0178 op_binary_reg_reg_reg fadd, xmm2, xmm2, xmm4, b64
+098 0180 op_binary_reg_reg fsqrt, xmm2, xmm2, b64
+099 0186 op_binary_reg_reg_reg fdiv, xmm2, xmm12, xmm2, b64
+100 0192 op_binary_reg_reg_reg fmul, xmm3, xmm3, xmm2, b64
+101 0196 op_binary_reg_reg_reg fmul, xmm0, xmm0, xmm2, b64
+102 0200 op_binary_reg_reg_reg fmul, xmm1, xmm1, xmm2, b64
+103 0204 op_binary_reg_reg_reg fmul, xmm2, xmm13, xmm3, b64
+104 0207 op_binary_reg_reg_reg fmul, xmm4, xmm14, xmm0, b64
+105 0210 op_binary_reg_reg_reg fadd, xmm2, xmm2, xmm4, b64
+106 0213 op_binary_reg_reg_reg fmul, xmm4, xmm15, xmm1, b64
+107 0216 op_binary_reg_reg_reg fadd, xmm4, xmm2, xmm4, b64
+108 0323 clear_reg xmm2, b64
+109 0223 cmp_reg_reg xmm2, xmm4, b64
+110 0231 jump_cond be, b32 235
+111 0378 clear_reg xmm0, b64
+112 0233 load_reg_reg xmm4, xmm0, b64
+113 0418 load_reg_reg xmm12, xmm4, b64
+114 0234 jump_cond jump 270
+115 0235
+116 0248 load_mem_reg [rsp + 0x20], xmm0, b64
+117 0249 load_mem_reg [rsp + 0x28], xmm1, b64
+118 0372 load_reg_mem xmm0, [rip], b64
+119 0250 load_mem_reg [rsp + 0x30], xmm0, b64
+120 0435 load_reg_reg xmm0, xmm7, b64
+121 0433 load_reg_reg xmm1, xmm8, b64
+122 0427 load_reg_reg xmm2, xmm9, b64
+123 0272 load_reg_reg xmm12, xmm4, b64
+124 0255 call_local swag, <0x0>
+125 0259 load_reg_mem rax, [rip], b32
+126 0261 cmp_reg_imm rax, 0x0, b32
+127 0266 jump_cond l, b32 269
+128 0366 clear_reg xmm0, b64
+129 0268 load_reg_reg xmm12, xmm0, b64
+130 0269
+131 0270
+132 0128 load_reg_mem xmm0, [rip], b64
+133 0275 op_binary_reg_reg_reg fmul, xmm0, xmm0, xmm12, b64
+134 0141 load_reg_mem xmm1, [rip], b64
+135 0278 op_binary_reg_reg_reg fadd, xmm0, xmm1, xmm0, b64
+136 0282 load_reg_ptr_reloc rax, b64, <0x2425B46CD68>
+137 0286 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+138 0288 op_binary_reg_reg fmul, xmm1, xmm0, b64
+139 0291 load_reg_reg xmm12, xmm1, b64
+140 0292 load_reg_ptr_reloc rax, b64, <0x2425B470970>
+141 0296 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+142 0298 op_binary_reg_reg fmul, xmm1, xmm0, b64
+143 0301 load_reg_reg xmm4, xmm1, b64
+144 0302 load_reg_ptr_reloc rax, b64, <0x2425B46CE18>
+145 0306 load_amc_reg_mem xmm1, [rax + rdi * 0x8], b64
+146 0308 op_binary_reg_reg fmul, xmm1, xmm0, b64
+147 0311 load_reg_reg xmm5, xmm1, b64
+148 0312 load_reg_ptr_reloc rax, b64, <0x2425B478C70>
+149 0320 load_amc_reg_mem rax, [rax + rdi * 0x8], b64
+150 0321 load_reg_reg xmm3, rax, b64
+151 0148 clear_reg xmm0, b64
+152 0325 cmp_reg_reg xmm3, xmm0, b64
+153 0330 jump_cond a, b32 220
+154 0267 load_reg_reg xmm8, xmm4, b64
+155 0193 load_reg_reg xmm6, xmm5, b64
+156 0232 jump_cond jump 448
+157 0220
+158 0334 cmp_reg_imm rsi, 0x2, b32
+159 0341 jump_cond l, b32 055
+160 0156 load_reg_reg xmm8, xmm4, b64
+161 0142 load_reg_reg xmm6, xmm5, b64
+162 0092 jump_cond jump 448
+163 0055
+164 0345 op_binary_reg_reg_reg fmul, xmm0, xmm6, xmm13, b64
+165 0348 op_binary_reg_reg_reg fmul, xmm1, xmm10, xmm14, b64
+166 0351 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm1, b64
+167 0354 op_binary_reg_reg_reg fmul, xmm1, xmm11, xmm15, b64
+168 0357 op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm1, b64
+169 0360 op_binary_reg_reg_reg fadd, xmm2, xmm0, xmm0, b64
+170 0385 op_binary_reg_imm add, rsi, 0x1, b32
+171 0190 op_binary_reg_reg_reg fmul, xmm0, xmm2, xmm14, b64
+172 0405 op_binary_reg_reg_reg fsub, xmm0, xmm10, xmm0, b64
+173 0394 load_mem_reg [rsp + 0x20], xmm0, b64
+174 0173 op_binary_reg_reg_reg fmul, xmm0, xmm2, xmm15, b64
+175 0403 op_binary_reg_reg_reg fsub, xmm0, xmm11, xmm0, b64
+176 0395 load_mem_reg [rsp + 0x28], xmm0, b64
+177 0396 load_mem_reg [rsp + 0x30], rsi, b64
+178 0397 load_reg_reg xmm0, xmm7, b64
+179 0398 load_reg_reg xmm1, xmm8, b64
+180 0052 load_reg_reg xmm7, xmm2, b64
+181 0399 load_reg_reg xmm2, xmm9, b64
+182 0083 op_binary_reg_reg_reg fmul, xmm7, xmm7, xmm13, b64
+183 0143 op_binary_reg_reg_reg fsub, xmm6, xmm6, xmm7, b64
+184 0049 load_reg_reg xmm7, xmm3, b64
+185 0400 load_reg_reg xmm3, xmm6, b64
+186 0404 load_reg_reg xmm8, xmm4, b64
+187 0162 load_reg_reg xmm6, xmm5, b64
+188 0401 call_local swag, <0x0>
+189 0411 load_reg_mem xmm0, [rip], b64
+190 0413 op_binary_reg_reg fmul, xmm0, xmm7, b64
+191 0439 load_reg_mem xmm1, [rsp + 0xE8], b64
+192 0136 op_binary_reg_reg_reg fsub, xmm2, xmm1, xmm7, b64
+193 0346 op_binary_reg_reg_reg fmul, xmm2, xmm12, xmm2, b64
+194 0416 op_binary_reg_reg_reg fadd, xmm12, xmm2, xmm0, b64
+195 0426 load_reg_mem xmm0, [rip], b64
+196 0428 op_binary_reg_reg fmul, xmm0, xmm7, b64
+197 0123 op_binary_reg_reg_reg fsub, xmm2, xmm1, xmm7, b64
+198 0343 op_binary_reg_reg_reg fmul, xmm2, xmm8, xmm2, b64
+199 0431 op_binary_reg_reg_reg fadd, xmm8, xmm2, xmm0, b64
+200 0441 load_reg_mem xmm0, [rip], b64
+201 0443 op_binary_reg_reg fmul, xmm0, xmm7, b64
+202 0110 op_binary_reg_reg_reg fsub, xmm1, xmm1, xmm7, b64
+203 0273 op_binary_reg_reg_reg fmul, xmm1, xmm6, xmm1, b64
+204 0446 op_binary_reg_reg_reg fadd, xmm6, xmm1, xmm0, b64
+205 0448
+206 0451 load_mem_reg [rip], xmm12, b64
+207 0454 load_mem_reg [rip], xmm8, b64
+208 0457 load_mem_reg [rip], xmm6, b64
+209 0463 op_binary_reg_imm add, rsp, 0xF8, b64
+210 0244 load_reg_mem xmm6, [rsp], b128
+211 0243 load_reg_mem xmm7, [rsp + 0x10], b128
+212 0242 load_reg_mem xmm8, [rsp + 0x20], b128
+213 0241 load_reg_mem xmm9, [rsp + 0x30], b128
+214 0240 load_reg_mem xmm10, [rsp + 0x40], b128
+215 0239 load_reg_mem xmm11, [rsp + 0x50], b128
+216 0238 load_reg_mem xmm12, [rsp + 0x60], b128
+217 0237 load_reg_mem xmm13, [rsp + 0x70], b128
+218 0236 load_reg_mem xmm14, [rsp + 0x80], b128
+219 0163 load_reg_mem xmm15, [rsp + 0x90], b128
+220 0016 op_binary_reg_imm add, rsp, 0xA8, b64
+221 0015 pop rdi
+222 0014 pop rsi
+223 0013 pop rbp
+224 0459 ret
+
+dijkstra / Dijkstra.push / baseline
+015 0117
+016 0039 load_addr_reg_mem rax, [r9 + 0xFFFFFFFFFFFFFFFF], b64
+017 0045 op_binary_reg_imm shr, rax, 0x1, b64
+018 0051 load_reg_mem rcx, [rip], b64
+019 0055 load_reg_mem rdx, [rip], b64
+020 0033 load_addr_amc_reg_mem rdx, [rdx + r9 * 0x8], b64
+021 0120 load_addr_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+022 0011 load_reg_mem rcx, [rcx], b64
+023 0104 load_reg_mem rdx, [rdx], b64
+024 0059 cmp_reg_reg rcx, rdx, b64
+025 0064 jump_cond be, b32 127
+026 0069 load_reg_mem rcx, [rip], b64
+027 0075 load_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+028 0079 load_reg_mem rdx, [rip], b64
+029 0083 load_reg_mem r8, [rip], b64
+030 0085 load_amc_reg_mem r8, [r8 + r9 * 0x8], b64
+031 0098 load_addr_amc_reg_mem rdx, [rdx + rax * 0x8], b64
+032 0087 load_mem_reg [rdx], r8, b64
+033 0090 load_reg_mem rdx, [rip], b64
+034 0094 load_amc_mem_reg [rdx + r9 * 0x8], rcx, b64 <- b64
+035 0097 load_reg_mem rcx, [rip], b64
+036 0103 load_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+037 0107 load_reg_mem rdx, [rip], b64
+038 0111 load_reg_mem r8, [rip], b64
+039 0113 load_amc_reg_mem r8, [r8 + r9 * 0x8], b64
+040 0070 load_addr_amc_reg_mem rdx, [rdx + rax * 0x8], b64
+041 0115 load_mem_reg [rdx], r8, b64
+042 0118 load_reg_mem rdx, [rip], b64
+043 0122 load_amc_mem_reg [rdx + r9 * 0x8], rcx, b64 <- b64
+044 0125 load_reg_reg r9, rax, b64
+045 0110 cmp_reg_imm r9, 0x0, b64
+046 0126 jump_cond a, b32 117
+
+dijkstra / Dijkstra.push / final
+015 0117
+016 0039 load_addr_reg_mem rax, [r9 + 0xFFFFFFFFFFFFFFFF], b64
+017 0045 op_binary_reg_imm shr, rax, 0x1, b64
+018 0051 load_reg_mem rcx, [rip], b64
+019 0091 load_addr_amc_reg_mem rdx, [rcx + r9 * 0x8], b64
+020 0055 load_addr_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+021 0080 load_reg_mem rcx, [rcx], b64
+022 0066 load_reg_mem rdx, [rdx], b64
+023 0059 cmp_reg_reg rcx, rdx, b64
+024 0064 jump_cond be, b32 127
+025 0069 load_reg_mem rcx, [rip], b64
+026 0075 load_amc_reg_mem rdx, [rcx + rax * 0x8], b64
+027 0085 load_amc_reg_mem r8, [rcx + r9 * 0x8], b64
+028 0111 load_addr_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+029 0087 load_mem_reg [rcx], r8, b64
+030 0090 load_reg_mem rcx, [rip], b64
+031 0094 load_amc_mem_reg [rcx + r9 * 0x8], rdx, b64 <- b64
+032 0097 load_reg_mem rcx, [rip], b64
+033 0103 load_amc_reg_mem rdx, [rcx + rax * 0x8], b64
+034 0113 load_amc_reg_mem r8, [rcx + r9 * 0x8], b64
+035 0108 load_addr_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+036 0115 load_mem_reg [rcx], r8, b64
+037 0118 load_reg_mem rcx, [rip], b64
+038 0122 load_amc_mem_reg [rcx + r9 * 0x8], rdx, b64 <- b64
+039 0125 load_reg_reg r9, rax, b64
+040 0089 cmp_reg_imm r9, 0x0, b64
+041 0126 jump_cond a, b32 117
+
+dijkstra / Dijkstra.pop / baseline
+021 0050
+022 0056 load_reg_reg rcx, rax, b64
+023 0058 op_binary_reg_imm shl, rcx, 0x1, b64
+024 0060 load_addr_reg_mem rdx, [rcx + 0x1], b64
+025 0068 load_reg_mem r8, [rip], b64
+026 0069 cmp_reg_reg rdx, r8, b64
+027 0074 jump_cond ae, b32 199
+028 0078 load_addr_reg_mem r8, [rdx + 0x1], b64
+029 0092 load_reg_mem r9, [rip], b64
+030 0093 cmp_reg_reg r8, r9, b64
+031 0098 jump_cond ae, b32 120
+032 0101 load_reg_mem r9, [rip], b64
+033 0105 load_reg_mem r10, [rip], b64
+034 0191 load_addr_amc_reg_mem r10, [r10 + rcx * 0x8 + 0x8], b64
+035 0070 load_addr_amc_reg_mem rcx, [r9 + rcx * 0x8 + 0x10], b64
+036 0095 load_reg_mem r9, [r10], b64
+037 0109 cmp_mem_reg [rcx], r9, b64
+038 0132 load_cond_reg_reg rdx, r8, b, b64
+039 0120
+040 0123 load_reg_mem rcx, [rip], b64
+041 0127 load_reg_mem r8, [rip], b64
+042 0111 load_addr_amc_reg_mem r8, [r8 + rdx * 0x8], b64
+043 0170 load_addr_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+044 0076 load_reg_mem rcx, [rcx], b64
+045 0039 load_reg_mem r8, [r8], b64
+046 0131 cmp_reg_reg rcx, r8, b64
+047 0136 jump_cond be, b32 199
+048 0141 load_reg_mem rcx, [rip], b64
+049 0147 load_amc_reg_mem rcx, [rcx + rdx * 0x8], b64
+050 0151 load_reg_mem r8, [rip], b64
+051 0155 load_reg_mem r9, [rip], b64
+052 0195 load_addr_amc_reg_mem r8, [r8 + rdx * 0x8], b64
+053 0142 load_amc_reg_mem r9, [r9 + rax * 0x8], b64
+054 0159 load_mem_reg [r8], r9, b64
+055 0162 load_reg_mem r8, [rip], b64
+056 0166 load_amc_mem_reg [r8 + rax * 0x8], rcx, b64 <- b64
+057 0169 load_reg_mem rcx, [rip], b64
+058 0175 load_amc_reg_mem rcx, [rcx + rdx * 0x8], b64
+059 0179 load_reg_mem r8, [rip], b64
+060 0183 load_reg_mem r9, [rip], b64
+061 0080 load_addr_amc_reg_mem r8, [r8 + rdx * 0x8], b64
+062 0133 load_amc_reg_mem r9, [r9 + rax * 0x8], b64
+063 0187 load_mem_reg [r8], r9, b64
+064 0190 load_reg_mem r8, [rip], b64
+065 0194 load_amc_mem_reg [r8 + rax * 0x8], rcx, b64 <- b64
+066 0197 load_reg_reg rax, rdx, b64
+067 0198 jump_cond jump 050
+
+dijkstra / Dijkstra.pop / final
+019 0050
+020 0056 load_reg_reg rcx, rax, b64
+021 0058 op_binary_reg_imm shl, rcx, 0x1, b64
+022 0060 load_addr_reg_mem rdx, [rcx + 0x1], b64
+023 0068 load_reg_mem r8, [rip], b64
+024 0069 cmp_reg_reg rdx, r8, b64
+025 0074 jump_cond ae, b32 199
+026 0078 load_addr_reg_mem r8, [rdx + 0x1], b64
+027 0092 load_reg_mem r9, [rip], b64
+028 0093 cmp_reg_reg r8, r9, b64
+029 0098 jump_cond ae, b32 120
+030 0101 load_reg_mem r9, [rip], b64
+031 0154 load_addr_amc_reg_mem r10, [r9 + rcx * 0x8 + 0x8], b64
+032 0180 load_addr_amc_reg_mem rcx, [r9 + rcx * 0x8 + 0x10], b64
+033 0152 load_reg_mem r9, [r10], b64
+034 0109 cmp_mem_reg [rcx], r9, b64
+035 0132 load_cond_reg_reg rdx, r8, b, b64
+036 0120
+037 0123 load_reg_mem rcx, [rip], b64
+038 0191 load_addr_amc_reg_mem r8, [rcx + rdx * 0x8], b64
+039 0155 load_addr_amc_reg_mem rcx, [rcx + rax * 0x8], b64
+040 0183 load_reg_mem rcx, [rcx], b64
+041 0105 load_reg_mem r8, [r8], b64
+042 0131 cmp_reg_reg rcx, r8, b64
+043 0136 jump_cond be, b32 199
+044 0141 load_reg_mem rcx, [rip], b64
+045 0147 load_amc_reg_mem r8, [rcx + rdx * 0x8], b64
+046 0157 load_amc_reg_mem r9, [rcx + rax * 0x8], b64
+047 0163 load_addr_amc_reg_mem rcx, [rcx + rdx * 0x8], b64
+048 0159 load_mem_reg [rcx], r9, b64
+049 0162 load_reg_mem rcx, [rip], b64
+050 0166 load_amc_mem_reg [rcx + rax * 0x8], r8, b64 <- b64
+051 0169 load_reg_mem rcx, [rip], b64
+052 0175 load_amc_reg_mem r8, [rcx + rdx * 0x8], b64
+053 0185 load_amc_reg_mem r9, [rcx + rax * 0x8], b64
+054 0111 load_addr_amc_reg_mem rcx, [rcx + rdx * 0x8], b64
+055 0187 load_mem_reg [rcx], r9, b64
+056 0190 load_reg_mem rcx, [rip], b64
+057 0194 load_amc_mem_reg [rcx + rax * 0x8], r8, b64 <- b64
+058 0197 load_reg_reg rax, rdx, b64
+059 0198 jump_cond jump 050
+
+wordfreq / Wordfreq.qsort / baseline
+001 0118 push rsi
+002 0030 push rdi
+003 0056 push r12
+004 0099 push r13
+005 0151 push r14
+006 0153 op_binary_reg_imm sub, rsp, 0x60, b64
+007 0003 load_reg_reg rsi, rdx, b64
+008 0115 load_reg_reg rax, rcx, b64
+009 0005 load_reg_reg rdi, rax, b64
+010 0009
+011 0012 cmp_reg_reg rdi, rsi, b64
+012 0017 jump_cond ge, b32 181
+013 0119
+014 0019 load_reg_reg rax, rdi, b64
+015 0021 op_binary_reg_reg add, rax, rsi, b64
+016 0023 load_reg_reg rcx, rax, b64
+017 0149 op_binary_reg_imm sar, rax, 0x3F, b64
+018 0145 op_binary_reg_imm shr, rax, 0x3F, b64
+019 0141 op_binary_reg_reg add, rcx, rax, b64
+020 0136 op_binary_reg_imm sar, rcx, 0x1, b64
+021 0034 load_reg_mem rax, [rip], b64
+022 0040 load_amc_reg_mem r12, [rax + rcx * 0x8], b64
+023 0047 load_reg_reg r13, rdi, b64
+024 0053 load_reg_reg r14, rsi, b64
+025 0054
+026 0057 cmp_reg_reg r13, r14, b64
+027 0062 jump_cond g, b32 167
+028 0063
+029 0067 load_reg_mem rax, [rip], b64
+030 0069 load_amc_reg_mem rax, [rax + r13 * 0x8], b64
+031 0073 load_reg_reg rcx, rax, b64
+032 0094 load_reg_reg rdx, r12, b64
+033 0076 call_local swag, <0x0>
+034 0078 load_zero_ext_reg_reg rcx, rax, b64 <- b8
+035 0080 cmp_reg_imm rcx, 0x0, b8
+036 0081 jump_cond e, b32 088
+037 0085 op_binary_reg_imm add, r13, 0x1, b64
+038 0087 jump_cond jump 063
+039 0088
+040 0089
+041 0093 load_reg_mem rax, [rip], b64
+042 0116 load_reg_reg rcx, r12, b64
+043 0058 load_amc_reg_mem rax, [rax + r14 * 0x8], b64
+044 0100 load_reg_reg rdx, rax, b64
+045 0102 call_local swag, <0x0>
+046 0104 load_zero_ext_reg_reg rcx, rax, b64 <- b8
+047 0106 cmp_reg_imm rcx, 0x0, b8
+048 0107 jump_cond e, b32 114
+049 0111 op_binary_reg_imm sub, r14, 0x1, b64
+050 0113 jump_cond jump 089
+051 0114
+052 0117 cmp_reg_reg r13, r14, b64
+053 0122 jump_cond g, b32 054
+054 0126 load_reg_mem rax, [rip], b64
+055 0132 load_amc_reg_mem rax, [rax + r13 * 0x8], b64
+056 0137 load_reg_mem rcx, [rip], b64
+057 0142 load_reg_mem rdx, [rip], b64
+058 0010 load_addr_amc_reg_mem rcx, [rcx + r13 * 0x8], b64
+059 0035 load_amc_reg_mem rdx, [rdx + r14 * 0x8], b64
+060 0146 load_mem_reg [rcx], rdx, b64
+061 0150 load_reg_mem rcx, [rip], b64
+062 0154 load_amc_mem_reg [rcx + r14 * 0x8], rax, b64 <- b64
+063 0158 op_binary_reg_imm add, r13, 0x1, b64
+064 0163 op_binary_reg_imm sub, r14, 0x1, b64
+065 0166 jump_cond jump 054
+066 0167
+067 0172 load_reg_reg rcx, rdi, b64
+068 0173 load_reg_reg rdx, r14, b64
+069 0175 call_local swag, <0x0>
+070 0179 load_reg_reg rdi, r13, b64
+071 0127 cmp_reg_reg rdi, rsi, b64
+072 0180 jump_cond l, b32 119
+073 0181
+074 0186 op_binary_reg_imm add, rsp, 0x60, b64
+075 0140 pop r14
+076 0144 pop r13
+077 0091 pop r12
+078 0032 pop rdi
+079 0165 pop rsi
+080 0183 ret
+
+wordfreq / Wordfreq.qsort / final
+001 0165 push rsi
+002 0010 push rdi
+003 0142 push r12
+004 0099 push r13
+005 0055 push r14
+006 0153 op_binary_reg_imm sub, rsp, 0x60, b64
+007 0003 load_reg_reg rsi, rdx, b64
+008 0140 load_reg_reg rax, rcx, b64
+009 0005 load_reg_reg rdi, rax, b64
+010 0009
+011 0012 cmp_reg_reg rdi, rsi, b64
+012 0017 jump_cond ge, b32 181
+013 0118
+014 0019 load_reg_reg rax, rdi, b64
+015 0021 op_binary_reg_reg add, rax, rsi, b64
+016 0023 load_reg_reg rcx, rax, b64
+017 0149 op_binary_reg_imm sar, rax, 0x3F, b64
+018 0145 op_binary_reg_imm shr, rax, 0x3F, b64
+019 0141 op_binary_reg_reg add, rcx, rax, b64
+020 0136 op_binary_reg_imm sar, rcx, 0x1, b64
+021 0034 load_reg_mem rax, [rip], b64
+022 0040 load_amc_reg_mem r12, [rax + rcx * 0x8], b64
+023 0047 load_reg_reg r13, rdi, b64
+024 0053 load_reg_reg r14, rsi, b64
+025 0054
+026 0057 cmp_reg_reg r13, r14, b64
+027 0062 jump_cond g, b32 167
+028 0063
+029 0067 load_reg_mem rax, [rip], b64
+030 0069 load_amc_reg_mem rax, [rax + r13 * 0x8], b64
+031 0073 load_reg_reg rcx, rax, b64
+032 0151 load_reg_reg rdx, r12, b64
+033 0076 call_local swag, <0x0>
+034 0078 load_zero_ext_reg_reg rcx, rax, b64 <- b8
+035 0080 cmp_reg_imm rcx, 0x0, b8
+036 0081 jump_cond e, b32 088
+037 0085 op_binary_reg_imm add, r13, 0x1, b64
+038 0087 jump_cond jump 063
+039 0088
+040 0089
+041 0093 load_reg_mem rax, [rip], b64
+042 0177 load_reg_reg rcx, r12, b64
+043 0032 load_amc_reg_mem rax, [rax + r14 * 0x8], b64
+044 0100 load_reg_reg rdx, rax, b64
+045 0102 call_local swag, <0x0>
+046 0104 load_zero_ext_reg_reg rcx, rax, b64 <- b8
+047 0106 cmp_reg_imm rcx, 0x0, b8
+048 0107 jump_cond e, b32 114
+049 0111 op_binary_reg_imm sub, r14, 0x1, b64
+050 0113 jump_cond jump 089
+051 0114
+052 0117 cmp_reg_reg r13, r14, b64
+053 0122 jump_cond g, b32 054
+054 0126 load_reg_mem rax, [rip], b64
+055 0132 load_amc_reg_mem rcx, [rax + r13 * 0x8], b64
+056 0144 load_amc_reg_mem rdx, [rax + r14 * 0x8], b64
+057 0138 load_addr_amc_reg_mem rax, [rax + r13 * 0x8], b64
+058 0146 load_mem_reg [rax], rdx, b64
+059 0150 load_reg_mem rax, [rip], b64
+060 0154 load_amc_mem_reg [rax + r14 * 0x8], rcx, b64 <- b64
+061 0158 op_binary_reg_imm add, r13, 0x1, b64
+062 0163 op_binary_reg_imm sub, r14, 0x1, b64
+063 0166 jump_cond jump 054
+064 0167
+065 0172 load_reg_reg rcx, rdi, b64
+066 0173 load_reg_reg rdx, r14, b64
+067 0175 call_local swag, <0x0>
+068 0179 load_reg_reg rdi, r13, b64
+069 0030 cmp_reg_reg rdi, rsi, b64
+070 0180 jump_cond l, b32 118
+071 0181
+072 0186 op_binary_reg_imm add, rsp, 0x60, b64
+073 0091 pop r14
+074 0056 pop r13
+075 0116 pop r12
+076 0094 pop rdi
+077 0171 pop rsi
+078 0183 ret

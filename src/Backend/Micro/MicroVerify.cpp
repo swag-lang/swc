@@ -266,37 +266,6 @@ namespace
         return 0;
     }
 
-    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrDef& info, const MicroInstrOperand* ops)
-    {
-        auto modes = info.regModes;
-        if (!ops)
-            return modes;
-
-        switch (info.special)
-        {
-            case MicroInstrRegSpecial::None:
-                break;
-
-            case MicroInstrRegSpecial::OpBinaryRegReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                {
-                    modes[0] = MicroInstrRegMode::UseDef;
-                    modes[1] = MicroInstrRegMode::UseDef;
-                }
-                break;
-
-            case MicroInstrRegSpecial::OpBinaryMemReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                    modes[1] = MicroInstrRegMode::UseDef;
-                break;
-
-            case MicroInstrRegSpecial::OpTernaryRegRegReg:
-                break;
-        }
-
-        return modes;
-    }
-
     Result verifyInstructionShape(const MicroPassContext& context, std::string_view phase, uint32_t instructionIndex, MicroInstrRef instructionRef, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (!isValidOpcode(inst.op))
@@ -387,7 +356,7 @@ namespace
     Result verifyInstructionRegisters(const MicroPassContext& context, std::string_view phase, uint32_t instructionIndex, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         const MicroInstrDef& info  = MicroInstr::info(inst.op);
-        const auto           modes = resolveRegModes(info, ops);
+        const auto           modes = info.resolvedRegModes(ops);
 
         for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
         {
@@ -605,7 +574,7 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
             continue;
 
         const MicroInstrDef& info   = MicroInstr::info(inst.op);
-        const auto           modes  = resolveRegModes(info, ops);
+        const auto           modes  = info.resolvedRegModes(ops);
         const bool           hasMem = info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands);
 
         for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)

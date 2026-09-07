@@ -1,0 +1,51 @@
+{
+  "baseline_revision": "8d3f0498b",
+  "branch": "codex/generated-perf-20260907",
+  "program_configuration": "release",
+  "compiler_configuration": "DevMode",
+  "binaries": {
+    "swc.perf-baseline.exe": "cf53f26626c6ade8bf3e22f4135118159fedf38ef33e709c639d2cd56238857f",
+    "swc.perf-kept.exe": "4ccbf3f3d27110691e78bd5104f57cb775d017efee9f81152231c1ba732eaef9",
+    "swc.perf-pre-lanes.exe": "f46de6cee00b305030827e857693cb86c74233dd04f83dd6c63a8b704271a820",
+    "swc.dm.exe": "45e755404f676ee797f69a15989149ceaaab9042803ffe6bffb01a5e5b14f921"
+  },
+  "source_sha256": {
+    "bench/src/swagnat/bytemap.swg": "e550a0b785602c4e7cbcdc39eb83d60ef4df1c8b2afbaabb146bd179b4171a3b",
+    "bench/src/swagnat/chacha.swg": "3fce9d8bbec4f283a7566663fdc6d0757c739af96d0e80463545b986f6b2576f",
+    "bench/src/swagnat/common.swg": "eaf29fc1635c44b74b143e6da57ffcded5cd3d18d908a2f3d3b71a38ed8ccb5c",
+    "bench/src/swagnat/csvagg.swg": "086f081d5dad8ea45d7cbe59de93134c105f3de3084368902a08f4f5c13a9154",
+    "bench/src/swagnat/dijkstra.swg": "ca3eceee55dbbc06f8fccf9a39ad83f8ca208d70e2b77aa8297cb157c8ae4968",
+    "bench/src/swagnat/leven.swg": "1178cef32ef2219659c86b25a63ff7db18b77bd8deae2aa3699829a2c147142f",
+    "bench/src/swagnat/raytrace.swg": "1fb3aa87ab5e099d6700fb9c46a206fed7b3760442b7ceb7e0128fd82cf4f9b0",
+    "bench/src/swagnat/sha256.swg": "3ee1b66636be504d3e4e220c0ce97e238ccbb5881bdc62bd9e6ac994297a6e26",
+    "bench/src/swagnat/wordfreq.swg": "3cb30a2ed5d1efd7e53affc644eb4f4bd3aa32556a860241c9ee42e11931ebe8",
+    "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "bench/src/cpp/chacha.cpp": "542874330957a594e70db5cf371ea373a7784314d3db337baf3cb0ef888694fd",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "bench/src/cpp/csvagg.cpp": "99cc48e86fbb4ae5ddbdf41121180701f5b957254212bdfe8e99423753483bbc",
+    "bench/src/cpp/dijkstra.cpp": "e3fa78aaaa2ac788741f111556b7733b79967883436b60b82bd53fb899731952",
+    "bench/src/cpp/leven.cpp": "747615e90cd9e25535bf95df661cd57e1c31c2963c211ba8b42041f323d2f418",
+    "bench/src/cpp/raytrace.cpp": "ee81d2a1b4582a725b2cac2da5fe27f69b5e715f61e1e5209985e30a45a01b98",
+    "bench/src/cpp/sha256.cpp": "ce2742f53331d05619decc7207e51aa0f95fe37aff9d7180ea5313d4e1a862ff",
+    "bench/src/cpp/wordfreq.cpp": "2b935b3891cf0b5db1bfe857c8f383e32c4d151376cc66cb44b4c410a40595a1"
+  },
+  "compiler_builds": {
+    "baseline": 390,
+    "sqrt_and_factoring": 392,
+    "relocation_forwarding": 393,
+    "final": 394
+  },
+  "final_build_note": "Built with /p:TargetName=swc.perf-experiment; copied to checkout-local bin/swc.dm.exe for repository tools.",
+  "cpp_compilers": {
+    "clang-cl": {
+      "path": "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\Llvm\\x64\\bin\\clang-cl.exe",
+      "sha256": "a19514d0fdfd3ed41ae6fbfe903be03e4bd436c285fa1fa649aa52f02e642d94",
+      "version_output": "clang version 20.1.8\nTarget: x86_64-pc-windows-msvc\nThread model: posix\nInstalledDir: C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\Llvm\\x64\\bin"
+    },
+    "msvc": {
+      "path": "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe",
+      "sha256": "9905e3c72217fd4f3c35e550d5ce88f457990a64add22d1777693c84e77f8bbd",
+      "version_output": "usage: cl [ option... ] filename... [ /link linkoption... ]\r\nMicrosoft (R) C/C++ Optimizing Compiler Version 19.50.35726 for x64\r\nCopyright (C) Microsoft Corporation.  All rights reserved."
+    }
+  }
+}

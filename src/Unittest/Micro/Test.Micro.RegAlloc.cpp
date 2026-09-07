@@ -1156,6 +1156,68 @@ SWC_TEST_BEGIN(MicroInstr_FloatToIntReplacesItsDestination)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroInstr_SqrtReplacesItsDestination)
+{
+    for (const bool physical : {false, true})
+    {
+        for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            for (const bool memory : {false, true})
+            {
+                const MicroReg dst  = physical ? MicroReg::floatReg(1) : MicroReg::virtualFloatReg(1);
+                const MicroReg reg  = physical ? MicroReg::floatReg(2) : MicroReg::virtualFloatReg(2);
+                const MicroReg base = physical ? MicroReg::intReg(2) : MicroReg::virtualIntReg(2);
+                const MicroReg src  = memory ? base : reg;
+                MicroBuilder   builder(ctx);
+                if (memory)
+                    builder.emitOpBinaryRegMem(dst, src, 8, MicroOp::FloatSqrt, bits);
+                else
+                    builder.emitOpBinaryRegReg(dst, src, MicroOp::FloatSqrt, bits);
+                const MicroInstr&      inst   = *builder.instructions().view().begin();
+                const MicroInstrUseDef useDef = inst.collectUseDef(builder.operands(), nullptr);
+                if (useDef.defs.size() != 1 || useDef.defs[0] != dst || useDef.uses.size() != 1 || useDef.uses[0] != src)
+                    return Result::Error;
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                inst.collectRegOperands(builder.operands(), refs, nullptr);
+                if (refs.size() != 2 || *refs[0].reg != dst || refs[0].use || !refs[0].def ||
+                    *refs[1].reg != src || !refs[1].use || refs[1].def)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroInstr_SqrtDropsOnlyOverwrittenInitialization)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool sameSource : {false, true})
+        {
+            constexpr MicroReg dst = MicroReg::virtualFloatReg(1);
+            const MicroReg     src = sameSource ? dst : MicroReg::floatReg(0);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegReg(dst, MicroReg::floatReg(1), bits);
+            builder.emitOpBinaryRegReg(dst, src, MicroOp::FloatSqrt, bits);
+            builder.emitLoadMemReg(MicroReg::intReg(2), 0, dst, bits);
+            builder.emitRet();
+
+            MicroDeadCodeEliminationPass pass;
+            MicroPassManager             passes;
+            passes.addStartPass(pass);
+            MicroPassContext passContext;
+            passContext.callConvKind = CallConvKind::Swag;
+            SWC_RESULT(builder.runPasses(passes, nullptr, passContext));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != (sameSource ? 1 : 0))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroInstr_FloatToIntKeepsOnlyLiveFlagInitialization)
 {
     for (const bool liveFlags : {false, true})

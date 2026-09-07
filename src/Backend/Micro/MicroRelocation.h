@@ -45,6 +45,12 @@ struct MicroRelocation
     uint32_t      constantShard     = K_INVALID_SOURCE;
     uint32_t      constantOffset    = K_INVALID_SOURCE;
 
+    bool hasSameTarget(const MicroRelocation& other) const noexcept
+    {
+        return kind == other.kind && targetAddress == other.targetAddress && targetSymbol == other.targetSymbol &&
+               constantRef == other.constantRef && constantShard == other.constantShard && constantOffset == other.constantOffset;
+    }
+
     bool hasConstantSource() const noexcept { return constantShard != K_INVALID_SOURCE && constantOffset != K_INVALID_SOURCE; }
 };
 

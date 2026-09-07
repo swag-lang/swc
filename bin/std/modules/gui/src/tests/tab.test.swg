@@ -137,3 +137,23 @@ var TabHeadlessSelChangedCount: u32
     Swag.assert(viewA.isPendingDestroy and viewB.isPendingDestroy and viewC.isPendingDestroy)
     host.pump()
 }
+
+// Measuring through Wnd must include the bar even when the tab has no explicit height.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    let tab = Tab.create(&host.root)
+    tab.addItem("First")
+    tab.addItem("Second")
+    tab.padding = {3, 5, 7, 9}
+    let wnd: *Wnd = tab
+    for form in [TabForm.Flat, TabForm.Round, TabForm.Button]
+    {
+        tab.setForm(form)
+        let hint = wnd.measure({300, 0})
+        Swag.assert(hint.preferred.y == tab.barHeight + 14)
+        Swag.assert(hint.preferred.x >= tab.minimumItemWidth * 2 + 10)
+    }
+}

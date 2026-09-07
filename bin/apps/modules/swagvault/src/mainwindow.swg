@@ -266,6 +266,9 @@ struct MainWindow
 
     // The form cards, kept whole so a language switch can re-label their headings, and the band
     // that says which drives the window currently exposes.
+    layoutReady: bool
+    fittingSize: bool
+
     createCard:  VaultCard
     mountCard:   VaultCard
     optionsCard: VaultCard
@@ -551,11 +554,8 @@ internal func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] Strin
 
 impl MainWindow
 {
-    // Size one card needs, not three: the tab strip shows a single page at a time. The width is
-    // the widest card's form plus its padding, and French wraps widest, so it is the language
-    // that sizes this. The height is the tallest card, which is the one that opens a vault.
-    const WindowWidth  = 720's32
-    const WindowHeight = 900's32
+    // Keep a stable wrapping width; fitToContent measures the tallest translated panel.
+    const WindowWidth = 720's32
 
     // The page that opens a vault.
     const OpenTabIndex = 1'u32
@@ -565,7 +565,7 @@ impl MainWindow
         let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
         let surface = result.surface!
         surface.setView(result)
-        surface.minSize        = {WindowWidth, WindowHeight}
+        surface.minSize        = {WindowWidth, 0}
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
@@ -624,6 +624,8 @@ impl MainWindow
         // keyboard alone. Only the page on show is in the ring: the strip is what moves between
         // the three, and a hidden card holds no keyboard stop.
         result.setInitialFocus(result.initialStop())
+        result.layoutReady = true
+        result.fitToContent()
         return result
     }
 
@@ -656,17 +658,8 @@ impl MainWindow
         }
     }
 
-    // Finishes the card the strip has just brought up.
-    //
-    // A page is given its real width the moment it is shown, and that is the first width its card
-    // has ever been measured at. A card is only correct after the pass that arranges its body
-    // around a subtitle whose own height depends on that width — the same pass a language switch
-    // needs, and for the same reason. Without it the body of a page opened for the first time is
-    // short by that difference, and the body clips the last help paragraph of the form: the form
-    // reports a height that ends inside a body which is not the body it was measured against.
-    //
-    // The layout is re-run from the window down, because the strip positions its page after it
-    // announces the change, so the page still carries its old rectangle when this is called.
+    // The tab assigns its page rectangle after announcing the selection. Arrange from the
+    // window down, then refresh forms whose translated text changed without resizing them.
     mtd arrangeCards()
     {
         .applyLayout()
@@ -674,6 +667,54 @@ impl MainWindow
         .mountCard.endForm()
         .mountOptions.computeLayout()
         .optionsCard.endForm()
+        .mountedDrives.card.endForm()
+    }
+
+    // Measures every panel at the actual page width; switching tabs never changes the height.
+    mtd requiredClientHeight(width: f32)->f32
+    {
+        var height = 0'f32
+        for child in .children
+        {
+            if !child.isLocallyVisible() do
+                continue
+            let margin = child.layoutMargin()
+            let room   = Math.max(0, width - margin.x - margin.z)
+            if child == .tabs
+            {
+                let inset     = .tabs.padding
+                let pageWidth = Math.max(0, room - inset.x - inset.z)
+                var tallest   = 0'f32
+                for card in [&.createCard, &.mountCard, &.optionsCard, &.mountedDrives.card] do
+                    tallest = Math.max(tallest, card.panel.itf.measureContent({pageWidth, 0}).y)
+                height += .tabs.itf.measureContent({room, 0}).y + Math.ceil(tallest)
+            }
+            else do
+                height += Math.ceil(child.measure({room, 0}).preferred.y)
+            height += margin.y + margin.w
+        }
+
+        return Math.ceil(height)
+    }
+
+    // The frame supplies its own inset. Include it once, round out, and keep the saved origin.
+    mtd fitToContent()
+    {
+        if !.layoutReady or .fittingSize do
+            return
+        .fittingSize = true
+        defer .fittingSize = false
+        let surface = .surface!
+        let frame   = surface.wnd.padding
+        let shadow  = surface.shadowMargin() * 2
+        let width   = surface.size().x - frame.x - frame.z - shadow
+        let height  = .requiredClientHeight(width) + frame.y + frame.w + shadow
+        var pos     = surface.position
+        pos.height        = Math.ceil(Math.ceil(height) * surface.dpiScale)
+        surface.minSize.y = pos.height / surface.dpiScale
+        if Math.abs(surface.position.height - pos.height) >= 0.5 do
+            surface.setPosition(pos)
+        .arrangeCards()
     }
 
     // Brings one page of the strip up.
@@ -1503,6 +1544,7 @@ impl MainWindow
         .createCard.actions.computeLayout()
         .mountCard.actions.computeLayout()
         .mountedDrives.retranslate()
+        .fitToContent()
         .invalidate()
     }
 
@@ -2582,6 +2624,8 @@ impl IWnd for MainWindow
     {
         if evt.kind == .LanguageChanged do
             .retranslate()
+        elif evt.kind == .ThemeChanged and .layoutReady do
+            .fitToContent()
         .wnd.IWnd.onNotifyEvent(evt)
     }
 

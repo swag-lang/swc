@@ -103,6 +103,27 @@ struct Tab
 
 impl IWnd for Tab
 {
+    // Reports the room every tab needs side by side, and the height of the bar.
+    //
+    // Only the content policy answers with the wording: the equal and fixed policies decide
+    // a width themselves, so what they need is that width once per tab. The height is the
+    // bar alone — the page below it is measured by whatever the tab hosts.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        var width = 0'f32
+        switch .layout
+        {
+        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32) .items.count
+        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32) .items.count
+        case .Content: width = .contentWidth()
+        }
+
+        let padding = .padding
+        return {width + padding.x + padding.z, .barHeight + padding.y + padding.w}
+    }
+
     mtd paintItem(painter: *Painter, v: *TabItem, idx: u32)
     {
         var clientRect = .clientRect()
@@ -500,27 +521,6 @@ private impl Tab
         for v in .items do
             result += Math.max(.itemContentWidth(v!), .minimumItemWidth)
         return result
-    }
-
-    // Reports the room every tab needs side by side, and the height of the bar.
-    //
-    // Only the content policy answers with the wording: the equal and fixed policies decide
-    // a width themselves, so what they need is that width once per tab. The height is the
-    // bar alone — the page below it is measured by whatever the tab hosts.
-    mtd impl measureContent(available: Math.Point)->Math.Point
-    {
-        discard available
-
-        var width = 0'f32
-        switch .layout
-        {
-        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32) .items.count
-        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32) .items.count
-        case .Content: width = .contentWidth()
-        }
-
-        let padding = .padding
-        return {width + padding.x + padding.z, .barHeight + padding.y + padding.w}
     }
 
     mtd computeTabLayout()

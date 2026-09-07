@@ -49,7 +49,9 @@ const SurfaceId   = "swag.vault"
     // strip already shows one at a time: there is nothing to gain room for, so a size grip and a
     // maximize button would only offer a window shape none of the pages is laid out for.
     const WindowFlags = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
-    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, WindowFlags, surfaceId: SurfaceId))!
+
+    // Start with a width for wrapping; MainWindow measures the final height before showing.
+    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowWidth, WindowFlags, surfaceId: SurfaceId))!
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
 

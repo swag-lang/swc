@@ -84,7 +84,8 @@ impl MountedDrives
         // list inside a raised panel is the second box the panel exists to avoid. Its heading
         // row keeps the one hairline that separates the headings from the rows.
         let list = ListCtrl.createMultiColumns(card.body)
-        list.dockStyle                = .Center
+        list.layoutSpec.policyY       = .Expand
+        list.preferredSize.y          = list.header.measure({}).preferred.y + 5 * list.lineHeight()
         list.backgroundStyle          = .Transparent
         list.listView.backgroundStyle = .Transparent
         list.header.form              = .Transparent
@@ -116,8 +117,11 @@ impl MountedDrives
         // that failed to load. One quiet line says the truth instead, and steps aside the
         // moment there is a row to show.
         let empty = Label.create(card.body, appStrings().ui_NoDriveMounted, {}, null, .SecondaryText)
-        empty.dockStyle = .Center
+        empty.layoutSpec.policyY = .Expand
         empty.setTextAlignment(.Center, .Center)
+
+        card.body.mode = .Top
+        card.actions.bringToFront()
 
         var result: retval
         result.card          = card

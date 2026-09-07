@@ -140,6 +140,12 @@ using Swag, Core
     Swag.assert(c0.position.x == 0)
     Swag.assert(c1.position.x == 0)
     Swag.assert(c2.position.x == 0)
+
+    // Explicit cross-axis expansion still fills the width of a vertically centered form.
+    c1.layoutSpec.policyX = .Expand
+    stack.computeLayout()
+    Swag.assert(c1.position.width == 100 and c1.position.y == 85)
+    Swag.assert(c0.position.width == 40 and c2.position.width == 40)
 }
 
 // StackLayoutCtrl distributes remaining space only to expandable children.

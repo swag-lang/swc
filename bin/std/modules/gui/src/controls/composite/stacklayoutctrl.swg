@@ -344,7 +344,7 @@ private impl StackLayoutCtrl
             let crossAvailable = Math.max(availableCross - .crossMargin(margin), 0)
             let polCross       = .crossPolicy(c)
             let align          = .isHorizontal() ? c.layoutSpec.alignY : c.layoutSpec.alignX
-            if !.isCenteringMain() and (align == LayoutAlign.Stretch or polCross == SizePolicy.Expand) do
+            if (!.isCenteringMain() and align == LayoutAlign.Stretch) or polCross == SizePolicy.Expand do
                 crossSize = crossAvailable
             else do
                 crossSize = .preferredCross(hint)

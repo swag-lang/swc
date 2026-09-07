@@ -3,10 +3,11 @@
 
 using Swag, Core, Gui
 
-// Builds the real main window inside a headless surface of the shipped minimum size.
-func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
+// Builds the real main window inside the same measured frame as the shipped surface.
+func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32)->*MainWindow
 {
-    host.setup(cast(f32) MainWindow.WindowWidth, cast(f32) MainWindow.WindowHeight)
+    host.setup(cast(f32) MainWindow.WindowWidth, cast(f32) MainWindow.WindowWidth, scale)
+    host.surface.updateFlags(.LargeCaption | .Border | .NoShadow)
     host.bindApplication(&g_App)
 
     // The window resolves its application through its surface, so that is the one a language
@@ -19,17 +20,8 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     // as the view of its surface, which destroys whatever view was there before.
     let result = MainWindow.create(&host.surfaceWnd)
 
-    // The shipped surface draws its own caption and border, and its view sits inside them, so the
-    // window is that much smaller than the size passed to `createSurface`. The host builds no
-    // chrome at all, so a window given the whole rectangle is measured taller than the one that
-    // ships — and 43 logical pixels is exactly the room the last help paragraph of a card needs.
-    // A card clipped in the real window went on passing the containment test below for that
-    // reason, in every language, for as long as the test sized the window itself.
-    let metrics = host.theme.metrics
-    let border  = metrics.wnd_BorderSize
-    let caption = Math.max(metrics.wnd_BigCaptionCY, border)
-    result.setPosition({0, 0, cast(f32) MainWindow.WindowWidth - 2 * border, cast(f32) MainWindow.WindowHeight - caption - border})
-    result.applyLayout()
+    host.surface.setTitle(ProductName)
+    result.fitToContent()
     return result
 }
 
@@ -136,16 +128,7 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     Swag.assert(host.openedSurfaceCount() == 0)
 }
 
-// A card's form has to end inside the card, in every language.
-//
-// A card is exactly as tall as the page it fills and no taller: a form that grows past its body
-// is not pushed down, it is cut off at the bottom edge. That is what a longer translation does to
-// the last help paragraph of a card, and neither the form nor the body reports it — the form is
-// sized by its own measure, so it always "fits" itself, and the body answers for no content size
-// at all.
-//
-// Bring the card's page up before measuring it. A tab that is not on show is not arranged, so its
-// body answers a negative height and the comparison passes on a card nobody sized.
+// Bring the page up before checking its form: hidden tab pages have no arranged rectangle.
 func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     let room   = card.body.clientRect().height
@@ -712,6 +695,12 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(window.mountedDrives.list.isLocallyVisible())
     Swag.assert(!window.mountedDrives.empty.isLocallyVisible())
     Swag.assert(window.mountedDrives.list.lineCount() == 2)
+    window.showTab(2)
+    Testing.assertContentFits(window)
+    let card = &window.mountedDrives.card
+    Swag.assert(window.mountedDrives.list.position.height >= window.mountedDrives.list.preferredSize.y)
+    Swag.assert(Math.abs(card.actions.position.bottom() - card.body.clientRect().height) <= 1)
+    Swag.assert(Math.abs(card.actions.position.y - window.mountedDrives.list.position.bottom() - card.body.spacing) <= 1)
 
     // The row a drive occupies is the row the drive list gives it, and the mark it carries
     // travels with it. A row names the vault, not the folder it happens to sit in.
@@ -943,7 +932,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.applyLayout()
     host.settleAnimations(window, 6)
 
-    var image = host.render(window)
+    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "surface")
 }
 
@@ -963,7 +952,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.hiddenButton.enable(true)
     window.refreshStatus()
     host.settleAnimations(window, 6)
-    var image = host.render(window)
+    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "surface.open")
 }
 
@@ -986,4 +975,48 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     loadMainWindowState(window, state.toSlice())
     Swag.assert(window.startupVaults.count == 1 and window.startupVaults[0].protectHidden)
     Swag.assert(!window.protectHidden.isChecked())
+}
+
+// The tallest panel sizes the frame at each display scale, independently of tab selection.
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    for scale in [1.0'f32, 1.5'f32, 2.0'f32]
+    {
+        var host: Testing.HeadlessHost
+        let window = testSetupMainWindow(&host, scale)
+        defer host.shutdown()
+        for &one in languages()
+        {
+            expect g_App.setLanguage(one.tag.toString())
+            host.notify(.LanguageChanged)
+            let height    = host.surface.position.height
+            var tallest   = 0'f32
+            var available = 0'f32
+            for card, index in [&window.createCard, &window.mountCard, &window.mountedDrives.card, &window.optionsCard]
+            {
+                window.showTab(cast(u32) index)
+                Testing.assertContentFits(window)
+                available = card.panel.position.height
+                tallest   = Math.max(tallest, card.panel.itf.measureContent({card.panel.position.width, 0}).y)
+                Swag.assert(host.surface.position.height == height)
+                if !card.form.rows.isEmpty() do
+                    Swag.assert(card.form.position.width == card.body.clientRect().width)
+            }
+
+            // Only rounding separates the tallest content from the page's available height.
+            Swag.assert(available >= tallest - 0.5 and available - tallest <= 2)
+        }
+
+        window.showTab(1)
+        let before   = host.surface.position.height
+        let subtitle = String.from(window.mountCard.subtitle.text())
+        window.mountCard.subtitle.setText("One line.\nTwo lines.\nThree lines.\nFour lines.\nFive lines.\nSix lines.")
+        window.fitToContent()
+        Swag.assert(host.surface.position.height > before)
+        Testing.assertContentFits(window)
+        window.mountCard.subtitle.setText(subtitle.toString())
+        window.fitToContent()
+        Swag.assert(host.surface.position.height == before)
+    }
 }

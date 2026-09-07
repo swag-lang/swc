@@ -7,7 +7,7 @@ using Core, Gui
 // The form panels of the main window share this shape, and only their fields differ.
 struct VaultCard
 {
-    late panel:    *Wnd
+    late panel:    *StackLayoutCtrl
     late body:     *StackLayoutCtrl
     late form:     *FormLayoutCtrl
     late actions:  *StackLayoutCtrl
@@ -19,33 +19,34 @@ impl VaultCard
 {
     func create(parent: *Wnd, title, subtitle: string)->VaultCard
     {
-        let panel = Wnd.create'Wnd(parent)
+        let panel = StackLayoutCtrl.create(parent, .Top)
+        panel.spacing         = 0
         panel.backgroundStyle = .Panel
         panel.padding         = {28, 24, 28, 24}
 
         let titleLabel = Label.create(panel, title, {0, 0, 0, 30})
-        titleLabel.dockStyle = .Top
         titleLabel.setTextAlignment(.Left, .Center)
         titleLabel.style.setFont(panel.theme().createDefaultFont(20, .Bold), .Regular)
 
         // The explanation wraps, so its height is the text's to decide: a hand-tuned one
         // cuts the last line off as soon as the sentence is said in more words.
         let subtitleLabel = Label.create(panel, subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
-        subtitleLabel.dockStyle = .Top
-        subtitleLabel.margin    = {0, 4, 0, 0}
+        subtitleLabel.margin = {0, 4, 0, 0}
         subtitleLabel.setTextAlignment(.Left, .Top)
         subtitleLabel.setLineGap(cast(s32) (panel.themeMetrics().dialog_BtnPadding / 2))
 
-        // Keep actions next to the fields they submit instead of pinning them to the card floor.
-        let body = StackLayoutCtrl.create(panel, .Top)
-        body.dockStyle       = .Center
-        body.backgroundStyle = .Transparent
-        body.margin          = {0, 8, 0, 0}
-        body.spacing         = panel.themeMetrics().dialog_BtnPadding * 2
+        // Center shorter forms and their actions together within the shared page height.
+        let body = StackLayoutCtrl.create(panel, .VerticalCenter)
+        body.layoutSpec.policyY = .Expand
+        body.backgroundStyle    = .Transparent
+        body.margin             = {0, panel.themeMetrics().dialog_BtnPadding * 2, 0, 0}
+        body.spacing            = panel.themeMetrics().dialog_BtnPadding * 2
 
         let form    = FormLayoutCtrl.create(body, VaultForm.options(body))
         let actions = StackLayoutCtrl.create(body, .Right, {0, 0, 0, 36})
-        actions.spacing = panel.themeMetrics().dialog_BtnPadding
+        form.layoutSpec.policyX    = .Expand
+        actions.layoutSpec.policyX = .Expand
+        actions.spacing            = panel.themeMetrics().dialog_BtnPadding
         panel.applyLayout()
         return {panel, body, form, actions, titleLabel, subtitleLabel}
     }
@@ -55,7 +56,7 @@ impl VaultCard
     {
         .title.setText(title)
         .subtitle.setText(subtitle)
-        .panel.applyLayout()
+        .panel.computeLayout()
     }
 
     // Arranges the body around the filled form, then the rows inside it.
@@ -68,8 +69,11 @@ impl VaultCard
     // so the pass is asked for here rather than waited for.
     mtd endForm()
     {
+        .actions.show(!.actions.children.isEmpty())
+        .form.show(!.form.rows.isEmpty())
         VaultForm.finish(.form)
-        .body.applyLayout()
+        .panel.computeLayout()
+        .body.computeLayout()
         .form.computeLayout()
     }
 }

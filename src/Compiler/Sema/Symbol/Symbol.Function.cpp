@@ -416,7 +416,7 @@ namespace
         }
 
         SmallVector<const SymbolMap*> ownerMaps;
-        const SymbolImpl* symImpl = symbol.declImplContext();
+        const SymbolImpl*             symImpl = symbol.declImplContext();
         if (symImpl && symImpl->isForEnum() && symImpl->symEnum())
         {
             for (const SymbolImpl* enumImpl : symImpl->symEnum()->impls())

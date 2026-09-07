@@ -41,7 +41,6 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-07 13:14 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-07 12:38 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-07 11:57 |
-| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-07 11:56 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-07 11:12 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-07 10:43 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-06 21:57 |
@@ -61,6 +60,7 @@ does not move a row: the backlog holds only what remains, and the removal itself
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-06 07:51 |
+| [app.scope.video.md](app.scope.video.md) | The Swag Scope video viewer | 2026-09-06 07:51 |
 | [app.vault.md](app.vault.md) | The Swag Vault application | 2026-09-06 07:51 |
 | [compiler.command.doc.md](compiler.command.doc.md) | The `doc` command | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |

@@ -86,6 +86,38 @@ func waitForVideoFrame(view: *VideoViewer)
     Swag.assert(view.openFinished and !view.awaitingFrame)
 }
 
+// Withhold every free slot and drain any in-flight decode before observing a loading state.
+// A fast background producer must not decide whether a test sees the requested wait overlay.
+func holdVideoProducer(view: *VideoViewer)
+{
+    for 5_000
+    {
+        {
+            Sync.scopedLock(&view.queueLock)
+            view.ready.clear()
+            view.freeSlots.clear()
+            if !view.inFlight do
+                return
+        }
+
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.assert(false)
+}
+
+func releaseVideoProducer(view: *VideoViewer)
+{
+    {
+        Sync.scopedLock(&view.queueLock)
+        Swag.assert(!view.inFlight and !view.ready.count and !view.freeSlots.count)
+        for index in view.slotCount do
+            view.freeSlots.add(cast(u32) index)
+    }
+
+    view.decodeWake.signal()
+}
+
 func waitForVideoAudio(view: *VideoViewer, count: u32)
 {
     var attempts: u32
@@ -454,8 +486,10 @@ func videoMatroskaFixturePath()->String
     view.setMuted(false)
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
 
+    holdVideoProducer(view)
     view.timeline.setValue(cast(f32) view.frameSeconds(5))
     Swag.assert(view.awaitingFrame and view.resumeAudioAfterSeek)
+    releaseVideoProducer(view)
     waitForVideoFrame(view)
     Swag.assert(!view.resumeAudioAfterSeek and view.voice!.isPlaying())
     Swag.assert(view.voice!.playbackSampleFrame() == cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0))
@@ -594,10 +628,12 @@ func videoMatroskaFixturePath()->String
     // A click on the bottom timeline keeps the stale picture until the decoder publishes the
     // requested frame, and brings the central wait overlay over it only once the decode has
     // taken long enough to be a wait.
+    holdVideoProducer(view)
     view.timeline.setValue(cast(f32) view.frameSeconds(5))
     Swag.assert(view.awaitingFrame and !window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible())
+    releaseVideoProducer(view)
     waitForVideoFrame(view)
     window.updateLoadingIndicator()
     Swag.assert(window.loadingOverlay.isLocallyVisible())
@@ -702,16 +738,20 @@ func videoMatroskaFixturePath()->String
     Swag.assert(videoAudioEncodingText(.Vorbis) == "Vorbis" and videoAudioEncodingText(.Opus) == "Opus" and videoAudioEncodingText(.AdpcmIma) == "IMA ADPCM")
     view.setVolume(0.4)
     view.setMuted(true)
+
+    // This fixture lasts only 800 ms. Inspect the popup while paused, then exercise the same
+    // handoff while playing at an explicitly held position, independent of menu/render latency.
+    view.togglePlayback()
     view.seekFrame(5)
     waitForVideoFrame(view)
-    Swag.assert(view.playing and view.voice!.isPlaying())
+    Swag.assert(!view.playing and !view.voice!.isPlaying())
     let previousVoice = view.voice!
 
     host.clickPopupMenuItemWhenShown("scope.video.audioTrack.1")
     view.showAudioTrackMenu()
     Swag.assert(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
     Swag.assert(view.voice != null and view.voice != previousVoice)
-    waitForVideoVoicePlaying(view)
+    Swag.assert(!view.playing and !view.voice!.isPlaying())
     Swag.assert(view.muted and Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
     let switchedSample = view.voice!.playbackSampleFrame()
     let seekSample     = cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0)
@@ -721,9 +761,13 @@ func videoMatroskaFixturePath()->String
 
     view.setMuted(false)
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    view.togglePlayback()
+    Swag.assert(view.playing and view.voice!.isPlaying())
+    view.clock.reset()
     expect view.selectAudioTrack(0)
     waitForVideoVoicePlaying(view)
     Swag.assert(view.playing and view.audioTrackIndex == 0)
+    view.clock.reset()
     expect view.selectAudioTrack(1)
     waitForVideoVoicePlaying(view)
     Swag.assert(view.playing and view.audioTrackIndex == 1)
@@ -1002,6 +1046,7 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0)
 
+    holdVideoProducer(view)
     view.playing = true
     view.elapsed = view.frameSeconds(12)
     view.clock.reset()
@@ -1009,6 +1054,7 @@ func videoMatroskaFixturePath()->String
 
     Swag.assert(view.awaitingFrame and result.isLoading!(view))
     Swag.assert(result.needsLoadingOverlay!(view))
+    releaseVideoProducer(view)
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 12)
 }

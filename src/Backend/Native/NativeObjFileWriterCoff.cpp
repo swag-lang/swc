@@ -163,10 +163,15 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
     section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
     section.data.bytes.append(std::span{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size});
 
-    for (const NativeSectionRelocation& sourceRelocation : builder_->mergedRData.relocations)
+    // The collector emits allocations in offset order and sorts each allocation's relocations.
+    // Visit only this allocation's range instead of scanning the entire module for every object.
+    const auto& relocations = builder_->mergedRData.relocations;
+    const auto  first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
+    for (auto it = first; it != relocations.end(); ++it)
     {
-        if (sourceRelocation.offset < allocation.emittedOffset || sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
-            continue;
+        const NativeSectionRelocation& sourceRelocation = *it;
+        if (sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
+            break;
 
         NativeSectionRelocation relocation = sourceRelocation;
         relocation.offset -= allocation.emittedOffset;

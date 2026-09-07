@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -414,46 +415,34 @@ namespace
             return;
         }
 
+        SmallVector<const SymbolMap*> ownerMaps;
         const SymbolImpl* symImpl = symbol.declImplContext();
         if (symImpl && symImpl->isForEnum() && symImpl->symEnum())
         {
             for (const SymbolImpl* enumImpl : symImpl->symEnum()->impls())
             {
-                if (!enumImpl)
-                    continue;
-
-                std::vector<const Symbol*> symbols;
-                enumImpl->getAllSymbols(symbols);
-                for (const Symbol* candidateBase : symbols)
-                {
-                    const auto* candidate = candidateBase ? candidateBase->safeCast<SymbolFunction>() : nullptr;
-                    if (!candidate || candidate->idRef() != symbol.idRef())
-                        continue;
-                    if (!isPublicApiExportedOverload(*candidate))
-                        continue;
-
-                    outOverloads.push_back(candidate);
-                }
+                if (enumImpl)
+                    ownerMaps.push_back(enumImpl);
             }
-
-            return;
+        }
+        else if (const SymbolMap* ownerMap = symbol.ownerSymMap())
+        {
+            ownerMaps.push_back(ownerMap);
         }
 
-        const SymbolMap* ownerMap = symbol.ownerSymMap();
-        if (!ownerMap)
-            return;
-
-        std::vector<const Symbol*> symbols;
-        ownerMap->getAllSymbols(symbols);
-        for (const Symbol* candidateBase : symbols)
+        for (const SymbolMap* ownerMap : ownerMaps)
         {
-            const auto* candidate = candidateBase ? candidateBase->safeCast<SymbolFunction>() : nullptr;
-            if (!candidate || candidate->idRef() != symbol.idRef())
-                continue;
-            if (!isPublicApiExportedOverload(*candidate))
-                continue;
-
-            outOverloads.push_back(candidate);
+            // Homonym chains already have declaration order. Query this name under the map's
+            // lock instead of collecting and sorting every declaration for each exported function.
+            MatchContext lookup;
+            lookup.beginSymMapLookup({});
+            ownerMap->lookupAppend(symbol.idRef(), lookup);
+            for (const Symbol* candidateBase : lookup.symbols())
+            {
+                const auto* candidate = candidateBase->safeCast<SymbolFunction>();
+                if (candidate && isPublicApiExportedOverload(*candidate))
+                    outOverloads.push_back(candidate);
+            }
         }
     }
 

@@ -6,8 +6,8 @@ using Core, Pixel, Gui, TrueType
 //
 // The version number of such a font is `1.0` written as a fixed-point number, which is why the
 // signature is four bytes rather than four letters. `ttcf` opens a collection of them, and `true`
-// is what an older Apple font writes in the same place. A font with CFF outlines announces itself
-// as `OTTO` and is deliberately not claimed here: this viewer does not draw those.
+// is what an older Apple font writes in the same place. The probe does not yet claim the `OTTO`
+// signature of CFF-flavoured OpenType fonts, although the shared font engine can load them.
 private func fontPluginProbe(content: Viewer.ProbeContent)->bool
 {
     if content.startsWith("ttcf") or content.startsWith("true") do

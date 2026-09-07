@@ -15,7 +15,7 @@ ships; history lives in Git, not here.
 
 ## Where the module already stands
 
-Pixel provides deterministic CPU and OpenGL backends over one recorded painter command stream,
+Pixel provides CPU and OpenGL backends over one recorded painter command stream,
 with command goldens and renderer-parity tests. Its painter has a full state stack, affine
 transforms, clipping rectangles and boolean regions, render targets, layers, artistic blend modes,
 custom OpenGL shaders, and integrated DPI content scale. Computational geometry includes boolean
@@ -28,27 +28,30 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
-### std.pixel.025 — Windowed parity readback failures remain unstable across retries
+### std.pixel.025 — Intermittent OpenGL stroke rendering fails CPU parity
 
 - Recorded: 2026-09-07 11:24
-- Evidence: the compiler-speed campaign's final Release standard-module run failed the stroke
-  parity test with an empty readback; the same generated executable then passed all 17 parity
-  tests. The saved failure exceeds the retry detector's channel-difference threshold on 3,923
-  pixels in RGB and 11,537 in RGBA, against a 6,144-pixel trigger. The detector ignores alpha.
-  A CPU-only opaque-dark-image test reproduces that omission with baseline compiler 390.
-- Investigation: including alpha passed all 18 selected Release tests and 2,156 standard-module
-  tests, but DevMode exercised a second retry defect: recreating a window with the same class
-  identifier fails `RegisterClassA` with `Class already exists`. Distinct attempt identifiers
-  avoid that error; the opaque-backdrop test then still reported five failed readbacks. The
-  experiment was reverted because it does not yet distinguish every legitimate alpha difference
-  from a lost readback. Logs and the unapplied patch are in
-  [the campaign evidence](../bench/results/compilation/20260907/README.md).
-- Next: reproduce with the frozen baseline and candidate binaries, capture RGBA buffers for every
-  attempt, and separate context/read-target failures from legitimate opaque-backdrop alpha
-  semantics before changing the detector. Give recreated test windows unique identifiers as
-  required by `WindowOptions.identifier`, with a deterministic retry test.
-- Complete when: lost readbacks and legitimate parity differences are distinguishable, retries
-  cannot fail class registration, and both program configurations pass repeatedly.
+- Updated: 2026-09-07 16:07 — removed retry-based masking; the original rendering failure remains unresolved
+- Evidence: the compiler-speed campaign and the repository health reset both failed the stroke
+  parity test. The health reset reproduced it in the canonical executable-target JIT run under
+  compiler 396, including `tools/tests.swgs dm --all-cfg` and the focused Release parity file.
+  Instrumentation observed a complete, explicitly bound framebuffer and no OpenGL error around
+  the read. A saved image contains corrupt colored fragments, not a uniformly empty buffer.
+  The earlier campaign's [logs and experiment](../bench/results/compilation/20260907/README.md)
+  retain the initial failure and the unsuccessful alpha/retry approach.
+- Current boundary: `render.parity.test.swg` now compares the first OpenGL result with the CPU
+  reference using the existing channel and pixel budgets. It neither retries a large difference
+  nor guesses from alpha whether an image was lost. That also removes the invalid attempt to
+  register the same window class again. Alpha alone cannot identify a failure: overlap rendering
+  legitimately uses it as scratch storage.
+- Still open: subsequent pristine runs passed without a rendering fix. The stricter 17-test
+  Release JIT/native run also passes, as do a raw-OpenGL trace replay and concurrent native/JIT
+  controls. Those controls do not explain or close the original corruption.
+- Next: capture a failing call trace and the raw buffer before ownership transfer with frozen
+  sources and binaries. Check the clear/draw target, read rectangle, driver context, and returned
+  storage together so a rendering failure can be separated from compiled-call or lifetime damage.
+- Complete when: the cause is fixed, a controlled regression protects that boundary, and both
+  program configurations pass without retrying away a divergent render.
 
 ### std.pixel.022 — Measure whether the clipper should join contours during the sweep
 

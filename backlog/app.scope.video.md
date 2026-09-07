@@ -5,21 +5,6 @@ supported codecs, audio-clock synchronization, track selection, sidecar and embe
 seeking, full-screen hosting, mute, and volume. This backlog owns professional playback and
 inspection around `std/video`; codec implementation work remains in [std.video.md](std.video.md).
 
-### app.scope.video.017 — Devmode video tests fail during seek overlay and voice startup
-
-- Recorded: 2026-09-07 11:56
-- Evidence: the generated-code campaign's build 394 passed all 219 Swag Scope release tests,
-  then devmode passed 217 and failed two in `viewer.video.test.swg`: line 598 expects the seek
-  wait state and delayed loading overlay, and line 112 expects a playing voice after up to
-  5,000 one-millisecond waits (called from the test at line 663). Both runs used six workers.
-  The baseline compiler has not been run against these failures; neither a compiler regression
-  nor timing sensitivity is established. Logs are retained in
-  [the campaign evidence](../bench/results/generated-code/20260907/validation.log).
-- Next: reproduce the two tests with baseline build 390 and build 394 under comparable load,
-  then isolate the seek state or voice-start transition before changing code or expectations.
-- Complete when: the cause is identified and the reduced regressions pass in both configurations.
-- Related: app.scope.video.016
-
 ### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
 
 - Recorded: 2026-08-29 08:36

@@ -9,8 +9,8 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -148,8 +148,8 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
             MicroBuilder       builder(ctx);
             builder.emitLoadRegMem(first, MicroReg::instructionPointer(), 0, bits);
             MicroRelocation relocation;
-            const bool constantTarget = test == Case::Constant || test == Case::Shard || test == Case::Offset;
-            relocation.kind           = constantTarget ? MicroRelocation::Kind::ConstantAddress : MicroRelocation::Kind::GlobalInitAddress;
+            const bool      constantTarget = test == Case::Constant || test == Case::Shard || test == Case::Offset;
+            relocation.kind                = constantTarget ? MicroRelocation::Kind::ConstantAddress : MicroRelocation::Kind::GlobalInitAddress;
             if (constantTarget)
             {
                 relocation.constantRef    = ConstantRef(0);
@@ -177,16 +177,16 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
                 builder.placeLabel(builder.createLabel());
 
             builder.emitLoadRegMem(second, MicroReg::instructionPointer(), 0, test == Case::Width ? (bits == MicroOpBits::B32 ? MicroOpBits::B64 : MicroOpBits::B32) : bits);
-            relocation.instructionRef = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
+            relocation.instructionRef     = builder.instructions().findPreviousInstructionRef(MicroInstrRef::invalid());
             const MicroInstrRef secondRef = relocation.instructionRef;
             switch (test)
             {
-                case Case::Kind:     relocation.kind = MicroRelocation::Kind::GlobalZeroAddress; break;
-                case Case::Address:  relocation.targetAddress = 16; break;
-                case Case::Symbol:   relocation.targetSymbol = &secondSymbol; break;
+                case Case::Kind: relocation.kind = MicroRelocation::Kind::GlobalZeroAddress; break;
+                case Case::Address: relocation.targetAddress = 16; break;
+                case Case::Symbol: relocation.targetSymbol = &secondSymbol; break;
                 case Case::Constant: relocation.constantRef = ConstantRef(1); break;
-                case Case::Shard:    relocation.constantShard = 1; break;
-                case Case::Offset:   relocation.constantOffset = 16; break;
+                case Case::Shard: relocation.constantShard = 1; break;
+                case Case::Offset: relocation.constantOffset = 16; break;
                 default: break;
             }
             builder.addRelocation(relocation);
@@ -197,7 +197,7 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
             const MicroInstr* folded = builder.instructions().ptr(secondRef);
             if (!folded || folded->op != (test == Case::Same ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
                 return Result::Error;
-            bool firstRelocation = false;
+            bool firstRelocation  = false;
             bool secondRelocation = false;
             for (const MicroRelocation& current : builder.codeRelocations())
             {

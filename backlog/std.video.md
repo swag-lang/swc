@@ -15,6 +15,204 @@ bounded sound windows.
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.001 — H.264 decoding costs about twice what FFmpeg does per picture
+
+- Recorded: 2026-08-19 13:23
+- Updated: 2026-09-07 13:30 — Reconcile the remaining H.264 work with shipped packed filters and the split allocator
+- Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and now
+  decodes well above real time, but it still spends about twice the processor time per picture that
+  FFmpeg does. That margin is what a machine smaller than this one, or a stream larger than 4K,
+  would need.
+- Where it stands (2026-08-23, release, 3840x2160p25 High/CABAC, the 20.3 GB 226,479-picture
+  Filmora recording, warm over 300 consecutive pictures with the machine allowed to cool between
+  runs): 8.0, 9.9 and 13.4 ms per picture at the start, the middle and the end of the file, against
+  12.8, 17.0 and 22.0 before this pass. Serial cost, one lane and one worker: 59.6 ms per picture —
+  entropy parse 33.4, reconstruction 17.4, loop filter 8.6 — plus 13.4 for the conversion to RGB.
+  FFmpeg on the same machine needs about 27 ms of processor time per picture single-threaded and
+  about 3 ms of wall time frame-threaded.
+- One smaller container cost removed on 2026-09-01: a growing H.264 access unit was
+  default-initialized immediately before the file read overwrote every byte. On a local
+  1920x1080p25 H.264 MP4, release native, twenty warm pictures and 500 timed through
+  `GetProcessTimes`, removing that pass changed 16.125 to 15.343 ms of processor time per picture
+  and 16.371 to 15.320 ms of wall time in the quiet alternating pair. VLC 3.0.23 on the same local
+  file, software `yuv420p`, six avcodec frame threads, audio disabled and a dummy output, used
+  8.469 ms of processor time per picture over a warm twenty-second window. This path is therefore
+  1.81x VLC here, against 1.90x before the change.
+- A function-sampling follow-up on that same 1920x1080p25 MP4 explains the remaining ratio
+  (2026-09-01, release native, planar output, one AVC lane). A quiet 500-picture run took
+  15.406 ms of processor time and 15.657 ms of wall time per picture. VLC 3.0.23, forced to
+  software `yuv420p`, audio disabled and one avcodec frame thread, took 8.531 ms of processor
+  time per picture over the same warm twenty-second window: the like-for-like serial gap is
+  1.81x. Six avcodec frame threads read between 6.344 and 8.469 ms in two quiet windows; that
+  wall-clocked playback figure is useful as a player reference, but its short pipeline and the
+  machine's thermal state make it less stable than the serial comparison.
+- The sampler suspended the decoder owner at one-millisecond intervals and resolved 725 samples
+  inside the generated Swag image. By source file, CABAC took 30.3%, deblocking 15.4%,
+  macroblock parsing and bookkeeping 14.9%, generic `Array` indexing 11.3%, reconstruction
+  10.2%, and intra/inter prediction plus transforms 8.7%. The largest individual functions were
+  `Slice.residualCabac` at 12.4%, `CabacReader.decision` at 9.1%, `Array.opIndexSet` plus
+  `Array.opIndexPtr` at 11.3%, `deblockMb` at 5.1%, and `bookkeepMb` at 4.0%. The MP4 reader does
+  not appear in the decoder-thread profile: after the access-unit initialization pass above was
+  removed, the large difference is the H.264 implementation rather than ISO-BMFF parsing.
+- This sample independently points to the same three causes as the 4K stage probes. FFmpeg keeps
+  neighboring macroblock state in a small local cache while this decoder repeatedly reaches into
+  picture-wide arrays; its CABAC kernels are not paying the generated prologue and spill costs
+  recorded in compiler.optimization.010; and its reconstruction and loop filters use mature SIMD
+  kernels rather than this decoder's mostly scalar small functions. The next useful decoder pass
+  therefore remains a per-macroblock neighbor/state cache, followed by packed deblocking. The
+  CABAC half remains primarily a compiler register-allocation task, not another source-level
+  rearrangement of the arithmetic loop.
+- What the gap is no longer responsible for (2026-08-24, release, the same recording played in
+  Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
+  limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
+  in every run, and handing one picture over cost 3 to 8 ms. What limited the picture rate was the
+  presentation path — see std.gui.049 in std.gui.md — and two defects in the player, both fixed:
+  the run-ahead was taken with an unstable array removal, which left eight of its ten slots holding
+  pictures that would never be shown, and presentation was capped at one picture per turn of the
+  application loop, which let the picture fall up to 79 frames behind the clock without anything
+  reporting it. Playing the stream is therefore no longer evidence about this entry; measure the
+  serial cost of one picture instead.
+- The conversion to RGB has since left the decode path entirely: `Video.Reader.decodeFramePlanesInto`
+  hands the reconstructed planes over as they are, `Pixel.PixelFormat.Yuv420` carries them as a
+  texture, and the renderer converts where it samples. Every figure below that adds a conversion cost
+  to a picture is therefore describing a path the player no longer takes.
+- The mix depends on the stream, and one class of stream is not entropy-bound at all (2026-08-24,
+  release, a 2496x1440 High/CABAC screen recording, one AVC lane so the figure is serial).
+  Measured by disabling one stage at a time rather than by timing each: motion compensation is 44
+  percent of a picture, the loop filter 10, and the whole entropy parse plus per-macroblock
+  bookkeeping the remaining 46. Most macroblocks are skipped, and a skipped macroblock still costs
+  a full 16x16 luma and two 8x8 chroma predictions. A per-macroblock timer cannot see this: on
+  this machine `Time.monotonicTicks` costs enough that three calls per macroblock quadruple the
+  decode, which is how the first attempt read its own overhead back as the answer.
+- What that mix bought when the compiler was fixed rather than the decoder (2026-08-24): 10.1 ->
+  8.5 ms of processor time per picture on that recording, the minimum of five interleaved pairs,
+  every pair in the same direction. Four backend changes, none of them specific to video:
+  mem2reg was blind to the 128-bit vector load and store, so one `#simd` temporary made the whole
+  function unpromotable and every intermediate vector, stride and trip count round-tripped
+  through the frame; post-RA loop hoisting treated a store through a program pointer as able to
+  alias the frame, which it cannot when no address into the frame exists; the frame register is
+  no longer set up in a function that names none and whose stack shape the unwind codes already
+  describe; and `Swag.bitCountLz`/`Swag.bitCountTz` no longer branch. See
+  [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+  for what the same dumps say is left.
+- Do not repeat this measurement of the call cost: marking `CabacReader.decision` `#[Swag.Inline]`
+  reads as a 32 percent gain under a harness that lets the AVC lanes run, and as nothing at all
+  (1.02) once the decode is serial. The first figure was the lanes rebalancing, not the call
+  overhead disappearing.
+- Measured shape of the remaining gap (2026-08-23, release, 3840x2160p25 High/CABAC, one lane and
+  one worker so the figures are processor time for one picture): entropy parse 37.7 ms,
+  reconstruction 19.7 ms, loop filter 9.6 ms, and 15.7 ms more for the conversion to RGB, which
+  FFmpeg's 27 ms does not contain at all. Reconstruction splits into motion compensation 7.5,
+  luma residual 4.1, chroma residual 3.1, intra prediction 2.5. One picture decodes 904,000 bins:
+  568,603 context-coded, 310,298 through the significance-map path, 25,095 bypass. At 37.7 ms the
+  parse therefore spends roughly 40 ns per bin against the few nanoseconds a tuned decoder needs,
+  and that ratio, not any one stage, is the distance to FFmpeg.
+- How to measure this at all (2026-08-23). Wall time on this file is worthless on its own: the same
+  window read 25.8 ms per picture alone and 67.7 ms as the fourth point of a five-point sweep in one
+  process, because the part measures a thermal state, not a stream. Measure one point per process
+  with the machine cooled, and read processor time, which held to about ten percent across runs that
+  moved wall time threefold. There is no processor-time call in `Core`; a probe can declare
+  `GetProcessTimes` itself. A synchronous decode loop also reports a shape that is not a defect: a
+  picture already in the reorder set costs about 2 ms and one that has to be decoded costs 100 to
+  400, so the sequence looks like spikes, the spike positions are fixed by the stream and identical
+  across runs, and only the mean says anything. The player never sees them, since it decodes on its
+  own producer thread into a queue.
+- Where the serial cost goes, measured per macroblock over the inline path (2026-08-23, release,
+  3840x2160 High/CABAC, one lane; the split held to within one point between `fast-debug` and
+  `release`): entropy parse 41 percent, per-macroblock bookkeeping 8, reconstruction 27, and row
+  completion 22 — of which 98 percent is the loop filter, edge extension and progress publication
+  together costing under one.
+- What the lanes actually buy (2026-08-23, release, three quarters into the file, warm): one lane
+  111 ms per picture, four 54, eight 47, eleven 24 to 27, sixteen no better than eleven. Processor
+  time per picture over the same range rises from 112 ms to 200-230. Eleven lanes therefore keep
+  about 8.7 of this machine's 22 threads busy and the decoder is bandwidth-bound there, not
+  core-bound — which is why the two attempts below, both of which only move work onto an idle
+  thread, changed nothing. Less work and less memory traffic per picture is the only direction left.
+- Two more attempts measured and rejected (2026-08-23, release, three quarters into the file):
+  routing single-slice pictures through the banded reconstruction path that multi-slice pictures
+  already use, which is four times *worse* (195 ms per picture against 49) because a picture that
+  publishes its rows only at the end stops every lane predicting from it — the inline path exists
+  for that reason and this should not be tried again; and handing the loop filter of each completed
+  row to `Core.Jobs`, per row and batched four and sixteen rows, which is neutral (best of three,
+  warm: 21.0 to 24.9 ms against 22.6 to 23.3 with the filter inside the entropy pass) and costs
+  about a tenth more processor time in scheduling.
+- A fifth attempt, kept but worth much less than its instruction count suggests: hold `range` and
+  `low` in locals for the length of one bin, and share renormalization between the MPS and LPS
+  outcomes instead of writing it twice. The context write in between stores into the same
+  structure as the arithmetic registers, so left in place they were reloaded after every step —
+  the emitted code read `range` five times and wrote it three, for one bin. `CabacReader.decision`
+  goes from 217 to 143 emitted instructions, a third fewer, and it is byte-exact.
+  **The time barely moves**: five interleaved A/B rounds on a quiet machine give 96.4 ms against
+  95.4 ms of processor time per picture, about one percent, and the native halves alone are
+  93.6 against 93.9 — inside the noise. An earlier three-run reading said four percent and was
+  contaminated by another agent building; do not trust an unpaired figure here.
+  This is the same verdict the shift-guard elision got in
+  [compiler.optimization.006](compiler.optimization.md#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
+  the bin is latency-bound on its serial chain — context byte, table load, subtract, compare,
+  context store — so removing a third of its instructions buys almost nothing. The change is kept
+  because it is strictly less code and less memory traffic, not because it made the decoder fast.
+- The same hoisting applied to `motionAt` and `mbAvailable` — resolving the neighbor macroblock
+  once instead of re-addressing it through two pointers at each of the four questions asked of
+  it — measured at nothing beyond the noise floor, and is kept only because it is plainly less
+  work. Do not expect the per-4x4 grid caching below to pay merely because it removes accesses.
+- What the emitted code says is left, and it is not a source shape:
+  [compiler.optimization.010](compiler.optimization.md#compileroptimization010--a-short-branching-function-spills-with-the-whole-register-file-free).
+  After the hoisting the bin still opens with seven callee-saved pushes and a 160-byte frame, and
+  still spills three values across its one branch with sixteen integer registers available. At
+  roughly 568,000 context-coded bins per picture that prologue alone is about nine million
+  instructions. The parse will not approach FFmpeg's until the register allocator stops doing
+  this, so the entropy half of this entry is now waiting on that work rather than on another
+  attempt here.
+- Measuring this at all, in the shape that worked: a `#test` in the module that opens the real
+  recording, decodes twenty pictures to warm the lanes and the file cache, then decodes 250 more
+  and reports `GetProcessTimes` divided by the count. Jobs are synchronous in a test process, so
+  `laneCount` is one and the figure is serial cost, which is what every change here targets.
+  Wall time equals processor time there, and both are worthless while another agent builds: one
+  contended run read 128 ms against a 90 ms baseline. Alternate the two variants in one session
+  and compare means, never a single pair.
+- Four attempts on that parse were measured and rejected, each byte-exact and each neutral or
+  slightly worse (processor time per picture, best of three alternating runs on a quiet machine,
+  74.6 ms for the unmodified decoder):
+  copying the picture geometry onto the slice so neighbor lookups stop reaching through the active
+  sequence set twice per access (74.6 -> 74.4, neutral); resolving the left and top neighbors once
+  per macroblock instead of at each of the roughly 295,000 queries a picture makes — 115,206
+  through `motionAt` and 179,988 through `mbAvailable` — which measured 6% *worse* because the
+  eager resolution is paid by every skipped macroblock too (74.6 -> 81.3); making the generic
+  CABAC decision branchless with the mask select the significance-map decision already uses, with
+  `Swag.PrintMicro` confirming the fifty-fifty branch left the emitted code (74.6 -> 77.4); and
+  holding the two arithmetic registers in locals across a complete residual block, levels and
+  bypass included, which is the technique that pays for the significance map (74.6 -> 76.3).
+  The cost is therefore not redundant work at the call sites and not misprediction: it is what
+  each individual operation compiles to. The next attempt should start from the emitted code of
+  one bin rather than from the source.
+- The remaining serial cost is the entropy parse, and more than half of it is not the coefficients:
+  the residual decoder is about 15 ms and the prediction, motion and bookkeeping around it about
+  18. Both read and write the picture-wide per-4x4-block grids — motion, reference indices,
+  differences, nonzero counts — one scattered access at a time. FFmpeg reads its neighbors once per
+  macroblock into a small cache and works from that. That is the next lever, and the largest one
+  left.
+- Current boundary: `decode/h264/deblock.swg` already packs weak filtering in both directions,
+  strong horizontal luma/chroma, and strong vertical luma through a transposed tile. The remaining
+  strong vertical chroma path is scalar and is tracked by cpu.simd.023. Do not implement those
+  shipped filters again from the historical ordering above.
+- Next: rebaseline the serial decode and its stages with the current split allocator before
+  ranking the remaining work. Recheck the neighbor/state cache, strong vertical chroma, remaining
+  transform/sample work, and byte-run significance decoding against the current code and the
+  differential tests in `h264.deblock.test.swg` and `h264.transform.test.swg`. Historical spill
+  counts do not establish today's compiler share.
+- Already measured and rejected, so they do not need trying again: inlining every CABAC decision
+  (register pressure regresses the parser, unlike the two significance decisions, which pay);
+  branchful CABAC decisions; quotient-based bypass runs; four-byte row copies in `bookkeepMb`;
+  publishing co-located motion in a parallel pass instead of on the entropy thread; a 16-bit SWAR
+  six-tap (expanding byte inputs costs more than the packed arithmetic saves on this backend); and
+  recasting the RGB conversion as `pmaddwd` pair sums — that last verdict predates `Core.Math.Simd`
+  becoming inlinable across modules and should be re-measured before it is trusted.
+- A trap for anything that moves reconstruction away from the parse again: Intra_16x16 and chroma
+  reconstruction read residual blocks the entropy decoders never parsed, so the per-macroblock
+  residual record must stay cleared (see `prepareMb`).
+- Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
+  machine.
+
 ### std.video.010 — Decode VP9 pictures in Matroska and WebM
 
 - Recorded: 2026-09-06 18:27
@@ -317,198 +515,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   codec of that size is a poor trade. Transcoding that file to a supported codec is an
   alternative; changing only its container does not make the RV40 pictures decodable.
 - Related: app.scope.video.015 in [app.scope.video.md](app.scope.video.md)
-
-### std.video.001 — H.264 decoding costs about twice what FFmpeg does per picture
-
-- Recorded: 2026-08-19 13:23
-- Updated: 2026-09-01 18:23 — git: Document VLC H.264 performance gap
-- Intent: the decoder is byte-exact against FFmpeg on Baseline, Main, and High streams and now
-  decodes well above real time, but it still spends about twice the processor time per picture that
-  FFmpeg does. That margin is what a machine smaller than this one, or a stream larger than 4K,
-  would need.
-- Where it stands (2026-08-23, release, 3840x2160p25 High/CABAC, the 20.3 GB 226,479-picture
-  Filmora recording, warm over 300 consecutive pictures with the machine allowed to cool between
-  runs): 8.0, 9.9 and 13.4 ms per picture at the start, the middle and the end of the file, against
-  12.8, 17.0 and 22.0 before this pass. Serial cost, one lane and one worker: 59.6 ms per picture —
-  entropy parse 33.4, reconstruction 17.4, loop filter 8.6 — plus 13.4 for the conversion to RGB.
-  FFmpeg on the same machine needs about 27 ms of processor time per picture single-threaded and
-  about 3 ms of wall time frame-threaded.
-- One smaller container cost removed on 2026-09-01: a growing H.264 access unit was
-  default-initialized immediately before the file read overwrote every byte. On a local
-  1920x1080p25 H.264 MP4, release native, twenty warm pictures and 500 timed through
-  `GetProcessTimes`, removing that pass changed 16.125 to 15.343 ms of processor time per picture
-  and 16.371 to 15.320 ms of wall time in the quiet alternating pair. VLC 3.0.23 on the same local
-  file, software `yuv420p`, six avcodec frame threads, audio disabled and a dummy output, used
-  8.469 ms of processor time per picture over a warm twenty-second window. This path is therefore
-  1.81x VLC here, against 1.90x before the change.
-- A function-sampling follow-up on that same 1920x1080p25 MP4 explains the remaining ratio
-  (2026-09-01, release native, planar output, one AVC lane). A quiet 500-picture run took
-  15.406 ms of processor time and 15.657 ms of wall time per picture. VLC 3.0.23, forced to
-  software `yuv420p`, audio disabled and one avcodec frame thread, took 8.531 ms of processor
-  time per picture over the same warm twenty-second window: the like-for-like serial gap is
-  1.81x. Six avcodec frame threads read between 6.344 and 8.469 ms in two quiet windows; that
-  wall-clocked playback figure is useful as a player reference, but its short pipeline and the
-  machine's thermal state make it less stable than the serial comparison.
-- The sampler suspended the decoder owner at one-millisecond intervals and resolved 725 samples
-  inside the generated Swag image. By source file, CABAC took 30.3%, deblocking 15.4%,
-  macroblock parsing and bookkeeping 14.9%, generic `Array` indexing 11.3%, reconstruction
-  10.2%, and intra/inter prediction plus transforms 8.7%. The largest individual functions were
-  `Slice.residualCabac` at 12.4%, `CabacReader.decision` at 9.1%, `Array.opIndexSet` plus
-  `Array.opIndexPtr` at 11.3%, `deblockMb` at 5.1%, and `bookkeepMb` at 4.0%. The MP4 reader does
-  not appear in the decoder-thread profile: after the access-unit initialization pass above was
-  removed, the large difference is the H.264 implementation rather than ISO-BMFF parsing.
-- This sample independently points to the same three causes as the 4K stage probes. FFmpeg keeps
-  neighboring macroblock state in a small local cache while this decoder repeatedly reaches into
-  picture-wide arrays; its CABAC kernels are not paying the generated prologue and spill costs
-  recorded in compiler.optimization.010; and its reconstruction and loop filters use mature SIMD
-  kernels rather than this decoder's mostly scalar small functions. The next useful decoder pass
-  therefore remains a per-macroblock neighbor/state cache, followed by packed deblocking. The
-  CABAC half remains primarily a compiler register-allocation task, not another source-level
-  rearrangement of the arithmetic loop.
-- What the gap is no longer responsible for (2026-08-24, release, the same recording played in
-  Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
-  limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
-  in every run, and handing one picture over cost 3 to 8 ms. What limited the picture rate was the
-  presentation path — see std.gui.049 in std.gui.md — and two defects in the player, both fixed:
-  the run-ahead was taken with an unstable array removal, which left eight of its ten slots holding
-  pictures that would never be shown, and presentation was capped at one picture per turn of the
-  application loop, which let the picture fall up to 79 frames behind the clock without anything
-  reporting it. Playing the stream is therefore no longer evidence about this entry; measure the
-  serial cost of one picture instead.
-- The conversion to RGB has since left the decode path entirely: `Video.Reader.decodeFramePlanesInto`
-  hands the reconstructed planes over as they are, `Pixel.PixelFormat.Yuv420` carries them as a
-  texture, and the renderer converts where it samples. Every figure below that adds a conversion cost
-  to a picture is therefore describing a path the player no longer takes.
-- The mix depends on the stream, and one class of stream is not entropy-bound at all (2026-08-24,
-  release, a 2496x1440 High/CABAC screen recording, one AVC lane so the figure is serial).
-  Measured by disabling one stage at a time rather than by timing each: motion compensation is 44
-  percent of a picture, the loop filter 10, and the whole entropy parse plus per-macroblock
-  bookkeeping the remaining 46. Most macroblocks are skipped, and a skipped macroblock still costs
-  a full 16x16 luma and two 8x8 chroma predictions. A per-macroblock timer cannot see this: on
-  this machine `Time.monotonicTicks` costs enough that three calls per macroblock quadruple the
-  decode, which is how the first attempt read its own overhead back as the answer.
-- What that mix bought when the compiler was fixed rather than the decoder (2026-08-24): 10.1 ->
-  8.5 ms of processor time per picture on that recording, the minimum of five interleaved pairs,
-  every pair in the same direction. Four backend changes, none of them specific to video:
-  mem2reg was blind to the 128-bit vector load and store, so one `#simd` temporary made the whole
-  function unpromotable and every intermediate vector, stride and trip count round-tripped
-  through the frame; post-RA loop hoisting treated a store through a program pointer as able to
-  alias the frame, which it cannot when no address into the frame exists; the frame register is
-  no longer set up in a function that names none and whose stack shape the unwind codes already
-  describe; and `Swag.bitCountLz`/`Swag.bitCountTz` no longer branch. See
-  [compiler.optimization.011](compiler.optimization.md#compileroptimization011--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
-  for what the same dumps say is left.
-- Do not repeat this measurement of the call cost: marking `CabacReader.decision` `#[Swag.Inline]`
-  reads as a 32 percent gain under a harness that lets the AVC lanes run, and as nothing at all
-  (1.02) once the decode is serial. The first figure was the lanes rebalancing, not the call
-  overhead disappearing.
-- Measured shape of the remaining gap (2026-08-23, release, 3840x2160p25 High/CABAC, one lane and
-  one worker so the figures are processor time for one picture): entropy parse 37.7 ms,
-  reconstruction 19.7 ms, loop filter 9.6 ms, and 15.7 ms more for the conversion to RGB, which
-  FFmpeg's 27 ms does not contain at all. Reconstruction splits into motion compensation 7.5,
-  luma residual 4.1, chroma residual 3.1, intra prediction 2.5. One picture decodes 904,000 bins:
-  568,603 context-coded, 310,298 through the significance-map path, 25,095 bypass. At 37.7 ms the
-  parse therefore spends roughly 40 ns per bin against the few nanoseconds a tuned decoder needs,
-  and that ratio, not any one stage, is the distance to FFmpeg.
-- How to measure this at all (2026-08-23). Wall time on this file is worthless on its own: the same
-  window read 25.8 ms per picture alone and 67.7 ms as the fourth point of a five-point sweep in one
-  process, because the part measures a thermal state, not a stream. Measure one point per process
-  with the machine cooled, and read processor time, which held to about ten percent across runs that
-  moved wall time threefold. There is no processor-time call in `Core`; a probe can declare
-  `GetProcessTimes` itself. A synchronous decode loop also reports a shape that is not a defect: a
-  picture already in the reorder set costs about 2 ms and one that has to be decoded costs 100 to
-  400, so the sequence looks like spikes, the spike positions are fixed by the stream and identical
-  across runs, and only the mean says anything. The player never sees them, since it decodes on its
-  own producer thread into a queue.
-- Where the serial cost goes, measured per macroblock over the inline path (2026-08-23, release,
-  3840x2160 High/CABAC, one lane; the split held to within one point between `fast-debug` and
-  `release`): entropy parse 41 percent, per-macroblock bookkeeping 8, reconstruction 27, and row
-  completion 22 — of which 98 percent is the loop filter, edge extension and progress publication
-  together costing under one.
-- What the lanes actually buy (2026-08-23, release, three quarters into the file, warm): one lane
-  111 ms per picture, four 54, eight 47, eleven 24 to 27, sixteen no better than eleven. Processor
-  time per picture over the same range rises from 112 ms to 200-230. Eleven lanes therefore keep
-  about 8.7 of this machine's 22 threads busy and the decoder is bandwidth-bound there, not
-  core-bound — which is why the two attempts below, both of which only move work onto an idle
-  thread, changed nothing. Less work and less memory traffic per picture is the only direction left.
-- Two more attempts measured and rejected (2026-08-23, release, three quarters into the file):
-  routing single-slice pictures through the banded reconstruction path that multi-slice pictures
-  already use, which is four times *worse* (195 ms per picture against 49) because a picture that
-  publishes its rows only at the end stops every lane predicting from it — the inline path exists
-  for that reason and this should not be tried again; and handing the loop filter of each completed
-  row to `Core.Jobs`, per row and batched four and sixteen rows, which is neutral (best of three,
-  warm: 21.0 to 24.9 ms against 22.6 to 23.3 with the filter inside the entropy pass) and costs
-  about a tenth more processor time in scheduling.
-- A fifth attempt, kept but worth much less than its instruction count suggests: hold `range` and
-  `low` in locals for the length of one bin, and share renormalization between the MPS and LPS
-  outcomes instead of writing it twice. The context write in between stores into the same
-  structure as the arithmetic registers, so left in place they were reloaded after every step —
-  the emitted code read `range` five times and wrote it three, for one bin. `CabacReader.decision`
-  goes from 217 to 143 emitted instructions, a third fewer, and it is byte-exact.
-  **The time barely moves**: five interleaved A/B rounds on a quiet machine give 96.4 ms against
-  95.4 ms of processor time per picture, about one percent, and the native halves alone are
-  93.6 against 93.9 — inside the noise. An earlier three-run reading said four percent and was
-  contaminated by another agent building; do not trust an unpaired figure here.
-  This is the same verdict the shift-guard elision got in
-  [compiler.optimization.006](compiler.optimization.md#compileroptimization006--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
-  the bin is latency-bound on its serial chain — context byte, table load, subtract, compare,
-  context store — so removing a third of its instructions buys almost nothing. The change is kept
-  because it is strictly less code and less memory traffic, not because it made the decoder fast.
-- The same hoisting applied to `motionAt` and `mbAvailable` — resolving the neighbor macroblock
-  once instead of re-addressing it through two pointers at each of the four questions asked of
-  it — measured at nothing beyond the noise floor, and is kept only because it is plainly less
-  work. Do not expect the per-4x4 grid caching below to pay merely because it removes accesses.
-- What the emitted code says is left, and it is not a source shape:
-  [compiler.optimization.010](compiler.optimization.md#compileroptimization010--a-short-branching-function-spills-with-the-whole-register-file-free).
-  After the hoisting the bin still opens with seven callee-saved pushes and a 160-byte frame, and
-  still spills three values across its one branch with sixteen integer registers available. At
-  roughly 568,000 context-coded bins per picture that prologue alone is about nine million
-  instructions. The parse will not approach FFmpeg's until the register allocator stops doing
-  this, so the entropy half of this entry is now waiting on that work rather than on another
-  attempt here.
-- Measuring this at all, in the shape that worked: a `#test` in the module that opens the real
-  recording, decodes twenty pictures to warm the lanes and the file cache, then decodes 250 more
-  and reports `GetProcessTimes` divided by the count. Jobs are synchronous in a test process, so
-  `laneCount` is one and the figure is serial cost, which is what every change here targets.
-  Wall time equals processor time there, and both are worthless while another agent builds: one
-  contended run read 128 ms against a 90 ms baseline. Alternate the two variants in one session
-  and compare means, never a single pair.
-- Four attempts on that parse were measured and rejected, each byte-exact and each neutral or
-  slightly worse (processor time per picture, best of three alternating runs on a quiet machine,
-  74.6 ms for the unmodified decoder):
-  copying the picture geometry onto the slice so neighbor lookups stop reaching through the active
-  sequence set twice per access (74.6 -> 74.4, neutral); resolving the left and top neighbors once
-  per macroblock instead of at each of the roughly 295,000 queries a picture makes — 115,206
-  through `motionAt` and 179,988 through `mbAvailable` — which measured 6% *worse* because the
-  eager resolution is paid by every skipped macroblock too (74.6 -> 81.3); making the generic
-  CABAC decision branchless with the mask select the significance-map decision already uses, with
-  `Swag.PrintMicro` confirming the fifty-fifty branch left the emitted code (74.6 -> 77.4); and
-  holding the two arithmetic registers in locals across a complete residual block, levels and
-  bypass included, which is the technique that pays for the significance map (74.6 -> 76.3).
-  The cost is therefore not redundant work at the call sites and not misprediction: it is what
-  each individual operation compiles to. The next attempt should start from the emitted code of
-  one bin rather than from the source.
-- The remaining serial cost is the entropy parse, and more than half of it is not the coefficients:
-  the residual decoder is about 15 ms and the prediction, motion and bookkeeping around it about
-  18. Both read and write the picture-wide per-4x4-block grids — motion, reference indices,
-  differences, nonzero counts — one scattered access at a time. FFmpeg reads its neighbors once per
-  macroblock into a small cache and works from that. That is the next lever, and the largest one
-  left.
-- After it, in expected order of value: packed strong and vertical deblocking (the transpose is the
-  hard half), a profitable packed inverse-transform strategy, and a true byte-run significance
-  decoder beyond the targeted inlining already in place.
-- Already measured and rejected, so they do not need trying again: inlining every CABAC decision
-  (register pressure regresses the parser, unlike the two significance decisions, which pay);
-  branchful CABAC decisions; quotient-based bypass runs; four-byte row copies in `bookkeepMb`;
-  publishing co-located motion in a parallel pass instead of on the entropy thread; a 16-bit SWAR
-  six-tap (expanding byte inputs costs more than the packed arithmetic saves on this backend); and
-  recasting the RGB conversion as `pmaddwd` pair sums — that last verdict predates `Core.Math.Simd`
-  becoming inlinable across modules and should be re-measured before it is trusted.
-- A trap for anything that moves reconstruction away from the parse again: Intra_16x16 and chroma
-  reconstruction read residual blocks the entropy decoders never parsed, so the per-macroblock
-  residual record must stay cleared (see `prepareMb`).
-- Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
-  machine.
 
 ### std.video.002 — Refreshing a bounded sound window interrupts playback
 

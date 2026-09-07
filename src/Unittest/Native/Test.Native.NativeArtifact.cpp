@@ -683,7 +683,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
         return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "interior allocation dependency was not preserved");
 
     // Adjacent allocation objects must each retain only their own relocation range.
-    const auto nestedRData = std::ranges::find(nestedObject.sections, Utf8(".rdata"), &CoffInputSection::name);
+    const auto nestedRData  = std::ranges::find(nestedObject.sections, Utf8(".rdata"), &CoffInputSection::name);
     const Utf8 stringSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, stringOffset);
     if (nestedRData == nestedObject.sections.end() || nestedRData->relocs.size() != 1 || nestedRData->relocs.front().symbolName != stringSymbol || nestedRData->bytes.readLe64(0) != 0)
         return Result::Error;
